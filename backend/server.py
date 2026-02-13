@@ -12,6 +12,10 @@ from datetime import datetime, timezone, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import uuid
+from email_templates import (
+    EmailTemplate, EmailTemplateCreate, FollowUpReminder, FollowUpReminderCreate,
+    generate_email_from_template, check_lead_for_suggestions
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
