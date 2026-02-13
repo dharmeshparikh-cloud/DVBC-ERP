@@ -111,14 +111,24 @@ class Lead(BaseModel):
     enriched_at: Optional[datetime] = None
 
 class LeadCreate(BaseModel):
+    lead_owner: Optional[str] = None
     first_name: str
     last_name: str
     company: str
+    contact_person: Optional[str] = None
     job_title: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     linkedin_url: Optional[str] = None
+    street: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    country: Optional[str] = None
+    lead_source: Optional[str] = None
     status: Optional[str] = LeadStatus.NEW
+    sales_status: Optional[str] = None
+    product_interest: Optional[str] = None
     source: Optional[str] = None
     notes: Optional[str] = None
     assigned_to: Optional[str] = None
