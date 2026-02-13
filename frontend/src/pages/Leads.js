@@ -321,6 +321,7 @@ const Leads = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {leads.map((lead) => {
             const scoreBadge = getScoreBadge(lead.lead_score || 0);
+            const leadSuggestions = suggestions[lead.id] || [];
             return (
               <Card
                 key={lead.id}
@@ -359,6 +360,32 @@ const Leads = () => {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="text-sm font-medium text-zinc-950">{lead.company}</div>
+                  
+                  {/* Automated Suggestions */}
+                  {leadSuggestions.length > 0 && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-sm">
+                      <div className="flex items-start gap-2">
+                        <TrendingUp className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+                        <div className="flex-1">
+                          <div className="text-xs font-semibold text-blue-900 mb-1">
+                            Suggested Action
+                          </div>
+                          <p className="text-xs text-blue-700 leading-relaxed">
+                            {leadSuggestions[0].suggestion_message}
+                          </p>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              onClick={() => window.location.href = '/email-templates'}
+                              className="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-sm hover:bg-blue-700 transition-colors"
+                            >
+                              View Templates
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {lead.email && (
                     <div className="flex items-center gap-2 text-sm text-zinc-600">
                       <Mail className="w-3 h-3" strokeWidth={1.5} />
