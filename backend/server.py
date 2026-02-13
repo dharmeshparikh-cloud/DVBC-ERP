@@ -1050,6 +1050,175 @@ async def bulk_upload_leads(
         "errors": errors
     }
 
+@api_router.post("/agreement-templates", response_model=AgreementTemplate)
+async def create_agreement_template(
+    template_create: AgreementTemplateCreate,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    template_dict = template_create.model_dump()
+    
+    # Auto-extract variables if not provided
+    if not template_dict.get('variables'):
+        template_dict['variables'] = extract_variables_from_template(template_dict['template_content'])
+    
+    template = AgreementTemplate(**template_dict, created_by=current_user.id)
+    
+    doc = template.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.agreement_templates.insert_one(doc)
+    return template
+
+@api_router.get("/agreement-templates")
+async def get_agreement_templates(current_user: User = Depends(get_current_user)):
+    templates = await db.agreement_templates.find({}, {"_id": 0}).to_list(1000)
+    
+    for template in templates:
+        if isinstance(template.get('created_at'), str):
+            template['created_at'] = datetime.fromisoformat(template['created_at'])
+        if isinstance(template.get('updated_at'), str):
+            template['updated_at'] = datetime.fromisoformat(template['updated_at'])
+    
+    return templates
+
+@api_router.post("/email-notification-templates", response_model=EmailNotificationTemplate)
+async def create_email_template(
+    template_create: EmailNotificationTemplateCreate,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    template_dict = template_create.model_dump()
+    
+    # Auto-extract variables
+    all_content = template_dict['subject'] + template_dict['body']
+    template_dict['variables'] = extract_variables_from_template(all_content)
+    
+    template = EmailNotificationTemplate(**template_dict, created_by=current_user.id)
+    
+    doc = template.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.email_notification_templates.insert_one(doc)
+    return template
+
+@api_router.get("/email-notification-templates")
+async def get_email_templates(
+    template_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if template_type:
+        query['template_type'] = template_type
+    
+    templates = await db.email_notification_templates.find(query, {"_id": 0}).to_list(1000)
+    
+    for template in templates:
+        if isinstance(template.get('created_at'), str):
+            template['created_at'] = datetime.fromisoformat(template['created_at'])
+        if isinstance(template.get('updated_at'), str):
+            template['updated_at'] = datetime.fromisoformat(template['updated_at'])
+    
+    return templates
+
+@api_router.get("/email-notification-templates/default")
+async def get_default_email_templates():
+    \"\"\"Get default email templates\"\"\"
+    return DEFAULT_AGREEMENT_EMAIL_TEMPLATES
+
+@api_router.post("/agreements/{agreement_id}/send-email")
+async def send_agreement_email(
+    agreement_id: str,
+    email_data: AgreementEmailData,
+    current_user: User = Depends(get_current_user)
+):
+    \"\"\"Send agreement to client via email\"\"\"
+    
+    # Fetch agreement
+    agreement_data = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement_data:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Fetch related data
+    lead_data = await db.leads.find_one({"id": agreement_data['lead_id']}, {"_id": 0})
+    if not lead_data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    quotation_data = await db.quotations.find_one({"id": agreement_data['quotation_id']}, {"_id": 0})
+    if not quotation_data:
+        quotation_data = {}
+    
+    # Get email template
+    template_data = await db.email_notification_templates.find_one(
+        {"id": email_data.email_template_id}, 
+        {"_id": 0}
+    )
+    if not template_data:
+        raise HTTPException(status_code=404, detail="Email template not found")
+    
+    # Prepare substitution data
+    substitution_data = prepare_agreement_email_data(
+        agreement_data,
+        lead_data,
+        quotation_data,
+        current_user.model_dump()
+    )
+    
+    # Use custom subject/body if provided, otherwise use template
+    subject = email_data.custom_subject or template_data['subject']
+    body = email_data.custom_body or template_data['body']
+    
+    # Substitute variables
+    final_subject = substitute_variables(subject, substitution_data)
+    final_body = substitute_variables(body, substitution_data)
+    
+    # Initialize email service with user's email
+    # For testing, use mock service. In production, use real SMTP
+    use_mock = os.environ.get('USE_MOCK_EMAIL', 'true').lower() == 'true'
+    
+    if use_mock:
+        EmailServiceClass = create_mock_email_service()
+    else:
+        EmailServiceClass = EmailService
+    
+    email_service = EmailServiceClass(
+        sender_email=current_user.email,
+        sender_password=None  # Will use environment variable SMTP_PASSWORD
+    )
+    
+    # Send email
+    result = email_service.send_email(
+        to_email=email_data.recipient_email,
+        subject=final_subject,
+        body=final_body,
+        cc_emails=email_data.cc_emails,
+        attachment_path=email_data.attachment_url,
+        attachment_name=f\"Agreement_{agreement_data['agreement_number']}.pdf\"
+    )
+    
+    # Log email send
+    await db.communication_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "lead_id": agreement_data['lead_id'],
+        "communication_type": "email",
+        "notes": f\"Agreement email sent: {final_subject}\",
+        "outcome": "sent" if result['success'] else "failed",
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        **result,
+        "final_subject": final_subject,
+        "final_body": final_body
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
