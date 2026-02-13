@@ -1207,7 +1207,7 @@ async def send_agreement_email(
         "id": str(uuid.uuid4()),
         "lead_id": agreement_data['lead_id'],
         "communication_type": "email",
-        "notes": f\"Agreement email sent: {final_subject}\",
+        "notes": f"Agreement email sent: {final_subject}",
         "outcome": "sent" if result['success'] else "failed",
         "created_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat()
