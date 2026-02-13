@@ -79,6 +79,13 @@ const Leads = () => {
     return statusStyles[status] || statusStyles.new;
   };
 
+  const getScoreBadge = (score) => {
+    if (score >= 80) return { color: 'bg-emerald-600', label: 'Hot', text: 'text-white' };
+    if (score >= 60) return { color: 'bg-blue-600', label: 'Warm', text: 'text-white' };
+    if (score >= 40) return { color: 'bg-yellow-600', label: 'Medium', text: 'text-white' };
+    return { color: 'bg-zinc-400', label: 'Cold', text: 'text-white' };
+  };
+
   const canEdit = user?.role !== 'manager';
 
   return (
