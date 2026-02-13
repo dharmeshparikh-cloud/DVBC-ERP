@@ -1,0 +1,332 @@
+import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
+import { API, AuthContext } from '../App';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Plus, Calendar, Users, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+
+const Projects = () => {
+  const { user } = useContext(AuthContext);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    client_name: '',
+    start_date: '',
+    end_date: '',
+    total_meetings_committed: 0,
+    budget: '',
+    notes: '',
+  });
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const response = await axios.get(`${API}/projects`);
+      setProjects(response.data);
+    } catch (error) {
+      toast.error('Failed to fetch projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const projectData = {
+        ...formData,
+        start_date: new Date(formData.start_date).toISOString(),
+        end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
+        total_meetings_committed: parseInt(formData.total_meetings_committed) || 0,
+        budget: formData.budget ? parseFloat(formData.budget) : null,
+      };
+      await axios.post(`${API}/projects`, projectData);
+      toast.success('Project created successfully');
+      setDialogOpen(false);
+      setFormData({
+        name: '',
+        client_name: '',
+        start_date: '',
+        end_date: '',
+        total_meetings_committed: 0,
+        budget: '',
+        notes: '',
+      });
+      fetchProjects();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create project');
+    }
+  };
+
+  const canEdit = user?.role !== 'manager';
+
+  return (
+    <div data-testid="projects-page">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+            Projects
+          </h1>
+          <p className="text-zinc-500">Track your consulting projects and deliverables</p>
+        </div>
+        {canEdit && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                data-testid="add-project-button"
+                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+              >
+                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                Create Project
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+                  Create New Project
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium text-zinc-950">
+                    Project Name *
+                  </Label>
+                  <Input
+                    id="name"
+                    data-testid="project-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    className="rounded-sm border-zinc-200"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="client_name" className="text-sm font-medium text-zinc-950">
+                    Client Name *
+                  </Label>
+                  <Input
+                    id="client_name"
+                    data-testid="project-client"
+                    value={formData.client_name}
+                    onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                    required
+                    className="rounded-sm border-zinc-200"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="start_date" className="text-sm font-medium text-zinc-950">
+                      Start Date *
+                    </Label>
+                    <Input
+                      id="start_date"
+                      data-testid="project-start-date"
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                      required
+                      className="rounded-sm border-zinc-200"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_date" className="text-sm font-medium text-zinc-950">
+                      End Date
+                    </Label>
+                    <Input
+                      id="end_date"
+                      data-testid="project-end-date"
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                      className="rounded-sm border-zinc-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="total_meetings_committed"
+                      className="text-sm font-medium text-zinc-950"
+                    >
+                      Meetings Committed
+                    </Label>
+                    <Input
+                      id="total_meetings_committed"
+                      data-testid="project-meetings-committed"
+                      type="number"
+                      min="0"
+                      value={formData.total_meetings_committed}
+                      onChange={(e) =>
+                        setFormData({ ...formData, total_meetings_committed: e.target.value })
+                      }
+                      className="rounded-sm border-zinc-200"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="budget" className="text-sm font-medium text-zinc-950">
+                      Budget ($)
+                    </Label>
+                    <Input
+                      id="budget"
+                      data-testid="project-budget"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.budget}
+                      onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                      className="rounded-sm border-zinc-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-sm font-medium text-zinc-950">
+                    Notes
+                  </Label>
+                  <textarea
+                    id="notes"
+                    data-testid="project-notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  data-testid="submit-project-button"
+                  className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                >
+                  Create Project
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-zinc-500">Loading projects...</div>
+        </div>
+      ) : projects.length === 0 ? (
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardContent className="flex flex-col items-center justify-center h-64">
+            <p className="text-zinc-500 mb-4">No projects found</p>
+            {canEdit && (
+              <Button
+                onClick={() => setDialogOpen(true)}
+                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+              >
+                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                Create Your First Project
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {projects.map((project) => (
+            <Card
+              key={project.id}
+              data-testid={`project-card-${project.id}`}
+              className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
+            >
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg font-semibold text-zinc-950">
+                      {project.name}
+                    </CardTitle>
+                    <div className="text-sm text-zinc-500 mt-1">{project.client_name}</div>
+                  </div>
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded-sm ${
+                      project.status === 'active'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : 'bg-zinc-100 text-zinc-600'
+                    }`}
+                  >
+                    {project.status}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                      <Calendar className="w-3 h-3" strokeWidth={1.5} />
+                      Start Date
+                    </div>
+                    <div className="text-sm font-medium text-zinc-950 data-text">
+                      {format(new Date(project.start_date), 'MMM dd, yyyy')}
+                    </div>
+                  </div>
+                  {project.budget && (
+                    <div>
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                        <DollarSign className="w-3 h-3" strokeWidth={1.5} />
+                        Budget
+                      </div>
+                      <div className="text-sm font-medium text-zinc-950 data-text">
+                        ${project.budget.toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-200">
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                      Committed
+                    </div>
+                    <div className="text-lg font-semibold text-zinc-950 data-text">
+                      {project.total_meetings_committed}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                      Delivered
+                    </div>
+                    <div className="text-lg font-semibold text-emerald-600 data-text">
+                      {project.total_meetings_delivered}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Visits</div>
+                    <div className="text-lg font-semibold text-zinc-950 data-text">
+                      {project.number_of_visits}
+                    </div>
+                  </div>
+                </div>
+
+                {project.notes && (
+                  <div className="pt-3 border-t border-zinc-200">
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Notes</div>
+                    <div className="text-sm text-zinc-600">{project.notes}</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Projects;
