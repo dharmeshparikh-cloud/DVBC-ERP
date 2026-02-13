@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Projects from './pages/Projects';
 import Meetings from './pages/Meetings';
+import EmailTemplates from './pages/EmailTemplates';
 import Layout from './components/Layout';
 import './App.css';
 
