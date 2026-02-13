@@ -106,6 +106,9 @@ const Leads = () => {
                 <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
                   Add New Lead
                 </DialogTitle>
+                <DialogDescription className="text-zinc-500">
+                  Enter lead information to add to your pipeline
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
