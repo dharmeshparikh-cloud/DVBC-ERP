@@ -180,6 +180,63 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+def calculate_lead_score(lead_data: dict) -> tuple[int, dict]:
+    """
+    Calculate lead score based on multiple factors:
+    - Job title seniority (0-40 points)
+    - Contact completeness (0-30 points)
+    - Engagement/status (0-30 points)
+    """
+    score = 0
+    breakdown = {}
+    
+    # Job Title Scoring (0-40 points)
+    job_title = (lead_data.get('job_title') or '').lower()
+    title_score = 0
+    if any(term in job_title for term in ['ceo', 'founder', 'president', 'owner']):
+        title_score = 40
+    elif any(term in job_title for term in ['cto', 'cfo', 'coo', 'vp', 'vice president', 'chief']):
+        title_score = 35
+    elif any(term in job_title for term in ['director', 'head of']):
+        title_score = 25
+    elif any(term in job_title for term in ['manager', 'lead']):
+        title_score = 15
+    else:
+        title_score = 5
+    
+    breakdown['title_score'] = title_score
+    score += title_score
+    
+    # Contact Completeness (0-30 points)
+    contact_score = 0
+    if lead_data.get('email'):
+        contact_score += 10
+    if lead_data.get('phone'):
+        contact_score += 10
+    if lead_data.get('linkedin_url'):
+        contact_score += 10
+    
+    breakdown['contact_score'] = contact_score
+    score += contact_score
+    
+    # Engagement/Status (0-30 points)
+    status = lead_data.get('status', LeadStatus.NEW)
+    status_score = {
+        LeadStatus.NEW: 5,
+        LeadStatus.CONTACTED: 10,
+        LeadStatus.QUALIFIED: 20,
+        LeadStatus.PROPOSAL: 25,
+        LeadStatus.AGREEMENT: 30,
+        LeadStatus.CLOSED: 30,
+        LeadStatus.LOST: 0
+    }.get(status, 5)
+    
+    breakdown['engagement_score'] = status_score
+    score += status_score
+    
+    breakdown['total'] = score
+    return score, breakdown
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
