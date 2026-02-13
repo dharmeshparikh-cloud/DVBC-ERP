@@ -1,72 +1,471 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from typing import List, Optional
+from datetime import datetime, timezone, timedelta
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 import uuid
-from datetime import datetime, timezone
-
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
+app = FastAPI(title="Consulting Workflow Management API")
 api_router = APIRouter(prefix="/api")
 
+SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 43200
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+class UserRole(str):
+    ADMIN = "admin"
+    MANAGER = "manager"
+    EXECUTIVE = "executive"
+
+class MeetingMode(str):
+    ONLINE = "online"
+    OFFLINE = "offline"
+    TELE_CALL = "tele_call"
+
+class LeadStatus(str):
+    NEW = "new"
+    CONTACTED = "contacted"
+    QUALIFIED = "qualified"
+    PROPOSAL = "proposal"
+    AGREEMENT = "agreement"
+    CLOSED = "closed"
+    LOST = "lost"
+
+class User(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    email: EmailStr
+    full_name: str
+    role: str
+    department: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str
+    role: str
+    department: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: User
+
+class Lead(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    first_name: str
+    last_name: str
+    company: str
+    job_title: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    status: str = LeadStatus.NEW
+    source: Optional[str] = None
+    notes: Optional[str] = None
+    assigned_to: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    enriched_at: Optional[datetime] = None
+
+class LeadCreate(BaseModel):
+    first_name: str
+    last_name: str
+    company: str
+    job_title: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    status: Optional[str] = LeadStatus.NEW
+    source: Optional[str] = None
+    notes: Optional[str] = None
+    assigned_to: Optional[str] = None
+
+class LeadUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    company: Optional[str] = None
+    job_title: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    status: Optional[str] = None
+    source: Optional[str] = None
+    notes: Optional[str] = None
+    assigned_to: Optional[str] = None
+
+class Project(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
     client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    lead_id: Optional[str] = None
+    start_date: datetime
+    end_date: Optional[datetime] = None
+    status: str = "active"
+    total_meetings_committed: int = 0
+    total_meetings_delivered: int = 0
+    number_of_visits: int = 0
+    assigned_team: List[str] = []
+    budget: Optional[float] = None
+    notes: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
+class ProjectCreate(BaseModel):
+    name: str
     client_name: str
+    lead_id: Optional[str] = None
+    start_date: datetime
+    end_date: Optional[datetime] = None
+    total_meetings_committed: Optional[int] = 0
+    assigned_team: Optional[List[str]] = []
+    budget: Optional[float] = None
+    notes: Optional[str] = None
 
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
+class Meeting(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    meeting_date: datetime
+    mode: str
+    attendees: List[str] = []
+    duration_minutes: Optional[int] = None
+    notes: Optional[str] = None
+    is_delivered: bool = False
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+class MeetingCreate(BaseModel):
+    project_id: str
+    meeting_date: datetime
+    mode: str
+    attendees: Optional[List[str]] = []
+    duration_minutes: Optional[int] = None
+    notes: Optional[str] = None
+    is_delivered: bool = False
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
-# Include the router in the main app
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user_data = await db.users.find_one({"email": email}, {"_id": 0})
+    if user_data is None:
+        raise credentials_exception
+    if isinstance(user_data.get('created_at'), str):
+        user_data['created_at'] = datetime.fromisoformat(user_data['created_at'])
+    return User(**user_data)
+
+@api_router.post("/auth/register", response_model=User)
+async def register(user_create: UserCreate):
+    existing_user = await db.users.find_one({"email": user_create.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    user_dict = user_create.model_dump(exclude={"password"})
+    user = User(**user_dict)
+    
+    doc = user.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['hashed_password'] = get_password_hash(user_create.password)
+    
+    await db.users.insert_one(doc)
+    return user
+
+@api_router.post("/auth/login", response_model=Token)
+async def login(user_login: UserLogin):
+    user_data = await db.users.find_one({"email": user_login.email}, {"_id": 0})
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    
+    if not verify_password(user_login.password, user_data['hashed_password']):
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    
+    if isinstance(user_data.get('created_at'), str):
+        user_data['created_at'] = datetime.fromisoformat(user_data['created_at'])
+    
+    user_data.pop('hashed_password', None)
+    user = User(**user_data)
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    
+    return Token(access_token=access_token, token_type="bearer", user=user)
+
+@api_router.get("/auth/me", response_model=User)
+async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@api_router.post("/leads", response_model=Lead)
+async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_current_user)):
+    lead_dict = lead_create.model_dump()
+    lead = Lead(**lead_dict, created_by=current_user.id)
+    
+    doc = lead.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc['enriched_at']:
+        doc['enriched_at'] = doc['enriched_at'].isoformat()
+    
+    await db.leads.insert_one(doc)
+    return lead
+
+@api_router.get("/leads", response_model=List[Lead])
+async def get_leads(
+    status: Optional[str] = None,
+    assigned_to: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if status:
+        query['status'] = status
+    if assigned_to:
+        query['assigned_to'] = assigned_to
+    
+    if current_user.role == UserRole.MANAGER or current_user.role == UserRole.EXECUTIVE:
+        if 'assigned_to' not in query:
+            query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+    
+    leads = await db.leads.find(query, {"_id": 0}).to_list(1000)
+    
+    for lead in leads:
+        if isinstance(lead.get('created_at'), str):
+            lead['created_at'] = datetime.fromisoformat(lead['created_at'])
+        if isinstance(lead.get('updated_at'), str):
+            lead['updated_at'] = datetime.fromisoformat(lead['updated_at'])
+        if lead.get('enriched_at') and isinstance(lead['enriched_at'], str):
+            lead['enriched_at'] = datetime.fromisoformat(lead['enriched_at'])
+    
+    return leads
+
+@api_router.get("/leads/{lead_id}", response_model=Lead)
+async def get_lead(lead_id: str, current_user: User = Depends(get_current_user)):
+    lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead_data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    if isinstance(lead_data.get('created_at'), str):
+        lead_data['created_at'] = datetime.fromisoformat(lead_data['created_at'])
+    if isinstance(lead_data.get('updated_at'), str):
+        lead_data['updated_at'] = datetime.fromisoformat(lead_data['updated_at'])
+    if lead_data.get('enriched_at') and isinstance(lead_data['enriched_at'], str):
+        lead_data['enriched_at'] = datetime.fromisoformat(lead_data['enriched_at'])
+    
+    return Lead(**lead_data)
+
+@api_router.put("/leads/{lead_id}", response_model=Lead)
+async def update_lead(
+    lead_id: str,
+    lead_update: LeadUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead_data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    update_data = lead_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+    
+    updated_lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if isinstance(updated_lead_data.get('created_at'), str):
+        updated_lead_data['created_at'] = datetime.fromisoformat(updated_lead_data['created_at'])
+    if isinstance(updated_lead_data.get('updated_at'), str):
+        updated_lead_data['updated_at'] = datetime.fromisoformat(updated_lead_data['updated_at'])
+    if updated_lead_data.get('enriched_at') and isinstance(updated_lead_data['enriched_at'], str):
+        updated_lead_data['enriched_at'] = datetime.fromisoformat(updated_lead_data['enriched_at'])
+    
+    return Lead(**updated_lead_data)
+
+@api_router.delete("/leads/{lead_id}")
+async def delete_lead(lead_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can delete leads")
+    
+    result = await db.leads.delete_one({"id": lead_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return {"message": "Lead deleted successfully"}
+
+@api_router.post("/projects", response_model=Project)
+async def create_project(project_create: ProjectCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    project_dict = project_create.model_dump()
+    project = Project(**project_dict, created_by=current_user.id)
+    
+    doc = project.model_dump()
+    doc['start_date'] = doc['start_date'].isoformat()
+    if doc['end_date']:
+        doc['end_date'] = doc['end_date'].isoformat()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.projects.insert_one(doc)
+    return project
+
+@api_router.get("/projects", response_model=List[Project])
+async def get_projects(current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query['$or'] = [{"assigned_team": current_user.id}, {"created_by": current_user.id}]
+    
+    projects = await db.projects.find(query, {"_id": 0}).to_list(1000)
+    
+    for project in projects:
+        if isinstance(project.get('start_date'), str):
+            project['start_date'] = datetime.fromisoformat(project['start_date'])
+        if project.get('end_date') and isinstance(project['end_date'], str):
+            project['end_date'] = datetime.fromisoformat(project['end_date'])
+        if isinstance(project.get('created_at'), str):
+            project['created_at'] = datetime.fromisoformat(project['created_at'])
+        if isinstance(project.get('updated_at'), str):
+            project['updated_at'] = datetime.fromisoformat(project['updated_at'])
+    
+    return projects
+
+@api_router.get("/projects/{project_id}", response_model=Project)
+async def get_project(project_id: str, current_user: User = Depends(get_current_user)):
+    project_data = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project_data:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if isinstance(project_data.get('start_date'), str):
+        project_data['start_date'] = datetime.fromisoformat(project_data['start_date'])
+    if project_data.get('end_date') and isinstance(project_data['end_date'], str):
+        project_data['end_date'] = datetime.fromisoformat(project_data['end_date'])
+    if isinstance(project_data.get('created_at'), str):
+        project_data['created_at'] = datetime.fromisoformat(project_data['created_at'])
+    if isinstance(project_data.get('updated_at'), str):
+        project_data['updated_at'] = datetime.fromisoformat(project_data['updated_at'])
+    
+    return Project(**project_data)
+
+@api_router.post("/meetings", response_model=Meeting)
+async def create_meeting(meeting_create: MeetingCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    meeting_dict = meeting_create.model_dump()
+    meeting = Meeting(**meeting_dict, created_by=current_user.id)
+    
+    doc = meeting.model_dump()
+    doc['meeting_date'] = doc['meeting_date'].isoformat()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.meetings.insert_one(doc)
+    
+    if meeting.is_delivered:
+        await db.projects.update_one(
+            {"id": meeting.project_id},
+            {"$inc": {"total_meetings_delivered": 1, "number_of_visits": 1}}
+        )
+    
+    return meeting
+
+@api_router.get("/meetings", response_model=List[Meeting])
+async def get_meetings(
+    project_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if project_id:
+        query['project_id'] = project_id
+    
+    meetings = await db.meetings.find(query, {"_id": 0}).to_list(1000)
+    
+    for meeting in meetings:
+        if isinstance(meeting.get('meeting_date'), str):
+            meeting['meeting_date'] = datetime.fromisoformat(meeting['meeting_date'])
+        if isinstance(meeting.get('created_at'), str):
+            meeting['created_at'] = datetime.fromisoformat(meeting['created_at'])
+    
+    return meetings
+
+@api_router.get("/stats/dashboard")
+async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
+    query = {}
+    if current_user.role != UserRole.ADMIN:
+        query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+    
+    total_leads = await db.leads.count_documents(query)
+    new_leads = await db.leads.count_documents({**query, "status": LeadStatus.NEW})
+    qualified_leads = await db.leads.count_documents({**query, "status": LeadStatus.QUALIFIED})
+    closed_deals = await db.leads.count_documents({**query, "status": LeadStatus.CLOSED})
+    
+    project_query = {}
+    if current_user.role != UserRole.ADMIN:
+        project_query['$or'] = [{"assigned_team": current_user.id}, {"created_by": current_user.id}]
+    
+    active_projects = await db.projects.count_documents({**project_query, "status": "active"})
+    
+    return {
+        "total_leads": total_leads,
+        "new_leads": new_leads,
+        "qualified_leads": qualified_leads,
+        "closed_deals": closed_deals,
+        "active_projects": active_projects
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -77,7 +476,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
