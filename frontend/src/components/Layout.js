@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { Button } from './ui/button';
-import { LayoutDashboard, Users, Briefcase, Calendar, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Calendar, Mail, LogOut } from 'lucide-react';
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -13,6 +13,7 @@ const Layout = () => {
     { name: 'Leads', href: '/leads', icon: Users },
     { name: 'Projects', href: '/projects', icon: Briefcase },
     { name: 'Meetings', href: '/meetings', icon: Calendar },
+    { name: 'Email Templates', href: '/email-templates', icon: Mail },
   ];
 
   const isActive = (href) => {
