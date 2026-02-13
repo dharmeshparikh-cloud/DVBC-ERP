@@ -95,6 +95,9 @@ const Projects = () => {
                 <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
                   Create New Project
                 </DialogTitle>
+                <DialogDescription className="text-zinc-500">
+                  Set up a new consulting project with client details
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
