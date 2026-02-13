@@ -82,14 +82,24 @@ class Token(BaseModel):
 class Lead(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    lead_owner: Optional[str] = None
     first_name: str
     last_name: str
     company: str
+    contact_person: Optional[str] = None
     job_title: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     linkedin_url: Optional[str] = None
+    street: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    country: Optional[str] = None
+    lead_source: Optional[str] = None
     status: str = LeadStatus.NEW
+    sales_status: Optional[str] = None  # 'not_interested', 'call_back', 'send_details', 'wrong_number', 'schedule_meeting', 'meeting_done'
+    product_interest: Optional[str] = None
     source: Optional[str] = None
     notes: Optional[str] = None
     assigned_to: Optional[str] = None
