@@ -542,6 +542,120 @@ async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
         "active_projects": active_projects
     }
 
+@api_router.post("/email-templates", response_model=EmailTemplate)
+async def create_email_template(template_create: EmailTemplateCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    template_dict = template_create.model_dump()
+    template = EmailTemplate(**template_dict, created_by=current_user.id)
+    
+    doc = template.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.email_templates.insert_one(doc)
+    return template
+
+@api_router.get("/email-templates", response_model=List[EmailTemplate])
+async def get_email_templates(current_user: User = Depends(get_current_user)):
+    templates = await db.email_templates.find({}, {"_id": 0}).to_list(1000)
+    
+    for template in templates:
+        if isinstance(template.get('created_at'), str):
+            template['created_at'] = datetime.fromisoformat(template['created_at'])
+        if isinstance(template.get('updated_at'), str):
+            template['updated_at'] = datetime.fromisoformat(template['updated_at'])
+    
+    return templates
+
+@api_router.post("/follow-up-reminders", response_model=FollowUpReminder)
+async def create_follow_up_reminder(reminder_create: FollowUpReminderCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    reminder_dict = reminder_create.model_dump()
+    reminder = FollowUpReminder(**reminder_dict, created_by=current_user.id)
+    
+    doc = reminder.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    if doc['due_date']:
+        doc['due_date'] = doc['due_date'].isoformat()
+    if doc['completed_at']:
+        doc['completed_at'] = doc['completed_at'].isoformat()
+    
+    await db.follow_up_reminders.insert_one(doc)
+    return reminder
+
+@api_router.get("/follow-up-reminders", response_model=List[FollowUpReminder])
+async def get_follow_up_reminders(
+    lead_id: Optional[str] = None,
+    is_completed: Optional[bool] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if lead_id:
+        query['lead_id'] = lead_id
+    if is_completed is not None:
+        query['is_completed'] = is_completed
+    
+    reminders = await db.follow_up_reminders.find(query, {"_id": 0}).to_list(1000)
+    
+    for reminder in reminders:
+        if isinstance(reminder.get('created_at'), str):
+            reminder['created_at'] = datetime.fromisoformat(reminder['created_at'])
+        if reminder.get('due_date') and isinstance(reminder['due_date'], str):
+            reminder['due_date'] = datetime.fromisoformat(reminder['due_date'])
+        if reminder.get('completed_at') and isinstance(reminder['completed_at'], str):
+            reminder['completed_at'] = datetime.fromisoformat(reminder['completed_at'])
+    
+    return reminders
+
+@api_router.patch("/follow-up-reminders/{reminder_id}/complete")
+async def complete_reminder(reminder_id: str, current_user: User = Depends(get_current_user)):
+    result = await db.follow_up_reminders.update_one(
+        {"id": reminder_id},
+        {"$set": {"is_completed": True, "completed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    
+    return {"message": "Reminder marked as complete"}
+
+@api_router.get("/leads/{lead_id}/suggestions")
+async def get_lead_suggestions(lead_id: str, current_user: User = Depends(get_current_user)):
+    lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead_data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    suggestions = check_lead_for_suggestions(lead_data)
+    return {"suggestions": [s.model_dump() for s in suggestions]}
+
+@api_router.post("/leads/{lead_id}/generate-email")
+async def generate_email_for_lead(
+    lead_id: str,
+    template_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead_data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    template_data = await db.email_templates.find_one({"id": template_id}, {"_id": 0})
+    if not template_data:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    if isinstance(template_data.get('created_at'), str):
+        template_data['created_at'] = datetime.fromisoformat(template_data['created_at'])
+    if isinstance(template_data.get('updated_at'), str):
+        template_data['updated_at'] = datetime.fromisoformat(template_data['updated_at'])
+    
+    template = EmailTemplate(**template_data)
+    email = generate_email_from_template(template, lead_data)
+    
+    return email
+
 app.include_router(api_router)
 
 app.add_middleware(
