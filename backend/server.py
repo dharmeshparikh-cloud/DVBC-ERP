@@ -389,6 +389,12 @@ async def update_lead(
     update_data = lead_update.model_dump(exclude_unset=True)
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
+    # Recalculate lead score with updated data
+    merged_data = {**lead_data, **update_data}
+    score, breakdown = calculate_lead_score(merged_data)
+    update_data['lead_score'] = score
+    update_data['score_breakdown'] = breakdown
+    
     await db.leads.update_one({"id": lead_id}, {"$set": update_data})
     
     updated_lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
