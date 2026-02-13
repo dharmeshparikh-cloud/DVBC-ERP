@@ -1199,7 +1199,7 @@ async def send_agreement_email(
         body=final_body,
         cc_emails=email_data.cc_emails,
         attachment_path=email_data.attachment_url,
-        attachment_name=f\"Agreement_{agreement_data['agreement_number']}.pdf\"
+        attachment_name=f"Agreement_{agreement_data['agreement_number']}.pdf"
     )
     
     # Log email send
