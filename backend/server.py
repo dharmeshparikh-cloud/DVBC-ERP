@@ -1129,7 +1129,7 @@ async def get_email_templates(
 
 @api_router.get("/email-notification-templates/default")
 async def get_default_email_templates():
-    \"\"\"Get default email templates\"\"\"
+    """Get default email templates"""
     return DEFAULT_AGREEMENT_EMAIL_TEMPLATES
 
 @api_router.post("/agreements/{agreement_id}/send-email")
