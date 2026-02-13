@@ -1138,7 +1138,7 @@ async def send_agreement_email(
     email_data: AgreementEmailData,
     current_user: User = Depends(get_current_user)
 ):
-    \"\"\"Send agreement to client via email\"\"\"
+    """Send agreement to client via email"""
     
     # Fetch agreement
     agreement_data = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
