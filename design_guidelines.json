@@ -1,0 +1,149 @@
+{
+  "identity": {
+    "name": "E1 - The Anti-AI Designer",
+    "style": "Swiss High-Contrast / Brutalist Utility",
+    "description": "A hyper-functional, density-optimized aesthetic that prioritizes data clarity over decoration. It rejects 'SaaS soft' roundness in favor of architectural precision.",
+    "core_principles": [
+      "Density is Clarity: If it can fit in 1 page, don't make it 2.",
+      "Black & White is Colorful: Use 10 shades of grey to create depth.",
+      "The Grid is God: Align everything. Visible grid lines are encouraged.",
+      "No Rounded Corners (mostly): Sharp edges = Sharp consulting."
+    ]
+  },
+  "typography": {
+    "primary_font": "Inter",
+    "secondary_font": "JetBrains Mono",
+    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap",
+    "usage": {
+      "headings": {
+        "family": "Inter, sans-serif",
+        "weight": "600",
+        "tracking": "-0.02em",
+        "style": "uppercase_labels"
+      },
+      "body": {
+        "family": "Inter, sans-serif",
+        "weight": "400",
+        "leading": "relaxed"
+      },
+      "data": {
+        "family": "'JetBrains Mono', monospace",
+        "size": "text-xs",
+        "usage": "IDs, Financials, Dates"
+      }
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": "#FFFFFF",
+      "surface": "#FAFAFA",
+      "surface_hover": "#F4F4F5",
+      "foreground": "#09090B",
+      "muted": "#71717A",
+      "border": "#E4E4E7",
+      "primary": "#18181B",
+      "primary_foreground": "#FAFAFA",
+      "accent_functional": "#2563EB", 
+      "accent_alert": "#DC2626"
+    },
+    "theme_strategy": {
+      "mode": "light", 
+      "dark_mode_support": false,
+      "note": "Strictly Light Mode for 'Paper/Report' feel as per Consulting aesthetic. Dark mode optional but secondary."
+    },
+    "utility_classes": {
+      "bg_app": "bg-white",
+      "bg_panel": "bg-zinc-50/50",
+      "text_main": "text-zinc-950",
+      "text_secondary": "text-zinc-500",
+      "border_subtle": "border-zinc-200"
+    }
+  },
+  "layout_system": {
+    "grid_strategy": "Bento Mode B (High Density)",
+    "spacing": {
+      "container_padding": "p-6 md:p-12",
+      "component_gap": "gap-4",
+      "section_gap": "gap-12"
+    },
+    "navigation": {
+      "style": "Sidebar Fixed",
+      "width": "w-64",
+      "visual": "Border-right only. No background color change. Minimalist list."
+    }
+  },
+  "components": {
+    "buttons": {
+      "radius": "rounded-sm",
+      "styles": {
+        "primary": "bg-zinc-950 text-white hover:bg-zinc-800 shadow-none border border-transparent",
+        "secondary": "bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 shadow-sm",
+        "ghost": "hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900"
+      }
+    },
+    "cards": {
+      "radius": "rounded-sm",
+      "style": "border border-zinc-200 bg-white shadow-none hover:border-zinc-300 transition-colors"
+    },
+    "inputs": {
+      "radius": "rounded-sm",
+      "style": "border-zinc-200 bg-transparent focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950"
+    },
+    "tables": {
+      "density": "compact",
+      "style": "w-full text-sm caption-bottom",
+      "header": "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      "row": "border-b transition-colors hover:bg-zinc-50/50 data-[state=selected]:bg-muted",
+      "cell": "p-2 align-middle [&:has([role=checkbox])]:pr-0"
+    },
+    "custom_modifications": {
+      "shadcn_overrides": [
+        "Remove all rounded-lg, replace with rounded-sm or rounded-none",
+        "Remove all ring-offset-background",
+        "Set all border colors to border-zinc-200"
+      ]
+    }
+  },
+  "visual_enhancers": {
+    "textures": {
+      "noise": "Use a subtle SVG noise overlay at 2% opacity on the main background to kill the digital flatness.",
+      "grid_lines": "Use 'bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]' for dashboard backgrounds."
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 1.5px (Thin/Elegant)",
+      "size": "w-4 h-4 (Small/Dense)"
+    }
+  },
+  "specific_modules": {
+    "lead_pipeline": {
+      "view": "Kanban or Dense List Toggle",
+      "status_colors": {
+        "new": "bg-zinc-100 text-zinc-600",
+        "contacted": "bg-blue-50 text-blue-700",
+        "proposal": "bg-purple-50 text-purple-700",
+        "closed": "bg-emerald-50 text-emerald-700"
+      }
+    },
+    "time_tracking": {
+      "visual": "Timeline View (Horizontal Gantt-lite)",
+      "component": "Stacked bar chart for daily activity visualization."
+    }
+  },
+  "image_strategy": {
+    "use_images": false,
+    "fallback": "Use Initials for User Avatars (e.g., 'JD' in a circle). Use Abstract Geometric Patterns for empty states.",
+    "login_hero": "CSS Pattern: Radial Gradient from Zinc-100 to White, with a Grid Overlay."
+  },
+  "instructions_to_main_agent": [
+    "1. THEME SETUP: Go to /app/frontend/src/index.css. Override the root variables to remove all 'blue-ish' tints. Make them pure gray (Zinc/Neutral). Set radius to 0.2rem.",
+    "2. COMPONENT CLEANUP: Open /app/frontend/src/components/ui/button.jsx (and card, input, etc). Search for 'rounded-md' or 'rounded-lg' and REPLACE with 'rounded-sm'.",
+    "3. DENSITY CHECK: In layout.jsx (or equivalent), ensure the Sidebar width is fixed (w-64) and the Main Content has 'p-8'.",
+    "4. NO GRADIENTS: Do not use gradients for buttons or backgrounds. Use solid colors or subtle borders.",
+    "5. DATA-TESTID: Ensure every interactive element has a data-testid attributes."
+  ],
+  "accessibility": {
+    "contrast": "APCA preferred. Ensure Gray-500 text is only used on White, never on Gray-100.",
+    "focus_states": "Visible 2px outline in Black (#000) for keyboard navigation."
+  }
+}
