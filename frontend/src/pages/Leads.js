@@ -15,6 +15,7 @@ const Leads = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [suggestions, setSuggestions] = useState({});
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
