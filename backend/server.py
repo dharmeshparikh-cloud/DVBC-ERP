@@ -22,6 +22,13 @@ from sales_workflow import (
     Quotation, QuotationCreate, Agreement, AgreementCreate,
     calculate_quotation_totals
 )
+from agreement_templates import (
+    AgreementTemplate, AgreementTemplateCreate,
+    EmailNotificationTemplate, EmailNotificationTemplateCreate,
+    AgreementEmailData, substitute_variables, prepare_agreement_email_data,
+    extract_variables_from_template, DEFAULT_AGREEMENT_EMAIL_TEMPLATES
+)
+from email_service import EmailService, create_mock_email_service
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
