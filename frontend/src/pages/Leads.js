@@ -299,63 +299,88 @@ const Leads = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {leads.map((lead) => (
-            <Card
-              key={lead.id}
-              data-testid={`lead-card-${lead.id}`}
-              className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-base font-semibold text-zinc-950">
-                      {lead.first_name} {lead.last_name}
-                    </CardTitle>
-                    <div className="flex items-center gap-2 text-sm text-zinc-500 mt-1">
-                      <Briefcase className="w-3 h-3" strokeWidth={1.5} />
-                      {lead.job_title || 'N/A'}
+          {leads.map((lead) => {
+            const scoreBadge = getScoreBadge(lead.lead_score || 0);
+            return (
+              <Card
+                key={lead.id}
+                data-testid={`lead-card-${lead.id}`}
+                className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-base font-semibold text-zinc-950">
+                        {lead.first_name} {lead.last_name}
+                      </CardTitle>
+                      <div className="flex items-center gap-2 text-sm text-zinc-500 mt-1">
+                        <Briefcase className="w-3 h-3" strokeWidth={1.5} />
+                        {lead.job_title || 'N/A'}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(
+                          lead.status
+                        )}`}
+                      >
+                        {lead.status}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-sm ${scoreBadge.color} ${scoreBadge.text}`}
+                        >
+                          {lead.lead_score || 0}
+                        </span>
+                        <span className="text-xs text-zinc-500 data-text">{scoreBadge.label}</span>
+                      </div>
                     </div>
                   </div>
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(
-                      lead.status
-                    )}`}
-                  >
-                    {lead.status}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-sm font-medium text-zinc-950">{lead.company}</div>
-                {lead.email && (
-                  <div className="flex items-center gap-2 text-sm text-zinc-600">
-                    <Mail className="w-3 h-3" strokeWidth={1.5} />
-                    <span className="truncate">{lead.email}</span>
-                  </div>
-                )}
-                {lead.phone && (
-                  <div className="flex items-center gap-2 text-sm text-zinc-600">
-                    <Phone className="w-3 h-3" strokeWidth={1.5} />
-                    {lead.phone}
-                  </div>
-                )}
-                {lead.linkedin_url && (
-                  <a
-                    href={lead.linkedin_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
-                  >
-                    <ExternalLink className="w-3 h-3" strokeWidth={1.5} />
-                    LinkedIn Profile
-                  </a>
-                )}
-                {lead.source && (
-                  <div className="text-xs text-zinc-500 mt-2">Source: {lead.source}</div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="text-sm font-medium text-zinc-950">{lead.company}</div>
+                  {lead.email && (
+                    <div className="flex items-center gap-2 text-sm text-zinc-600">
+                      <Mail className="w-3 h-3" strokeWidth={1.5} />
+                      <span className="truncate">{lead.email}</span>
+                    </div>
+                  )}
+                  {lead.phone && (
+                    <div className="flex items-center gap-2 text-sm text-zinc-600">
+                      <Phone className="w-3 h-3" strokeWidth={1.5} />
+                      {lead.phone}
+                    </div>
+                  )}
+                  {lead.linkedin_url && (
+                    <a
+                      href={lead.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                    >
+                      <ExternalLink className="w-3 h-3" strokeWidth={1.5} />
+                      LinkedIn Profile
+                    </a>
+                  )}
+                  {lead.source && (
+                    <div className="text-xs text-zinc-500 mt-2">Source: {lead.source}</div>
+                  )}
+                  {lead.score_breakdown && (
+                    <div className="pt-2 mt-2 border-t border-zinc-200">
+                      <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                        Score Breakdown
+                      </div>
+                      <div className="text-xs text-zinc-600 space-y-0.5">
+                        <div>Title: {lead.score_breakdown.title_score}/40</div>
+                        <div>Contact: {lead.score_breakdown.contact_score}/30</div>
+                        <div>Engagement: {lead.score_breakdown.engagement_score}/30</div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
