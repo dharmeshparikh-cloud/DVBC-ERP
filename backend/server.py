@@ -90,6 +90,8 @@ class Lead(BaseModel):
     notes: Optional[str] = None
     assigned_to: Optional[str] = None
     created_by: str
+    lead_score: Optional[int] = 0
+    score_breakdown: Optional[dict] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     enriched_at: Optional[datetime] = None
