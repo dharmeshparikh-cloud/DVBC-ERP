@@ -77,6 +77,7 @@ function App() {
             <Route path="leads" element={<Leads />} />
             <Route path="projects" element={<Projects />} />
             <Route path="meetings" element={<Meetings />} />
+            <Route path="email-templates" element={<EmailTemplates />} />
           </Route>
         </Routes>
       </BrowserRouter>
