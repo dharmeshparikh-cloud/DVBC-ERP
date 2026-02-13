@@ -126,6 +126,9 @@ const Meetings = () => {
                 <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
                   Schedule New Meeting
                 </DialogTitle>
+                <DialogDescription className="text-zinc-500">
+                  Schedule a meeting and track project deliverables
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
