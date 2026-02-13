@@ -25,10 +25,18 @@ const Layout = () => {
     <div className="flex min-h-screen bg-white">
       <aside className="w-64 border-r border-zinc-200 bg-white" data-testid="sidebar">
         <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-zinc-200">
-            <h1 className="text-xl font-semibold tracking-tight uppercase text-zinc-950">
-              Workflow Manager
-            </h1>
+          <div className="p-6 border-b border-zinc-200 flex items-center gap-3">
+            <img 
+              src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png" 
+              alt="Logo" 
+              className="h-10 w-auto"
+            />
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight text-zinc-950">
+                DVBC
+              </h1>
+              <p className="text-xs text-zinc-500">Workflow Manager</p>
+            </div>
           </div>
 
           <nav className="flex-1 p-4 space-y-1">
