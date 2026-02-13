@@ -150,26 +150,36 @@ const Dashboard = () => {
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardHeader>
             <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950">
-              Access Level
+              High-Priority Leads
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Role</div>
-                <div className="text-lg font-medium text-zinc-950">{user?.role}</div>
+            {highPriorityLeads.length === 0 ? (
+              <div className="text-sm text-zinc-500 text-center py-4">No leads yet</div>
+            ) : (
+              <div className="space-y-3">
+                {highPriorityLeads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className="p-3 rounded-sm border border-zinc-200 hover:bg-zinc-50 transition-colors cursor-pointer"
+                    onClick={() => (window.location.href = '/leads')}
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="font-medium text-sm text-zinc-950">
+                        {lead.first_name} {lead.last_name}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="px-2 py-0.5 text-xs font-semibold rounded-sm bg-emerald-600 text-white">
+                          {lead.lead_score || 0}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-zinc-500">{lead.company}</div>
+                    <div className="text-xs text-zinc-500 mt-1">{lead.job_title || 'N/A'}</div>
+                  </div>
+                ))}
               </div>
-              <div>
-                <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
-                  Permissions
-                </div>
-                <div className="text-sm text-zinc-600">
-                  {user?.role === 'admin' && 'Full access to all modules'}
-                  {user?.role === 'manager' && 'View and download reports'}
-                  {user?.role === 'executive' && 'Edit and view access'}
-                </div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
