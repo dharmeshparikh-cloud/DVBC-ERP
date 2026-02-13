@@ -39,6 +39,23 @@ const Leads = () => {
       // Sort by lead score descending
       const sortedLeads = response.data.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0));
       setLeads(sortedLeads);
+      
+      // Fetch suggestions for high-scoring leads
+      sortedLeads.forEach(async (lead) => {
+        if (lead.lead_score >= 60) {
+          try {
+            const suggestionsRes = await axios.get(`${API}/leads/${lead.id}/suggestions`);
+            if (suggestionsRes.data.suggestions.length > 0) {
+              setSuggestions(prev => ({
+                ...prev,
+                [lead.id]: suggestionsRes.data.suggestions
+              }));
+            }
+          } catch (error) {
+            console.error('Failed to fetch suggestions for lead:', lead.id);
+          }
+        }
+      });
     } catch (error) {
       toast.error('Failed to fetch leads');
     } finally {
