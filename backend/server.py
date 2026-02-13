@@ -252,6 +252,9 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 @api_router.post("/leads", response_model=Lead)
 async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
     lead_dict = lead_create.model_dump()
     lead = Lead(**lead_dict, created_by=current_user.id)
     
