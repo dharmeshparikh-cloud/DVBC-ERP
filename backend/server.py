@@ -895,6 +895,92 @@ async def get_agreements(
             agreement['end_date'] = datetime.fromisoformat(agreement['end_date'])
         if agreement.get('signed_date') and isinstance(agreement['signed_date'], str):
             agreement['signed_date'] = datetime.fromisoformat(agreement['signed_date'])
+        if agreement.get('approved_at') and isinstance(agreement['approved_at'], str):
+            agreement['approved_at'] = datetime.fromisoformat(agreement['approved_at'])
+    
+    return agreements
+
+@api_router.patch("/agreements/{agreement_id}/approve")
+async def approve_agreement(
+    agreement_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only managers and admins can approve agreements")
+    
+    agreement_data = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement_data:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Update agreement approval status
+    await db.agreements.update_one(
+        {"id": agreement_id},
+        {"$set": {
+            "approval_status": "approved",
+            "approved_by": current_user.id,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "status": "signed",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update lead status to 'closed' when agreement is approved
+    lead_id = agreement_data.get('lead_id')
+    if lead_id:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "status": "closed",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    return {"message": "Agreement approved and lead marked as closed"}
+
+@api_router.patch("/agreements/{agreement_id}/reject")
+async def reject_agreement(
+    agreement_id: str,
+    rejection_reason: str,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only managers and admins can reject agreements")
+    
+    result = await db.agreements.update_one(
+        {"id": agreement_id},
+        {"$set": {
+            "approval_status": "rejected",
+            "approved_by": current_user.id,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "rejection_reason": rejection_reason,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    return {"message": "Agreement rejected"}
+
+@api_router.get("/agreements/pending-approval")
+async def get_pending_approvals(current_user: User = Depends(get_current_user)):
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only managers and admins can view pending approvals")
+    
+    agreements = await db.agreements.find(
+        {"approval_status": "pending_approval"},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    for agreement in agreements:
+        if isinstance(agreement.get('created_at'), str):
+            agreement['created_at'] = datetime.fromisoformat(agreement['created_at'])
+        if isinstance(agreement.get('updated_at'), str):
+            agreement['updated_at'] = datetime.fromisoformat(agreement['updated_at'])
+        if agreement.get('start_date') and isinstance(agreement['start_date'], str):
+            agreement['start_date'] = datetime.fromisoformat(agreement['start_date'])
+        if agreement.get('end_date') and isinstance(agreement['end_date'], str):
+            agreement['end_date'] = datetime.fromisoformat(agreement['end_date'])
     
     return agreements
 
