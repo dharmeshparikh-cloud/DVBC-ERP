@@ -35,7 +35,9 @@ const Leads = () => {
     try {
       const params = selectedStatus ? { status: selectedStatus } : {};
       const response = await axios.get(`${API}/leads`, { params });
-      setLeads(response.data);
+      // Sort by lead score descending
+      const sortedLeads = response.data.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0));
+      setLeads(sortedLeads);
     } catch (error) {
       toast.error('Failed to fetch leads');
     } finally {
