@@ -98,6 +98,10 @@ class Agreement(BaseModel):
     start_date: datetime
     end_date: Optional[datetime] = None
     status: str = 'pending'  # 'pending', 'signed', 'active', 'completed', 'cancelled'
+    approval_status: str = 'pending_approval'  # 'pending_approval', 'approved', 'rejected'
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
     terms_and_conditions: Optional[str] = None
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
