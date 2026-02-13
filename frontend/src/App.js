@@ -8,6 +8,8 @@ import Leads from './pages/Leads';
 import Projects from './pages/Projects';
 import Meetings from './pages/Meetings';
 import EmailTemplates from './pages/EmailTemplates';
+import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
+import AgreementManager from './pages/sales-funnel/AgreementManager';
 import Layout from './components/Layout';
 import './App.css';
 
