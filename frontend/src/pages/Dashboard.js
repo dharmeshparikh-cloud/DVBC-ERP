@@ -8,10 +8,12 @@ import { toast } from 'sonner';
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
   const [stats, setStats] = useState(null);
+  const [highPriorityLeads, setHighPriorityLeads] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
+    fetchHighPriorityLeads();
   }, []);
 
   const fetchStats = async () => {
@@ -22,6 +24,19 @@ const Dashboard = () => {
       toast.error('Failed to fetch dashboard stats');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchHighPriorityLeads = async () => {
+    try {
+      const response = await axios.get(`${API}/leads`);
+      // Get top 3 leads with highest scores
+      const topLeads = response.data
+        .sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0))
+        .slice(0, 3);
+      setHighPriorityLeads(topLeads);
+    } catch (error) {
+      console.error('Failed to fetch high priority leads');
     }
   };
 
