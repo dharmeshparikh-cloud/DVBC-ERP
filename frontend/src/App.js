@@ -80,7 +80,6 @@ function App() {
             <Route path="meetings" element={<Meetings />} />
             <Route path="email-templates" element={<EmailTemplates />} />
             <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
-            <Route path="sales-funnel/agreements" element={<AgreementManager />} />
           </Route>
         </Routes>
       </BrowserRouter>
