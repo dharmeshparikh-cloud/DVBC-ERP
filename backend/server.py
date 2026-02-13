@@ -865,11 +865,8 @@ async def create_agreement(agreement_create: AgreementCreate, current_user: User
     
     await db.agreements.insert_one(doc)
     
-    # Update lead status to 'agreement'
-    await db.leads.update_one(
-        {"id": agreement_create.lead_id},
-        {"$set": {"status": "agreement", "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
+    # Don't update lead status yet - wait for manager approval
+    # Status will be updated to 'closed' only after approval
     
     return agreement
 
