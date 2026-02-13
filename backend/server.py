@@ -16,6 +16,12 @@ from email_templates import (
     EmailTemplate, EmailTemplateCreate, FollowUpReminder, FollowUpReminderCreate,
     generate_email_from_template, check_lead_for_suggestions
 )
+from sales_workflow import (
+    CommunicationLog, CommunicationLogCreate,
+    PricingPlan, PricingPlanCreate, ConsultantAllocation, SOWItem,
+    Quotation, QuotationCreate, Agreement, AgreementCreate,
+    calculate_quotation_totals
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
