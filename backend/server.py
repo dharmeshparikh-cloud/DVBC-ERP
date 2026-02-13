@@ -692,6 +692,274 @@ async def generate_email_for_lead(
     
     return email
 
+@api_router.post("/communication-logs", response_model=CommunicationLog)
+async def create_communication_log(log_create: CommunicationLogCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    log_dict = log_create.model_dump()
+    log = CommunicationLog(**log_dict, created_by=current_user.id)
+    
+    doc = log.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.communication_logs.insert_one(doc)
+    return log
+
+@api_router.get("/communication-logs")
+async def get_communication_logs(
+    lead_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if lead_id:
+        query['lead_id'] = lead_id
+    
+    logs = await db.communication_logs.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    
+    for log in logs:
+        if isinstance(log.get('created_at'), str):
+            log['created_at'] = datetime.fromisoformat(log['created_at'])
+    
+    return logs
+
+@api_router.post("/pricing-plans", response_model=PricingPlan)
+async def create_pricing_plan(plan_create: PricingPlanCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    plan_dict = plan_create.model_dump()
+    
+    # Calculate totals
+    totals = calculate_quotation_totals(
+        plan_dict['consultants'],
+        plan_dict.get('discount_percentage', 0),
+        18,  # GST percentage
+        12500  # base rate
+    )
+    
+    plan_dict['base_amount'] = totals['subtotal']
+    plan_dict['total_amount'] = totals['grand_total']
+    
+    plan = PricingPlan(**plan_dict, created_by=current_user.id)
+    
+    doc = plan.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.pricing_plans.insert_one(doc)
+    return plan
+
+@api_router.get("/pricing-plans")
+async def get_pricing_plans(
+    lead_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if lead_id:
+        query['lead_id'] = lead_id
+    
+    plans = await db.pricing_plans.find(query, {"_id": 0}).to_list(1000)
+    
+    for plan in plans:
+        if isinstance(plan.get('created_at'), str):
+            plan['created_at'] = datetime.fromisoformat(plan['created_at'])
+        if isinstance(plan.get('updated_at'), str):
+            plan['updated_at'] = datetime.fromisoformat(plan['updated_at'])
+    
+    return plans
+
+@api_router.post("/quotations", response_model=Quotation)
+async def create_quotation(quotation_create: QuotationCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    # Get pricing plan
+    plan_data = await db.pricing_plans.find_one({"id": quotation_create.pricing_plan_id}, {"_id": 0})
+    if not plan_data:
+        raise HTTPException(status_code=404, detail="Pricing plan not found")
+    
+    # Calculate quotation totals
+    totals = calculate_quotation_totals(
+        [ConsultantAllocation(**c) for c in plan_data.get('consultants', [])],
+        plan_data.get('discount_percentage', 0),
+        plan_data.get('gst_percentage', 18),
+        quotation_create.base_rate_per_meeting
+    )
+    
+    # Generate quotation number
+    count = await db.quotations.count_documents({})
+    quotation_number = f"QT-{datetime.now().year}-{count + 1:04d}"
+    
+    quotation_dict = quotation_create.model_dump()
+    quotation_dict['quotation_number'] = quotation_number
+    quotation_dict['total_meetings'] = totals['total_meetings']
+    quotation_dict['subtotal'] = totals['subtotal']
+    quotation_dict['discount_amount'] = totals['discount_amount']
+    quotation_dict['gst_amount'] = totals['gst_amount']
+    quotation_dict['grand_total'] = totals['grand_total']
+    
+    quotation = Quotation(**quotation_dict, created_by=current_user.id)
+    
+    doc = quotation.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.quotations.insert_one(doc)
+    return quotation
+
+@api_router.get("/quotations")
+async def get_quotations(
+    lead_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if lead_id:
+        query['lead_id'] = lead_id
+    
+    quotations = await db.quotations.find(query, {"_id": 0}).to_list(1000)
+    
+    for quotation in quotations:
+        if isinstance(quotation.get('created_at'), str):
+            quotation['created_at'] = datetime.fromisoformat(quotation['created_at'])
+        if isinstance(quotation.get('updated_at'), str):
+            quotation['updated_at'] = datetime.fromisoformat(quotation['updated_at'])
+    
+    return quotations
+
+@api_router.patch("/quotations/{quotation_id}/finalize")
+async def finalize_quotation(quotation_id: str, current_user: User = Depends(get_current_user)):
+    result = await db.quotations.update_one(
+        {"id": quotation_id},
+        {"$set": {"is_final": True, "status": "sent", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Quotation not found")
+    
+    return {"message": "Quotation finalized"}
+
+@api_router.post("/agreements", response_model=Agreement)
+async def create_agreement(agreement_create: AgreementCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    # Generate agreement number
+    count = await db.agreements.count_documents({})
+    agreement_number = f"AGR-{datetime.now().year}-{count + 1:04d}"
+    
+    agreement_dict = agreement_create.model_dump()
+    agreement_dict['agreement_number'] = agreement_number
+    
+    agreement = Agreement(**agreement_dict, created_by=current_user.id)
+    
+    doc = agreement.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc['start_date']:
+        doc['start_date'] = doc['start_date'].isoformat()
+    if doc['end_date']:
+        doc['end_date'] = doc['end_date'].isoformat()
+    if doc['signed_date']:
+        doc['signed_date'] = doc['signed_date'].isoformat()
+    
+    await db.agreements.insert_one(doc)
+    
+    # Update lead status to 'agreement'
+    await db.leads.update_one(
+        {"id": agreement_create.lead_id},
+        {"$set": {"status": "agreement", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return agreement
+
+@api_router.get("/agreements")
+async def get_agreements(
+    lead_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if lead_id:
+        query['lead_id'] = lead_id
+    
+    agreements = await db.agreements.find(query, {"_id": 0}).to_list(1000)
+    
+    for agreement in agreements:
+        if isinstance(agreement.get('created_at'), str):
+            agreement['created_at'] = datetime.fromisoformat(agreement['created_at'])
+        if isinstance(agreement.get('updated_at'), str):
+            agreement['updated_at'] = datetime.fromisoformat(agreement['updated_at'])
+        if agreement.get('start_date') and isinstance(agreement['start_date'], str):
+            agreement['start_date'] = datetime.fromisoformat(agreement['start_date'])
+        if agreement.get('end_date') and isinstance(agreement['end_date'], str):
+            agreement['end_date'] = datetime.fromisoformat(agreement['end_date'])
+        if agreement.get('signed_date') and isinstance(agreement['signed_date'], str):
+            agreement['signed_date'] = datetime.fromisoformat(agreement['signed_date'])
+    
+    return agreements
+
+@api_router.post("/leads/bulk-upload")
+async def bulk_upload_leads(
+    leads_data: List[LeadCreate],
+    skip_duplicates: bool = True,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role == UserRole.MANAGER:
+        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    created_leads = []
+    skipped_duplicates = []
+    errors = []
+    
+    for lead_data in leads_data:
+        try:
+            # Check for duplicates based on email or phone
+            if skip_duplicates:
+                existing = await db.leads.find_one({
+                    "$or": [
+                        {"email": lead_data.email} if lead_data.email else {},
+                        {"phone": lead_data.phone} if lead_data.phone else {}
+                    ]
+                }, {"_id": 0})
+                
+                if existing:
+                    skipped_duplicates.append({
+                        "email": lead_data.email,
+                        "phone": lead_data.phone,
+                        "reason": "Duplicate found"
+                    })
+                    continue
+            
+            # Create lead
+            lead_dict = lead_data.model_dump()
+            score, breakdown = calculate_lead_score(lead_dict)
+            
+            lead = Lead(**lead_dict, created_by=current_user.id, lead_score=score, score_breakdown=breakdown)
+            
+            doc = lead.model_dump()
+            doc['created_at'] = doc['created_at'].isoformat()
+            doc['updated_at'] = doc['updated_at'].isoformat()
+            if doc['enriched_at']:
+                doc['enriched_at'] = doc['enriched_at'].isoformat()
+            
+            await db.leads.insert_one(doc)
+            created_leads.append(lead.id)
+            
+        except Exception as e:
+            errors.append({
+                "email": lead_data.email if hasattr(lead_data, 'email') else None,
+                "error": str(e)
+            })
+    
+    return {
+        "created_count": len(created_leads),
+        "skipped_count": len(skipped_duplicates),
+        "error_count": len(errors),
+        "created_leads": created_leads,
+        "skipped_duplicates": skipped_duplicates,
+        "errors": errors
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
