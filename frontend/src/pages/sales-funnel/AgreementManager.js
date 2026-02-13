@@ -136,12 +136,12 @@ const AgreementManager = () => {
   };
 
   return (
-    <div className=\"max-w-7xl mx-auto\" data-testid=\"agreement-manager\">
-      <div className=\"mb-6\">
+    <div className="max-w-7xl mx-auto" data-testid="agreement-manager">
+      <div className="mb-6">
         <Button
           onClick={() => navigate('/leads')}
-          variant=\"ghost\"
-          className=\"mb-4 hover:bg-zinc-100 rounded-sm\"
+          variant="ghost"
+          className="mb-4 hover:bg-zinc-100 rounded-sm"
         >
           <ArrowLeft className=\"w-4 h-4 mr-2\" strokeWidth={1.5} />
           Back to Leads
