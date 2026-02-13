@@ -315,7 +315,11 @@ async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_
         raise HTTPException(status_code=403, detail="Managers can only view and download")
     
     lead_dict = lead_create.model_dump()
-    lead = Lead(**lead_dict, created_by=current_user.id)
+    
+    # Calculate lead score
+    score, breakdown = calculate_lead_score(lead_dict)
+    
+    lead = Lead(**lead_dict, created_by=current_user.id, lead_score=score, score_breakdown=breakdown)
     
     doc = lead.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
