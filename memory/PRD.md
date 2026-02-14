@@ -5,76 +5,76 @@ A comprehensive business management application for a 50-person consulting organ
 
 ## Core Requirements
 - **Authentication**: Email-based login with roles (Admin, Manager, Executive, Consultant, Project Manager, Principal Consultant)
-- **Sales Workflow**: Lead → Pricing Plan → Quotation → Agreement → Manager Approval → Client Email
-- **Sales → Consulting Handover**: Kick-off Meeting with SOW freeze and team alignment
+- **Sales Workflow**: Lead → Pricing Plan → **SOW** → Quotation → Agreement (with SOW) → Approval → Project → Kick-off
+- **SOW Management**: Sales creates SOW after Pricing Plan, with version tracking and freeze after kick-off
+- **Agreement Structure**: Party Info, NDA, NCA, Renewal, Conveyance, SOW, Project Details, Team, Pricing, Payment Terms, Signature
 - **Currency**: Indian Rupees (₹)
-- **Time Tracking**: Project start date, visits, meetings (committed vs delivered), meeting modes
-- **Task Management**: Project tasks with categories and statuses
-- **Handover Alerts**: 15-day deadline tracking from agreement approval
+- **No Deletion**: Soft delete only - all versions preserved
 - **Integrations**: Rocket Reach for lead generation (pending)
 
 ## User Personas
-1. **Admin**: Full system access, can create/edit/delete all data, can edit frozen SOW
-2. **Manager**: View/download access, can approve/reject agreements, view handover alerts
-3. **Executive**: Edit/view access to leads, quotations, agreements
+1. **Admin**: Full system access, can edit frozen SOW, manage user roles
+2. **Manager**: View/download access, approve/reject agreements, view handover alerts
+3. **Executive/Sales**: Create leads, pricing plans, SOW, quotations, agreements
 4. **Consultant**: View assigned projects and tasks
 5. **Project Manager**: Manage projects and consultant assignments
-6. **Principal Consultant**: Leads kick-off meetings, senior consultant role
+6. **Principal Consultant**: Lead kick-off meetings, freeze SOW, senior consultant role
 
 ## Implemented Features (as of Feb 14, 2026)
 
 ### Authentication & Roles ✅
 - JWT-based email/password authentication
-- Six user roles: Admin, Manager, Executive, Consultant, Project Manager, Principal Consultant
-- Role-based access control throughout the app
+- Six user roles with role-based permissions
 - Consultant-specific dashboard and navigation
 
-### Kick-off Meeting & SOW Management (Phase 3) ✅
-- **Kick-off Meeting Scheduling**:
-  - Scheduled by Principal Consultant after agreement approval
-  - Meeting details: Date, Time, Mode (Online/Offline/Mixed), Location/Link
-  - Attendees: Principal Consultant (required), Sales Executive (auto-added), Client Contact (auto-added), Additional Consultants
-  - Agenda field for meeting topics
-  - Sales team notified when kick-off is scheduled
+### SOW (Scope of Work) - Sales Flow (Phase 4) ✅
+- **New Sales Workflow**: Lead → Pricing Plan → SOW → Quotation → Agreement
+- **SOW Categories**: Sales, HR, Operations, Training, Analytics, Digital Marketing
+- **SOW Items**: Title, Description, Deliverables list, Timeline (weeks)
+- **Version Tracking**:
+  - Every add/edit creates a new version
+  - Full snapshot stored at each version
+  - View any historical version
+  - Changes highlighted with before/after values
+- **SOW Builder UI**: Category-based accordion view, Add/Edit dialogs, Version History
 
-- **Scope of Work (SOW) Management**:
-  - 6 Categories: Sales, HR, Operations, Training, Analytics, Digital Marketing
-  - Each category can have multiple scope items
-  - Scope items include: Title, Description, Deliverables, Timeline (weeks)
-  - SOW displayed in Kick-off Meeting page for alignment
+### User Profile & Rights Configuration (Phase 4) ✅
+- **User Profile Page**: View/edit name, email, phone, department, designation, bio
+- **Role Badge**: Visual indicator of user role
+- **My Permissions**: View role-based permissions per module
+- **Account Info**: User ID, Status, Member Since
+- **Admin Rights Management**: Configure permissions per role (to be enhanced for HR module)
 
-- **SOW Freeze Logic**:
-  - SOW is editable until kick-off meeting is scheduled
-  - When kick-off is scheduled, SOW becomes FROZEN
-  - Only Admin can edit frozen SOW (ensures no unauthorized changes)
-  - Prevents mismatch between Sales commitments and Consulting delivery
+### Agreement with SOW (Phase 4) ✅
+- **Agreement Sections**: 
+  - Party Information
+  - Agreement Between D&V Business Consulting
+  - Confidentiality
+  - NDA (Non-Disclosure Agreement)
+  - NCA (Non-Compete Agreement)
+  - Renewal Terms
+  - Conveyance
+  - SOW (tabular format)
+  - Project Details (start date, duration)
+  - Team Engagement
+  - Pricing Plan
+  - Payment Terms & Conditions
+  - Signatures
+- **Export**: Full agreement data for PDF/Word generation
+- **SOW Table**: Category, Title, Description, Deliverables, Timeline
 
-- **Communication Flow**:
-  - Sales → Consulting handover tracked through kick-off meeting
-  - Notifications sent to Sales Executive when kick-off scheduled
-  - Meeting attendees include both Sales and Consulting team members
+### Kick-off Meeting & SOW Freeze (Phase 3) ✅
+- **Kick-off Meeting Scheduling**: By Principal Consultant after agreement approval
+- **Meeting Details**: Date, Time, Mode, Location/Link, Attendees, Agenda
+- **SOW Freeze**: When kick-off scheduled, SOW becomes frozen
+- **Admin Override**: Only Admin can edit frozen SOW
+- **Notifications**: Sales team notified when kick-off scheduled
 
 ### Task Management System (Phase 2) ✅
-- **Task Creation** with full details:
-  - Title, Description
-  - 7 Categories: General, Meeting, Deliverable, Review, Follow Up, Admin, Client Communication
-  - 6 Statuses: To Do, Own Task, In Progress, Delegated, Completed, Cancelled
-  - Priority: Low, Medium, High, Urgent
-  - Assignee (from consultants list)
-  - Start Date, Due Date
-  - Estimated Hours
-- **Task List View** with:
-  - Status counts summary (To Do, Own Task, In Progress, Delegated, Completed, Total)
-  - Inline status dropdown for quick updates
-  - Category and priority badges
-  - Due date with color-coded urgency
-  - Edit and Delete actions
-- **Timeline/Gantt View**:
-  - Visual timeline showing tasks with date bars
-  - Color-coded by status
-  - Today marker
-  - Click to edit tasks
-- **Task CRUD APIs**: Create, Read, Update, Delete, Delegate, Reorder
+- **Task Creation**: Title, Description, Category (7 types), Status (6 types), Priority, Assignee, Dates, Hours
+- **Task List View**: Status counts, inline status change, badges, due date urgency
+- **Timeline/Gantt View**: Visual timeline, color-coded by status
+- **Task CRUD APIs**: Full CRUD with delegate and reorder
 
 ### Handover Alerts (Phase 2) ✅
 - **15-day deadline tracking** from agreement approval
