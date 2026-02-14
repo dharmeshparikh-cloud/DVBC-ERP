@@ -12,6 +12,8 @@ import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
 import Quotations from './pages/sales-funnel/Quotations';
 import Agreements from './pages/sales-funnel/Agreements';
 import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
+import Consultants from './pages/Consultants';
+import ConsultantDashboard from './pages/ConsultantDashboard';
 import Layout from './components/Layout';
 import './App.css';
 
@@ -67,6 +69,14 @@ function App() {
     );
   }
 
+  // Determine default route based on user role
+  const getDefaultDashboard = () => {
+    if (user?.role === 'consultant') {
+      return <ConsultantDashboard />;
+    }
+    return <Dashboard />;
+  };
+
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       <Toaster position="top-right" />
@@ -77,7 +87,7 @@ function App() {
             path="/"
             element={user ? <Layout /> : <Navigate to="/login" />}
           >
-            <Route index element={<Dashboard />} />
+            <Route index element={getDefaultDashboard()} />
             <Route path="leads" element={<Leads />} />
             <Route path="projects" element={<Projects />} />
             <Route path="meetings" element={<Meetings />} />
@@ -86,6 +96,8 @@ function App() {
             <Route path="sales-funnel/quotations" element={<Quotations />} />
             <Route path="sales-funnel/agreements" element={<Agreements />} />
             <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
+            <Route path="consultants" element={<Consultants />} />
+            <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
           </Route>
         </Routes>
       </BrowserRouter>
