@@ -76,15 +76,48 @@ const SOWBuilder = () => {
   const [supportItem, setSupportItem] = useState(null);
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
   const [docsItem, setDocsItem] = useState(null);
+  const [userPermissions, setUserPermissions] = useState({});
 
-  const isManager = user?.role === 'admin' || user?.role === 'manager';
-  const canEdit = !sow?.is_frozen || user?.role === 'admin';
+  // Role-based access control
+  // Sales Team (create/edit SOW): admin, executive, account_manager
+  // Consulting Team (view, update progress): consultant, lean_consultant, lead_consultant, senior_consultant, principal_consultant, subject_matter_expert
+  // PM/Audit (approve, authorize): admin, project_manager, manager
+  
+  const salesRoles = ['admin', 'executive', 'account_manager'];
+  const consultingRoles = ['consultant', 'lean_consultant', 'lead_consultant', 'senior_consultant', 'principal_consultant', 'subject_matter_expert'];
+  const pmRoles = ['admin', 'project_manager', 'manager'];
+  
+  const isSalesTeam = salesRoles.includes(user?.role);
+  const isConsultingTeam = consultingRoles.includes(user?.role);
+  const isPMTeam = pmRoles.includes(user?.role);
+  const isManager = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'project_manager';
+  
+  // Can create/edit SOW items
+  const canCreateSOW = isSalesTeam && (!sow?.is_frozen || user?.role === 'admin');
+  const canEditSOW = isSalesTeam && (!sow?.is_frozen || user?.role === 'admin');
+  const canEdit = canEditSOW;
+  
+  // Can update status (consulting team and PM)
+  const canUpdateStatus = isConsultingTeam || isPMTeam;
+  
+  // Can approve/authorize (PM team only)
+  const canApprove = isPMTeam;
 
   useEffect(() => {
     fetchData();
     fetchConsultants();
     fetchBackendStaff();
+    fetchUserPermissions();
   }, [pricingPlanId]);
+
+  const fetchUserPermissions = async () => {
+    try {
+      const res = await axios.get(`${API}/users/me/permissions`);
+      setUserPermissions(res.data.sow || {});
+    } catch (error) {
+      console.error('Error fetching permissions:', error);
+    }
+  };
 
   const fetchData = async () => {
     try {
