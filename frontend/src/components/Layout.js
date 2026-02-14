@@ -11,24 +11,32 @@ const Layout = () => {
   const isConsultant = user?.role === 'consultant';
   const isManagerOrAdmin = user?.role === 'manager' || user?.role === 'admin';
 
+  // Sales meeting roles
+  const isSalesRole = ['admin', 'executive', 'account_manager'].includes(user?.role);
+  // Consulting meeting roles
+  const isConsultingRole = ['admin', 'project_manager', 'consultant', 'principal_consultant',
+    'lean_consultant', 'lead_consultant', 'senior_consultant', 'subject_matter_expert', 'manager'].includes(user?.role);
+
   // Navigation items visible based on role
   const getNavigation = () => {
     if (isConsultant) {
-      // Consultants see a simplified navigation
       return [
         { name: 'My Dashboard', href: '/', icon: LayoutDashboard },
         { name: 'Projects', href: '/projects', icon: Briefcase },
-        { name: 'Meetings', href: '/meetings', icon: Calendar },
+        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck },
       ];
     }
-    // Admin, Manager, Executive see full navigation
-    return [
+    const navItems = [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard },
       { name: 'Leads', href: '/leads', icon: Users },
       { name: 'Projects', href: '/projects', icon: Briefcase },
-      { name: 'Meetings', href: '/meetings', icon: Calendar },
       { name: 'Email Templates', href: '/email-templates', icon: Mail },
     ];
+    // Add Consulting Meetings for consulting/PM roles in main nav
+    if (isConsultingRole) {
+      navItems.splice(3, 0, { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck });
+    }
+    return navItems;
   };
 
   const navigation = getNavigation();
