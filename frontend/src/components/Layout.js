@@ -37,6 +37,7 @@ const Layout = () => {
     { name: 'Pricing Plans', href: '/sales-funnel/pricing-plans', icon: DollarSign },
     { name: 'Quotations', href: '/sales-funnel/quotations', icon: FileText },
     { name: 'Agreements', href: '/sales-funnel/agreements', icon: FileCheck },
+    { name: 'Clients', href: '/clients', icon: Building2 },
   ];
 
   const managerNav = [
