@@ -2759,50 +2759,6 @@ async def download_agreement_document(
     )
 
 
-@api_router.get("/sow/{sow_id}/download")
-async def download_sow_document(
-    sow_id: str,
-    format: str = "pdf",  # pdf or docx
-    current_user: User = Depends(get_current_user)
-):
-    """Download SOW as Word or PDF document"""
-    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
-    if not sow:
-        raise HTTPException(status_code=404, detail="SOW not found")
-    
-    # Get lead data
-    lead = None
-    if sow.get('lead_id'):
-        lead = await db.leads.find_one({"id": sow['lead_id']}, {"_id": 0})
-    
-    # Get pricing plan data
-    pricing_plan = None
-    if sow.get('pricing_plan_id'):
-        pricing_plan = await db.pricing_plans.find_one({"id": sow['pricing_plan_id']}, {"_id": 0})
-    
-    # Generate document
-    generator = SOWDocumentGenerator(sow, lead, pricing_plan)
-    
-    # Create filename
-    client_name = lead.get('company', 'Client') if lead else 'SOW'
-    client_name = "".join(c for c in client_name if c.isalnum() or c in ' -_')[:30]
-    
-    if format.lower() == 'docx':
-        buffer = generator.generate_word()
-        filename = f"SOW_{client_name}.docx"
-        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    else:
-        buffer = generator.generate_pdf()
-        filename = f"SOW_{client_name}.pdf"
-        media_type = "application/pdf"
-    
-    return Response(
-        content=buffer.getvalue(),
-        media_type=media_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-    )
-
-
 @api_router.get("/agreements")
 async def get_agreements(
     lead_id: Optional[str] = None,
