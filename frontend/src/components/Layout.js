@@ -132,6 +132,13 @@ const Layout = () => {
             {/* Dashboard - always visible */}
             <NavLink item={{ name: isConsultant ? 'My Dashboard' : 'Dashboard', href: '/', icon: LayoutDashboard }} />
 
+            {/* ─── MY WORKSPACE ─── (visible to ALL users) */}
+            <SectionHeader label="My Workspace" />
+            <NavLink item={{ name: 'My Attendance', href: '/my-attendance', icon: CalendarDays }} />
+            <NavLink item={{ name: 'My Leaves', href: '/my-leaves', icon: Calendar }} />
+            <NavLink item={{ name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet }} />
+            <NavLink item={{ name: 'My Expenses', href: '/my-expenses', icon: Receipt }} />
+
             {/* ─── HR ─── */}
             {showHR && (
               <>
