@@ -20,6 +20,7 @@ import HandoverAlerts from './pages/HandoverAlerts';
 import KickoffMeeting from './pages/KickoffMeeting';
 import UserProfile from './pages/UserProfile';
 import UserManagement from './pages/UserManagement';
+import Employees from './pages/Employees';
 import Layout from './components/Layout';
 import './App.css';
 
