@@ -35,7 +35,7 @@ def format_date(date_val) -> str:
     if isinstance(date_val, str):
         try:
             date_val = datetime.fromisoformat(date_val.replace('Z', '+00:00'))
-        except:
+        except ValueError:
             return date_val
     return date_val.strftime("%d %B %Y")
 
