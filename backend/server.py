@@ -4031,14 +4031,99 @@ DEFAULT_ROLE_PERMISSIONS = {
     "project_manager": {
         "leads": {"create": False, "read": True, "update": False, "delete": False},
         "pricing_plans": {"create": False, "read": True, "update": False, "delete": False},
-        "sow": {"create": False, "read": True, "update": True, "delete": False, "freeze": False},
+        "sow": {"create": False, "read": True, "update": True, "delete": False, "freeze": False, "approve": True, "authorize_client": True},
         "quotations": {"create": False, "read": True, "update": False, "delete": False},
-        "agreements": {"create": False, "read": True, "update": False, "delete": False, "approve": False},
+        "agreements": {"create": False, "read": True, "update": False, "delete": False, "approve": True},
         "projects": {"create": True, "read": True, "update": True, "delete": False},
         "tasks": {"create": True, "read": True, "update": True, "delete": True},
         "consultants": {"create": False, "read": True, "update": False, "delete": False},
         "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
         "reports": {"view": True, "export": True}
+    },
+    # New roles with default permissions
+    "lean_consultant": {
+        "leads": {"create": False, "read": False, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": False, "update": False, "delete": False},
+        "sow": {"create": False, "read": True, "update": False, "delete": False, "freeze": False, "update_status": True},
+        "quotations": {"create": False, "read": False, "update": False, "delete": False},
+        "agreements": {"create": False, "read": False, "update": False, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": False, "delete": False},
+        "tasks": {"create": True, "read": True, "update": True, "delete": False},
+        "consultants": {"create": False, "read": False, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": False, "export": False}
+    },
+    "lead_consultant": {
+        "leads": {"create": False, "read": True, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": True, "update": False, "delete": False},
+        "sow": {"create": False, "read": True, "update": True, "delete": False, "freeze": False, "update_status": True},
+        "quotations": {"create": False, "read": True, "update": False, "delete": False},
+        "agreements": {"create": False, "read": True, "update": False, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": True, "delete": False},
+        "tasks": {"create": True, "read": True, "update": True, "delete": True},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": True, "export": False}
+    },
+    "senior_consultant": {
+        "leads": {"create": False, "read": True, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": True, "update": False, "delete": False},
+        "sow": {"create": False, "read": True, "update": True, "delete": False, "freeze": False, "update_status": True},
+        "quotations": {"create": False, "read": True, "update": False, "delete": False},
+        "agreements": {"create": False, "read": True, "update": False, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": True, "delete": False},
+        "tasks": {"create": True, "read": True, "update": True, "delete": True},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": True, "export": False}
+    },
+    "hr_executive": {
+        "leads": {"create": False, "read": False, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": False, "update": False, "delete": False},
+        "sow": {"create": False, "read": False, "update": False, "delete": False, "freeze": False},
+        "quotations": {"create": False, "read": False, "update": False, "delete": False},
+        "agreements": {"create": False, "read": False, "update": False, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": False, "delete": False},
+        "tasks": {"create": False, "read": True, "update": False, "delete": False},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": True, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": False, "export": False}
+    },
+    "hr_manager": {
+        "leads": {"create": False, "read": False, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": False, "update": False, "delete": False},
+        "sow": {"create": False, "read": False, "update": False, "delete": False, "freeze": False},
+        "quotations": {"create": False, "read": False, "update": False, "delete": False},
+        "agreements": {"create": False, "read": False, "update": False, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": False, "delete": False},
+        "tasks": {"create": False, "read": True, "update": False, "delete": False},
+        "consultants": {"create": True, "read": True, "update": True, "delete": False},
+        "users": {"create": True, "read": True, "update": True, "delete": False, "manage_roles": False},
+        "reports": {"view": True, "export": True}
+    },
+    "account_manager": {
+        "leads": {"create": True, "read": True, "update": True, "delete": False},
+        "pricing_plans": {"create": True, "read": True, "update": True, "delete": False},
+        "sow": {"create": True, "read": True, "update": True, "delete": False, "freeze": False},
+        "quotations": {"create": True, "read": True, "update": True, "delete": False},
+        "agreements": {"create": True, "read": True, "update": True, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": False, "delete": False},
+        "tasks": {"create": False, "read": True, "update": False, "delete": False},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": True, "export": True}
+    },
+    "subject_matter_expert": {
+        "leads": {"create": False, "read": True, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": True, "update": False, "delete": False},
+        "sow": {"create": False, "read": True, "update": True, "delete": False, "freeze": False, "update_status": True},
+        "quotations": {"create": False, "read": True, "update": False, "delete": False},
+        "agreements": {"create": False, "read": True, "update": False, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": True, "delete": False},
+        "tasks": {"create": True, "read": True, "update": True, "delete": False},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": True, "export": False}
     }
 }
 
