@@ -275,7 +275,31 @@ const Agreements = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    {/* Download buttons - always visible */}
+                    <Button
+                      onClick={() => handleDownload(agreement.id, 'pdf')}
+                      size="sm"
+                      variant="outline"
+                      disabled={downloading[`${agreement.id}-pdf`]}
+                      className="rounded-sm"
+                      data-testid={`download-pdf-${agreement.id}`}
+                    >
+                      <Download className="w-4 h-4 mr-1" strokeWidth={1.5} />
+                      {downloading[`${agreement.id}-pdf`] ? 'Downloading...' : 'PDF'}
+                    </Button>
+                    <Button
+                      onClick={() => handleDownload(agreement.id, 'docx')}
+                      size="sm"
+                      variant="outline"
+                      disabled={downloading[`${agreement.id}-docx`]}
+                      className="rounded-sm"
+                      data-testid={`download-docx-${agreement.id}`}
+                    >
+                      <FileText className="w-4 h-4 mr-1" strokeWidth={1.5} />
+                      {downloading[`${agreement.id}-docx`] ? 'Downloading...' : 'Word'}
+                    </Button>
+                    
                     {agreement.status === 'approved' && canEdit && (
                       <Button
                         onClick={() => openEmailDialog(agreement)}
