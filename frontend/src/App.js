@@ -19,6 +19,7 @@ import ProjectTasks from './pages/ProjectTasks';
 import HandoverAlerts from './pages/HandoverAlerts';
 import KickoffMeeting from './pages/KickoffMeeting';
 import UserProfile from './pages/UserProfile';
+import UserManagement from './pages/UserManagement';
 import Layout from './components/Layout';
 import './App.css';
 
