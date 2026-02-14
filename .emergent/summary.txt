@@ -1,296 +1,100 @@
 <analysis>**original_problem_statement:**
-The user, representing a 50-person consulting organization, requires a comprehensive business management application. The system needs to cover HR, Marketing, Sales, Finance, and Consulting project workflows. Key requirements include custom reporting for each department and time-based tracking for services, from agreement to delivery.
+The user, representing a 50-person consulting organization, requires a comprehensive business management application. The system needs to cover HR, Marketing, Sales, Finance, and Consulting project workflows.
 
 **PRODUCT REQUIREMENTS (based on user clarifications):**
--   **Authentication & Roles:** Email-based login with roles: Admin, Manager, Executive, and now **Consultant**. A more complex hierarchy with **Project Manager** and **Principal Consultant** has been requested.
--   **Sales Workflow:** A detailed sales process from lead entry to agreement approval. Currency is Indian Rupees (₹).
--   **Agreement & Email System:** Email agreements to clients, using editable templates and the logged-in user's SMTP/Gmail credentials.
--   **Consultant & Project Management:**
-    -   Admins can create and manage consultant profiles, including bandwidth and cost.
-    -   Managers/Admins can assign consultants to projects.
-    -   Consultants have a separate dashboard to track their assigned projects and tasks.
-    -   Track assigned dates, meeting completion, project value, and consultant workload.
-    -   A Gantt chart with drag-and-drop task management is required.
-    -   Task management system with specific categories and statuses.
-    -   Alerts for a 15-day project handover deadline from sales.
+-   **Authentication & Roles:** Email-based login with roles: Admin, Manager, Executive, Consultant, Project Manager, and Principal Consultant. A separate page for user profile and rights configuration is required, to be integrated with a future HR module.
+-   **Sales Workflow:** A detailed sales process from lead entry to agreement approval. The flow is: Lead → Pricing Plan → SOW → Quotation → Agreement → Approval.
+-   **Scope of Work (SOW):**
+    -   SOW is created by the sales team after the pricing plan.
+    -   SOW has categories (Sales, HR, etc.) and version history for all changes.
+    -   Requires a list view with trackable status (updatable by user, approved by manager) and a feature to upload external documents.
+    -   SOW items can be assigned to a specific consultant and have optional backend support staff.
+    -   Ability to add SOW items in a spreadsheet-like inline manner.
+    -   Roadmap and Gantt views for timeline visualization.
+    -   SOW document uploads are per-line-item and trigger email notifications upon completion.
+    -   **NEW:** A two-step approval process where users submit selected SOW items (via checkboxes) to a manager, who then approves them and authorizes them to be sent to the client.
+-   **SOW Linkages:** SOW should be linked to consultant performance and the overall project roadmap.
+-   **Agreement & Export:** The agreement should be a structured document and be exportable to Word and PDF.
+-   **Consultant & Project Management:** A Gantt chart with drag-and-drop task management is required.
 -   **Integrations:** Rocket Reach integration for lead generation.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a React frontend and FastAPI backend. It features JWT-based authentication with four user roles (Admin, Manager, Executive, Consultant).
--   **Sales Workflow:** The backend is complete, and the frontend UI for Pricing, Quotations, Agreements, and Manager Approvals is now fully implemented and tested.
--   **Consultant Module (Phase 1):** A system for Admins/Managers to create consultant users and view their profiles, including project load and availability. Consultants have their own dedicated dashboard.
--   **UI/UX:** The application has a consistent black-and-white theme, a sidebar with navigation, clickable dashboard stats, and quick-action buttons integrated into the workflow.
+A full-stack application with a React frontend and FastAPI backend using MongoDB.
+-   **Authentication & Roles:** JWT-based authentication is implemented with all requested roles.
+-   **User Profile:** A My Profile page allows users to view and edit their information.
+-   **Sales Workflow:** The revised workflow (Lead → Pricing Plan → SOW Builder → etc.) is implemented.
+-   **SOW Management:** A highly advanced SOW builder is in place. It supports:
+    -   Spreadsheet-style inline editing for adding and updating SOW items.
+    -   Assignment of consultants and backend support staff to each item.
+    -   List, Roadmap, and Gantt chart views for visualization.
+    -   Per-item document uploads, which trigger email notifications when an item is marked Completed.
+    -   A fully functional version history viewer that shows changes and a snapshot of SOW items at each version.
+-   **Project Management:** A task management system, handover alerts for managers, and a kick-off meeting scheduler are all functional.
 
 **Last working item**:
--   **Last item agent was working:** The user reported that the pricing page is not being populated and throwing errors. The agent was about to begin investigating this bug, which blocks the implementation of the next set of features.
--   **Status:** BLOCKED
+-   **Last item agent was working:** The user requested a new, more robust two-step approval workflow for SOW items. The agent acknowledged the request but has not started implementation.
+-   **Status:** NOT STARTED
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** Frontend testing agent (or screenshot with debug) to check the console and network tabs for errors on the pricing page.
+-   **Which testing method agent to use?** both (This is a significant feature affecting UI and backend logic).
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Pricing Page Broken (P0)**
+-   **Issue 1: Implement Two-Step SOW Approval Workflow (P0)**
 
 **Issues Detail:**
--   **Issue 1:** Pricing Page Broken
-    -   **Attempted fixes:** None yet. The agent was just about to investigate when the session ended.
+-   **Issue 1:** Implement Two-Step SOW Approval Workflow
+    -   **Attempted fixes:** None. The feature was just requested.
     -   **Next debug checklist:**
-        1.  View the code for .
-        2.  Take a screenshot with  to inspect the browser console and network requests for errors.
-        3.  Verify the  backend endpoint is working as expected using .
-        4.  Check backend logs for any related errors: ==> /var/log/supervisor/backend.err.log <==
-  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
-    version = _bcrypt.__about__.__version__
-              ^^^^^^^^^^^^^^^^^
-AttributeError: module 'bcrypt' has no attribute '__about__'
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [51] using WatchFiles
-INFO:     Started server process [80]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-2026-02-14 08:18:12,582 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
-Traceback (most recent call last):
-  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
-    version = _bcrypt.__about__.__version__
-              ^^^^^^^^^^^^^^^^^
-AttributeError: module 'bcrypt' has no attribute '__about__'
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [80]
-INFO:     Started server process [785]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [785]
-INFO:     Started server process [850]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [850]
-INFO:     Started server process [934]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [934]
-INFO:     Stopping reloader process [51]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [942] using WatchFiles
-INFO:     Started server process [944]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-2026-02-14 08:34:53,389 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
-Traceback (most recent call last):
-  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
-    version = _bcrypt.__about__.__version__
-              ^^^^^^^^^^^^^^^^^
-AttributeError: module 'bcrypt' has no attribute '__about__'
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [944]
-INFO:     Started server process [1533]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [1533]
-INFO:     Stopping reloader process [942]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [1538] using WatchFiles
-INFO:     Started server process [1540]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-2026-02-14 08:36:13,691 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
-Traceback (most recent call last):
-  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
-    version = _bcrypt.__about__.__version__
-              ^^^^^^^^^^^^^^^^^
-AttributeError: module 'bcrypt' has no attribute '__about__'
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [48] using WatchFiles
-INFO:     Started server process [80]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-2026-02-14 12:07:17,621 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
-Traceback (most recent call last):
-  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
-    version = _bcrypt.__about__.__version__
-              ^^^^^^^^^^^^^^^^^
-AttributeError: module 'bcrypt' has no attribute '__about__'
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [43] using WatchFiles
-INFO:     Started server process [81]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-
-==> /var/log/supervisor/backend.out.log <==
-INFO:     10.66.11.130:43620 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.3.130:45022 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.11.130:43620 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.11.130:43620 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44868 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44868 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44884 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:41592 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44884 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:41592 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44884 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44884 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44884 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.3.130:41592 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44884 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.3.130:37948 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.66.11.130:58850 - "POST /api/consultants HTTP/1.1" 422 Unprocessable Entity
-INFO:     10.66.3.130:60524 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60524 - "POST /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33620 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33620 - "POST /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.11.130:60348 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.66.11.130:60348 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:48080 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:48086 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.11.130:60348 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:48086 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:48080 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:48080 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.11.130:60348 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.3.130:48080 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.3.130:48080 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.3.130:50682 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.66.3.130:50682 - "GET /api/consultant/my-projects HTTP/1.1" 200 OK
-INFO:     10.66.3.130:50682 - "GET /api/consultant/dashboard-stats HTTP/1.1" 200 OK
-INFO:     10.66.3.130:50688 - "GET /api/consultant/my-projects HTTP/1.1" 200 OK
-INFO:     10.66.3.130:50682 - "GET /api/consultant/dashboard-stats HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60154 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60154 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60154 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:53934 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60158 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60158 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:53934 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60158 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60158 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:60154 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.11.130:53934 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33124 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33124 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.11.130:47018 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33124 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33138 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33138 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:47018 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33138 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.11.130:47018 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33138 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33138 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:33138 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.11.130:47018 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.11.130:35642 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.11.130:35642 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.11.130:35642 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:56020 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:56022 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.11.130:35642 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:56022 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:56022 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.11.130:35642 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:56022 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:56022 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.11.130:34280 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.3.130:50532 - "GET /api/consultants HTTP/1.1" 200 OK
-INFO:     10.66.11.130:51430 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.66.11.130:51430 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:55154 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:51430 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.11.130:51430 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.11.130:51430 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.11.130:51436 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44896 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44896 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44910 - "GET /api/leads/b710146b-3bdf-4fd2-ad76-64c56720f722/suggestions HTTP/1.1" 200 OK
-INFO:     10.66.11.130:44910 - "GET /api/leads/b710146b-3bdf-4fd2-ad76-64c56720f722/suggestions HTTP/1.1" 200 OK
-INFO:     10.66.3.130:55292 - "GET /api/leads?status=contacted HTTP/1.1" 200 OK
-INFO:     10.66.11.130:55078 - "GET /api/leads?status=qualified HTTP/1.1" 200 OK
-INFO:     10.66.11.130:55078 - "GET /api/leads?status=proposal HTTP/1.1" 200 OK
-INFO:     10.66.11.130:55078 - "GET /api/leads?status=agreement HTTP/1.1" 200 OK
-INFO:     10.66.3.130:48696 - "GET /api/leads?status=closed HTTP/1.1" 200 OK
-INFO:     10.66.11.130:53438 - "POST /api/pricing-plans HTTP/1.1" 422 Unprocessable Entity
-INFO:     10.66.11.130:48332 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.66.3.130:43782 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:43782 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:43798 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:43782 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
-INFO:     10.66.3.130:43798 - "GET /api/leads HTTP/1.1" 200 OK
-INFO:     10.66.3.130:43798 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
-INFO:     10.66.3.130:43798 - "GET /api/auth/me HTTP/1.1" 200 OK
-INFO:     10.66.3.130:43798 - "GET /api/auth/me HTTP/1.1" 200 OK.
-    -   **Why fix this issue and what will be achieved with the fix?** The pricing page is the entry point for the sales workflow. Fixing it is critical to unblock core application functionality.
+        1.  **Backend ( & ):**
+            -   Update the SOW item model to include new approval statuses (e.g., , , ).
+            -   Create an API endpoint to handle batch submission of SOW items for manager approval.
+            -   Create an API endpoint for managers to approve individual or multiple items.
+            -   Create a final API endpoint for managers to authorize approved items to be sent to the client.
+        2.  **Frontend ():**
+            -   Add a checkbox to each row in the SOW list view table.
+            -   Implement a Submit for Approval button that sends the selected item IDs to the backend.
+            -   Conditionally render Approve and Authorize for Client buttons in the UI, visible only to managers for items in the correct state.
+            -   Update the status display logic to reflect the new, multi-step approval statuses.
+    -   **Why fix this issue and what will be achieved with the fix?** This will implement a critical user requirement for a double-check mechanism, ensuring SOWs are properly vetted before being finalized and sent to clients.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** This issue is blocking further development.
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1:** Implement Phase 2 of the Consultant & Project Management Module (P0)
-    -   **Where to resume:** After the pricing page bug is fixed, begin implementing the user's extensive requests for project and task management.
-    -   **What will be achieved with this?** A full-featured project management system with role hierarchies, Gantt charts, and task tracking, fulfilling a major user requirement.
-    -   **Status:** NOT STARTED
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** **Issue 1: Pricing Page Broken**.
+-   None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P0) Phase 2 Consultant Module:**
-        -   Implement Project/Principal Consultant roles.
-        -   Assign consultants to existing/new projects with approval flows.
-        -   Add Edit Consultant Profile and Assign Consultant buttons.
-        -   Set up 15-day handover alerts.
-        -   Integrate  for a Gantt chart with drag-and-drop tasks.
-        -   Build the task management system (categories and statuses).
-    -   **(P1) Rocket Reach Integration:** Integrate with Rocket Reach for lead enrichment.
-    -   **(P2) Detailed Time Tracking Module:** Implement tracking for visits, meeting modes, etc.
-    -   **(P2) Custom Reporting Module:** Develop a module for generating departmental reports.
-    -   **(P2) Payment Confirmation/Tracking:** Build a feature to track payments before assigning projects.
-
+    -   **(P0) SOW linkages with consultant performance and project roadmap.** (User request #59).
+    -   **(P1) Gantt Chart Integration:** Refine the Gantt chart on the  page using .
+    -   **(P1) Agreement Export:** Implement backend logic to export the agreement to Word and PDF.
+    -   **(P1) SOW Monthly Roadmap & RACI Matrix:** Convert the frozen SOW into a monthly roadmap format with a RACI matrix.
+    -   **(P2) Rocket Reach Integration:** Integrate with Rocket Reach for lead enrichment.
 -   **Future Tasks:**
-    -   HR Workflow Module
-    -   Marketing Flow Module
+    -   HR Module
+    -   Detailed Time Tracking
+    -   Custom Reporting Module
+    -   Marketing Workflow Module
     -   Finance and Accounts Flow Module
 
 **Completed work in this session**
--   **Sales Workflow Frontend (FIXED):** Re-created and implemented the entire sales funnel UI, including pages for , , and manager .
--   **Backend Refactoring (DONE):** Fixed the  endpoint, enriched the returned data, and refactored the Agreement model to be more flexible.
--   **Dummy Data (DONE):** Created and successfully executed a Python script to populate the database with comprehensive test data for the entire sales funnel.
--   **E2E Testing (DONE):** Used the testing agent to perform a full end-to-end test of the sales workflow, which passed with 100% success.
--   **UI/UX Enhancements (DONE):** Made dashboard statistic cards clickable and added a Start Sales Flow button directly onto lead cards for a smoother user experience.
--   **Consultant Module - Phase 1 (DONE):**
-    -   Added a new Consultant user role.
-    -   Built a UI for Admins/Managers to create and view consultant profiles and their current bandwidth/workload.
-    -   Created a dedicated, simplified dashboard for logged-in consultants to view their assignments.
+-   **SOW Enhancements Implementation & Verification:** Confirmed that a set of previously in-progress SOW features (list view, status updates, doc uploads) were already complete and functional.
+-   **SOW Version History Bug Fix:** Resolved a critical bug where the version history dialog failed to display the content of a selected version snapshot. The UI now correctly renders all items as they existed in that version.
+-   **Spreadsheet-Style SOW Editor (Major Feature):**
+    -   Implemented inline row creation, allowing users to add new SOW items directly within the table.
+    -   Added functionality to assign a lead **Consultant** and optional **Backend Support** staff to each SOW item via dropdowns.
+    -   Integrated **Roadmap** and **Gantt Chart** views for timeline and project visualization.
+-   **Refactored SOW Document Handling:**
+    -   Moved document uploads from a general SOW section to be attachments for each specific line item.
+    -   Implemented backend logic to **automatically send email notifications** to managers and clients when an SOW item with attached documents is marked as Completed.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1:** The original handoff mentioned recurring syntax errors in generated files. While the agent in this session was successful, the risk remains, especially when creating complex components.
-    -   **Debug checklist:** Double-check content for  or  for special characters or syntax issues before execution.
-    -   **Why to solve this issue and what will be achieved with this?** Proactively avoiding this issue prevents breaking the application and speeds up development.
+-   **Issue 1:** Potential for syntax errors when using  or .
+    -   **Debug checklist:** Visually inspect content being written for syntax correctness.
+    -   **Why to solve this issue and what will be achieved with this?** Prevents breaking the application and avoids time spent on simple syntax bug hunts.
     -   **Should Test frontend/backend/both after fix:** both
     -   **Is recurring issue?** Y
 
@@ -302,439 +106,83 @@ INFO:     10.66.3.130:43798 - "GET /api/auth/me HTTP/1.1" 200 OK.
 
 **Key Technical Concepts**
 -   **Frontend:** React, Tailwind CSS, Shadcn/UI
--   **Backend:** FastAPI, Pydantic, Motor
+-   **Backend:** FastAPI, Pydantic, Motor (async MongoDB)
 -   **Database:** MongoDB
--   **Authentication:** JWT
+-   **Authentication:** JWT with role-based access control
+-   **File Uploads:** Handled via FastAPI .
 
 **key DB schema**
--   **users**: {email, password, role ('Admin', 'Manager', 'Executive', 'Consultant'), name, department, capacity}
--   **leads**: {name, company, title, email, phone, status, source, score}
--   **projects**: {name, client, startDate, status}
--   **pricing_plans**: {name, description, price, currency}
--   **quotations**: {lead_id, plan_id, status}
--   **agreements**: {quotation_id, content, status, approval_status, start_date}
--   **project_assignments**: {project_id, consultant_id, assigned_date} (new model)
+-   **users**: {email, password, role, name, ...}
+-   **sows**: {lead_id, version, items: [{id, title, category, timeline, deliverables, status, **consultant_id**, **support_staff: [{user_id, role}]**, **start_week**, **duration**, attachments: [{filename, url}]}], manager_approval_status, ...}
+-   **sow_versions**: Stores historical snapshots of SOWs.
+-   **agreements**: {..., sow_id, ...}
+-   **tasks**: {project_id, title, status, ...}
 
 **changes in tech stack**
--   User requested using  library for a future task.
-
-**All files of reference**
--   : Contains all API endpoints, including new ones for consultant management.
--   : **Currently broken and needs investigation.**
--   : Admin/Manager view for managing consultants.
--   : Dashboard for the consultant role.
--   : Main React router, includes new routes for sales and consultant pages.
--   : Main navigation, updated with new links.
--   : Script to populate the database with test data.
-
-**Areas that need refactoring**:
--   The  file is now very large and contains logic for auth, leads, projects, sales, and consultants. It should be broken down into separate router files (e.g., ) for better maintainability.
-
-**key api endpoints**
--   , 
--   , , 
--   , , 
--   , 
--    (fixed)
--    (new)
--    (new)
--    (new)
-
-**Critical Info for New Agent**
--   **Immediate Priority:** The user has reported the pricing page is broken. You must fix this **P0 bug** before proceeding with any new features.
--   **Next Major Task:** The user has outlined a large, multi-part feature request for Phase 2 of the consultant/project management module. This includes new roles, Gantt charts, and task management. It is critical to break this down into smaller, verifiable steps and maintain communication with the user.
--   **Refactoring Opportunity:** The  file has become monolithic. Plan to refactor it into a more modular structure with FastAPI routers as part of future work.
-
-**documents and test reports created in this job**
--    (updated)
--   
-
-**Last 10 User Messages and any pending HUMAN messages**
-1.  **Also check princing oage , its not being polulated and throwing errors**: User reported the current P0 bug. (Status: **PENDING**)
-2.  **Role can be multiple... To to , Own task...**: User provided detailed requirements for new roles (Project Manager, Principal Consultant) and the task management system. (Status: **PENDING IMPLEMENTATION**)
-3.  **React gantt timeline... yes... To to...**: User confirmed technology choice for Gantt chart and provided specs for task statuses and categories. (Status: **PENDING IMPLEMENTATION**)
-4.  **in project add ssign consultant... design dashboard cards...**: User requested a large set of features for Phase 2 of the consultant module, including project assignment, Gantt charts, and UI updates. (Status: **PENDING IMPLEMENTATION**)
-5.  **is this included with assigned consultant and add consultant feature ? if not need that activated...**: User initiated the conversation about consultant assignment and project tracking, which led to the Phase 2 requirements. (Status: **ADDRESSED, PENDING IMPLEMENTATION**)
-6.  **8 project per consultnat... only admin... yes**: User clarified business rules for consultant creation and project capacity. (Status: **ADDRESSED**)
-7.  **consultant to be selected from exisiting system user...**: User specified requirements for consultant assignment and tracking (assigned dates, meeting completion, project value, etc.). (Status: **ADDRESSED, PARTIALLY IMPLEMENTED in Phase 1**)
-8.  **Should I proceed with Phase 1 now?**: Agent asked for confirmation to start the first phase of the consultant module. (Status: **COMPLETED**)
-9.  **pls make dashboard itesm clackable along with start sales flow button**: User requested UI improvements for the dashboard and leads page. (Status: **COMPLETED**)
-10. **yes do that**: User approved the agent's plan to implement the full sales workflow frontend. (Status: **COMPLETED**)
-
-**Project Health Check:**
--   **Broken:** The  page is non-functional and throwing errors, blocking the sales workflow.
--   **Mocked:**
-    -   The email-sending functionality requires real SMTP credentials for end-to-end verification.
-    -   The concept of payment confirmation has been introduced by the user but is not yet implemented.
-
-**3rd Party Integrations**
--   **Rocket Reach:** Requested, but not yet implemented.
--   **react-gantt-timeline:** Requested for the upcoming task management feature. Will require installation (yarn add v1.22.22
+-   User has requested using  for the main project tasks page. This still needs to be installed (yarn add v1.22.22
 [1/4] Resolving packages...
 [2/4] Fetching packages...
 [3/4] Linking dependencies...
 [4/4] Building fresh packages...
-success Saved lockfile.
-success Saved 342 new dependencies.
+success Saved 1 new dependency.
 info Direct dependencies
 └─ react-gantt-timeline@0.4.3
 info All dependencies
-├─ @babel/compat-data@7.29.0
-├─ @babel/core@7.29.0
-├─ @babel/helper-compilation-targets@7.28.6
-├─ @babel/helper-globals@7.28.0
-├─ @babel/helper-module-imports@7.28.6
-├─ @babel/helper-module-transforms@7.28.6
-├─ @babel/helper-string-parser@7.27.1
-├─ @babel/helper-validator-option@7.27.1
-├─ @babel/helpers@7.28.6
-├─ @babel/parser@7.29.0
-├─ @babel/plugin-syntax-async-generators@7.8.4
-├─ @babel/plugin-syntax-bigint@7.8.3
-├─ @babel/plugin-syntax-class-properties@7.12.13
-├─ @babel/plugin-syntax-import-meta@7.10.4
-├─ @babel/plugin-syntax-json-strings@7.8.3
-├─ @babel/plugin-syntax-logical-assignment-operators@7.10.4
-├─ @babel/plugin-syntax-nullish-coalescing-operator@7.8.3
-├─ @babel/plugin-syntax-numeric-separator@7.10.4
-├─ @babel/plugin-syntax-object-rest-spread@7.8.3
-├─ @babel/plugin-syntax-optional-catch-binding@7.8.3
-├─ @babel/plugin-syntax-optional-chaining@7.8.3
-├─ @babel/template@7.28.6
-├─ @cnakazawa/watch@1.0.4
-├─ @istanbuljs/load-nyc-config@1.1.0
-├─ @jest/globals@25.5.2
-├─ @jest/test-sequencer@25.5.4
-├─ @jridgewell/gen-mapping@0.3.13
-├─ @jridgewell/remapping@2.3.5
-├─ @jridgewell/resolve-uri@3.1.2
-├─ @jridgewell/sourcemap-codec@1.5.5
-├─ @sinonjs/commons@1.8.6
-├─ @types/babel__core@7.20.5
-├─ @types/babel__generator@7.27.0
-├─ @types/babel__template@7.4.4
-├─ @types/babel__traverse@7.28.0
-├─ @types/graceful-fs@4.1.9
-├─ @types/istanbul-lib-report@3.0.3
-├─ @types/istanbul-reports@1.1.2
-├─ @types/node@25.2.3
-├─ @types/normalize-package-data@2.4.4
-├─ @types/prettier@1.19.1
-├─ @types/stack-utils@1.0.1
-├─ @types/yargs-parser@21.0.3
-├─ acorn-globals@4.3.4
-├─ acorn-walk@6.2.0
-├─ acorn@7.4.1
-├─ ajv@6.12.6
-├─ ansi-escapes@1.4.0
-├─ anymatch@3.1.3
-├─ argparse@1.0.10
-├─ arr-flatten@1.1.0
-├─ array-equal@1.0.2
-├─ asn1@0.2.6
-├─ assign-symbols@1.0.0
-├─ asynckit@0.4.0
-├─ atob@2.1.2
-├─ aws-sign2@0.7.0
-├─ aws4@1.13.2
-├─ babel-jest@25.5.1
-├─ babel-plugin-jest-hoist@25.5.0
-├─ babel-polyfill@6.23.0
-├─ babel-preset-current-node-syntax@0.1.4
-├─ babel-preset-jest@25.5.0
-├─ babel-runtime@6.26.0
-├─ balanced-match@1.0.2
-├─ base@0.11.2
-├─ baseline-browser-mapping@2.9.19
-├─ batch-processor@1.0.0
-├─ bcrypt-pbkdf@1.0.2
-├─ brace-expansion@1.1.12
-├─ braces@3.0.3
-├─ browser-process-hrtime@1.0.0
-├─ browser-resolve@1.11.3
-├─ browserslist@4.28.1
-├─ bser@2.1.1
-├─ buffer-from@1.1.2
-├─ cache-base@1.0.1
-├─ callsites@3.1.0
-├─ camelcase@5.3.1
-├─ caniuse-lite@1.0.30001769
-├─ capture-exit@2.0.0
-├─ caseless@0.12.0
-├─ chardet@0.4.2
-├─ ci-info@2.0.0
-├─ class-utils@0.3.6
-├─ cli-cursor@2.1.0
-├─ cli-width@2.2.1
-├─ cliui@6.0.0
-├─ co@4.6.0
-├─ collection-visit@1.0.0
-├─ color-convert@2.0.1
-├─ color-name@1.1.4
-├─ combined-stream@1.0.8
-├─ concat-map@0.0.1
-├─ convert-source-map@2.0.0
-├─ copy-descriptor@0.1.1
-├─ core-util-is@1.0.2
-├─ cross-spawn@6.0.6
-├─ cssom@0.4.4
-├─ cssstyle@2.3.0
-├─ dashdash@1.14.1
-├─ data-urls@1.1.0
-├─ debug@2.6.9
-├─ decode-uri-component@0.2.2
-├─ deep-is@0.1.4
-├─ deepmerge@4.3.1
-├─ delayed-stream@1.0.0
-├─ detect-newline@3.1.0
-├─ diff-sequences@25.2.6
-├─ ecc-jsbn@0.1.2
-├─ electron-to-chromium@1.5.286
-├─ element-resize-detector@1.2.4
-├─ emoji-regex@8.0.0
-├─ encoding@0.1.13
-├─ end-of-stream@1.4.5
-├─ error-ex@1.3.4
-├─ escalade@3.2.0
-├─ escape-string-regexp@1.0.5
-├─ escodegen@1.14.3
-├─ esprima@4.0.1
-├─ estraverse@4.3.0
-├─ esutils@2.0.3
-├─ execa@1.0.0
-├─ expand-brackets@2.1.4
-├─ extend@3.0.2
-├─ external-editor@2.2.0
-├─ extglob@2.0.4
-├─ extsprintf@1.3.0
-├─ fast-deep-equal@3.1.3
-├─ fast-levenshtein@2.0.6
-├─ figures@2.0.0
-├─ fill-range@7.1.1
-├─ for-in@1.0.2
-├─ forever-agent@0.6.1
-├─ form-data@2.3.3
-├─ fs.realpath@1.0.0
-├─ function-bind@1.1.2
-├─ gensync@1.0.0-beta.2
-├─ get-caller-file@2.0.5
-├─ get-package-type@0.1.0
-├─ get-stream@4.1.0
-├─ get-value@2.0.6
-├─ getpass@0.1.7
-├─ glob@7.2.3
-├─ har-schema@2.0.0
-├─ har-validator@5.1.5
-├─ has-ansi@2.0.0
-├─ has-flag@4.0.0
-├─ has-value@1.0.0
-├─ hosted-git-info@2.8.9
-├─ html-encoding-sniffer@1.0.2
-├─ http-signature@1.2.0
-├─ iconv-lite@0.4.24
-├─ imurmurhash@0.1.4
-├─ inflight@1.0.6
-├─ inherits@2.0.4
-├─ inquirer@3.0.6
-├─ invariant@2.2.4
-├─ ip-regex@2.1.0
-├─ is-arrayish@0.2.1
-├─ is-ci@2.0.0
-├─ is-core-module@2.16.1
-├─ is-descriptor@1.0.3
-├─ is-fullwidth-code-point@3.0.0
-├─ is-generator-fn@2.1.0
-├─ is-plain-object@2.0.4
-├─ is-stream@1.1.0
-├─ is-windows@1.0.2
-├─ isarray@1.0.0
-├─ isstream@0.1.2
-├─ istanbul-lib-coverage@3.2.2
-├─ istanbul-lib-instrument@5.2.1
-├─ jest-docblock@25.3.0
-├─ jest-each@25.5.0
-├─ jest-environment-jsdom@25.5.0
-├─ jest-environment-node@25.5.0
-├─ jest-leak-detector@25.5.0
-├─ jest-pnp-resolver@1.2.3
-├─ jest-runner@25.5.4
-├─ jest-serializer@25.5.0
-├─ js-tokens@4.0.0
-├─ js-yaml@3.14.2
-├─ jsdom@15.2.1
-├─ jsesc@3.1.0
-├─ json-parse-even-better-errors@2.3.1
-├─ json-schema-traverse@0.4.1
-├─ json-schema@0.4.0
-├─ json-stringify-safe@5.0.1
-├─ json5@2.2.3
-├─ jsprim@1.4.2
-├─ kind-of@3.2.2
-├─ leven@3.1.0
-├─ levn@0.3.0
-├─ lines-and-columns@1.2.4
-├─ locate-path@5.0.0
-├─ lodash.sortby@4.7.0
-├─ lodash@4.17.23
-├─ lolex@5.1.2
-├─ loose-envify@1.4.0
-├─ lru-cache@5.1.1
-├─ makeerror@1.0.12
-├─ map-visit@1.0.0
-├─ merge-stream@2.0.0
-├─ mime-db@1.52.0
-├─ mime-types@2.1.35
-├─ mimic-fn@1.2.0
-├─ minimatch@3.1.2
-├─ minimist@1.2.8
-├─ mixin-deep@1.3.2
-├─ moment@2.30.1
-├─ ms@2.0.0
-├─ mute-stream@0.0.7
-├─ nanomatch@1.2.13
-├─ natural-compare@1.4.0
-├─ nice-try@1.0.5
-├─ node-fetch@1.6.3
-├─ node-int64@0.4.0
-├─ node-releases@2.0.27
-├─ normalize-package-data@2.5.0
-├─ normalize-path@3.0.0
-├─ npm-run-path@2.0.2
-├─ nwsapi@2.2.23
-├─ oauth-sign@0.9.0
-├─ object-assign@4.1.1
-├─ object-copy@0.1.0
-├─ once@1.4.0
-├─ onetime@2.0.1
-├─ opencollective-postinstall@2.0.3
-├─ opencollective@1.0.3
-├─ opn@4.0.2
-├─ optionator@0.8.3
-├─ os-tmpdir@1.0.2
-├─ p-finally@1.0.0
-├─ p-limit@2.3.0
-├─ p-locate@4.1.0
-├─ p-try@2.2.0
-├─ parse-json@5.2.0
-├─ parse5@5.1.0
-├─ pascalcase@0.1.1
-├─ path-exists@4.0.0
-├─ path-is-absolute@1.0.1
-├─ path-key@2.0.1
-├─ path-parse@1.0.7
-├─ performance-now@2.1.0
-├─ picomatch@2.3.1
-├─ pinkie-promise@2.0.1
-├─ pinkie@2.0.4
-├─ pirates@4.0.7
-├─ pn@1.1.0
-├─ posix-character-classes@0.1.1
-├─ pump@3.0.3
-├─ qs@6.5.5
-├─ react-gantt-timeline@0.4.3
-├─ react-is@16.13.1
-├─ react-sizeme@2.6.12
-├─ read-pkg-up@7.0.1
-├─ read-pkg@5.2.0
-├─ regenerator-runtime@0.10.5
-├─ remove-trailing-separator@1.1.0
-├─ repeat-element@1.1.4
-├─ request-promise-core@1.1.4
-├─ request-promise-native@1.0.9
-├─ request@2.88.2
-├─ require-directory@2.1.1
-├─ require-main-filename@2.0.0
-├─ resolve-from@5.0.0
-├─ resolve-url@0.2.1
-├─ resolve@1.22.11
-├─ restore-cursor@2.0.0
-├─ ret@0.1.15
-├─ rsvp@4.8.5
-├─ run-async@2.4.1
-├─ rx@4.1.0
-├─ safe-buffer@5.2.1
-├─ safer-buffer@2.1.2
-├─ sane@4.1.0
-├─ saxes@3.1.11
-├─ set-blocking@2.0.0
-├─ set-value@2.0.1
-├─ shallowequal@1.1.0
-├─ shebang-command@1.2.0
-├─ shebang-regex@1.0.0
-├─ signal-exit@3.0.7
-├─ snapdragon-node@2.1.1
-├─ snapdragon-util@3.0.1
-├─ source-map-resolve@0.5.3
-├─ source-map-support@0.5.21
-├─ source-map-url@0.4.1
-├─ source-map@0.6.1
-├─ spdx-correct@3.2.0
-├─ spdx-exceptions@2.5.0
-├─ split-string@3.1.0
-├─ sprintf-js@1.0.3
-├─ sshpk@1.18.0
-├─ stack-utils@1.0.5
-├─ static-extend@0.1.2
-├─ stealthy-require@1.1.1
-├─ string-width@4.2.3
-├─ strip-bom@4.0.0
-├─ strip-eof@1.0.0
-├─ supports-color@7.2.0
-├─ supports-preserve-symlinks-flag@1.0.0
-├─ symbol-tree@3.2.4
-├─ test-exclude@6.0.0
-├─ throttle-debounce@2.3.0
-├─ through@2.3.8
-├─ tmp@0.0.33
-├─ to-object-path@0.3.0
-├─ to-regex-range@5.0.1
-├─ tough-cookie@2.5.0
-├─ tr46@1.0.1
-├─ tunnel-agent@0.6.0
-├─ tweetnacl@0.14.5
-├─ type-detect@4.0.8
-├─ type-fest@0.8.1
-├─ typedarray-to-buffer@3.1.5
-├─ undici-types@7.16.0
-├─ union-value@1.0.1
-├─ unset-value@1.0.0
-├─ update-browserslist-db@1.2.3
-├─ uri-js@4.4.1
-├─ urix@0.1.0
-├─ use@3.1.1
-├─ uuid@3.4.0
-├─ validate-npm-package-license@3.0.4
-├─ verror@1.10.0
-├─ w3c-hr-time@1.0.2
-├─ w3c-xmlserializer@1.1.2
-├─ walker@1.0.8
-├─ whatwg-encoding@1.0.5
-├─ whatwg-mimetype@2.3.0
-├─ which-module@2.0.1
-├─ which@2.0.2
-├─ word-wrap@1.2.5
-├─ wrap-ansi@6.2.0
-├─ write-file-atomic@3.0.3
-├─ ws@7.5.10
-├─ xmlchars@2.2.0
-├─ y18n@4.0.3
-├─ yallist@3.1.1
-├─ yargs-parser@18.1.3
-└─ yargs@15.4.1
-Done in 24.06s.).
+└─ react-gantt-timeline@0.4.3
+Done in 21.44s.).
+
+**All files of reference**
+-   : The main FastAPI application file. Contains logic for SOW manipulation, document handling, and user management. It is becoming monolithic.
+-   : Contains all Pydantic models for the sales process, including the recently expanded SOW item model.
+-   : The heavily modified UI for the advanced SOW builder. **This file will need further changes for the new approval workflow.**
+-   : UI for the task management system. Needs the  integration.
+
+**Areas that need refactoring**:
+-   The  file is extremely large and complex. It should be broken down into separate FastAPI routers for each domain (e.g., , , , ) to improve maintainability. This should be proposed to the user after the current task.
+
+**key api endpoints**
+-   : (NEW) POST to add multiple SOW items at once for spreadsheet-style editing.
+-   : (UPDATED) PUT to update item status; now triggers email notifications on Completed.
+-   : POST to upload documents to a specific SOW item.
+-   : GET to download a document.
+-   : GET to populate consultant dropdowns.
+
+**Critical Info for New Agent**
+-   **Immediate Priority:** Your first task is to implement the new two-step SOW approval workflow as detailed in the . This is the user's latest request and is P0.
+-   **Refactoring Needed:** The  monolith is a growing concern. After completing the approval workflow, you should plan and propose a refactoring effort to split it into routers.
+-   **Context:** The agent has successfully implemented several major, complex features on the  page. The code is fresh but intricate. Read the file carefully before making changes.
+
+**documents and test reports created in this job**
+-    (updated multiple times)
+
+**Last 10 User Messages and any pending HUMAN messages**
+-   **wait , send for approval should have checkbox...**: User requested a new two-step approval workflow for SOWs with checkboxes and manager authorization. (Status: **PENDING - THIS IS THE NEXT TASK**)
+-   **upload document should not have its seperate section...**: User requested that document uploads be per-SOW-item and trigger emails on completion. (Status: **COMPLETED**)
+-   **Spreadsheet-style inline editing...**: User clarified requirements for the SOW editor, including consultant/support assignment and roadmap views. (Status: **COMPLETED**)
+-   **can we have some system can continue adding lines in the same window...**: User requested spreadsheet-style editing and linkage to consultant performance/roadmap. (Status: **Partially Completed** - inline editing done, linkages are upcoming)
+-   **in this window view option dont reflect anything...**: User reported a bug where the SOW version history view was blank. (Status: **COMPLETED**)
+
+**Project Health Check:**
+-   **Broken:** None. The application is stable.
+-   **Mocked:**
+    -   Email sending uses a log-based placeholder; no actual emails are sent.
+    -   The agreement export to Word/PDF is not yet implemented.
+
+**3rd Party Integrations**
+-   **react-gantt-timeline:** Requested for task management, but not yet installed or integrated.
+-   **Rocket Reach:** Requested, but not yet implemented.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, successfully validated the end-to-end sales workflow.
+-   **Testing agent used after significant changes:** NO. Agent self-tested recent features using  for the backend and  for the frontend.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None
--   **Known regressions:** The pricing page was previously working but is now reported as broken.
+-   **Known regressions:** None.
 
 **Credentials to test flow:**
 -   **Admin:**  / 
 -   **Manager:**  / 
 -   **Executive:**  / 
--   **Consultant:**  /  (or  / )
 
 **What agent forgot to execute**
--   The agent was interrupted by a bug report, so the planned execution of Phase 2 of the consultant module is pending.
--   Original requirements like **Rocket Reach integration** and a formal **custom reporting module** are still in the backlog.</analysis>
+-   The agent did not start implementing the **two-step SOW approval workflow** requested by the user in the last message.
+-   The agent has not yet proposed the high-priority refactoring of the monolithic  file.</analysis>
