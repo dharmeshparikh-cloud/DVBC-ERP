@@ -5086,38 +5086,11 @@ async def preview_approval_chain(
         "total_levels": len(approval_levels)
     }
 
-# API: Get notifications for current user
-@api_router.get("/notifications")
-async def get_notifications(
-    unread_only: bool = False,
-    current_user: User = Depends(get_current_user)
-):
-    """Get notifications for the current user"""
-    query = {"user_id": current_user.id}
-    if unread_only:
-        query['is_read'] = False
-    
-    notifications = await db.notifications.find(
-        query,
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(50)
-    
-    return notifications
-
-@api_router.post("/notifications/{notification_id}/read")
-async def mark_notification_read(
-    notification_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Mark a notification as read"""
-    await db.notifications.update_one(
-        {"id": notification_id, "user_id": current_user.id},
-        {"$set": {"is_read": True}}
-    )
-    return {"message": "Notification marked as read"}
+# Note: Notifications APIs already exist above at lines 3846-3867
+# Added mark-all-read endpoint here as it's new
 
 @api_router.post("/notifications/mark-all-read")
-async def mark_all_notifications_read(current_user: User = Depends(get_current_user)):
+async def mark_all_notifications_read_v2(current_user: User = Depends(get_current_user)):
     """Mark all notifications as read"""
     await db.notifications.update_many(
         {"user_id": current_user.id, "is_read": False},
