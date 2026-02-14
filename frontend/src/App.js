@@ -22,6 +22,8 @@ import UserProfile from './pages/UserProfile';
 import UserManagement from './pages/UserManagement';
 import Employees from './pages/Employees';
 import ApprovalsCenter from './pages/ApprovalsCenter';
+import Clients from './pages/Clients';
+import Expenses from './pages/Expenses';
 import Layout from './components/Layout';
 import './App.css';
 
