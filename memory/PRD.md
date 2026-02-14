@@ -283,7 +283,8 @@ A comprehensive business management application for a 50-person consulting organ
 ### Pending/Future Features
 
 ### P0 (Critical)
-- **Two-Step SOW Approval Workflow**: Checkboxes to select items → Submit for Manager Approval → Manager Approves → Authorize for Client
+- ✅ COMPLETED: Client Master Module (Feb 14, 2026)
+- ✅ COMPLETED: Expense Request System (Feb 14, 2026)
 
 ### P1 (High Priority)
 - SOW linkages with consultant performance and project roadmap
