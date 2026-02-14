@@ -2,187 +2,196 @@ import React, { useContext } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { Button } from './ui/button';
-import { LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut, DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle, User, Shield, UsersRound, Building2, Receipt, BarChart3 } from 'lucide-react';
+import {
+  LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
+  DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
+  User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronRight
+} from 'lucide-react';
+
+// Role groups per domain
+const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
+const SALES_ROLES_NAV = ['admin', 'executive', 'account_manager', 'manager'];
+const CONSULTING_ROLES_NAV = [
+  'admin', 'project_manager', 'consultant', 'principal_consultant',
+  'lean_consultant', 'lead_consultant', 'senior_consultant',
+  'subject_matter_expert', 'manager'
+];
+const ADMIN_ROLES = ['admin', 'manager'];
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
   const location = useLocation();
+  const role = user?.role;
 
-  const isConsultant = user?.role === 'consultant';
-  const isManagerOrAdmin = user?.role === 'manager' || user?.role === 'admin';
-
-  // Sales meeting roles
-  const isSalesRole = ['admin', 'executive', 'account_manager'].includes(user?.role);
-  // Consulting meeting roles
-  const isConsultingRole = ['admin', 'project_manager', 'consultant', 'principal_consultant',
-    'lean_consultant', 'lead_consultant', 'senior_consultant', 'subject_matter_expert', 'manager'].includes(user?.role);
-
-  // Navigation items visible based on role
-  const getNavigation = () => {
-    if (isConsultant) {
-      return [
-        { name: 'My Dashboard', href: '/', icon: LayoutDashboard },
-        { name: 'Projects', href: '/projects', icon: Briefcase },
-        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck },
-      ];
-    }
-    const navItems = [
-      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-      { name: 'Leads', href: '/leads', icon: Users },
-      { name: 'Projects', href: '/projects', icon: Briefcase },
-      { name: 'Email Templates', href: '/email-templates', icon: Mail },
-    ];
-    // Add Consulting Meetings for consulting/PM roles in main nav
-    if (isConsultingRole) {
-      navItems.splice(3, 0, { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck });
-    }
-    return navItems;
-  };
-
-  const navigation = getNavigation();
-
-  const salesFunnelNav = [
-    { name: 'Pricing Plans', href: '/sales-funnel/pricing-plans', icon: DollarSign },
-    { name: 'Quotations', href: '/sales-funnel/quotations', icon: FileText },
-    { name: 'Agreements', href: '/sales-funnel/agreements', icon: FileCheck },
-    { name: 'Clients', href: '/clients', icon: Building2 },
-    ...(isSalesRole ? [{ name: 'Sales Meetings', href: '/sales-meetings', icon: Calendar }] : []),
-  ];
-
-  const managerNav = [
-    { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
-    { name: 'Consultants', href: '/consultants', icon: UserCog },
-    { name: 'Handover Alerts', href: '/handover-alerts', icon: AlertTriangle },
-    { name: 'Employees', href: '/employees', icon: UsersRound },
-    { name: 'Expenses', href: '/expenses', icon: Receipt },
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
-    { name: 'User Management', href: '/user-management', icon: Shield },
-  ];
+  const showHR = HR_ROLES.includes(role);
+  const showSales = SALES_ROLES_NAV.includes(role);
+  const showConsulting = CONSULTING_ROLES_NAV.includes(role);
+  const showAdmin = ADMIN_ROLES.includes(role);
+  const isConsultant = role === 'consultant';
 
   const isActive = (href) => {
     if (href === '/') return location.pathname === '/';
-    return location.pathname.startsWith(href);
+    // Handle query params in href
+    const [path] = href.split('?');
+    if (location.pathname.startsWith(path) && path !== '/') {
+      // If href has query params, also check those
+      if (href.includes('?')) {
+        return location.pathname.startsWith(path) && location.search.includes(href.split('?')[1]);
+      }
+      return true;
+    }
+    return false;
   };
+
+  const NavLink = ({ item, indent = false, flowStep = false }) => {
+    const Icon = item.icon;
+    const active = isActive(item.href);
+    return (
+      <Link
+        to={item.href}
+        data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+        className={`flex items-center gap-3 py-2 rounded-sm text-sm transition-colors ${indent ? 'pl-6 pr-3' : 'px-3'} ${
+          active ? 'bg-zinc-100 text-zinc-950 font-medium' : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
+        }`}
+      >
+        {flowStep && (
+          <div className="flex items-center">
+            <ChevronRight className="w-3 h-3 text-zinc-300 -ml-1 mr-0.5" strokeWidth={2} />
+          </div>
+        )}
+        <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+        <span className="truncate">{item.name}</span>
+      </Link>
+    );
+  };
+
+  const SectionHeader = ({ label }) => (
+    <div className="px-3 mb-1.5 mt-5 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+      {label}
+    </div>
+  );
+
+  // Sales Flow branch items (Lead → Pricing → Quotation → Agreement)
+  const salesFlowItems = [
+    { name: 'Leads', href: '/leads', icon: Users },
+    { name: 'Pricing Plans', href: '/sales-funnel/pricing-plans', icon: DollarSign },
+    { name: 'Quotations', href: '/sales-funnel/quotations', icon: FileText },
+    { name: 'Agreements', href: '/sales-funnel/agreements', icon: FileCheck },
+  ];
+
+  const salesOtherItems = [
+    { name: 'Clients', href: '/clients', icon: Building2 },
+    { name: 'Sales Meetings', href: '/sales-meetings', icon: Calendar },
+    { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3 },
+  ];
+
+  const hrItems = [
+    { name: 'Employees', href: '/employees', icon: UsersRound },
+    { name: 'Expenses', href: '/expenses', icon: Receipt },
+    { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3 },
+  ];
+
+  const consultingItems = isConsultant
+    ? [
+        { name: 'Projects', href: '/projects', icon: Briefcase },
+        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck },
+      ]
+    : [
+        { name: 'Projects', href: '/projects', icon: Briefcase },
+        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck },
+        { name: 'Consultants', href: '/consultants', icon: UserCog },
+        { name: 'Handover Alerts', href: '/handover-alerts', icon: AlertTriangle },
+        { name: 'Consulting Reports', href: '/reports?category=operations', icon: BarChart3 },
+      ];
+
+  const adminItems = [
+    { name: 'User Management', href: '/user-management', icon: Shield },
+    { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
+    { name: 'Email Templates', href: '/email-templates', icon: Mail },
+  ];
 
   return (
     <div className="flex min-h-screen bg-white">
-      <aside className="w-64 border-r border-zinc-200 bg-white" data-testid="sidebar">
+      <aside className="w-64 border-r border-zinc-200 bg-white flex-shrink-0" data-testid="sidebar">
         <div className="flex flex-col h-full">
+          {/* Logo */}
           <div className="p-6 border-b border-zinc-200 flex items-center justify-center">
-            <img 
-              src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png" 
-              alt="Logo" 
-              className="h-12 w-auto"
+            <img
+              src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png"
+              alt="Logo" className="h-12 w-auto"
             />
           </div>
 
-          <nav className="flex-1 p-4 space-y-1">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors ${
-                    active
-                      ? 'bg-zinc-100 text-zinc-950 font-medium'
-                      : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" strokeWidth={1.5} />
-                  {item.name}
-                </Link>
-              );
-            })}
-            
-            {/* Sales Funnel Section - Not for consultants */}
-            {!isConsultant && (
-              <div className="pt-4 mt-4 border-t border-zinc-200">
-                <div className="px-3 mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
-                  Sales Funnel
-                </div>
-                {salesFunnelNav.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.href);
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors ${
-                        active
-                          ? 'bg-zinc-100 text-zinc-950 font-medium'
-                          : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" strokeWidth={1.5} />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
+          {/* Navigation */}
+          <nav className="flex-1 px-3 py-2 overflow-y-auto" data-testid="nav-container">
+            {/* Dashboard - always visible */}
+            <NavLink item={{ name: isConsultant ? 'My Dashboard' : 'Dashboard', href: '/', icon: LayoutDashboard }} />
+
+            {/* ─── HR ─── */}
+            {showHR && (
+              <>
+                <SectionHeader label="HR" />
+                {hrItems.map(item => <NavLink key={item.name} item={item} />)}
+              </>
             )}
 
-            {/* Manager Section - Only visible to managers and admins */}
-            {isManagerOrAdmin && (
-              <div className="pt-4 mt-4 border-t border-zinc-200">
-                <div className="px-3 mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
-                  Management
+            {/* ─── SALES ─── */}
+            {showSales && (
+              <>
+                <SectionHeader label="Sales" />
+                {/* Sales Flow Branch */}
+                <div className="relative ml-3 pl-3 border-l-2 border-zinc-200 space-y-0.5" data-testid="sales-flow-branch">
+                  <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-zinc-300" />
+                  {salesFlowItems.map((item, idx) => (
+                    <div key={item.name} className="relative">
+                      {idx > 0 && (
+                        <div className="absolute -left-[17px] top-1/2 w-3 h-px bg-zinc-200" />
+                      )}
+                      <NavLink item={item} flowStep={idx > 0} />
+                    </div>
+                  ))}
+                  <div className="absolute -left-[5px] bottom-0 w-2 h-2 rounded-full bg-zinc-300" />
                 </div>
-                {managerNav.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.href);
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors ${
-                        active
-                          ? 'bg-zinc-100 text-zinc-950 font-medium'
-                          : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" strokeWidth={1.5} />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
+                {/* Other Sales Items */}
+                <div className="mt-1 space-y-0.5">
+                  {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
+                </div>
+              </>
+            )}
+
+            {/* ─── CONSULTING ─── */}
+            {showConsulting && (
+              <>
+                <SectionHeader label="Consulting" />
+                {consultingItems.map(item => <NavLink key={item.name} item={item} />)}
+              </>
+            )}
+
+            {/* ─── ADMIN ─── */}
+            {showAdmin && (
+              <>
+                <SectionHeader label="Admin" />
+                {adminItems.map(item => <NavLink key={item.name} item={item} />)}
+              </>
             )}
           </nav>
 
+          {/* User section */}
           <div className="p-4 border-t border-zinc-200">
             <div className="mb-3">
-              <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-1">
-                User
-              </div>
-              <Link 
-                to="/profile"
-                className="block hover:bg-zinc-50 rounded-sm p-1 -m-1"
-              >
+              <Link to="/profile" className="block hover:bg-zinc-50 rounded-sm p-1 -m-1">
                 <div className="text-sm text-zinc-950">{user?.full_name}</div>
-                <div className="text-xs text-zinc-500 data-text capitalize">{user?.role}</div>
+                <div className="text-xs text-zinc-500 capitalize">{user?.role?.replace(/_/g, ' ')}</div>
               </Link>
             </div>
             <div className="space-y-1">
-              <Link
-                to="/profile"
-                className="flex items-center w-full px-3 py-2 text-sm rounded-sm text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
-              >
-                <User className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                My Profile
+              <Link to="/profile"
+                className="flex items-center w-full px-3 py-2 text-sm rounded-sm text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100">
+                <User className="w-4 h-4 mr-2" strokeWidth={1.5} /> My Profile
               </Link>
-              <Button
-                onClick={logout}
-                data-testid="logout-button"
-                variant="ghost"
-                className="w-full justify-start text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-sm"
-              >
-                <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                Sign Out
+              <Button onClick={logout} data-testid="logout-button" variant="ghost"
+                className="w-full justify-start text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-sm">
+                <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} /> Sign Out
               </Button>
             </div>
           </div>
