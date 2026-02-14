@@ -19,7 +19,8 @@ from email_templates import (
 from sales_workflow import (
     CommunicationLog, CommunicationLogCreate,
     PricingPlan, PricingPlanCreate, ConsultantAllocation, SOWItem,
-    Quotation, QuotationCreate, Agreement, AgreementCreate,
+    Quotation, QuotationCreate, Agreement, AgreementCreate, AgreementSection,
+    SOW, SOWCreate, SOWItemCreate, SOWVersion, DEFAULT_AGREEMENT_SECTIONS,
     calculate_quotation_totals
 )
 from agreement_templates import (
