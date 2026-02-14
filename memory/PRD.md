@@ -373,9 +373,9 @@ A comprehensive business management application for a 50-person consulting organ
 - ✅ COMPLETED: Expense Request System (Feb 14, 2026)
 
 ### P1 (High Priority)
+- ✅ COMPLETED: Agreement Export to Word/PDF (Feb 14, 2026)
 - SOW linkages with consultant performance and project roadmap
 - Drag-and-drop task reordering in Gantt view (react-gantt-timeline library)
-- Agreement Export to Word/PDF
 - SOW Monthly Roadmap & RACI Matrix conversion
 - Meeting Form with MOM (Minutes of Meeting)
 
