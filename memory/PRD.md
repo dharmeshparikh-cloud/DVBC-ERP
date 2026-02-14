@@ -159,45 +159,35 @@ A comprehensive business management application for a 50-person consulting organ
   - SOW Builder Page: PDF and Word download buttons in header
 - **Technology**: python-docx for Word generation, ReportLab for PDF generation
 
-### Meeting Form with MOM (Feb 14, 2026) ✅ NEW
-- **Purpose**: Create meetings with agenda and generate Minutes of Meeting (MOM)
-- **Meeting Features**:
-  - Schedule meetings linked to projects, clients, and leads
-  - Meeting modes: Online, Offline (In-person), Tele Call
-  - Agenda items (multiple)
-  - Attendee selection from users list
-  - Duration tracking
-  - Delivered status
-- **MOM (Minutes of Meeting)**:
-  - Meeting Title
-  - Agenda items (dynamic add/remove)
-  - Discussion Points (dynamic add/remove)
-  - Decisions Made (dynamic add/remove)
-  - Action Items with assignment, due date, priority
-  - Next Meeting Date scheduling
-- **Action Items**:
-  - Assign to team member
-  - Set due date and priority (Low/Medium/High)
-  - Auto-create follow-up task in tasks collection
-  - Notify reporting manager via notification queue
-  - Track completion status
-- **Send MOM to Client**:
-  - Email queued to notifications collection (MOCKED)
-  - Includes all MOM sections in HTML format
-  - Client email fetched from lead or client contacts
-- **Follow-up Tasks**:
-  - Separate collection for action item tasks
-  - Status tracking (pending, in_progress, completed)
-  - Linked to original meeting and action item
+### Meetings & MOM - Split into Sales & Consulting (Feb 14, 2026) ✅ REFACTORED
+- **Purpose**: Separated meetings into two distinct workflows based on business type
+- **Sales Meetings** (Route: `/sales-meetings`):
+  - Lightweight form: Title, Date, Mode, Duration, Lead (optional), Notes
+  - Sales MOM: Agenda, Discussion Points, Decisions (no action items)
+  - Accessible by: Admin, Executive, Account Manager
+  - Navigation: Under "Sales Funnel" section
+- **Consulting Meetings** (Route: `/consulting-meetings`):
+  - Detailed form: Title, Date, Mode, Duration, Project (required), Client, SOW, Delivered status
+  - Consulting MOM: Full Agenda, Discussion Points, Decisions, Action Items with assignment/priority/due date
+  - Action Items: Assign to team, create follow-up tasks, notify manager
+  - Send MOM to Client (email queued, MOCKED)
+  - Commitment Tracking tab: Project-level committed vs actual meetings with variance & completion %
+  - Accessible by: Admin, Project Manager, Consultant roles, Manager (view only)
+  - Navigation: Main nav section
+- **Role-Based Access**:
+  - Sales roles (admin, executive, account_manager) → CRUD on Sales Meetings
+  - Consulting roles (admin, project_manager, consultant, etc.) → CRUD on Consulting Meetings
+  - Manager → View only (no create/edit)
+  - HR Manager → No CRUD access (403)
 - **APIs**:
-  - `POST /api/meetings` - Create meeting with agenda
+  - `POST /api/meetings` - Create meeting (type: 'sales' or 'consulting')
+  - `GET /api/meetings?meeting_type=sales|consulting` - Filter by type
+  - `GET /api/consulting-meetings/tracking` - Committed vs actual per project
   - `GET /api/meetings/{id}` - Get meeting with full MOM
   - `PATCH /api/meetings/{id}/mom` - Update MOM data
-  - `POST /api/meetings/{id}/action-items` - Add action item with follow-up
+  - `POST /api/meetings/{id}/action-items` - Add action item (consulting)
   - `PATCH /api/meetings/{id}/action-items/{id}` - Update action item status
-  - `POST /api/meetings/{id}/send-mom` - Send MOM email to client
-  - `GET /api/follow-up-tasks` - Get follow-up tasks
-- **Navigation**: Meetings (sidebar)
+  - `POST /api/meetings/{id}/send-mom` - Send MOM to client
 
 ### Client Master Module (Feb 14, 2026) ✅ NEW
 - **Purpose**: Manage client information and relationships for sales team
@@ -441,7 +431,7 @@ A comprehensive business management application for a 50-person consulting organ
 
 ### P1 (High Priority)
 - ✅ COMPLETED: Agreement Export to Word/PDF (Feb 14, 2026)
-- ✅ COMPLETED: Meeting Form with MOM (Feb 14, 2026)
+- ✅ COMPLETED: Meeting Form with MOM - Refactored to Sales & Consulting (Feb 14, 2026)
 - SOW linkages with consultant performance and project roadmap
 - Drag-and-drop task reordering in Gantt view (react-gantt-timeline library)
 - SOW Monthly Roadmap & RACI Matrix conversion
