@@ -132,6 +132,33 @@ A comprehensive business management application for a 50-person consulting organ
   - `GET /api/reports/stats` - Quick stats (admin/manager)
 - **Navigation**: Management → Reports
 
+### Agreement & SOW Document Export (Feb 14, 2026) ✅ NEW
+- **Purpose**: Generate and download professional Agreement and SOW documents in Word and PDF formats
+- **Agreement Document Export**:
+  - Generates professional consulting agreement with all sections
+  - Sections: Party Information, Agreement Between Parties, Confidentiality, NDA, NCA, Renewal Terms, Conveyance, SOW Table, Project Details, Team Engagement, Pricing Plan, Payment Terms, Signatures
+  - Includes company branding (D&V Business Consulting)
+  - Auto-populates client information from lead data
+  - SOW items displayed in table format with category, title, description, deliverables, timeline
+  - Team deployment table with consultant types, counts, meetings, hours, rates
+  - Pricing summary with subtotal, discount, GST, grand total in INR (₹)
+  - Signature section with signature lines for both parties
+- **SOW Document Export**:
+  - Generates standalone Scope of Work document
+  - Includes client name, status, version number
+  - Items table: #, Category, Title, Description, Consultant, Timeline
+  - Summary section: Total items, Approved, Completed counts
+- **Export Formats**:
+  - PDF: Professional PDF document with tables and formatting
+  - Word (.docx): Editable Word document with table styles
+- **APIs**:
+  - `GET /api/agreements/{id}/download?format=pdf|docx` - Download agreement document
+  - `GET /api/sow/{id}/download?format=pdf|docx` - Download SOW document
+- **UI Components**:
+  - Agreements Page: PDF and Word download buttons per agreement card
+  - SOW Builder Page: PDF and Word download buttons in header
+- **Technology**: python-docx for Word generation, ReportLab for PDF generation
+
 ### Client Master Module (Feb 14, 2026) ✅ NEW
 - **Purpose**: Manage client information and relationships for sales team
 - **Client Data Model**:
