@@ -53,6 +53,7 @@ class SOWItem(BaseModel):
     description: str = ""
     deliverables: List[str] = []
     timeline_weeks: Optional[int] = None
+    start_week: Optional[int] = None  # For roadmap positioning
     order: int = 0
     # New fields for status tracking
     status: str = SOWItemStatus.DRAFT  # draft, pending_review, approved, rejected, in_progress, completed
@@ -63,6 +64,14 @@ class SOWItem(BaseModel):
     rejection_reason: Optional[str] = None
     documents: List[SOWDocument] = []
     notes: Optional[str] = None
+    # Consultant assignment
+    assigned_consultant_id: Optional[str] = None
+    assigned_consultant_name: Optional[str] = None
+    # Backend support team (optional)
+    has_backend_support: bool = False
+    backend_support_id: Optional[str] = None
+    backend_support_name: Optional[str] = None
+    backend_support_role: Optional[str] = None  # e.g., "Developer", "Designer", "QA"
 
 class SOWVersion(BaseModel):
     """Version history for SOW changes"""
