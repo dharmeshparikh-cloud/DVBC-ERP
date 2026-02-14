@@ -4525,6 +4525,668 @@ async def get_users_with_roles(
     
     return users
 
+# ==================== APPROVAL WORKFLOW ENGINE ====================
+
+class ApprovalType(str):
+    SOW_ITEM = "sow_item"
+    SOW_DOCUMENT = "sow_document"
+    AGREEMENT = "agreement"
+    QUOTATION = "quotation"
+    LEAVE_REQUEST = "leave_request"
+    EXPENSE = "expense"
+    CLIENT_COMMUNICATION = "client_communication"
+
+class ApprovalStatus(str):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    ESCALATED = "escalated"
+
+class ApprovalLevel(BaseModel):
+    level: int
+    approver_id: str
+    approver_name: str
+    approver_role: str
+    status: str = ApprovalStatus.PENDING
+    comments: Optional[str] = None
+    action_date: Optional[datetime] = None
+
+class ApprovalRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    approval_type: str  # sow_item, agreement, leave_request, expense, etc.
+    reference_id: str  # ID of the item being approved
+    reference_title: str  # Title for display
+    
+    requester_id: str
+    requester_name: str
+    requester_employee_id: Optional[str] = None
+    
+    # Approval chain
+    approval_levels: List[dict] = []
+    current_level: int = 1
+    max_level: int = 1
+    
+    # Status
+    overall_status: str = ApprovalStatus.PENDING
+    requires_hr_approval: bool = False
+    requires_admin_approval: bool = False
+    is_client_facing: bool = False
+    
+    # Metadata
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = None
+
+# Helper function to get employee's reporting chain
+async def get_reporting_chain(user_id: str, max_levels: int = 3) -> List[dict]:
+    """Get the approval chain based on reporting manager hierarchy"""
+    chain = []
+    
+    # Get employee record for the user
+    employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
+    if not employee:
+        return chain
+    
+    current_manager_id = employee.get('reporting_manager_id')
+    level = 1
+    
+    while current_manager_id and level <= max_levels:
+        manager = await db.employees.find_one({"id": current_manager_id}, {"_id": 0})
+        if not manager:
+            break
+        
+        chain.append({
+            "level": level,
+            "employee_id": manager['id'],
+            "user_id": manager.get('user_id'),
+            "name": f"{manager['first_name']} {manager['last_name']}",
+            "role": manager.get('role'),
+            "designation": manager.get('designation')
+        })
+        
+        current_manager_id = manager.get('reporting_manager_id')
+        level += 1
+    
+    return chain
+
+# Helper function to get fallback approvers by role
+async def get_role_based_approvers(roles: List[str]) -> List[dict]:
+    """Get approvers based on roles (fallback when no reporting manager)"""
+    approvers = []
+    users = await db.users.find({"role": {"$in": roles}, "is_active": True}, {"_id": 0, "hashed_password": 0}).to_list(100)
+    
+    for user in users:
+        employee = await db.employees.find_one({"user_id": user['id']}, {"_id": 0})
+        approvers.append({
+            "user_id": user['id'],
+            "name": user.get('full_name', 'Unknown'),
+            "role": user['role'],
+            "employee_id": employee['id'] if employee else None,
+            "designation": employee.get('designation') if employee else user['role']
+        })
+    
+    return approvers
+
+# Create approval request with proper chain
+async def create_approval_request(
+    approval_type: str,
+    reference_id: str,
+    reference_title: str,
+    requester_id: str,
+    is_client_facing: bool = False,
+    requires_hr_approval: bool = False,
+    requires_admin_approval: bool = False
+) -> dict:
+    """Create an approval request with the appropriate approval chain"""
+    
+    # Get requester info
+    requester = await db.users.find_one({"id": requester_id}, {"_id": 0, "hashed_password": 0})
+    requester_name = requester.get('full_name', 'Unknown') if requester else 'Unknown'
+    
+    requester_employee = await db.employees.find_one({"user_id": requester_id}, {"_id": 0})
+    requester_employee_id = requester_employee['id'] if requester_employee else None
+    
+    # Build approval chain
+    approval_levels = []
+    
+    # Level 1: Reporting Manager (or fallback to role-based)
+    reporting_chain = await get_reporting_chain(requester_id, max_levels=2 if is_client_facing else 1)
+    
+    if reporting_chain:
+        # Use reporting manager chain
+        for rm in reporting_chain:
+            approval_levels.append({
+                "level": len(approval_levels) + 1,
+                "approver_id": rm.get('user_id') or rm.get('employee_id'),
+                "approver_name": rm['name'],
+                "approver_role": rm.get('role') or rm.get('designation'),
+                "approver_type": "reporting_manager",
+                "status": ApprovalStatus.PENDING,
+                "comments": None,
+                "action_date": None
+            })
+    else:
+        # Fallback to role-based approvers
+        fallback_roles = [UserRole.PROJECT_MANAGER, UserRole.MANAGER]
+        fallback_approvers = await get_role_based_approvers(fallback_roles)
+        
+        if fallback_approvers:
+            # Pick first available approver
+            approver = fallback_approvers[0]
+            approval_levels.append({
+                "level": 1,
+                "approver_id": approver['user_id'],
+                "approver_name": approver['name'],
+                "approver_role": approver['role'],
+                "approver_type": "role_based_fallback",
+                "status": ApprovalStatus.PENDING,
+                "comments": None,
+                "action_date": None
+            })
+    
+    # Add HR approval if required (for leave/expenses)
+    if requires_hr_approval:
+        hr_approvers = await get_role_based_approvers([UserRole.HR_MANAGER])
+        if hr_approvers:
+            approval_levels.append({
+                "level": len(approval_levels) + 1,
+                "approver_id": hr_approvers[0]['user_id'],
+                "approver_name": hr_approvers[0]['name'],
+                "approver_role": hr_approvers[0]['role'],
+                "approver_type": "hr_approval",
+                "status": ApprovalStatus.PENDING,
+                "comments": None,
+                "action_date": None
+            })
+    
+    # Add Admin approval if required
+    if requires_admin_approval:
+        admin_approvers = await get_role_based_approvers([UserRole.ADMIN])
+        if admin_approvers:
+            approval_levels.append({
+                "level": len(approval_levels) + 1,
+                "approver_id": admin_approvers[0]['user_id'],
+                "approver_name": admin_approvers[0]['name'],
+                "approver_role": admin_approvers[0]['role'],
+                "approver_type": "admin_approval",
+                "status": ApprovalStatus.PENDING,
+                "comments": None,
+                "action_date": None
+            })
+    
+    approval_request = {
+        "id": str(uuid.uuid4()),
+        "approval_type": approval_type,
+        "reference_id": reference_id,
+        "reference_title": reference_title,
+        "requester_id": requester_id,
+        "requester_name": requester_name,
+        "requester_employee_id": requester_employee_id,
+        "approval_levels": approval_levels,
+        "current_level": 1,
+        "max_level": len(approval_levels),
+        "overall_status": ApprovalStatus.PENDING,
+        "requires_hr_approval": requires_hr_approval,
+        "requires_admin_approval": requires_admin_approval,
+        "is_client_facing": is_client_facing,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None
+    }
+    
+    await db.approval_requests.insert_one(approval_request)
+    
+    # Create notification for first approver
+    if approval_levels:
+        await create_approval_notification(
+            approver_id=approval_levels[0]['approver_id'],
+            approval_request_id=approval_request['id'],
+            approval_type=approval_type,
+            reference_title=reference_title,
+            requester_name=requester_name
+        )
+    
+    return approval_request
+
+async def create_approval_notification(
+    approver_id: str,
+    approval_request_id: str,
+    approval_type: str,
+    reference_title: str,
+    requester_name: str
+):
+    """Create notification for approver"""
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": approver_id,
+        "type": "approval_request",
+        "title": f"Approval Required: {approval_type.replace('_', ' ').title()}",
+        "message": f"{requester_name} has submitted '{reference_title}' for your approval.",
+        "reference_type": approval_type,
+        "reference_id": approval_request_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    # Log email notification (MOCKED)
+    print(f"[EMAIL NOTIFICATION] Approval request sent to user {approver_id} for {reference_title}")
+
+# API: Get pending approvals for current user
+@api_router.get("/approvals/pending")
+async def get_pending_approvals(current_user: User = Depends(get_current_user)):
+    """Get all pending approvals for the current user"""
+    approvals = await db.approval_requests.find({
+        "overall_status": ApprovalStatus.PENDING,
+        "approval_levels": {
+            "$elemMatch": {
+                "approver_id": current_user.id,
+                "status": ApprovalStatus.PENDING
+            }
+        }
+    }, {"_id": 0}).to_list(100)
+    
+    # Filter to only show approvals at the current level that this user can action
+    actionable = []
+    for approval in approvals:
+        for level in approval['approval_levels']:
+            if level['approver_id'] == current_user.id and \
+               level['status'] == ApprovalStatus.PENDING and \
+               level['level'] == approval['current_level']:
+                approval['can_action'] = True
+                actionable.append(approval)
+                break
+    
+    return actionable
+
+# API: Get all approval requests (for admin/managers)
+@api_router.get("/approvals/all")
+async def get_all_approvals(
+    status: Optional[str] = None,
+    approval_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all approval requests (Admin/Manager only)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.HR_MANAGER]:
+        raise HTTPException(status_code=403, detail="Not authorized to view all approvals")
+    
+    query = {}
+    if status:
+        query['overall_status'] = status
+    if approval_type:
+        query['approval_type'] = approval_type
+    
+    approvals = await db.approval_requests.find(query, {"_id": 0}).to_list(500)
+    return approvals
+
+# API: Get my submitted approval requests
+@api_router.get("/approvals/my-requests")
+async def get_my_approval_requests(current_user: User = Depends(get_current_user)):
+    """Get approval requests submitted by the current user"""
+    approvals = await db.approval_requests.find(
+        {"requester_id": current_user.id},
+        {"_id": 0}
+    ).to_list(100)
+    return approvals
+
+# API: Action an approval (approve/reject)
+class ApprovalAction(BaseModel):
+    action: str  # approve, reject
+    comments: Optional[str] = None
+
+@api_router.post("/approvals/{approval_id}/action")
+async def action_approval(
+    approval_id: str,
+    action_data: ApprovalAction,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve or reject an approval request"""
+    approval = await db.approval_requests.find_one({"id": approval_id}, {"_id": 0})
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    
+    if approval['overall_status'] != ApprovalStatus.PENDING:
+        raise HTTPException(status_code=400, detail="This approval has already been completed")
+    
+    # Find the current level that this user can action
+    can_action = False
+    current_level_idx = None
+    for idx, level in enumerate(approval['approval_levels']):
+        if level['approver_id'] == current_user.id and \
+           level['status'] == ApprovalStatus.PENDING and \
+           level['level'] == approval['current_level']:
+            can_action = True
+            current_level_idx = idx
+            break
+    
+    if not can_action:
+        raise HTTPException(status_code=403, detail="You cannot action this approval")
+    
+    # Update the level
+    new_status = ApprovalStatus.APPROVED if action_data.action == 'approve' else ApprovalStatus.REJECTED
+    approval['approval_levels'][current_level_idx]['status'] = new_status
+    approval['approval_levels'][current_level_idx]['comments'] = action_data.comments
+    approval['approval_levels'][current_level_idx]['action_date'] = datetime.now(timezone.utc).isoformat()
+    
+    if action_data.action == 'approve':
+        # Check if there are more levels
+        if approval['current_level'] < approval['max_level']:
+            # Move to next level
+            approval['current_level'] += 1
+            
+            # Notify next approver
+            next_level = approval['approval_levels'][current_level_idx + 1]
+            await create_approval_notification(
+                approver_id=next_level['approver_id'],
+                approval_request_id=approval_id,
+                approval_type=approval['approval_type'],
+                reference_title=approval['reference_title'],
+                requester_name=approval['requester_name']
+            )
+        else:
+            # All levels approved
+            approval['overall_status'] = ApprovalStatus.APPROVED
+            approval['completed_at'] = datetime.now(timezone.utc).isoformat()
+            
+            # Update the referenced item status
+            await update_referenced_item_status(approval, ApprovalStatus.APPROVED)
+            
+            # Notify requester
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": approval['requester_id'],
+                "type": "approval_completed",
+                "title": "Approval Completed",
+                "message": f"Your request '{approval['reference_title']}' has been fully approved.",
+                "reference_type": approval['approval_type'],
+                "reference_id": approval['reference_id'],
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    else:
+        # Rejected
+        approval['overall_status'] = ApprovalStatus.REJECTED
+        approval['completed_at'] = datetime.now(timezone.utc).isoformat()
+        
+        # Update the referenced item status
+        await update_referenced_item_status(approval, ApprovalStatus.REJECTED)
+        
+        # Notify requester
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": approval['requester_id'],
+            "type": "approval_rejected",
+            "title": "Approval Rejected",
+            "message": f"Your request '{approval['reference_title']}' has been rejected. Comments: {action_data.comments or 'None'}",
+            "reference_type": approval['approval_type'],
+            "reference_id": approval['reference_id'],
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    approval['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.approval_requests.update_one(
+        {"id": approval_id},
+        {"$set": approval}
+    )
+    
+    return {"message": f"Approval {action_data.action}d successfully", "status": approval['overall_status']}
+
+async def update_referenced_item_status(approval: dict, status: str):
+    """Update the status of the referenced item after approval action"""
+    ref_type = approval['approval_type']
+    ref_id = approval['reference_id']
+    
+    if ref_type == ApprovalType.SOW_ITEM:
+        # Update SOW item status
+        sow = await db.sows.find_one({"items.id": ref_id}, {"_id": 0})
+        if sow:
+            new_status = "approved" if status == ApprovalStatus.APPROVED else "rejected"
+            for item in sow.get('items', []):
+                if item['id'] == ref_id:
+                    item['status'] = new_status
+                    item['approval_status'] = status
+                    break
+            await db.sows.update_one(
+                {"id": sow['id']},
+                {"$set": {"items": sow['items'], "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+    
+    elif ref_type == ApprovalType.AGREEMENT:
+        new_status = "approved" if status == ApprovalStatus.APPROVED else "rejected"
+        await db.agreements.update_one(
+            {"id": ref_id},
+            {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    elif ref_type == ApprovalType.QUOTATION:
+        new_status = "approved" if status == ApprovalStatus.APPROVED else "rejected"
+        await db.quotations.update_one(
+            {"id": ref_id},
+            {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    elif ref_type == ApprovalType.LEAVE_REQUEST:
+        new_status = "approved" if status == ApprovalStatus.APPROVED else "rejected"
+        await db.leave_requests.update_one(
+            {"id": ref_id},
+            {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Update leave balance if approved
+        if status == ApprovalStatus.APPROVED:
+            leave_request = await db.leave_requests.find_one({"id": ref_id}, {"_id": 0})
+            if leave_request:
+                leave_type = leave_request.get('leave_type', 'casual_leave')
+                days = leave_request.get('days', 1)
+                used_field = f"leave_balance.used_{leave_type.replace('_leave', '')}"
+                await db.employees.update_one(
+                    {"id": leave_request['employee_id']},
+                    {"$inc": {used_field: days}}
+                )
+
+# API: Get approval chain preview (before submitting)
+@api_router.get("/approvals/preview-chain")
+async def preview_approval_chain(
+    approval_type: str,
+    is_client_facing: bool = False,
+    requires_hr_approval: bool = False,
+    requires_admin_approval: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """Preview the approval chain before submitting"""
+    approval_levels = []
+    
+    # Get reporting chain
+    reporting_chain = await get_reporting_chain(current_user.id, max_levels=2 if is_client_facing else 1)
+    
+    if reporting_chain:
+        for rm in reporting_chain:
+            approval_levels.append({
+                "level": len(approval_levels) + 1,
+                "approver_name": rm['name'],
+                "approver_role": rm.get('role') or rm.get('designation'),
+                "approver_type": "Reporting Manager"
+            })
+    else:
+        approval_levels.append({
+            "level": 1,
+            "approver_name": "Role-based (PM/Manager)",
+            "approver_role": "Project Manager or Manager",
+            "approver_type": "Fallback"
+        })
+    
+    if requires_hr_approval:
+        approval_levels.append({
+            "level": len(approval_levels) + 1,
+            "approver_name": "HR Manager",
+            "approver_role": "HR Manager",
+            "approver_type": "HR Approval"
+        })
+    
+    if requires_admin_approval:
+        approval_levels.append({
+            "level": len(approval_levels) + 1,
+            "approver_name": "Admin",
+            "approver_role": "Admin",
+            "approver_type": "Final Approval"
+        })
+    
+    return {
+        "approval_type": approval_type,
+        "levels": approval_levels,
+        "total_levels": len(approval_levels)
+    }
+
+# API: Get notifications for current user
+@api_router.get("/notifications")
+async def get_notifications(
+    unread_only: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """Get notifications for the current user"""
+    query = {"user_id": current_user.id}
+    if unread_only:
+        query['is_read'] = False
+    
+    notifications = await db.notifications.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    return notifications
+
+@api_router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Mark a notification as read"""
+    await db.notifications.update_one(
+        {"id": notification_id, "user_id": current_user.id},
+        {"$set": {"is_read": True}}
+    )
+    return {"message": "Notification marked as read"}
+
+@api_router.post("/notifications/mark-all-read")
+async def mark_all_notifications_read(current_user: User = Depends(get_current_user)):
+    """Mark all notifications as read"""
+    await db.notifications.update_many(
+        {"user_id": current_user.id, "is_read": False},
+        {"$set": {"is_read": True}}
+    )
+    return {"message": "All notifications marked as read"}
+
+# ==================== LEAVE REQUEST MODULE ====================
+
+class LeaveType(str):
+    CASUAL = "casual_leave"
+    SICK = "sick_leave"
+    EARNED = "earned_leave"
+
+class LeaveRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    employee_name: str
+    user_id: str
+    
+    leave_type: str  # casual_leave, sick_leave, earned_leave
+    start_date: datetime
+    end_date: datetime
+    days: int
+    reason: str
+    
+    status: str = "pending"  # pending, approved, rejected
+    approval_request_id: Optional[str] = None
+    
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class LeaveRequestCreate(BaseModel):
+    leave_type: str
+    start_date: datetime
+    end_date: datetime
+    reason: str
+
+@api_router.post("/leave-requests")
+async def create_leave_request(
+    leave_data: LeaveRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a leave request (automatically routed to reporting manager + HR)"""
+    # Get employee record
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=400, detail="Employee record not found. Please contact HR.")
+    
+    # Calculate days
+    days = (leave_data.end_date - leave_data.start_date).days + 1
+    
+    # Check leave balance
+    leave_balance = employee.get('leave_balance', {})
+    leave_type_key = leave_data.leave_type.replace('_leave', '')
+    available = leave_balance.get(leave_data.leave_type, 0) - leave_balance.get(f'used_{leave_type_key}', 0)
+    
+    if days > available:
+        raise HTTPException(status_code=400, detail=f"Insufficient leave balance. Available: {available} days")
+    
+    leave_request = {
+        "id": str(uuid.uuid4()),
+        "employee_id": employee['id'],
+        "employee_name": f"{employee['first_name']} {employee['last_name']}",
+        "user_id": current_user.id,
+        "leave_type": leave_data.leave_type,
+        "start_date": leave_data.start_date.isoformat(),
+        "end_date": leave_data.end_date.isoformat(),
+        "days": days,
+        "reason": leave_data.reason,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.leave_requests.insert_one(leave_request)
+    
+    # Create approval request (Reporting Manager → HR)
+    approval = await create_approval_request(
+        approval_type=ApprovalType.LEAVE_REQUEST,
+        reference_id=leave_request['id'],
+        reference_title=f"{leave_data.leave_type.replace('_', ' ').title()} - {days} day(s)",
+        requester_id=current_user.id,
+        requires_hr_approval=True,
+        requires_admin_approval=False,
+        is_client_facing=False
+    )
+    
+    # Link approval to leave request
+    await db.leave_requests.update_one(
+        {"id": leave_request['id']},
+        {"$set": {"approval_request_id": approval['id']}}
+    )
+    
+    return {"message": "Leave request submitted for approval", "leave_request_id": leave_request['id']}
+
+@api_router.get("/leave-requests")
+async def get_leave_requests(current_user: User = Depends(get_current_user)):
+    """Get leave requests for current user"""
+    requests = await db.leave_requests.find(
+        {"user_id": current_user.id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return requests
+
+@api_router.get("/leave-requests/all")
+async def get_all_leave_requests(current_user: User = Depends(get_current_user)):
+    """Get all leave requests (HR/Admin only)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.HR_EXECUTIVE]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    requests = await db.leave_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return requests
+
 # ==================== EMPLOYEES MODULE ====================
 
 class EmploymentType(str):
