@@ -35,18 +35,21 @@ A comprehensive business management application for a 50-person consulting organ
 4. **Manager Approvals**: View pending approvals, approve/reject agreements
 
 ### Navigation ✅
-- Dashboard with stats and quick actions
-- Leads management page
+- Dashboard with clickable stats and quick actions
+- Leads management page with "Start Sales Flow" button
 - Projects and Meetings modules
 - Email Templates
 - Sales Funnel section (Pricing Plans, Quotations, Agreements)
 - Management section (Approvals - visible to managers/admins only)
+- Pending approvals alert on dashboard for managers
 
 ### UI/UX ✅
 - Black and white theme
 - Company logo in sidebar (without text)
 - Responsive design
 - Data displayed in Indian Rupees (₹)
+- Clickable dashboard stat cards with navigation
+- "Start Sales Flow" button on lead cards
 
 ## Pending/Future Features
 
