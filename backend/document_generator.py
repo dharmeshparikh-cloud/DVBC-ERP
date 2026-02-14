@@ -356,12 +356,6 @@ class AgreementDocumentGenerator:
             alignment=TA_JUSTIFY
         )
         
-        bold_style = ParagraphStyle(
-            'CustomBold',
-            parent=normal_style,
-            fontName='Helvetica-Bold'
-        )
-        
         center_style = ParagraphStyle(
             'CustomCenter',
             parent=normal_style,
