@@ -98,6 +98,7 @@ function App() {
             <Route path="meetings" element={<Meetings />} />
             <Route path="email-templates" element={<EmailTemplates />} />
             <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
+            <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
             <Route path="sales-funnel/quotations" element={<Quotations />} />
             <Route path="sales-funnel/agreements" element={<Agreements />} />
             <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
@@ -106,6 +107,7 @@ function App() {
             <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
             <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
             <Route path="handover-alerts" element={<HandoverAlerts />} />
+            <Route path="profile" element={<UserProfile />} />
           </Route>
         </Routes>
       </BrowserRouter>
