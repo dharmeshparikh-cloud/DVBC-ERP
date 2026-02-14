@@ -39,20 +39,6 @@ const Employees = () => {
   const [stats, setStats] = useState(null);
   const [activeView, setActiveView] = useState('directory'); // directory, orgchart
   const [orgChart, setOrgChart] = useState([]);
-  const [expandedNodes, setExpandedNodes] = useState(new Set());
-
-  // Toggle expanded state for org chart nodes
-  const toggleNode = (nodeId) => {
-    setExpandedNodes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(nodeId)) {
-        newSet.delete(nodeId);
-      } else {
-        newSet.add(nodeId);
-      }
-      return newSet;
-    });
-  };
 
   // Dialogs
   const [createDialog, setCreateDialog] = useState(false);
