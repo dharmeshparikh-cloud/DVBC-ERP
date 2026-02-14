@@ -774,43 +774,127 @@ const SOWBuilder = () => {
       </Dialog>
 
       {/* Version History Dialog */}
-      <Dialog open={versionDialogOpen} onOpenChange={setVersionDialogOpen}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={versionDialogOpen} onOpenChange={(open) => { setVersionDialogOpen(open); if (!open) setSelectedVersion(null); }}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
               Version History
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            {versions.map((version, idx) => (
-              <div
-                key={version.version}
-                className={`p-4 border rounded-sm cursor-pointer transition-colors ${
-                  selectedVersion?.version === version.version ? 'border-zinc-950 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-300'
-                }`}
-                onClick={() => viewVersion(version.version)}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-zinc-950">v{version.version}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-sm ${
-                      version.change_type === 'created' ? 'bg-emerald-100 text-emerald-700' :
-                      version.change_type === 'status_changed' ? 'bg-yellow-100 text-yellow-700' :
-                      version.change_type === 'document_added' ? 'bg-blue-100 text-blue-700' :
-                      'bg-zinc-100 text-zinc-700'
-                    }`}>
-                      {version.change_type.replace('_', ' ')}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Version List */}
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Select Version</div>
+              {versions.map((version, idx) => (
+                <div
+                  key={version.version}
+                  className={`p-3 border rounded-sm cursor-pointer transition-colors ${
+                    selectedVersion?.version === version.version ? 'border-zinc-950 bg-zinc-100' : 'border-zinc-200 hover:border-zinc-400'
+                  }`}
+                  onClick={() => viewVersion(version.version)}
+                  data-testid={`version-${version.version}`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-zinc-950">v{version.version}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-sm ${
+                        version.change_type === 'created' ? 'bg-emerald-100 text-emerald-700' :
+                        version.change_type === 'status_changed' ? 'bg-yellow-100 text-yellow-700' :
+                        version.change_type === 'document_added' ? 'bg-blue-100 text-blue-700' :
+                        'bg-zinc-100 text-zinc-700'
+                      }`}>
+                        {version.change_type.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <span className="text-xs text-zinc-500">
+                      {format(new Date(version.changed_at), 'MMM d, yyyy HH:mm')}
                     </span>
                   </div>
-                  <span className="text-xs text-zinc-500">
-                    {format(new Date(version.changed_at), 'MMM d, yyyy HH:mm')}
-                  </span>
+                  <div className="text-xs text-zinc-500">
+                    By: {version.changed_by_name || 'Unknown'}
+                  </div>
                 </div>
-                <div className="text-sm text-zinc-600">
-                  By: {version.changed_by_name || 'Unknown'}
+              ))}
+            </div>
+            
+            {/* Version Details */}
+            <div className="border-l border-zinc-200 pl-4">
+              <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Version Details</div>
+              {selectedVersion ? (
+                <div className="space-y-3" data-testid="version-details">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg font-semibold text-zinc-950">Version {selectedVersion.version}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-sm ${
+                      selectedVersion.change_type === 'created' ? 'bg-emerald-100 text-emerald-700' :
+                      selectedVersion.change_type === 'status_changed' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-zinc-100 text-zinc-700'
+                    }`}>
+                      {selectedVersion.change_type?.replace('_', ' ')}
+                    </span>
+                  </div>
+                  
+                  {/* Changes Made */}
+                  {selectedVersion.changes && Object.keys(selectedVersion.changes).length > 0 && (
+                    <div className="bg-zinc-50 p-3 rounded-sm border border-zinc-200">
+                      <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Changes Made</div>
+                      <div className="space-y-1">
+                        {Object.entries(selectedVersion.changes).map(([key, value]) => (
+                          <div key={key} className="text-sm">
+                            <span className="text-zinc-500">{key.replace('_', ' ')}:</span>{' '}
+                            <span className="text-zinc-900 font-medium">
+                              {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Snapshot Items */}
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">
+                      SOW Items at this Version ({selectedVersion.snapshot?.length || 0})
+                    </div>
+                    <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+                      {selectedVersion.snapshot?.map((item, idx) => (
+                        <div key={item.id || idx} className="p-2 bg-white border border-zinc-200 rounded-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded-sm capitalize">
+                                {item.category?.replace('_', ' ')}
+                              </span>
+                              <span className="font-medium text-sm text-zinc-900">{item.title}</span>
+                            </div>
+                            <span className={`text-xs px-2 py-0.5 rounded-sm ${
+                              item.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                              item.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                              item.status === 'pending_review' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-zinc-100 text-zinc-600'
+                            }`}>
+                              {item.status?.replace('_', ' ') || 'draft'}
+                            </span>
+                          </div>
+                          {item.description && (
+                            <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{item.description}</p>
+                          )}
+                        </div>
+                      ))}
+                      {(!selectedVersion.snapshot || selectedVersion.snapshot.length === 0) && (
+                        <div className="text-sm text-zinc-400 py-4 text-center">No items in this version</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div className="flex items-center justify-center h-48 text-zinc-400 text-sm">
+                  <div className="text-center">
+                    <Eye className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>Click on a version to view details</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
