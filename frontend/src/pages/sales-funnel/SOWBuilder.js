@@ -77,6 +77,7 @@ const SOWBuilder = () => {
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
   const [docsItem, setDocsItem] = useState(null);
   const [userPermissions, setUserPermissions] = useState({});
+  const [downloadingSOW, setDownloadingSOW] = useState({});
 
   // Role-based access control
   // Sales Team (create/edit SOW): admin, executive, account_manager
