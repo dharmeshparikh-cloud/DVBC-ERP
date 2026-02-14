@@ -12,6 +12,10 @@ import OrgChart from './pages/OrgChart';
 import LeaveManagement from './pages/LeaveManagement';
 import Attendance from './pages/Attendance';
 import Payroll from './pages/Payroll';
+import MyAttendance from './pages/MyAttendance';
+import MyLeaves from './pages/MyLeaves';
+import MySalarySlips from './pages/MySalarySlips';
+import MyExpenses from './pages/MyExpenses';
 import EmailTemplates from './pages/EmailTemplates';
 import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
 import SOWBuilder from './pages/sales-funnel/SOWBuilder';
@@ -112,6 +116,10 @@ function App() {
             <Route path="leave-management" element={<LeaveManagement />} />
             <Route path="attendance" element={<Attendance />} />
             <Route path="payroll" element={<Payroll />} />
+            <Route path="my-attendance" element={<MyAttendance />} />
+            <Route path="my-leaves" element={<MyLeaves />} />
+            <Route path="my-salary-slips" element={<MySalarySlips />} />
+            <Route path="my-expenses" element={<MyExpenses />} />
             <Route path="email-templates" element={<EmailTemplates />} />
             <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
             <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
