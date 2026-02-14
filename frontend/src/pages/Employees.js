@@ -616,7 +616,12 @@ const Employees = () => {
             ) : (
               <div className="space-y-2">
                 {orgChart.map(node => (
-                  <OrgChartNode key={node.id} node={node} />
+                  <OrgChartNodeSimple 
+                    key={node.id} 
+                    node={node} 
+                    expandedNodes={expandedNodes}
+                    toggleNode={toggleNode}
+                  />
                 ))}
               </div>
             )}
