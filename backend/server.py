@@ -52,6 +52,8 @@ class UserRole(str):
     MANAGER = "manager"
     EXECUTIVE = "executive"
     CONSULTANT = "consultant"
+    PROJECT_MANAGER = "project_manager"
+    PRINCIPAL_CONSULTANT = "principal_consultant"
 
 class MeetingMode(str):
     ONLINE = "online"
