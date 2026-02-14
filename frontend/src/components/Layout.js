@@ -5,7 +5,8 @@ import { Button } from './ui/button';
 import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
-  User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronRight
+  User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronRight,
+  GitBranch, CalendarDays, Wallet, Clock
 } from 'lucide-react';
 
 // Role groups per domain
@@ -87,6 +88,10 @@ const Layout = () => {
 
   const hrItems = [
     { name: 'Employees', href: '/employees', icon: UsersRound },
+    { name: 'Org Chart', href: '/org-chart', icon: GitBranch },
+    { name: 'Leave Management', href: '/leave-management', icon: CalendarDays },
+    { name: 'Attendance', href: '/attendance', icon: Clock },
+    { name: 'Payroll', href: '/payroll', icon: Wallet },
     { name: 'Expenses', href: '/expenses', icon: Receipt },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3 },
   ];
