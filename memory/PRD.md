@@ -189,7 +189,33 @@ A comprehensive business management application for a 50-person consulting organ
   - `PATCH /api/meetings/{id}/action-items/{id}` - Update action item status
   - `POST /api/meetings/{id}/send-mom` - Send MOM to client
 
-### Client Master Module (Feb 14, 2026) ✅ NEW
+### Org Chart - Visual Hierarchy Tree (Feb 14, 2026) ✅ NEW
+- **Purpose**: Separate dedicated page showing reporting manager hierarchy as visual tree
+- **Features**: Expandable/collapsible tree nodes, department color coding, stats (total, departments, managers)
+- **Route**: `/org-chart`
+- **API**: `GET /api/employees/org-chart/hierarchy`
+
+### Leave Management (Feb 14, 2026) ✅ NEW
+- **Purpose**: Dedicated page for leave requests with approval flow
+- **Approval Flow**: Employee → Reporting Manager → HR Manager (final records)
+- **Features**: Apply leave form (type, dates, reason), My Requests tab, All Requests tab (HR only)
+- **Route**: `/leave-management`
+- **APIs**: `POST /api/leave-requests`, `GET /api/leave-requests`, `GET /api/leave-requests/all`
+
+### Attendance (Feb 14, 2026) ✅ NEW
+- **Purpose**: Track employee attendance with manual entry and CSV bulk upload
+- **Features**: Monthly view, summary per employee (present/absent/half_day/wfh/on_leave), daily records tab, CSV bulk upload
+- **Route**: `/attendance`
+- **APIs**: `POST /api/attendance`, `POST /api/attendance/bulk`, `GET /api/attendance`, `GET /api/attendance/summary`
+
+### Payroll (Feb 14, 2026) ✅ NEW
+- **Purpose**: Manage salary components, generate and view salary slips
+- **Salary Components**: Basic (40%), HRA (20%), Special Allowance (20%), Conveyance (₹1,600), Medical (₹1,250) | Deductions: PF (12%), PT (₹200), ESI (0.75%)
+- **Features**: Generate slips (individual or bulk), view slip detail (earnings, deductions, net pay, bank details, attendance), salary components config
+- **Route**: `/payroll`
+- **APIs**: `GET /api/payroll/salary-components`, `POST /api/payroll/salary-components`, `GET /api/payroll/salary-slips`, `POST /api/payroll/generate-slip`, `POST /api/payroll/generate-bulk`
+
+
 - **Purpose**: Manage client information and relationships for sales team
 - **Client Data Model**:
   - Company: Name, Industry, Website
@@ -406,7 +432,7 @@ A comprehensive business management application for a 50-person consulting organ
 ### Navigation ✅ RESTRUCTURED (Feb 14, 2026)
 - Domain-segmented sidebar with 4 sections: HR, SALES, CONSULTING, ADMIN
 - **HR Section** (visible to: Admin, HR Manager, HR Executive, Manager):
-  - Employees, Expenses, HR Reports
+  - Employees, Org Chart, Leave Management, Attendance, Payroll, Expenses, HR Reports
 - **SALES Section** (visible to: Admin, Executive, Account Manager, Manager):
   - Branch flow: Leads → Pricing Plans → Quotations → Agreements (visual connector)
   - Clients, Sales Meetings, Sales Reports
