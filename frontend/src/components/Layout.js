@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
   User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronRight,
-  GitBranch, CalendarDays, Wallet, Clock, Layers
+  GitBranch, CalendarDays, Wallet, Clock, Layers, Map, Star
 } from 'lucide-react';
 
 // Role groups per domain
