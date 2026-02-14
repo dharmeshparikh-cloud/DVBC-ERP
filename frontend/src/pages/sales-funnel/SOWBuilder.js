@@ -727,23 +727,26 @@ const SOWBuilder = () => {
               </>
             ) : (
               <>
-                {canEdit && (
+                {/* Sales team can edit */}
+                {canEditSOW && (
                   <Button onClick={() => startEditing(item)} variant="ghost" size="sm" className="h-7 w-7 p-0 text-zinc-600">
                     <Edit2 className="w-3 h-3" />
                   </Button>
                 )}
-                {canEdit && (
+                {canEditSOW && (
                   <Button onClick={() => deleteItem(item.id)} variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500">
                     <Trash2 className="w-3 h-3" />
                   </Button>
                 )}
-                {isManager && item.status === 'pending_review' && (
+                {/* PM team can approve/reject pending items */}
+                {canApprove && item.status === 'pending_review' && (
                   <>
                     <Button
                       onClick={() => handleStatusChange(item.id, 'approved')}
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0 text-emerald-600"
+                      title="Approve"
                     >
                       <Check className="w-4 h-4" />
                     </Button>
@@ -752,6 +755,7 @@ const SOWBuilder = () => {
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0 text-red-600"
+                      title="Reject"
                     >
                       <X className="w-4 h-4" />
                     </Button>
