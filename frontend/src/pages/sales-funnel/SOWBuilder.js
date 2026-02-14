@@ -989,13 +989,15 @@ const SOWBuilder = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {!isManager && sow.overall_status === 'draft' && sow.items?.length > 0 && (
+            {/* Sales team can submit for approval */}
+            {isSalesTeam && !isPMTeam && sow.overall_status === 'draft' && sow.items?.length > 0 && (
               <Button onClick={handleSubmitForApproval} className="bg-yellow-500 text-white hover:bg-yellow-600 rounded-sm shadow-none">
                 <Send className="w-4 h-4 mr-2" />
                 Submit for Approval
               </Button>
             )}
-            {isManager && pendingCount > 0 && (
+            {/* PM team can approve all pending items */}
+            {canApprove && pendingCount > 0 && (
               <Button onClick={handleApproveAll} className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none">
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Approve All ({pendingCount})
