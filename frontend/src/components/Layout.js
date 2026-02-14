@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { Button } from './ui/button';
-import { LayoutDashboard, Users, Briefcase, Calendar, Mail, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Calendar, Mail, LogOut, DollarSign, FileText, FileCheck, ClipboardCheck } from 'lucide-react';
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -14,6 +14,16 @@ const Layout = () => {
     { name: 'Projects', href: '/projects', icon: Briefcase },
     { name: 'Meetings', href: '/meetings', icon: Calendar },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
+  ];
+
+  const salesFunnelNav = [
+    { name: 'Pricing Plans', href: '/sales-funnel/pricing-plans', icon: DollarSign },
+    { name: 'Quotations', href: '/sales-funnel/quotations', icon: FileText },
+    { name: 'Agreements', href: '/sales-funnel/agreements', icon: FileCheck },
+  ];
+
+  const managerNav = [
+    { name: 'Approvals', href: '/sales-funnel/approvals', icon: ClipboardCheck },
   ];
 
   const isActive = (href) => {
