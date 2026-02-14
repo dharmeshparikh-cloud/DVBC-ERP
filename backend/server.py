@@ -1532,9 +1532,10 @@ def calculate_sow_overall_status(items):
 @api_router.post("/sow/{sow_id}/submit-for-approval")
 async def submit_sow_for_approval(
     sow_id: str,
+    item_ids: Optional[List[str]] = None,  # Optional: specific item IDs to submit
     current_user: User = Depends(get_current_user)
 ):
-    """Submit SOW for manager approval"""
+    """Submit SOW for manager approval using reporting manager hierarchy"""
     sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -1543,12 +1544,52 @@ async def submit_sow_for_approval(
     if not items:
         raise HTTPException(status_code=400, detail="Cannot submit empty SOW for approval")
     
-    # Update all draft items to pending_review
+    # Determine which items to submit
+    items_to_submit = []
     for item in items:
-        if item.get('status') == SOWItemStatus.DRAFT:
-            item['status'] = SOWItemStatus.PENDING_REVIEW
-            item['status_updated_by'] = current_user.id
-            item['status_updated_at'] = datetime.now(timezone.utc).isoformat()
+        if item_ids:
+            # Submit only selected items
+            if item['id'] in item_ids and item.get('status') == SOWItemStatus.DRAFT:
+                items_to_submit.append(item)
+        else:
+            # Submit all draft items
+            if item.get('status') == SOWItemStatus.DRAFT:
+                items_to_submit.append(item)
+    
+    if not items_to_submit:
+        raise HTTPException(status_code=400, detail="No items to submit for approval")
+    
+    # Check if any items are client-facing (requires multi-level approval)
+    is_client_facing = any(item.get('is_client_deliverable', False) for item in items_to_submit)
+    
+    # Create approval requests for each item using reporting manager chain
+    approval_ids = []
+    for item in items_to_submit:
+        # Update item status
+        item['status'] = SOWItemStatus.PENDING_REVIEW
+        item['status_updated_by'] = current_user.id
+        item['status_updated_at'] = datetime.now(timezone.utc).isoformat()
+        
+        # Create approval request with reporting manager chain
+        approval = await create_approval_request(
+            approval_type=ApprovalType.SOW_ITEM,
+            reference_id=item['id'],
+            reference_title=item.get('title', 'SOW Item'),
+            requester_id=current_user.id,
+            is_client_facing=is_client_facing or item.get('is_client_deliverable', False),
+            requires_hr_approval=False,
+            requires_admin_approval=False
+        )
+        
+        item['approval_request_id'] = approval['id']
+        approval_ids.append(approval['id'])
+    
+    # Update the items in the main items list
+    for idx, item in enumerate(items):
+        for submitted_item in items_to_submit:
+            if item['id'] == submitted_item['id']:
+                items[idx] = submitted_item
+                break
     
     # Create version entry
     new_version = sow.get('current_version', 1) + 1
@@ -1557,7 +1598,7 @@ async def submit_sow_for_approval(
         "changed_by": current_user.id,
         "changed_at": datetime.now(timezone.utc).isoformat(),
         "change_type": "submitted_for_approval",
-        "changes": {"action": "Submitted for manager approval"},
+        "changes": {"action": f"Submitted {len(items_to_submit)} item(s) for approval", "item_ids": [i['id'] for i in items_to_submit]},
         "snapshot": items.copy()
     }
     
@@ -1578,7 +1619,12 @@ async def submit_sow_for_approval(
         }}
     )
     
-    return {"message": "SOW submitted for approval", "version": new_version}
+    return {
+        "message": f"SOW items submitted for approval via reporting manager chain",
+        "version": new_version,
+        "items_submitted": len(items_to_submit),
+        "approval_request_ids": approval_ids
+    }
 
 @api_router.post("/sow/{sow_id}/approve-all")
 async def approve_all_sow_items(
