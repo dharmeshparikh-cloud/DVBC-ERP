@@ -14,9 +14,12 @@ import ProjectConsultantAssignment from '../components/ProjectConsultantAssignme
 
 const Projects = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     client_name: '',
