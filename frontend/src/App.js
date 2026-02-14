@@ -6,7 +6,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Projects from './pages/Projects';
-import Meetings from './pages/Meetings';
+import SalesMeetings from './pages/SalesMeetings';
+import ConsultingMeetings from './pages/ConsultingMeetings';
 import EmailTemplates from './pages/EmailTemplates';
 import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
 import SOWBuilder from './pages/sales-funnel/SOWBuilder';
@@ -101,7 +102,8 @@ function App() {
             <Route index element={getDefaultDashboard()} />
             <Route path="leads" element={<Leads />} />
             <Route path="projects" element={<Projects />} />
-            <Route path="meetings" element={<Meetings />} />
+            <Route path="sales-meetings" element={<SalesMeetings />} />
+            <Route path="consulting-meetings" element={<ConsultingMeetings />} />
             <Route path="email-templates" element={<EmailTemplates />} />
             <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
             <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
