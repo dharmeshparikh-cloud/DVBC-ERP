@@ -36,12 +36,18 @@ const Reports = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState(() => {
+  const [filterCategory, setFilterCategory] = useState('');
+  
+  // Update filter when URL params change
+  useEffect(() => {
     const cat = searchParams.get('category');
-    if (!cat) return '';
-    const categoryMap = { sales: 'Sales', hr: 'HR', operations: 'Operations', finance: 'Finance' };
-    return categoryMap[cat.toLowerCase()] || '';
-  });
+    if (cat) {
+      const categoryMap = { sales: 'Sales', hr: 'HR', operations: 'Operations', finance: 'Finance' };
+      setFilterCategory(categoryMap[cat.toLowerCase()] || '');
+    } else {
+      setFilterCategory('');
+    }
+  }, [searchParams]);
   
   // Preview dialog
   const [previewDialog, setPreviewDialog] = useState(false);
