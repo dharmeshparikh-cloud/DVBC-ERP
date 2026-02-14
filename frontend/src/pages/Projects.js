@@ -332,6 +332,15 @@ const Projects = () => {
                 {/* Action Buttons */}
                 <div className="pt-4 border-t border-zinc-200 flex flex-wrap gap-2">
                   <Button
+                    onClick={() => navigate(`/projects/${project.id}/kickoff`)}
+                    size="sm"
+                    className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                    data-testid={`kickoff-btn-${project.id}`}
+                  >
+                    <PlayCircle className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                    Kick-off
+                  </Button>
+                  <Button
                     onClick={() => navigate(`/projects/${project.id}/tasks`)}
                     size="sm"
                     variant="outline"
