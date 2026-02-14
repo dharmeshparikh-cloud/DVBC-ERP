@@ -463,6 +463,43 @@ const SOWBuilder = () => {
     }
   };
 
+  const handleDownloadSOW = async (format) => {
+    if (!sow?.id) return;
+    
+    setDownloadingSOW(prev => ({ ...prev, [format]: true }));
+    try {
+      const response = await axios.get(`${API}/sow/${sow.id}/download`, {
+        params: { format },
+        responseType: 'blob'
+      });
+      
+      // Get filename from response headers or create default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = format === 'pdf' ? 'SOW.pdf' : 'SOW.docx';
+      if (contentDisposition) {
+        const matches = contentDisposition.match(/filename="(.+)"/);
+        if (matches) filename = matches[1];
+      }
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Downloaded ${filename}`);
+    } catch (error) {
+      toast.error('Failed to download SOW document');
+      console.error('Download error:', error);
+    } finally {
+      setDownloadingSOW(prev => ({ ...prev, [format]: false }));
+    }
+  };
+
   const getOverallStatusBadge = () => {
     const status = sow?.overall_status || 'draft';
     const colors = {
