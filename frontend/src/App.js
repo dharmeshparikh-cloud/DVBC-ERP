@@ -113,6 +113,7 @@ function App() {
             <Route path="profile" element={<UserProfile />} />
             <Route path="user-management" element={<UserManagement />} />
             <Route path="employees" element={<Employees />} />
+            <Route path="approvals" element={<ApprovalsCenter />} />
           </Route>
         </Routes>
       </BrowserRouter>
