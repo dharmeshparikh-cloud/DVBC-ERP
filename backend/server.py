@@ -7428,6 +7428,64 @@ async def generate_bulk_salary_slips(data: dict, current_user: User = Depends(ge
     return {"message": f"Generated {generated} salary slips for {month}", "count": generated}
 
 
+# ==================== SELF-SERVICE (MY WORKSPACE) ====================
+
+async def _get_my_employee(current_user):
+    emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not emp:
+        raise HTTPException(status_code=400, detail="No employee record linked to your account. Please contact HR.")
+    return emp
+
+@api_router.get("/my/attendance")
+async def get_my_attendance(month: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    emp = await _get_my_employee(current_user)
+    query = {"employee_id": emp["id"]}
+    if month:
+        query["date"] = {"$regex": f"^{month}"}
+    records = await db.attendance.find(query, {"_id": 0}).sort("date", -1).to_list(500)
+    # Build summary
+    summary = {"present": 0, "absent": 0, "half_day": 0, "wfh": 0, "on_leave": 0, "total": 0}
+    for r in records:
+        summary["total"] += 1
+        s = r.get("status", "present")
+        if s == "present": summary["present"] += 1
+        elif s == "absent": summary["absent"] += 1
+        elif s == "half_day": summary["half_day"] += 1
+        elif s == "work_from_home": summary["wfh"] += 1
+        elif s == "on_leave": summary["on_leave"] += 1
+    return {"records": records, "summary": summary, "employee": {"name": f"{emp['first_name']} {emp['last_name']}", "employee_id": emp["employee_id"], "department": emp.get("department", "")}}
+
+@api_router.get("/my/leave-balance")
+async def get_my_leave_balance(current_user: User = Depends(get_current_user)):
+    emp = await _get_my_employee(current_user)
+    balance = emp.get("leave_balance", {})
+    return {
+        "casual": {"total": balance.get("casual_leave", 12), "used": balance.get("used_casual", 0), "available": balance.get("casual_leave", 12) - balance.get("used_casual", 0)},
+        "sick": {"total": balance.get("sick_leave", 6), "used": balance.get("used_sick", 0), "available": balance.get("sick_leave", 6) - balance.get("used_sick", 0)},
+        "earned": {"total": balance.get("earned_leave", 15), "used": balance.get("used_earned", 0), "available": balance.get("earned_leave", 15) - balance.get("used_earned", 0)},
+        "employee_name": f"{emp['first_name']} {emp['last_name']}"
+    }
+
+@api_router.get("/my/salary-slips")
+async def get_my_salary_slips(current_user: User = Depends(get_current_user)):
+    emp = await _get_my_employee(current_user)
+    slips = await db.salary_slips.find({"employee_id": emp["id"]}, {"_id": 0}).sort("month", -1).to_list(100)
+    return slips
+
+@api_router.get("/my/expenses")
+async def get_my_expenses(current_user: User = Depends(get_current_user)):
+    emp = await _get_my_employee(current_user)
+    expenses = await db.expenses.find({"employee_id": emp["id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    summary = {"draft": 0, "pending": 0, "approved": 0, "rejected": 0, "reimbursed": 0, "total_amount": 0, "reimbursed_amount": 0}
+    for e in expenses:
+        st = e.get("status", "draft")
+        summary[st] = summary.get(st, 0) + 1
+        summary["total_amount"] += e.get("total_amount", 0)
+        if st == "reimbursed":
+            summary["reimbursed_amount"] += e.get("total_amount", 0)
+    return {"expenses": expenses, "summary": summary}
+
+
 app.include_router(api_router)
 
 app.add_middleware(
