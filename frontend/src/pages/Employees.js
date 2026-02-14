@@ -28,50 +28,6 @@ const DOCUMENT_TYPES = [
   { value: 'other', label: 'Other' }
 ];
 
-// Simple Org Chart Node Component (non-recursive rendering to avoid stack overflow)
-const OrgChartNodeSimple = ({ node, level = 0, expandedNodes, toggleNode }) => {
-  const hasChildren = node.children && node.children.length > 0;
-  const isExpanded = expandedNodes.has(node.id);
-
-  return (
-    <div className={`${level > 0 ? 'ml-8 border-l-2 border-zinc-200 pl-4' : ''}`}>
-      <div 
-        className="flex items-center gap-3 py-2 px-3 rounded-sm hover:bg-zinc-50 cursor-pointer"
-        onClick={() => hasChildren && toggleNode(node.id)}
-      >
-        {hasChildren ? (
-          isExpanded ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />
-        ) : (
-          <div className="w-4" />
-        )}
-        <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center text-sm font-medium text-zinc-600">
-          {node.name?.charAt(0)?.toUpperCase()}
-        </div>
-        <div>
-          <div className="font-medium text-zinc-900">{node.name}</div>
-          <div className="text-xs text-zinc-500">{node.designation || 'No designation'} • {node.department || 'No dept'}</div>
-        </div>
-        {node.has_user_access && (
-          <span className="ml-2 px-2 py-0.5 text-xs bg-emerald-100 text-emerald-700 rounded">System Access</span>
-        )}
-      </div>
-      {isExpanded && hasChildren && (
-        <div className="mt-1">
-          {node.children.map(child => (
-            <OrgChartNodeSimple 
-              key={child.id} 
-              node={child} 
-              level={level + 1}
-              expandedNodes={expandedNodes}
-              toggleNode={toggleNode}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const Employees = () => {
   const { user } = useContext(AuthContext);
   const [employees, setEmployees] = useState([]);
