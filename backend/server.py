@@ -902,6 +902,278 @@ async def get_pricing_plans(
     
     return plans
 
+# ==================== SOW (SCOPE OF WORK) - Sales Flow ====================
+
+SOW_CATEGORIES = [
+    {"value": "sales", "label": "Sales"},
+    {"value": "hr", "label": "HR"},
+    {"value": "operations", "label": "Operations"},
+    {"value": "training", "label": "Training"},
+    {"value": "analytics", "label": "Analytics"},
+    {"value": "digital_marketing", "label": "Digital Marketing"}
+]
+
+@api_router.get("/sow-categories")
+async def get_sow_categories_list():
+    """Get available SOW categories"""
+    return SOW_CATEGORIES
+
+@api_router.post("/sow")
+async def create_sow(
+    sow_create: SOWCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create SOW for a pricing plan (Sales flow)"""
+    # Verify pricing plan exists
+    plan = await db.pricing_plans.find_one({"id": sow_create.pricing_plan_id}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Pricing plan not found")
+    
+    # Check if SOW already exists for this pricing plan
+    existing = await db.sow.find_one({"pricing_plan_id": sow_create.pricing_plan_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="SOW already exists for this pricing plan")
+    
+    # Create SOW items with IDs
+    items = []
+    for idx, item_data in enumerate(sow_create.items or []):
+        item = SOWItem(
+            category=item_data.get('category', 'general'),
+            sub_category=item_data.get('sub_category'),
+            title=item_data.get('title', ''),
+            description=item_data.get('description', ''),
+            deliverables=item_data.get('deliverables', []),
+            timeline_weeks=item_data.get('timeline_weeks'),
+            order=idx
+        )
+        items.append(item.model_dump())
+    
+    # Create initial version
+    initial_version = SOWVersion(
+        version=1,
+        changed_by=current_user.id,
+        changed_at=datetime.now(timezone.utc),
+        change_type="created",
+        changes={"action": "SOW created"},
+        snapshot=items.copy()
+    )
+    
+    sow = SOW(
+        pricing_plan_id=sow_create.pricing_plan_id,
+        lead_id=sow_create.lead_id,
+        items=items,
+        current_version=1,
+        version_history=[initial_version.model_dump()],
+        created_by=current_user.id
+    )
+    
+    doc = sow.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    for v in doc['version_history']:
+        v['changed_at'] = v['changed_at'].isoformat() if isinstance(v['changed_at'], datetime) else v['changed_at']
+    
+    await db.sow.insert_one(doc)
+    
+    # Link SOW to pricing plan
+    await db.pricing_plans.update_one(
+        {"id": sow_create.pricing_plan_id},
+        {"$set": {"sow_id": sow.id}}
+    )
+    
+    return {"message": "SOW created successfully", "sow_id": sow.id}
+
+@api_router.get("/sow/{sow_id}")
+async def get_sow(
+    sow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get SOW by ID"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    return sow
+
+@api_router.get("/sow/by-pricing-plan/{pricing_plan_id}")
+async def get_sow_by_pricing_plan(
+    pricing_plan_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get SOW by pricing plan ID"""
+    sow = await db.sow.find_one({"pricing_plan_id": pricing_plan_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found for this pricing plan")
+    return sow
+
+@api_router.post("/sow/{sow_id}/items")
+async def add_sow_item(
+    sow_id: str,
+    item: SOWItemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Add item to SOW with version tracking"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Check freeze status - only Admin can edit frozen SOW
+    if sow.get('is_frozen') and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="SOW is frozen. Only Admin can modify.")
+    
+    # Create new item
+    new_item = SOWItem(
+        category=item.category,
+        sub_category=item.sub_category,
+        title=item.title,
+        description=item.description or "",
+        deliverables=item.deliverables or [],
+        timeline_weeks=item.timeline_weeks,
+        order=item.order or len(sow.get('items', []))
+    )
+    
+    items = sow.get('items', [])
+    items.append(new_item.model_dump())
+    
+    # Create version entry
+    new_version = sow.get('current_version', 1) + 1
+    version_entry = {
+        "version": new_version,
+        "changed_by": current_user.id,
+        "changed_at": datetime.now(timezone.utc).isoformat(),
+        "change_type": "item_added",
+        "changes": {"added_item": new_item.title, "category": item.category},
+        "snapshot": items.copy()
+    }
+    
+    version_history = sow.get('version_history', [])
+    version_history.append(version_entry)
+    
+    await db.sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "items": items,
+            "current_version": new_version,
+            "version_history": version_history,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Item added to SOW", "item_id": new_item.id, "version": new_version}
+
+@api_router.patch("/sow/{sow_id}/items/{item_id}")
+async def update_sow_item(
+    sow_id: str,
+    item_id: str,
+    item_update: SOWItemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update SOW item with version tracking"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Check freeze status
+    if sow.get('is_frozen') and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="SOW is frozen. Only Admin can modify.")
+    
+    items = sow.get('items', [])
+    updated = False
+    old_item = None
+    
+    for item in items:
+        if item.get('id') == item_id:
+            old_item = item.copy()
+            item['category'] = item_update.category
+            item['sub_category'] = item_update.sub_category
+            item['title'] = item_update.title
+            item['description'] = item_update.description or ""
+            item['deliverables'] = item_update.deliverables or []
+            item['timeline_weeks'] = item_update.timeline_weeks
+            updated = True
+            break
+    
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    # Create version entry with changes highlighted
+    new_version = sow.get('current_version', 1) + 1
+    changes = {}
+    if old_item:
+        for key in ['title', 'description', 'category', 'deliverables', 'timeline_weeks']:
+            if old_item.get(key) != item_update.model_dump().get(key):
+                changes[key] = {"old": old_item.get(key), "new": item_update.model_dump().get(key)}
+    
+    version_entry = {
+        "version": new_version,
+        "changed_by": current_user.id,
+        "changed_at": datetime.now(timezone.utc).isoformat(),
+        "change_type": "item_updated",
+        "changes": {"item_id": item_id, "changes": changes},
+        "snapshot": items.copy()
+    }
+    
+    version_history = sow.get('version_history', [])
+    version_history.append(version_entry)
+    
+    await db.sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "items": items,
+            "current_version": new_version,
+            "version_history": version_history,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "SOW item updated", "version": new_version}
+
+@api_router.get("/sow/{sow_id}/versions")
+async def get_sow_versions(
+    sow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all versions of SOW with change history"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Enrich version history with user names
+    versions = sow.get('version_history', [])
+    for version in versions:
+        user = await db.users.find_one({"id": version.get('changed_by')}, {"_id": 0, "full_name": 1})
+        version['changed_by_name'] = user.get('full_name', 'Unknown') if user else 'Unknown'
+    
+    return {
+        "current_version": sow.get('current_version', 1),
+        "is_frozen": sow.get('is_frozen', False),
+        "versions": versions
+    }
+
+@api_router.get("/sow/{sow_id}/version/{version_num}")
+async def get_sow_at_version(
+    sow_id: str,
+    version_num: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Get SOW items at a specific version"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    versions = sow.get('version_history', [])
+    for version in versions:
+        if version.get('version') == version_num:
+            return {
+                "version": version_num,
+                "items": version.get('snapshot', []),
+                "changed_by": version.get('changed_by'),
+                "changed_at": version.get('changed_at'),
+                "change_type": version.get('change_type'),
+                "changes": version.get('changes', {})
+            }
+    
+    raise HTTPException(status_code=404, detail=f"Version {version_num} not found")
+
 @api_router.post("/quotations", response_model=Quotation)
 async def create_quotation(quotation_create: QuotationCreate, current_user: User = Depends(get_current_user)):
     if current_user.role == UserRole.MANAGER:
