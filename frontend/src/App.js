@@ -109,6 +109,7 @@ function App() {
             <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
             <Route path="handover-alerts" element={<HandoverAlerts />} />
             <Route path="profile" element={<UserProfile />} />
+            <Route path="user-management" element={<UserManagement />} />
           </Route>
         </Routes>
       </BrowserRouter>
