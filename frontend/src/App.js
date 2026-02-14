@@ -9,6 +9,9 @@ import Projects from './pages/Projects';
 import Meetings from './pages/Meetings';
 import EmailTemplates from './pages/EmailTemplates';
 import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
+import Quotations from './pages/sales-funnel/Quotations';
+import Agreements from './pages/sales-funnel/Agreements';
+import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
 import Layout from './components/Layout';
 import './App.css';
 
@@ -80,6 +83,9 @@ function App() {
             <Route path="meetings" element={<Meetings />} />
             <Route path="email-templates" element={<EmailTemplates />} />
             <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
+            <Route path="sales-funnel/quotations" element={<Quotations />} />
+            <Route path="sales-funnel/agreements" element={<Agreements />} />
+            <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
           </Route>
         </Routes>
       </BrowserRouter>
