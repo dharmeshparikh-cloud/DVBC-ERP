@@ -90,12 +90,13 @@ const PricingPlanBuilder = () => {
         lead_id: leadId,
         ...formData,
         consultants,
-        sow_items: sowItems.filter(s => s.category)
+        sow_items: [] // SOW is now managed separately
       };
 
-      await axios.post(`${API}/pricing-plans`, pricingPlan);
+      const response = await axios.post(`${API}/pricing-plans`, pricingPlan);
       toast.success('Pricing plan created successfully');
-      navigate(`/sales-funnel/quotations?leadId=${leadId}`);
+      // Navigate to SOW builder instead of quotations
+      navigate(`/sales-funnel/sow/${response.data.id}?lead_id=${leadId}`);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create pricing plan');
     } finally {
