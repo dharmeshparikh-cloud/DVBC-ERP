@@ -854,10 +854,10 @@ const SOWBuilder = () => {
                   {/* Snapshot Items */}
                   <div>
                     <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">
-                      SOW Items at this Version ({selectedVersion.snapshot?.length || 0})
+                      SOW Items at this Version ({(selectedVersion.items || selectedVersion.snapshot)?.length || 0})
                     </div>
                     <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-                      {selectedVersion.snapshot?.map((item, idx) => (
+                      {(selectedVersion.items || selectedVersion.snapshot)?.map((item, idx) => (
                         <div key={item.id || idx} className="p-2 bg-white border border-zinc-200 rounded-sm">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -880,7 +880,7 @@ const SOWBuilder = () => {
                           )}
                         </div>
                       ))}
-                      {(!selectedVersion.snapshot || selectedVersion.snapshot.length === 0) && (
+                      {(!(selectedVersion.items || selectedVersion.snapshot) || (selectedVersion.items || selectedVersion.snapshot).length === 0) && (
                         <div className="text-sm text-zinc-400 py-4 text-center">No items in this version</div>
                       )}
                     </div>
