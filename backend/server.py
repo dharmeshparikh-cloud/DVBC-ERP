@@ -863,9 +863,12 @@ async def create_pricing_plan(plan_create: PricingPlanCreate, current_user: User
     
     plan_dict = plan_create.model_dump()
     
+    # Convert consultant dicts to ConsultantAllocation objects for calculation
+    consultant_objects = [ConsultantAllocation(**c) if isinstance(c, dict) else c for c in plan_dict.get('consultants', [])]
+    
     # Calculate totals
     totals = calculate_quotation_totals(
-        plan_dict['consultants'],
+        consultant_objects,
         plan_dict.get('discount_percentage', 0),
         18,  # GST percentage
         12500  # base rate
@@ -873,6 +876,7 @@ async def create_pricing_plan(plan_create: PricingPlanCreate, current_user: User
     
     plan_dict['base_amount'] = totals['subtotal']
     plan_dict['total_amount'] = totals['grand_total']
+    plan_dict['is_active'] = True
     
     plan = PricingPlan(**plan_dict, created_by=current_user.id)
     
