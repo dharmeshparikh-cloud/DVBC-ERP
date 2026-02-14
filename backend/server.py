@@ -916,14 +916,13 @@ async def approve_agreement(
     if not agreement_data:
         raise HTTPException(status_code=404, detail="Agreement not found")
     
-    # Update agreement approval status
+    # Update agreement status to approved
     await db.agreements.update_one(
         {"id": agreement_id},
         {"$set": {
-            "approval_status": "approved",
+            "status": "approved",
             "approved_by": current_user.id,
             "approved_at": datetime.now(timezone.utc).isoformat(),
-            "status": "signed",
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
@@ -941,10 +940,13 @@ async def approve_agreement(
     
     return {"message": "Agreement approved and lead marked as closed"}
 
+class RejectionRequest(BaseModel):
+    rejection_reason: str
+
 @api_router.patch("/agreements/{agreement_id}/reject")
 async def reject_agreement(
     agreement_id: str,
-    rejection_reason: str,
+    rejection_data: RejectionRequest,
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
@@ -953,10 +955,10 @@ async def reject_agreement(
     result = await db.agreements.update_one(
         {"id": agreement_id},
         {"$set": {
-            "approval_status": "rejected",
+            "status": "rejected",
             "approved_by": current_user.id,
             "approved_at": datetime.now(timezone.utc).isoformat(),
-            "rejection_reason": rejection_reason,
+            "rejection_reason": rejection_data.rejection_reason,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
