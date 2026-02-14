@@ -1349,10 +1349,14 @@ async def update_sow_item_status(
     items = sow.get('items', [])
     updated = False
     old_status = None
+    item_title = None
+    item_documents = []
     
     for item in items:
         if item.get('id') == item_id:
             old_status = item.get('status', 'draft')
+            item_title = item.get('title', 'Untitled')
+            item_documents = item.get('documents', [])
             item['status'] = new_status
             item['status_updated_by'] = current_user.id
             item['status_updated_at'] = datetime.now(timezone.utc).isoformat()
@@ -1402,6 +1406,72 @@ async def update_sow_item_status(
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
+    
+    # Send email notifications when SOW item is marked as Completed
+    if new_status == SOWItemStatus.COMPLETED:
+        try:
+            # Get lead/client info
+            lead = None
+            if sow.get('lead_id'):
+                lead = await db.leads.find_one({"id": sow.get('lead_id')}, {"_id": 0})
+            
+            # Get managers to notify
+            managers = await db.users.find(
+                {"role": {"$in": [UserRole.ADMIN, UserRole.MANAGER]}},
+                {"_id": 0, "email": 1, "full_name": 1}
+            ).to_list(length=None)
+            
+            # Prepare email content
+            doc_count = len(item_documents)
+            doc_names = ", ".join([d.get('original_filename', d.get('filename', 'Unnamed')) for d in item_documents]) if item_documents else "No documents attached"
+            
+            email_subject = f"SOW Item Completed: {item_title}"
+            email_body = f"""
+            <h2>SOW Item Completed</h2>
+            <p><strong>Item:</strong> {item_title}</p>
+            <p><strong>Completed by:</strong> {current_user.full_name}</p>
+            <p><strong>Date:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>
+            <p><strong>Documents ({doc_count}):</strong> {doc_names}</p>
+            <hr>
+            <p>This item has been marked as completed in the Scope of Work.</p>
+            """
+            
+            # Store notification records for managers
+            for manager in managers:
+                await db.notifications.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "user_id": manager.get('id'),
+                    "email": manager.get('email'),
+                    "type": "sow_item_completed",
+                    "subject": email_subject,
+                    "body": email_body,
+                    "sow_id": sow_id,
+                    "item_id": item_id,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "sent": False  # Email sending is mocked - mark as pending
+                })
+            
+            # Notify client if lead exists
+            if lead and lead.get('email'):
+                await db.notifications.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "user_id": None,
+                    "email": lead.get('email'),
+                    "type": "sow_item_completed_client",
+                    "subject": email_subject,
+                    "body": email_body,
+                    "sow_id": sow_id,
+                    "item_id": item_id,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "sent": False  # Email sending is mocked - mark as pending
+                })
+            
+            # Log the notification attempt
+            print(f"[SOW COMPLETION] Notifications queued for item '{item_title}' - Managers: {len(managers)}, Client: {1 if lead else 0}")
+            
+        except Exception as e:
+            print(f"[SOW COMPLETION] Error sending notifications: {str(e)}")
+            # Don't fail the status update if notification fails
     
     return {"message": f"Status updated to {new_status}", "version": new_version, "overall_status": overall_status}
 
