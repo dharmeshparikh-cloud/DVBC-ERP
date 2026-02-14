@@ -94,11 +94,13 @@ class Agreement(BaseModel):
     quotation_id: str
     lead_id: str
     agreement_number: str
+    agreement_type: str = 'standard'  # 'standard', 'nda', 'custom'
+    payment_terms: str = 'Net 30 days'
+    special_conditions: Optional[str] = None
     signed_date: Optional[datetime] = None
-    start_date: datetime
+    start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    status: str = 'pending'  # 'pending', 'signed', 'active', 'completed', 'cancelled'
-    approval_status: str = 'pending_approval'  # 'pending_approval', 'approved', 'rejected'
+    status: str = 'pending_approval'  # 'pending_approval', 'approved', 'rejected', 'sent', 'signed'
     approved_by: Optional[str] = None
     approved_at: Optional[datetime] = None
     rejection_reason: Optional[str] = None
@@ -110,7 +112,10 @@ class Agreement(BaseModel):
 class AgreementCreate(BaseModel):
     quotation_id: str
     lead_id: str
-    start_date: datetime
+    agreement_type: Optional[str] = 'standard'
+    payment_terms: Optional[str] = 'Net 30 days'
+    special_conditions: Optional[str] = None
+    start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     terms_and_conditions: Optional[str] = None
 
