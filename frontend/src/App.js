@@ -14,6 +14,8 @@ import Agreements from './pages/sales-funnel/Agreements';
 import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
 import Consultants from './pages/Consultants';
 import ConsultantDashboard from './pages/ConsultantDashboard';
+import ProjectTasks from './pages/ProjectTasks';
+import HandoverAlerts from './pages/HandoverAlerts';
 import Layout from './components/Layout';
 import './App.css';
 
