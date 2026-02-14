@@ -45,14 +45,12 @@ A comprehensive business management application for a 50-person consulting organ
   - Attached documents section with download capability
   - Overall status tracking (Draft, Pending Approval, Partially Approved, Approved, Complete)
   - Stats cards showing item counts by status
-- **SOW Inline Editing & Roadmap (Feb 14, 2026) ✅**:
-  - Spreadsheet-style inline editing - add rows directly in table
-  - Single consultant assignment per SOW item
-  - Backend support team assignment (optional per line) with role selection
-  - Start week field for scheduling items
-  - Roadmap view - Monthly breakdown of SOW items
-  - Gantt chart view - Timeline visualization with horizontal bars
-  - Bulk item deletion with version tracking
+- **SOW Documents Per Item (Feb 14, 2026) ✅**:
+  - Removed separate "Attached Documents" section at page top
+  - Documents now attached per SOW line item (in Docs column)
+  - Documents dialog shows per-item attachments with upload/download
+  - Auto-email notification to manager and client when item marked as Completed
+  - Notifications stored in database (email sending is MOCKED - queue stored but not sent)
 
 ### User Profile & Rights Configuration (Phase 4) ✅
 - **User Profile Page**: View/edit name, email, phone, department, designation, bio
