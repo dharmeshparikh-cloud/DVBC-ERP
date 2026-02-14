@@ -1094,6 +1094,14 @@ async def update_sow_item(
             item['description'] = item_update.description or ""
             item['deliverables'] = item_update.deliverables or []
             item['timeline_weeks'] = item_update.timeline_weeks
+            item['start_week'] = item_update.start_week
+            item['assigned_consultant_id'] = item_update.assigned_consultant_id
+            item['assigned_consultant_name'] = item_update.assigned_consultant_name
+            item['has_backend_support'] = item_update.has_backend_support or False
+            item['backend_support_id'] = item_update.backend_support_id
+            item['backend_support_name'] = item_update.backend_support_name
+            item['backend_support_role'] = item_update.backend_support_role
+            item['notes'] = item_update.notes
             updated = True
             break
     
