@@ -4525,6 +4525,652 @@ async def get_users_with_roles(
     
     return users
 
+# ==================== EMPLOYEES MODULE ====================
+
+class EmploymentType(str):
+    FULL_TIME = "full_time"
+    CONTRACT = "contract"
+    INTERN = "intern"
+    PART_TIME = "part_time"
+
+class BankDetails(BaseModel):
+    account_number: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    bank_name: Optional[str] = None
+    branch: Optional[str] = None
+    account_holder_name: Optional[str] = None
+
+class EmployeeDocument(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    document_type: str  # id_proof, offer_letter, resume, contract, other
+    filename: str
+    original_filename: str
+    file_size: int = 0
+    uploaded_by: str
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    description: Optional[str] = None
+
+class LeaveBalance(BaseModel):
+    casual_leave: int = 12
+    sick_leave: int = 6
+    earned_leave: int = 15
+    used_casual: int = 0
+    used_sick: int = 0
+    used_earned: int = 0
+
+class Employee(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str  # Company employee ID like EMP001
+    
+    # Basic Info
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    personal_email: Optional[str] = None
+    
+    # Work Info
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    employment_type: str = EmploymentType.FULL_TIME
+    joining_date: Optional[datetime] = None
+    
+    # Reporting
+    reporting_manager_id: Optional[str] = None  # Employee ID of manager
+    reporting_manager_name: Optional[str] = None
+    
+    # HR Details
+    salary: Optional[float] = None
+    bank_details: Optional[BankDetails] = None
+    leave_balance: Optional[LeaveBalance] = None
+    
+    # Documents
+    documents: List[dict] = []
+    
+    # System Link
+    user_id: Optional[str] = None  # Link to user account (optional)
+    role: Optional[str] = None  # User role if linked
+    
+    # Status
+    is_active: bool = True
+    termination_date: Optional[datetime] = None
+    
+    # Meta
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class EmployeeCreate(BaseModel):
+    employee_id: str
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    personal_email: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    employment_type: Optional[str] = EmploymentType.FULL_TIME
+    joining_date: Optional[datetime] = None
+    reporting_manager_id: Optional[str] = None
+    salary: Optional[float] = None
+    bank_details: Optional[BankDetails] = None
+
+class EmployeeUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    personal_email: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    employment_type: Optional[str] = None
+    joining_date: Optional[datetime] = None
+    reporting_manager_id: Optional[str] = None
+    salary: Optional[float] = None
+    bank_details: Optional[BankDetails] = None
+    leave_balance: Optional[LeaveBalance] = None
+    is_active: Optional[bool] = None
+    termination_date: Optional[datetime] = None
+
+# Helper to check HR access
+def has_hr_access(user_role: str) -> bool:
+    return user_role in [UserRole.ADMIN, UserRole.HR_MANAGER]
+
+def has_hr_view_access(user_role: str) -> bool:
+    return user_role in [UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.HR_EXECUTIVE]
+
+@api_router.get("/employees")
+async def get_all_employees(
+    department: Optional[str] = None,
+    employment_type: Optional[str] = None,
+    is_active: Optional[bool] = True,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all employees (HR access required for sensitive data)"""
+    query = {}
+    if department:
+        query['department'] = department
+    if employment_type:
+        query['employment_type'] = employment_type
+    if is_active is not None:
+        query['is_active'] = is_active
+    
+    employees = await db.employees.find(query, {"_id": 0}).to_list(1000)
+    
+    # If not HR, hide sensitive data
+    if not has_hr_view_access(current_user.role):
+        for emp in employees:
+            emp.pop('salary', None)
+            emp.pop('bank_details', None)
+            emp.pop('personal_email', None)
+    
+    # Parse dates
+    for emp in employees:
+        if isinstance(emp.get('created_at'), str):
+            emp['created_at'] = datetime.fromisoformat(emp['created_at'])
+        if isinstance(emp.get('updated_at'), str):
+            emp['updated_at'] = datetime.fromisoformat(emp['updated_at'])
+        if emp.get('joining_date') and isinstance(emp['joining_date'], str):
+            emp['joining_date'] = datetime.fromisoformat(emp['joining_date'])
+    
+    return employees
+
+@api_router.post("/employees")
+async def create_employee(
+    employee_create: EmployeeCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new employee (Admin/HR Manager only)"""
+    if not has_hr_access(current_user.role):
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can create employees")
+    
+    # Check if employee_id already exists
+    existing = await db.employees.find_one({"employee_id": employee_create.employee_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Employee ID already exists")
+    
+    # Check if email already exists
+    existing_email = await db.employees.find_one({"email": employee_create.email})
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already exists")
+    
+    # Get reporting manager name if provided
+    reporting_manager_name = None
+    if employee_create.reporting_manager_id:
+        manager = await db.employees.find_one({"id": employee_create.reporting_manager_id}, {"_id": 0})
+        if manager:
+            reporting_manager_name = f"{manager['first_name']} {manager['last_name']}"
+    
+    # Check if user exists with this email and link
+    user = await db.users.find_one({"email": employee_create.email}, {"_id": 0})
+    user_id = user.get('id') if user else None
+    user_role = user.get('role') if user else None
+    
+    employee = Employee(
+        **employee_create.model_dump(),
+        reporting_manager_name=reporting_manager_name,
+        user_id=user_id,
+        role=user_role,
+        leave_balance=LeaveBalance().model_dump(),
+        created_by=current_user.id
+    )
+    
+    doc = employee.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc['joining_date']:
+        doc['joining_date'] = doc['joining_date'].isoformat()
+    if doc['termination_date']:
+        doc['termination_date'] = doc['termination_date'].isoformat()
+    
+    await db.employees.insert_one(doc)
+    
+    return {"message": "Employee created successfully", "employee_id": employee.id, "emp_id": employee.employee_id}
+
+@api_router.get("/employees/{employee_id}")
+async def get_employee(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get employee details"""
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # If not HR, hide sensitive data (unless viewing own profile)
+    if not has_hr_view_access(current_user.role) and employee.get('user_id') != current_user.id:
+        employee.pop('salary', None)
+        employee.pop('bank_details', None)
+        employee.pop('personal_email', None)
+    
+    return employee
+
+@api_router.patch("/employees/{employee_id}")
+async def update_employee(
+    employee_id: str,
+    employee_update: EmployeeUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update employee (Admin/HR Manager only)"""
+    if not has_hr_access(current_user.role):
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update employees")
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    update_data = employee_update.model_dump(exclude_unset=True)
+    
+    # Get reporting manager name if updating
+    if 'reporting_manager_id' in update_data and update_data['reporting_manager_id']:
+        manager = await db.employees.find_one({"id": update_data['reporting_manager_id']}, {"_id": 0})
+        if manager:
+            update_data['reporting_manager_name'] = f"{manager['first_name']} {manager['last_name']}"
+    
+    # Handle dates
+    if 'joining_date' in update_data and update_data['joining_date']:
+        update_data['joining_date'] = update_data['joining_date'].isoformat()
+    if 'termination_date' in update_data and update_data['termination_date']:
+        update_data['termination_date'] = update_data['termination_date'].isoformat()
+    
+    # Handle nested objects
+    if 'bank_details' in update_data and update_data['bank_details']:
+        update_data['bank_details'] = update_data['bank_details'].model_dump() if hasattr(update_data['bank_details'], 'model_dump') else update_data['bank_details']
+    if 'leave_balance' in update_data and update_data['leave_balance']:
+        update_data['leave_balance'] = update_data['leave_balance'].model_dump() if hasattr(update_data['leave_balance'], 'model_dump') else update_data['leave_balance']
+    
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Employee updated successfully"}
+
+@api_router.delete("/employees/{employee_id}")
+async def delete_employee(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Soft delete employee (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can delete employees")
+    
+    result = await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {
+            "is_active": False,
+            "termination_date": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    return {"message": "Employee deactivated successfully"}
+
+@api_router.post("/employees/{employee_id}/link-user")
+async def link_employee_to_user(
+    employee_id: str,
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Link an employee to a user account (Admin/HR Manager only)"""
+    if not has_hr_access(current_user.role):
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can link users")
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user is already linked to another employee
+    existing_link = await db.employees.find_one({"user_id": user_id, "id": {"$ne": employee_id}})
+    if existing_link:
+        raise HTTPException(status_code=400, detail="User is already linked to another employee")
+    
+    await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {
+            "user_id": user_id,
+            "role": user.get('role'),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Employee linked to user successfully"}
+
+@api_router.post("/employees/{employee_id}/unlink-user")
+async def unlink_employee_from_user(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Unlink an employee from user account (Admin/HR Manager only)"""
+    if not has_hr_access(current_user.role):
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can unlink users")
+    
+    result = await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {
+            "user_id": None,
+            "role": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    return {"message": "Employee unlinked from user successfully"}
+
+# Document upload for employees
+EMPLOYEE_UPLOAD_DIR = "/app/uploads/employees"
+os.makedirs(EMPLOYEE_UPLOAD_DIR, exist_ok=True)
+
+class EmployeeDocumentUpload(BaseModel):
+    document_type: str  # id_proof, offer_letter, resume, contract, other
+    filename: str
+    file_data: str  # Base64 encoded
+    description: Optional[str] = None
+
+@api_router.post("/employees/{employee_id}/documents")
+async def upload_employee_document(
+    employee_id: str,
+    document: EmployeeDocumentUpload,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload document for employee (Admin/HR Manager only)"""
+    if not has_hr_access(current_user.role):
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can upload documents")
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    import base64
+    
+    try:
+        file_data = base64.b64decode(document.file_data)
+        file_size = len(file_data)
+        
+        file_ext = document.filename.split('.')[-1] if '.' in document.filename else 'bin'
+        stored_filename = f"{employee_id}_{str(uuid.uuid4())[:8]}.{file_ext}"
+        file_path = os.path.join(EMPLOYEE_UPLOAD_DIR, stored_filename)
+        
+        with open(file_path, 'wb') as f:
+            f.write(file_data)
+        
+        doc_record = {
+            "id": str(uuid.uuid4()),
+            "document_type": document.document_type,
+            "filename": stored_filename,
+            "original_filename": document.filename,
+            "file_size": file_size,
+            "uploaded_by": current_user.id,
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            "description": document.description
+        }
+        
+        documents = employee.get('documents', [])
+        documents.append(doc_record)
+        
+        await db.employees.update_one(
+            {"id": employee_id},
+            {"$set": {
+                "documents": documents,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {"message": "Document uploaded successfully", "document_id": doc_record['id']}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload document: {str(e)}")
+
+@api_router.get("/employees/{employee_id}/documents/{document_id}")
+async def download_employee_document(
+    employee_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download employee document (HR access or own profile)"""
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Check access
+    if not has_hr_view_access(current_user.role) and employee.get('user_id') != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view documents")
+    
+    import base64
+    
+    documents = employee.get('documents', [])
+    doc = None
+    for d in documents:
+        if d.get('id') == document_id:
+            doc = d
+            break
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    file_path = os.path.join(EMPLOYEE_UPLOAD_DIR, doc['filename'])
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+    
+    with open(file_path, 'rb') as f:
+        file_data = base64.b64encode(f.read()).decode('utf-8')
+    
+    return {
+        "filename": doc['original_filename'],
+        "file_data": file_data,
+        "file_type": doc.get('document_type')
+    }
+
+@api_router.delete("/employees/{employee_id}/documents/{document_id}")
+async def delete_employee_document(
+    employee_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete employee document (Admin/HR Manager only)"""
+    if not has_hr_access(current_user.role):
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can delete documents")
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    documents = employee.get('documents', [])
+    new_documents = [d for d in documents if d.get('id') != document_id]
+    
+    if len(documents) == len(new_documents):
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {
+            "documents": new_documents,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Document deleted successfully"}
+
+@api_router.get("/employees/org-chart/hierarchy")
+async def get_org_chart(current_user: User = Depends(get_current_user)):
+    """Get organizational hierarchy for org chart"""
+    employees = await db.employees.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    
+    # Build hierarchy
+    hierarchy = []
+    employee_map = {emp['id']: emp for emp in employees}
+    
+    # Find root employees (no reporting manager)
+    for emp in employees:
+        if not emp.get('reporting_manager_id'):
+            hierarchy.append({
+                "id": emp['id'],
+                "employee_id": emp['employee_id'],
+                "name": f"{emp['first_name']} {emp['last_name']}",
+                "designation": emp.get('designation'),
+                "department": emp.get('department'),
+                "email": emp['email'],
+                "has_user_access": emp.get('user_id') is not None,
+                "children": get_subordinates(emp['id'], employee_map)
+            })
+    
+    return hierarchy
+
+def get_subordinates(manager_id: str, employee_map: dict) -> list:
+    """Recursively get subordinates for org chart"""
+    subordinates = []
+    for emp_id, emp in employee_map.items():
+        if emp.get('reporting_manager_id') == manager_id:
+            subordinates.append({
+                "id": emp['id'],
+                "employee_id": emp['employee_id'],
+                "name": f"{emp['first_name']} {emp['last_name']}",
+                "designation": emp.get('designation'),
+                "department": emp.get('department'),
+                "email": emp['email'],
+                "has_user_access": emp.get('user_id') is not None,
+                "children": get_subordinates(emp['id'], employee_map)
+            })
+    return subordinates
+
+@api_router.get("/employees/{employee_id}/subordinates")
+async def get_employee_subordinates(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get direct subordinates of an employee"""
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    subordinates = await db.employees.find(
+        {"reporting_manager_id": employee_id, "is_active": True},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return subordinates
+
+@api_router.post("/employees/sync-from-users")
+async def sync_employees_from_users(
+    current_user: User = Depends(get_current_user)
+):
+    """Create employee records for all existing users (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can sync employees")
+    
+    users = await db.users.find({"is_active": True}, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    
+    created_count = 0
+    skipped_count = 0
+    
+    for user in users:
+        # Check if employee already exists for this user
+        existing = await db.employees.find_one({"$or": [
+            {"user_id": user['id']},
+            {"email": user['email']}
+        ]})
+        
+        if existing:
+            # Update existing employee with user link if not linked
+            if not existing.get('user_id'):
+                await db.employees.update_one(
+                    {"id": existing['id']},
+                    {"$set": {
+                        "user_id": user['id'],
+                        "role": user.get('role'),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+            skipped_count += 1
+            continue
+        
+        # Generate employee ID
+        count = await db.employees.count_documents({})
+        emp_id = f"EMP{str(count + 1).zfill(3)}"
+        
+        # Parse name
+        name_parts = user.get('full_name', 'Unknown User').split(' ', 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        employee = {
+            "id": str(uuid.uuid4()),
+            "employee_id": emp_id,
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": user['email'],
+            "phone": user.get('phone'),
+            "department": user.get('department'),
+            "designation": user.get('designation'),
+            "employment_type": EmploymentType.FULL_TIME,
+            "joining_date": user.get('created_at'),
+            "reporting_manager_id": None,
+            "reporting_manager_name": None,
+            "salary": None,
+            "bank_details": None,
+            "leave_balance": LeaveBalance().model_dump(),
+            "documents": [],
+            "user_id": user['id'],
+            "role": user.get('role'),
+            "is_active": True,
+            "termination_date": None,
+            "created_by": current_user.id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.employees.insert_one(employee)
+        created_count += 1
+    
+    return {
+        "message": f"Sync completed. Created: {created_count}, Skipped: {skipped_count}",
+        "created": created_count,
+        "skipped": skipped_count
+    }
+
+@api_router.get("/employees/departments/list")
+async def get_departments(current_user: User = Depends(get_current_user)):
+    """Get list of all departments"""
+    departments = await db.employees.distinct("department")
+    return [d for d in departments if d]
+
+@api_router.get("/employees/stats/summary")
+async def get_employee_stats(current_user: User = Depends(get_current_user)):
+    """Get employee statistics"""
+    if not has_hr_view_access(current_user.role):
+        raise HTTPException(status_code=403, detail="HR access required")
+    
+    total = await db.employees.count_documents({"is_active": True})
+    by_department = await db.employees.aggregate([
+        {"$match": {"is_active": True}},
+        {"$group": {"_id": "$department", "count": {"$sum": 1}}}
+    ]).to_list(100)
+    by_employment_type = await db.employees.aggregate([
+        {"$match": {"is_active": True}},
+        {"$group": {"_id": "$employment_type", "count": {"$sum": 1}}}
+    ]).to_list(100)
+    with_user_access = await db.employees.count_documents({"is_active": True, "user_id": {"$ne": None}})
+    
+    return {
+        "total_employees": total,
+        "with_user_access": with_user_access,
+        "without_user_access": total - with_user_access,
+        "by_department": {item['_id'] or 'Unassigned': item['count'] for item in by_department},
+        "by_employment_type": {item['_id'] or 'Unknown': item['count'] for item in by_employment_type}
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
