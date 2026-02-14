@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { Button } from './ui/button';
-import { LayoutDashboard, Users, Briefcase, Calendar, Mail, LogOut, DollarSign, FileText, FileCheck, ClipboardCheck, UserCog } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Calendar, Mail, LogOut, DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle } from 'lucide-react';
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
