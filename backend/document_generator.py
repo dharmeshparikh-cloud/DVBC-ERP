@@ -641,17 +641,17 @@ class SOWDocumentGenerator:
             for idx, item in enumerate(items, 1):
                 row = table.add_row().cells
                 row[0].text = str(idx)
-                row[1].text = item.get('category', '').replace('_', ' ').title()
-                row[2].text = item.get('title', '')
+                row[1].text = (item.get('category', '') or '').replace('_', ' ').title()
+                row[2].text = item.get('title', '') or ''
                 
                 # Description with deliverables
-                desc = item.get('description', '')
-                deliverables = item.get('deliverables', [])
+                desc = item.get('description', '') or ''
+                deliverables = item.get('deliverables', []) or []
                 if deliverables:
                     desc += "\n" + "\n".join([f"• {d}" for d in deliverables])
                 row[3].text = desc
                 
-                row[4].text = item.get('assigned_consultant_name', 'TBD')
+                row[4].text = item.get('assigned_consultant_name') or 'TBD'
                 
                 timeline = item.get('timeline_weeks')
                 start = item.get('start_week')
