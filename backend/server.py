@@ -2760,7 +2760,7 @@ async def add_project_sow_item(
     return {"message": "Item added to SOW", "item_id": new_item.id}
 
 @api_router.patch("/projects/{project_id}/sow/{sow_id}/items/{item_id}")
-async def update_sow_item(
+async def update_project_sow_item(
     project_id: str,
     sow_id: str,
     item_id: str,
