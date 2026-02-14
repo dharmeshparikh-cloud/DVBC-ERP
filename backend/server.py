@@ -51,11 +51,25 @@ class UserRole(str):
     ADMIN = "admin"
     MANAGER = "manager"
     EXECUTIVE = "executive"
+    CONSULTANT = "consultant"
 
 class MeetingMode(str):
     ONLINE = "online"
     OFFLINE = "offline"
     TELE_CALL = "tele_call"
+    MIXED = "mixed"
+
+class ProjectType(str):
+    ONLINE = "online"
+    OFFLINE = "offline"
+    MIXED = "mixed"
+
+# Consultant bandwidth limits
+CONSULTANT_BANDWIDTH_LIMITS = {
+    "online": 12,
+    "offline": 6,
+    "mixed": 8
+}
 
 class LeadStatus(str):
     NEW = "new"
