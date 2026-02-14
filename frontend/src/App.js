@@ -119,6 +119,7 @@ function App() {
             <Route path="approvals" element={<ApprovalsCenter />} />
             <Route path="clients" element={<Clients />} />
             <Route path="expenses" element={<Expenses />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
         </Routes>
       </BrowserRouter>
