@@ -1292,6 +1292,475 @@ async def send_agreement_email(
         "final_body": final_body
     }
 
+# ==================== CONSULTANT MANAGEMENT APIs ====================
+
+@api_router.post("/consultants", response_model=User)
+async def create_consultant(user_create: UserCreate, current_user: User = Depends(get_current_user)):
+    """Create a new consultant (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can create consultant accounts")
+    
+    # Force role to consultant
+    existing_user = await db.users.find_one({"email": user_create.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    hashed_password = get_password_hash(user_create.password)
+    user = User(
+        email=user_create.email,
+        full_name=user_create.full_name,
+        role=UserRole.CONSULTANT,
+        department=user_create.department
+    )
+    
+    user_dict = user.model_dump()
+    user_dict['hashed_password'] = hashed_password
+    user_dict['created_at'] = user_dict['created_at'].isoformat()
+    
+    await db.users.insert_one(user_dict)
+    
+    # Create consultant profile with bandwidth settings
+    preferred_mode = "mixed"
+    max_projects = CONSULTANT_BANDWIDTH_LIMITS.get(preferred_mode, 8)
+    
+    profile = {
+        "user_id": user.id,
+        "specializations": [],
+        "preferred_mode": preferred_mode,
+        "max_projects": max_projects,
+        "current_project_count": 0,
+        "total_project_value": 0,
+        "bio": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.consultant_profiles.insert_one(profile)
+    
+    return user
+
+@api_router.get("/consultants")
+async def get_consultants(current_user: User = Depends(get_current_user)):
+    """Get all consultants with their project stats"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only admins and managers can view consultant list")
+    
+    # Get all consultant users
+    consultants = await db.users.find(
+        {"role": UserRole.CONSULTANT, "is_active": True},
+        {"_id": 0, "hashed_password": 0}
+    ).to_list(1000)
+    
+    result = []
+    for consultant in consultants:
+        # Get consultant profile
+        profile = await db.consultant_profiles.find_one(
+            {"user_id": consultant['id']},
+            {"_id": 0}
+        )
+        
+        # Get active project assignments
+        assignments = await db.consultant_assignments.find(
+            {"consultant_id": consultant['id'], "is_active": True},
+            {"_id": 0}
+        ).to_list(100)
+        
+        # Calculate stats
+        project_ids = [a['project_id'] for a in assignments]
+        projects = await db.projects.find(
+            {"id": {"$in": project_ids}},
+            {"_id": 0}
+        ).to_list(100)
+        
+        total_value = sum(p.get('project_value', 0) or 0 for p in projects)
+        total_meetings_committed = sum(a.get('meetings_committed', 0) for a in assignments)
+        total_meetings_completed = sum(a.get('meetings_completed', 0) for a in assignments)
+        
+        # Calculate bandwidth
+        max_projects = profile.get('max_projects', 8) if profile else 8
+        current_count = len(assignments)
+        available_slots = max(0, max_projects - current_count)
+        
+        result.append({
+            **consultant,
+            "profile": profile,
+            "stats": {
+                "total_projects": current_count,
+                "total_project_value": total_value,
+                "total_meetings_committed": total_meetings_committed,
+                "total_meetings_completed": total_meetings_completed,
+                "max_projects": max_projects,
+                "available_slots": available_slots,
+                "bandwidth_percentage": round((current_count / max_projects) * 100) if max_projects > 0 else 0
+            },
+            "assignments": assignments
+        })
+    
+    return result
+
+@api_router.get("/consultants/{consultant_id}")
+async def get_consultant(consultant_id: str, current_user: User = Depends(get_current_user)):
+    """Get consultant details with projects"""
+    # Consultants can view their own profile, admins/managers can view all
+    if current_user.role == UserRole.CONSULTANT and current_user.id != consultant_id:
+        raise HTTPException(status_code=403, detail="You can only view your own profile")
+    
+    consultant = await db.users.find_one(
+        {"id": consultant_id, "role": UserRole.CONSULTANT},
+        {"_id": 0, "hashed_password": 0}
+    )
+    if not consultant:
+        raise HTTPException(status_code=404, detail="Consultant not found")
+    
+    # Get profile
+    profile = await db.consultant_profiles.find_one(
+        {"user_id": consultant_id},
+        {"_id": 0}
+    )
+    
+    # Get assignments with project details
+    assignments = await db.consultant_assignments.find(
+        {"consultant_id": consultant_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    projects_with_details = []
+    for assignment in assignments:
+        project = await db.projects.find_one(
+            {"id": assignment['project_id']},
+            {"_id": 0}
+        )
+        if project:
+            projects_with_details.append({
+                "assignment": assignment,
+                "project": project
+            })
+    
+    return {
+        **consultant,
+        "profile": profile,
+        "projects": projects_with_details
+    }
+
+@api_router.patch("/consultants/{consultant_id}/profile")
+async def update_consultant_profile(
+    consultant_id: str,
+    preferred_mode: Optional[str] = None,
+    specializations: Optional[List[str]] = None,
+    bio: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Update consultant profile (Admin only for bandwidth, consultant can update bio)"""
+    if current_user.role != UserRole.ADMIN and current_user.id != consultant_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if preferred_mode and current_user.role == UserRole.ADMIN:
+        update_data["preferred_mode"] = preferred_mode
+        update_data["max_projects"] = CONSULTANT_BANDWIDTH_LIMITS.get(preferred_mode, 8)
+    
+    if specializations is not None:
+        update_data["specializations"] = specializations
+    
+    if bio is not None:
+        update_data["bio"] = bio
+    
+    await db.consultant_profiles.update_one(
+        {"user_id": consultant_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Profile updated successfully"}
+
+# ==================== PROJECT ASSIGNMENT APIs ====================
+
+@api_router.post("/projects/{project_id}/assign-consultant")
+async def assign_consultant_to_project(
+    project_id: str,
+    assignment: ConsultantAssignmentCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Assign a consultant to a project"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only admins and managers can assign consultants")
+    
+    # Verify project exists
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Verify consultant exists and is active
+    consultant = await db.users.find_one(
+        {"id": assignment.consultant_id, "role": UserRole.CONSULTANT, "is_active": True},
+        {"_id": 0}
+    )
+    if not consultant:
+        raise HTTPException(status_code=404, detail="Consultant not found or inactive")
+    
+    # Check consultant bandwidth
+    profile = await db.consultant_profiles.find_one({"user_id": assignment.consultant_id}, {"_id": 0})
+    active_assignments = await db.consultant_assignments.count_documents({
+        "consultant_id": assignment.consultant_id,
+        "is_active": True
+    })
+    
+    max_projects = profile.get('max_projects', 8) if profile else 8
+    if active_assignments >= max_projects:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Consultant has reached maximum project capacity ({max_projects})"
+        )
+    
+    # Check if already assigned
+    existing = await db.consultant_assignments.find_one({
+        "consultant_id": assignment.consultant_id,
+        "project_id": project_id,
+        "is_active": True
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Consultant already assigned to this project")
+    
+    # Create assignment
+    new_assignment = ConsultantAssignment(
+        consultant_id=assignment.consultant_id,
+        project_id=project_id,
+        assigned_by=current_user.id,
+        role_in_project=assignment.role_in_project,
+        meetings_committed=assignment.meetings_committed,
+        notes=assignment.notes
+    )
+    
+    doc = new_assignment.model_dump()
+    doc['assigned_date'] = doc['assigned_date'].isoformat()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.consultant_assignments.insert_one(doc)
+    
+    # Update project's assigned_consultants list
+    await db.projects.update_one(
+        {"id": project_id},
+        {
+            "$addToSet": {"assigned_consultants": assignment.consultant_id},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    return {"message": "Consultant assigned successfully", "assignment_id": new_assignment.id}
+
+@api_router.patch("/projects/{project_id}/change-consultant")
+async def change_consultant(
+    project_id: str,
+    old_consultant_id: str,
+    new_consultant_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Change consultant on a project (before start date)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only admins and managers can change consultants")
+    
+    # Get project
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Check if project has started (only admin can change after start)
+    start_date = project.get('start_date')
+    if isinstance(start_date, str):
+        start_date = datetime.fromisoformat(start_date)
+    
+    if start_date and start_date <= datetime.now(timezone.utc):
+        if current_user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=403, 
+                detail="Only admins can change consultants after project start date"
+            )
+    
+    # Verify new consultant
+    new_consultant = await db.users.find_one(
+        {"id": new_consultant_id, "role": UserRole.CONSULTANT, "is_active": True}
+    )
+    if not new_consultant:
+        raise HTTPException(status_code=404, detail="New consultant not found")
+    
+    # Check new consultant's bandwidth
+    profile = await db.consultant_profiles.find_one({"user_id": new_consultant_id}, {"_id": 0})
+    active_count = await db.consultant_assignments.count_documents({
+        "consultant_id": new_consultant_id,
+        "is_active": True
+    })
+    max_projects = profile.get('max_projects', 8) if profile else 8
+    
+    if active_count >= max_projects:
+        raise HTTPException(status_code=400, detail="New consultant has reached maximum capacity")
+    
+    # Deactivate old assignment
+    await db.consultant_assignments.update_one(
+        {"consultant_id": old_consultant_id, "project_id": project_id, "is_active": True},
+        {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Create new assignment
+    new_assignment = ConsultantAssignment(
+        consultant_id=new_consultant_id,
+        project_id=project_id,
+        assigned_by=current_user.id,
+        notes=f"Replaced {old_consultant_id}"
+    )
+    
+    doc = new_assignment.model_dump()
+    doc['assigned_date'] = doc['assigned_date'].isoformat()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.consultant_assignments.insert_one(doc)
+    
+    # Update project
+    await db.projects.update_one(
+        {"id": project_id},
+        {
+            "$pull": {"assigned_consultants": old_consultant_id},
+            "$addToSet": {"assigned_consultants": new_consultant_id},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    return {"message": "Consultant changed successfully"}
+
+@api_router.patch("/projects/{project_id}/update-start-date")
+async def update_project_start_date(
+    project_id: str,
+    new_start_date: datetime,
+    current_user: User = Depends(get_current_user)
+):
+    """Update project start date (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can change project start date")
+    
+    result = await db.projects.update_one(
+        {"id": project_id},
+        {"$set": {
+            "start_date": new_start_date.isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    return {"message": "Start date updated successfully"}
+
+@api_router.delete("/projects/{project_id}/unassign-consultant/{consultant_id}")
+async def unassign_consultant(
+    project_id: str,
+    consultant_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Remove consultant from project"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only admins and managers can unassign consultants")
+    
+    result = await db.consultant_assignments.update_one(
+        {"consultant_id": consultant_id, "project_id": project_id, "is_active": True},
+        {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    
+    # Update project
+    await db.projects.update_one(
+        {"id": project_id},
+        {
+            "$pull": {"assigned_consultants": consultant_id},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    return {"message": "Consultant unassigned successfully"}
+
+# ==================== CONSULTANT DASHBOARD APIs ====================
+
+@api_router.get("/consultant/my-projects")
+async def get_my_projects(current_user: User = Depends(get_current_user)):
+    """Get projects assigned to current consultant"""
+    if current_user.role != UserRole.CONSULTANT:
+        raise HTTPException(status_code=403, detail="Only consultants can access this endpoint")
+    
+    assignments = await db.consultant_assignments.find(
+        {"consultant_id": current_user.id, "is_active": True},
+        {"_id": 0}
+    ).to_list(100)
+    
+    projects_with_details = []
+    for assignment in assignments:
+        project = await db.projects.find_one(
+            {"id": assignment['project_id']},
+            {"_id": 0}
+        )
+        if project:
+            # Get lead/client info
+            lead = None
+            if project.get('lead_id'):
+                lead = await db.leads.find_one(
+                    {"id": project['lead_id']},
+                    {"_id": 0, "first_name": 1, "last_name": 1, "company": 1, "email": 1}
+                )
+            
+            projects_with_details.append({
+                "assignment": assignment,
+                "project": project,
+                "client": lead
+            })
+    
+    return projects_with_details
+
+@api_router.get("/consultant/dashboard-stats")
+async def get_consultant_dashboard_stats(current_user: User = Depends(get_current_user)):
+    """Get dashboard stats for consultant"""
+    if current_user.role != UserRole.CONSULTANT:
+        raise HTTPException(status_code=403, detail="Only consultants can access this endpoint")
+    
+    # Get active assignments
+    assignments = await db.consultant_assignments.find(
+        {"consultant_id": current_user.id, "is_active": True},
+        {"_id": 0}
+    ).to_list(100)
+    
+    project_ids = [a['project_id'] for a in assignments]
+    projects = await db.projects.find(
+        {"id": {"$in": project_ids}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Calculate stats
+    total_meetings_committed = sum(a.get('meetings_committed', 0) for a in assignments)
+    total_meetings_completed = sum(a.get('meetings_completed', 0) for a in assignments)
+    total_project_value = sum(p.get('project_value', 0) or 0 for p in projects)
+    
+    active_projects = len([p for p in projects if p.get('status') == 'active'])
+    completed_projects = len([p for p in projects if p.get('status') == 'completed'])
+    
+    # Get profile for bandwidth
+    profile = await db.consultant_profiles.find_one(
+        {"user_id": current_user.id},
+        {"_id": 0}
+    )
+    max_projects = profile.get('max_projects', 8) if profile else 8
+    
+    return {
+        "total_projects": len(assignments),
+        "active_projects": active_projects,
+        "completed_projects": completed_projects,
+        "total_project_value": total_project_value,
+        "total_meetings_committed": total_meetings_committed,
+        "total_meetings_completed": total_meetings_completed,
+        "meetings_pending": total_meetings_committed - total_meetings_completed,
+        "max_projects": max_projects,
+        "available_slots": max(0, max_projects - len(assignments)),
+        "bandwidth_percentage": round((len(assignments) / max_projects) * 100) if max_projects > 0 else 0
+    }
+
 app.include_router(api_router)
 
 app.add_middleware(
