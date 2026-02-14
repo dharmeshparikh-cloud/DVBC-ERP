@@ -1039,6 +1039,7 @@ async def send_mom_to_client(
         
         <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
             <p><strong>Meeting Title:</strong> {meeting.get('title', 'Meeting')}</p>
+            <p><strong>Project:</strong> {project.get('name', 'N/A') if project else 'N/A'}</p>
             <p><strong>Date:</strong> {meeting_date.strftime('%B %d, %Y %H:%M') if meeting_date else 'N/A'}</p>
             <p><strong>Mode:</strong> {meeting.get('mode', '').replace('_', ' ').title()}</p>
             <p><strong>Duration:</strong> {meeting.get('duration_minutes', 'N/A')} minutes</p>
