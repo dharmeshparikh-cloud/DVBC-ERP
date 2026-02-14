@@ -1775,6 +1775,38 @@ async def upload_item_document(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
+@api_router.get("/sow/{sow_id}/items/{item_id}/documents/{document_id}")
+async def download_item_document(
+    sow_id: str,
+    item_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download document from specific SOW item"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Find the item
+    for item in sow.get('items', []):
+        if item.get('id') == item_id:
+            for doc in item.get('documents', []):
+                if doc.get('id') == document_id:
+                    file_path = os.path.join(UPLOAD_DIR, doc['filename'])
+                    if os.path.exists(file_path):
+                        with open(file_path, 'rb') as f:
+                            file_data = base64.b64encode(f.read()).decode()
+                        return {
+                            "filename": doc.get('original_filename', doc.get('filename')),
+                            "file_type": doc.get('file_type', 'bin'),
+                            "file_data": file_data
+                        }
+                    else:
+                        raise HTTPException(status_code=404, detail="File not found on disk")
+            raise HTTPException(status_code=404, detail="Document not found in item")
+    
+    raise HTTPException(status_code=404, detail="Item not found")
+
 @api_router.get("/sow/{sow_id}/documents/{document_id}")
 async def download_sow_document(
     sow_id: str,
