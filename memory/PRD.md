@@ -4,24 +4,66 @@
 A comprehensive business management application for a 50-person consulting organization covering HR, Marketing, Sales, Finance, and Consulting project workflows.
 
 ## Core Requirements
-- **Authentication**: Email-based login with three roles (Admin, Manager, Executive)
+- **Authentication**: Email-based login with roles (Admin, Manager, Executive, Consultant, Project Manager, Principal Consultant)
 - **Sales Workflow**: Lead → Pricing Plan → Quotation → Agreement → Manager Approval → Client Email
 - **Currency**: Indian Rupees (₹)
 - **Time Tracking**: Project start date, visits, meetings (committed vs delivered), meeting modes
+- **Task Management**: Project tasks with categories and statuses
+- **Handover Alerts**: 15-day deadline tracking from agreement approval
 - **Integrations**: Rocket Reach for lead generation (pending)
 
 ## User Personas
 1. **Admin**: Full system access, can create/edit/delete all data
-2. **Manager**: View/download access, can approve/reject agreements
+2. **Manager**: View/download access, can approve/reject agreements, view handover alerts
 3. **Executive**: Edit/view access to leads, quotations, agreements
+4. **Consultant**: View assigned projects and tasks
+5. **Project Manager**: Manage projects and consultant assignments
+6. **Principal Consultant**: Senior consultant role
 
 ## Implemented Features (as of Feb 14, 2026)
 
 ### Authentication & Roles ✅
 - JWT-based email/password authentication
-- Four user roles: Admin, Manager, Executive, **Consultant**
+- Six user roles: Admin, Manager, Executive, Consultant, Project Manager, Principal Consultant
 - Role-based access control throughout the app
 - Consultant-specific dashboard and navigation
+
+### Task Management System (Phase 2) ✅
+- **Task Creation** with full details:
+  - Title, Description
+  - 7 Categories: General, Meeting, Deliverable, Review, Follow Up, Admin, Client Communication
+  - 6 Statuses: To Do, Own Task, In Progress, Delegated, Completed, Cancelled
+  - Priority: Low, Medium, High, Urgent
+  - Assignee (from consultants list)
+  - Start Date, Due Date
+  - Estimated Hours
+- **Task List View** with:
+  - Status counts summary (To Do, Own Task, In Progress, Delegated, Completed, Total)
+  - Inline status dropdown for quick updates
+  - Category and priority badges
+  - Due date with color-coded urgency
+  - Edit and Delete actions
+- **Timeline/Gantt View**:
+  - Visual timeline showing tasks with date bars
+  - Color-coded by status
+  - Today marker
+  - Click to edit tasks
+- **Task CRUD APIs**: Create, Read, Update, Delete, Delegate, Reorder
+
+### Handover Alerts (Phase 2) ✅
+- **15-day deadline tracking** from agreement approval
+- **Color-coded urgency levels**:
+  - Overdue (red): Past 15 days
+  - Critical (orange): 0-3 days remaining
+  - Warning (yellow): 4-7 days remaining
+  - On Track (green): 8+ days remaining
+- **Status indicators**:
+  - Project Created (checkmark)
+  - Consultants Assigned (count)
+- **Action buttons**:
+  - Create Project (if not created)
+  - Assign Consultants (if project exists)
+  - View Tasks
 
 ### Consultant Management Module (Phase 1) ✅
 - **Consultant user role** with separate login and dashboard
@@ -47,6 +89,8 @@ A comprehensive business management application for a 50-person consulting organ
 - Admin can change start date
 - Unassign consultants
 - Track meetings per assignment
+- **NEW**: Tasks button on project cards → Task Management
+- **NEW**: Assign Consultant button → Consultant assignment dialog
 
 ### Lead Management ✅
 - Create, view, edit leads
@@ -66,7 +110,10 @@ A comprehensive business management application for a 50-person consulting organ
 - Projects and Meetings modules
 - Email Templates
 - Sales Funnel section (Pricing Plans, Quotations, Agreements)
-- Management section (Approvals - visible to managers/admins only)
+- Management section:
+  - Approvals (managers/admins)
+  - Consultants (managers/admins)
+  - **Handover Alerts** (managers/admins/project managers)
 - Pending approvals alert on dashboard for managers
 
 ### UI/UX ✅
@@ -82,27 +129,24 @@ A comprehensive business management application for a 50-person consulting organ
 ### P0 (Critical)
 - None at this time
 
-### P1 (High Priority) - Consultant Module Phase 2
+### P1 (High Priority) - Remaining Phase 2 Items
+- Drag-and-drop task reordering in Gantt view (react-gantt-timeline library)
 - Meeting Form with MOM (Minutes of Meeting)
-- Task Management for consultants
 - Project Summary Updates by consultant
 - Meetings tracking: Completed vs Committed
 
-### P2 (Medium Priority) - Consultant Module Phase 3
-- Gantt Chart for project timeline
+### P2 (Medium Priority)
 - Quarterly Activity Reports
 - Project Stage Tracking
 - Rocket Reach integration for lead enrichment
 - Email sending for agreements (requires SMTP credentials)
 - Detailed Time Tracking module (visits, meeting modes)
-
-### P2 (Medium Priority)
 - Custom Reporting module
+
+### P3 (Low Priority/Backlog)
 - HR Workflow Module
 - Marketing Flow Module
 - Finance & Accounts Module
-
-### P3 (Low Priority/Backlog)
 - Consulting Project Delivery & Payment Tracking
 - Bulk lead import from Rocket Reach
 
@@ -116,9 +160,10 @@ A comprehensive business management application for a 50-person consulting organ
 - Admin: admin@company.com / admin123
 - Manager: manager@company.com / manager123
 - Executive: executive@company.com / executive123
-- Consultant: consultant1@company.com / consultant123
-- Consultant: consultant2@company.com / consultant123
+- Consultant: rajiv.kumar@company.com / consultant123
+- Consultant: priya.sharma@company.com / consultant123
 
 ## Known Limitations
 - Email sending is MOCKED - requires SMTP credentials for production use
 - Rocket Reach integration not yet implemented
+- Gantt timeline uses custom implementation (react-gantt-timeline installed but not fully integrated)
