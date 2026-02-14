@@ -10,10 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { 
   ArrowLeft, Plus, Lock, History, Check, X, Send,
   FileText, Clock, Trash2, Edit2, Eye, Upload, Download,
-  CheckCircle, AlertCircle, Clock as ClockIcon, XCircle
+  CheckCircle, AlertCircle, Clock as ClockIcon, XCircle,
+  Users, UserPlus, Calendar, GanttChart, Save, MoreHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addWeeks, startOfWeek } from 'date-fns';
 
 const SOW_CATEGORIES = [
   { value: 'sales', label: 'Sales' },
@@ -33,6 +34,14 @@ const SOW_ITEM_STATUSES = [
   { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-700', icon: Check }
 ];
 
+const BACKEND_SUPPORT_ROLES = [
+  { value: 'developer', label: 'Developer' },
+  { value: 'designer', label: 'Designer' },
+  { value: 'qa', label: 'QA Engineer' },
+  { value: 'analyst', label: 'Business Analyst' },
+  { value: 'support', label: 'Support Staff' }
+];
+
 const SOWBuilder = () => {
   const { pricingPlanId } = useParams();
   const [searchParams] = useSearchParams();
@@ -46,9 +55,18 @@ const SOWBuilder = () => {
   const [lead, setLead] = useState(null);
   const [sow, setSow] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [consultants, setConsultants] = useState([]);
+  const [backendStaff, setBackendStaff] = useState([]);
   
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+  // View mode: 'list', 'roadmap', 'gantt'
+  const [viewMode, setViewMode] = useState('list');
+  
+  // Inline editing state
+  const [editingRows, setEditingRows] = useState({});
+  const [newRows, setNewRows] = useState([]);
+  const [savingRows, setSavingRows] = useState({});
+  
+  // Dialogs
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const [versions, setVersions] = useState([]);
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -56,22 +74,16 @@ const SOWBuilder = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingItem, setRejectingItem] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
-  
-  const [formData, setFormData] = useState({
-    category: 'sales',
-    sub_category: '',
-    title: '',
-    description: '',
-    deliverables: [''],
-    timeline_weeks: '',
-    notes: ''
-  });
+  const [supportDialogOpen, setSupportDialogOpen] = useState(false);
+  const [supportItem, setSupportItem] = useState(null);
 
   const isManager = user?.role === 'admin' || user?.role === 'manager';
   const canEdit = !sow?.is_frozen || user?.role === 'admin';
 
   useEffect(() => {
     fetchData();
+    fetchConsultants();
+    fetchBackendStaff();
   }, [pricingPlanId]);
 
   const fetchData = async () => {
@@ -101,6 +113,25 @@ const SOWBuilder = () => {
     }
   };
 
+  const fetchConsultants = async () => {
+    try {
+      const res = await axios.get(`${API}/consultants`);
+      setConsultants(res.data || []);
+    } catch (error) {
+      console.error('Error fetching consultants:', error);
+    }
+  };
+
+  const fetchBackendStaff = async () => {
+    try {
+      const res = await axios.get(`${API}/users`);
+      // Filter for backend support roles or all users for now
+      setBackendStaff(res.data || []);
+    } catch (error) {
+      console.error('Error fetching backend staff:', error);
+    }
+  };
+
   const handleCreateSOW = async () => {
     try {
       await axios.post(`${API}/sow`, {
@@ -115,38 +146,142 @@ const SOWBuilder = () => {
     }
   };
 
-  const handleSubmitItem = async (e) => {
-    e.preventDefault();
-    if (!formData.title.trim()) {
+  // Inline editing functions
+  const createEmptyRow = () => ({
+    id: `new-${Date.now()}`,
+    isNew: true,
+    category: 'sales',
+    title: '',
+    description: '',
+    timeline_weeks: '',
+    start_week: '',
+    status: 'draft',
+    assigned_consultant_id: '',
+    assigned_consultant_name: '',
+    has_backend_support: false,
+    backend_support_id: '',
+    backend_support_name: '',
+    backend_support_role: ''
+  });
+
+  const addNewRow = () => {
+    setNewRows([...newRows, createEmptyRow()]);
+  };
+
+  const updateNewRow = (rowId, field, value) => {
+    setNewRows(newRows.map(row => 
+      row.id === rowId ? { ...row, [field]: value } : row
+    ));
+  };
+
+  const updateExistingRow = (itemId, field, value) => {
+    setEditingRows({
+      ...editingRows,
+      [itemId]: {
+        ...editingRows[itemId],
+        [field]: value
+      }
+    });
+  };
+
+  const startEditing = (item) => {
+    setEditingRows({
+      ...editingRows,
+      [item.id]: { ...item }
+    });
+  };
+
+  const cancelEditing = (itemId) => {
+    const newEditingRows = { ...editingRows };
+    delete newEditingRows[itemId];
+    setEditingRows(newEditingRows);
+  };
+
+  const removeNewRow = (rowId) => {
+    setNewRows(newRows.filter(row => row.id !== rowId));
+  };
+
+  const saveNewRow = async (row) => {
+    if (!row.title.trim()) {
       toast.error('Title is required');
       return;
     }
     
+    setSavingRows({ ...savingRows, [row.id]: true });
+    
     try {
       const itemData = {
-        category: formData.category,
-        sub_category: formData.sub_category || null,
-        title: formData.title,
-        description: formData.description,
-        deliverables: formData.deliverables.filter(d => d.trim()),
-        timeline_weeks: formData.timeline_weeks ? parseInt(formData.timeline_weeks) : null,
-        order: editingItem ? editingItem.order : (sow?.items?.length || 0),
-        notes: formData.notes || null
+        category: row.category,
+        title: row.title,
+        description: row.description || '',
+        timeline_weeks: row.timeline_weeks ? parseInt(row.timeline_weeks) : null,
+        start_week: row.start_week ? parseInt(row.start_week) : null,
+        status: row.status || 'draft',
+        assigned_consultant_id: row.assigned_consultant_id || null,
+        assigned_consultant_name: row.assigned_consultant_name || null,
+        has_backend_support: row.has_backend_support || false,
+        backend_support_id: row.backend_support_id || null,
+        backend_support_name: row.backend_support_name || null,
+        backend_support_role: row.backend_support_role || null
       };
       
-      if (editingItem) {
-        await axios.patch(`${API}/sow/${sow.id}/items/${editingItem.id}`, itemData);
-        toast.success('SOW item updated');
-      } else {
-        await axios.post(`${API}/sow/${sow.id}/items`, itemData);
-        toast.success('SOW item added');
-      }
-      
-      setDialogOpen(false);
-      resetForm();
+      await axios.post(`${API}/sow/${sow.id}/items`, itemData);
+      toast.success('Item added');
+      removeNewRow(row.id);
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save SOW item');
+      toast.error(error.response?.data?.detail || 'Failed to save item');
+    } finally {
+      setSavingRows({ ...savingRows, [row.id]: false });
+    }
+  };
+
+  const saveExistingRow = async (itemId) => {
+    const row = editingRows[itemId];
+    if (!row.title?.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    
+    setSavingRows({ ...savingRows, [itemId]: true });
+    
+    try {
+      const itemData = {
+        category: row.category,
+        title: row.title,
+        description: row.description || '',
+        timeline_weeks: row.timeline_weeks ? parseInt(row.timeline_weeks) : null,
+        start_week: row.start_week ? parseInt(row.start_week) : null,
+        status: row.status || 'draft',
+        assigned_consultant_id: row.assigned_consultant_id || null,
+        assigned_consultant_name: row.assigned_consultant_name || null,
+        has_backend_support: row.has_backend_support || false,
+        backend_support_id: row.backend_support_id || null,
+        backend_support_name: row.backend_support_name || null,
+        backend_support_role: row.backend_support_role || null,
+        notes: row.notes || null
+      };
+      
+      await axios.patch(`${API}/sow/${sow.id}/items/${itemId}`, itemData);
+      toast.success('Item updated');
+      cancelEditing(itemId);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update item');
+    } finally {
+      setSavingRows({ ...savingRows, [itemId]: false });
+    }
+  };
+
+  const deleteItem = async (itemId) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    
+    try {
+      await axios.delete(`${API}/sow/${sow.id}/items/${itemId}`);
+      toast.success('Item deleted');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete item');
     }
   };
 
@@ -261,58 +396,28 @@ const SOWBuilder = () => {
     }
   };
 
-  const openEditDialog = (item) => {
-    setEditingItem(item);
-    setFormData({
-      category: item.category || 'sales',
-      sub_category: item.sub_category || '',
-      title: item.title || '',
-      description: item.description || '',
-      deliverables: item.deliverables?.length > 0 ? item.deliverables : [''],
-      timeline_weeks: item.timeline_weeks?.toString() || '',
-      notes: item.notes || ''
-    });
-    setDialogOpen(true);
+  const openSupportDialog = (item) => {
+    setSupportItem(item);
+    setSupportDialogOpen(true);
   };
 
-  const resetForm = () => {
-    setEditingItem(null);
-    setFormData({
-      category: 'sales',
-      sub_category: '',
-      title: '',
-      description: '',
-      deliverables: [''],
-      timeline_weeks: '',
-      notes: ''
-    });
-  };
-
-  const addDeliverable = () => {
-    setFormData({ ...formData, deliverables: [...formData.deliverables, ''] });
-  };
-
-  const updateDeliverable = (index, value) => {
-    const newDeliverables = [...formData.deliverables];
-    newDeliverables[index] = value;
-    setFormData({ ...formData, deliverables: newDeliverables });
-  };
-
-  const removeDeliverable = (index) => {
-    if (formData.deliverables.length > 1) {
-      setFormData({ ...formData, deliverables: formData.deliverables.filter((_, i) => i !== index) });
+  const saveBackendSupport = async () => {
+    if (!supportItem) return;
+    
+    try {
+      const itemData = {
+        ...supportItem,
+        has_backend_support: true
+      };
+      
+      await axios.patch(`${API}/sow/${sow.id}/items/${supportItem.id}`, itemData);
+      toast.success('Backend support assigned');
+      setSupportDialogOpen(false);
+      setSupportItem(null);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to assign backend support');
     }
-  };
-
-  const getStatusBadge = (status) => {
-    const statusObj = SOW_ITEM_STATUSES.find(s => s.value === status) || SOW_ITEM_STATUSES[0];
-    const Icon = statusObj.icon;
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-sm ${statusObj.color}`}>
-        <Icon className="w-3 h-3" />
-        {statusObj.label}
-      </span>
-    );
   };
 
   const getOverallStatusBadge = () => {
@@ -335,9 +440,389 @@ const SOWBuilder = () => {
   const approvedCount = sow?.items?.filter(i => i.status === 'approved').length || 0;
   const completedCount = sow?.items?.filter(i => i.status === 'completed').length || 0;
 
+  // Calculate roadmap data
+  const getRoadmapData = () => {
+    if (!sow?.items) return { months: [], itemsByMonth: {} };
+    
+    const items = sow.items.filter(i => i.timeline_weeks && i.start_week);
+    const months = [];
+    const itemsByMonth = {};
+    
+    // Group items by month based on start_week
+    items.forEach(item => {
+      const monthIndex = Math.floor((item.start_week - 1) / 4);
+      const monthLabel = `Month ${monthIndex + 1}`;
+      
+      if (!itemsByMonth[monthLabel]) {
+        itemsByMonth[monthLabel] = [];
+        months.push(monthLabel);
+      }
+      itemsByMonth[monthLabel].push(item);
+    });
+    
+    // Also add items without start_week to "Unscheduled"
+    const unscheduled = sow.items.filter(i => !i.start_week);
+    if (unscheduled.length > 0) {
+      itemsByMonth['Unscheduled'] = unscheduled;
+      months.push('Unscheduled');
+    }
+    
+    return { months: [...new Set(months)].sort(), itemsByMonth };
+  };
+
+  // Gantt chart data
+  const getGanttData = () => {
+    if (!sow?.items) return [];
+    
+    return sow.items.map(item => ({
+      ...item,
+      startWeek: item.start_week || 1,
+      endWeek: (item.start_week || 1) + (item.timeline_weeks || 1) - 1
+    }));
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-96"><div className="text-zinc-500">Loading...</div></div>;
   }
+
+  // Render inline editable row
+  const renderEditableRow = (item, isNew = false) => {
+    const data = isNew ? item : (editingRows[item.id] || item);
+    const isEditing = isNew || editingRows[item.id];
+    const isSaving = savingRows[item.id];
+    
+    const updateField = (field, value) => {
+      if (isNew) {
+        updateNewRow(item.id, field, value);
+      } else {
+        updateExistingRow(item.id, field, value);
+      }
+    };
+
+    const handleConsultantChange = (consultantId) => {
+      const consultant = consultants.find(c => c.id === consultantId);
+      if (isNew) {
+        updateNewRow(item.id, 'assigned_consultant_id', consultantId);
+        updateNewRow(item.id, 'assigned_consultant_name', consultant?.full_name || '');
+      } else {
+        updateExistingRow(item.id, 'assigned_consultant_id', consultantId);
+        updateExistingRow(item.id, 'assigned_consultant_name', consultant?.full_name || '');
+      }
+    };
+
+    return (
+      <tr key={item.id} className={`border-b border-zinc-100 ${isEditing ? 'bg-blue-50' : 'hover:bg-zinc-50'}`} data-testid={`sow-row-${item.id}`}>
+        <td className="px-2 py-2 w-10 text-zinc-400 text-sm">
+          {isNew ? 'NEW' : (sow?.items?.findIndex(i => i.id === item.id) + 1)}
+        </td>
+        <td className="px-2 py-2 w-28">
+          {isEditing ? (
+            <select
+              value={data.category}
+              onChange={(e) => updateField('category', e.target.value)}
+              className="w-full h-8 px-2 text-xs rounded border border-zinc-300 bg-white"
+            >
+              {SOW_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-xs px-2 py-1 bg-zinc-100 text-zinc-700 rounded-sm capitalize">
+              {item.category?.replace('_', ' ')}
+            </span>
+          )}
+        </td>
+        <td className="px-2 py-2 min-w-[200px]">
+          {isEditing ? (
+            <Input
+              value={data.title}
+              onChange={(e) => updateField('title', e.target.value)}
+              placeholder="Enter title..."
+              className="h-8 text-sm"
+            />
+          ) : (
+            <div>
+              <div className="font-medium text-zinc-900 text-sm">{item.title}</div>
+              {item.description && <div className="text-xs text-zinc-500 truncate">{item.description}</div>}
+            </div>
+          )}
+        </td>
+        <td className="px-2 py-2 w-16">
+          {isEditing ? (
+            <Input
+              type="number"
+              min="1"
+              value={data.start_week || ''}
+              onChange={(e) => updateField('start_week', e.target.value)}
+              placeholder="Wk"
+              className="h-8 text-sm w-16"
+            />
+          ) : (
+            <span className="text-sm text-zinc-600">{item.start_week ? `W${item.start_week}` : '-'}</span>
+          )}
+        </td>
+        <td className="px-2 py-2 w-16">
+          {isEditing ? (
+            <Input
+              type="number"
+              min="1"
+              value={data.timeline_weeks || ''}
+              onChange={(e) => updateField('timeline_weeks', e.target.value)}
+              placeholder="Wks"
+              className="h-8 text-sm w-16"
+            />
+          ) : (
+            <span className="text-sm text-zinc-600">{item.timeline_weeks ? `${item.timeline_weeks}w` : '-'}</span>
+          )}
+        </td>
+        <td className="px-2 py-2 w-32">
+          {isEditing ? (
+            <select
+              value={data.assigned_consultant_id || ''}
+              onChange={(e) => handleConsultantChange(e.target.value)}
+              className="w-full h-8 px-2 text-xs rounded border border-zinc-300 bg-white"
+            >
+              <option value="">Select...</option>
+              {consultants.map(c => (
+                <option key={c.id} value={c.id}>{c.full_name}</option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-xs text-zinc-600">
+              {item.assigned_consultant_name || '-'}
+            </span>
+          )}
+        </td>
+        <td className="px-2 py-2 w-24">
+          {!isNew && (
+            <select
+              value={item.status || 'draft'}
+              onChange={(e) => {
+                const newStatus = e.target.value;
+                if (newStatus === 'rejected') {
+                  setRejectingItem(item);
+                  setRejectDialogOpen(true);
+                } else {
+                  handleStatusChange(item.id, newStatus);
+                }
+              }}
+              disabled={!canEdit && !isManager}
+              className={`h-8 px-2 text-xs rounded border w-full ${
+                item.status === 'approved' ? 'border-emerald-300 text-emerald-700 bg-emerald-50' :
+                item.status === 'rejected' ? 'border-red-300 text-red-700 bg-red-50' :
+                item.status === 'pending_review' ? 'border-yellow-300 text-yellow-700 bg-yellow-50' :
+                item.status === 'completed' ? 'border-green-300 text-green-700 bg-green-50' :
+                item.status === 'in_progress' ? 'border-blue-300 text-blue-700 bg-blue-50' :
+                'border-zinc-200 text-zinc-700 bg-white'
+              }`}
+            >
+              {SOW_ITEM_STATUSES.map(s => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          )}
+        </td>
+        <td className="px-2 py-2 w-20">
+          {!isNew && (
+            <div className="flex items-center gap-1">
+              {item.has_backend_support ? (
+                <span className="text-xs text-blue-600 font-medium" title={item.backend_support_name}>
+                  {item.backend_support_role?.charAt(0).toUpperCase() || 'S'}
+                </span>
+              ) : null}
+              <Button
+                onClick={() => openSupportDialog(item)}
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                title="Add Backend Support"
+              >
+                <UserPlus className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+        </td>
+        <td className="px-2 py-2 w-24">
+          <div className="flex items-center gap-1">
+            {isEditing ? (
+              <>
+                <Button
+                  onClick={() => isNew ? saveNewRow(item) : saveExistingRow(item.id)}
+                  disabled={isSaving}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                >
+                  <Save className="w-3 h-3 mr-1" />
+                  {isSaving ? '...' : 'Save'}
+                </Button>
+                <Button
+                  onClick={() => isNew ? removeNewRow(item.id) : cancelEditing(item.id)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-zinc-500"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                {canEdit && (
+                  <Button onClick={() => startEditing(item)} variant="ghost" size="sm" className="h-7 w-7 p-0 text-zinc-600">
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
+                )}
+                {canEdit && (
+                  <Button onClick={() => deleteItem(item.id)} variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+                {isManager && item.status === 'pending_review' && (
+                  <>
+                    <Button
+                      onClick={() => handleStatusChange(item.id, 'approved')}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-emerald-600"
+                    >
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={() => { setRejectingItem(item); setRejectDialogOpen(true); }}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  // Roadmap View
+  const renderRoadmapView = () => {
+    const { months, itemsByMonth } = getRoadmapData();
+    
+    return (
+      <div className="space-y-6">
+        {months.length === 0 ? (
+          <div className="text-center py-12 text-zinc-400">
+            No items with timeline data. Add start week and duration to items to see the roadmap.
+          </div>
+        ) : (
+          months.map(month => (
+            <Card key={month} className="border-zinc-200 shadow-none rounded-sm">
+              <CardHeader className="pb-2 bg-zinc-50">
+                <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-700 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  {month}
+                  <span className="text-xs font-normal text-zinc-500">({itemsByMonth[month]?.length || 0} items)</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-zinc-100">
+                  {itemsByMonth[month]?.map((item, idx) => (
+                    <div key={item.id} className="px-4 py-3 flex items-center justify-between hover:bg-zinc-50">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs px-2 py-1 bg-zinc-100 text-zinc-600 rounded-sm capitalize">
+                          {item.category?.replace('_', ' ')}
+                        </span>
+                        <div>
+                          <div className="font-medium text-sm text-zinc-900">{item.title}</div>
+                          <div className="text-xs text-zinc-500">
+                            {item.timeline_weeks}w • {item.assigned_consultant_name || 'Unassigned'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded-sm ${
+                          item.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                          item.status === 'completed' ? 'bg-green-100 text-green-700' :
+                          item.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                          'bg-zinc-100 text-zinc-600'
+                        }`}>
+                          {item.status?.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+    );
+  };
+
+  // Gantt View
+  const renderGanttView = () => {
+    const items = getGanttData();
+    const maxWeek = Math.max(...items.map(i => i.endWeek), 12);
+    const weeks = Array.from({ length: maxWeek }, (_, i) => i + 1);
+    
+    return (
+      <div className="overflow-x-auto">
+        <div className="min-w-[1200px]">
+          {/* Header */}
+          <div className="flex border-b border-zinc-200 bg-zinc-50">
+            <div className="w-64 px-4 py-2 font-medium text-xs uppercase tracking-wide text-zinc-500 border-r border-zinc-200">
+              Task
+            </div>
+            <div className="flex-1 flex">
+              {weeks.map(week => (
+                <div key={week} className="flex-1 px-1 py-2 text-center text-xs text-zinc-500 border-r border-zinc-100">
+                  W{week}
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Rows */}
+          {items.map((item, idx) => (
+            <div key={item.id} className="flex border-b border-zinc-100 hover:bg-zinc-50">
+              <div className="w-64 px-4 py-3 border-r border-zinc-200">
+                <div className="font-medium text-sm text-zinc-900 truncate">{item.title}</div>
+                <div className="text-xs text-zinc-500">{item.assigned_consultant_name || 'Unassigned'}</div>
+              </div>
+              <div className="flex-1 flex relative py-2">
+                {weeks.map(week => (
+                  <div key={week} className="flex-1 border-r border-zinc-50" />
+                ))}
+                {/* Gantt Bar */}
+                <div
+                  className={`absolute h-6 rounded-sm top-1/2 -translate-y-1/2 ${
+                    item.status === 'completed' ? 'bg-green-500' :
+                    item.status === 'in_progress' ? 'bg-blue-500' :
+                    item.status === 'approved' ? 'bg-emerald-500' :
+                    'bg-zinc-400'
+                  }`}
+                  style={{
+                    left: `${((item.startWeek - 1) / maxWeek) * 100}%`,
+                    width: `${((item.endWeek - item.startWeek + 1) / maxWeek) * 100}%`,
+                    minWidth: '20px'
+                  }}
+                  title={`${item.title}: Week ${item.startWeek} - ${item.endWeek}`}
+                />
+              </div>
+            </div>
+          ))}
+          
+          {items.length === 0 && (
+            <div className="text-center py-12 text-zinc-400">
+              No items with timeline data. Add start week and duration to items to see the Gantt chart.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div data-testid="sow-builder-page">
@@ -360,20 +845,15 @@ const SOWBuilder = () => {
             {sow && (
               <>
                 {getOverallStatusBadge()}
+                {sow.is_frozen && (
+                  <span className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-sm">
+                    <Lock className="w-3 h-3" /> Frozen
+                  </span>
+                )}
                 <Button onClick={fetchVersionHistory} variant="outline" className="rounded-sm">
                   <History className="w-4 h-4 mr-2" strokeWidth={1.5} />
                   History
                 </Button>
-                {canEdit && (
-                  <Button
-                    onClick={() => { resetForm(); setDialogOpen(true); }}
-                    className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                    data-testid="add-item-btn"
-                  >
-                    <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                    Add Item
-                  </Button>
-                )}
               </>
             )}
           </div>
@@ -416,31 +896,64 @@ const SOWBuilder = () => {
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* View Toggle & Action Buttons */}
       {sow && (
-        <div className="flex items-center gap-3 mb-6">
-          {!isManager && sow.overall_status === 'draft' && sow.items?.length > 0 && (
-            <Button onClick={handleSubmitForApproval} className="bg-yellow-500 text-white hover:bg-yellow-600 rounded-sm shadow-none">
-              <Send className="w-4 h-4 mr-2" />
-              Submit for Approval
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="flex bg-zinc-100 rounded-sm p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 text-sm rounded-sm transition-colors ${
+                  viewMode === 'list' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                List
+              </button>
+              <button
+                onClick={() => setViewMode('roadmap')}
+                className={`px-3 py-1.5 text-sm rounded-sm transition-colors ${
+                  viewMode === 'roadmap' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                <Calendar className="w-4 h-4 inline mr-1" />
+                Roadmap
+              </button>
+              <button
+                onClick={() => setViewMode('gantt')}
+                className={`px-3 py-1.5 text-sm rounded-sm transition-colors ${
+                  viewMode === 'gantt' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                <GanttChart className="w-4 h-4 inline mr-1" />
+                Gantt
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {!isManager && sow.overall_status === 'draft' && sow.items?.length > 0 && (
+              <Button onClick={handleSubmitForApproval} className="bg-yellow-500 text-white hover:bg-yellow-600 rounded-sm shadow-none">
+                <Send className="w-4 h-4 mr-2" />
+                Submit for Approval
+              </Button>
+            )}
+            {isManager && pendingCount > 0 && (
+              <Button onClick={handleApproveAll} className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Approve All ({pendingCount})
+              </Button>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={(e) => handleFileUpload(e.target.files[0])}
+            />
+            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="rounded-sm">
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Document
             </Button>
-          )}
-          {isManager && pendingCount > 0 && (
-            <Button onClick={handleApproveAll} className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Approve All ({pendingCount})
-            </Button>
-          )}
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={(e) => handleFileUpload(e.target.files[0])}
-          />
-          <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="rounded-sm">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Document
-          </Button>
+          </div>
         </div>
       )}
 
@@ -485,137 +998,61 @@ const SOWBuilder = () => {
         </Card>
       )}
 
-      {/* SOW Items List View */}
-      {sow && (
+      {/* SOW Content based on view mode */}
+      {sow && viewMode === 'list' && (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="p-0">
-            {sow.items?.length === 0 ? (
-              <div className="text-center py-12 text-zinc-400">
-                No SOW items yet. Click "Add Item" to start.
-              </div>
-            ) : (
-              <div className="divide-y divide-zinc-200">
-                {/* Table Header */}
-                <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  <div className="col-span-1">#</div>
-                  <div className="col-span-2">Category</div>
-                  <div className="col-span-3">Title</div>
-                  <div className="col-span-1">Timeline</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-1">Docs</div>
-                  <div className="col-span-2">Actions</div>
-                </div>
-                
-                {sow.items.map((item, idx) => (
-                  <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 px-4 py-4 hover:bg-zinc-50 transition-colors items-center" data-testid={`sow-item-${item.id}`}>
-                    <div className="col-span-1 text-zinc-400 font-mono">{idx + 1}</div>
-                    <div className="col-span-2">
-                      <span className="text-xs px-2 py-1 bg-zinc-100 text-zinc-700 rounded-sm capitalize">
-                        {item.category?.replace('_', ' ')}
-                      </span>
-                    </div>
-                    <div className="col-span-3">
-                      <div className="font-medium text-zinc-950">{item.title}</div>
-                      {item.description && (
-                        <div className="text-xs text-zinc-500 truncate mt-1">{item.description}</div>
-                      )}
-                    </div>
-                    <div className="col-span-1">
-                      {item.timeline_weeks ? (
-                        <span className="text-sm text-zinc-600">{item.timeline_weeks}w</span>
-                      ) : (
-                        <span className="text-zinc-400">-</span>
-                      )}
-                    </div>
-                    <div className="col-span-2">
-                      {/* Inline Status Dropdown */}
-                      <select
-                        value={item.status || 'draft'}
-                        onChange={(e) => {
-                          const newStatus = e.target.value;
-                          if (newStatus === 'rejected') {
-                            setRejectingItem(item);
-                            setRejectDialogOpen(true);
-                          } else {
-                            handleStatusChange(item.id, newStatus);
-                          }
-                        }}
-                        disabled={!canEdit && !isManager}
-                        className={`h-8 px-2 text-xs rounded-sm border bg-transparent w-full ${
-                          item.status === 'approved' ? 'border-emerald-300 text-emerald-700' :
-                          item.status === 'rejected' ? 'border-red-300 text-red-700' :
-                          item.status === 'pending_review' ? 'border-yellow-300 text-yellow-700' :
-                          item.status === 'completed' ? 'border-green-300 text-green-700' :
-                          item.status === 'in_progress' ? 'border-blue-300 text-blue-700' :
-                          'border-zinc-200 text-zinc-700'
-                        }`}
-                      >
-                        {SOW_ITEM_STATUSES.map(s => (
-                          <option key={s.value} value={s.value}>{s.label}</option>
-                        ))}
-                      </select>
-                      {item.rejection_reason && (
-                        <div className="text-xs text-red-500 mt-1 truncate" title={item.rejection_reason}>
-                          Reason: {item.rejection_reason}
-                        </div>
-                      )}
-                    </div>
-                    <div className="col-span-1">
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm text-zinc-600">{item.documents?.length || 0}</span>
-                        <input
-                          type="file"
-                          ref={itemFileInputRef}
-                          className="hidden"
-                          onChange={(e) => {
-                            handleFileUpload(e.target.files[0], uploadingItem);
-                            setUploadingItem(null);
-                          }}
-                        />
-                        <Button
-                          onClick={() => {
-                            setUploadingItem(item.id);
-                            setTimeout(() => itemFileInputRef.current?.click(), 0);
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                        >
-                          <Upload className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="col-span-2 flex items-center gap-1">
-                      {canEdit && (
-                        <Button onClick={() => openEditDialog(item)} variant="ghost" size="sm" className="text-zinc-600">
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {isManager && item.status === 'pending_review' && (
-                        <>
-                          <Button
-                            onClick={() => handleStatusChange(item.id, 'approved')}
-                            variant="ghost"
-                            size="sm"
-                            className="text-emerald-600 hover:text-emerald-700"
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            onClick={() => { setRejectingItem(item); setRejectDialogOpen(true); }}
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    <th className="px-2 py-3 text-left w-10">#</th>
+                    <th className="px-2 py-3 text-left w-28">Category</th>
+                    <th className="px-2 py-3 text-left min-w-[200px]">Title</th>
+                    <th className="px-2 py-3 text-left w-16">Start</th>
+                    <th className="px-2 py-3 text-left w-16">Duration</th>
+                    <th className="px-2 py-3 text-left w-32">Consultant</th>
+                    <th className="px-2 py-3 text-left w-24">Status</th>
+                    <th className="px-2 py-3 text-left w-20">Support</th>
+                    <th className="px-2 py-3 text-left w-24">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sow.items?.map((item, idx) => renderEditableRow(item, false))}
+                  {newRows.map(row => renderEditableRow(row, true))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Add Row Button */}
+            {canEdit && (
+              <div className="p-4 border-t border-zinc-100">
+                <Button
+                  onClick={addNewRow}
+                  variant="outline"
+                  className="w-full border-dashed border-zinc-300 text-zinc-600 hover:text-zinc-900 hover:border-zinc-400 rounded-sm"
+                  data-testid="add-row-btn"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Row
+                </Button>
               </div>
             )}
+            
+            {sow.items?.length === 0 && newRows.length === 0 && (
+              <div className="text-center py-12 text-zinc-400">
+                No SOW items yet. Click "Add New Row" to start adding items.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {sow && viewMode === 'roadmap' && renderRoadmapView()}
+      {sow && viewMode === 'gantt' && (
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardContent className="p-4">
+            {renderGanttView()}
           </CardContent>
         </Card>
       )}
@@ -628,116 +1065,6 @@ const SOWBuilder = () => {
           </Button>
         </div>
       )}
-
-      {/* Add/Edit Item Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
-              {editingItem ? 'Edit SOW Item' : 'Add SOW Item'}
-            </DialogTitle>
-            <DialogDescription className="text-zinc-500">
-              Define scope, deliverables, and timeline
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmitItem} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Category *</Label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
-                >
-                  {SOW_CATEGORIES.map(cat => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Sub-Category</Label>
-                <Input
-                  value={formData.sub_category}
-                  onChange={(e) => setFormData({ ...formData, sub_category: e.target.value })}
-                  placeholder="Optional"
-                  className="rounded-sm"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Title *</Label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Scope item title"
-                required
-                className="rounded-sm"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-                placeholder="Detailed description..."
-                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Deliverables</Label>
-              {formData.deliverables.map((d, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <Input
-                    value={d}
-                    onChange={(e) => updateDeliverable(idx, e.target.value)}
-                    placeholder={`Deliverable ${idx + 1}`}
-                    className="rounded-sm"
-                  />
-                  {formData.deliverables.length > 1 && (
-                    <Button type="button" onClick={() => removeDeliverable(idx)} variant="ghost" size="sm" className="text-red-500 px-2">
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              <Button type="button" onClick={addDeliverable} variant="outline" size="sm" className="rounded-sm">
-                <Plus className="w-4 h-4 mr-1" /> Add Deliverable
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Timeline (weeks)</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={formData.timeline_weeks}
-                  onChange={(e) => setFormData({ ...formData, timeline_weeks: e.target.value })}
-                  placeholder="e.g., 4"
-                  className="rounded-sm"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Input
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Internal notes"
-                  className="rounded-sm"
-                />
-              </div>
-            </div>
-            
-            <Button type="submit" className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-              {editingItem ? 'Update Item' : 'Add Item'}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Reject Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
@@ -773,6 +1100,63 @@ const SOWBuilder = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Backend Support Dialog */}
+      <Dialog open={supportDialogOpen} onOpenChange={setSupportDialogOpen}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+              Assign Backend Support
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              {supportItem?.title}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Support Role</Label>
+              <select
+                value={supportItem?.backend_support_role || ''}
+                onChange={(e) => setSupportItem({ ...supportItem, backend_support_role: e.target.value })}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
+              >
+                <option value="">Select role...</option>
+                {BACKEND_SUPPORT_ROLES.map(role => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Support Staff</Label>
+              <select
+                value={supportItem?.backend_support_id || ''}
+                onChange={(e) => {
+                  const staff = backendStaff.find(s => s.id === e.target.value);
+                  setSupportItem({
+                    ...supportItem,
+                    backend_support_id: e.target.value,
+                    backend_support_name: staff?.full_name || ''
+                  });
+                }}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
+              >
+                <option value="">Select staff member...</option>
+                {backendStaff.map(staff => (
+                  <option key={staff.id} value={staff.id}>{staff.full_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={() => setSupportDialogOpen(false)} variant="outline" className="flex-1 rounded-sm">
+                Cancel
+              </Button>
+              <Button onClick={saveBackendSupport} className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+                Assign Support
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Version History Dialog */}
       <Dialog open={versionDialogOpen} onOpenChange={(open) => { setVersionDialogOpen(open); if (!open) setSelectedVersion(null); }}>
         <DialogContent className="border-zinc-200 rounded-sm max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -802,6 +1186,7 @@ const SOWBuilder = () => {
                         version.change_type === 'created' ? 'bg-emerald-100 text-emerald-700' :
                         version.change_type === 'status_changed' ? 'bg-yellow-100 text-yellow-700' :
                         version.change_type === 'document_added' ? 'bg-blue-100 text-blue-700' :
+                        version.change_type === 'bulk_items_added' ? 'bg-purple-100 text-purple-700' :
                         'bg-zinc-100 text-zinc-700'
                       }`}>
                         {version.change_type.replace('_', ' ')}
