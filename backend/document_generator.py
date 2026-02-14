@@ -737,12 +737,13 @@ class SOWDocumentGenerator:
                     timeline_str += f" ({timeline}w)"
                 
                 status = item.get('status', 'draft').replace('_', ' ').title()
+                consultant_name = item.get('assigned_consultant_name') or 'TBD'
                 
                 table_data.append([
                     str(idx),
-                    item.get('category', '').replace('_', ' ').title()[:15],
-                    item.get('title', '')[:25],
-                    item.get('assigned_consultant_name', 'TBD')[:15],
+                    (item.get('category', '') or '').replace('_', ' ').title()[:15],
+                    (item.get('title', '') or '')[:25],
+                    consultant_name[:15],
                     timeline_str or "TBD",
                     status
                 ])
