@@ -294,6 +294,11 @@ class ConsultantProfile(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# Meeting role access constants
+SALES_MEETING_ROLES = ["admin", "executive", "account_manager"]
+CONSULTING_MEETING_ROLES = ["admin", "project_manager", "consultant", "principal_consultant",
+    "lean_consultant", "lead_consultant", "senior_consultant", "subject_matter_expert", "manager"]
+
 class MeetingActionItem(BaseModel):
     """Action item from MOM"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -301,17 +306,19 @@ class MeetingActionItem(BaseModel):
     assigned_to_id: Optional[str] = None
     assigned_to_name: Optional[str] = None
     due_date: Optional[datetime] = None
-    priority: str = "medium"  # low, medium, high
-    status: str = "pending"  # pending, in_progress, completed
+    priority: str = "medium"
+    status: str = "pending"
     completed_at: Optional[datetime] = None
     follow_up_task_id: Optional[str] = None
 
 class Meeting(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    project_id: str
+    type: str = "consulting"  # 'sales' or 'consulting'
+    project_id: Optional[str] = None
     client_id: Optional[str] = None
     lead_id: Optional[str] = None
+    sow_id: Optional[str] = None
     meeting_date: datetime
     mode: str
     attendees: List[str] = []
@@ -319,7 +326,6 @@ class Meeting(BaseModel):
     duration_minutes: Optional[int] = None
     notes: Optional[str] = None
     is_delivered: bool = False
-    # MOM (Minutes of Meeting) fields
     title: Optional[str] = None
     agenda: Optional[List[str]] = []
     discussion_points: Optional[List[str]] = []
@@ -333,9 +339,11 @@ class Meeting(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class MeetingCreate(BaseModel):
-    project_id: str
+    type: str = "consulting"
+    project_id: Optional[str] = None
     client_id: Optional[str] = None
     lead_id: Optional[str] = None
+    sow_id: Optional[str] = None
     meeting_date: datetime
     mode: str
     attendees: Optional[List[str]] = []
