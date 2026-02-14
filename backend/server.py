@@ -1620,7 +1620,7 @@ async def submit_sow_for_approval(
     )
     
     return {
-        "message": f"SOW items submitted for approval via reporting manager chain",
+        "message": "SOW items submitted for approval via reporting manager chain",
         "version": new_version,
         "items_submitted": len(items_to_submit),
         "approval_request_ids": approval_ids
