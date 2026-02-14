@@ -1065,6 +1065,132 @@ async def add_sow_item(
     
     return {"message": "Item added to SOW", "item_id": new_item.id, "version": new_version}
 
+class BulkSOWItemsRequest(BaseModel):
+    items: List[SOWItemCreate]
+
+@api_router.post("/sow/{sow_id}/items/bulk")
+async def add_sow_items_bulk(
+    sow_id: str,
+    bulk_request: BulkSOWItemsRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Add multiple SOW items at once (for inline/spreadsheet editing)"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    if sow.get('is_frozen') and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="SOW is frozen. Only Admin can modify.")
+    
+    existing_items = sow.get('items', [])
+    new_items = []
+    
+    for idx, item in enumerate(bulk_request.items):
+        new_item = SOWItem(
+            category=item.category,
+            sub_category=item.sub_category,
+            title=item.title,
+            description=item.description or "",
+            deliverables=item.deliverables or [],
+            timeline_weeks=item.timeline_weeks,
+            start_week=item.start_week,
+            order=item.order or len(existing_items) + idx,
+            status=item.status or SOWItemStatus.DRAFT,
+            notes=item.notes,
+            assigned_consultant_id=item.assigned_consultant_id,
+            assigned_consultant_name=item.assigned_consultant_name,
+            has_backend_support=item.has_backend_support or False,
+            backend_support_id=item.backend_support_id,
+            backend_support_name=item.backend_support_name,
+            backend_support_role=item.backend_support_role
+        )
+        new_items.append(new_item.model_dump())
+    
+    all_items = existing_items + new_items
+    
+    new_version = sow.get('current_version', 1) + 1
+    version_entry = {
+        "version": new_version,
+        "changed_by": current_user.id,
+        "changed_by_name": current_user.full_name,
+        "changed_at": datetime.now(timezone.utc).isoformat(),
+        "change_type": "bulk_items_added",
+        "changes": {"count": len(new_items), "titles": [i['title'] for i in new_items]},
+        "snapshot": all_items.copy()
+    }
+    
+    version_history = sow.get('version_history', [])
+    version_history.append(version_entry)
+    
+    await db.sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "items": all_items,
+            "current_version": new_version,
+            "version_history": version_history,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": f"{len(new_items)} items added to SOW",
+        "item_ids": [i['id'] for i in new_items],
+        "version": new_version
+    }
+
+@api_router.delete("/sow/{sow_id}/items/{item_id}")
+async def delete_sow_item(
+    sow_id: str,
+    item_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a SOW item (soft delete by removing from list)"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    if sow.get('is_frozen') and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="SOW is frozen. Only Admin can modify.")
+    
+    items = sow.get('items', [])
+    deleted_item = None
+    
+    for item in items:
+        if item.get('id') == item_id:
+            deleted_item = item
+            break
+    
+    if not deleted_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    items = [i for i in items if i.get('id') != item_id]
+    
+    new_version = sow.get('current_version', 1) + 1
+    version_entry = {
+        "version": new_version,
+        "changed_by": current_user.id,
+        "changed_by_name": current_user.full_name,
+        "changed_at": datetime.now(timezone.utc).isoformat(),
+        "change_type": "item_deleted",
+        "changes": {"deleted_item": deleted_item.get('title')},
+        "snapshot": items.copy()
+    }
+    
+    version_history = sow.get('version_history', [])
+    version_history.append(version_entry)
+    
+    await db.sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "items": items,
+            "current_version": new_version,
+            "version_history": version_history,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Item deleted", "version": new_version}
+
 @api_router.patch("/sow/{sow_id}/items/{item_id}")
 async def update_sow_item(
     sow_id: str,
