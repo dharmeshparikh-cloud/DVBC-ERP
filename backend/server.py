@@ -4440,6 +4440,25 @@ async def update_user_role(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # If promoting to consultant-type role, ensure profile exists
+    consultant_roles = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", 
+                       "principal_consultant", "subject_matter_expert", "project_manager"]
+    if role in consultant_roles:
+        existing_profile = await db.consultant_profiles.find_one({"user_id": user_id})
+        if not existing_profile:
+            profile = {
+                "user_id": user_id,
+                "specializations": [],
+                "preferred_mode": "mixed",
+                "max_projects": CONSULTANT_BANDWIDTH_LIMITS.get("mixed", 8),
+                "current_project_count": 0,
+                "total_project_value": 0,
+                "bio": None,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.consultant_profiles.insert_one(profile)
+    
     return {"message": f"User role updated to '{role}'"}
 
 # Get all available modules and actions for permission configuration
