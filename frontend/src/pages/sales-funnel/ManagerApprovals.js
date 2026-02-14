@@ -27,7 +27,7 @@ const ManagerApprovals = () => {
   const fetchData = async () => {
     try {
       const [approvalsRes, leadsRes] = await Promise.all([
-        axios.get(`${API}/pending-approvals`),
+        axios.get(`${API}/agreements/pending-approval`),
         axios.get(`${API}/leads`)
       ]);
       setPendingApprovals(approvalsRes.data);
