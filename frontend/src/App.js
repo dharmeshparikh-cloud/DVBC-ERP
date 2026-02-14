@@ -16,6 +16,7 @@ import Consultants from './pages/Consultants';
 import ConsultantDashboard from './pages/ConsultantDashboard';
 import ProjectTasks from './pages/ProjectTasks';
 import HandoverAlerts from './pages/HandoverAlerts';
+import KickoffMeeting from './pages/KickoffMeeting';
 import Layout from './components/Layout';
 import './App.css';
 
