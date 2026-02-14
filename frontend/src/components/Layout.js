@@ -45,6 +45,7 @@ const Layout = () => {
     { name: 'Consultants', href: '/consultants', icon: UserCog },
     { name: 'Handover Alerts', href: '/handover-alerts', icon: AlertTriangle },
     { name: 'Employees', href: '/employees', icon: UsersRound },
+    { name: 'Expenses', href: '/expenses', icon: Receipt },
     { name: 'User Management', href: '/user-management', icon: Shield },
   ];
 
