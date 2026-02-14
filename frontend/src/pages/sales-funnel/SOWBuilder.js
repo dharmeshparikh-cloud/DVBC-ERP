@@ -11,7 +11,7 @@ import {
   ArrowLeft, Plus, Lock, History, Check, X, Send,
   FileText, Clock, Trash2, Edit2, Eye, Upload, Download,
   CheckCircle, AlertCircle, Clock as ClockIcon, XCircle,
-  Users, UserPlus, Calendar, GanttChart, Save, MoreHorizontal
+  Users, UserPlus, Calendar, GanttChart, Save, Paperclip
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addWeeks, startOfWeek } from 'date-fns';
@@ -48,8 +48,7 @@ const SOWBuilder = () => {
   const leadId = searchParams.get('lead_id');
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const fileInputRef = useRef(null);
-  const itemFileInputRef = useRef(null);
+  const fileInputRefs = useRef({});
   
   const [pricingPlan, setPricingPlan] = useState(null);
   const [lead, setLead] = useState(null);
@@ -70,12 +69,13 @@ const SOWBuilder = () => {
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const [versions, setVersions] = useState([]);
   const [selectedVersion, setSelectedVersion] = useState(null);
-  const [uploadingItem, setUploadingItem] = useState(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingItem, setRejectingItem] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [supportDialogOpen, setSupportDialogOpen] = useState(false);
   const [supportItem, setSupportItem] = useState(null);
+  const [docsDialogOpen, setDocsDialogOpen] = useState(false);
+  const [docsItem, setDocsItem] = useState(null);
 
   const isManager = user?.role === 'admin' || user?.role === 'manager';
   const canEdit = !sow?.is_frozen || user?.role === 'admin';
@@ -125,7 +125,6 @@ const SOWBuilder = () => {
   const fetchBackendStaff = async () => {
     try {
       const res = await axios.get(`${API}/users`);
-      // Filter for backend support roles or all users for now
       setBackendStaff(res.data || []);
     } catch (error) {
       console.error('Error fetching backend staff:', error);
@@ -161,7 +160,8 @@ const SOWBuilder = () => {
     has_backend_support: false,
     backend_support_id: '',
     backend_support_name: '',
-    backend_support_role: ''
+    backend_support_role: '',
+    documents: []
   });
 
   const addNewRow = () => {
@@ -287,10 +287,17 @@ const SOWBuilder = () => {
 
   const handleStatusChange = async (itemId, newStatus) => {
     try {
+      // If marking as completed, this will trigger email notification on backend
       await axios.patch(`${API}/sow/${sow.id}/items/${itemId}/status`, {
-        status: newStatus
+        status: newStatus,
+        notify_on_complete: newStatus === 'completed' // Signal backend to send emails
       });
-      toast.success(`Status updated to ${newStatus.replace('_', ' ')}`);
+      
+      if (newStatus === 'completed') {
+        toast.success('Item marked as completed. Notifications sent to manager and client.');
+      } else {
+        toast.success(`Status updated to ${newStatus.replace('_', ' ')}`);
+      }
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update status');
@@ -338,25 +345,22 @@ const SOWBuilder = () => {
     }
   };
 
-  const handleFileUpload = async (file, itemId = null) => {
-    if (!file) return;
+  // Document handling - per item
+  const handleFileUpload = async (file, itemId) => {
+    if (!file || !itemId) return;
     
     const reader = new FileReader();
     reader.onload = async (e) => {
       const base64Data = e.target.result.split(',')[1];
       
       try {
-        const endpoint = itemId 
-          ? `${API}/sow/${sow.id}/items/${itemId}/documents`
-          : `${API}/sow/${sow.id}/documents`;
-          
-        await axios.post(endpoint, {
+        await axios.post(`${API}/sow/${sow.id}/items/${itemId}/documents`, {
           filename: file.name,
           file_data: base64Data,
           description: ''
         });
         
-        toast.success('Document uploaded');
+        toast.success('Document uploaded to SOW item');
         fetchData();
       } catch (error) {
         toast.error('Failed to upload document');
@@ -365,16 +369,21 @@ const SOWBuilder = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleDownload = async (documentId) => {
+  const handleDownload = async (itemId, documentId) => {
     try {
-      const res = await axios.get(`${API}/sow/${sow.id}/documents/${documentId}`);
+      const res = await axios.get(`${API}/sow/${sow.id}/items/${itemId}/documents/${documentId}`);
       const link = document.createElement('a');
       link.href = `data:application/octet-stream;base64,${res.data.file_data}`;
-      link.download = res.data.filename;
+      link.download = res.data.filename || res.data.original_filename;
       link.click();
     } catch (error) {
       toast.error('Failed to download document');
     }
+  };
+
+  const openDocsDialog = (item) => {
+    setDocsItem(item);
+    setDocsDialogOpen(true);
   };
 
   const fetchVersionHistory = async () => {
@@ -448,7 +457,6 @@ const SOWBuilder = () => {
     const months = [];
     const itemsByMonth = {};
     
-    // Group items by month based on start_week
     items.forEach(item => {
       const monthIndex = Math.floor((item.start_week - 1) / 4);
       const monthLabel = `Month ${monthIndex + 1}`;
@@ -460,7 +468,6 @@ const SOWBuilder = () => {
       itemsByMonth[monthLabel].push(item);
     });
     
-    // Also add items without start_week to "Unscheduled"
     const unscheduled = sow.items.filter(i => !i.start_week);
     if (unscheduled.length > 0) {
       itemsByMonth['Unscheduled'] = unscheduled;
@@ -490,6 +497,7 @@ const SOWBuilder = () => {
     const data = isNew ? item : (editingRows[item.id] || item);
     const isEditing = isNew || editingRows[item.id];
     const isSaving = savingRows[item.id];
+    const docCount = item.documents?.length || 0;
     
     const updateField = (field, value) => {
       if (isNew) {
@@ -532,7 +540,7 @@ const SOWBuilder = () => {
             </span>
           )}
         </td>
-        <td className="px-2 py-2 min-w-[200px]">
+        <td className="px-2 py-2 min-w-[180px]">
           {isEditing ? (
             <Input
               value={data.title}
@@ -547,7 +555,7 @@ const SOWBuilder = () => {
             </div>
           )}
         </td>
-        <td className="px-2 py-2 w-16">
+        <td className="px-2 py-2 w-14">
           {isEditing ? (
             <Input
               type="number"
@@ -555,13 +563,13 @@ const SOWBuilder = () => {
               value={data.start_week || ''}
               onChange={(e) => updateField('start_week', e.target.value)}
               placeholder="Wk"
-              className="h-8 text-sm w-16"
+              className="h-8 text-sm w-14"
             />
           ) : (
             <span className="text-sm text-zinc-600">{item.start_week ? `W${item.start_week}` : '-'}</span>
           )}
         </td>
-        <td className="px-2 py-2 w-16">
+        <td className="px-2 py-2 w-14">
           {isEditing ? (
             <Input
               type="number"
@@ -569,13 +577,13 @@ const SOWBuilder = () => {
               value={data.timeline_weeks || ''}
               onChange={(e) => updateField('timeline_weeks', e.target.value)}
               placeholder="Wks"
-              className="h-8 text-sm w-16"
+              className="h-8 text-sm w-14"
             />
           ) : (
             <span className="text-sm text-zinc-600">{item.timeline_weeks ? `${item.timeline_weeks}w` : '-'}</span>
           )}
         </td>
-        <td className="px-2 py-2 w-32">
+        <td className="px-2 py-2 w-28">
           {isEditing ? (
             <select
               value={data.assigned_consultant_id || ''}
@@ -622,23 +630,42 @@ const SOWBuilder = () => {
             </select>
           )}
         </td>
+        {/* Documents Column - per item */}
         <td className="px-2 py-2 w-20">
           {!isNew && (
             <div className="flex items-center gap-1">
-              {item.has_backend_support ? (
-                <span className="text-xs text-blue-600 font-medium" title={item.backend_support_name}>
-                  {item.backend_support_role?.charAt(0).toUpperCase() || 'S'}
-                </span>
-              ) : null}
               <Button
-                onClick={() => openSupportDialog(item)}
+                onClick={() => openDocsDialog(item)}
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0"
-                title="Add Backend Support"
+                className={`h-7 px-2 text-xs ${docCount > 0 ? 'text-blue-600 bg-blue-50' : 'text-zinc-500'}`}
+                title={`${docCount} document(s)`}
               >
-                <UserPlus className="w-3 h-3" />
+                <Paperclip className="w-3 h-3 mr-1" />
+                {docCount}
               </Button>
+            </div>
+          )}
+        </td>
+        {/* Support Column */}
+        <td className="px-2 py-2 w-16">
+          {!isNew && (
+            <div className="flex items-center gap-1">
+              {item.has_backend_support ? (
+                <span className="text-xs text-blue-600 font-medium px-1.5 py-0.5 bg-blue-50 rounded" title={`${item.backend_support_name} (${item.backend_support_role})`}>
+                  {item.backend_support_role?.charAt(0).toUpperCase() || 'S'}
+                </span>
+              ) : (
+                <Button
+                  onClick={() => openSupportDialog(item)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-600"
+                  title="Add Backend Support"
+                >
+                  <UserPlus className="w-3 h-3" />
+                </Button>
+              )}
             </div>
           )}
         </td>
@@ -737,6 +764,7 @@ const SOWBuilder = () => {
                           <div className="font-medium text-sm text-zinc-900">{item.title}</div>
                           <div className="text-xs text-zinc-500">
                             {item.timeline_weeks}w • {item.assigned_consultant_name || 'Unassigned'}
+                            {item.documents?.length > 0 && <span className="ml-2 text-blue-500">📎 {item.documents.length}</span>}
                           </div>
                         </div>
                       </div>
@@ -789,7 +817,10 @@ const SOWBuilder = () => {
             <div key={item.id} className="flex border-b border-zinc-100 hover:bg-zinc-50">
               <div className="w-64 px-4 py-3 border-r border-zinc-200">
                 <div className="font-medium text-sm text-zinc-900 truncate">{item.title}</div>
-                <div className="text-xs text-zinc-500">{item.assigned_consultant_name || 'Unassigned'}</div>
+                <div className="text-xs text-zinc-500">
+                  {item.assigned_consultant_name || 'Unassigned'}
+                  {item.documents?.length > 0 && <span className="ml-2 text-blue-500">📎 {item.documents.length}</span>}
+                </div>
               </div>
               <div className="flex-1 flex relative py-2">
                 {weeks.map(week => (
@@ -860,9 +891,9 @@ const SOWBuilder = () => {
         </div>
       </div>
 
-      {/* Stats and Actions */}
+      {/* Stats */}
       {sow && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="border-zinc-200 shadow-none rounded-sm">
             <CardContent className="py-3 px-4">
               <div className="text-xs text-zinc-500 uppercase tracking-wide">Total Items</div>
@@ -885,12 +916,6 @@ const SOWBuilder = () => {
             <CardContent className="py-3 px-4">
               <div className="text-xs text-green-600 uppercase tracking-wide">Completed</div>
               <div className="text-2xl font-semibold text-green-700">{completedCount}</div>
-            </CardContent>
-          </Card>
-          <Card className="border-zinc-200 shadow-none rounded-sm">
-            <CardContent className="py-3 px-4">
-              <div className="text-xs text-zinc-500 uppercase tracking-wide">Documents</div>
-              <div className="text-2xl font-semibold text-zinc-950">{sow.documents?.length || 0}</div>
             </CardContent>
           </Card>
         </div>
@@ -943,42 +968,8 @@ const SOWBuilder = () => {
                 Approve All ({pendingCount})
               </Button>
             )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files[0])}
-            />
-            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="rounded-sm">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Document
-            </Button>
           </div>
         </div>
-      )}
-
-      {/* SOW Documents */}
-      {sow?.documents?.length > 0 && (
-        <Card className="border-zinc-200 shadow-none rounded-sm mb-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-              Attached Documents
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {sow.documents.map(doc => (
-                <div key={doc.id} className="flex items-center gap-2 px-3 py-2 bg-zinc-50 rounded-sm border border-zinc-200">
-                  <FileText className="w-4 h-4 text-zinc-400" />
-                  <span className="text-sm">{doc.original_filename}</span>
-                  <Button onClick={() => handleDownload(doc.id)} variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    <Download className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* No SOW Yet */}
@@ -1008,12 +999,13 @@ const SOWBuilder = () => {
                   <tr className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
                     <th className="px-2 py-3 text-left w-10">#</th>
                     <th className="px-2 py-3 text-left w-28">Category</th>
-                    <th className="px-2 py-3 text-left min-w-[200px]">Title</th>
-                    <th className="px-2 py-3 text-left w-16">Start</th>
-                    <th className="px-2 py-3 text-left w-16">Duration</th>
-                    <th className="px-2 py-3 text-left w-32">Consultant</th>
+                    <th className="px-2 py-3 text-left min-w-[180px]">Title</th>
+                    <th className="px-2 py-3 text-left w-14">Start</th>
+                    <th className="px-2 py-3 text-left w-14">Dur.</th>
+                    <th className="px-2 py-3 text-left w-28">Consultant</th>
                     <th className="px-2 py-3 text-left w-24">Status</th>
-                    <th className="px-2 py-3 text-left w-20">Support</th>
+                    <th className="px-2 py-3 text-left w-20">Docs</th>
+                    <th className="px-2 py-3 text-left w-16">Support</th>
                     <th className="px-2 py-3 text-left w-24">Actions</th>
                   </tr>
                 </thead>
@@ -1065,6 +1057,73 @@ const SOWBuilder = () => {
           </Button>
         </div>
       )}
+
+      {/* Documents Dialog - Per Item */}
+      <Dialog open={docsDialogOpen} onOpenChange={setDocsDialogOpen}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+              Documents
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              {docsItem?.title}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Existing Documents */}
+            {docsItem?.documents?.length > 0 ? (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase text-zinc-500">Attached Files</Label>
+                {docsItem.documents.map(doc => (
+                  <div key={doc.id} className="flex items-center justify-between p-2 bg-zinc-50 rounded-sm border border-zinc-200">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-zinc-400" />
+                      <span className="text-sm text-zinc-700">{doc.original_filename || doc.filename}</span>
+                    </div>
+                    <Button
+                      onClick={() => handleDownload(docsItem.id, doc.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-zinc-400 text-center py-4">
+                No documents attached to this item
+              </div>
+            )}
+            
+            {/* Upload New Document */}
+            <div className="pt-4 border-t border-zinc-200">
+              <Label className="text-xs uppercase text-zinc-500 mb-2 block">Upload New Document</Label>
+              <input
+                type="file"
+                id="doc-upload"
+                className="hidden"
+                onChange={(e) => {
+                  handleFileUpload(e.target.files[0], docsItem?.id);
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                onClick={() => document.getElementById('doc-upload').click()}
+                variant="outline"
+                className="w-full rounded-sm"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Choose File
+              </Button>
+              <p className="text-xs text-zinc-400 mt-2">
+                When SOW item is marked as Completed, documents will be emailed to manager and client.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Reject Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
@@ -1185,11 +1244,11 @@ const SOWBuilder = () => {
                       <span className={`text-xs px-2 py-0.5 rounded-sm ${
                         version.change_type === 'created' ? 'bg-emerald-100 text-emerald-700' :
                         version.change_type === 'status_changed' ? 'bg-yellow-100 text-yellow-700' :
-                        version.change_type === 'document_added' ? 'bg-blue-100 text-blue-700' :
+                        version.change_type === 'document_added' || version.change_type === 'item_document_added' ? 'bg-blue-100 text-blue-700' :
                         version.change_type === 'bulk_items_added' ? 'bg-purple-100 text-purple-700' :
                         'bg-zinc-100 text-zinc-700'
                       }`}>
-                        {version.change_type.replace('_', ' ')}
+                        {version.change_type.replace(/_/g, ' ')}
                       </span>
                     </div>
                     <span className="text-xs text-zinc-500">
@@ -1215,18 +1274,17 @@ const SOWBuilder = () => {
                       selectedVersion.change_type === 'status_changed' ? 'bg-yellow-100 text-yellow-700' :
                       'bg-zinc-100 text-zinc-700'
                     }`}>
-                      {selectedVersion.change_type?.replace('_', ' ')}
+                      {selectedVersion.change_type?.replace(/_/g, ' ')}
                     </span>
                   </div>
                   
-                  {/* Changes Made */}
                   {selectedVersion.changes && Object.keys(selectedVersion.changes).length > 0 && (
                     <div className="bg-zinc-50 p-3 rounded-sm border border-zinc-200">
                       <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Changes Made</div>
                       <div className="space-y-1">
                         {Object.entries(selectedVersion.changes).map(([key, value]) => (
                           <div key={key} className="text-sm">
-                            <span className="text-zinc-500">{key.replace('_', ' ')}:</span>{' '}
+                            <span className="text-zinc-500">{key.replace(/_/g, ' ')}:</span>{' '}
                             <span className="text-zinc-900 font-medium">
                               {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                             </span>
@@ -1236,7 +1294,6 @@ const SOWBuilder = () => {
                     </div>
                   )}
                   
-                  {/* Snapshot Items */}
                   <div>
                     <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">
                       SOW Items at this Version ({(selectedVersion.items || selectedVersion.snapshot)?.length || 0})
@@ -1250,19 +1307,20 @@ const SOWBuilder = () => {
                                 {item.category?.replace('_', ' ')}
                               </span>
                               <span className="font-medium text-sm text-zinc-900">{item.title}</span>
+                              {item.documents?.length > 0 && (
+                                <span className="text-xs text-blue-500">📎 {item.documents.length}</span>
+                              )}
                             </div>
                             <span className={`text-xs px-2 py-0.5 rounded-sm ${
                               item.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
                               item.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                              item.status === 'completed' ? 'bg-green-100 text-green-700' :
                               item.status === 'pending_review' ? 'bg-yellow-100 text-yellow-700' :
                               'bg-zinc-100 text-zinc-600'
                             }`}>
                               {item.status?.replace('_', ' ') || 'draft'}
                             </span>
                           </div>
-                          {item.description && (
-                            <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{item.description}</p>
-                          )}
                         </div>
                       ))}
                       {(!(selectedVersion.items || selectedVersion.snapshot) || (selectedVersion.items || selectedVersion.snapshot).length === 0) && (
