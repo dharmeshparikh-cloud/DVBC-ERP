@@ -376,10 +376,9 @@ class TestPerformanceMetrics:
 class TestPerformanceScores:
     """Tests for Performance Scoring feature"""
     
-    @pytest.fixture(scope="class")
-    def approved_metrics_config(self, admin_headers, test_project):
-        """Create and approve a metrics config for scoring tests"""
-        # Check if approved config already exists
+    def get_or_create_approved_config(self, admin_headers, test_project):
+        """Helper: Get or create approved metrics config for a project"""
+        # Check if approved config already exists for this project
         response = requests.get(
             f"{BASE_URL}/api/performance-metrics",
             headers=admin_headers,
