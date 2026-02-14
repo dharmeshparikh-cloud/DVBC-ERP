@@ -1179,6 +1179,466 @@ async def get_sow_at_version(
     
     raise HTTPException(status_code=404, detail=f"Version {version_num} not found")
 
+# SOW Status Update APIs
+SOW_ITEM_STATUSES = [
+    {"value": "draft", "label": "Draft", "color": "zinc"},
+    {"value": "pending_review", "label": "Pending Review", "color": "yellow"},
+    {"value": "approved", "label": "Approved", "color": "emerald"},
+    {"value": "rejected", "label": "Rejected", "color": "red"},
+    {"value": "in_progress", "label": "In Progress", "color": "blue"},
+    {"value": "completed", "label": "Completed", "color": "green"}
+]
+
+@api_router.get("/sow-item-statuses")
+async def get_sow_item_statuses():
+    """Get available SOW item statuses"""
+    return SOW_ITEM_STATUSES
+
+@api_router.patch("/sow/{sow_id}/items/{item_id}/status")
+async def update_sow_item_status(
+    sow_id: str,
+    item_id: str,
+    status_update: SOWItemStatusUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update SOW item status (user updates, manager approves)"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Check permissions - Manager can approve/reject, others can update status
+    new_status = status_update.status
+    if new_status in [SOWItemStatus.APPROVED, SOWItemStatus.REJECTED]:
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+            raise HTTPException(status_code=403, detail="Only Manager/Admin can approve or reject")
+    
+    items = sow.get('items', [])
+    updated = False
+    old_status = None
+    
+    for item in items:
+        if item.get('id') == item_id:
+            old_status = item.get('status', 'draft')
+            item['status'] = new_status
+            item['status_updated_by'] = current_user.id
+            item['status_updated_at'] = datetime.now(timezone.utc).isoformat()
+            
+            if new_status == SOWItemStatus.APPROVED:
+                item['approved_by'] = current_user.id
+                item['approved_at'] = datetime.now(timezone.utc).isoformat()
+                item['rejection_reason'] = None
+            elif new_status == SOWItemStatus.REJECTED:
+                item['rejection_reason'] = status_update.rejection_reason
+                item['approved_by'] = None
+                item['approved_at'] = None
+            
+            if status_update.notes:
+                item['notes'] = status_update.notes
+            
+            updated = True
+            break
+    
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    # Create version entry
+    new_version = sow.get('current_version', 1) + 1
+    version_entry = {
+        "version": new_version,
+        "changed_by": current_user.id,
+        "changed_at": datetime.now(timezone.utc).isoformat(),
+        "change_type": "status_changed",
+        "changes": {"item_id": item_id, "old_status": old_status, "new_status": new_status},
+        "snapshot": items.copy()
+    }
+    
+    version_history = sow.get('version_history', [])
+    version_history.append(version_entry)
+    
+    # Calculate overall SOW status
+    overall_status = calculate_sow_overall_status(items)
+    
+    await db.sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "items": items,
+            "current_version": new_version,
+            "version_history": version_history,
+            "overall_status": overall_status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": f"Status updated to {new_status}", "version": new_version, "overall_status": overall_status}
+
+def calculate_sow_overall_status(items):
+    """Calculate overall SOW status based on item statuses"""
+    if not items:
+        return SOWOverallStatus.DRAFT
+    
+    statuses = [item.get('status', 'draft') for item in items]
+    
+    # All completed = complete
+    if all(s == SOWItemStatus.COMPLETED for s in statuses):
+        return SOWOverallStatus.COMPLETE
+    
+    # All approved or completed = approved
+    if all(s in [SOWItemStatus.APPROVED, SOWItemStatus.COMPLETED] for s in statuses):
+        return SOWOverallStatus.APPROVED
+    
+    # Any pending review = pending approval
+    if any(s == SOWItemStatus.PENDING_REVIEW for s in statuses):
+        return SOWOverallStatus.PENDING_APPROVAL
+    
+    # Some approved = partially approved
+    if any(s == SOWItemStatus.APPROVED for s in statuses):
+        return SOWOverallStatus.PARTIALLY_APPROVED
+    
+    return SOWOverallStatus.DRAFT
+
+@api_router.post("/sow/{sow_id}/submit-for-approval")
+async def submit_sow_for_approval(
+    sow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit SOW for manager approval"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    items = sow.get('items', [])
+    if not items:
+        raise HTTPException(status_code=400, detail="Cannot submit empty SOW for approval")
+    
+    # Update all draft items to pending_review
+    for item in items:
+        if item.get('status') == SOWItemStatus.DRAFT:
+            item['status'] = SOWItemStatus.PENDING_REVIEW
+            item['status_updated_by'] = current_user.id
+            item['status_updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # Create version entry
+    new_version = sow.get('current_version', 1) + 1
+    version_entry = {
+        "version": new_version,
+        "changed_by": current_user.id,
+        "changed_at": datetime.now(timezone.utc).isoformat(),
+        "change_type": "submitted_for_approval",
+        "changes": {"action": "Submitted for manager approval"},
+        "snapshot": items.copy()
+    }
+    
+    version_history = sow.get('version_history', [])
+    version_history.append(version_entry)
+    
+    await db.sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "items": items,
+            "current_version": new_version,
+            "version_history": version_history,
+            "overall_status": SOWOverallStatus.PENDING_APPROVAL,
+            "submitted_for_approval": True,
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
+            "submitted_by": current_user.id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "SOW submitted for approval", "version": new_version}
+
+@api_router.post("/sow/{sow_id}/approve-all")
+async def approve_all_sow_items(
+    sow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve all pending SOW items (Manager only)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only Manager/Admin can approve")
+    
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    items = sow.get('items', [])
+    approved_count = 0
+    
+    for item in items:
+        if item.get('status') == SOWItemStatus.PENDING_REVIEW:
+            item['status'] = SOWItemStatus.APPROVED
+            item['approved_by'] = current_user.id
+            item['approved_at'] = datetime.now(timezone.utc).isoformat()
+            item['status_updated_by'] = current_user.id
+            item['status_updated_at'] = datetime.now(timezone.utc).isoformat()
+            approved_count += 1
+    
+    if approved_count == 0:
+        raise HTTPException(status_code=400, detail="No items pending approval")
+    
+    # Create version entry
+    new_version = sow.get('current_version', 1) + 1
+    version_entry = {
+        "version": new_version,
+        "changed_by": current_user.id,
+        "changed_at": datetime.now(timezone.utc).isoformat(),
+        "change_type": "bulk_approved",
+        "changes": {"action": f"Approved {approved_count} items"},
+        "snapshot": items.copy()
+    }
+    
+    version_history = sow.get('version_history', [])
+    version_history.append(version_entry)
+    
+    overall_status = calculate_sow_overall_status(items)
+    
+    await db.sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "items": items,
+            "current_version": new_version,
+            "version_history": version_history,
+            "overall_status": overall_status,
+            "final_approved_by": current_user.id,
+            "final_approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": f"Approved {approved_count} items", "version": new_version, "overall_status": overall_status}
+
+# Document Upload for SOW
+import base64
+import os
+
+UPLOAD_DIR = "/app/uploads/sow"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+class DocumentUpload(BaseModel):
+    filename: str
+    file_data: str  # Base64 encoded
+    description: Optional[str] = None
+
+@api_router.post("/sow/{sow_id}/documents")
+async def upload_sow_document(
+    sow_id: str,
+    document: DocumentUpload,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload document to SOW"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    try:
+        # Decode base64 file data
+        file_data = base64.b64decode(document.file_data)
+        file_size = len(file_data)
+        
+        # Generate unique filename
+        file_ext = document.filename.split('.')[-1] if '.' in document.filename else 'bin'
+        stored_filename = f"{sow_id}_{str(uuid.uuid4())[:8]}.{file_ext}"
+        file_path = os.path.join(UPLOAD_DIR, stored_filename)
+        
+        # Save file
+        with open(file_path, 'wb') as f:
+            f.write(file_data)
+        
+        # Create document record
+        doc_record = SOWDocument(
+            filename=stored_filename,
+            original_filename=document.filename,
+            file_type=file_ext,
+            file_size=file_size,
+            uploaded_by=current_user.id,
+            description=document.description
+        )
+        
+        doc_dict = doc_record.model_dump()
+        doc_dict['uploaded_at'] = doc_dict['uploaded_at'].isoformat()
+        
+        documents = sow.get('documents', [])
+        documents.append(doc_dict)
+        
+        # Create version entry
+        new_version = sow.get('current_version', 1) + 1
+        version_entry = {
+            "version": new_version,
+            "changed_by": current_user.id,
+            "changed_at": datetime.now(timezone.utc).isoformat(),
+            "change_type": "document_added",
+            "changes": {"filename": document.filename, "size": file_size},
+            "snapshot": sow.get('items', [])
+        }
+        
+        version_history = sow.get('version_history', [])
+        version_history.append(version_entry)
+        
+        await db.sow.update_one(
+            {"id": sow_id},
+            {"$set": {
+                "documents": documents,
+                "current_version": new_version,
+                "version_history": version_history,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {"message": "Document uploaded", "document_id": doc_record.id, "version": new_version}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@api_router.post("/sow/{sow_id}/items/{item_id}/documents")
+async def upload_item_document(
+    sow_id: str,
+    item_id: str,
+    document: DocumentUpload,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload document to specific SOW item"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    try:
+        # Decode base64 file data
+        file_data = base64.b64decode(document.file_data)
+        file_size = len(file_data)
+        
+        # Generate unique filename
+        file_ext = document.filename.split('.')[-1] if '.' in document.filename else 'bin'
+        stored_filename = f"{item_id}_{str(uuid.uuid4())[:8]}.{file_ext}"
+        file_path = os.path.join(UPLOAD_DIR, stored_filename)
+        
+        # Save file
+        with open(file_path, 'wb') as f:
+            f.write(file_data)
+        
+        # Create document record
+        doc_record = {
+            "id": str(uuid.uuid4()),
+            "filename": stored_filename,
+            "original_filename": document.filename,
+            "file_type": file_ext,
+            "file_size": file_size,
+            "uploaded_by": current_user.id,
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            "description": document.description
+        }
+        
+        items = sow.get('items', [])
+        item_found = False
+        
+        for item in items:
+            if item.get('id') == item_id:
+                if 'documents' not in item:
+                    item['documents'] = []
+                item['documents'].append(doc_record)
+                item_found = True
+                break
+        
+        if not item_found:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        # Create version entry
+        new_version = sow.get('current_version', 1) + 1
+        version_entry = {
+            "version": new_version,
+            "changed_by": current_user.id,
+            "changed_at": datetime.now(timezone.utc).isoformat(),
+            "change_type": "item_document_added",
+            "changes": {"item_id": item_id, "filename": document.filename},
+            "snapshot": items.copy()
+        }
+        
+        version_history = sow.get('version_history', [])
+        version_history.append(version_entry)
+        
+        await db.sow.update_one(
+            {"id": sow_id},
+            {"$set": {
+                "items": items,
+                "current_version": new_version,
+                "version_history": version_history,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        return {"message": "Document uploaded to item", "document_id": doc_record['id'], "version": new_version}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@api_router.get("/sow/{sow_id}/documents/{document_id}")
+async def download_sow_document(
+    sow_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get document download info"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Search in SOW documents
+    for doc in sow.get('documents', []):
+        if doc.get('id') == document_id:
+            file_path = os.path.join(UPLOAD_DIR, doc['filename'])
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as f:
+                    file_data = base64.b64encode(f.read()).decode()
+                return {
+                    "filename": doc['original_filename'],
+                    "file_type": doc['file_type'],
+                    "file_data": file_data
+                }
+    
+    # Search in item documents
+    for item in sow.get('items', []):
+        for doc in item.get('documents', []):
+            if doc.get('id') == document_id:
+                file_path = os.path.join(UPLOAD_DIR, doc['filename'])
+                if os.path.exists(file_path):
+                    with open(file_path, 'rb') as f:
+                        file_data = base64.b64encode(f.read()).decode()
+                    return {
+                        "filename": doc['original_filename'],
+                        "file_type": doc['file_type'],
+                        "file_data": file_data
+                    }
+    
+    raise HTTPException(status_code=404, detail="Document not found")
+
+@api_router.get("/sow/pending-approval")
+async def get_sow_pending_approval(current_user: User = Depends(get_current_user)):
+    """Get all SOWs pending manager approval"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Only Manager/Admin can view pending approvals")
+    
+    sows = await db.sow.find(
+        {"overall_status": SOWOverallStatus.PENDING_APPROVAL},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Enrich with lead and pricing plan info
+    result = []
+    for sow in sows:
+        lead = await db.leads.find_one({"id": sow.get('lead_id')}, {"_id": 0})
+        plan = await db.pricing_plans.find_one({"id": sow.get('pricing_plan_id')}, {"_id": 0})
+        
+        pending_items = len([i for i in sow.get('items', []) if i.get('status') == SOWItemStatus.PENDING_REVIEW])
+        
+        result.append({
+            **sow,
+            "lead": lead,
+            "pricing_plan": plan,
+            "pending_items_count": pending_items
+        })
+    
+    return result
+
 @api_router.post("/quotations", response_model=Quotation)
 async def create_quotation(quotation_create: QuotationCreate, current_user: User = Depends(get_current_user)):
     if current_user.role == UserRole.MANAGER:
