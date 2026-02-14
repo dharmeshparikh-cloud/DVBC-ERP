@@ -159,6 +159,46 @@ A comprehensive business management application for a 50-person consulting organ
   - SOW Builder Page: PDF and Word download buttons in header
 - **Technology**: python-docx for Word generation, ReportLab for PDF generation
 
+### Meeting Form with MOM (Feb 14, 2026) ✅ NEW
+- **Purpose**: Create meetings with agenda and generate Minutes of Meeting (MOM)
+- **Meeting Features**:
+  - Schedule meetings linked to projects, clients, and leads
+  - Meeting modes: Online, Offline (In-person), Tele Call
+  - Agenda items (multiple)
+  - Attendee selection from users list
+  - Duration tracking
+  - Delivered status
+- **MOM (Minutes of Meeting)**:
+  - Meeting Title
+  - Agenda items (dynamic add/remove)
+  - Discussion Points (dynamic add/remove)
+  - Decisions Made (dynamic add/remove)
+  - Action Items with assignment, due date, priority
+  - Next Meeting Date scheduling
+- **Action Items**:
+  - Assign to team member
+  - Set due date and priority (Low/Medium/High)
+  - Auto-create follow-up task in tasks collection
+  - Notify reporting manager via notification queue
+  - Track completion status
+- **Send MOM to Client**:
+  - Email queued to notifications collection (MOCKED)
+  - Includes all MOM sections in HTML format
+  - Client email fetched from lead or client contacts
+- **Follow-up Tasks**:
+  - Separate collection for action item tasks
+  - Status tracking (pending, in_progress, completed)
+  - Linked to original meeting and action item
+- **APIs**:
+  - `POST /api/meetings` - Create meeting with agenda
+  - `GET /api/meetings/{id}` - Get meeting with full MOM
+  - `PATCH /api/meetings/{id}/mom` - Update MOM data
+  - `POST /api/meetings/{id}/action-items` - Add action item with follow-up
+  - `PATCH /api/meetings/{id}/action-items/{id}` - Update action item status
+  - `POST /api/meetings/{id}/send-mom` - Send MOM email to client
+  - `GET /api/follow-up-tasks` - Get follow-up tasks
+- **Navigation**: Meetings (sidebar)
+
 ### Client Master Module (Feb 14, 2026) ✅ NEW
 - **Purpose**: Manage client information and relationships for sales team
 - **Client Data Model**:
