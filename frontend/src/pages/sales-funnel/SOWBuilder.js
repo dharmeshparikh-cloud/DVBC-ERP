@@ -956,6 +956,26 @@ const SOWBuilder = () => {
                     <Lock className="w-3 h-3" /> Frozen
                   </span>
                 )}
+                <Button 
+                  onClick={() => handleDownloadSOW('pdf')} 
+                  variant="outline" 
+                  className="rounded-sm"
+                  disabled={downloadingSOW.pdf}
+                  data-testid="download-sow-pdf"
+                >
+                  <Download className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                  {downloadingSOW.pdf ? 'Downloading...' : 'PDF'}
+                </Button>
+                <Button 
+                  onClick={() => handleDownloadSOW('docx')} 
+                  variant="outline" 
+                  className="rounded-sm"
+                  disabled={downloadingSOW.docx}
+                  data-testid="download-sow-docx"
+                >
+                  <FileText className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                  {downloadingSOW.docx ? 'Downloading...' : 'Word'}
+                </Button>
                 <Button onClick={fetchVersionHistory} variant="outline" className="rounded-sm">
                   <History className="w-4 h-4 mr-2" strokeWidth={1.5} />
                   History
