@@ -7486,6 +7486,284 @@ async def get_my_expenses(current_user: User = Depends(get_current_user)):
     return {"expenses": expenses, "summary": summary}
 
 
+# ==================== PROJECT ROADMAP ====================
+
+@api_router.post("/roadmaps")
+async def create_roadmap(data: dict, current_user: User = Depends(get_current_user)):
+    """Create project roadmap (PM/Manager/Admin)"""
+    if current_user.role not in ["admin", "project_manager", "manager", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only PM/Manager/Admin can create roadmaps")
+    project_id = data.get("project_id")
+    if not project_id:
+        raise HTTPException(status_code=400, detail="project_id required")
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    roadmap = {
+        "id": str(uuid.uuid4()), "project_id": project_id,
+        "project_name": project.get("name", ""), "client_name": project.get("client_name", ""),
+        "sow_id": data.get("sow_id", ""), "title": data.get("title", f"Roadmap - {project.get('name', '')}"),
+        "phases": data.get("phases", []),
+        "status": "draft",
+        "submitted_to_client": False, "submitted_to_client_at": None,
+        "created_by": current_user.id, "created_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    for phase in roadmap["phases"]:
+        if not phase.get("id"):
+            phase["id"] = str(uuid.uuid4())
+        for item in phase.get("items", []):
+            if not item.get("id"):
+                item["id"] = str(uuid.uuid4())
+            item.setdefault("status", "not_started")
+    await db.roadmaps.insert_one(roadmap)
+    return {k: v for k, v in roadmap.items() if k != "_id"}
+
+@api_router.get("/roadmaps")
+async def get_roadmaps(project_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {}
+    if project_id:
+        query["project_id"] = project_id
+    roadmaps = await db.roadmaps.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return roadmaps
+
+@api_router.get("/roadmaps/{roadmap_id}")
+async def get_roadmap(roadmap_id: str, current_user: User = Depends(get_current_user)):
+    roadmap = await db.roadmaps.find_one({"id": roadmap_id}, {"_id": 0})
+    if not roadmap:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    return roadmap
+
+@api_router.patch("/roadmaps/{roadmap_id}")
+async def update_roadmap(roadmap_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    roadmap = await db.roadmaps.find_one({"id": roadmap_id}, {"_id": 0})
+    if not roadmap:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    update = {}
+    for key in ["title", "phases", "status"]:
+        if key in data:
+            update[key] = data[key]
+    if "phases" in update:
+        for phase in update["phases"]:
+            if not phase.get("id"):
+                phase["id"] = str(uuid.uuid4())
+            for item in phase.get("items", []):
+                if not item.get("id"):
+                    item["id"] = str(uuid.uuid4())
+                item.setdefault("status", "not_started")
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.roadmaps.update_one({"id": roadmap_id}, {"$set": update})
+    return {"message": "Roadmap updated"}
+
+@api_router.post("/roadmaps/{roadmap_id}/submit-to-client")
+async def submit_roadmap_to_client(roadmap_id: str, current_user: User = Depends(get_current_user)):
+    roadmap = await db.roadmaps.find_one({"id": roadmap_id}, {"_id": 0})
+    if not roadmap:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    await db.roadmaps.update_one({"id": roadmap_id}, {"$set": {
+        "status": "submitted_to_client", "submitted_to_client": True,
+        "submitted_to_client_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }})
+    # Queue notification (MOCKED)
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()), "type": "roadmap_submitted",
+        "subject": f"Project Roadmap: {roadmap.get('title', '')}",
+        "body": f"Roadmap for project {roadmap.get('project_name', '')} has been submitted.",
+        "created_at": datetime.now(timezone.utc).isoformat(), "sent": False
+    })
+    return {"message": "Roadmap submitted to client"}
+
+@api_router.patch("/roadmaps/{roadmap_id}/items/{item_id}/status")
+async def update_roadmap_item_status(roadmap_id: str, item_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Update a roadmap item status (any assigned user)"""
+    roadmap = await db.roadmaps.find_one({"id": roadmap_id}, {"_id": 0})
+    if not roadmap:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    updated = False
+    for phase in roadmap.get("phases", []):
+        for item in phase.get("items", []):
+            if item.get("id") == item_id:
+                item["status"] = data.get("status", item.get("status"))
+                if data.get("status") == "completed":
+                    item["completed_at"] = datetime.now(timezone.utc).isoformat()
+                updated = True
+                break
+        if updated:
+            break
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    await db.roadmaps.update_one({"id": roadmap_id}, {"$set": {"phases": roadmap["phases"], "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Item status updated"}
+
+
+# ==================== PERFORMANCE METRICS ====================
+
+DEFAULT_METRICS = [
+    {"name": "SOW Timely Delivery", "key": "sow_delivery", "weight": 20, "description": "Percentage of SOW items delivered on time"},
+    {"name": "Roadmap Achievement", "key": "roadmap_achievement", "weight": 20, "description": "Roadmap milestones completed vs planned"},
+    {"name": "Records Timeliness", "key": "records_timeliness", "weight": 15, "description": "Timely update of project records and documents"},
+    {"name": "SOW Quality Score", "key": "sow_quality", "weight": 25, "description": "Quality rating of SOW documents by reporting manager"},
+    {"name": "Meeting Adherence", "key": "meeting_adherence", "weight": 20, "description": "Meeting schedule timeline and date adherence"}
+]
+
+@api_router.post("/performance-metrics")
+async def create_performance_metrics(data: dict, current_user: User = Depends(get_current_user)):
+    """Create performance metrics config for a project (Principal Consultant)"""
+    if current_user.role not in ["admin", "principal_consultant", "project_manager"]:
+        raise HTTPException(status_code=403, detail="Only Principal Consultant/PM/Admin can configure metrics")
+    project_id = data.get("project_id")
+    if not project_id:
+        raise HTTPException(status_code=400, detail="project_id required")
+    metrics = data.get("metrics", DEFAULT_METRICS)
+    for m in metrics:
+        if not m.get("id"):
+            m["id"] = str(uuid.uuid4())
+    config = {
+        "id": str(uuid.uuid4()), "project_id": project_id,
+        "project_name": data.get("project_name", ""),
+        "metrics": metrics,
+        "status": "pending_approval",
+        "created_by": current_user.id, "created_by_name": current_user.full_name,
+        "approved_by": None, "approved_by_name": None, "approved_at": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.performance_metrics.insert_one(config)
+    return {k: v for k, v in config.items() if k != "_id"}
+
+@api_router.get("/performance-metrics")
+async def get_performance_metrics(project_id: Optional[str] = None, status: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {}
+    if project_id:
+        query["project_id"] = project_id
+    if status:
+        query["status"] = status
+    configs = await db.performance_metrics.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return configs
+
+@api_router.get("/performance-metrics/{config_id}")
+async def get_performance_metric(config_id: str, current_user: User = Depends(get_current_user)):
+    config = await db.performance_metrics.find_one({"id": config_id}, {"_id": 0})
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+    return config
+
+@api_router.patch("/performance-metrics/{config_id}")
+async def update_performance_metrics(config_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    config = await db.performance_metrics.find_one({"id": config_id}, {"_id": 0})
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+    update = {}
+    if "metrics" in data:
+        for m in data["metrics"]:
+            if not m.get("id"):
+                m["id"] = str(uuid.uuid4())
+        update["metrics"] = data["metrics"]
+    if "project_name" in data:
+        update["project_name"] = data["project_name"]
+    update["status"] = "pending_approval"
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.performance_metrics.update_one({"id": config_id}, {"$set": update})
+    return {"message": "Metrics updated, pending admin approval"}
+
+@api_router.post("/performance-metrics/{config_id}/approve")
+async def approve_performance_metrics(config_id: str, current_user: User = Depends(get_current_user)):
+    """Admin approves performance metrics before they populate to users"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can approve performance metrics")
+    config = await db.performance_metrics.find_one({"id": config_id}, {"_id": 0})
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+    await db.performance_metrics.update_one({"id": config_id}, {"$set": {
+        "status": "approved", "approved_by": current_user.id,
+        "approved_by_name": current_user.full_name,
+        "approved_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }})
+    return {"message": "Performance metrics approved"}
+
+@api_router.post("/performance-metrics/{config_id}/reject")
+async def reject_performance_metrics(config_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can reject")
+    await db.performance_metrics.update_one({"id": config_id}, {"$set": {"status": "rejected", "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Performance metrics rejected"}
+
+
+# ==================== PERFORMANCE SCORES ====================
+
+@api_router.post("/performance-scores")
+async def create_performance_score(data: dict, current_user: User = Depends(get_current_user)):
+    """Rate consultant performance (Reporting Manager/PM)"""
+    if current_user.role not in ["admin", "manager", "project_manager", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only RM/PM/Admin can rate performance")
+    project_id = data.get("project_id")
+    consultant_id = data.get("consultant_id")
+    month = data.get("month")
+    if not all([project_id, consultant_id, month]):
+        raise HTTPException(status_code=400, detail="project_id, consultant_id, and month required")
+    # Get approved metrics config
+    config = await db.performance_metrics.find_one({"project_id": project_id, "status": "approved"}, {"_id": 0})
+    if not config:
+        raise HTTPException(status_code=400, detail="No approved performance metrics for this project")
+    consultant = await db.users.find_one({"id": consultant_id}, {"_id": 0, "full_name": 1})
+    scores = data.get("scores", [])
+    total_weight = sum(m.get("weight", 0) for m in config.get("metrics", []))
+    weighted_total = 0
+    for s in scores:
+        metric = next((m for m in config["metrics"] if m["id"] == s.get("metric_id")), None)
+        if metric:
+            weighted_total += (s.get("score", 0) * metric.get("weight", 0)) / 100
+    overall = round((weighted_total / total_weight * 100) if total_weight > 0 else 0, 1)
+    existing = await db.performance_scores.find_one({"project_id": project_id, "consultant_id": consultant_id, "month": month}, {"_id": 0})
+    score_doc = {
+        "id": existing["id"] if existing else str(uuid.uuid4()),
+        "project_id": project_id, "consultant_id": consultant_id,
+        "consultant_name": consultant.get("full_name", "") if consultant else "",
+        "month": month, "scores": scores,
+        "overall_score": overall,
+        "metrics_config_id": config["id"],
+        "rated_by": current_user.id, "rated_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    if existing:
+        await db.performance_scores.update_one({"id": existing["id"]}, {"$set": score_doc})
+    else:
+        await db.performance_scores.insert_one(score_doc)
+    return {k: v for k, v in score_doc.items() if k != "_id"}
+
+@api_router.get("/performance-scores")
+async def get_performance_scores(project_id: Optional[str] = None, consultant_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {}
+    if project_id:
+        query["project_id"] = project_id
+    if consultant_id:
+        query["consultant_id"] = consultant_id
+    scores = await db.performance_scores.find(query, {"_id": 0}).sort("month", -1).to_list(500)
+    return scores
+
+@api_router.get("/performance-scores/summary")
+async def get_performance_summary(project_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    """Get aggregated performance summary per consultant"""
+    query = {}
+    if project_id:
+        query["project_id"] = project_id
+    scores = await db.performance_scores.find(query, {"_id": 0}).to_list(1000)
+    summary = {}
+    for s in scores:
+        cid = s["consultant_id"]
+        if cid not in summary:
+            summary[cid] = {"consultant_id": cid, "consultant_name": s.get("consultant_name", ""), "months_rated": 0, "total_score": 0, "scores_by_month": []}
+        summary[cid]["months_rated"] += 1
+        summary[cid]["total_score"] += s.get("overall_score", 0)
+        summary[cid]["scores_by_month"].append({"month": s["month"], "overall_score": s["overall_score"]})
+    for cid in summary:
+        summary[cid]["avg_score"] = round(summary[cid]["total_score"] / max(summary[cid]["months_rated"], 1), 1)
+    return list(summary.values())
+
+
 app.include_router(api_router)
 
 app.add_middleware(
