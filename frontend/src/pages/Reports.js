@@ -29,6 +29,7 @@ const CATEGORY_COLORS = {
 
 const Reports = () => {
   const { user } = useContext(AuthContext);
+  const [searchParams] = useSearchParams();
   const [reports, setReports] = useState([]);
   const [reportsByCategory, setReportsByCategory] = useState({});
   const [categories, setCategories] = useState([]);
