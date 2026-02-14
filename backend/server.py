@@ -94,7 +94,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    role: str
+    role: Optional[str] = None
     department: Optional[str] = None
 
 class UserLogin(BaseModel):
