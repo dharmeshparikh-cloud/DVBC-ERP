@@ -112,7 +112,7 @@ const Layout = () => {
 
   return (
     <div className="flex min-h-screen bg-white">
-      <aside className="w-64 border-r border-zinc-200 bg-white flex-shrink-0" data-testid="sidebar">
+      <aside className="w-64 border-r border-zinc-200 bg-white flex-shrink-0 h-screen sticky top-0" data-testid="sidebar">
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-zinc-200 flex items-center justify-center">
