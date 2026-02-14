@@ -51,7 +51,7 @@ const Layout = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  data-testid={`nav-${item.name.toLowerCase()}`}
+                  data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
                   className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors ${
                     active
                       ? 'bg-zinc-100 text-zinc-950 font-medium'
@@ -63,6 +63,60 @@ const Layout = () => {
                 </Link>
               );
             })}
+            
+            {/* Sales Funnel Section */}
+            <div className="pt-4 mt-4 border-t border-zinc-200">
+              <div className="px-3 mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
+                Sales Funnel
+              </div>
+              {salesFunnelNav.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors ${
+                      active
+                        ? 'bg-zinc-100 text-zinc-950 font-medium'
+                        : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" strokeWidth={1.5} />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Manager Section - Only visible to managers and admins */}
+            {(user?.role === 'manager' || user?.role === 'admin') && (
+              <div className="pt-4 mt-4 border-t border-zinc-200">
+                <div className="px-3 mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
+                  Management
+                </div>
+                {managerNav.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors ${
+                        active
+                          ? 'bg-zinc-100 text-zinc-950 font-medium'
+                          : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" strokeWidth={1.5} />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </nav>
 
           <div className="p-4 border-t border-zinc-200">
