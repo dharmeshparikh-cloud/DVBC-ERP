@@ -5852,6 +5852,579 @@ async def get_employee_stats(current_user: User = Depends(get_current_user)):
         "by_employment_type": {item['_id'] or 'Unknown': item['count'] for item in by_employment_type}
     }
 
+
+# ==================== CLIENT MASTER ====================
+
+class ClientContact(BaseModel):
+    """Single Point of Contact (SPOC) for a client"""
+    name: str
+    designation: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    is_primary: bool = False
+
+class RevenueRecord(BaseModel):
+    """Revenue history record"""
+    year: int
+    quarter: Optional[int] = None  # 1-4, or None for annual
+    amount: float
+    currency: str = "INR"
+    notes: Optional[str] = None
+
+class Client(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    company_name: str
+    industry: Optional[str] = None
+    location: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = "India"
+    address: Optional[str] = None
+    website: Optional[str] = None
+    contacts: List[ClientContact] = []
+    revenue_history: List[RevenueRecord] = []
+    business_start_date: Optional[datetime] = None
+    sales_person_id: Optional[str] = None  # User ID of sales person who closed the deal
+    sales_person_name: Optional[str] = None
+    lead_id: Optional[str] = None  # Link to original lead
+    agreement_id: Optional[str] = None  # Link to agreement
+    notes: Optional[str] = None
+    is_active: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ClientCreate(BaseModel):
+    company_name: str
+    industry: Optional[str] = None
+    location: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = "India"
+    address: Optional[str] = None
+    website: Optional[str] = None
+    contacts: List[ClientContact] = []
+    revenue_history: List[RevenueRecord] = []
+    business_start_date: Optional[datetime] = None
+    sales_person_id: Optional[str] = None
+    sales_person_name: Optional[str] = None
+    lead_id: Optional[str] = None
+    agreement_id: Optional[str] = None
+    notes: Optional[str] = None
+
+class ClientUpdate(BaseModel):
+    company_name: Optional[str] = None
+    industry: Optional[str] = None
+    location: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    contacts: Optional[List[ClientContact]] = None
+    revenue_history: Optional[List[RevenueRecord]] = None
+    business_start_date: Optional[datetime] = None
+    sales_person_id: Optional[str] = None
+    sales_person_name: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+# Client Master can be managed by: Admin, Project Manager, Account Manager, Executive
+def can_manage_clients(role: str) -> bool:
+    return role in ['admin', 'project_manager', 'account_manager', 'executive', 'manager']
+
+@api_router.post("/clients", response_model=Client)
+async def create_client(
+    client_create: ClientCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new client"""
+    if not can_manage_clients(current_user.role):
+        raise HTTPException(status_code=403, detail="Not authorized to create clients")
+    
+    client_dict = client_create.model_dump()
+    client = Client(**client_dict, created_by=current_user.id)
+    
+    doc = client.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc['business_start_date']:
+        doc['business_start_date'] = doc['business_start_date'].isoformat()
+    
+    await db.clients.insert_one(doc)
+    return client
+
+@api_router.get("/clients")
+async def get_clients(
+    industry: Optional[str] = None,
+    sales_person_id: Optional[str] = None,
+    is_active: Optional[bool] = True,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all clients with optional filters"""
+    query = {}
+    if industry:
+        query['industry'] = industry
+    if sales_person_id:
+        query['sales_person_id'] = sales_person_id
+    if is_active is not None:
+        query['is_active'] = is_active
+    
+    clients = await db.clients.find(query, {"_id": 0}).to_list(500)
+    
+    for client in clients:
+        if isinstance(client.get('created_at'), str):
+            client['created_at'] = datetime.fromisoformat(client['created_at'])
+        if isinstance(client.get('updated_at'), str):
+            client['updated_at'] = datetime.fromisoformat(client['updated_at'])
+        if client.get('business_start_date') and isinstance(client['business_start_date'], str):
+            client['business_start_date'] = datetime.fromisoformat(client['business_start_date'])
+    
+    return clients
+
+@api_router.get("/clients/{client_id}")
+async def get_client(
+    client_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific client by ID"""
+    client = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    if isinstance(client.get('created_at'), str):
+        client['created_at'] = datetime.fromisoformat(client['created_at'])
+    if isinstance(client.get('updated_at'), str):
+        client['updated_at'] = datetime.fromisoformat(client['updated_at'])
+    if client.get('business_start_date') and isinstance(client['business_start_date'], str):
+        client['business_start_date'] = datetime.fromisoformat(client['business_start_date'])
+    
+    return client
+
+@api_router.patch("/clients/{client_id}")
+async def update_client(
+    client_id: str,
+    client_update: ClientUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a client"""
+    if not can_manage_clients(current_user.role):
+        raise HTTPException(status_code=403, detail="Not authorized to update clients")
+    
+    client = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    update_data = client_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    if 'business_start_date' in update_data and update_data['business_start_date']:
+        update_data['business_start_date'] = update_data['business_start_date'].isoformat()
+    
+    await db.clients.update_one({"id": client_id}, {"$set": update_data})
+    
+    updated = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/clients/{client_id}")
+async def deactivate_client(
+    client_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Deactivate a client (soft delete)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can deactivate clients")
+    
+    client = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    await db.clients.update_one(
+        {"id": client_id},
+        {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Client deactivated successfully"}
+
+@api_router.post("/clients/{client_id}/contacts")
+async def add_client_contact(
+    client_id: str,
+    contact: ClientContact,
+    current_user: User = Depends(get_current_user)
+):
+    """Add a contact to a client"""
+    if not can_manage_clients(current_user.role):
+        raise HTTPException(status_code=403, detail="Not authorized to manage clients")
+    
+    client = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    contacts = client.get('contacts', [])
+    
+    # If this is marked as primary, unmark other primary contacts
+    if contact.is_primary:
+        for c in contacts:
+            c['is_primary'] = False
+    
+    contacts.append(contact.model_dump())
+    
+    await db.clients.update_one(
+        {"id": client_id},
+        {"$set": {"contacts": contacts, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Contact added successfully"}
+
+@api_router.post("/clients/{client_id}/revenue")
+async def add_revenue_record(
+    client_id: str,
+    revenue: RevenueRecord,
+    current_user: User = Depends(get_current_user)
+):
+    """Add a revenue record to a client"""
+    if not can_manage_clients(current_user.role):
+        raise HTTPException(status_code=403, detail="Not authorized to manage clients")
+    
+    client = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    revenue_history = client.get('revenue_history', [])
+    revenue_history.append(revenue.model_dump())
+    
+    # Sort by year and quarter
+    revenue_history.sort(key=lambda x: (x['year'], x.get('quarter') or 0))
+    
+    await db.clients.update_one(
+        {"id": client_id},
+        {"$set": {"revenue_history": revenue_history, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Revenue record added successfully"}
+
+@api_router.get("/clients/industries/list")
+async def get_client_industries(current_user: User = Depends(get_current_user)):
+    """Get list of all industries"""
+    industries = await db.clients.distinct("industry")
+    return [i for i in industries if i]
+
+@api_router.get("/clients/stats/summary")
+async def get_client_stats(current_user: User = Depends(get_current_user)):
+    """Get client statistics"""
+    total_clients = await db.clients.count_documents({"is_active": True})
+    
+    by_industry = await db.clients.aggregate([
+        {"$match": {"is_active": True}},
+        {"$group": {"_id": "$industry", "count": {"$sum": 1}}}
+    ]).to_list(100)
+    
+    # Total revenue across all clients
+    pipeline = [
+        {"$match": {"is_active": True}},
+        {"$unwind": "$revenue_history"},
+        {"$group": {"_id": None, "total": {"$sum": "$revenue_history.amount"}}}
+    ]
+    total_revenue_result = await db.clients.aggregate(pipeline).to_list(1)
+    total_revenue = total_revenue_result[0]['total'] if total_revenue_result else 0
+    
+    return {
+        "total_clients": total_clients,
+        "by_industry": {item['_id'] or 'Unspecified': item['count'] for item in by_industry},
+        "total_revenue": total_revenue
+    }
+
+
+# ==================== EXPENSE SYSTEM ====================
+
+class ExpenseCategory(str):
+    TRAVEL = "travel"
+    LOCAL_CONVEYANCE = "local_conveyance"
+    FOOD = "food"
+    ACCOMMODATION = "accommodation"
+    OFFICE_SUPPLIES = "office_supplies"
+    COMMUNICATION = "communication"
+    CLIENT_ENTERTAINMENT = "client_entertainment"
+    OTHER = "other"
+
+class ExpenseLineItem(BaseModel):
+    """Single expense line item"""
+    category: str
+    description: str
+    amount: float
+    date: datetime
+    receipt_url: Optional[str] = None
+    receipt_data: Optional[str] = None  # Base64 encoded receipt
+
+class ExpenseRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    employee_name: str
+    client_id: Optional[str] = None  # Link to client if client-related
+    client_name: Optional[str] = None
+    project_id: Optional[str] = None  # Link to project if project-related
+    project_name: Optional[str] = None
+    is_office_expense: bool = False  # True if not linked to client/project
+    line_items: List[ExpenseLineItem] = []
+    total_amount: float = 0
+    currency: str = "INR"
+    status: str = "draft"  # draft, pending, approved, rejected, reimbursed
+    approval_request_id: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    reimbursed_at: Optional[datetime] = None
+    reimbursed_by: Optional[str] = None
+    notes: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ExpenseRequestCreate(BaseModel):
+    client_id: Optional[str] = None
+    client_name: Optional[str] = None
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    is_office_expense: bool = False
+    line_items: List[ExpenseLineItem] = []
+    notes: Optional[str] = None
+
+class ExpenseRequestUpdate(BaseModel):
+    client_id: Optional[str] = None
+    client_name: Optional[str] = None
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    is_office_expense: Optional[bool] = None
+    line_items: Optional[List[ExpenseLineItem]] = None
+    notes: Optional[str] = None
+
+@api_router.post("/expenses")
+async def create_expense_request(
+    expense_create: ExpenseRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new expense request"""
+    # Get employee record
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=400, detail="No employee record found for this user")
+    
+    # Calculate total
+    line_items_data = []
+    total = 0
+    for item in expense_create.line_items:
+        item_dict = item.model_dump()
+        item_dict['date'] = item_dict['date'].isoformat()
+        line_items_data.append(item_dict)
+        total += item.amount
+    
+    expense = ExpenseRequest(
+        employee_id=employee['id'],
+        employee_name=f"{employee['first_name']} {employee['last_name']}",
+        client_id=expense_create.client_id,
+        client_name=expense_create.client_name,
+        project_id=expense_create.project_id,
+        project_name=expense_create.project_name,
+        is_office_expense=expense_create.is_office_expense,
+        line_items=line_items_data,
+        total_amount=total,
+        notes=expense_create.notes,
+        created_by=current_user.id
+    )
+    
+    doc = expense.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.expenses.insert_one(doc)
+    
+    return {"message": "Expense request created", "expense_id": expense.id, "total_amount": total}
+
+@api_router.get("/expenses")
+async def get_expenses(
+    status: Optional[str] = None,
+    employee_id: Optional[str] = None,
+    client_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get expense requests"""
+    query = {}
+    
+    # Non-admin/hr users can only see their own expenses
+    if current_user.role not in ['admin', 'hr_manager', 'manager', 'project_manager']:
+        employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+        if employee:
+            query['employee_id'] = employee['id']
+    else:
+        if employee_id:
+            query['employee_id'] = employee_id
+    
+    if status:
+        query['status'] = status
+    if client_id:
+        query['client_id'] = client_id
+    
+    expenses = await db.expenses.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    return expenses
+
+@api_router.get("/expenses/{expense_id}")
+async def get_expense(
+    expense_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific expense request"""
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    return expense
+
+@api_router.patch("/expenses/{expense_id}")
+async def update_expense(
+    expense_id: str,
+    expense_update: ExpenseRequestUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an expense request (only if draft status)"""
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if expense['status'] != 'draft':
+        raise HTTPException(status_code=400, detail="Can only edit draft expenses")
+    
+    # Check ownership
+    if expense['created_by'] != current_user.id and current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Not authorized to edit this expense")
+    
+    update_data = expense_update.model_dump(exclude_unset=True)
+    
+    # Recalculate total if line items updated
+    if 'line_items' in update_data:
+        total = sum(item['amount'] for item in update_data['line_items'])
+        update_data['total_amount'] = total
+        # Convert dates to ISO format
+        for item in update_data['line_items']:
+            if isinstance(item.get('date'), datetime):
+                item['date'] = item['date'].isoformat()
+    
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.expenses.update_one({"id": expense_id}, {"$set": update_data})
+    
+    updated = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    return updated
+
+@api_router.post("/expenses/{expense_id}/submit")
+async def submit_expense_for_approval(
+    expense_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit expense for approval through reporting manager chain"""
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if expense['status'] != 'draft':
+        raise HTTPException(status_code=400, detail="Expense already submitted")
+    
+    if expense['created_by'] != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to submit this expense")
+    
+    if not expense.get('line_items') or len(expense['line_items']) == 0:
+        raise HTTPException(status_code=400, detail="Expense must have at least one line item")
+    
+    # Create approval request through reporting manager chain + HR
+    approval = await create_approval_request(
+        approval_type=ApprovalType.EXPENSE,
+        reference_id=expense_id,
+        reference_title=f"Expense: ₹{expense['total_amount']:,.2f}",
+        requester_id=current_user.id,
+        is_client_facing=bool(expense.get('client_id')),
+        requires_hr_approval=True,  # Expenses require HR approval
+        requires_admin_approval=False
+    )
+    
+    await db.expenses.update_one(
+        {"id": expense_id},
+        {"$set": {
+            "status": "pending",
+            "approval_request_id": approval['id'],
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Expense submitted for approval", "approval_id": approval['id']}
+
+@api_router.post("/expenses/{expense_id}/mark-reimbursed")
+async def mark_expense_reimbursed(
+    expense_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Mark an approved expense as reimbursed (HR/Admin only)"""
+    if current_user.role not in ['admin', 'hr_manager']:
+        raise HTTPException(status_code=403, detail="Only HR/Admin can mark expenses as reimbursed")
+    
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if expense['status'] != 'approved':
+        raise HTTPException(status_code=400, detail="Expense must be approved before reimbursement")
+    
+    await db.expenses.update_one(
+        {"id": expense_id},
+        {"$set": {
+            "status": "reimbursed",
+            "reimbursed_at": datetime.now(timezone.utc).isoformat(),
+            "reimbursed_by": current_user.id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Expense marked as reimbursed"}
+
+@api_router.get("/expenses/categories/list")
+async def get_expense_categories():
+    """Get list of expense categories"""
+    return [
+        {"value": "travel", "label": "Travel"},
+        {"value": "local_conveyance", "label": "Local Conveyance"},
+        {"value": "food", "label": "Food & Meals"},
+        {"value": "accommodation", "label": "Accommodation"},
+        {"value": "office_supplies", "label": "Office Supplies"},
+        {"value": "communication", "label": "Communication"},
+        {"value": "client_entertainment", "label": "Client Entertainment"},
+        {"value": "other", "label": "Other"}
+    ]
+
+@api_router.get("/expenses/stats/summary")
+async def get_expense_stats(
+    current_user: User = Depends(get_current_user)
+):
+    """Get expense statistics"""
+    if current_user.role not in ['admin', 'hr_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Not authorized to view expense stats")
+    
+    pending = await db.expenses.count_documents({"status": "pending"})
+    approved = await db.expenses.count_documents({"status": "approved"})
+    reimbursed = await db.expenses.count_documents({"status": "reimbursed"})
+    
+    # Total pending amount
+    pending_total = await db.expenses.aggregate([
+        {"$match": {"status": "pending"}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+    ]).to_list(1)
+    
+    return {
+        "pending_count": pending,
+        "approved_count": approved,
+        "reimbursed_count": reimbursed,
+        "pending_amount": pending_total[0]['total'] if pending_total else 0
+    }
+
+
 app.include_router(api_router)
 
 app.add_middleware(
