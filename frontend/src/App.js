@@ -16,6 +16,8 @@ import MyAttendance from './pages/MyAttendance';
 import MyLeaves from './pages/MyLeaves';
 import MySalarySlips from './pages/MySalarySlips';
 import MyExpenses from './pages/MyExpenses';
+import ProjectRoadmap from './pages/ProjectRoadmap';
+import ConsultantPerformance from './pages/ConsultantPerformance';
 import EmailTemplates from './pages/EmailTemplates';
 import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
 import SOWBuilder from './pages/sales-funnel/SOWBuilder';
@@ -120,6 +122,8 @@ function App() {
             <Route path="my-leaves" element={<MyLeaves />} />
             <Route path="my-salary-slips" element={<MySalarySlips />} />
             <Route path="my-expenses" element={<MyExpenses />} />
+            <Route path="project-roadmap" element={<ProjectRoadmap />} />
+            <Route path="consultant-performance" element={<ConsultantPerformance />} />
             <Route path="email-templates" element={<EmailTemplates />} />
             <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
             <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
