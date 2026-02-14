@@ -294,27 +294,75 @@ class ConsultantProfile(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class MeetingActionItem(BaseModel):
+    """Action item from MOM"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    description: str
+    assigned_to_id: Optional[str] = None
+    assigned_to_name: Optional[str] = None
+    due_date: Optional[datetime] = None
+    priority: str = "medium"  # low, medium, high
+    status: str = "pending"  # pending, in_progress, completed
+    completed_at: Optional[datetime] = None
+    follow_up_task_id: Optional[str] = None
+
 class Meeting(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     project_id: str
+    client_id: Optional[str] = None
+    lead_id: Optional[str] = None
     meeting_date: datetime
     mode: str
     attendees: List[str] = []
+    attendee_names: List[str] = []
     duration_minutes: Optional[int] = None
     notes: Optional[str] = None
     is_delivered: bool = False
+    # MOM (Minutes of Meeting) fields
+    title: Optional[str] = None
+    agenda: Optional[List[str]] = []
+    discussion_points: Optional[List[str]] = []
+    decisions_made: Optional[List[str]] = []
+    action_items: Optional[List[Dict[str, Any]]] = []
+    next_meeting_date: Optional[datetime] = None
+    mom_generated: bool = False
+    mom_sent_to_client: bool = False
+    mom_sent_at: Optional[datetime] = None
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class MeetingCreate(BaseModel):
     project_id: str
+    client_id: Optional[str] = None
+    lead_id: Optional[str] = None
     meeting_date: datetime
     mode: str
     attendees: Optional[List[str]] = []
+    attendee_names: Optional[List[str]] = []
     duration_minutes: Optional[int] = None
     notes: Optional[str] = None
     is_delivered: bool = False
+    title: Optional[str] = None
+    agenda: Optional[List[str]] = []
+
+class MOMCreate(BaseModel):
+    """Minutes of Meeting creation/update"""
+    title: Optional[str] = None
+    agenda: Optional[List[str]] = []
+    discussion_points: Optional[List[str]] = []
+    decisions_made: Optional[List[str]] = []
+    action_items: Optional[List[Dict[str, Any]]] = []
+    next_meeting_date: Optional[datetime] = None
+
+class ActionItemCreate(BaseModel):
+    """Create action item with follow-up task"""
+    description: str
+    assigned_to_id: Optional[str] = None
+    due_date: Optional[datetime] = None
+    priority: str = "medium"
+    create_follow_up_task: bool = True
+    notify_reporting_manager: bool = True
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
