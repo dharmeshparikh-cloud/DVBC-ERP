@@ -403,17 +403,19 @@ A comprehensive business management application for a 50-person consulting organ
 3. **Agreements**: Create from quotations, submit for approval
 4. **Manager Approvals**: View pending approvals, approve/reject agreements
 
-### Navigation ✅
-- Dashboard with clickable stats and quick actions
-- Leads management page with "Start Sales Flow" button
-- Projects and Meetings modules
-- Email Templates
-- Sales Funnel section (Pricing Plans, Quotations, Agreements)
-- Management section:
-  - Approvals (managers/admins)
-  - Consultants (managers/admins)
-  - **Handover Alerts** (managers/admins/project managers)
-- Pending approvals alert on dashboard for managers
+### Navigation ✅ RESTRUCTURED (Feb 14, 2026)
+- Domain-segmented sidebar with 4 sections: HR, SALES, CONSULTING, ADMIN
+- **HR Section** (visible to: Admin, HR Manager, HR Executive, Manager):
+  - Employees, Expenses, HR Reports
+- **SALES Section** (visible to: Admin, Executive, Account Manager, Manager):
+  - Branch flow: Leads → Pricing Plans → Quotations → Agreements (visual connector)
+  - Clients, Sales Meetings, Sales Reports
+- **CONSULTING Section** (visible to: Admin, PM, Consultant roles, Manager):
+  - Projects, Consulting Meetings, Consultants, Handover Alerts, Consulting Reports
+- **ADMIN Section** (visible to: Admin, Manager):
+  - User Management, Approvals Center, Email Templates
+- Reports auto-filter by domain via URL params (?category=hr/sales/operations)
+- Sticky sidebar with scrollable nav, role-based visibility
 
 ### UI/UX ✅
 - Black and white theme
