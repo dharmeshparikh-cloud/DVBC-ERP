@@ -561,6 +561,72 @@ async def get_projects(current_user: User = Depends(get_current_user)):
     
     return projects
 
+# Handover alerts must be defined BEFORE /projects/{project_id} to avoid route conflict
+@api_router.get("/projects/handover-alerts")
+async def get_handover_alerts(current_user: User = Depends(get_current_user)):
+    """Get projects approaching 15-day handover deadline from agreement approval"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.PROJECT_MANAGER]:
+        raise HTTPException(status_code=403, detail="Not authorized to view handover alerts")
+    
+    # Get approved agreements from last 30 days
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    
+    agreements = await db.agreements.find(
+        {
+            "status": "approved",
+            "approved_at": {"$gte": thirty_days_ago}
+        },
+        {"_id": 0}
+    ).to_list(1000)
+    
+    alerts = []
+    for agreement in agreements:
+        approved_at = agreement.get('approved_at')
+        if isinstance(approved_at, str):
+            approved_at = datetime.fromisoformat(approved_at)
+        
+        if approved_at:
+            days_since_approval = (datetime.now(timezone.utc) - approved_at).days
+            days_remaining = 15 - days_since_approval
+            
+            # Check if project has been created for this agreement
+            project = await db.projects.find_one(
+                {"agreement_id": agreement['id']},
+                {"_id": 0}
+            )
+            
+            # Get lead info
+            lead = None
+            if agreement.get('lead_id'):
+                lead = await db.leads.find_one(
+                    {"id": agreement['lead_id']},
+                    {"_id": 0, "first_name": 1, "last_name": 1, "company": 1}
+                )
+            
+            alert_type = "on_track"
+            if days_remaining <= 0:
+                alert_type = "overdue"
+            elif days_remaining <= 3:
+                alert_type = "critical"
+            elif days_remaining <= 7:
+                alert_type = "warning"
+            
+            alerts.append({
+                "agreement": agreement,
+                "lead": lead,
+                "project": project,
+                "days_since_approval": days_since_approval,
+                "days_remaining": days_remaining,
+                "alert_type": alert_type,
+                "has_project": project is not None,
+                "has_consultants_assigned": project.get('assigned_consultants', []) if project else []
+            })
+    
+    # Sort by days_remaining (most urgent first)
+    alerts.sort(key=lambda x: x['days_remaining'])
+    
+    return alerts
+
 @api_router.get("/projects/{project_id}", response_model=Project)
 async def get_project(project_id: str, current_user: User = Depends(get_current_user)):
     project_data = await db.projects.find_one({"id": project_id}, {"_id": 0})
