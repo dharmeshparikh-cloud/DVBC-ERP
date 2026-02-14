@@ -9,6 +9,7 @@ import Projects from './pages/Projects';
 import Meetings from './pages/Meetings';
 import EmailTemplates from './pages/EmailTemplates';
 import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
+import SOWBuilder from './pages/sales-funnel/SOWBuilder';
 import Quotations from './pages/sales-funnel/Quotations';
 import Agreements from './pages/sales-funnel/Agreements';
 import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
@@ -17,6 +18,7 @@ import ConsultantDashboard from './pages/ConsultantDashboard';
 import ProjectTasks from './pages/ProjectTasks';
 import HandoverAlerts from './pages/HandoverAlerts';
 import KickoffMeeting from './pages/KickoffMeeting';
+import UserProfile from './pages/UserProfile';
 import Layout from './components/Layout';
 import './App.css';
 
