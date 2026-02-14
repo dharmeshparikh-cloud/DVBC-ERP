@@ -105,6 +105,33 @@ A comprehensive business management application for a 50-person consulting organ
 - **PM Team Features**: Approve/Reject buttons for pending items, Approve All button
 - Dynamic UI based on user role category
 
+### Reports & Analytics Module (Feb 14, 2026) ✅ NEW
+- **Purpose**: Generate and download analytical reports with Excel and PDF export
+- **19 Core Reports** across 4 categories:
+  - **Sales (8)**: Lead Summary, Lead Conversion Funnel, Lead Source Analysis, Client Overview, Client Industry Breakdown, Sales Pipeline Status, Quotation Analysis, Agreement Status
+  - **Finance (3)**: Client Revenue Analysis, Expense Summary, Expense Category Analysis
+  - **HR (3)**: Employee Directory, Department Analysis, Leave Utilization
+  - **Operations (5)**: SOW Status, Project Summary, Consultant Allocation, Approval Turnaround, Pending Approvals
+- **Export Formats**: Excel (.xlsx) and PDF
+- **Role-Based Access**:
+  - Admin: All 19 reports
+  - Manager: All 19 reports
+  - HR Manager: HR + Finance reports
+  - Project Manager: Operations + Client reports
+  - Executive/Account Manager: Sales reports
+- **Quick Stats Dashboard**: Leads, Clients, Employees, Projects, Revenue, Pending Approvals, Expenses
+- **Features**:
+  - Search and category filter
+  - Preview dialog with data table
+  - Direct download buttons
+- **APIs**:
+  - `GET /api/reports` - List available reports for user role
+  - `GET /api/reports/{id}/preview` - Preview report data
+  - `POST /api/reports/generate` - Download Excel or PDF
+  - `GET /api/reports/categories` - List report categories
+  - `GET /api/reports/stats` - Quick stats (admin/manager)
+- **Navigation**: Management → Reports
+
 ### Client Master Module (Feb 14, 2026) ✅ NEW
 - **Purpose**: Manage client information and relationships for sales team
 - **Client Data Model**:
