@@ -264,7 +264,7 @@ class TestHRFeatures:
             headers=self.get_headers()
         )
         employees = response.json()
-        emp_with_salary = [e for e in employees if e.get('salary', 0) > 0]
+        emp_with_salary = [e for e in employees if (e.get('salary') or 0) > 0]
         
         if not emp_with_salary:
             print("⚠ No employees with salary configured - attempting to set salary")
