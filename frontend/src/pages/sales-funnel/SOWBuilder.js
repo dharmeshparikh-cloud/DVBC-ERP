@@ -1055,8 +1055,8 @@ const SOWBuilder = () => {
               </table>
             </div>
             
-            {/* Add Row Button */}
-            {canEdit && (
+            {/* Add Row Button - Sales team only */}
+            {canCreateSOW && (
               <div className="p-4 border-t border-zinc-100">
                 <Button
                   onClick={addNewRow}
@@ -1072,7 +1072,10 @@ const SOWBuilder = () => {
             
             {sow.items?.length === 0 && newRows.length === 0 && (
               <div className="text-center py-12 text-zinc-400">
-                No SOW items yet. Click "Add New Row" to start adding items.
+                {canCreateSOW 
+                  ? "No SOW items yet. Click \"Add New Row\" to start adding items."
+                  : "No SOW items yet. Sales team will add items."
+                }
               </div>
             )}
           </CardContent>
