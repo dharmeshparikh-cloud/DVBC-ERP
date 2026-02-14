@@ -2322,7 +2322,7 @@ async def reject_agreement(
     return {"message": "Agreement rejected"}
 
 @api_router.get("/agreements/pending-approval")
-async def get_pending_approvals(current_user: User = Depends(get_current_user)):
+async def get_agreement_pending_approvals(current_user: User = Depends(get_current_user)):
     if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(status_code=403, detail="Only managers and admins can view pending approvals")
     
