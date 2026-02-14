@@ -189,14 +189,18 @@ class Project(BaseModel):
     name: str
     client_name: str
     lead_id: Optional[str] = None
+    agreement_id: Optional[str] = None
+    project_type: str = "mixed"  # online, offline, mixed
     start_date: datetime
     end_date: Optional[datetime] = None
-    status: str = "active"
+    status: str = "active"  # active, completed, on_hold, cancelled
     total_meetings_committed: int = 0
     total_meetings_delivered: int = 0
     number_of_visits: int = 0
+    assigned_consultants: List[str] = []  # List of consultant user IDs
     assigned_team: List[str] = []
     budget: Optional[float] = None
+    project_value: Optional[float] = None
     notes: Optional[str] = None
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -206,12 +210,51 @@ class ProjectCreate(BaseModel):
     name: str
     client_name: str
     lead_id: Optional[str] = None
+    agreement_id: Optional[str] = None
+    project_type: Optional[str] = "mixed"
     start_date: datetime
     end_date: Optional[datetime] = None
     total_meetings_committed: Optional[int] = 0
+    assigned_consultants: Optional[List[str]] = []
     assigned_team: Optional[List[str]] = []
     budget: Optional[float] = None
+    project_value: Optional[float] = None
     notes: Optional[str] = None
+
+class ConsultantAssignment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    consultant_id: str
+    project_id: str
+    assigned_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    assigned_by: str
+    role_in_project: Optional[str] = "consultant"  # lead_consultant, consultant, support
+    meetings_committed: int = 0
+    meetings_completed: int = 0
+    is_active: bool = True
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ConsultantAssignmentCreate(BaseModel):
+    consultant_id: str
+    project_id: str
+    role_in_project: Optional[str] = "consultant"
+    meetings_committed: Optional[int] = 0
+    notes: Optional[str] = None
+
+class ConsultantProfile(BaseModel):
+    """Extended profile for consultant users"""
+    model_config = ConfigDict(extra="ignore")
+    user_id: str
+    specializations: List[str] = []
+    preferred_mode: str = "mixed"  # online, offline, mixed
+    max_projects: int = 8
+    current_project_count: int = 0
+    total_project_value: float = 0
+    bio: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class Meeting(BaseModel):
     model_config = ConfigDict(extra="ignore")
