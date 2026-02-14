@@ -36,9 +36,40 @@ A comprehensive business management application for a 50-person consulting organ
 - **Consulting Team** (view/update status): Consultant, Lean Consultant, Lead Consultant, Senior Consultant, Principal Consultant, Subject Matter Expert
 - **PM/Audit Team** (approve/authorize): Admin, Project Manager, Manager
 
+## Approval Workflow Based on Reporting Manager Hierarchy (Feb 14, 2026) ✅ NEW
+- **Reporting Manager Integration**: Each employee can have a reporting manager assigned
+- **Multi-Level Approval Chain**:
+  1. First goes to direct reporting manager
+  2. For client-facing items: escalates to second-level manager
+  3. HR approval required for leave requests and expenses
+  4. Admin approval required for agreements/quotations
+  5. Fallback to role-based if no reporting manager assigned
+- **Approval Types**: SOW Items, Agreements, Quotations, Leave Requests, Expenses, Client Communications
+- **Notifications**: Specific reporting manager notified (not all managers)
+
 ## Implemented Features
 
-### Role & Permissions Management Module (Feb 14, 2026) ✅ NEW
+### Approval Workflow Engine (Feb 14, 2026) ✅ NEW
+- **Approvals Center**: Central hub for all approval requests
+- **Approval Chain**: Visual display of approval levels with status
+- **Stats Dashboard**: Pending, Approved, Rejected counts
+- **Three Tabs**:
+  1. Pending My Action - items waiting for current user's approval
+  2. My Requests - items user has submitted for approval
+  3. All Approvals - admin/manager view of all requests
+- **Action Dialog**: Approve/Reject with comments
+- **APIs**:
+  - `GET /api/approvals/pending` - Approvals awaiting user action
+  - `GET /api/approvals/my-requests` - User's submitted requests
+  - `GET /api/approvals/all` - All approvals (admin/manager)
+  - `POST /api/approvals/{id}/action` - Approve or reject
+  - `GET /api/approvals/preview-chain` - Preview approval chain
+- **Leave Request System**:
+  - `POST /api/leave-requests` - Submit leave request
+  - Auto-routes to Reporting Manager → HR Manager
+  - Updates leave balance on approval
+
+### Role & Permissions Management Module (Feb 14, 2026) ✅
 - **User Management Page**: Integrated Users and Roles tabs
 - **Users Tab**:
   - List all users with name, email, department, role, status
