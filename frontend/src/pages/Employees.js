@@ -558,12 +558,23 @@ const Employees = () => {
             ) : (
               <div className="space-y-2">
                 {orgChart.map(node => (
-                  <OrgChartNodeSimple 
-                    key={node.id} 
-                    node={node} 
-                    expandedNodes={expandedNodes}
-                    toggleNode={toggleNode}
-                  />
+                  <div key={node.id} className="p-3 border border-zinc-200 rounded-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center text-sm font-medium text-zinc-600">
+                        {node.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-medium text-zinc-900">{node.name}</div>
+                        <div className="text-xs text-zinc-500">{node.designation || 'No designation'} • {node.department || 'No dept'}</div>
+                      </div>
+                      {node.has_user_access && (
+                        <span className="ml-2 px-2 py-0.5 text-xs bg-emerald-100 text-emerald-700 rounded">System Access</span>
+                      )}
+                      {node.children?.length > 0 && (
+                        <span className="ml-auto text-xs text-zinc-400">{node.children.length} direct report(s)</span>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
