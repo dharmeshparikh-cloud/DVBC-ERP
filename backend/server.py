@@ -3883,47 +3883,7 @@ async def update_full_consultant_profile(
 
 # ==================== USER ROLE MANAGEMENT ====================
 
-@api_router.patch("/users/{user_id}/role")
-async def update_user_role(
-    user_id: str,
-    new_role: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Update user role (Admin only)"""
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can change user roles")
-    
-    valid_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.EXECUTIVE, UserRole.CONSULTANT, 
-                   UserRole.PROJECT_MANAGER, UserRole.PRINCIPAL_CONSULTANT]
-    if new_role not in valid_roles:
-        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {valid_roles}")
-    
-    result = await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"role": new_role, "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # If promoting to consultant-type role, ensure profile exists
-    if new_role in [UserRole.CONSULTANT, UserRole.PRINCIPAL_CONSULTANT, UserRole.PROJECT_MANAGER]:
-        existing_profile = await db.consultant_profiles.find_one({"user_id": user_id})
-        if not existing_profile:
-            profile = {
-                "user_id": user_id,
-                "specializations": [],
-                "preferred_mode": "mixed",
-                "max_projects": CONSULTANT_BANDWIDTH_LIMITS.get("mixed", 8),
-                "current_project_count": 0,
-                "total_project_value": 0,
-                "bio": None,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }
-            await db.consultant_profiles.insert_one(profile)
-    
-    return {"message": f"User role updated to {new_role}"}
+# Old update_user_role removed - consolidated in ROLE MANAGEMENT APIS section
 
 @api_router.get("/users")
 async def get_all_users(
