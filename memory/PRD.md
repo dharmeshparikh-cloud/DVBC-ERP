@@ -199,6 +199,26 @@ A comprehensive business management application for a 50-person consulting organ
 - **Purpose**: Dedicated page for leave requests with approval flow
 - **Approval Flow**: Employee → Reporting Manager → HR Manager (final records)
 - **Features**: Apply leave form (type, dates, reason), My Requests tab, All Requests tab (HR only)
+
+### Project Roadmap (Feb 14, 2026) ✅ NEW
+- **Purpose**: Monthly phased project plans linked to SOW, shared with clients
+- **Features**: Table view + Kanban view (4 columns), inline status updates, submit to client
+- **Phases**: Monthly breakdown with items (title, assigned to, due date, status)
+- **Status flow**: Draft → Active → Submitted to Client → Completed
+- **Route**: `/project-roadmap`
+- **APIs**: `POST/GET /api/roadmaps`, `PATCH /api/roadmaps/{id}`, `POST /api/roadmaps/{id}/submit-to-client`, `PATCH /api/roadmaps/{id}/items/{item_id}/status`
+
+### Consultant Performance (Feb 14, 2026) ✅ NEW
+- **Purpose**: Configurable performance metrics, consultant rating, performance tracking
+- **Metrics Config**: Created by Principal Consultant, MUST be approved by Admin before populating to users
+  - Default: SOW Timely Delivery (20%), Roadmap Achievement (20%), Records Timeliness (15%), SOW Quality Score (25%), Meeting Adherence (20%)
+  - Fully customizable per project with weighted scoring
+- **Performance Scoring**: RM/PM rates consultants monthly (0-100 per metric), weighted overall score calculated
+- **3 Tabs**: Metrics Config (with approve/reject for admin), Scores (filterable), Summary (per-consultant avg)
+- **Route**: `/consultant-performance`
+- **APIs**: `POST/GET /api/performance-metrics`, `POST /api/performance-metrics/{id}/approve|reject`, `POST/GET /api/performance-scores`, `GET /api/performance-scores/summary`
+
+
 - **Route**: `/leave-management`
 - **APIs**: `POST /api/leave-requests`, `GET /api/leave-requests`, `GET /api/leave-requests/all`
 
@@ -476,7 +496,7 @@ A comprehensive business management application for a 50-person consulting organ
 ### P1 (High Priority)
 - ✅ COMPLETED: Agreement Export to Word/PDF (Feb 14, 2026)
 - ✅ COMPLETED: Meeting Form with MOM - Refactored to Sales & Consulting (Feb 14, 2026)
-- SOW linkages with consultant performance and project roadmap
+- ✅ COMPLETED: SOW Linkages with Consultant Performance & Project Roadmap (Feb 14, 2026)
 - Drag-and-drop task reordering in Gantt view (react-gantt-timeline library)
 - SOW Monthly Roadmap & RACI Matrix conversion
 
