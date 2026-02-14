@@ -26,6 +26,25 @@ class ConsultantAllocation(BaseModel):
     hours: int = 0
     rate_per_meeting: Optional[float] = 12500
 
+class SOWItemStatus(str):
+    DRAFT = "draft"
+    PENDING_REVIEW = "pending_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+class SOWDocument(BaseModel):
+    """Document attached to SOW"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    filename: str
+    original_filename: str
+    file_type: str
+    file_size: int
+    uploaded_by: str
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    description: Optional[str] = None
+
 class SOWItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     category: str  # sales, hr, operations, training, analytics, digital_marketing
@@ -35,15 +54,31 @@ class SOWItem(BaseModel):
     deliverables: List[str] = []
     timeline_weeks: Optional[int] = None
     order: int = 0
+    # New fields for status tracking
+    status: str = SOWItemStatus.DRAFT  # draft, pending_review, approved, rejected, in_progress, completed
+    status_updated_by: Optional[str] = None
+    status_updated_at: Optional[datetime] = None
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    documents: List[SOWDocument] = []
+    notes: Optional[str] = None
 
 class SOWVersion(BaseModel):
     """Version history for SOW changes"""
     version: int
     changed_by: str
     changed_at: datetime
-    change_type: str  # 'created', 'updated', 'item_added', 'item_updated'
+    change_type: str  # 'created', 'updated', 'item_added', 'item_updated', 'status_changed', 'document_added'
     changes: Dict[str, Any] = {}  # What was changed
     snapshot: List[Dict] = []  # Full SOW items at this version
+
+class SOWOverallStatus(str):
+    DRAFT = "draft"
+    PENDING_APPROVAL = "pending_approval"
+    PARTIALLY_APPROVED = "partially_approved"
+    APPROVED = "approved"
+    COMPLETE = "complete"
 
 class SOW(BaseModel):
     """Standalone SOW linked to Pricing Plan"""
@@ -52,11 +87,18 @@ class SOW(BaseModel):
     pricing_plan_id: str
     lead_id: str
     items: List[SOWItem] = []
+    documents: List[SOWDocument] = []  # SOW-level documents
+    overall_status: str = SOWOverallStatus.DRAFT  # Overall SOW status
     current_version: int = 1
     version_history: List[SOWVersion] = []
     is_frozen: bool = False
     frozen_at: Optional[datetime] = None
     frozen_by: Optional[str] = None
+    submitted_for_approval: bool = False
+    submitted_at: Optional[datetime] = None
+    submitted_by: Optional[str] = None
+    final_approved_by: Optional[str] = None
+    final_approved_at: Optional[datetime] = None
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -74,6 +116,13 @@ class SOWItemCreate(BaseModel):
     deliverables: Optional[List[str]] = []
     timeline_weeks: Optional[int] = None
     order: Optional[int] = 0
+    status: Optional[str] = SOWItemStatus.DRAFT
+    notes: Optional[str] = None
+
+class SOWItemStatusUpdate(BaseModel):
+    status: str
+    rejection_reason: Optional[str] = None
+    notes: Optional[str] = None
 
 class PricingPlan(BaseModel):
     model_config = ConfigDict(extra="ignore")
