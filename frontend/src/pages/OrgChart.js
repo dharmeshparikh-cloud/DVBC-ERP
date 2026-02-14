@@ -1,41 +1,37 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API, AuthContext } from '../App';
+import { API } from '../App';
 import { Card, CardContent } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { ChevronDown, ChevronRight, Users as UsersIcon, Building2, User } from 'lucide-react';
+import { Users as UsersIcon, Building2, User, ChevronDown, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 const DEPT_COLORS = {
-  'Engineering': 'border-l-blue-500', 'Sales': 'border-l-emerald-500', 'HR': 'border-l-purple-500',
-  'Marketing': 'border-l-orange-500', 'Operations': 'border-l-yellow-500', 'Finance': 'border-l-red-500',
-  'Consulting': 'border-l-teal-500', 'Management': 'border-l-zinc-700'
+  Engineering: 'border-l-blue-500', Sales: 'border-l-emerald-500', HR: 'border-l-purple-500',
+  Marketing: 'border-l-orange-500', Operations: 'border-l-yellow-500', Finance: 'border-l-red-500',
+  Consulting: 'border-l-teal-500', Management: 'border-l-zinc-700'
 };
 
-const OrgNode = ({ node, level = 0 }) => {
+function TreeNode(props) {
+  const { node, level } = props;
   const [expanded, setExpanded] = useState(level < 2);
   const hasChildren = node.children && node.children.length > 0;
   const borderColor = DEPT_COLORS[node.department] || 'border-l-zinc-300';
+  const indent = level * 32;
 
   return (
-    <div className="relative" data-testid={`org-node-${node.id}`}>
-      <div className={`flex items-start gap-3 ${level > 0 ? 'ml-8' : ''}`}>
-        {/* Connector line */}
-        {level > 0 && (
-          <div className="absolute -left-0 top-0 bottom-0" style={{ marginLeft: `${(level - 1) * 32 + 16}px` }}>
-            <div className="w-6 h-5 border-l-2 border-b-2 border-zinc-200 rounded-bl-lg" />
-          </div>
-        )}
-        {/* Node card */}
-        <div className={`flex-1 border border-zinc-200 rounded-sm bg-white hover:shadow-sm transition-shadow border-l-4 ${borderColor} mb-2`}>
+    <div data-testid={'org-node-' + node.id}>
+      <div className="flex items-start gap-2" style={{ paddingLeft: indent + 'px' }}>
+        <div className={'flex-1 border border-zinc-200 rounded-sm bg-white hover:shadow-sm transition-shadow border-l-4 mb-1.5 ' + borderColor}>
           <div className="p-3 flex items-center gap-3">
-            {hasChildren && (
-              <button onClick={() => setExpanded(!expanded)}
-                className="w-6 h-6 flex items-center justify-center rounded-sm bg-zinc-100 hover:bg-zinc-200 transition-colors flex-shrink-0"
-                data-testid={`org-toggle-${node.id}`}>
+            {hasChildren ? (
+              <button onClick={function() { setExpanded(!expanded); }}
+                className="w-6 h-6 flex items-center justify-center rounded-sm bg-zinc-100 hover:bg-zinc-200 flex-shrink-0"
+                data-testid={'org-toggle-' + node.id}>
                 {expanded ? <ChevronDown className="w-3.5 h-3.5 text-zinc-600" /> : <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />}
               </button>
+            ) : (
+              <div className="w-6" />
             )}
-            {!hasChildren && <div className="w-6" />}
             <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center flex-shrink-0">
               <User className="w-4 h-4 text-zinc-500" strokeWidth={1.5} />
             </div>
@@ -48,61 +44,86 @@ const OrgNode = ({ node, level = 0 }) => {
               <div className="text-xs text-zinc-400">{node.employee_id}</div>
             </div>
             {hasChildren && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded-sm flex-shrink-0">
+              <span className="text-xs px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded-sm flex-shrink-0">
                 {node.children.length}
               </span>
             )}
           </div>
         </div>
       </div>
-      {/* Children */}
-      {expanded && hasChildren && (
-        <div className="relative" style={{ paddingLeft: `${level > 0 ? 0 : 0}px` }}>
-          {node.children.map((child) => (
-            <OrgNode key={child.id} node={child} level={level + 1} />
-          ))}
-        </div>
-      )}
+      {expanded && hasChildren && node.children.map(function(child) {
+        return <TreeNode key={child.id} node={child} level={level + 1} />;
+      })}
     </div>
   );
-};
+}
 
-const OrgChart = () => {
-  const [hierarchy, setHierarchy] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total: 0, departments: 0, managers: 0 });
+function OrgChart() {
+  var _useState1 = useState([]);
+  var hierarchy = _useState1[0];
+  var setHierarchy = _useState1[1];
+  var _useState2 = useState(true);
+  var loading = _useState2[0];
+  var setLoading = _useState2[1];
+  var _useState3 = useState({ total: 0, departments: 0, managers: 0 });
+  var stats = _useState3[0];
+  var setStats = _useState3[1];
 
-  useEffect(() => {
+  useEffect(function() {
     fetchOrgChart();
   }, []);
 
-  const fetchOrgChart = async () => {
-    try {
-      const [orgRes, empRes] = await Promise.all([
-        axios.get(`${API}/employees/org-chart/hierarchy`),
-        axios.get(`${API}/employees/stats/summary`).catch(() => ({ data: {} }))
-      ]);
-      setHierarchy(orgRes.data);
-      const countNodes = (nodes) => nodes.reduce((sum, n) => sum + 1 + (n.children ? countNodes(n.children) : 0), 0);
-      const countManagers = (nodes) => nodes.reduce((sum, n) => sum + (n.children?.length > 0 ? 1 : 0) + (n.children ? countManagers(n.children) : 0), 0);
-      const getDepts = (nodes, set = new Set()) => { nodes.forEach(n => { if (n.department) set.add(n.department); if (n.children) getDepts(n.children, set); }); return set; };
-      setStats({
-        total: countNodes(orgRes.data),
-        departments: getDepts(orgRes.data).size,
-        managers: countManagers(orgRes.data)
-      });
-    } catch (error) {
-      console.error('Failed to fetch org chart:', error);
-    } finally {
-      setLoading(false);
+  function countNodes(nodes) {
+    var count = 0;
+    for (var i = 0; i < nodes.length; i++) {
+      count += 1;
+      if (nodes[i].children) count += countNodes(nodes[i].children);
     }
-  };
+    return count;
+  }
+
+  function countManagers(nodes) {
+    var count = 0;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].children && nodes[i].children.length > 0) count += 1;
+      if (nodes[i].children) count += countManagers(nodes[i].children);
+    }
+    return count;
+  }
+
+  function getDepts(nodes, deptsSet) {
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].department) deptsSet.add(nodes[i].department);
+      if (nodes[i].children) getDepts(nodes[i].children, deptsSet);
+    }
+    return deptsSet;
+  }
+
+  function fetchOrgChart() {
+    axios.get(API + '/employees/org-chart/hierarchy')
+      .then(function(res) {
+        setHierarchy(res.data);
+        var deptsSet = new Set();
+        getDepts(res.data, deptsSet);
+        setStats({
+          total: countNodes(res.data),
+          departments: deptsSet.size,
+          managers: countManagers(res.data)
+        });
+      })
+      .catch(function() {
+        toast.error('Failed to load org chart');
+      })
+      .finally(function() {
+        setLoading(false);
+      });
+  }
 
   return (
     <div data-testid="org-chart-page">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Organization Chart</h1>
-        <p className="text-zinc-500">Visual hierarchy of the organization based on reporting structure</p>
+        <p className="text-zinc-500">Visual hierarchy based on reporting structure</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -136,7 +157,9 @@ const OrgChart = () => {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64"><div className="text-zinc-500">Loading org chart...</div></div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-zinc-500">Loading org chart...</div>
+        </div>
       ) : hierarchy.length === 0 ? (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="flex flex-col items-center justify-center h-64">
@@ -148,12 +171,14 @@ const OrgChart = () => {
       ) : (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="p-6">
-            {hierarchy.map(node => <OrgNode key={node.id} node={node} level={0} />)}
+            {hierarchy.map(function(node) {
+              return <TreeNode key={node.id} node={node} level={0} />;
+            })}
           </CardContent>
         </Card>
       )}
     </div>
   );
-};
+}
 
 export default OrgChart;
