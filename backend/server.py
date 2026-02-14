@@ -1763,6 +1763,458 @@ async def get_consultant_dashboard_stats(current_user: User = Depends(get_curren
         "bandwidth_percentage": round((len(assignments) / max_projects) * 100) if max_projects > 0 else 0
     }
 
+# ==================== TASK MANAGEMENT APIs ====================
+
+class TaskStatus(str):
+    TO_DO = "to_do"
+    OWN_TASK = "own_task"
+    IN_PROGRESS = "in_progress"
+    DELEGATED = "delegated"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+class TaskCategory(str):
+    GENERAL = "general"
+    MEETING = "meeting"
+    DELIVERABLE = "deliverable"
+    REVIEW = "review"
+    FOLLOW_UP = "follow_up"
+    ADMIN = "admin"
+    CLIENT_COMMUNICATION = "client_communication"
+
+class Task(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    title: str
+    description: Optional[str] = None
+    category: str = TaskCategory.GENERAL
+    status: str = TaskStatus.TO_DO
+    priority: str = "medium"  # low, medium, high, urgent
+    assigned_to: Optional[str] = None  # consultant user id
+    delegated_to: Optional[str] = None  # if delegated
+    start_date: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    completed_date: Optional[datetime] = None
+    estimated_hours: Optional[float] = None
+    actual_hours: Optional[float] = None
+    dependencies: List[str] = []  # task ids this depends on
+    order: int = 0  # for gantt chart ordering
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class TaskCreate(BaseModel):
+    project_id: str
+    title: str
+    description: Optional[str] = None
+    category: Optional[str] = TaskCategory.GENERAL
+    status: Optional[str] = TaskStatus.TO_DO
+    priority: Optional[str] = "medium"
+    assigned_to: Optional[str] = None
+    start_date: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    estimated_hours: Optional[float] = None
+    dependencies: Optional[List[str]] = []
+    order: Optional[int] = 0
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    assigned_to: Optional[str] = None
+    delegated_to: Optional[str] = None
+    start_date: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    completed_date: Optional[datetime] = None
+    estimated_hours: Optional[float] = None
+    actual_hours: Optional[float] = None
+    order: Optional[int] = None
+
+@api_router.post("/tasks", response_model=Task)
+async def create_task(task_create: TaskCreate, current_user: User = Depends(get_current_user)):
+    """Create a new task for a project"""
+    # Verify project exists
+    project = await db.projects.find_one({"id": task_create.project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    task_dict = task_create.model_dump()
+    task = Task(**task_dict, created_by=current_user.id)
+    
+    doc = task.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc['start_date']:
+        doc['start_date'] = doc['start_date'].isoformat()
+    if doc['due_date']:
+        doc['due_date'] = doc['due_date'].isoformat()
+    if doc['completed_date']:
+        doc['completed_date'] = doc['completed_date'].isoformat()
+    
+    await db.tasks.insert_one(doc)
+    return task
+
+@api_router.get("/tasks")
+async def get_tasks(
+    project_id: Optional[str] = None,
+    assigned_to: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get tasks with optional filters"""
+    query = {}
+    if project_id:
+        query['project_id'] = project_id
+    if assigned_to:
+        query['assigned_to'] = assigned_to
+    if status:
+        query['status'] = status
+    
+    tasks = await db.tasks.find(query, {"_id": 0}).sort("order", 1).to_list(1000)
+    
+    for task in tasks:
+        if isinstance(task.get('created_at'), str):
+            task['created_at'] = datetime.fromisoformat(task['created_at'])
+        if isinstance(task.get('updated_at'), str):
+            task['updated_at'] = datetime.fromisoformat(task['updated_at'])
+        if task.get('start_date') and isinstance(task['start_date'], str):
+            task['start_date'] = datetime.fromisoformat(task['start_date'])
+        if task.get('due_date') and isinstance(task['due_date'], str):
+            task['due_date'] = datetime.fromisoformat(task['due_date'])
+        if task.get('completed_date') and isinstance(task['completed_date'], str):
+            task['completed_date'] = datetime.fromisoformat(task['completed_date'])
+    
+    return tasks
+
+@api_router.get("/tasks/{task_id}")
+async def get_task(task_id: str, current_user: User = Depends(get_current_user)):
+    """Get a single task"""
+    task = await db.tasks.find_one({"id": task_id}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if isinstance(task.get('created_at'), str):
+        task['created_at'] = datetime.fromisoformat(task['created_at'])
+    if isinstance(task.get('updated_at'), str):
+        task['updated_at'] = datetime.fromisoformat(task['updated_at'])
+    if task.get('start_date') and isinstance(task['start_date'], str):
+        task['start_date'] = datetime.fromisoformat(task['start_date'])
+    if task.get('due_date') and isinstance(task['due_date'], str):
+        task['due_date'] = datetime.fromisoformat(task['due_date'])
+    
+    return task
+
+@api_router.patch("/tasks/{task_id}")
+async def update_task(
+    task_id: str,
+    task_update: TaskUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a task"""
+    task = await db.tasks.find_one({"id": task_id}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    update_data = task_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # Handle status changes
+    if 'status' in update_data:
+        if update_data['status'] == TaskStatus.COMPLETED and not update_data.get('completed_date'):
+            update_data['completed_date'] = datetime.now(timezone.utc).isoformat()
+    
+    # Handle datetime fields
+    if 'start_date' in update_data and update_data['start_date']:
+        update_data['start_date'] = update_data['start_date'].isoformat()
+    if 'due_date' in update_data and update_data['due_date']:
+        update_data['due_date'] = update_data['due_date'].isoformat()
+    if 'completed_date' in update_data and update_data['completed_date']:
+        update_data['completed_date'] = update_data['completed_date'].isoformat()
+    
+    await db.tasks.update_one({"id": task_id}, {"$set": update_data})
+    
+    return {"message": "Task updated successfully"}
+
+@api_router.delete("/tasks/{task_id}")
+async def delete_task(task_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a task"""
+    result = await db.tasks.delete_one({"id": task_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    return {"message": "Task deleted successfully"}
+
+@api_router.patch("/tasks/{task_id}/delegate")
+async def delegate_task(
+    task_id: str,
+    delegated_to: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delegate a task to another user"""
+    task = await db.tasks.find_one({"id": task_id}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Verify target user exists
+    target_user = await db.users.find_one({"id": delegated_to}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Target user not found")
+    
+    await db.tasks.update_one(
+        {"id": task_id},
+        {"$set": {
+            "delegated_to": delegated_to,
+            "status": TaskStatus.DELEGATED,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Task delegated successfully"}
+
+@api_router.patch("/tasks/reorder")
+async def reorder_tasks(
+    task_orders: List[dict],  # [{"id": "task_id", "order": 1}, ...]
+    current_user: User = Depends(get_current_user)
+):
+    """Reorder tasks (for drag-and-drop in Gantt chart)"""
+    for item in task_orders:
+        await db.tasks.update_one(
+            {"id": item['id']},
+            {"$set": {"order": item['order'], "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    return {"message": "Tasks reordered successfully"}
+
+@api_router.get("/projects/{project_id}/tasks-gantt")
+async def get_project_tasks_for_gantt(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get tasks formatted for Gantt chart"""
+    tasks = await db.tasks.find({"project_id": project_id}, {"_id": 0}).sort("order", 1).to_list(1000)
+    
+    gantt_data = []
+    for task in tasks:
+        start = task.get('start_date')
+        end = task.get('due_date')
+        
+        if isinstance(start, str):
+            start = datetime.fromisoformat(start)
+        if isinstance(end, str):
+            end = datetime.fromisoformat(end)
+        
+        gantt_data.append({
+            "id": task['id'],
+            "name": task['title'],
+            "start": start.isoformat() if start else None,
+            "end": end.isoformat() if end else None,
+            "status": task.get('status', 'to_do'),
+            "category": task.get('category', 'general'),
+            "priority": task.get('priority', 'medium'),
+            "assigned_to": task.get('assigned_to'),
+            "dependencies": task.get('dependencies', []),
+            "progress": 100 if task.get('status') == TaskStatus.COMPLETED else 
+                       50 if task.get('status') == TaskStatus.IN_PROGRESS else 0
+        })
+    
+    return gantt_data
+
+# ==================== PROJECT HANDOVER ALERTS ====================
+
+@api_router.get("/projects/handover-alerts")
+async def get_handover_alerts(current_user: User = Depends(get_current_user)):
+    """Get projects approaching 15-day handover deadline from agreement approval"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.PROJECT_MANAGER]:
+        raise HTTPException(status_code=403, detail="Not authorized to view handover alerts")
+    
+    # Get approved agreements from last 30 days
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    
+    agreements = await db.agreements.find(
+        {
+            "status": "approved",
+            "approved_at": {"$gte": thirty_days_ago}
+        },
+        {"_id": 0}
+    ).to_list(1000)
+    
+    alerts = []
+    for agreement in agreements:
+        approved_at = agreement.get('approved_at')
+        if isinstance(approved_at, str):
+            approved_at = datetime.fromisoformat(approved_at)
+        
+        if approved_at:
+            days_since_approval = (datetime.now(timezone.utc) - approved_at).days
+            days_remaining = 15 - days_since_approval
+            
+            # Check if project has been created for this agreement
+            project = await db.projects.find_one(
+                {"agreement_id": agreement['id']},
+                {"_id": 0}
+            )
+            
+            # Get lead info
+            lead = None
+            if agreement.get('lead_id'):
+                lead = await db.leads.find_one(
+                    {"id": agreement['lead_id']},
+                    {"_id": 0, "first_name": 1, "last_name": 1, "company": 1}
+                )
+            
+            alert_type = "on_track"
+            if days_remaining <= 0:
+                alert_type = "overdue"
+            elif days_remaining <= 3:
+                alert_type = "critical"
+            elif days_remaining <= 7:
+                alert_type = "warning"
+            
+            alerts.append({
+                "agreement": agreement,
+                "lead": lead,
+                "project": project,
+                "days_since_approval": days_since_approval,
+                "days_remaining": days_remaining,
+                "alert_type": alert_type,
+                "has_project": project is not None,
+                "has_consultants_assigned": project.get('assigned_consultants', []) if project else []
+            })
+    
+    # Sort by days_remaining (most urgent first)
+    alerts.sort(key=lambda x: x['days_remaining'])
+    
+    return alerts
+
+# ==================== ENHANCED CONSULTANT PROFILE ====================
+
+class ConsultantProfileUpdate(BaseModel):
+    preferred_mode: Optional[str] = None
+    specializations: Optional[List[str]] = None
+    bio: Optional[str] = None
+    hourly_rate: Optional[float] = None
+    availability_notes: Optional[str] = None
+
+@api_router.put("/consultants/{consultant_id}/profile")
+async def update_full_consultant_profile(
+    consultant_id: str,
+    profile_update: ConsultantProfileUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update consultant profile (Admin can update all, consultant can update limited fields)"""
+    # Check authorization
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER] and current_user.id != consultant_id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this profile")
+    
+    # Verify consultant exists
+    consultant = await db.users.find_one(
+        {"id": consultant_id, "role": {"$in": [UserRole.CONSULTANT, UserRole.PRINCIPAL_CONSULTANT, UserRole.PROJECT_MANAGER]}},
+        {"_id": 0}
+    )
+    if not consultant:
+        raise HTTPException(status_code=404, detail="Consultant not found")
+    
+    update_data = profile_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # If changing mode, update max_projects
+    if 'preferred_mode' in update_data and current_user.role in [UserRole.ADMIN, UserRole.MANAGER]:
+        update_data['max_projects'] = CONSULTANT_BANDWIDTH_LIMITS.get(update_data['preferred_mode'], 8)
+    
+    # Ensure profile exists
+    existing_profile = await db.consultant_profiles.find_one({"user_id": consultant_id})
+    if not existing_profile:
+        # Create profile if it doesn't exist
+        profile_doc = {
+            "user_id": consultant_id,
+            "specializations": [],
+            "preferred_mode": "mixed",
+            "max_projects": 8,
+            "current_project_count": 0,
+            "total_project_value": 0,
+            "bio": None,
+            "hourly_rate": None,
+            "availability_notes": None,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            **update_data
+        }
+        await db.consultant_profiles.insert_one(profile_doc)
+    else:
+        await db.consultant_profiles.update_one(
+            {"user_id": consultant_id},
+            {"$set": update_data}
+        )
+    
+    return {"message": "Profile updated successfully"}
+
+# ==================== USER ROLE MANAGEMENT ====================
+
+@api_router.patch("/users/{user_id}/role")
+async def update_user_role(
+    user_id: str,
+    new_role: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Update user role (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can change user roles")
+    
+    valid_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.EXECUTIVE, UserRole.CONSULTANT, 
+                   UserRole.PROJECT_MANAGER, UserRole.PRINCIPAL_CONSULTANT]
+    if new_role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {valid_roles}")
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": new_role, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # If promoting to consultant-type role, ensure profile exists
+    if new_role in [UserRole.CONSULTANT, UserRole.PRINCIPAL_CONSULTANT, UserRole.PROJECT_MANAGER]:
+        existing_profile = await db.consultant_profiles.find_one({"user_id": user_id})
+        if not existing_profile:
+            profile = {
+                "user_id": user_id,
+                "specializations": [],
+                "preferred_mode": "mixed",
+                "max_projects": CONSULTANT_BANDWIDTH_LIMITS.get("mixed", 8),
+                "current_project_count": 0,
+                "total_project_value": 0,
+                "bio": None,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.consultant_profiles.insert_one(profile)
+    
+    return {"message": f"User role updated to {new_role}"}
+
+@api_router.get("/users")
+async def get_all_users(
+    role: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all users (Admin/Manager only)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"is_active": True}
+    if role:
+        query['role'] = role
+    
+    users = await db.users.find(query, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    
+    for user in users:
+        if isinstance(user.get('created_at'), str):
+            user['created_at'] = datetime.fromisoformat(user['created_at'])
+    
+    return users
+
 app.include_router(api_router)
 
 app.add_middleware(
