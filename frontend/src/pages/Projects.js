@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Calendar, Users, DollarSign, ListTodo, UserPlus } from 'lucide-react';
+import { Plus, Calendar, Users, DollarSign, ListTodo, UserPlus, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import ProjectConsultantAssignment from '../components/ProjectConsultantAssignment';
