@@ -74,6 +74,31 @@ A comprehensive business management application for a 50-person consulting organ
 - **PM Team Features**: Approve/Reject buttons for pending items, Approve All button
 - Dynamic UI based on user role category
 
+### Employees Module (Feb 14, 2026) ✅ NEW
+- **Employee Directory**: Searchable list with filters by department
+- **Employee Data Model**:
+  - Basic: Name, Email, Phone, Personal Email, Department, Designation, Joining Date
+  - HR Details: Employee ID (EMP001), Reporting Manager, Employment Type (Full-time/Contract/Intern/Part-time)
+  - Financial: Salary, Bank Details (Account, IFSC, Bank Name, Branch)
+  - Leave Balance: Casual (12), Sick (6), Earned (15) with usage tracking
+  - Documents: ID proof, Offer Letter, Resume, Contract with upload/download
+- **User-Employee Linking**: 
+  - Employees can optionally be linked to system user accounts
+  - Not all employees need system access (HR-only records)
+  - Sync from Users auto-creates employee records for existing users
+- **Stats Dashboard**: Total Employees, With/Without System Access, Departments count
+- **Org Chart**: Hierarchical view based on reporting manager relationships
+- **Access Control**: Admin + HR Manager can manage; HR Executive view only
+- **APIs**:
+  - `GET/POST /api/employees` - List and create employees
+  - `GET/PATCH/DELETE /api/employees/{id}` - Employee CRUD
+  - `POST /api/employees/sync-from-users` - Bulk create from users
+  - `POST /api/employees/{id}/link-user` - Link to user account
+  - `POST /api/employees/{id}/unlink-user` - Remove user link
+  - `GET /api/employees/org-chart/hierarchy` - Org chart data
+  - `GET /api/employees/stats/summary` - Statistics
+  - `GET /api/employees/departments/list` - Department list
+
 ### Authentication & Roles ✅
 - JWT-based email/password authentication
 - 13 customizable user roles
