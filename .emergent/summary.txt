@@ -1,101 +1,101 @@
 <analysis>**original_problem_statement:**
-The user, representing a 50-person consulting organization, requires a comprehensive business management application. The system needs to cover HR, Marketing, Sales, Finance, and Consulting project workflows.
+The user requires a comprehensive business management application for a 50-person consulting organization covering HR, Marketing, Sales, Finance, and Consulting projects.
 
 **PRODUCT REQUIREMENTS (based on user clarifications):**
--   **Authentication & Roles:** Email-based login with roles: Admin, Manager, Executive, Consultant, Project Manager, and Principal Consultant. A separate page for user profile and rights configuration is required, to be integrated with a future HR module.
--   **Sales Workflow:** A detailed sales process from lead entry to agreement approval. The flow is: Lead → Pricing Plan → SOW → Quotation → Agreement → Approval.
--   **Scope of Work (SOW):**
-    -   SOW is created by the sales team after the pricing plan.
-    -   SOW has categories (Sales, HR, etc.) and version history for all changes.
-    -   Requires a list view with trackable status (updatable by user, approved by manager) and a feature to upload external documents.
-    -   SOW items can be assigned to a specific consultant and have optional backend support staff.
-    -   Ability to add SOW items in a spreadsheet-like inline manner.
-    -   Roadmap and Gantt views for timeline visualization.
-    -   SOW document uploads are per-line-item and trigger email notifications upon completion.
-    -   **NEW:** A two-step approval process where users submit selected SOW items (via checkboxes) to a manager, who then approves them and authorizes them to be sent to the client.
--   **SOW Linkages:** SOW should be linked to consultant performance and the overall project roadmap.
--   **Agreement & Export:** The agreement should be a structured document and be exportable to Word and PDF.
--   **Consultant & Project Management:** A Gantt chart with drag-and-drop task management is required.
--   **Integrations:** Rocket Reach integration for lead generation.
+-   **Authentication & Roles:** A comprehensive, customizable role and permissions management system. Admins can create new roles and define granular permissions for module access, CRUD operations, and feature-level actions (e.g., SOW approval).
+-   **Sales Workflow:** A detailed process from Lead → Pricing Plan → SOW → Quotation → Agreement → Approval.
+-   **Scope of Work (SOW):** An advanced SOW builder with spreadsheet-style inline editing, version history, status tracking, document uploads per item, and various views (List, Roadmap, Gantt).
+-   **Approval Workflows:** A sophisticated, multi-level approval system based on reporting manager hierarchy.
+    -   SOW items are submitted by an employee to their reporting manager.
+    -   Agreements/Quotations are approved by the deal owner's reporting manager, then an Admin.
+    -   Leave and expense requests are routed through the reporting manager to HR.
+    -   Multi-level approvals are required for client-facing communications.
+    -   If a reporting manager isn't assigned, the system should fall back to a role-based approver (e.g., Project Manager).
+-   **Employees Module:** A module to manage all employee data, including personal details, HR information (ID, manager, salary), and an organizational chart. Not all employees will have system access, but records should exist for them. Existing users should be automatically linked to employee records.
+-   **Client Master:** A dedicated interface for Project Managers to manage client data, including industry, location, key contacts (SPOCs), and historical revenue.
+-   **Expenses Module:** A system for employees to record expenses (e.g., local conveyance, food), attach them to a specific client or the office, and submit them for approval.
 
 **User's preferred language**: English
 
 **what currently exists?**
 A full-stack application with a React frontend and FastAPI backend using MongoDB.
--   **Authentication & Roles:** JWT-based authentication is implemented with all requested roles.
--   **User Profile:** A My Profile page allows users to view and edit their information.
--   **Sales Workflow:** The revised workflow (Lead → Pricing Plan → SOW Builder → etc.) is implemented.
--   **SOW Management:** A highly advanced SOW builder is in place. It supports:
-    -   Spreadsheet-style inline editing for adding and updating SOW items.
-    -   Assignment of consultants and backend support staff to each item.
-    -   List, Roadmap, and Gantt chart views for visualization.
-    -   Per-item document uploads, which trigger email notifications when an item is marked Completed.
-    -   A fully functional version history viewer that shows changes and a snapshot of SOW items at each version.
--   **Project Management:** A task management system, handover alerts for managers, and a kick-off meeting scheduler are all functional.
+-   **Authentication:** JWT-based authentication is implemented.
+-   **Role & Permissions Management:** A full-featured module allows Admins to create, edit, and delete roles. A detailed permissions dialog enables assigning granular access rights for each module and special actions.
+-   **User Management:** A dedicated page lists all users and integrates the role management functionality, allowing Admins to assign roles to users.
+-   **SOW Management:** An advanced SOW builder with inline editing, versioning, and document uploads is functional. UI elements are conditionally rendered based on the user's role and permissions.
+-   **Employees Module:** A new module has been created with a backend API and a frontend page (). It displays a directory of employees and can auto-create employee records from existing users. The organizational chart feature is currently broken.
+-   **Approval System:** A backend engine for multi-level, reporting-manager-based approvals has been built. A new Approvals Center page has been created on the frontend to serve as a central dashboard for all pending approvals.
 
 **Last working item**:
--   **Last item agent was working:** The user requested a new, more robust two-step approval workflow for SOW items. The agent acknowledged the request but has not started implementation.
--   **Status:** NOT STARTED
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** both (This is a significant feature affecting UI and backend logic).
+-   **Last item agent was working:** The agent was implementing the multi-level approval workflow. The backend APIs and a new frontend Approvals Center page were created. The final step was to fully integrate this new system into the frontend UI, starting with the SOW Builder.
+-   **Status:** IN PROGRESS
+-   **Agent Testing Done:** Y (for backend APIs and initial frontend page rendering via  and )
+-   **Which testing method agent to use?** both (This is a core workflow change affecting frontend and backend logic across multiple modules).
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Implement Two-Step SOW Approval Workflow (P0)**
+-   **Issue 1: Fatal Maximum call stack size exceeded Error in  (P0)**
+-   **Issue 2: Incomplete UI Integration for Approval Workflow (P0)**
 
 **Issues Detail:**
--   **Issue 1:** Implement Two-Step SOW Approval Workflow
-    -   **Attempted fixes:** None. The feature was just requested.
+-   **Issue 1:** Fatal Maximum call stack size exceeded Error in 
+    -   **Attempted fixes:** The agent tried moving the recursive  component outside the parent component and then refactoring it to be a controlled component. When these failed, the agent removed the recursive org chart logic entirely and replaced it with a simple list view as a temporary workaround. This disabled the feature but stopped the app from crashing. The root cause was not found.
     -   **Next debug checklist:**
-        1.  **Backend ( & ):**
-            -   Update the SOW item model to include new approval statuses (e.g., , , ).
-            -   Create an API endpoint to handle batch submission of SOW items for manager approval.
-            -   Create an API endpoint for managers to approve individual or multiple items.
-            -   Create a final API endpoint for managers to authorize approved items to be sent to the client.
-        2.  **Frontend ():**
-            -   Add a checkbox to each row in the SOW list view table.
-            -   Implement a Submit for Approval button that sends the selected item IDs to the backend.
-            -   Conditionally render Approve and Authorize for Client buttons in the UI, visible only to managers for items in the correct state.
-            -   Update the status display logic to reflect the new, multi-step approval statuses.
-    -   **Why fix this issue and what will be achieved with the fix?** This will implement a critical user requirement for a double-check mechanism, ensuring SOWs are properly vetted before being finalized and sent to clients.
+        1.  Isolate the  component into its own file ().
+        2.  Verify the employee data for circular dependencies (e.g., a manager reporting to their own subordinate).
+        3.  Implement  on the  to prevent unnecessary re-renders.
+        4.  Rewrite the logic in the parent  component to build the hierarchical tree structure iteratively before passing it to the rendering components, avoiding deep recursion during render.
+    -   **Why fix this issue and what will be achieved with the fix?** The organizational chart is a key required feature of the Employees module and is currently broken. Fixing this will restore required functionality.
+    -   **Status:** BLOCKED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+-   **Issue 2:** Incomplete UI Integration for Approval Workflow
+    -   **Attempted fixes:** None. This is the next step after creating the backend.
+    -   **Next debug checklist:**
+        1.  Modify : Change the Submit for Approval button's  handler to call the new backend endpoint () that triggers the reporting manager workflow.
+        2.  Modify : Fetch and display all approval requests assigned to the current user. Implement Approve and Reject buttons that call the corresponding backend APIs.
+        3.  Create new UI components for submitting Leave and Expense requests.
+    -   **Why fix this issue and what will be achieved with the fix?** To complete the user's primary request for a manager-based approval system.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   None.
+-   **Task 1: Complete Multi-Level Approval Workflow Implementation (P0)**
+    -   **Where to resume:** Focus on fixing Issue 2 above. Start by updating  to connect the UI to the new backend workflow. Then, build out the functionality of the  page.
+    -   **What will be achieved with this?** A fully functional, end-to-end approval system based on reporting manager hierarchy, as requested by the user.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P0) SOW linkages with consultant performance and project roadmap.** (User request #59).
-    -   **(P1) Gantt Chart Integration:** Refine the Gantt chart on the  page using .
-    -   **(P1) Agreement Export:** Implement backend logic to export the agreement to Word and PDF.
-    -   **(P1) SOW Monthly Roadmap & RACI Matrix:** Convert the frozen SOW into a monthly roadmap format with a RACI matrix.
-    -   **(P2) Rocket Reach Integration:** Integrate with Rocket Reach for lead enrichment.
+    -   **(P1) Client Master Module:** Create a new CRUD module for managing client data (industry, location, contacts, revenue), accessible to Project Managers.
+    -   **(P1) Detailed Expense Request System:** Build a system for submitting expenses with line items (travel, food), linkable to clients, and integrated with the HR approval workflow.
+    -   **(P1) Agreement Export to Word/PDF:** Implement backend logic to generate and download agreement documents.
+    -   **(P2) Integrate Employees with SOW Items:** Link the assigned consultant in the SOW builder to their corresponding record in the Employees module.
+    -   **(P2) SOW linkages with consultant performance and project roadmap.**
 -   **Future Tasks:**
-    -   HR Module
-    -   Detailed Time Tracking
-    -   Custom Reporting Module
-    -   Marketing Workflow Module
-    -   Finance and Accounts Flow Module
+    -   Refine the Gantt Chart on the  page using .
+    -   Rocket Reach Integration for lead enrichment.
+    -   HR Module (Detailed Time Tracking).
+    -   Marketing Workflow Module.
+    -   Finance and Accounts Flow Module.
 
 **Completed work in this session**
--   **SOW Enhancements Implementation & Verification:** Confirmed that a set of previously in-progress SOW features (list view, status updates, doc uploads) were already complete and functional.
--   **SOW Version History Bug Fix:** Resolved a critical bug where the version history dialog failed to display the content of a selected version snapshot. The UI now correctly renders all items as they existed in that version.
--   **Spreadsheet-Style SOW Editor (Major Feature):**
-    -   Implemented inline row creation, allowing users to add new SOW items directly within the table.
-    -   Added functionality to assign a lead **Consultant** and optional **Backend Support** staff to each SOW item via dropdowns.
-    -   Integrated **Roadmap** and **Gantt Chart** views for timeline and project visualization.
--   **Refactored SOW Document Handling:**
-    -   Moved document uploads from a general SOW section to be attachments for each specific line item.
-    -   Implemented backend logic to **automatically send email notifications** to managers and clients when an SOW item with attached documents is marked as Completed.
+-   **Role & Permissions Management Module:** Implemented a full-featured system with backend APIs () and a frontend UI () for creating roles and assigning granular permissions.
+-   **Role-Based SOW Segregation:** Updated  to hide/show UI controls based on the logged-in user's permissions.
+-   **Employees Module:** Created the backend and frontend () for employee management, including a directory and auto-syncing of existing users. The org chart feature was attempted but is currently disabled due to a bug.
+-   **Multi-Level Approval Workflow (Backend):** Created a backend approval engine () and a new frontend page () to handle multi-level approvals routed through reporting managers.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1:** Potential for syntax errors when using  or .
-    -   **Debug checklist:** Visually inspect content being written for syntax correctness.
-    -   **Why to solve this issue and what will be achieved with this?** Prevents breaking the application and avoids time spent on simple syntax bug hunts.
-    -   **Should Test frontend/backend/both after fix:** both
+-   **Issue 1:  in **
+    -   **Debug checklist:** See  section above.
+    -   **Why to solve this issue and what will be achieved with this?** The org chart is a required feature and is currently broken.
+    -   **Should Test frontend/backend/both after fix:** frontend
     -   **Is recurring issue?** Y
 
 **Known issue recurrence from previous fork**
@@ -108,75 +108,73 @@ A full-stack application with a React frontend and FastAPI backend using MongoDB
 -   **Frontend:** React, Tailwind CSS, Shadcn/UI
 -   **Backend:** FastAPI, Pydantic, Motor (async MongoDB)
 -   **Database:** MongoDB
--   **Authentication:** JWT with role-based access control
--   **File Uploads:** Handled via FastAPI .
+-   **Authentication:** JWT with role-based access control (RBAC)
 
 **key DB schema**
--   **users**: {email, password, role, name, ...}
--   **sows**: {lead_id, version, items: [{id, title, category, timeline, deliverables, status, **consultant_id**, **support_staff: [{user_id, role}]**, **start_week**, **duration**, attachments: [{filename, url}]}], manager_approval_status, ...}
--   **sow_versions**: Stores historical snapshots of SOWs.
--   **agreements**: {..., sow_id, ...}
--   **tasks**: {project_id, title, status, ...}
+-   **users**: {email, password, name, **role**}
+-   **roles**: (New) {name, description, permissions: {module: [actions]}, is_system}
+-   **employees**: (New) {user_id, employee_id, **reporting_manager_id**, department, designation, employment_type, join_date, salary, ...}
+-   **approval_requests**: (New) {item_id, item_type, status, current_approver_id, approval_chain: [{user_id, status}], created_by}
+-   **sows**: {..., items: [{..., **status**}]}
 
 **changes in tech stack**
--   User has requested using  for the main project tasks page. This still needs to be installed (yarn add v1.22.22
-[1/4] Resolving packages...
-[2/4] Fetching packages...
-[3/4] Linking dependencies...
-[4/4] Building fresh packages...
-success Saved 1 new dependency.
-info Direct dependencies
-└─ react-gantt-timeline@0.4.3
-info All dependencies
-└─ react-gantt-timeline@0.4.3
-Done in 21.44s.).
+-   None.
 
 **All files of reference**
--   : The main FastAPI application file. Contains logic for SOW manipulation, document handling, and user management. It is becoming monolithic.
--   : Contains all Pydantic models for the sales process, including the recently expanded SOW item model.
--   : The heavily modified UI for the advanced SOW builder. **This file will need further changes for the new approval workflow.**
--   : UI for the task management system. Needs the  integration.
+-   : **Heavily modified.** Contains all backend logic, including new APIs for Roles, Employees, and the Approval Workflow. The file is now critically monolithic.
+-   : **New and Buggy.** Contains the employee directory and the broken org chart implementation.
+-   : **New.** The UI for managing users and their roles/permissions.
+-   : **New.** The dashboard for viewing and acting on pending approvals.
+-   : Updated with new routes for Employees, User Management, and Approvals.
+-   : Updated with new navigation links in the sidebar.
 
 **Areas that need refactoring**:
--   The  file is extremely large and complex. It should be broken down into separate FastAPI routers for each domain (e.g., , , , ) to improve maintainability. This should be proposed to the user after the current task.
+-   : This file has become extremely large and must be broken down into separate FastAPI routers (e.g., , , ) to ensure maintainability. This should be proposed after fixing the current bugs and completing the approval workflow.
+-   : The org chart implementation needs to be completely rewritten to be stable and non-recursive to fix the Maximum call stack error.
 
 **key api endpoints**
--   : (NEW) POST to add multiple SOW items at once for spreadsheet-style editing.
--   : (UPDATED) PUT to update item status; now triggers email notifications on Completed.
--   : POST to upload documents to a specific SOW item.
--   : GET to download a document.
--   : GET to populate consultant dropdowns.
+-    & : (NEW) Full CRUD for roles.
+-    & : (NEW) Full CRUD for employees.
+-   : (NEW) Fetches data for the organizational chart.
+-   : (NEW) Initiates the reporting manager approval workflow for SOW items.
+-   : (NEW) Fetches pending approvals for the current user.
+-   : (NEW) Endpoints to  or  requests.
 
 **Critical Info for New Agent**
--   **Immediate Priority:** Your first task is to implement the new two-step SOW approval workflow as detailed in the . This is the user's latest request and is P0.
--   **Refactoring Needed:** The  monolith is a growing concern. After completing the approval workflow, you should plan and propose a refactoring effort to split it into routers.
--   **Context:** The agent has successfully implemented several major, complex features on the  page. The code is fresh but intricate. Read the file carefully before making changes.
+-   Your first priority is to fix the **fatal  bug** in  to restore the org chart functionality. This is a recurring blocker.
+-   Your second priority is to **complete the approval workflow integration**. The backend is done, but the frontend UIs (SOW Builder, Approvals Center) need to be connected to it.
+-   The user has requested **two new major features**: a **Client Master** and a detailed **Expense System**. Plan to work on these *after* the current tasks (bug fix and approval workflow) are complete and verified.
+-   The  monolith is a significant technical debt. Propose a refactoring plan to break it into smaller routers once the immediate user requests are fulfilled.
 
 **documents and test reports created in this job**
--    (updated multiple times)
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **wait , send for approval should have checkbox...**: User requested a new two-step approval workflow for SOWs with checkboxes and manager authorization. (Status: **PENDING - THIS IS THE NEXT TASK**)
--   **upload document should not have its seperate section...**: User requested that document uploads be per-SOW-item and trigger emails on completion. (Status: **COMPLETED**)
--   **Spreadsheet-style inline editing...**: User clarified requirements for the SOW editor, including consultant/support assignment and roadmap views. (Status: **COMPLETED**)
--   **can we have some system can continue adding lines in the same window...**: User requested spreadsheet-style editing and linkage to consultant performance/roadmap. (Status: **Partially Completed** - inline editing done, linkages are upcoming)
--   **in this window view option dont reflect anything...**: User reported a bug where the SOW version history view was blank. (Status: **COMPLETED**)
+-   **does it have a feature to assign reporting manager...and is this flow reflected in Sales and Consulting...?**: User initiated the request for a reporting manager-based approval workflow. (Status: **IN PROGRESS**)
+-   **Yes, integrate reporting manager into all approval workflows...**: User confirmed detailed requirements for the approval flow, including multi-level steps and fallbacks. (Status: **IN PROGRESS**)
+-   **Also create client master...**: User requested a brand new module for managing client information. (Status: **PENDING**)
+-   **Expenses record for local conveyance, food...**: User requested a new, more detailed expense tracking system. (Status: **PENDING**)
 
 **Project Health Check:**
--   **Broken:** None. The application is stable.
+-   **Broken:**
+    -   The Organizational Chart feature in the  page is non-functional. It causes a fatal  error and has been temporarily disabled by the previous agent.
 -   **Mocked:**
-    -   Email sending uses a log-based placeholder; no actual emails are sent.
-    -   The agreement export to Word/PDF is not yet implemented.
+    -   Email sending is still a log-based placeholder.
+    -   Agreement export to Word/PDF is not implemented.
 
 **3rd Party Integrations**
--   **react-gantt-timeline:** Requested for task management, but not yet installed or integrated.
+-   **react-gantt-timeline:** Requested, but not yet installed.
 -   **Rocket Reach:** Requested, but not yet implemented.
 
 **Testing status**
--   **Testing agent used after significant changes:** NO. Agent self-tested recent features using  for the backend and  for the frontend.
+-   **Testing agent used after significant changes:** YES (twice)
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None
--   **Known regressions:** None.
+-   **Test files created:**
+    -   
+    -   
+-   **Known regressions:** The organizational chart feature was working at a conceptual level before it was refactored and broke. It is now completely non-functional.
 
 **Credentials to test flow:**
 -   **Admin:**  / 
@@ -184,5 +182,6 @@ Done in 21.44s.).
 -   **Executive:**  / 
 
 **What agent forgot to execute**
--   The agent did not start implementing the **two-step SOW approval workflow** requested by the user in the last message.
--   The agent has not yet proposed the high-priority refactoring of the monolithic  file.</analysis>
+-   The agent failed to resolve the root cause of the  error, instead implementing a workaround that disabled the required org chart feature.
+-   The agent did not fully connect the frontend UI to the new backend approval workflow, leaving the feature incomplete.
+-   The agent has not yet started work on the user's latest requests for a Client Master and a detailed Expense System.</analysis>
