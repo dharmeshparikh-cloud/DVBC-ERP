@@ -35,6 +35,7 @@ from reports import (
     REPORT_DEFINITIONS, get_report_data_functions,
     generate_excel, generate_pdf
 )
+from document_generator import AgreementDocumentGenerator, SOWDocumentGenerator
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
