@@ -2,19 +2,36 @@ import React, { useContext } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { Button } from './ui/button';
-import { LayoutDashboard, Users, Briefcase, Calendar, Mail, LogOut, DollarSign, FileText, FileCheck, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Calendar, Mail, LogOut, DollarSign, FileText, FileCheck, ClipboardCheck, UserCog } from 'lucide-react';
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
   const location = useLocation();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Leads', href: '/leads', icon: Users },
-    { name: 'Projects', href: '/projects', icon: Briefcase },
-    { name: 'Meetings', href: '/meetings', icon: Calendar },
-    { name: 'Email Templates', href: '/email-templates', icon: Mail },
-  ];
+  const isConsultant = user?.role === 'consultant';
+  const isManagerOrAdmin = user?.role === 'manager' || user?.role === 'admin';
+
+  // Navigation items visible based on role
+  const getNavigation = () => {
+    if (isConsultant) {
+      // Consultants see a simplified navigation
+      return [
+        { name: 'My Dashboard', href: '/', icon: LayoutDashboard },
+        { name: 'Projects', href: '/projects', icon: Briefcase },
+        { name: 'Meetings', href: '/meetings', icon: Calendar },
+      ];
+    }
+    // Admin, Manager, Executive see full navigation
+    return [
+      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+      { name: 'Leads', href: '/leads', icon: Users },
+      { name: 'Projects', href: '/projects', icon: Briefcase },
+      { name: 'Meetings', href: '/meetings', icon: Calendar },
+      { name: 'Email Templates', href: '/email-templates', icon: Mail },
+    ];
+  };
+
+  const navigation = getNavigation();
 
   const salesFunnelNav = [
     { name: 'Pricing Plans', href: '/sales-funnel/pricing-plans', icon: DollarSign },
@@ -24,6 +41,7 @@ const Layout = () => {
 
   const managerNav = [
     { name: 'Approvals', href: '/sales-funnel/approvals', icon: ClipboardCheck },
+    { name: 'Consultants', href: '/consultants', icon: UserCog },
   ];
 
   const isActive = (href) => {
@@ -64,34 +82,36 @@ const Layout = () => {
               );
             })}
             
-            {/* Sales Funnel Section */}
-            <div className="pt-4 mt-4 border-t border-zinc-200">
-              <div className="px-3 mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
-                Sales Funnel
+            {/* Sales Funnel Section - Not for consultants */}
+            {!isConsultant && (
+              <div className="pt-4 mt-4 border-t border-zinc-200">
+                <div className="px-3 mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
+                  Sales Funnel
+                </div>
+                {salesFunnelNav.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors ${
+                        active
+                          ? 'bg-zinc-100 text-zinc-950 font-medium'
+                          : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" strokeWidth={1.5} />
+                      {item.name}
+                    </Link>
+                  );
+                })}
               </div>
-              {salesFunnelNav.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors ${
-                      active
-                        ? 'bg-zinc-100 text-zinc-950 font-medium'
-                        : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" strokeWidth={1.5} />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </div>
+            )}
 
             {/* Manager Section - Only visible to managers and admins */}
-            {(user?.role === 'manager' || user?.role === 'admin') && (
+            {isManagerOrAdmin && (
               <div className="pt-4 mt-4 border-t border-zinc-200">
                 <div className="px-3 mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
                   Management
@@ -125,7 +145,7 @@ const Layout = () => {
                 User
               </div>
               <div className="text-sm text-zinc-950">{user?.full_name}</div>
-              <div className="text-xs text-zinc-500 data-text">{user?.role}</div>
+              <div className="text-xs text-zinc-500 data-text capitalize">{user?.role}</div>
             </div>
             <Button
               onClick={logout}
