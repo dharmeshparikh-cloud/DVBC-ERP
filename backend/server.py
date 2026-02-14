@@ -1253,8 +1253,48 @@ async def create_agreement(agreement_create: AgreementCreate, current_user: User
     count = await db.agreements.count_documents({})
     agreement_number = f"AGR-{datetime.now().year}-{count + 1:04d}"
     
+    # Get quotation, pricing plan, and SOW for the agreement
+    quotation = await db.quotations.find_one({"id": agreement_create.quotation_id}, {"_id": 0})
+    pricing_plan = None
+    sow = None
+    
+    if quotation:
+        pricing_plan = await db.pricing_plans.find_one({"id": quotation.get('pricing_plan_id')}, {"_id": 0})
+        if pricing_plan and pricing_plan.get('sow_id'):
+            sow = await db.sow.find_one({"id": pricing_plan.get('sow_id')}, {"_id": 0})
+    
+    # Get lead info
+    lead = await db.leads.find_one({"id": agreement_create.lead_id}, {"_id": 0})
+    
     agreement_dict = agreement_create.model_dump()
     agreement_dict['agreement_number'] = agreement_number
+    
+    # Link SOW and pricing plan IDs
+    if sow:
+        agreement_dict['sow_id'] = sow.get('id')
+    if pricing_plan:
+        agreement_dict['pricing_plan_id'] = pricing_plan.get('id')
+    
+    # Auto-populate party name if not provided
+    if not agreement_dict.get('party_name') and lead:
+        agreement_dict['party_name'] = f"{lead.get('first_name', '')} {lead.get('last_name', '')} ({lead.get('company', '')})"
+    
+    # Auto-populate project duration if not provided
+    if not agreement_dict.get('project_duration_months') and pricing_plan:
+        agreement_dict['project_duration_months'] = pricing_plan.get('project_duration_months')
+    
+    # Build default sections
+    sections = []
+    for section_template in DEFAULT_AGREEMENT_SECTIONS:
+        section = AgreementSection(
+            section_type=section_template['section_type'],
+            title=section_template['title'],
+            order=section_template['order'],
+            is_required=section_template['is_required'],
+            content=""
+        )
+        sections.append(section.model_dump())
+    agreement_dict['sections'] = sections
     
     agreement = Agreement(**agreement_dict, created_by=current_user.id)
     
@@ -1267,6 +1307,8 @@ async def create_agreement(agreement_create: AgreementCreate, current_user: User
         doc['end_date'] = doc['end_date'].isoformat()
     if doc['signed_date']:
         doc['signed_date'] = doc['signed_date'].isoformat()
+    if doc.get('project_start_date'):
+        doc['project_start_date'] = doc['project_start_date'].isoformat()
     
     await db.agreements.insert_one(doc)
     
@@ -1274,6 +1316,143 @@ async def create_agreement(agreement_create: AgreementCreate, current_user: User
     # Status will be updated to 'closed' only after approval
     
     return agreement
+
+@api_router.get("/agreements/{agreement_id}/full")
+async def get_agreement_full_details(
+    agreement_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get agreement with all related data (SOW, pricing plan, quotation, lead)"""
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Get related data
+    quotation = None
+    pricing_plan = None
+    sow = None
+    lead = None
+    
+    if agreement.get('quotation_id'):
+        quotation = await db.quotations.find_one({"id": agreement['quotation_id']}, {"_id": 0})
+    
+    if agreement.get('pricing_plan_id'):
+        pricing_plan = await db.pricing_plans.find_one({"id": agreement['pricing_plan_id']}, {"_id": 0})
+    elif quotation and quotation.get('pricing_plan_id'):
+        pricing_plan = await db.pricing_plans.find_one({"id": quotation['pricing_plan_id']}, {"_id": 0})
+    
+    if agreement.get('sow_id'):
+        sow = await db.sow.find_one({"id": agreement['sow_id']}, {"_id": 0})
+    elif pricing_plan and pricing_plan.get('sow_id'):
+        sow = await db.sow.find_one({"id": pricing_plan['sow_id']}, {"_id": 0})
+    
+    if agreement.get('lead_id'):
+        lead = await db.leads.find_one({"id": agreement['lead_id']}, {"_id": 0})
+    
+    return {
+        "agreement": agreement,
+        "quotation": quotation,
+        "pricing_plan": pricing_plan,
+        "sow": sow,
+        "lead": lead
+    }
+
+@api_router.get("/agreements/{agreement_id}/export")
+async def export_agreement(
+    agreement_id: str,
+    format: str = "json",  # json, html (for PDF generation on frontend)
+    current_user: User = Depends(get_current_user)
+):
+    """Export agreement in various formats"""
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Get all related data
+    quotation = None
+    pricing_plan = None
+    sow = None
+    lead = None
+    
+    if agreement.get('quotation_id'):
+        quotation = await db.quotations.find_one({"id": agreement['quotation_id']}, {"_id": 0})
+    
+    if agreement.get('pricing_plan_id'):
+        pricing_plan = await db.pricing_plans.find_one({"id": agreement['pricing_plan_id']}, {"_id": 0})
+    elif quotation and quotation.get('pricing_plan_id'):
+        pricing_plan = await db.pricing_plans.find_one({"id": quotation['pricing_plan_id']}, {"_id": 0})
+    
+    if agreement.get('sow_id'):
+        sow = await db.sow.find_one({"id": agreement['sow_id']}, {"_id": 0})
+    elif pricing_plan and pricing_plan.get('sow_id'):
+        sow = await db.sow.find_one({"id": pricing_plan['sow_id']}, {"_id": 0})
+    
+    if agreement.get('lead_id'):
+        lead = await db.leads.find_one({"id": agreement['lead_id']}, {"_id": 0})
+    
+    # Build SOW table data
+    sow_table = []
+    if sow:
+        for item in sow.get('items', []):
+            sow_table.append({
+                "category": item.get('category', '').replace('_', ' ').title(),
+                "title": item.get('title', ''),
+                "description": item.get('description', ''),
+                "deliverables": item.get('deliverables', []),
+                "timeline_weeks": item.get('timeline_weeks')
+            })
+    
+    # Build team deployment table
+    team_table = []
+    if pricing_plan:
+        for consultant in pricing_plan.get('consultants', []):
+            team_table.append({
+                "type": consultant.get('consultant_type', '').replace('_', ' ').title(),
+                "count": consultant.get('count', 1),
+                "meetings": consultant.get('meetings', 0),
+                "hours": consultant.get('hours', 0),
+                "rate": consultant.get('rate_per_meeting', 12500)
+            })
+    
+    export_data = {
+        "agreement_number": agreement.get('agreement_number'),
+        "party_name": agreement.get('party_name', ''),
+        "company_section": agreement.get('company_section', 'Agreement between D&V Business Consulting and Client'),
+        "client": {
+            "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}" if lead else '',
+            "company": lead.get('company', '') if lead else '',
+            "email": lead.get('email', '') if lead else '',
+            "phone": lead.get('phone', '') if lead else ''
+        },
+        "confidentiality_clause": agreement.get('confidentiality_clause', ''),
+        "nda_clause": agreement.get('nda_clause', ''),
+        "nca_clause": agreement.get('nca_clause', ''),
+        "renewal_clause": agreement.get('renewal_clause', ''),
+        "conveyance_clause": agreement.get('conveyance_clause', ''),
+        "sow_table": sow_table,
+        "project_details": {
+            "start_date": agreement.get('project_start_date') or agreement.get('start_date'),
+            "duration_months": agreement.get('project_duration_months') or (pricing_plan.get('project_duration_months') if pricing_plan else None),
+            "payment_schedule": pricing_plan.get('payment_schedule', '') if pricing_plan else ''
+        },
+        "team_engagement": team_table,
+        "pricing": {
+            "subtotal": quotation.get('subtotal', 0) if quotation else 0,
+            "discount": quotation.get('discount_amount', 0) if quotation else 0,
+            "gst": quotation.get('gst_amount', 0) if quotation else 0,
+            "total": quotation.get('grand_total', 0) if quotation else 0,
+            "total_meetings": quotation.get('total_meetings', 0) if quotation else 0
+        },
+        "payment_terms": agreement.get('payment_terms', 'Net 30 days'),
+        "payment_conditions": agreement.get('payment_conditions', ''),
+        "special_conditions": agreement.get('special_conditions', ''),
+        "signature_section": agreement.get('signature_section', ''),
+        "status": agreement.get('status'),
+        "created_at": agreement.get('created_at'),
+        "sections": agreement.get('sections', [])
+    }
+    
+    return export_data
 
 @api_router.get("/agreements")
 async def get_agreements(
