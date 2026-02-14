@@ -6429,6 +6429,185 @@ async def get_expense_stats(
     }
 
 
+# ==================== REPORTS MODULE ====================
+
+class ReportRequest(BaseModel):
+    report_id: str
+    format: str = "excel"  # excel or pdf
+    filters: Optional[Dict[str, Any]] = None
+
+# Role-based report access mapping
+REPORT_ROLE_ACCESS = {
+    "admin": list(REPORT_DEFINITIONS.keys()),  # Admin sees all
+    "manager": ["lead_summary", "lead_conversion_funnel", "lead_source_analysis", 
+                "client_overview", "client_revenue_analysis", "client_industry_breakdown",
+                "sales_pipeline_status", "quotation_analysis", "agreement_status",
+                "employee_directory", "employee_department_analysis", "leave_utilization",
+                "expense_summary", "expense_by_category", "sow_status_report", 
+                "project_summary", "consultant_allocation", "approval_turnaround", "pending_approvals"],
+    "hr_manager": ["employee_directory", "employee_department_analysis", "leave_utilization",
+                   "expense_summary", "expense_by_category", "approval_turnaround", "pending_approvals"],
+    "hr_executive": ["employee_directory"],
+    "project_manager": ["client_overview", "agreement_status", "sow_status_report", 
+                        "project_summary", "consultant_allocation"],
+    "executive": ["lead_summary", "lead_conversion_funnel", "lead_source_analysis",
+                  "client_overview", "client_industry_breakdown", "sales_pipeline_status",
+                  "quotation_analysis", "agreement_status"],
+    "account_manager": ["lead_summary", "lead_conversion_funnel", "lead_source_analysis",
+                        "client_overview", "client_revenue_analysis", "client_industry_breakdown",
+                        "sales_pipeline_status", "quotation_analysis", "agreement_status"],
+    "principal_consultant": ["sow_status_report", "project_summary", "consultant_allocation"],
+}
+
+def get_accessible_reports(role: str) -> List[str]:
+    """Get list of report IDs accessible by role"""
+    if role == "admin":
+        return list(REPORT_DEFINITIONS.keys())
+    return REPORT_ROLE_ACCESS.get(role, [])
+
+@api_router.get("/reports")
+async def get_available_reports(current_user: User = Depends(get_current_user)):
+    """Get list of reports available to current user based on role"""
+    accessible = get_accessible_reports(current_user.role)
+    
+    reports = []
+    for report_id, definition in REPORT_DEFINITIONS.items():
+        if report_id in accessible:
+            reports.append({
+                "id": report_id,
+                "name": definition["name"],
+                "description": definition["description"],
+                "category": definition["category"]
+            })
+    
+    # Group by category
+    by_category = {}
+    for r in reports:
+        cat = r["category"]
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append(r)
+    
+    return {
+        "reports": reports,
+        "by_category": by_category,
+        "total_available": len(reports)
+    }
+
+@api_router.get("/reports/{report_id}/preview")
+async def preview_report(
+    report_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Preview report data without downloading"""
+    accessible = get_accessible_reports(current_user.role)
+    if report_id not in accessible:
+        raise HTTPException(status_code=403, detail="Not authorized to access this report")
+    
+    if report_id not in REPORT_DEFINITIONS:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Get data generator function
+    data_functions = get_report_data_functions()
+    if report_id not in data_functions:
+        raise HTTPException(status_code=500, detail="Report generator not implemented")
+    
+    # Generate report data
+    report_data = await data_functions[report_id](db)
+    
+    return {
+        "report_id": report_id,
+        "report_info": REPORT_DEFINITIONS[report_id],
+        "data": report_data
+    }
+
+@api_router.post("/reports/generate")
+async def generate_report(
+    request: ReportRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate and download report in specified format"""
+    accessible = get_accessible_reports(current_user.role)
+    if request.report_id not in accessible:
+        raise HTTPException(status_code=403, detail="Not authorized to access this report")
+    
+    if request.report_id not in REPORT_DEFINITIONS:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Get data generator function
+    data_functions = get_report_data_functions()
+    if request.report_id not in data_functions:
+        raise HTTPException(status_code=500, detail="Report generator not implemented")
+    
+    # Generate report data
+    report_data = await data_functions[request.report_id](db, request.filters)
+    
+    # Generate file based on format
+    if request.format == "excel":
+        file_bytes = generate_excel(report_data)
+        filename = f"{request.report_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif request.format == "pdf":
+        file_bytes = generate_pdf(report_data)
+        filename = f"{request.report_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        media_type = "application/pdf"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid format. Use 'excel' or 'pdf'")
+    
+    return Response(
+        content=file_bytes,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.get("/reports/categories")
+async def get_report_categories(current_user: User = Depends(get_current_user)):
+    """Get list of report categories"""
+    categories = set()
+    for definition in REPORT_DEFINITIONS.values():
+        categories.add(definition["category"])
+    return sorted(list(categories))
+
+@api_router.get("/reports/stats")
+async def get_report_stats(current_user: User = Depends(get_current_user)):
+    """Get quick stats for dashboard"""
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Quick counts from various collections
+    leads_count = await db.leads.count_documents({})
+    clients_count = await db.clients.count_documents({"is_active": True})
+    employees_count = await db.employees.count_documents({})
+    projects_count = await db.projects.count_documents({})
+    pending_approvals = await db.approval_requests.count_documents({"overall_status": "pending"})
+    
+    # Revenue calculation
+    clients = await db.clients.find({"is_active": True}, {"revenue_history": 1}).to_list(500)
+    total_revenue = sum(
+        sum(r.get('amount', 0) for r in c.get('revenue_history', []))
+        for c in clients
+    )
+    
+    # Expense stats
+    expense_pipeline = [
+        {"$match": {"status": {"$in": ["pending", "approved"]}}},
+        {"$group": {"_id": "$status", "total": {"$sum": "$total_amount"}}}
+    ]
+    expense_stats = await db.expenses.aggregate(expense_pipeline).to_list(10)
+    expense_by_status = {e['_id']: e['total'] for e in expense_stats}
+    
+    return {
+        "leads": leads_count,
+        "clients": clients_count,
+        "employees": employees_count,
+        "projects": projects_count,
+        "pending_approvals": pending_approvals,
+        "total_revenue": total_revenue,
+        "pending_expenses": expense_by_status.get('pending', 0),
+        "approved_expenses": expense_by_status.get('approved', 0)
+    }
+
+
 app.include_router(api_router)
 
 app.add_middleware(
