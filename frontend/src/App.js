@@ -24,6 +24,7 @@ import Employees from './pages/Employees';
 import ApprovalsCenter from './pages/ApprovalsCenter';
 import Clients from './pages/Clients';
 import Expenses from './pages/Expenses';
+import Reports from './pages/Reports';
 import Layout from './components/Layout';
 import './App.css';
 
