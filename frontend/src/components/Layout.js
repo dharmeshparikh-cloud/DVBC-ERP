@@ -46,6 +46,7 @@ const Layout = () => {
     { name: 'Quotations', href: '/sales-funnel/quotations', icon: FileText },
     { name: 'Agreements', href: '/sales-funnel/agreements', icon: FileCheck },
     { name: 'Clients', href: '/clients', icon: Building2 },
+    ...(isSalesRole ? [{ name: 'Sales Meetings', href: '/sales-meetings', icon: Calendar }] : []),
   ];
 
   const managerNav = [
