@@ -8,6 +8,10 @@ import Leads from './pages/Leads';
 import Projects from './pages/Projects';
 import SalesMeetings from './pages/SalesMeetings';
 import ConsultingMeetings from './pages/ConsultingMeetings';
+import OrgChart from './pages/OrgChart';
+import LeaveManagement from './pages/LeaveManagement';
+import Attendance from './pages/Attendance';
+import Payroll from './pages/Payroll';
 import EmailTemplates from './pages/EmailTemplates';
 import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
 import SOWBuilder from './pages/sales-funnel/SOWBuilder';
@@ -104,6 +108,10 @@ function App() {
             <Route path="projects" element={<Projects />} />
             <Route path="sales-meetings" element={<SalesMeetings />} />
             <Route path="consulting-meetings" element={<ConsultingMeetings />} />
+            <Route path="org-chart" element={<OrgChart />} />
+            <Route path="leave-management" element={<LeaveManagement />} />
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="payroll" element={<Payroll />} />
             <Route path="email-templates" element={<EmailTemplates />} />
             <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
             <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
