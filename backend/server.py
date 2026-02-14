@@ -3398,7 +3398,7 @@ async def update_project_sow_item(
     return {"message": "SOW item updated"}
 
 @api_router.delete("/projects/{project_id}/sow/{sow_id}/items/{item_id}")
-async def delete_sow_item(
+async def delete_project_sow_item(
     project_id: str,
     sow_id: str,
     item_id: str,
