@@ -46,6 +46,7 @@ const Layout = () => {
     { name: 'Handover Alerts', href: '/handover-alerts', icon: AlertTriangle },
     { name: 'Employees', href: '/employees', icon: UsersRound },
     { name: 'Expenses', href: '/expenses', icon: Receipt },
+    { name: 'Reports', href: '/reports', icon: BarChart3 },
     { name: 'User Management', href: '/user-management', icon: Shield },
   ];
 
