@@ -647,7 +647,7 @@ const SOWBuilder = () => {
                   handleStatusChange(item.id, newStatus);
                 }
               }}
-              disabled={!canEdit && !isManager}
+              disabled={!canUpdateStatus && !canApprove}
               className={`h-8 px-2 text-xs rounded border w-full ${
                 item.status === 'approved' ? 'border-emerald-300 text-emerald-700 bg-emerald-50' :
                 item.status === 'rejected' ? 'border-red-300 text-red-700 bg-red-50' :
