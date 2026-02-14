@@ -328,11 +328,59 @@ const Projects = () => {
                     <div className="text-sm text-zinc-600">{project.notes}</div>
                   </div>
                 )}
+
+                {/* Action Buttons */}
+                <div className="pt-4 border-t border-zinc-200 flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => navigate(`/projects/${project.id}/tasks`)}
+                    size="sm"
+                    variant="outline"
+                    className="rounded-sm"
+                  >
+                    <ListTodo className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                    Tasks
+                  </Button>
+                  {canEdit && (
+                    <Button
+                      onClick={() => {
+                        setSelectedProject(project);
+                        setAssignDialogOpen(true);
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="rounded-sm"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                      Assign Consultant
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Assign Consultant Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+              Manage Consultants
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              {selectedProject?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProject && (
+            <ProjectConsultantAssignment
+              projectId={selectedProject.id}
+              projectStartDate={selectedProject.start_date}
+              onUpdate={() => fetchProjects()}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
