@@ -36,7 +36,12 @@ const Reports = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
+  const [filterCategory, setFilterCategory] = useState(() => {
+    const cat = searchParams.get('category');
+    if (!cat) return '';
+    const categoryMap = { sales: 'Sales', hr: 'HR', operations: 'Operations', finance: 'Finance' };
+    return categoryMap[cat.toLowerCase()] || '';
+  });
   
   // Preview dialog
   const [previewDialog, setPreviewDialog] = useState(false);
