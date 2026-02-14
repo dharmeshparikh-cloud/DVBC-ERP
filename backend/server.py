@@ -972,10 +972,11 @@ async def get_pending_approvals(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Only managers and admins can view pending approvals")
     
     agreements = await db.agreements.find(
-        {"approval_status": "pending_approval"},
+        {"status": "pending_approval"},
         {"_id": 0}
     ).to_list(1000)
     
+    result = []
     for agreement in agreements:
         if isinstance(agreement.get('created_at'), str):
             agreement['created_at'] = datetime.fromisoformat(agreement['created_at'])
@@ -985,8 +986,21 @@ async def get_pending_approvals(current_user: User = Depends(get_current_user)):
             agreement['start_date'] = datetime.fromisoformat(agreement['start_date'])
         if agreement.get('end_date') and isinstance(agreement['end_date'], str):
             agreement['end_date'] = datetime.fromisoformat(agreement['end_date'])
+        
+        # Get associated quotation
+        quotation = None
+        if agreement.get('quotation_id'):
+            quotation = await db.quotations.find_one(
+                {"id": agreement['quotation_id']},
+                {"_id": 0}
+            )
+        
+        result.append({
+            "agreement": agreement,
+            "quotation": quotation
+        })
     
-    return agreements
+    return result
 
 @api_router.post("/leads/bulk-upload")
 async def bulk_upload_leads(
