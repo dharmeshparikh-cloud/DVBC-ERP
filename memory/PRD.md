@@ -82,7 +82,16 @@ A comprehensive business management application for a 50-person consulting organ
 ### P0 (Critical)
 - None at this time
 
-### P1 (High Priority)
+### P1 (High Priority) - Consultant Module Phase 2
+- Meeting Form with MOM (Minutes of Meeting)
+- Task Management for consultants
+- Project Summary Updates by consultant
+- Meetings tracking: Completed vs Committed
+
+### P2 (Medium Priority) - Consultant Module Phase 3
+- Gantt Chart for project timeline
+- Quarterly Activity Reports
+- Project Stage Tracking
 - Rocket Reach integration for lead enrichment
 - Email sending for agreements (requires SMTP credentials)
 - Detailed Time Tracking module (visits, meeting modes)
