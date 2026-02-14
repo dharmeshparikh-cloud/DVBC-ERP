@@ -430,7 +430,9 @@ A comprehensive business management application for a 50-person consulting organ
 4. **Manager Approvals**: View pending approvals, approve/reject agreements
 
 ### Navigation ✅ RESTRUCTURED (Feb 14, 2026)
-- Domain-segmented sidebar with 4 sections: HR, SALES, CONSULTING, ADMIN
+- Domain-segmented sidebar with 5 sections: MY WORKSPACE, HR, SALES, CONSULTING, ADMIN
+- **MY WORKSPACE Section** (visible to: ALL users):
+  - My Attendance, My Leaves, My Salary Slips, My Expenses
 - **HR Section** (visible to: Admin, HR Manager, HR Executive, Manager):
   - Employees, Org Chart, Leave Management, Attendance, Payroll, Expenses, HR Reports
 - **SALES Section** (visible to: Admin, Executive, Account Manager, Manager):
@@ -442,6 +444,20 @@ A comprehensive business management application for a 50-person consulting organ
   - User Management, Approvals Center, Email Templates
 - Reports auto-filter by domain via URL params (?category=hr/sales/operations)
 - Sticky sidebar with scrollable nav, role-based visibility
+
+### My Workspace - Self-Service (Feb 14, 2026) ✅ NEW
+- **Purpose**: Self-service features for ALL system users
+- **My Attendance** (`/my-attendance`): View own attendance records with month picker, summary stats
+- **My Leaves** (`/my-leaves`): Leave balance (casual/sick/earned with progress bars), apply leave, track request status
+- **My Salary Slips** (`/my-salary-slips`): All historical monthly salary statements with detail view
+- **My Expenses** (`/my-expenses`): Submit new expenses, track claim status (draft/pending/approved/reimbursed)
+- **APIs**: `/api/my/attendance`, `/api/my/leave-balance`, `/api/my/salary-slips`, `/api/my/expenses`
+
+### Payroll Enhancement - Expense Reimbursement (Feb 14, 2026) ✅ NEW
+- **Approved expenses auto-included in payroll** as "Conveyance Reimbursement" earning
+- During salary slip generation, approved/reimbursed expenses for the employee in the payroll month are fetched
+- Total expense amount added as a line item in earnings section
+- Visible in both HR Payroll and employee's My Salary Slips
 
 ### UI/UX ✅
 - Black and white theme
