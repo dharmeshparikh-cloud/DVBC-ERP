@@ -4262,6 +4262,290 @@ async def get_current_user_permissions(current_user: User = Depends(get_current_
     
     return {}
 
+# ==================== ROLE MANAGEMENT APIS ====================
+
+class RoleCreate(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    permissions: Optional[dict] = None
+
+@api_router.get("/roles")
+async def get_all_roles(current_user: User = Depends(get_current_user)):
+    """Get all available roles"""
+    # First check if custom roles exist in database
+    custom_roles = await db.roles.find({}, {"_id": 0}).to_list(100)
+    
+    if custom_roles:
+        # Merge with DEFAULT_ROLES to ensure system roles always exist
+        role_ids = {r['id'] for r in custom_roles}
+        for default_role in DEFAULT_ROLES:
+            if default_role['id'] not in role_ids:
+                custom_roles.append(default_role)
+        return sorted(custom_roles, key=lambda x: x.get('name', ''))
+    
+    # Initialize roles from defaults if none exist
+    return sorted(DEFAULT_ROLES, key=lambda x: x.get('name', ''))
+
+@api_router.post("/roles")
+async def create_role(
+    role_create: RoleCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new custom role (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can create roles")
+    
+    # Check if role ID already exists
+    existing = await db.roles.find_one({"id": role_create.id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Role ID already exists")
+    
+    # Check against default roles
+    default_role_ids = {r['id'] for r in DEFAULT_ROLES}
+    if role_create.id in default_role_ids:
+        raise HTTPException(status_code=400, detail="Cannot override system role")
+    
+    # Create role with default consultant permissions (safe starting point)
+    new_role = {
+        "id": role_create.id,
+        "name": role_create.name,
+        "description": role_create.description or "",
+        "is_system_role": False,
+        "can_delete": True,
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.roles.insert_one(new_role)
+    
+    # Create default permissions for the role (copy from consultant)
+    default_perms = DEFAULT_ROLE_PERMISSIONS.get("consultant", {})
+    await db.role_permissions.update_one(
+        {"role": role_create.id},
+        {"$set": {
+            "role": role_create.id,
+            "permissions": default_perms,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"message": f"Role '{role_create.name}' created successfully", "role_id": role_create.id}
+
+@api_router.get("/roles/{role_id}")
+async def get_role(
+    role_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific role with its permissions"""
+    # Check database first
+    role = await db.roles.find_one({"id": role_id}, {"_id": 0})
+    
+    if not role:
+        # Check defaults
+        for default_role in DEFAULT_ROLES:
+            if default_role['id'] == role_id:
+                role = default_role
+                break
+    
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    
+    # Get permissions
+    custom_perms = await db.role_permissions.find_one({"role": role_id}, {"_id": 0})
+    if custom_perms:
+        role['permissions'] = custom_perms['permissions']
+    else:
+        role['permissions'] = DEFAULT_ROLE_PERMISSIONS.get(role_id, {})
+    
+    return role
+
+@api_router.patch("/roles/{role_id}")
+async def update_role(
+    role_id: str,
+    role_update: RoleUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a role (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can update roles")
+    
+    # Check if updating a system role name (not allowed for system roles)
+    for default_role in DEFAULT_ROLES:
+        if default_role['id'] == role_id and default_role.get('is_system_role'):
+            # System roles: only permissions can be updated, not name/description
+            if role_update.name or role_update.description:
+                pass  # Allow update even for system roles
+    
+    update_data = {}
+    if role_update.name:
+        update_data['name'] = role_update.name
+    if role_update.description is not None:
+        update_data['description'] = role_update.description
+    
+    if update_data:
+        update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+        
+        # Update or insert in db
+        await db.roles.update_one(
+            {"id": role_id},
+            {"$set": update_data},
+            upsert=True
+        )
+    
+    # Update permissions if provided
+    if role_update.permissions:
+        await db.role_permissions.update_one(
+            {"role": role_id},
+            {"$set": {
+                "role": role_id,
+                "permissions": role_update.permissions,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+    
+    return {"message": f"Role '{role_id}' updated successfully"}
+
+@api_router.delete("/roles/{role_id}")
+async def delete_role(
+    role_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a custom role (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can delete roles")
+    
+    # Check if it's a system role
+    for default_role in DEFAULT_ROLES:
+        if default_role['id'] == role_id and not default_role.get('can_delete', True):
+            raise HTTPException(status_code=400, detail="Cannot delete system role")
+    
+    # Check if any users have this role
+    users_with_role = await db.users.count_documents({"role": role_id})
+    if users_with_role > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete role. {users_with_role} user(s) currently have this role."
+        )
+    
+    # Delete role
+    await db.roles.delete_one({"id": role_id})
+    await db.role_permissions.delete_one({"role": role_id})
+    
+    return {"message": f"Role '{role_id}' deleted successfully"}
+
+@api_router.get("/roles/categories/sow")
+async def get_sow_role_categories():
+    """Get role categories for SOW access control"""
+    return {
+        "sales_roles": SALES_ROLES,
+        "consulting_roles": CONSULTING_ROLES,
+        "pm_roles": PM_ROLES
+    }
+
+# Update user role API (enhanced)
+@api_router.patch("/users/{user_id}/role")
+async def update_user_role(
+    user_id: str,
+    role: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Update user's role (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can change user roles")
+    
+    # Verify role exists
+    role_exists = False
+    for default_role in DEFAULT_ROLES:
+        if default_role['id'] == role:
+            role_exists = True
+            break
+    
+    if not role_exists:
+        custom_role = await db.roles.find_one({"id": role})
+        if not custom_role:
+            raise HTTPException(status_code=400, detail="Invalid role")
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": role, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": f"User role updated to '{role}'"}
+
+# Get all available modules and actions for permission configuration
+@api_router.get("/permission-modules")
+async def get_permission_modules(current_user: User = Depends(get_current_user)):
+    """Get all available modules and actions for permission configuration"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can view permission modules")
+    
+    return {
+        "modules": [
+            {"id": "leads", "name": "Leads", "description": "Lead management"},
+            {"id": "pricing_plans", "name": "Pricing Plans", "description": "Pricing plan management"},
+            {"id": "sow", "name": "SOW", "description": "Scope of Work management"},
+            {"id": "quotations", "name": "Quotations", "description": "Quotation management"},
+            {"id": "agreements", "name": "Agreements", "description": "Agreement management"},
+            {"id": "projects", "name": "Projects", "description": "Project management"},
+            {"id": "tasks", "name": "Tasks", "description": "Task management"},
+            {"id": "consultants", "name": "Consultants", "description": "Consultant management"},
+            {"id": "users", "name": "Users", "description": "User management"},
+            {"id": "reports", "name": "Reports", "description": "Reports and analytics"}
+        ],
+        "actions": {
+            "common": ["create", "read", "update", "delete"],
+            "sow": ["create", "read", "update", "delete", "freeze", "approve", "authorize_client", "update_status"],
+            "agreements": ["create", "read", "update", "delete", "approve"],
+            "users": ["create", "read", "update", "delete", "manage_roles"],
+            "reports": ["view", "export"]
+        }
+    }
+
+# User list with role information
+@api_router.get("/users-with-roles")
+async def get_users_with_roles(
+    role: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all users with their role information (Admin/Manager only)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.HR_MANAGER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {}
+    if role:
+        query['role'] = role
+    
+    users = await db.users.find(query, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    
+    # Get all roles for mapping
+    roles_list = await db.roles.find({}, {"_id": 0}).to_list(100)
+    roles_map = {r['id']: r for r in roles_list}
+    
+    # Add role details to default roles
+    for default_role in DEFAULT_ROLES:
+        if default_role['id'] not in roles_map:
+            roles_map[default_role['id']] = default_role
+    
+    # Enrich users with role info
+    for user in users:
+        role_id = user.get('role')
+        if role_id and role_id in roles_map:
+            user['role_info'] = roles_map[role_id]
+        if isinstance(user.get('created_at'), str):
+            pass  # Already string
+    
+    return users
+
 app.include_router(api_router)
 
 app.add_middleware(
