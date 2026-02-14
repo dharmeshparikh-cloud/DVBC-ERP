@@ -100,6 +100,8 @@ function App() {
             <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
             <Route path="consultants" element={<Consultants />} />
             <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
+            <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
+            <Route path="handover-alerts" element={<HandoverAlerts />} />
           </Route>
         </Routes>
       </BrowserRouter>
