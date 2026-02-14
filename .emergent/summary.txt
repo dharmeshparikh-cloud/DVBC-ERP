@@ -2,205 +2,739 @@
 The user, representing a 50-person consulting organization, requires a comprehensive business management application. The system needs to cover HR, Marketing, Sales, Finance, and Consulting project workflows. Key requirements include custom reporting for each department and time-based tracking for services, from agreement to delivery.
 
 **PRODUCT REQUIREMENTS (based on user clarifications):**
-- **Authentication & Roles:** Email-based login with three user roles: Admin (full access), Manager (view/download, agreement approval), and Executive (edit/view).
-- **Sales Workflow:** A detailed sales process as per a user-provided PDF (). This includes:
-    - Lead entry and management.
-    - A sales funnel with Pricing Plans, Quotations, and Agreements.
-    - A manager approval system for agreements.
-    - Automatic lead status update to closed upon agreement approval.
-    - Currency must be Indian Rupees (₹).
-- **Agreement & Email System:**
-    - Salespeople must be able to send agreements to clients via email.
-    - The system should support editable email templates with variables.
-    - Email sending should use SMTP/Gmail based on the logged-in user's credentials.
-- **Time Tracking:** Track project start date, number of visits, total meetings (committed vs. delivered), and meeting mode (Online, Offline, Tele-Call).
-- **Integrations:** Rocket Reach integration for lead generation.
-- **UI/UX:** A modern, clean, black and white theme with the user's logo displayed in the sidebar without any accompanying text.
+-   **Authentication & Roles:** Email-based login with roles: Admin, Manager, Executive, and now **Consultant**. A more complex hierarchy with **Project Manager** and **Principal Consultant** has been requested.
+-   **Sales Workflow:** A detailed sales process from lead entry to agreement approval. Currency is Indian Rupees (₹).
+-   **Agreement & Email System:** Email agreements to clients, using editable templates and the logged-in user's SMTP/Gmail credentials.
+-   **Consultant & Project Management:**
+    -   Admins can create and manage consultant profiles, including bandwidth and cost.
+    -   Managers/Admins can assign consultants to projects.
+    -   Consultants have a separate dashboard to track their assigned projects and tasks.
+    -   Track assigned dates, meeting completion, project value, and consultant workload.
+    -   A Gantt chart with drag-and-drop task management is required.
+    -   Task management system with specific categories and statuses.
+    -   Alerts for a 15-day project handover deadline from sales.
+-   **Integrations:** Rocket Reach integration for lead generation.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a React frontend and FastAPI backend is in place. It features JWT-based authentication with three predefined user roles. The UI has a black-and-white theme and includes the user's logo. Core modules for managing Leads, Projects, and Meetings have been created.
-
-A sophisticated lead scoring system is implemented, which automatically scores leads based on job title, contact info, and engagement status, and displays these scores on the dashboard and leads page. The backend infrastructure for the custom sales workflow (Pricing, Quotations, Agreements, Approvals) and an email template system has been built, but the corresponding frontend is incomplete and partially broken.
+A full-stack application with a React frontend and FastAPI backend. It features JWT-based authentication with four user roles (Admin, Manager, Executive, Consultant).
+-   **Sales Workflow:** The backend is complete, and the frontend UI for Pricing, Quotations, Agreements, and Manager Approvals is now fully implemented and tested.
+-   **Consultant Module (Phase 1):** A system for Admins/Managers to create consultant users and view their profiles, including project load and availability. Consultants have their own dedicated dashboard.
+-   **UI/UX:** The application has a consistent black-and-white theme, a sidebar with navigation, clickable dashboard stats, and quick-action buttons integrated into the workflow.
 
 **Last working item**:
-- **Last item agent was working:** The agent was addressing the user's feedback that the sales workflow implementation was incomplete and that the app needed more dummy data. The agent had just finished resolving a critical login bug and was about to execute a script () to add more data, with the next step being the implementation of the missing frontend pages for the sales workflow.
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** both
-- **User Testing Done:** N
+-   **Last item agent was working:** The user reported that the pricing page is not being populated and throwing errors. The agent was about to begin investigating this bug, which blocks the implementation of the next set of features.
+-   **Status:** BLOCKED
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** Frontend testing agent (or screenshot with debug) to check the console and network tabs for errors on the pricing page.
+-   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Incomplete Sales Workflow Implementation (P0)**
--   **Issue 2: Frontend Compilation Errors & Missing Pages (P1)**
--   **Issue 3: Incomplete Dummy Data Population (P2)**
+-   **Issue 1: Pricing Page Broken (P0)**
 
 **Issues Detail:**
--   **Issue 1:** Incomplete Sales Workflow Implementation
-    -   **Attempted fixes:** The agent built the necessary backend models in  and API endpoints in . An attempt to create the frontend pages resulted in compilation errors, leading to the deletion of a key file ().
+-   **Issue 1:** Pricing Page Broken
+    -   **Attempted fixes:** None yet. The agent was just about to investigate when the session ended.
     -   **Next debug checklist:**
-        1.  Carefully review the user-provided  to map out all required UI components.
-        2.  Re-create  without syntax errors.
-        3.  Build or verify the frontend pages for  and .
-        4.  Implement the Manager Approval UI where managers can review and act on pending agreements.
-        5.  Connect the frontend UI to the backend for the entire flow: Pricing Plan -> Quotation -> Agreement -> Manager Approval -> Client Email Notification.
-    -   **Why fix this issue and what will be achieved with the fix?** This is the user's primary requirement. Fixing it will deliver the core sales management functionality of the application.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
+        1.  View the code for .
+        2.  Take a screenshot with  to inspect the browser console and network requests for errors.
+        3.  Verify the  backend endpoint is working as expected using .
+        4.  Check backend logs for any related errors: ==> /var/log/supervisor/backend.err.log <==
+  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [51] using WatchFiles
+INFO:     Started server process [80]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2026-02-14 08:18:12,582 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [80]
+INFO:     Started server process [785]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [785]
+INFO:     Started server process [850]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [850]
+INFO:     Started server process [934]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [934]
+INFO:     Stopping reloader process [51]
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [942] using WatchFiles
+INFO:     Started server process [944]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2026-02-14 08:34:53,389 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [944]
+INFO:     Started server process [1533]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1533]
+INFO:     Stopping reloader process [942]
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [1538] using WatchFiles
+INFO:     Started server process [1540]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2026-02-14 08:36:13,691 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [48] using WatchFiles
+INFO:     Started server process [80]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2026-02-14 12:07:17,621 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     Will watch for changes in these directories: ['/app/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [43] using WatchFiles
+INFO:     Started server process [81]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
 
--   **Issue 2:** Frontend Compilation Errors & Missing Pages
-    -   **Attempted fixes:** The agent deleted the problematic file () and commented out its route in  as a temporary workaround to get the app running.
-    -   **Next debug checklist:**
-        1.  Re-write the content for , paying close attention to avoid invalid characters or escape sequences that break the toolchain.
-        2.  Add the route for  back into .
-        3.  Restart the frontend service (frontend: ERROR (not running)
-frontend: started) and use the screenshot tool to verify the login page loads without compilation errors.
-    -   **Why fix this issue and what will be achieved with the fix?** The application is currently missing a critical page of the sales workflow. This fix is necessary to unblock the rest of the frontend development.
-    -   **Status:** BLOCKED
-    -   **Is recurring issue?** Y
+==> /var/log/supervisor/backend.out.log <==
+INFO:     10.66.11.130:43620 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.3.130:45022 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.11.130:43620 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.11.130:43620 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44868 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44868 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44884 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:41592 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44884 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:41592 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44884 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44884 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44884 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.3.130:41592 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44884 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.3.130:37948 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.66.11.130:58850 - "POST /api/consultants HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.3.130:60524 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60524 - "POST /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33620 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33620 - "POST /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.11.130:60348 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.66.11.130:60348 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:48080 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:48086 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.11.130:60348 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:48086 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:48080 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:48080 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.11.130:60348 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.3.130:48080 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.3.130:48080 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.3.130:50682 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.66.3.130:50682 - "GET /api/consultant/my-projects HTTP/1.1" 200 OK
+INFO:     10.66.3.130:50682 - "GET /api/consultant/dashboard-stats HTTP/1.1" 200 OK
+INFO:     10.66.3.130:50688 - "GET /api/consultant/my-projects HTTP/1.1" 200 OK
+INFO:     10.66.3.130:50682 - "GET /api/consultant/dashboard-stats HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60154 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60154 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60154 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:53934 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60158 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60158 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:53934 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60158 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60158 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:60154 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.11.130:53934 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33124 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33124 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.11.130:47018 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33124 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33138 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33138 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:47018 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33138 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.11.130:47018 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33138 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33138 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:33138 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.11.130:47018 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.11.130:35642 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.11.130:35642 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.11.130:35642 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:56020 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:56022 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.11.130:35642 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:56022 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:56022 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.11.130:35642 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:56022 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:56022 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.11.130:34280 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.3.130:50532 - "GET /api/consultants HTTP/1.1" 200 OK
+INFO:     10.66.11.130:51430 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.66.11.130:51430 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:55154 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:51430 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.11.130:51430 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.11.130:51430 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.11.130:51436 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44896 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44896 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44910 - "GET /api/leads/b710146b-3bdf-4fd2-ad76-64c56720f722/suggestions HTTP/1.1" 200 OK
+INFO:     10.66.11.130:44910 - "GET /api/leads/b710146b-3bdf-4fd2-ad76-64c56720f722/suggestions HTTP/1.1" 200 OK
+INFO:     10.66.3.130:55292 - "GET /api/leads?status=contacted HTTP/1.1" 200 OK
+INFO:     10.66.11.130:55078 - "GET /api/leads?status=qualified HTTP/1.1" 200 OK
+INFO:     10.66.11.130:55078 - "GET /api/leads?status=proposal HTTP/1.1" 200 OK
+INFO:     10.66.11.130:55078 - "GET /api/leads?status=agreement HTTP/1.1" 200 OK
+INFO:     10.66.3.130:48696 - "GET /api/leads?status=closed HTTP/1.1" 200 OK
+INFO:     10.66.11.130:53438 - "POST /api/pricing-plans HTTP/1.1" 422 Unprocessable Entity
+INFO:     10.66.11.130:48332 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     10.66.3.130:43782 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:43782 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:43798 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:43782 - "GET /api/stats/dashboard HTTP/1.1" 200 OK
+INFO:     10.66.3.130:43798 - "GET /api/leads HTTP/1.1" 200 OK
+INFO:     10.66.3.130:43798 - "GET /api/agreements/pending-approval HTTP/1.1" 200 OK
+INFO:     10.66.3.130:43798 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     10.66.3.130:43798 - "GET /api/auth/me HTTP/1.1" 200 OK.
+    -   **Why fix this issue and what will be achieved with the fix?** The pricing page is the entry point for the sales workflow. Fixing it is critical to unblock core application functionality.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** Incomplete Sales Workflow Implementation
-
--   **Issue 3:** Incomplete Dummy Data Population
-    -   **Attempted fixes:** A script was created at .
-    -   **Next debug checklist:**
-        1.  Ensure the default admin user exists before running the script.
-        2.  Execute the script: .
-        3.  Check the script's output for any errors.
-        4.  Verify via API calls that data for leads, pricing plans, and other new models has been successfully created.
-    -   **Why fix this issue and what will be achieved with the fix?** The new sales workflow features cannot be tested or demonstrated without relevant data.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** backend
-    -   **Blocked on other issue:** None
+    -   **Blocked on other issue:** This issue is blocking further development.
 
 **In progress Task List**:
--   **Task 1:** Implement full Sales Workflow Frontend (P0)
-    -   **Where to resume:** Begin by re-creating the sales funnel pages, starting with , which was previously deleted. Then, create/verify  and .
-    -   **What will be achieved with this?** A functional user interface for managing the entire sales funnel, from creating pricing plans to generating and sending agreements for approval.
-    -   **Status:** IN PROGRESS
+-   **Task 1:** Implement Phase 2 of the Consultant & Project Management Module (P0)
+    -   **Where to resume:** After the pricing page bug is fixed, begin implementing the user's extensive requests for project and task management.
+    -   **What will be achieved with this?** A full-featured project management system with role hierarchies, Gantt charts, and task tracking, fulfilling a major user requirement.
+    -   **Status:** NOT STARTED
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** Previous attempts failed due to syntax errors in the generated file content. The next attempt must be more careful.
+    -   **Blocked on something:** **Issue 1: Pricing Page Broken**.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P0) Manager Approval Dashboard:** Create a dedicated UI for managers to view and approve/reject pending agreements.
-    -   **(P1) Rocket Reach Integration:** Integrate with Rocket Reach for lead enrichment as per the initial request.
-    -   **(P2) Detailed Time Tracking Module:** Implement the specific time tracking fields (visits, meeting modes, etc.) requested by the user.
-    -   **(P2) Custom Reporting:** Develop a module for generating custom reports for different departments.
+    -   **(P0) Phase 2 Consultant Module:**
+        -   Implement Project/Principal Consultant roles.
+        -   Assign consultants to existing/new projects with approval flows.
+        -   Add Edit Consultant Profile and Assign Consultant buttons.
+        -   Set up 15-day handover alerts.
+        -   Integrate  for a Gantt chart with drag-and-drop tasks.
+        -   Build the task management system (categories and statuses).
+    -   **(P1) Rocket Reach Integration:** Integrate with Rocket Reach for lead enrichment.
+    -   **(P2) Detailed Time Tracking Module:** Implement tracking for visits, meeting modes, etc.
+    -   **(P2) Custom Reporting Module:** Develop a module for generating departmental reports.
+    -   **(P2) Payment Confirmation/Tracking:** Build a feature to track payments before assigning projects.
+
 -   **Future Tasks:**
     -   HR Workflow Module
     -   Marketing Flow Module
     -   Finance and Accounts Flow Module
-    -   Consulting Project Delivery & Payment Tracking Module
 
 **Completed work in this session**
--   **User Authentication & Roles:** Implemented a JWT-based login system with Admin, Manager, and Executive roles.
--   **Lead Management & Scoring:** Built a lead management system with an automated lead scoring engine and smart suggestions on the UI.
--   **Email Template System:** Created the backend and a basic frontend for managing email templates.
--   **Core UI & Branding:** Established a black-and-white theme, a standard layout, and integrated the user's logo into the sidebar.
--   **Sales Workflow Backend:** Developed the API endpoints and database models for pricing, quotes, agreements, and approvals.
--   **Critical Bug Fix:** Resolved a login failure caused by syntax errors in , making the application accessible again.
+-   **Sales Workflow Frontend (FIXED):** Re-created and implemented the entire sales funnel UI, including pages for , , and manager .
+-   **Backend Refactoring (DONE):** Fixed the  endpoint, enriched the returned data, and refactored the Agreement model to be more flexible.
+-   **Dummy Data (DONE):** Created and successfully executed a Python script to populate the database with comprehensive test data for the entire sales funnel.
+-   **E2E Testing (DONE):** Used the testing agent to perform a full end-to-end test of the sales workflow, which passed with 100% success.
+-   **UI/UX Enhancements (DONE):** Made dashboard statistic cards clickable and added a Start Sales Flow button directly onto lead cards for a smoother user experience.
+-   **Consultant Module - Phase 1 (DONE):**
+    -   Added a new Consultant user role.
+    -   Built a UI for Admins/Managers to create and view consultant profiles and their current bandwidth/workload.
+    -   Created a dedicated, simplified dashboard for logged-in consultants to view their assignments.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1:** Recurring syntax errors in generated files.
-    -   **Debug checklist:** Be extra cautious when generating file content with , especially with nested quotes or special characters. Manually verify the payload content before executing the tool to prevent runtime or compilation errors.
-    -   **Why to solve this issue and what will be achieved with this?** This systemic issue has repeatedly broken the application and solving it will significantly speed up development.
+-   **Issue 1:** The original handoff mentioned recurring syntax errors in generated files. While the agent in this session was successful, the risk remains, especially when creating complex components.
+    -   **Debug checklist:** Double-check content for  or  for special characters or syntax issues before execution.
+    -   **Why to solve this issue and what will be achieved with this?** Proactively avoiding this issue prevents breaking the application and speeds up development.
     -   **Should Test frontend/backend/both after fix:** both
     -   **Is recurring issue?** Y
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork:** None
--   **Recurrence count:** 0
--   **Status:** NONE
+-   None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 -   **Frontend:** React, Tailwind CSS, Shadcn/UI
--   **Backend:** FastAPI, Pydantic, Motor (async MongoDB driver)
+-   **Backend:** FastAPI, Pydantic, Motor
 -   **Database:** MongoDB
--   **Authentication:** JWT (JSON Web Tokens)
+-   **Authentication:** JWT
 
 **key DB schema**
--   **users**: {email, password, role, name}
--   **leads**: {name, company, title, email, phone, linkedin, status, source, notes, score, ... (plus new fields from PDF)}
+-   **users**: {email, password, role ('Admin', 'Manager', 'Executive', 'Consultant'), name, department, capacity}
+-   **leads**: {name, company, title, email, phone, status, source, score}
 -   **projects**: {name, client, startDate, status}
--   **email_templates**: {name, subject, body}
 -   **pricing_plans**: {name, description, price, currency}
 -   **quotations**: {lead_id, plan_id, status}
--   **agreements**: {quotation_id, content, status ('pending_approval', 'approved', 'rejected', 'sent')}
+-   **agreements**: {quotation_id, content, status, approval_status, start_date}
+-   **project_assignments**: {project_id, consultant_id, assigned_date} (new model)
 
 **changes in tech stack**
-- None
+-   User requested using  library for a future task.
 
 **All files of reference**
--   : Main FastAPI application with all API endpoints.
--   : Contains Pydantic models for the sales process.
--   : The main React router, currently missing the route for the agreements page.
--   : Displays leads and their scores; needs updating for the new workflow.
--   : Contains the main navigation and logo.
--   : Script to populate the database with test data. Needs to be executed.
--   : The user-provided specification document for the sales process.
+-   : Contains all API endpoints, including new ones for consultant management.
+-   : **Currently broken and needs investigation.**
+-   : Admin/Manager view for managing consultants.
+-   : Dashboard for the consultant role.
+-   : Main React router, includes new routes for sales and consultant pages.
+-   : Main navigation, updated with new links.
+-   : Script to populate the database with test data.
 
 **Areas that need refactoring**:
-- The frontend pages for the sales workflow (, , and the to-be-recreated ) need to be created correctly and integrated into a seamless flow.
+-   The  file is now very large and contains logic for auth, leads, projects, sales, and consultants. It should be broken down into separate router files (e.g., ) for better maintainability.
 
 **key api endpoints**
 -   , 
--   , 
--   , 
+-   , , 
 -   , , 
 -   , 
--   
--   
+-    (fixed)
+-    (new)
+-    (new)
+-    (new)
 
 **Critical Info for New Agent**
--   The absolute priority is to implement the sales workflow as detailed in the  provided by the user. The current implementation is incomplete and was the user's primary point of negative feedback.
--   A recurring problem has been syntax errors (especially escaped quotes) in files generated with . You must be extremely careful with the content payload for this tool to avoid breaking the application.
--   After making changes to frontend files that previously caused compilation errors, restart the frontend service (frontend: stopped
-frontend: ERROR (abnormal termination)) and take a screenshot to ensure the app loads correctly.
--   All financial values must be displayed in Indian Rupees (₹), using the utility at .
+-   **Immediate Priority:** The user has reported the pricing page is broken. You must fix this **P0 bug** before proceeding with any new features.
+-   **Next Major Task:** The user has outlined a large, multi-part feature request for Phase 2 of the consultant/project management module. This includes new roles, Gantt charts, and task management. It is critical to break this down into smaller, verifiable steps and maintain communication with the user.
+-   **Refactoring Opportunity:** The  file has become monolithic. Plan to refactor it into a more modular structure with FastAPI routers as part of future work.
 
 **documents and test reports created in this job**
-- /app/memory/session_notes.md
-- /app/memory/change_summary.md
+-    (updated)
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **add dummy data and sales workflow missing many feature as per pdf attached earlier**: User reported the sales workflow is incomplete and requested more test data. (Status: **IN PROGRESS**)
-2.  **unable to login**: User reported being unable to log in. (Status: **RESOLVED**)
-3.  **open logon page**: User asked to see the login page, which helped diagnose a frontend error. (Status: **ADDRESSED**)
-4.  **pls add client email notification and push to send button...**: User requested features for the agreement workflow, including email notifications and editable templates. (Status: **BACKEND IMPLEMENTED, FRONTEND PENDING**)
-5.  **smtp/gmail as per user login id**: User specified how email should be sent. (Status: **IMPLEMENTED in backend**)
-6.  **yes all above and sales person to send agreement for apporval...**: User confirmed the manager approval workflow and INR currency requirement. (Status: **PARTIALLY IMPLEMENTED**)
-7.  **create changes in the already created processes as per attached file**: User uploaded the critical  specification. (Status: **IN PROGRESS**)
-8.  **how the scoring will be done?**: User asked for an explanation of the lead scoring mechanism. (Status: **ADDRESSED**)
-9.  **remove company name , keep only logo**: User requested a UI change for the sidebar. (Status: **COMPLETED**)
-10. **yes pls do that and also provide username and password**: User approved the agent's plan and requested credentials. (Status: **COMPLETED**)
+1.  **Also check princing oage , its not being polulated and throwing errors**: User reported the current P0 bug. (Status: **PENDING**)
+2.  **Role can be multiple... To to , Own task...**: User provided detailed requirements for new roles (Project Manager, Principal Consultant) and the task management system. (Status: **PENDING IMPLEMENTATION**)
+3.  **React gantt timeline... yes... To to...**: User confirmed technology choice for Gantt chart and provided specs for task statuses and categories. (Status: **PENDING IMPLEMENTATION**)
+4.  **in project add ssign consultant... design dashboard cards...**: User requested a large set of features for Phase 2 of the consultant module, including project assignment, Gantt charts, and UI updates. (Status: **PENDING IMPLEMENTATION**)
+5.  **is this included with assigned consultant and add consultant feature ? if not need that activated...**: User initiated the conversation about consultant assignment and project tracking, which led to the Phase 2 requirements. (Status: **ADDRESSED, PENDING IMPLEMENTATION**)
+6.  **8 project per consultnat... only admin... yes**: User clarified business rules for consultant creation and project capacity. (Status: **ADDRESSED**)
+7.  **consultant to be selected from exisiting system user...**: User specified requirements for consultant assignment and tracking (assigned dates, meeting completion, project value, etc.). (Status: **ADDRESSED, PARTIALLY IMPLEMENTED in Phase 1**)
+8.  **Should I proceed with Phase 1 now?**: Agent asked for confirmation to start the first phase of the consultant module. (Status: **COMPLETED**)
+9.  **pls make dashboard itesm clackable along with start sales flow button**: User requested UI improvements for the dashboard and leads page. (Status: **COMPLETED**)
+10. **yes do that**: User approved the agent's plan to implement the full sales workflow frontend. (Status: **COMPLETED**)
 
 **Project Health Check:**
--   **Broken:** The sales workflow frontend is non-functional. The  page was deleted to fix a compilation error, and the entire UI flow for creating quotes and agreements is missing.
--   **Mocked:** The email sending functionality exists in the backend but has not been tested end-to-end and will require actual SMTP credentials to be fully verified.
+-   **Broken:** The  page is non-functional and throwing errors, blocking the sales workflow.
+-   **Mocked:**
+    -   The email-sending functionality requires real SMTP credentials for end-to-end verification.
+    -   The concept of payment confirmation has been introduced by the user but is not yet implemented.
 
 **3rd Party Integrations**
-- **Rocket Reach:** Requested by the user but not yet implemented. This will require using the  agent.
+-   **Rocket Reach:** Requested, but not yet implemented.
+-   **react-gantt-timeline:** Requested for the upcoming task management feature. Will require installation (yarn add v1.22.22
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+success Saved lockfile.
+success Saved 342 new dependencies.
+info Direct dependencies
+└─ react-gantt-timeline@0.4.3
+info All dependencies
+├─ @babel/compat-data@7.29.0
+├─ @babel/core@7.29.0
+├─ @babel/helper-compilation-targets@7.28.6
+├─ @babel/helper-globals@7.28.0
+├─ @babel/helper-module-imports@7.28.6
+├─ @babel/helper-module-transforms@7.28.6
+├─ @babel/helper-string-parser@7.27.1
+├─ @babel/helper-validator-option@7.27.1
+├─ @babel/helpers@7.28.6
+├─ @babel/parser@7.29.0
+├─ @babel/plugin-syntax-async-generators@7.8.4
+├─ @babel/plugin-syntax-bigint@7.8.3
+├─ @babel/plugin-syntax-class-properties@7.12.13
+├─ @babel/plugin-syntax-import-meta@7.10.4
+├─ @babel/plugin-syntax-json-strings@7.8.3
+├─ @babel/plugin-syntax-logical-assignment-operators@7.10.4
+├─ @babel/plugin-syntax-nullish-coalescing-operator@7.8.3
+├─ @babel/plugin-syntax-numeric-separator@7.10.4
+├─ @babel/plugin-syntax-object-rest-spread@7.8.3
+├─ @babel/plugin-syntax-optional-catch-binding@7.8.3
+├─ @babel/plugin-syntax-optional-chaining@7.8.3
+├─ @babel/template@7.28.6
+├─ @cnakazawa/watch@1.0.4
+├─ @istanbuljs/load-nyc-config@1.1.0
+├─ @jest/globals@25.5.2
+├─ @jest/test-sequencer@25.5.4
+├─ @jridgewell/gen-mapping@0.3.13
+├─ @jridgewell/remapping@2.3.5
+├─ @jridgewell/resolve-uri@3.1.2
+├─ @jridgewell/sourcemap-codec@1.5.5
+├─ @sinonjs/commons@1.8.6
+├─ @types/babel__core@7.20.5
+├─ @types/babel__generator@7.27.0
+├─ @types/babel__template@7.4.4
+├─ @types/babel__traverse@7.28.0
+├─ @types/graceful-fs@4.1.9
+├─ @types/istanbul-lib-report@3.0.3
+├─ @types/istanbul-reports@1.1.2
+├─ @types/node@25.2.3
+├─ @types/normalize-package-data@2.4.4
+├─ @types/prettier@1.19.1
+├─ @types/stack-utils@1.0.1
+├─ @types/yargs-parser@21.0.3
+├─ acorn-globals@4.3.4
+├─ acorn-walk@6.2.0
+├─ acorn@7.4.1
+├─ ajv@6.12.6
+├─ ansi-escapes@1.4.0
+├─ anymatch@3.1.3
+├─ argparse@1.0.10
+├─ arr-flatten@1.1.0
+├─ array-equal@1.0.2
+├─ asn1@0.2.6
+├─ assign-symbols@1.0.0
+├─ asynckit@0.4.0
+├─ atob@2.1.2
+├─ aws-sign2@0.7.0
+├─ aws4@1.13.2
+├─ babel-jest@25.5.1
+├─ babel-plugin-jest-hoist@25.5.0
+├─ babel-polyfill@6.23.0
+├─ babel-preset-current-node-syntax@0.1.4
+├─ babel-preset-jest@25.5.0
+├─ babel-runtime@6.26.0
+├─ balanced-match@1.0.2
+├─ base@0.11.2
+├─ baseline-browser-mapping@2.9.19
+├─ batch-processor@1.0.0
+├─ bcrypt-pbkdf@1.0.2
+├─ brace-expansion@1.1.12
+├─ braces@3.0.3
+├─ browser-process-hrtime@1.0.0
+├─ browser-resolve@1.11.3
+├─ browserslist@4.28.1
+├─ bser@2.1.1
+├─ buffer-from@1.1.2
+├─ cache-base@1.0.1
+├─ callsites@3.1.0
+├─ camelcase@5.3.1
+├─ caniuse-lite@1.0.30001769
+├─ capture-exit@2.0.0
+├─ caseless@0.12.0
+├─ chardet@0.4.2
+├─ ci-info@2.0.0
+├─ class-utils@0.3.6
+├─ cli-cursor@2.1.0
+├─ cli-width@2.2.1
+├─ cliui@6.0.0
+├─ co@4.6.0
+├─ collection-visit@1.0.0
+├─ color-convert@2.0.1
+├─ color-name@1.1.4
+├─ combined-stream@1.0.8
+├─ concat-map@0.0.1
+├─ convert-source-map@2.0.0
+├─ copy-descriptor@0.1.1
+├─ core-util-is@1.0.2
+├─ cross-spawn@6.0.6
+├─ cssom@0.4.4
+├─ cssstyle@2.3.0
+├─ dashdash@1.14.1
+├─ data-urls@1.1.0
+├─ debug@2.6.9
+├─ decode-uri-component@0.2.2
+├─ deep-is@0.1.4
+├─ deepmerge@4.3.1
+├─ delayed-stream@1.0.0
+├─ detect-newline@3.1.0
+├─ diff-sequences@25.2.6
+├─ ecc-jsbn@0.1.2
+├─ electron-to-chromium@1.5.286
+├─ element-resize-detector@1.2.4
+├─ emoji-regex@8.0.0
+├─ encoding@0.1.13
+├─ end-of-stream@1.4.5
+├─ error-ex@1.3.4
+├─ escalade@3.2.0
+├─ escape-string-regexp@1.0.5
+├─ escodegen@1.14.3
+├─ esprima@4.0.1
+├─ estraverse@4.3.0
+├─ esutils@2.0.3
+├─ execa@1.0.0
+├─ expand-brackets@2.1.4
+├─ extend@3.0.2
+├─ external-editor@2.2.0
+├─ extglob@2.0.4
+├─ extsprintf@1.3.0
+├─ fast-deep-equal@3.1.3
+├─ fast-levenshtein@2.0.6
+├─ figures@2.0.0
+├─ fill-range@7.1.1
+├─ for-in@1.0.2
+├─ forever-agent@0.6.1
+├─ form-data@2.3.3
+├─ fs.realpath@1.0.0
+├─ function-bind@1.1.2
+├─ gensync@1.0.0-beta.2
+├─ get-caller-file@2.0.5
+├─ get-package-type@0.1.0
+├─ get-stream@4.1.0
+├─ get-value@2.0.6
+├─ getpass@0.1.7
+├─ glob@7.2.3
+├─ har-schema@2.0.0
+├─ har-validator@5.1.5
+├─ has-ansi@2.0.0
+├─ has-flag@4.0.0
+├─ has-value@1.0.0
+├─ hosted-git-info@2.8.9
+├─ html-encoding-sniffer@1.0.2
+├─ http-signature@1.2.0
+├─ iconv-lite@0.4.24
+├─ imurmurhash@0.1.4
+├─ inflight@1.0.6
+├─ inherits@2.0.4
+├─ inquirer@3.0.6
+├─ invariant@2.2.4
+├─ ip-regex@2.1.0
+├─ is-arrayish@0.2.1
+├─ is-ci@2.0.0
+├─ is-core-module@2.16.1
+├─ is-descriptor@1.0.3
+├─ is-fullwidth-code-point@3.0.0
+├─ is-generator-fn@2.1.0
+├─ is-plain-object@2.0.4
+├─ is-stream@1.1.0
+├─ is-windows@1.0.2
+├─ isarray@1.0.0
+├─ isstream@0.1.2
+├─ istanbul-lib-coverage@3.2.2
+├─ istanbul-lib-instrument@5.2.1
+├─ jest-docblock@25.3.0
+├─ jest-each@25.5.0
+├─ jest-environment-jsdom@25.5.0
+├─ jest-environment-node@25.5.0
+├─ jest-leak-detector@25.5.0
+├─ jest-pnp-resolver@1.2.3
+├─ jest-runner@25.5.4
+├─ jest-serializer@25.5.0
+├─ js-tokens@4.0.0
+├─ js-yaml@3.14.2
+├─ jsdom@15.2.1
+├─ jsesc@3.1.0
+├─ json-parse-even-better-errors@2.3.1
+├─ json-schema-traverse@0.4.1
+├─ json-schema@0.4.0
+├─ json-stringify-safe@5.0.1
+├─ json5@2.2.3
+├─ jsprim@1.4.2
+├─ kind-of@3.2.2
+├─ leven@3.1.0
+├─ levn@0.3.0
+├─ lines-and-columns@1.2.4
+├─ locate-path@5.0.0
+├─ lodash.sortby@4.7.0
+├─ lodash@4.17.23
+├─ lolex@5.1.2
+├─ loose-envify@1.4.0
+├─ lru-cache@5.1.1
+├─ makeerror@1.0.12
+├─ map-visit@1.0.0
+├─ merge-stream@2.0.0
+├─ mime-db@1.52.0
+├─ mime-types@2.1.35
+├─ mimic-fn@1.2.0
+├─ minimatch@3.1.2
+├─ minimist@1.2.8
+├─ mixin-deep@1.3.2
+├─ moment@2.30.1
+├─ ms@2.0.0
+├─ mute-stream@0.0.7
+├─ nanomatch@1.2.13
+├─ natural-compare@1.4.0
+├─ nice-try@1.0.5
+├─ node-fetch@1.6.3
+├─ node-int64@0.4.0
+├─ node-releases@2.0.27
+├─ normalize-package-data@2.5.0
+├─ normalize-path@3.0.0
+├─ npm-run-path@2.0.2
+├─ nwsapi@2.2.23
+├─ oauth-sign@0.9.0
+├─ object-assign@4.1.1
+├─ object-copy@0.1.0
+├─ once@1.4.0
+├─ onetime@2.0.1
+├─ opencollective-postinstall@2.0.3
+├─ opencollective@1.0.3
+├─ opn@4.0.2
+├─ optionator@0.8.3
+├─ os-tmpdir@1.0.2
+├─ p-finally@1.0.0
+├─ p-limit@2.3.0
+├─ p-locate@4.1.0
+├─ p-try@2.2.0
+├─ parse-json@5.2.0
+├─ parse5@5.1.0
+├─ pascalcase@0.1.1
+├─ path-exists@4.0.0
+├─ path-is-absolute@1.0.1
+├─ path-key@2.0.1
+├─ path-parse@1.0.7
+├─ performance-now@2.1.0
+├─ picomatch@2.3.1
+├─ pinkie-promise@2.0.1
+├─ pinkie@2.0.4
+├─ pirates@4.0.7
+├─ pn@1.1.0
+├─ posix-character-classes@0.1.1
+├─ pump@3.0.3
+├─ qs@6.5.5
+├─ react-gantt-timeline@0.4.3
+├─ react-is@16.13.1
+├─ react-sizeme@2.6.12
+├─ read-pkg-up@7.0.1
+├─ read-pkg@5.2.0
+├─ regenerator-runtime@0.10.5
+├─ remove-trailing-separator@1.1.0
+├─ repeat-element@1.1.4
+├─ request-promise-core@1.1.4
+├─ request-promise-native@1.0.9
+├─ request@2.88.2
+├─ require-directory@2.1.1
+├─ require-main-filename@2.0.0
+├─ resolve-from@5.0.0
+├─ resolve-url@0.2.1
+├─ resolve@1.22.11
+├─ restore-cursor@2.0.0
+├─ ret@0.1.15
+├─ rsvp@4.8.5
+├─ run-async@2.4.1
+├─ rx@4.1.0
+├─ safe-buffer@5.2.1
+├─ safer-buffer@2.1.2
+├─ sane@4.1.0
+├─ saxes@3.1.11
+├─ set-blocking@2.0.0
+├─ set-value@2.0.1
+├─ shallowequal@1.1.0
+├─ shebang-command@1.2.0
+├─ shebang-regex@1.0.0
+├─ signal-exit@3.0.7
+├─ snapdragon-node@2.1.1
+├─ snapdragon-util@3.0.1
+├─ source-map-resolve@0.5.3
+├─ source-map-support@0.5.21
+├─ source-map-url@0.4.1
+├─ source-map@0.6.1
+├─ spdx-correct@3.2.0
+├─ spdx-exceptions@2.5.0
+├─ split-string@3.1.0
+├─ sprintf-js@1.0.3
+├─ sshpk@1.18.0
+├─ stack-utils@1.0.5
+├─ static-extend@0.1.2
+├─ stealthy-require@1.1.1
+├─ string-width@4.2.3
+├─ strip-bom@4.0.0
+├─ strip-eof@1.0.0
+├─ supports-color@7.2.0
+├─ supports-preserve-symlinks-flag@1.0.0
+├─ symbol-tree@3.2.4
+├─ test-exclude@6.0.0
+├─ throttle-debounce@2.3.0
+├─ through@2.3.8
+├─ tmp@0.0.33
+├─ to-object-path@0.3.0
+├─ to-regex-range@5.0.1
+├─ tough-cookie@2.5.0
+├─ tr46@1.0.1
+├─ tunnel-agent@0.6.0
+├─ tweetnacl@0.14.5
+├─ type-detect@4.0.8
+├─ type-fest@0.8.1
+├─ typedarray-to-buffer@3.1.5
+├─ undici-types@7.16.0
+├─ union-value@1.0.1
+├─ unset-value@1.0.0
+├─ update-browserslist-db@1.2.3
+├─ uri-js@4.4.1
+├─ urix@0.1.0
+├─ use@3.1.1
+├─ uuid@3.4.0
+├─ validate-npm-package-license@3.0.4
+├─ verror@1.10.0
+├─ w3c-hr-time@1.0.2
+├─ w3c-xmlserializer@1.1.2
+├─ walker@1.0.8
+├─ whatwg-encoding@1.0.5
+├─ whatwg-mimetype@2.3.0
+├─ which-module@2.0.1
+├─ which@2.0.2
+├─ word-wrap@1.2.5
+├─ wrap-ansi@6.2.0
+├─ write-file-atomic@3.0.3
+├─ ws@7.5.10
+├─ xmlchars@2.2.0
+├─ y18n@4.0.3
+├─ yallist@3.1.1
+├─ yargs-parser@18.1.3
+└─ yargs@15.4.1
+Done in 24.06s.).
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (but not since the major sales workflow changes were attempted)
+-   **Testing agent used after significant changes:** YES, successfully validated the end-to-end sales workflow.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None
--   **Known regressions:** The sales funnel UI was partially built and then removed due to compilation errors, representing a major feature regression.
+-   **Known regressions:** The pricing page was previously working but is now reported as broken.
 
 **Credentials to test flow:**
 -   **Admin:**  / 
 -   **Manager:**  / 
 -   **Executive:**  / 
+-   **Consultant:**  /  (or  / )
 
 **What agent forgot to execute**
--   The agent has not implemented the **Rocket Reach integration** or the **omnichannel lead integration**, both of which were part of the initial requirements.
--   The agent did not complete the frontend implementation or end-to-end testing for the custom sales workflow, which was the user's most significant request.
--   The agent created the dummy data script () but did not confirm its successful execution.</analysis>
+-   The agent was interrupted by a bug report, so the planned execution of Phase 2 of the consultant module is pending.
+-   Original requirements like **Rocket Reach integration** and a formal **custom reporting module** are still in the backlog.</analysis>

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "react-gantt-timeline": "^0.4.3"
+  }
+}
