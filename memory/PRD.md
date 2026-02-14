@@ -116,6 +116,8 @@ A comprehensive business management application for a 50-person consulting organ
 - Admin: admin@company.com / admin123
 - Manager: manager@company.com / manager123
 - Executive: executive@company.com / executive123
+- Consultant: consultant1@company.com / consultant123
+- Consultant: consultant2@company.com / consultant123
 
 ## Known Limitations
 - Email sending is MOCKED - requires SMTP credentials for production use
