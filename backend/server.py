@@ -2235,6 +2235,165 @@ async def export_agreement(
     
     return export_data
 
+
+@api_router.get("/agreements/{agreement_id}/download")
+async def download_agreement_document(
+    agreement_id: str,
+    format: str = "pdf",  # pdf or docx
+    current_user: User = Depends(get_current_user)
+):
+    """Download agreement as Word or PDF document"""
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Get all related data
+    quotation = None
+    pricing_plan = None
+    sow = None
+    lead = None
+    
+    if agreement.get('quotation_id'):
+        quotation = await db.quotations.find_one({"id": agreement['quotation_id']}, {"_id": 0})
+    
+    if agreement.get('pricing_plan_id'):
+        pricing_plan = await db.pricing_plans.find_one({"id": agreement['pricing_plan_id']}, {"_id": 0})
+    elif quotation and quotation.get('pricing_plan_id'):
+        pricing_plan = await db.pricing_plans.find_one({"id": quotation['pricing_plan_id']}, {"_id": 0})
+    
+    if agreement.get('sow_id'):
+        sow = await db.sow.find_one({"id": agreement['sow_id']}, {"_id": 0})
+    elif pricing_plan and pricing_plan.get('sow_id'):
+        sow = await db.sow.find_one({"id": pricing_plan['sow_id']}, {"_id": 0})
+    
+    if agreement.get('lead_id'):
+        lead = await db.leads.find_one({"id": agreement['lead_id']}, {"_id": 0})
+    
+    # Build SOW table data
+    sow_table = []
+    if sow:
+        for item in sow.get('items', []):
+            sow_table.append({
+                "category": item.get('category', '').replace('_', ' ').title(),
+                "title": item.get('title', ''),
+                "description": item.get('description', ''),
+                "deliverables": item.get('deliverables', []),
+                "timeline_weeks": item.get('timeline_weeks')
+            })
+    
+    # Build team deployment table
+    team_table = []
+    if pricing_plan:
+        for consultant in pricing_plan.get('consultants', []):
+            team_table.append({
+                "type": consultant.get('consultant_type', '').replace('_', ' ').title(),
+                "count": consultant.get('count', 1),
+                "meetings": consultant.get('meetings', 0),
+                "hours": consultant.get('hours', 0),
+                "rate": consultant.get('rate_per_meeting', 12500)
+            })
+    
+    # Prepare export data
+    export_data = {
+        "agreement_number": agreement.get('agreement_number'),
+        "party_name": agreement.get('party_name', ''),
+        "company_section": agreement.get('company_section', 'Agreement between D&V Business Consulting and Client'),
+        "client": {
+            "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}" if lead else '',
+            "company": lead.get('company', '') if lead else '',
+            "email": lead.get('email', '') if lead else '',
+            "phone": lead.get('phone', '') if lead else ''
+        },
+        "confidentiality_clause": agreement.get('confidentiality_clause', ''),
+        "nda_clause": agreement.get('nda_clause', ''),
+        "nca_clause": agreement.get('nca_clause', ''),
+        "renewal_clause": agreement.get('renewal_clause', ''),
+        "conveyance_clause": agreement.get('conveyance_clause', ''),
+        "sow_table": sow_table,
+        "project_details": {
+            "start_date": agreement.get('project_start_date') or agreement.get('start_date'),
+            "duration_months": agreement.get('project_duration_months') or (pricing_plan.get('project_duration_months') if pricing_plan else None),
+            "payment_schedule": pricing_plan.get('payment_schedule', '') if pricing_plan else ''
+        },
+        "team_engagement": team_table,
+        "pricing": {
+            "subtotal": quotation.get('subtotal', 0) if quotation else 0,
+            "discount": quotation.get('discount_amount', 0) if quotation else 0,
+            "gst": quotation.get('gst_amount', 0) if quotation else 0,
+            "total": quotation.get('grand_total', 0) if quotation else 0,
+            "total_meetings": quotation.get('total_meetings', 0) if quotation else 0
+        },
+        "payment_terms": agreement.get('payment_terms', 'Net 30 days'),
+        "payment_conditions": agreement.get('payment_conditions', ''),
+        "special_conditions": agreement.get('special_conditions', ''),
+        "created_at": agreement.get('created_at'),
+    }
+    
+    # Generate document
+    generator = AgreementDocumentGenerator(export_data)
+    
+    agreement_num = agreement.get('agreement_number', 'Agreement').replace('/', '-')
+    
+    if format.lower() == 'docx':
+        buffer = generator.generate_word()
+        filename = f"{agreement_num}.docx"
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    else:
+        buffer = generator.generate_pdf()
+        filename = f"{agreement_num}.pdf"
+        media_type = "application/pdf"
+    
+    return Response(
+        content=buffer.getvalue(),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@api_router.get("/sow/{sow_id}/download")
+async def download_sow_document(
+    sow_id: str,
+    format: str = "pdf",  # pdf or docx
+    current_user: User = Depends(get_current_user)
+):
+    """Download SOW as Word or PDF document"""
+    sow = await db.sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Get lead data
+    lead = None
+    if sow.get('lead_id'):
+        lead = await db.leads.find_one({"id": sow['lead_id']}, {"_id": 0})
+    
+    # Get pricing plan data
+    pricing_plan = None
+    if sow.get('pricing_plan_id'):
+        pricing_plan = await db.pricing_plans.find_one({"id": sow['pricing_plan_id']}, {"_id": 0})
+    
+    # Generate document
+    generator = SOWDocumentGenerator(sow, lead, pricing_plan)
+    
+    # Create filename
+    client_name = lead.get('company', 'Client') if lead else 'SOW'
+    client_name = "".join(c for c in client_name if c.isalnum() or c in ' -_')[:30]
+    
+    if format.lower() == 'docx':
+        buffer = generator.generate_word()
+        filename = f"SOW_{client_name}.docx"
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    else:
+        buffer = generator.generate_pdf()
+        filename = f"SOW_{client_name}.pdf"
+        media_type = "application/pdf"
+    
+    return Response(
+        content=buffer.getvalue(),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
 @api_router.get("/agreements")
 async def get_agreements(
     lead_id: Optional[str] = None,
