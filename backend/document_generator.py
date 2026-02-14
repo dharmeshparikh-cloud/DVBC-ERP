@@ -621,11 +621,11 @@ class SOWDocumentGenerator:
         # SOW Status
         overall_status = self.sow.get('overall_status', 'draft')
         p = doc.add_paragraph()
-        p.add_run(f"Status: ").bold = True
+        p.add_run("Status: ").bold = True
         p.add_run(overall_status.replace('_', ' ').title())
         
         p = doc.add_paragraph()
-        p.add_run(f"Version: ").bold = True
+        p.add_run("Version: ").bold = True
         p.add_run(str(self.sow.get('current_version', 1)))
         
         doc.add_paragraph()
@@ -678,15 +678,15 @@ class SOWDocumentGenerator:
         completed_count = len([i for i in items if i.get('status') == 'completed'])
         
         p = doc.add_paragraph()
-        p.add_run(f"Total Items: ").bold = True
+        p.add_run("Total Items: ").bold = True
         p.add_run(str(total_items))
         
         p = doc.add_paragraph()
-        p.add_run(f"Approved: ").bold = True
+        p.add_run("Approved: ").bold = True
         p.add_run(str(approved_count))
         
         p = doc.add_paragraph()
-        p.add_run(f"Completed: ").bold = True
+        p.add_run("Completed: ").bold = True
         p.add_run(str(completed_count))
         
         # Save
