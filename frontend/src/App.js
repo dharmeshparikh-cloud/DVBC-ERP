@@ -111,6 +111,7 @@ function App() {
             <Route path="handover-alerts" element={<HandoverAlerts />} />
             <Route path="profile" element={<UserProfile />} />
             <Route path="user-management" element={<UserManagement />} />
+            <Route path="employees" element={<Employees />} />
           </Route>
         </Routes>
       </BrowserRouter>
