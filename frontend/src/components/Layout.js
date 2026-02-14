@@ -40,7 +40,7 @@ const Layout = () => {
   ];
 
   const managerNav = [
-    { name: 'Approvals', href: '/sales-funnel/approvals', icon: ClipboardCheck },
+    { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
     { name: 'Consultants', href: '/consultants', icon: UserCog },
     { name: 'Handover Alerts', href: '/handover-alerts', icon: AlertTriangle },
     { name: 'Employees', href: '/employees', icon: UsersRound },
