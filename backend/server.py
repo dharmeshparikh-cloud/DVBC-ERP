@@ -7180,6 +7180,240 @@ async def get_report_stats(current_user: User = Depends(get_current_user)):
     }
 
 
+# ==================== ATTENDANCE MODULE ====================
+
+ATTENDANCE_STATUSES = ["present", "absent", "half_day", "work_from_home", "on_leave", "holiday"]
+
+@api_router.post("/attendance")
+async def create_attendance(data: dict, current_user: User = Depends(get_current_user)):
+    """Create/update attendance record for an employee on a date"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can manage attendance")
+    employee_id = data.get("employee_id")
+    date_str = data.get("date")
+    att_status = data.get("status", "present")
+    if not employee_id or not date_str:
+        raise HTTPException(status_code=400, detail="employee_id and date required")
+    existing = await db.attendance.find_one({"employee_id": employee_id, "date": date_str})
+    if existing:
+        await db.attendance.update_one(
+            {"employee_id": employee_id, "date": date_str},
+            {"$set": {"status": att_status, "remarks": data.get("remarks", ""), "updated_by": current_user.id, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        return {"message": "Attendance updated"}
+    record = {
+        "id": str(uuid.uuid4()), "employee_id": employee_id, "date": date_str,
+        "status": att_status, "remarks": data.get("remarks", ""),
+        "created_by": current_user.id, "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.attendance.insert_one(record)
+    return {"message": "Attendance recorded", "id": record["id"]}
+
+@api_router.post("/attendance/bulk")
+async def bulk_upload_attendance(records: List[dict], current_user: User = Depends(get_current_user)):
+    """Bulk upload attendance from Excel data"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can manage attendance")
+    created, updated = 0, 0
+    for rec in records:
+        emp_id = rec.get("employee_id")
+        date_str = rec.get("date")
+        if not emp_id or not date_str:
+            continue
+        existing = await db.attendance.find_one({"employee_id": emp_id, "date": date_str})
+        if existing:
+            await db.attendance.update_one(
+                {"employee_id": emp_id, "date": date_str},
+                {"$set": {"status": rec.get("status", "present"), "remarks": rec.get("remarks", ""), "updated_by": current_user.id, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            updated += 1
+        else:
+            await db.attendance.insert_one({
+                "id": str(uuid.uuid4()), "employee_id": emp_id, "date": date_str,
+                "status": rec.get("status", "present"), "remarks": rec.get("remarks", ""),
+                "created_by": current_user.id, "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            created += 1
+    return {"message": f"Created {created}, Updated {updated}", "created": created, "updated": updated}
+
+@api_router.get("/attendance")
+async def get_attendance(employee_id: Optional[str] = None, month: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    """Get attendance records. month format: YYYY-MM"""
+    query = {}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if month:
+        query["date"] = {"$regex": f"^{month}"}
+    records = await db.attendance.find(query, {"_id": 0}).sort("date", -1).to_list(2000)
+    return records
+
+@api_router.get("/attendance/summary")
+async def get_attendance_summary(month: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    """Get attendance summary per employee for a month"""
+    query = {}
+    if month:
+        query["date"] = {"$regex": f"^{month}"}
+    records = await db.attendance.find(query, {"_id": 0}).to_list(5000)
+    employees = await db.employees.find({"is_active": True}, {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1}).to_list(500)
+    emp_map = {e["id"]: e for e in employees}
+    summary = {}
+    for r in records:
+        eid = r["employee_id"]
+        if eid not in summary:
+            emp = emp_map.get(eid, {})
+            summary[eid] = {"employee_id": eid, "emp_code": emp.get("employee_id", ""), "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}", "department": emp.get("department", ""), "present": 0, "absent": 0, "half_day": 0, "wfh": 0, "on_leave": 0, "total": 0}
+        summary[eid]["total"] += 1
+        s = r.get("status", "present")
+        if s == "present": summary[eid]["present"] += 1
+        elif s == "absent": summary[eid]["absent"] += 1
+        elif s == "half_day": summary[eid]["half_day"] += 1
+        elif s == "work_from_home": summary[eid]["wfh"] += 1
+        elif s == "on_leave": summary[eid]["on_leave"] += 1
+    return list(summary.values())
+
+
+# ==================== PAYROLL MODULE ====================
+
+@api_router.get("/payroll/salary-components")
+async def get_salary_components(current_user: User = Depends(get_current_user)):
+    """Get salary component configuration"""
+    config = await db.payroll_config.find_one({"type": "salary_components"}, {"_id": 0})
+    if not config:
+        default = {
+            "type": "salary_components",
+            "earnings": [
+                {"name": "Basic Salary", "key": "basic", "percentage": 40},
+                {"name": "HRA", "key": "hra", "percentage": 20},
+                {"name": "Special Allowance", "key": "special_allowance", "percentage": 20},
+                {"name": "Conveyance Allowance", "key": "conveyance", "fixed": 1600},
+                {"name": "Medical Allowance", "key": "medical", "fixed": 1250}
+            ],
+            "deductions": [
+                {"name": "Provident Fund", "key": "pf", "percentage": 12},
+                {"name": "Professional Tax", "key": "pt", "fixed": 200},
+                {"name": "ESI", "key": "esi", "percentage": 0.75}
+            ]
+        }
+        await db.payroll_config.insert_one(default)
+        return default
+    return config
+
+@api_router.post("/payroll/salary-components")
+async def update_salary_components(data: dict, current_user: User = Depends(get_current_user)):
+    """Update salary components (Admin/HR only)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update salary components")
+    await db.payroll_config.update_one({"type": "salary_components"}, {"$set": data}, upsert=True)
+    return {"message": "Salary components updated"}
+
+@api_router.get("/payroll/salary-slips")
+async def get_salary_slips(employee_id: Optional[str] = None, month: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    """Get generated salary slips"""
+    query = {}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if month:
+        query["month"] = month
+    # Non-HR can only see their own
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
+        if emp:
+            query["employee_id"] = emp["id"]
+        else:
+            return []
+    slips = await db.salary_slips.find(query, {"_id": 0}).sort("month", -1).to_list(500)
+    return slips
+
+@api_router.post("/payroll/generate-slip")
+async def generate_salary_slip(data: dict, current_user: User = Depends(get_current_user)):
+    """Generate salary slip for an employee for a month"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can generate salary slips")
+    employee_id = data.get("employee_id")
+    month = data.get("month")  # YYYY-MM
+    if not employee_id or not month:
+        raise HTTPException(status_code=400, detail="employee_id and month required")
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    gross_salary = employee.get("salary", 0) or 0
+    if gross_salary <= 0:
+        raise HTTPException(status_code=400, detail="Employee salary not configured")
+    # Get components
+    config = await db.payroll_config.find_one({"type": "salary_components"}, {"_id": 0})
+    if not config:
+        raise HTTPException(status_code=400, detail="Salary components not configured")
+    earnings = []
+    total_earnings = 0
+    for comp in config.get("earnings", []):
+        if comp.get("percentage"):
+            amount = round(gross_salary * comp["percentage"] / 100, 2)
+        else:
+            amount = comp.get("fixed", 0)
+        earnings.append({"name": comp["name"], "key": comp["key"], "amount": amount})
+        total_earnings += amount
+    deductions = []
+    total_deductions = 0
+    for comp in config.get("deductions", []):
+        if comp.get("percentage"):
+            amount = round(gross_salary * comp["percentage"] / 100, 2)
+        else:
+            amount = comp.get("fixed", 0)
+        deductions.append({"name": comp["name"], "key": comp["key"], "amount": amount})
+        total_deductions += amount
+    # Get attendance for the month
+    att_records = await db.attendance.find({"employee_id": employee_id, "date": {"$regex": f"^{month}"}}, {"_id": 0}).to_list(50)
+    present_days = sum(1 for r in att_records if r.get("status") in ["present", "work_from_home"])
+    absent_days = sum(1 for r in att_records if r.get("status") == "absent")
+    half_days = sum(1 for r in att_records if r.get("status") == "half_day")
+    # Check existing
+    existing = await db.salary_slips.find_one({"employee_id": employee_id, "month": month})
+    slip = {
+        "id": existing["id"] if existing else str(uuid.uuid4()),
+        "employee_id": employee_id,
+        "employee_name": f"{employee['first_name']} {employee['last_name']}",
+        "employee_code": employee.get("employee_id", ""),
+        "department": employee.get("department", ""),
+        "designation": employee.get("designation", ""),
+        "month": month,
+        "gross_salary": gross_salary,
+        "earnings": earnings,
+        "total_earnings": round(total_earnings, 2),
+        "deductions": deductions,
+        "total_deductions": round(total_deductions, 2),
+        "net_salary": round(total_earnings - total_deductions, 2),
+        "present_days": present_days,
+        "absent_days": absent_days,
+        "half_days": half_days,
+        "bank_details": employee.get("bank_details"),
+        "generated_by": current_user.id,
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+    if existing:
+        await db.salary_slips.update_one({"id": existing["id"]}, {"$set": slip})
+    else:
+        await db.salary_slips.insert_one(slip)
+    return slip
+
+@api_router.post("/payroll/generate-bulk")
+async def generate_bulk_salary_slips(data: dict, current_user: User = Depends(get_current_user)):
+    """Generate salary slips for all active employees for a month"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can generate salary slips")
+    month = data.get("month")
+    if not month:
+        raise HTTPException(status_code=400, detail="month required (YYYY-MM)")
+    employees = await db.employees.find({"is_active": True, "salary": {"$gt": 0}}, {"_id": 0}).to_list(500)
+    generated = 0
+    for emp in employees:
+        try:
+            await generate_salary_slip({"employee_id": emp["id"], "month": month}, current_user)
+            generated += 1
+        except Exception:
+            pass
+    return {"message": f"Generated {generated} salary slips for {month}", "count": generated}
+
+
 app.include_router(api_router)
 
 app.add_middleware(
