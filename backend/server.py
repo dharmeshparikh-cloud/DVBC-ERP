@@ -7765,6 +7765,16 @@ async def get_performance_summary(project_id: Optional[str] = None, current_user
     return list(summary.values())
 
 
+@api_router.get("/downloads/feature-index")
+async def download_feature_index():
+    """Download the Feature Index Word document"""
+    file_path = os.path.join(ROOT_DIR.parent, "uploads", "Feature_Index_DVB_Consulting.docx")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Feature index document not found")
+    return FileResponse(file_path, filename="Feature_Index_DVB_Consulting.docx",
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+
+
 app.include_router(api_router)
 
 app.add_middleware(
