@@ -1161,7 +1161,7 @@ async def get_agreement_templates(current_user: User = Depends(get_current_user)
     return templates
 
 @api_router.post("/email-notification-templates", response_model=EmailNotificationTemplate)
-async def create_email_template(
+async def create_email_notification_template(
     template_create: EmailNotificationTemplateCreate,
     current_user: User = Depends(get_current_user)
 ):
@@ -1184,7 +1184,7 @@ async def create_email_template(
     return template
 
 @api_router.get("/email-notification-templates")
-async def get_email_templates(
+async def get_email_notification_templates(
     template_type: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
