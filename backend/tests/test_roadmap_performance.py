@@ -413,11 +413,12 @@ class TestPerformanceScores:
         assert detail_response.status_code == 200
         return detail_response.json()
     
-    def test_create_performance_score(self, admin_headers, test_project, test_consultant, approved_metrics_config):
+    def test_create_performance_score(self, admin_headers, test_project, test_consultant):
         """POST /api/performance-scores creates weighted consultant score"""
         if not test_consultant:
             pytest.skip("No consultant user found for scoring test")
         
+        approved_metrics_config = self.get_or_create_approved_config(admin_headers, test_project)
         metrics = approved_metrics_config.get("metrics", [])
         if len(metrics) == 0:
             pytest.skip("No metrics in approved config")
