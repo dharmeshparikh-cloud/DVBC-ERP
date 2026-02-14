@@ -3216,6 +3216,237 @@ async def get_all_users(
     
     return users
 
+# ==================== USER PROFILE & RIGHTS CONFIGURATION ====================
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    bio: Optional[str] = None
+    profile_image: Optional[str] = None
+
+class UserRightsConfig(BaseModel):
+    """User rights configuration for role-based access"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    role: str
+    permissions: dict = {}  # Module-wise permissions
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Default role permissions
+DEFAULT_ROLE_PERMISSIONS = {
+    "admin": {
+        "leads": {"create": True, "read": True, "update": True, "delete": False},
+        "pricing_plans": {"create": True, "read": True, "update": True, "delete": False},
+        "sow": {"create": True, "read": True, "update": True, "delete": False, "freeze": True},
+        "quotations": {"create": True, "read": True, "update": True, "delete": False},
+        "agreements": {"create": True, "read": True, "update": True, "delete": False, "approve": True},
+        "projects": {"create": True, "read": True, "update": True, "delete": False},
+        "tasks": {"create": True, "read": True, "update": True, "delete": True},
+        "consultants": {"create": True, "read": True, "update": True, "delete": False},
+        "users": {"create": True, "read": True, "update": True, "delete": False, "manage_roles": True},
+        "reports": {"view": True, "export": True}
+    },
+    "manager": {
+        "leads": {"create": False, "read": True, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": True, "update": False, "delete": False},
+        "sow": {"create": False, "read": True, "update": False, "delete": False, "freeze": False},
+        "quotations": {"create": False, "read": True, "update": False, "delete": False},
+        "agreements": {"create": False, "read": True, "update": False, "delete": False, "approve": True},
+        "projects": {"create": False, "read": True, "update": False, "delete": False},
+        "tasks": {"create": False, "read": True, "update": False, "delete": False},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": True, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": True, "export": True}
+    },
+    "executive": {
+        "leads": {"create": True, "read": True, "update": True, "delete": False},
+        "pricing_plans": {"create": True, "read": True, "update": True, "delete": False},
+        "sow": {"create": True, "read": True, "update": True, "delete": False, "freeze": False},
+        "quotations": {"create": True, "read": True, "update": True, "delete": False},
+        "agreements": {"create": True, "read": True, "update": True, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": False, "delete": False},
+        "tasks": {"create": False, "read": True, "update": False, "delete": False},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": False, "export": False}
+    },
+    "consultant": {
+        "leads": {"create": False, "read": False, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": False, "update": False, "delete": False},
+        "sow": {"create": False, "read": True, "update": False, "delete": False, "freeze": False},
+        "quotations": {"create": False, "read": False, "update": False, "delete": False},
+        "agreements": {"create": False, "read": False, "update": False, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": False, "delete": False},
+        "tasks": {"create": True, "read": True, "update": True, "delete": False},
+        "consultants": {"create": False, "read": False, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": False, "export": False}
+    },
+    "principal_consultant": {
+        "leads": {"create": False, "read": True, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": True, "update": False, "delete": False},
+        "sow": {"create": False, "read": True, "update": True, "delete": False, "freeze": True},
+        "quotations": {"create": False, "read": True, "update": False, "delete": False},
+        "agreements": {"create": False, "read": True, "update": False, "delete": False, "approve": False},
+        "projects": {"create": False, "read": True, "update": True, "delete": False},
+        "tasks": {"create": True, "read": True, "update": True, "delete": False},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": True, "export": False}
+    },
+    "project_manager": {
+        "leads": {"create": False, "read": True, "update": False, "delete": False},
+        "pricing_plans": {"create": False, "read": True, "update": False, "delete": False},
+        "sow": {"create": False, "read": True, "update": True, "delete": False, "freeze": False},
+        "quotations": {"create": False, "read": True, "update": False, "delete": False},
+        "agreements": {"create": False, "read": True, "update": False, "delete": False, "approve": False},
+        "projects": {"create": True, "read": True, "update": True, "delete": False},
+        "tasks": {"create": True, "read": True, "update": True, "delete": True},
+        "consultants": {"create": False, "read": True, "update": False, "delete": False},
+        "users": {"create": False, "read": False, "update": False, "delete": False, "manage_roles": False},
+        "reports": {"view": True, "export": True}
+    }
+}
+
+@api_router.get("/users/me")
+async def get_current_user_profile(current_user: User = Depends(get_current_user)):
+    """Get current user's profile"""
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0, "hashed_password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@api_router.patch("/users/me")
+async def update_current_user_profile(
+    profile_update: UserProfileUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update current user's profile"""
+    update_data = profile_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # Don't allow changing email to existing email
+    if 'email' in update_data:
+        existing = await db.users.find_one({"email": update_data['email'], "id": {"$ne": current_user.id}})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already in use")
+    
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Profile updated successfully"}
+
+@api_router.get("/users/{user_id}/profile")
+async def get_user_profile(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get user profile (Admin/Manager only, or own profile)"""
+    if current_user.id != user_id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "hashed_password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@api_router.patch("/users/{user_id}/profile")
+async def update_user_profile(
+    user_id: str,
+    profile_update: UserProfileUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update user profile (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can update other users' profiles")
+    
+    update_data = profile_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": "Profile updated successfully"}
+
+@api_router.get("/role-permissions")
+async def get_role_permissions(current_user: User = Depends(get_current_user)):
+    """Get all role permissions configuration"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check if custom permissions exist in database
+    custom_permissions = await db.role_permissions.find({}, {"_id": 0}).to_list(100)
+    
+    if custom_permissions:
+        return {perm['role']: perm['permissions'] for perm in custom_permissions}
+    
+    return DEFAULT_ROLE_PERMISSIONS
+
+@api_router.get("/role-permissions/{role}")
+async def get_role_permission(
+    role: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get permissions for a specific role"""
+    # Check database first
+    custom = await db.role_permissions.find_one({"role": role}, {"_id": 0})
+    if custom:
+        return custom['permissions']
+    
+    # Return default
+    if role in DEFAULT_ROLE_PERMISSIONS:
+        return DEFAULT_ROLE_PERMISSIONS[role]
+    
+    raise HTTPException(status_code=404, detail="Role not found")
+
+@api_router.patch("/role-permissions/{role}")
+async def update_role_permissions(
+    role: str,
+    permissions: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update permissions for a role (Admin only)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can modify role permissions")
+    
+    # Upsert into database
+    await db.role_permissions.update_one(
+        {"role": role},
+        {"$set": {
+            "role": role,
+            "permissions": permissions,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"message": f"Permissions updated for role: {role}"}
+
+@api_router.get("/users/me/permissions")
+async def get_current_user_permissions(current_user: User = Depends(get_current_user)):
+    """Get current user's permissions"""
+    # Check database first
+    custom = await db.role_permissions.find_one({"role": current_user.role}, {"_id": 0})
+    if custom:
+        return custom['permissions']
+    
+    # Return default
+    if current_user.role in DEFAULT_ROLE_PERMISSIONS:
+        return DEFAULT_ROLE_PERMISSIONS[current_user.role]
+    
+    return {}
+
 app.include_router(api_router)
 
 app.add_middleware(
