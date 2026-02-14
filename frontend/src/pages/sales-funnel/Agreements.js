@@ -103,6 +103,41 @@ const Agreements = () => {
     setEmailDialogOpen(true);
   };
 
+  const handleDownload = async (agreementId, format) => {
+    setDownloading(prev => ({ ...prev, [`${agreementId}-${format}`]: true }));
+    try {
+      const response = await axios.get(`${API}/agreements/${agreementId}/download`, {
+        params: { format },
+        responseType: 'blob'
+      });
+      
+      // Get filename from response headers or create default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = format === 'pdf' ? 'Agreement.pdf' : 'Agreement.docx';
+      if (contentDisposition) {
+        const matches = contentDisposition.match(/filename="(.+)"/);
+        if (matches) filename = matches[1];
+      }
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Downloaded ${filename}`);
+    } catch (error) {
+      toast.error('Failed to download document');
+      console.error('Download error:', error);
+    } finally {
+      setDownloading(prev => ({ ...prev, [`${agreementId}-${format}`]: false }));
+    }
+  };
+
   const getStatusBadge = (status) => {
     const styles = {
       draft: { bg: 'bg-zinc-100 text-zinc-600', icon: Clock },
