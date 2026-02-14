@@ -6,6 +6,7 @@ A comprehensive business management application for a 50-person consulting organ
 ## Core Requirements
 - **Authentication**: Email-based login with roles (Admin, Manager, Executive, Consultant, Project Manager, Principal Consultant)
 - **Sales Workflow**: Lead → Pricing Plan → Quotation → Agreement → Manager Approval → Client Email
+- **Sales → Consulting Handover**: Kick-off Meeting with SOW freeze and team alignment
 - **Currency**: Indian Rupees (₹)
 - **Time Tracking**: Project start date, visits, meetings (committed vs delivered), meeting modes
 - **Task Management**: Project tasks with categories and statuses
@@ -13,12 +14,12 @@ A comprehensive business management application for a 50-person consulting organ
 - **Integrations**: Rocket Reach for lead generation (pending)
 
 ## User Personas
-1. **Admin**: Full system access, can create/edit/delete all data
+1. **Admin**: Full system access, can create/edit/delete all data, can edit frozen SOW
 2. **Manager**: View/download access, can approve/reject agreements, view handover alerts
 3. **Executive**: Edit/view access to leads, quotations, agreements
 4. **Consultant**: View assigned projects and tasks
 5. **Project Manager**: Manage projects and consultant assignments
-6. **Principal Consultant**: Senior consultant role
+6. **Principal Consultant**: Leads kick-off meetings, senior consultant role
 
 ## Implemented Features (as of Feb 14, 2026)
 
@@ -27,6 +28,31 @@ A comprehensive business management application for a 50-person consulting organ
 - Six user roles: Admin, Manager, Executive, Consultant, Project Manager, Principal Consultant
 - Role-based access control throughout the app
 - Consultant-specific dashboard and navigation
+
+### Kick-off Meeting & SOW Management (Phase 3) ✅
+- **Kick-off Meeting Scheduling**:
+  - Scheduled by Principal Consultant after agreement approval
+  - Meeting details: Date, Time, Mode (Online/Offline/Mixed), Location/Link
+  - Attendees: Principal Consultant (required), Sales Executive (auto-added), Client Contact (auto-added), Additional Consultants
+  - Agenda field for meeting topics
+  - Sales team notified when kick-off is scheduled
+
+- **Scope of Work (SOW) Management**:
+  - 6 Categories: Sales, HR, Operations, Training, Analytics, Digital Marketing
+  - Each category can have multiple scope items
+  - Scope items include: Title, Description, Deliverables, Timeline (weeks)
+  - SOW displayed in Kick-off Meeting page for alignment
+
+- **SOW Freeze Logic**:
+  - SOW is editable until kick-off meeting is scheduled
+  - When kick-off is scheduled, SOW becomes FROZEN
+  - Only Admin can edit frozen SOW (ensures no unauthorized changes)
+  - Prevents mismatch between Sales commitments and Consulting delivery
+
+- **Communication Flow**:
+  - Sales → Consulting handover tracked through kick-off meeting
+  - Notifications sent to Sales Executive when kick-off scheduled
+  - Meeting attendees include both Sales and Consulting team members
 
 ### Task Management System (Phase 2) ✅
 - **Task Creation** with full details:
