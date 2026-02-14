@@ -4,7 +4,7 @@
 A comprehensive business management application for a 50-person consulting organization covering HR, Marketing, Sales, Finance, and Consulting project workflows.
 
 ## Core Requirements
-- **Authentication**: Email-based login with roles (Admin, Manager, Executive, Consultant, Project Manager, Principal Consultant)
+- **Authentication**: Email-based login with customizable roles
 - **Sales Workflow**: Lead → Pricing Plan → **SOW** → Quotation → Agreement (with SOW) → Approval → Project → Kick-off
 - **SOW Management**: Sales creates SOW after Pricing Plan, with version tracking and freeze after kick-off
 - **Agreement Structure**: Party Info, NDA, NCA, Renewal, Conveyance, SOW, Project Details, Team, Pricing, Payment Terms, Signature
@@ -12,22 +12,74 @@ A comprehensive business management application for a 50-person consulting organ
 - **No Deletion**: Soft delete only - all versions preserved
 - **Integrations**: Rocket Reach for lead generation (pending)
 
-## User Personas
-1. **Admin**: Full system access, can edit frozen SOW, manage user roles
-2. **Manager**: View/download access, approve/reject agreements, view handover alerts
-3. **Executive/Sales**: Create leads, pricing plans, SOW, quotations, agreements
-4. **Consultant**: View assigned projects and tasks
-5. **Project Manager**: Manage projects and consultant assignments
-6. **Principal Consultant**: Lead kick-off meetings, freeze SOW, senior consultant role
+## User Personas & Roles (13 Roles - Customizable)
 
-## Implemented Features (as of Feb 14, 2026)
+### System Roles (Cannot be deleted)
+1. **Admin**: Full system access, manage users/roles/permissions, edit frozen SOW
+2. **Manager**: View/download access, approve agreements, handover alerts
+3. **Executive**: Sales team - create leads, SOW, quotations, agreements
+4. **Consultant**: View SOW, update progress/status on assigned items
+5. **Project Manager**: Audit, approve, authorize SOW for client
+6. **Principal Consultant**: Freeze SOW, lead kick-off meetings
+
+### Custom Roles (Can be deleted/modified)
+7. **Lean Consultant**: Junior consultant role
+8. **Lead Consultant**: Lead consultant with team oversight
+9. **Senior Consultant**: Senior consultant with advanced permissions
+10. **HR Executive**: HR team member
+11. **HR Manager**: HR team manager with user management
+12. **Account Manager**: Handles client accounts and sales
+13. **Subject Matter Expert**: Domain expert for consulting
+
+## Role-Based SOW Access Control
+- **Sales Team** (create/edit SOW): Admin, Executive, Account Manager
+- **Consulting Team** (view/update status): Consultant, Lean Consultant, Lead Consultant, Senior Consultant, Principal Consultant, Subject Matter Expert
+- **PM/Audit Team** (approve/authorize): Admin, Project Manager, Manager
+
+## Implemented Features
+
+### Role & Permissions Management Module (Feb 14, 2026) ✅ NEW
+- **User Management Page**: Integrated Users and Roles tabs
+- **Users Tab**:
+  - List all users with name, email, department, role, status
+  - Admin can change user roles via dropdown
+  - Add User dialog for creating new users
+  - Search and filter by role
+- **Roles Tab**:
+  - Display all 13 roles as cards
+  - System badge for protected roles
+  - User count per role
+  - Create Role dialog (custom roles only)
+  - Permissions button opens configuration dialog
+  - Delete button (custom roles only)
+- **Permissions Dialog**:
+  - Configure module access per role
+  - 10 modules: Leads, Pricing Plans, SOW, Quotations, Agreements, Projects, Tasks, Consultants, Users, Reports
+  - Toggle actions: Create, Read, Update, Delete, + special actions (Freeze, Approve, Authorize Client, etc.)
+  - Save permissions to database
+- **APIs**:
+  - `GET /api/roles` - List all roles
+  - `POST /api/roles` - Create custom role
+  - `GET /api/roles/{role_id}` - Get role with permissions
+  - `PATCH /api/roles/{role_id}` - Update role/permissions
+  - `DELETE /api/roles/{role_id}` - Delete custom role
+  - `GET /api/users-with-roles` - Users with role info
+  - `PATCH /api/users/{user_id}/role` - Change user role
+  - `GET /api/permission-modules` - Available modules/actions
+  - `GET /api/roles/categories/sow` - SOW access categories
+
+### SOW Role-Based Segregation (Feb 14, 2026) ✅ NEW
+- **Sales Team Features**: Add New Row button, Edit/Delete buttons, Submit for Approval
+- **Consulting Team Features**: Status dropdown (can update progress), View documents
+- **PM Team Features**: Approve/Reject buttons for pending items, Approve All button
+- Dynamic UI based on user role category
 
 ### Authentication & Roles ✅
 - JWT-based email/password authentication
-- Six user roles with role-based permissions
+- 13 customizable user roles
 - Consultant-specific dashboard and navigation
 
-### SOW (Scope of Work) - Sales Flow (Phase 4) ✅
+### SOW (Scope of Work) - Sales Flow ✅
 - **New Sales Workflow**: Lead → Pricing Plan → SOW → Quotation → Agreement
 - **SOW Categories**: Sales, HR, Operations, Training, Analytics, Digital Marketing
 - **SOW Items**: Title, Description, Deliverables list, Timeline (weeks)
