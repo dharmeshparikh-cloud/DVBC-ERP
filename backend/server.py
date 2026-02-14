@@ -2726,7 +2726,7 @@ async def get_project_sow(
     return sow_entries
 
 @api_router.post("/projects/{project_id}/sow/{sow_id}/items")
-async def add_sow_item(
+async def add_project_sow_item(
     project_id: str,
     sow_id: str,
     item: SOWItemCreate,
