@@ -105,6 +105,65 @@ A comprehensive business management application for a 50-person consulting organ
 - **PM Team Features**: Approve/Reject buttons for pending items, Approve All button
 - Dynamic UI based on user role category
 
+### Client Master Module (Feb 14, 2026) ✅ NEW
+- **Purpose**: Manage client information and relationships for sales team
+- **Client Data Model**:
+  - Company: Name, Industry, Website
+  - Location: City, State, Country, Region, Full Address
+  - Business: Business Start Date, Sales Person (who closed deal)
+  - Links: Lead ID, Agreement ID
+- **Contacts (SPOCs)**:
+  - Name, Designation, Email, Phone
+  - Primary contact flag
+  - Multiple contacts per client
+- **Revenue History**:
+  - Year, Quarter (optional)
+  - Amount in INR
+  - Notes per record
+  - Auto-calculated total revenue
+- **Stats Dashboard**: Total Clients, Industries count, Total Revenue
+- **Access Control**: Admin, Project Manager, Account Manager, Executive, Manager can manage
+- **APIs**:
+  - `GET/POST /api/clients` - List and create clients
+  - `GET/PATCH/DELETE /api/clients/{id}` - Client CRUD
+  - `POST /api/clients/{id}/contacts` - Add contact (SPOC)
+  - `POST /api/clients/{id}/revenue` - Add revenue record
+  - `GET /api/clients/stats/summary` - Statistics
+  - `GET /api/clients/industries/list` - Industry list
+- **Navigation**: Sales Funnel → Clients
+
+### Expense Request System (Feb 14, 2026) ✅ NEW
+- **Purpose**: Submit and track expense reimbursements with HR approval
+- **Expense Data Model**:
+  - Employee: Auto-populated from logged-in user's employee record
+  - Type: Client/Project related OR Office Expense
+  - Link: Optional client and project association
+  - Line Items: Multiple expense items per request
+- **Line Item Fields**:
+  - Category: Travel, Local Conveyance, Food, Accommodation, Office Supplies, Communication, Client Entertainment, Other
+  - Description, Amount, Date
+  - Receipt upload (planned)
+- **Workflow**:
+  - Draft → Pending (submit) → Approved → Reimbursed
+  - Rejection tracking with reason
+- **Approval Integration**:
+  - Submits through reporting manager chain
+  - HR approval required for all expenses
+  - Shows in Approvals Center
+- **Stats Dashboard**: Pending count, Approved count, Reimbursed count, Pending Amount
+- **Access Control**:
+  - All employees can create their own expenses
+  - HR/Admin can mark as reimbursed
+  - Managers can view team expenses
+- **APIs**:
+  - `GET/POST /api/expenses` - List and create expenses
+  - `GET/PATCH /api/expenses/{id}` - Expense CRUD
+  - `POST /api/expenses/{id}/submit` - Submit for approval
+  - `POST /api/expenses/{id}/mark-reimbursed` - Mark reimbursed (HR/Admin)
+  - `GET /api/expenses/categories/list` - Expense categories
+  - `GET /api/expenses/stats/summary` - Statistics
+- **Navigation**: Management → Expenses
+
 ### Employees Module (Feb 14, 2026) ✅ NEW
 - **Employee Directory**: Searchable list with filters by department
 - **Employee Data Model**:
