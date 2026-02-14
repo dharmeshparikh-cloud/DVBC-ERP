@@ -224,48 +224,41 @@ A comprehensive business management application for a 50-person consulting organ
 - Clickable dashboard stat cards with navigation
 - "Start Sales Flow" button on lead cards
 
-## Pending/Future Features
+### Pending/Future Features
 
 ### P0 (Critical)
-- None at this time - SOW Page enhancements COMPLETED Feb 14, 2026
+- **Two-Step SOW Approval Workflow**: Checkboxes to select items → Submit for Manager Approval → Manager Approves → Authorize for Client
 
-### P1 (High Priority) - Remaining Phase 2 Items
+### P1 (High Priority)
+- SOW linkages with consultant performance and project roadmap
 - Drag-and-drop task reordering in Gantt view (react-gantt-timeline library)
 - Agreement Export to Word/PDF
 - SOW Monthly Roadmap & RACI Matrix conversion
 - Meeting Form with MOM (Minutes of Meeting)
-- Project Summary Updates by consultant
-- Meetings tracking: Completed vs Committed
 
 ### P2 (Medium Priority)
 - Quarterly Activity Reports
 - Project Stage Tracking
 - Rocket Reach integration for lead enrichment
 - Email sending for agreements (requires SMTP credentials)
-- Detailed Time Tracking module (visits, meeting modes)
-- Custom Reporting module
+- Detailed Time Tracking module
 
 ### P3 (Low Priority/Backlog)
 - HR Workflow Module
 - Marketing Flow Module
 - Finance & Accounts Module
-- Consulting Project Delivery & Payment Tracking
-- Bulk lead import from Rocket Reach
 
 ## Technical Stack
 - **Frontend**: React, Tailwind CSS, Shadcn/UI
 - **Backend**: FastAPI, Pydantic, Motor (async MongoDB)
 - **Database**: MongoDB
-- **Authentication**: JWT
+- **Authentication**: JWT with customizable role-based permissions
 
 ## Test Credentials
 - Admin: admin@company.com / admin123
 - Manager: manager@company.com / manager123
 - Executive: executive@company.com / executive123
-- Consultant: rajiv.kumar@company.com / consultant123
-- Consultant: priya.sharma@company.com / consultant123
 
 ## Known Limitations
 - Email sending is MOCKED - requires SMTP credentials for production use
 - Rocket Reach integration not yet implemented
-- Gantt timeline uses custom implementation (react-gantt-timeline installed but not fully integrated)
