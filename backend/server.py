@@ -738,44 +738,82 @@ async def get_project(project_id: str, current_user: User = Depends(get_current_
 
 @api_router.post("/meetings", response_model=Meeting)
 async def create_meeting(meeting_create: MeetingCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
-    
+    meeting_type = meeting_create.type
+    # Role-based access control
+    if current_user.role == "hr_manager":
+        raise HTTPException(status_code=403, detail="HR Managers do not have CRUD access to meetings")
+    if meeting_type == "sales" and current_user.role not in SALES_MEETING_ROLES:
+        raise HTTPException(status_code=403, detail="Only sales roles can create sales meetings")
+    if meeting_type == "consulting" and current_user.role not in CONSULTING_MEETING_ROLES:
+        raise HTTPException(status_code=403, detail="Only consulting/PM roles can create consulting meetings")
+    # Consulting meetings require project_id
+    if meeting_type == "consulting" and not meeting_create.project_id:
+        raise HTTPException(status_code=400, detail="Consulting meetings must be linked to a project")
+
     meeting_dict = meeting_create.model_dump()
     meeting = Meeting(**meeting_dict, created_by=current_user.id)
-    
+
     doc = meeting.model_dump()
     doc['meeting_date'] = doc['meeting_date'].isoformat()
     doc['created_at'] = doc['created_at'].isoformat()
-    
+
     await db.meetings.insert_one(doc)
-    
-    if meeting.is_delivered:
+
+    if meeting.is_delivered and meeting.project_id:
         await db.projects.update_one(
             {"id": meeting.project_id},
             {"$inc": {"total_meetings_delivered": 1, "number_of_visits": 1}}
         )
-    
+
     return meeting
 
 @api_router.get("/meetings", response_model=List[Meeting])
 async def get_meetings(
     project_id: Optional[str] = None,
+    meeting_type: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     query = {}
     if project_id:
         query['project_id'] = project_id
-    
+    if meeting_type:
+        query['type'] = meeting_type
+
     meetings = await db.meetings.find(query, {"_id": 0}).to_list(1000)
-    
+
     for meeting in meetings:
         if isinstance(meeting.get('meeting_date'), str):
             meeting['meeting_date'] = datetime.fromisoformat(meeting['meeting_date'])
         if isinstance(meeting.get('created_at'), str):
             meeting['created_at'] = datetime.fromisoformat(meeting['created_at'])
-    
+
     return meetings
+
+@api_router.get("/consulting-meetings/tracking")
+async def get_consulting_tracking(current_user: User = Depends(get_current_user)):
+    """Get committed vs actual meetings per project for consulting meetings"""
+    projects = await db.projects.find({}, {"_id": 0}).to_list(1000)
+    tracking = []
+    for project in projects:
+        committed = project.get('total_meetings_committed', 0)
+        delivered = project.get('total_meetings_delivered', 0)
+        # Count consulting meetings for this project
+        actual_count = await db.meetings.count_documents({
+            "project_id": project['id'],
+            "type": "consulting"
+        })
+        tracking.append({
+            "project_id": project['id'],
+            "project_name": project.get('name', ''),
+            "client_name": project.get('client_name', ''),
+            "committed": committed,
+            "delivered": delivered,
+            "actual_meetings": actual_count,
+            "status": project.get('status', 'active'),
+            "variance": actual_count - committed if committed > 0 else 0,
+            "completion_pct": round((actual_count / committed * 100), 1) if committed > 0 else 0
+        })
+    return tracking
 
 
 @api_router.get("/meetings/{meeting_id}")
