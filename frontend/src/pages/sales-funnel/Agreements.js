@@ -31,6 +31,7 @@ const Agreements = () => {
     custom_message: '',
     cc_emails: ''
   });
+  const [downloading, setDownloading] = useState({});
   
   const [formData, setFormData] = useState({
     quotation_id: quotationId || '',
