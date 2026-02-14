@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Calendar, Users, DollarSign } from 'lucide-react';
+import { Plus, Calendar, Users, DollarSign, ListTodo, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import ProjectConsultantAssignment from '../components/ProjectConsultantAssignment';
 
 const Projects = () => {
   const { user } = useContext(AuthContext);
