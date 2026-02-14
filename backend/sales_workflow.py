@@ -124,9 +124,16 @@ class SOWItemCreate(BaseModel):
     description: Optional[str] = ""
     deliverables: Optional[List[str]] = []
     timeline_weeks: Optional[int] = None
+    start_week: Optional[int] = None
     order: Optional[int] = 0
     status: Optional[str] = SOWItemStatus.DRAFT
     notes: Optional[str] = None
+    assigned_consultant_id: Optional[str] = None
+    assigned_consultant_name: Optional[str] = None
+    has_backend_support: Optional[bool] = False
+    backend_support_id: Optional[str] = None
+    backend_support_name: Optional[str] = None
+    backend_support_role: Optional[str] = None
 
 class SOWItemStatusUpdate(BaseModel):
     status: str
