@@ -36,7 +36,15 @@ A comprehensive business management application for a 50-person consulting organ
   - Full snapshot stored at each version
   - View any historical version
   - Changes highlighted with before/after values
-- **SOW Builder UI**: Category-based accordion view, Add/Edit dialogs, Version History
+- **SOW Builder UI**: List view table, Add/Edit dialogs, Version History
+- **SOW Enhancements (Feb 14, 2026) ✅**:
+  - List view displaying all SOW items in table format
+  - Inline status dropdown for each item (Draft, Pending Review, Approved, Rejected, In Progress, Completed)
+  - Manager approval workflow with approve/reject buttons
+  - Document upload functionality (SOW-level and per-item)
+  - Attached documents section with download capability
+  - Overall status tracking (Draft, Pending Approval, Partially Approved, Approved, Complete)
+  - Stats cards showing item counts by status
 
 ### User Profile & Rights Configuration (Phase 4) ✅
 - **User Profile Page**: View/edit name, email, phone, department, designation, bio
@@ -153,10 +161,12 @@ A comprehensive business management application for a 50-person consulting organ
 ## Pending/Future Features
 
 ### P0 (Critical)
-- None at this time
+- None at this time - SOW Page enhancements COMPLETED Feb 14, 2026
 
 ### P1 (High Priority) - Remaining Phase 2 Items
 - Drag-and-drop task reordering in Gantt view (react-gantt-timeline library)
+- Agreement Export to Word/PDF
+- SOW Monthly Roadmap & RACI Matrix conversion
 - Meeting Form with MOM (Minutes of Meeting)
 - Project Summary Updates by consultant
 - Meetings tracking: Completed vs Committed
