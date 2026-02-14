@@ -426,6 +426,20 @@ const Leads = () => {
                       </div>
                     </div>
                   )}
+                  
+                  {/* Start Sales Flow Button */}
+                  {canEdit && lead.status !== 'closed' && lead.status !== 'lost' && (
+                    <div className="pt-3 mt-3 border-t border-zinc-200">
+                      <button
+                        onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
+                        className="w-full px-3 py-2 text-xs font-medium bg-zinc-950 text-white rounded-sm hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+                        data-testid={`start-sales-flow-${lead.id}`}
+                      >
+                        <DollarSign className="w-3 h-3" strokeWidth={1.5} />
+                        Start Sales Flow
+                      </button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
