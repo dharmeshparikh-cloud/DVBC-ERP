@@ -2088,6 +2088,556 @@ async def get_project_tasks_for_gantt(
     
     return gantt_data
 
+# ==================== SOW (SCOPE OF WORK) MANAGEMENT ====================
+
+class SOWCategory(str):
+    SALES = "sales"
+    HR = "hr"
+    OPERATIONS = "operations"
+    TRAINING = "training"
+    ANALYTICS = "analytics"
+    DIGITAL_MARKETING = "digital_marketing"
+
+SOW_CATEGORIES = [
+    {"value": "sales", "label": "Sales"},
+    {"value": "hr", "label": "HR"},
+    {"value": "operations", "label": "Operations"},
+    {"value": "training", "label": "Training"},
+    {"value": "analytics", "label": "Analytics"},
+    {"value": "digital_marketing", "label": "Digital Marketing"}
+]
+
+class SOWItemDetail(BaseModel):
+    """Individual scope item within a category"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: Optional[str] = None
+    deliverables: List[str] = []
+    timeline_weeks: Optional[int] = None
+    status: str = "planned"  # planned, in_progress, completed
+    order: int = 0
+
+class ProjectSOW(BaseModel):
+    """Project Scope of Work"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    agreement_id: Optional[str] = None
+    category: str  # sales, hr, operations, training, analytics, digital_marketing
+    items: List[SOWItemDetail] = []
+    is_frozen: bool = False
+    frozen_at: Optional[datetime] = None
+    frozen_by: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class SOWCreate(BaseModel):
+    project_id: str
+    agreement_id: Optional[str] = None
+    category: str
+    items: Optional[List[dict]] = []
+
+class SOWItemCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    deliverables: Optional[List[str]] = []
+    timeline_weeks: Optional[int] = None
+    order: Optional[int] = 0
+
+# ==================== KICK-OFF MEETING ====================
+
+class KickoffMeetingAttendee(BaseModel):
+    """Attendee for kick-off meeting"""
+    user_id: str
+    name: str
+    email: str
+    role: str  # principal_consultant, sales_executive, client_contact, consultant
+    is_required: bool = False
+    attendance_status: str = "pending"  # pending, confirmed, declined
+
+class KickoffMeeting(BaseModel):
+    """Kick-off meeting after agreement approval"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    agreement_id: str
+    meeting_date: datetime
+    meeting_time: Optional[str] = None
+    meeting_mode: str = "online"  # online, offline, mixed
+    location: Optional[str] = None
+    meeting_link: Optional[str] = None
+    agenda: Optional[str] = None
+    attendees: List[KickoffMeetingAttendee] = []
+    principal_consultant_id: str
+    sales_executive_id: str
+    status: str = "scheduled"  # scheduled, completed, cancelled
+    sow_frozen: bool = False
+    notes: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class KickoffMeetingCreate(BaseModel):
+    project_id: str
+    agreement_id: str
+    meeting_date: datetime
+    meeting_time: Optional[str] = None
+    meeting_mode: Optional[str] = "online"
+    location: Optional[str] = None
+    meeting_link: Optional[str] = None
+    agenda: Optional[str] = None
+    principal_consultant_id: str
+    attendee_ids: Optional[List[str]] = []  # Additional consultant IDs
+
+class Notification(BaseModel):
+    """System notification"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    title: str
+    message: str
+    notification_type: str  # kickoff_scheduled, sow_frozen, reminder
+    related_entity_type: Optional[str] = None  # project, meeting, agreement
+    related_entity_id: Optional[str] = None
+    is_read: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# SOW APIs
+
+@api_router.get("/sow-categories")
+async def get_sow_categories():
+    """Get available SOW categories"""
+    return SOW_CATEGORIES
+
+@api_router.post("/projects/{project_id}/sow")
+async def create_project_sow(
+    project_id: str,
+    sow_create: SOWCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create SOW for a project category"""
+    # Verify project exists
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Check if SOW already exists for this category
+    existing = await db.project_sow.find_one({
+        "project_id": project_id,
+        "category": sow_create.category
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail=f"SOW for category '{sow_create.category}' already exists")
+    
+    # Create SOW items
+    items = []
+    for idx, item_data in enumerate(sow_create.items or []):
+        item = SOWItemDetail(
+            title=item_data.get('title', ''),
+            description=item_data.get('description'),
+            deliverables=item_data.get('deliverables', []),
+            timeline_weeks=item_data.get('timeline_weeks'),
+            order=idx
+        )
+        items.append(item.model_dump())
+    
+    sow = ProjectSOW(
+        project_id=project_id,
+        agreement_id=sow_create.agreement_id,
+        category=sow_create.category,
+        items=items,
+        created_by=current_user.id
+    )
+    
+    doc = sow.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc['frozen_at']:
+        doc['frozen_at'] = doc['frozen_at'].isoformat()
+    
+    await db.project_sow.insert_one(doc)
+    return {"message": "SOW created successfully", "sow_id": sow.id}
+
+@api_router.get("/projects/{project_id}/sow")
+async def get_project_sow(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all SOW entries for a project"""
+    sow_entries = await db.project_sow.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return sow_entries
+
+@api_router.post("/projects/{project_id}/sow/{sow_id}/items")
+async def add_sow_item(
+    project_id: str,
+    sow_id: str,
+    item: SOWItemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Add item to SOW (only if not frozen, or admin can edit)"""
+    sow = await db.project_sow.find_one({"id": sow_id, "project_id": project_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Check freeze status
+    if sow.get('is_frozen') and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="SOW is frozen. Only Admin can modify.")
+    
+    new_item = SOWItemDetail(
+        title=item.title,
+        description=item.description,
+        deliverables=item.deliverables or [],
+        timeline_weeks=item.timeline_weeks,
+        order=item.order
+    )
+    
+    await db.project_sow.update_one(
+        {"id": sow_id},
+        {
+            "$push": {"items": new_item.model_dump()},
+            "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
+        }
+    )
+    
+    return {"message": "Item added to SOW", "item_id": new_item.id}
+
+@api_router.patch("/projects/{project_id}/sow/{sow_id}/items/{item_id}")
+async def update_sow_item(
+    project_id: str,
+    sow_id: str,
+    item_id: str,
+    item_update: SOWItemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update SOW item (only if not frozen, or admin can edit)"""
+    sow = await db.project_sow.find_one({"id": sow_id, "project_id": project_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Check freeze status
+    if sow.get('is_frozen') and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="SOW is frozen. Only Admin can modify.")
+    
+    # Update the specific item
+    items = sow.get('items', [])
+    updated = False
+    for item in items:
+        if item.get('id') == item_id:
+            item['title'] = item_update.title
+            item['description'] = item_update.description
+            item['deliverables'] = item_update.deliverables or []
+            item['timeline_weeks'] = item_update.timeline_weeks
+            updated = True
+            break
+    
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    await db.project_sow.update_one(
+        {"id": sow_id},
+        {"$set": {"items": items, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "SOW item updated"}
+
+@api_router.delete("/projects/{project_id}/sow/{sow_id}/items/{item_id}")
+async def delete_sow_item(
+    project_id: str,
+    sow_id: str,
+    item_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete SOW item (only if not frozen, or admin can edit)"""
+    sow = await db.project_sow.find_one({"id": sow_id, "project_id": project_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    # Check freeze status
+    if sow.get('is_frozen') and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="SOW is frozen. Only Admin can modify.")
+    
+    items = [item for item in sow.get('items', []) if item.get('id') != item_id]
+    
+    await db.project_sow.update_one(
+        {"id": sow_id},
+        {"$set": {"items": items, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "SOW item deleted"}
+
+# Kick-off Meeting APIs
+
+@api_router.post("/kickoff-meetings")
+async def schedule_kickoff_meeting(
+    meeting_create: KickoffMeetingCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Schedule a kick-off meeting (freezes SOW)"""
+    # Verify project exists
+    project = await db.projects.find_one({"id": meeting_create.project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Verify agreement exists
+    agreement = await db.agreements.find_one({"id": meeting_create.agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Check if kickoff meeting already exists for this project
+    existing = await db.kickoff_meetings.find_one({"project_id": meeting_create.project_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Kick-off meeting already scheduled for this project")
+    
+    # Get principal consultant info
+    principal = await db.users.find_one(
+        {"id": meeting_create.principal_consultant_id},
+        {"_id": 0, "hashed_password": 0}
+    )
+    if not principal:
+        raise HTTPException(status_code=404, detail="Principal consultant not found")
+    
+    # Get sales executive (created_by from agreement)
+    sales_exec = await db.users.find_one(
+        {"id": agreement.get('created_by')},
+        {"_id": 0, "hashed_password": 0}
+    )
+    
+    # Get lead (client contact)
+    lead = None
+    if agreement.get('lead_id'):
+        lead = await db.leads.find_one({"id": agreement['lead_id']}, {"_id": 0})
+    
+    # Build attendees list
+    attendees = [
+        KickoffMeetingAttendee(
+            user_id=principal['id'],
+            name=principal['full_name'],
+            email=principal['email'],
+            role="principal_consultant",
+            is_required=True
+        ).model_dump()
+    ]
+    
+    if sales_exec:
+        attendees.append(KickoffMeetingAttendee(
+            user_id=sales_exec['id'],
+            name=sales_exec['full_name'],
+            email=sales_exec['email'],
+            role="sales_executive",
+            is_required=True
+        ).model_dump())
+    
+    if lead:
+        attendees.append(KickoffMeetingAttendee(
+            user_id=lead['id'],
+            name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}",
+            email=lead.get('email', ''),
+            role="client_contact",
+            is_required=True
+        ).model_dump())
+    
+    # Add additional consultants
+    for consultant_id in meeting_create.attendee_ids or []:
+        consultant = await db.users.find_one(
+            {"id": consultant_id},
+            {"_id": 0, "hashed_password": 0}
+        )
+        if consultant:
+            attendees.append(KickoffMeetingAttendee(
+                user_id=consultant['id'],
+                name=consultant['full_name'],
+                email=consultant['email'],
+                role="consultant",
+                is_required=False
+            ).model_dump())
+    
+    meeting = KickoffMeeting(
+        project_id=meeting_create.project_id,
+        agreement_id=meeting_create.agreement_id,
+        meeting_date=meeting_create.meeting_date,
+        meeting_time=meeting_create.meeting_time,
+        meeting_mode=meeting_create.meeting_mode or "online",
+        location=meeting_create.location,
+        meeting_link=meeting_create.meeting_link,
+        agenda=meeting_create.agenda,
+        attendees=attendees,
+        principal_consultant_id=meeting_create.principal_consultant_id,
+        sales_executive_id=agreement.get('created_by', ''),
+        sow_frozen=True,
+        created_by=current_user.id
+    )
+    
+    doc = meeting.model_dump()
+    doc['meeting_date'] = doc['meeting_date'].isoformat()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.kickoff_meetings.insert_one(doc)
+    
+    # Freeze all SOW entries for this project
+    await db.project_sow.update_many(
+        {"project_id": meeting_create.project_id},
+        {"$set": {
+            "is_frozen": True,
+            "frozen_at": datetime.now(timezone.utc).isoformat(),
+            "frozen_by": current_user.id
+        }}
+    )
+    
+    # Create notification for sales executive
+    if sales_exec:
+        notification = Notification(
+            user_id=sales_exec['id'],
+            title="Kick-off Meeting Scheduled",
+            message=f"Kick-off meeting scheduled for project '{project.get('name')}' on {meeting_create.meeting_date.strftime('%Y-%m-%d')}",
+            notification_type="kickoff_scheduled",
+            related_entity_type="project",
+            related_entity_id=meeting_create.project_id
+        )
+        
+        notif_doc = notification.model_dump()
+        notif_doc['created_at'] = notif_doc['created_at'].isoformat()
+        await db.notifications.insert_one(notif_doc)
+    
+    return {"message": "Kick-off meeting scheduled and SOW frozen", "meeting_id": meeting.id}
+
+@api_router.get("/kickoff-meetings")
+async def get_kickoff_meetings(
+    project_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get kick-off meetings"""
+    query = {}
+    if project_id:
+        query['project_id'] = project_id
+    
+    meetings = await db.kickoff_meetings.find(query, {"_id": 0}).to_list(100)
+    
+    # Enrich with project and agreement details
+    result = []
+    for meeting in meetings:
+        project = await db.projects.find_one({"id": meeting['project_id']}, {"_id": 0})
+        agreement = await db.agreements.find_one({"id": meeting['agreement_id']}, {"_id": 0})
+        
+        result.append({
+            **meeting,
+            "project": project,
+            "agreement": agreement
+        })
+    
+    return result
+
+@api_router.get("/kickoff-meetings/{meeting_id}")
+async def get_kickoff_meeting_detail(
+    meeting_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get kick-off meeting with full SOW summary"""
+    meeting = await db.kickoff_meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # Get project
+    project = await db.projects.find_one({"id": meeting['project_id']}, {"_id": 0})
+    
+    # Get agreement
+    agreement = await db.agreements.find_one({"id": meeting['agreement_id']}, {"_id": 0})
+    
+    # Get quotation (for pricing details)
+    quotation = None
+    if agreement and agreement.get('quotation_id'):
+        quotation = await db.quotations.find_one({"id": agreement['quotation_id']}, {"_id": 0})
+    
+    # Get pricing plan
+    pricing_plan = None
+    if quotation and quotation.get('pricing_plan_id'):
+        pricing_plan = await db.pricing_plans.find_one({"id": quotation['pricing_plan_id']}, {"_id": 0})
+    
+    # Get lead (client)
+    lead = None
+    if agreement and agreement.get('lead_id'):
+        lead = await db.leads.find_one({"id": agreement['lead_id']}, {"_id": 0})
+    
+    # Get SOW entries
+    sow_entries = await db.project_sow.find(
+        {"project_id": meeting['project_id']},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return {
+        "meeting": meeting,
+        "project": project,
+        "agreement": agreement,
+        "quotation": quotation,
+        "pricing_plan": pricing_plan,
+        "lead": lead,
+        "sow": sow_entries
+    }
+
+@api_router.patch("/kickoff-meetings/{meeting_id}/complete")
+async def complete_kickoff_meeting(
+    meeting_id: str,
+    notes: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Mark kick-off meeting as completed"""
+    result = await db.kickoff_meetings.update_one(
+        {"id": meeting_id},
+        {"$set": {
+            "status": "completed",
+            "notes": notes,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    return {"message": "Meeting marked as completed"}
+
+# Notification APIs
+
+@api_router.get("/notifications")
+async def get_user_notifications(
+    current_user: User = Depends(get_current_user)
+):
+    """Get notifications for current user"""
+    notifications = await db.notifications.find(
+        {"user_id": current_user.id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return notifications
+
+@api_router.patch("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Mark notification as read"""
+    await db.notifications.update_one(
+        {"id": notification_id, "user_id": current_user.id},
+        {"$set": {"is_read": True}}
+    )
+    return {"message": "Notification marked as read"}
+
+@api_router.get("/notifications/unread-count")
+async def get_unread_notification_count(
+    current_user: User = Depends(get_current_user)
+):
+    """Get count of unread notifications"""
+    count = await db.notifications.count_documents({
+        "user_id": current_user.id,
+        "is_read": False
+    })
+    return {"count": count}
+
 # ==================== ENHANCED CONSULTANT PROFILE ====================
 
 class ConsultantProfileUpdate(BaseModel):
