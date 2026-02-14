@@ -28,19 +28,19 @@ const DOCUMENT_TYPES = [
   { value: 'other', label: 'Other' }
 ];
 
-// Org Chart Node Component (outside main component to avoid re-creation)
-const OrgChartNode = ({ node, level = 0 }) => {
-  const [expanded, setExpanded] = useState(level < 2);
+// Simple Org Chart Node Component (non-recursive rendering to avoid stack overflow)
+const OrgChartNodeSimple = ({ node, level = 0, expandedNodes, toggleNode }) => {
   const hasChildren = node.children && node.children.length > 0;
+  const isExpanded = expandedNodes.has(node.id);
 
   return (
     <div className={`${level > 0 ? 'ml-8 border-l-2 border-zinc-200 pl-4' : ''}`}>
       <div 
         className="flex items-center gap-3 py-2 px-3 rounded-sm hover:bg-zinc-50 cursor-pointer"
-        onClick={() => hasChildren && setExpanded(!expanded)}
+        onClick={() => hasChildren && toggleNode(node.id)}
       >
         {hasChildren ? (
-          expanded ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />
+          isExpanded ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />
         ) : (
           <div className="w-4" />
         )}
@@ -55,10 +55,16 @@ const OrgChartNode = ({ node, level = 0 }) => {
           <span className="ml-2 px-2 py-0.5 text-xs bg-emerald-100 text-emerald-700 rounded">System Access</span>
         )}
       </div>
-      {expanded && hasChildren && (
+      {isExpanded && hasChildren && (
         <div className="mt-1">
           {node.children.map(child => (
-            <OrgChartNode key={child.id} node={child} level={level + 1} />
+            <OrgChartNodeSimple 
+              key={child.id} 
+              node={child} 
+              level={level + 1}
+              expandedNodes={expandedNodes}
+              toggleNode={toggleNode}
+            />
           ))}
         </div>
       )}
