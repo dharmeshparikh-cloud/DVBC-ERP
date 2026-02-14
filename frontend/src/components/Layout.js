@@ -99,11 +99,14 @@ const Layout = () => {
   const consultingItems = isConsultant
     ? [
         { name: 'Projects', href: '/projects', icon: Briefcase },
+        { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
         { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck },
       ]
     : [
         { name: 'Projects', href: '/projects', icon: Briefcase },
+        { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
         { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck },
+        { name: 'Performance', href: '/consultant-performance', icon: Star },
         { name: 'Consultants', href: '/consultants', icon: UserCog },
         { name: 'Handover Alerts', href: '/handover-alerts', icon: AlertTriangle },
         { name: 'Consulting Reports', href: '/reports?category=operations', icon: BarChart3 },
