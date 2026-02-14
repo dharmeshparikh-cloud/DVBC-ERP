@@ -769,6 +769,367 @@ async def get_meetings(
     
     return meetings
 
+
+@api_router.get("/meetings/{meeting_id}")
+async def get_meeting(meeting_id: str, current_user: User = Depends(get_current_user)):
+    """Get a single meeting with full MOM details"""
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    if isinstance(meeting.get('meeting_date'), str):
+        meeting['meeting_date'] = datetime.fromisoformat(meeting['meeting_date'])
+    if isinstance(meeting.get('created_at'), str):
+        meeting['created_at'] = datetime.fromisoformat(meeting['created_at'])
+    
+    return meeting
+
+
+@api_router.patch("/meetings/{meeting_id}/mom")
+async def update_meeting_mom(
+    meeting_id: str,
+    mom_data: MOMCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update Minutes of Meeting for a meeting"""
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    update_data = mom_data.model_dump(exclude_unset=True)
+    update_data['mom_generated'] = True
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    if update_data.get('next_meeting_date'):
+        update_data['next_meeting_date'] = update_data['next_meeting_date'].isoformat()
+    
+    # Process action items
+    action_items = update_data.get('action_items', [])
+    for item in action_items:
+        if not item.get('id'):
+            item['id'] = str(uuid.uuid4())
+        if item.get('due_date') and isinstance(item['due_date'], datetime):
+            item['due_date'] = item['due_date'].isoformat()
+    
+    await db.meetings.update_one({"id": meeting_id}, {"$set": update_data})
+    
+    return {"message": "MOM updated successfully", "meeting_id": meeting_id}
+
+
+@api_router.post("/meetings/{meeting_id}/action-items")
+async def add_action_item(
+    meeting_id: str,
+    action_item: ActionItemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Add action item to meeting with optional follow-up task creation"""
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # Create action item
+    new_item = {
+        "id": str(uuid.uuid4()),
+        "description": action_item.description,
+        "assigned_to_id": action_item.assigned_to_id,
+        "due_date": action_item.due_date.isoformat() if action_item.due_date else None,
+        "priority": action_item.priority,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Get assigned user name
+    if action_item.assigned_to_id:
+        user = await db.users.find_one({"id": action_item.assigned_to_id}, {"_id": 0, "full_name": 1})
+        new_item["assigned_to_name"] = user.get("full_name") if user else None
+    
+    # Create follow-up task if requested
+    follow_up_task_id = None
+    if action_item.create_follow_up_task and action_item.assigned_to_id:
+        # Get project info
+        project = await db.projects.find_one({"id": meeting.get('project_id')}, {"_id": 0})
+        
+        follow_up_task = {
+            "id": str(uuid.uuid4()),
+            "type": "meeting_action_item",
+            "meeting_id": meeting_id,
+            "action_item_id": new_item["id"],
+            "title": f"[Action Item] {action_item.description}",
+            "description": f"Follow-up from meeting on {meeting.get('meeting_date', 'N/A')}",
+            "assigned_to": action_item.assigned_to_id,
+            "assigned_to_name": new_item.get("assigned_to_name"),
+            "project_id": meeting.get('project_id'),
+            "project_name": project.get('name') if project else None,
+            "due_date": action_item.due_date.isoformat() if action_item.due_date else None,
+            "priority": action_item.priority,
+            "status": "pending",
+            "created_by": current_user.id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.follow_up_tasks.insert_one(follow_up_task)
+        follow_up_task_id = follow_up_task["id"]
+        new_item["follow_up_task_id"] = follow_up_task_id
+        
+        # Notify reporting manager if requested
+        if action_item.notify_reporting_manager and action_item.assigned_to_id:
+            # Get employee record to find reporting manager
+            employee = await db.employees.find_one({"user_id": action_item.assigned_to_id}, {"_id": 0})
+            
+            if employee and employee.get('reporting_manager_id'):
+                manager = await db.users.find_one({"id": employee.get('reporting_manager_id')}, {"_id": 0})
+                
+                if manager:
+                    notification = {
+                        "id": str(uuid.uuid4()),
+                        "type": "action_item_assigned",
+                        "recipient_id": manager.get('id'),
+                        "recipient_email": manager.get('email'),
+                        "subject": f"Action Item Assigned to {new_item.get('assigned_to_name', 'Team Member')}",
+                        "body": f"""
+                        <h3>New Action Item Assignment</h3>
+                        <p><strong>Assigned To:</strong> {new_item.get('assigned_to_name', 'N/A')}</p>
+                        <p><strong>Task:</strong> {action_item.description}</p>
+                        <p><strong>Priority:</strong> {action_item.priority.upper()}</p>
+                        <p><strong>Due Date:</strong> {action_item.due_date.strftime('%Y-%m-%d') if action_item.due_date else 'Not set'}</p>
+                        <p><strong>From Meeting:</strong> {meeting.get('title', 'Meeting')}</p>
+                        <p><strong>Project:</strong> {project.get('name') if project else 'N/A'}</p>
+                        <hr>
+                        <p>This action item has been created as a follow-up from a meeting. Please ensure timely completion.</p>
+                        """,
+                        "meeting_id": meeting_id,
+                        "action_item_id": new_item["id"],
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "sent": False
+                    }
+                    
+                    await db.notifications.insert_one(notification)
+                    print(f"[MOM] Notification queued for reporting manager: {manager.get('email')}")
+    
+    # Add action item to meeting
+    action_items = meeting.get('action_items', []) or []
+    action_items.append(new_item)
+    
+    await db.meetings.update_one(
+        {"id": meeting_id},
+        {"$set": {
+            "action_items": action_items,
+            "mom_generated": True,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": "Action item added",
+        "action_item": new_item,
+        "follow_up_task_id": follow_up_task_id
+    }
+
+
+@api_router.patch("/meetings/{meeting_id}/action-items/{action_item_id}")
+async def update_action_item_status(
+    meeting_id: str,
+    action_item_id: str,
+    status: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Update action item status"""
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    action_items = meeting.get('action_items', []) or []
+    updated = False
+    
+    for item in action_items:
+        if item.get('id') == action_item_id:
+            item['status'] = status
+            if status == 'completed':
+                item['completed_at'] = datetime.now(timezone.utc).isoformat()
+            updated = True
+            
+            # Update follow-up task if exists
+            if item.get('follow_up_task_id'):
+                await db.follow_up_tasks.update_one(
+                    {"id": item['follow_up_task_id']},
+                    {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+                )
+            break
+    
+    if not updated:
+        raise HTTPException(status_code=404, detail="Action item not found")
+    
+    await db.meetings.update_one(
+        {"id": meeting_id},
+        {"$set": {"action_items": action_items, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Action item status updated"}
+
+
+@api_router.post("/meetings/{meeting_id}/send-mom")
+async def send_mom_to_client(
+    meeting_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Send MOM to client (email notification queued)"""
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # Get project and lead/client info
+    project = None
+    lead = None
+    client = None
+    
+    if meeting.get('project_id'):
+        project = await db.projects.find_one({"id": meeting['project_id']}, {"_id": 0})
+    
+    if meeting.get('lead_id'):
+        lead = await db.leads.find_one({"id": meeting['lead_id']}, {"_id": 0})
+    elif meeting.get('client_id'):
+        client = await db.clients.find_one({"id": meeting['client_id']}, {"_id": 0})
+    
+    # Get client email
+    client_email = None
+    client_name = None
+    
+    if lead:
+        client_email = lead.get('email')
+        client_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+    elif client:
+        # Get primary contact email from client
+        contacts = client.get('contacts', [])
+        primary_contact = next((c for c in contacts if c.get('is_primary')), contacts[0] if contacts else None)
+        if primary_contact:
+            client_email = primary_contact.get('email')
+            client_name = primary_contact.get('name')
+    
+    if not client_email:
+        raise HTTPException(status_code=400, detail="No client email found")
+    
+    # Build MOM email content
+    agenda_html = "".join([f"<li>{item}</li>" for item in meeting.get('agenda', [])])
+    discussion_html = "".join([f"<li>{item}</li>" for item in meeting.get('discussion_points', [])])
+    decisions_html = "".join([f"<li>{item}</li>" for item in meeting.get('decisions_made', [])])
+    
+    action_items_html = ""
+    for item in meeting.get('action_items', []):
+        action_items_html += f"""
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;">{item.get('description', '')}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{item.get('assigned_to_name', 'TBD')}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{item.get('due_date', 'TBD')}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">{item.get('priority', 'Medium').upper()}</td>
+        </tr>
+        """
+    
+    meeting_date = meeting.get('meeting_date')
+    if isinstance(meeting_date, str):
+        meeting_date = datetime.fromisoformat(meeting_date)
+    
+    next_meeting = meeting.get('next_meeting_date')
+    if next_meeting and isinstance(next_meeting, str):
+        next_meeting = datetime.fromisoformat(next_meeting)
+    
+    email_body = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+        <h2 style="color: #333;">Minutes of Meeting</h2>
+        
+        <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <p><strong>Meeting Title:</strong> {meeting.get('title', 'Meeting')}</p>
+            <p><strong>Date:</strong> {meeting_date.strftime('%B %d, %Y %H:%M') if meeting_date else 'N/A'}</p>
+            <p><strong>Mode:</strong> {meeting.get('mode', '').replace('_', ' ').title()}</p>
+            <p><strong>Duration:</strong> {meeting.get('duration_minutes', 'N/A')} minutes</p>
+            <p><strong>Attendees:</strong> {', '.join(meeting.get('attendee_names', []))}</p>
+        </div>
+        
+        {'<h3>Agenda</h3><ul>' + agenda_html + '</ul>' if agenda_html else ''}
+        
+        {'<h3>Discussion Points</h3><ul>' + discussion_html + '</ul>' if discussion_html else ''}
+        
+        {'<h3>Decisions Made</h3><ul>' + decisions_html + '</ul>' if decisions_html else ''}
+        
+        {'''<h3>Action Items</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #333; color: white;">
+                    <th style="padding: 10px; text-align: left;">Action Item</th>
+                    <th style="padding: 10px; text-align: left;">Assigned To</th>
+                    <th style="padding: 10px; text-align: left;">Due Date</th>
+                    <th style="padding: 10px; text-align: left;">Priority</th>
+                </tr>
+            </thead>
+            <tbody>''' + action_items_html + '''</tbody>
+        </table>''' if action_items_html else ''}
+        
+        {f'<p><strong>Next Meeting:</strong> {next_meeting.strftime("%B %d, %Y %H:%M")}</p>' if next_meeting else ''}
+        
+        <hr style="margin: 30px 0;">
+        <p style="color: #666; font-size: 12px;">
+            This is an automated email from D&V Business Consulting.<br>
+            If you have any questions, please contact your account manager.
+        </p>
+    </body>
+    </html>
+    """
+    
+    # Queue email notification
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "mom_sent",
+        "recipient_email": client_email,
+        "recipient_name": client_name,
+        "subject": f"Minutes of Meeting - {meeting.get('title', 'Meeting')} - {meeting_date.strftime('%B %d, %Y') if meeting_date else ''}",
+        "body": email_body,
+        "meeting_id": meeting_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "sent": False  # Email sending is mocked
+    }
+    
+    await db.notifications.insert_one(notification)
+    
+    # Update meeting
+    await db.meetings.update_one(
+        {"id": meeting_id},
+        {"$set": {
+            "mom_sent_to_client": True,
+            "mom_sent_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": "MOM sent to client (notification queued)",
+        "client_email": client_email,
+        "client_name": client_name
+    }
+
+
+@api_router.get("/follow-up-tasks")
+async def get_follow_up_tasks(
+    assigned_to: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get follow-up tasks"""
+    query = {}
+    if assigned_to:
+        query['assigned_to'] = assigned_to
+    if status:
+        query['status'] = status
+    
+    # If not admin, show only own tasks or tasks of reportees
+    if current_user.role != UserRole.ADMIN:
+        query['$or'] = [
+            {"assigned_to": current_user.id},
+            {"created_by": current_user.id}
+        ]
+    
+    tasks = await db.follow_up_tasks.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return tasks
+
+
 @api_router.get("/stats/dashboard")
 async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
     query = {}
