@@ -7366,6 +7366,20 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     present_days = sum(1 for r in att_records if r.get("status") in ["present", "work_from_home"])
     absent_days = sum(1 for r in att_records if r.get("status") == "absent")
     half_days = sum(1 for r in att_records if r.get("status") == "half_day")
+    # Fetch approved/reimbursed expenses for this employee in this month
+    expense_reimb = 0
+    expense_query = {"employee_id": employee_id, "status": {"$in": ["approved", "reimbursed"]}}
+    all_expenses = await db.expenses.find(expense_query, {"_id": 0}).to_list(500)
+    for exp in all_expenses:
+        exp_date = exp.get("created_at", "")
+        if isinstance(exp_date, str) and exp_date.startswith(month):
+            expense_reimb += exp.get("total_amount", 0)
+        elif hasattr(exp_date, 'strftime') and exp_date.strftime("%Y-%m") == month:
+            expense_reimb += exp.get("total_amount", 0)
+    expense_reimb = round(expense_reimb, 2)
+    if expense_reimb > 0:
+        earnings.append({"name": "Conveyance Reimbursement", "key": "expense_reimbursement", "amount": expense_reimb})
+        total_earnings += expense_reimb
     # Check existing
     existing = await db.salary_slips.find_one({"employee_id": employee_id, "month": month}, {"_id": 0})
     slip = {
