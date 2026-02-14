@@ -19,8 +19,34 @@ A comprehensive business management application for a 50-person consulting organ
 
 ### Authentication & Roles ✅
 - JWT-based email/password authentication
-- Three predefined user roles (Admin, Manager, Executive)
+- Four user roles: Admin, Manager, Executive, **Consultant**
 - Role-based access control throughout the app
+- Consultant-specific dashboard and navigation
+
+### Consultant Management Module (Phase 1) ✅
+- **Consultant user role** with separate login and dashboard
+- **Consultant List View** (Admin/Manager) with:
+  - Name, email, department
+  - Project count and capacity (bandwidth)
+  - Meetings completed/committed
+  - Total project value
+  - Visual bandwidth indicator
+- **Consultant Creation** (Admin only)
+- **Consultant Dashboard** showing:
+  - Active projects, meetings stats
+  - Capacity utilization
+  - Assigned projects list
+- **Bandwidth limits**:
+  - Mixed (online + offline): 8 projects
+  - Online only: 12 projects
+  - Offline only: 6 projects
+
+### Project Assignment System ✅
+- Assign consultants to projects
+- Change consultant (before project start)
+- Admin can change start date
+- Unassign consultants
+- Track meetings per assignment
 
 ### Lead Management ✅
 - Create, view, edit leads
