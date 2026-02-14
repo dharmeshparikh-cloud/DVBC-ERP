@@ -7367,7 +7367,7 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     absent_days = sum(1 for r in att_records if r.get("status") == "absent")
     half_days = sum(1 for r in att_records if r.get("status") == "half_day")
     # Check existing
-    existing = await db.salary_slips.find_one({"employee_id": employee_id, "month": month})
+    existing = await db.salary_slips.find_one({"employee_id": employee_id, "month": month}, {"_id": 0})
     slip = {
         "id": existing["id"] if existing else str(uuid.uuid4()),
         "employee_id": employee_id,
