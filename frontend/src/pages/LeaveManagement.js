@@ -1,0 +1,219 @@
+import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
+import { API, AuthContext } from '../App';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
+import { Plus, Clock, CheckCircle, XCircle, Calendar, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+
+const LEAVE_TYPES = [
+  { value: 'casual_leave', label: 'Casual Leave' },
+  { value: 'sick_leave', label: 'Sick Leave' },
+  { value: 'earned_leave', label: 'Earned Leave' }
+];
+
+const STATUS_STYLES = {
+  pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  rejected: 'bg-red-50 text-red-700 border-red-200'
+};
+
+const LeaveManagement = () => {
+  const { user } = useContext(AuthContext);
+  const [myRequests, setMyRequests] = useState([]);
+  const [allRequests, setAllRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('my');
+  const [formData, setFormData] = useState({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '' });
+
+  const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
+
+  useEffect(() => { fetchData(); }, []);
+
+  const fetchData = async () => {
+    try {
+      const promises = [axios.get(`${API}/leave-requests`)];
+      if (isHR) promises.push(axios.get(`${API}/leave-requests/all`));
+      const results = await Promise.all(promises);
+      setMyRequests(results[0].data);
+      if (results[1]) setAllRequests(results[1].data);
+    } catch (error) {
+      toast.error('Failed to fetch leave data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API}/leave-requests`, {
+        ...formData,
+        start_date: new Date(formData.start_date).toISOString(),
+        end_date: new Date(formData.end_date).toISOString()
+      });
+      toast.success('Leave request submitted. Routing to Reporting Manager → HR Manager.');
+      setDialogOpen(false);
+      setFormData({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '' });
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to submit leave request');
+    }
+  };
+
+  const displayRequests = activeTab === 'all' ? allRequests : myRequests;
+  const pendingCount = myRequests.filter(r => r.status === 'pending').length;
+  const approvedCount = myRequests.filter(r => r.status === 'approved').length;
+
+  return (
+    <div data-testid="leave-management-page">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Leave Management</h1>
+          <p className="text-zinc-500">Apply for leave, track requests, and manage approvals</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="apply-leave-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+              <Plus className="w-4 h-4 mr-2" /> Apply Leave
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Apply for Leave</DialogTitle>
+              <DialogDescription className="text-zinc-500">Routed to Reporting Manager, then HR Manager</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Leave Type</Label>
+                <select value={formData.leave_type} onChange={(e) => setFormData({ ...formData, leave_type: e.target.value })}
+                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="leave-type-select">
+                  {LEAVE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-zinc-950">Start Date</Label>
+                  <Input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    required className="rounded-sm border-zinc-200" data-testid="leave-start-date" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-zinc-950">End Date</Label>
+                  <Input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    required className="rounded-sm border-zinc-200" data-testid="leave-end-date" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Reason</Label>
+                <textarea value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  required rows={3} className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="leave-reason" />
+              </div>
+              <div className="p-3 bg-zinc-50 rounded-sm border border-zinc-200">
+                <div className="text-xs text-zinc-500">Approval Flow: <span className="font-medium text-zinc-700">You → Reporting Manager → HR Manager</span></div>
+              </div>
+              <Button type="submit" data-testid="submit-leave" className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+                Submit Leave Request
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Clock className="w-6 h-6 text-yellow-500" />
+            <div>
+              <div className="text-xs uppercase tracking-wide text-zinc-500">Pending</div>
+              <div className="text-2xl font-semibold text-zinc-950" data-testid="leave-pending">{pendingCount}</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-emerald-500" />
+            <div>
+              <div className="text-xs uppercase tracking-wide text-zinc-500">Approved</div>
+              <div className="text-2xl font-semibold text-zinc-950">{approvedCount}</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <XCircle className="w-6 h-6 text-red-400" />
+            <div>
+              <div className="text-xs uppercase tracking-wide text-zinc-500">Rejected</div>
+              <div className="text-2xl font-semibold text-zinc-950">{myRequests.filter(r => r.status === 'rejected').length}</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      {isHR && (
+        <div className="flex gap-1 mb-6 border-b border-zinc-200">
+          <button onClick={() => setActiveTab('my')} data-testid="tab-my-leaves"
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'my' ? 'border-b-2 border-zinc-950 text-zinc-950' : 'text-zinc-500 hover:text-zinc-700'}`}>
+            My Requests ({myRequests.length})
+          </button>
+          <button onClick={() => setActiveTab('all')} data-testid="tab-all-leaves"
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'all' ? 'border-b-2 border-zinc-950 text-zinc-950' : 'text-zinc-500 hover:text-zinc-700'}`}>
+            All Requests ({allRequests.length})
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center h-40"><div className="text-zinc-500">Loading...</div></div>
+      ) : displayRequests.length === 0 ? (
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardContent className="flex flex-col items-center justify-center h-40">
+            <Calendar className="w-10 h-10 text-zinc-300 mb-3" />
+            <p className="text-zinc-500">No leave requests found</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="border border-zinc-200 rounded-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-zinc-50">
+              <tr>
+                {activeTab === 'all' && <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Employee</th>}
+                <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Type</th>
+                <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">From</th>
+                <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">To</th>
+                <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Days</th>
+                <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Reason</th>
+                <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayRequests.map(req => (
+                <tr key={req.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`leave-row-${req.id}`}>
+                  {activeTab === 'all' && <td className="px-4 py-3 font-medium text-zinc-950">{req.employee_name}</td>}
+                  <td className="px-4 py-3 text-zinc-700">{req.leave_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                  <td className="px-4 py-3 text-zinc-700">{req.start_date ? format(new Date(req.start_date), 'MMM dd, yyyy') : '-'}</td>
+                  <td className="px-4 py-3 text-zinc-700">{req.end_date ? format(new Date(req.end_date), 'MMM dd, yyyy') : '-'}</td>
+                  <td className="px-4 py-3 text-center font-medium text-zinc-950">{req.days}</td>
+                  <td className="px-4 py-3 text-zinc-600 max-w-[200px] truncate">{req.reason}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`text-xs px-2 py-1 rounded-sm border ${STATUS_STYLES[req.status] || STATUS_STYLES.pending}`}>
+                      {req.status?.charAt(0).toUpperCase() + req.status?.slice(1)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default LeaveManagement;
