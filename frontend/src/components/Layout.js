@@ -43,6 +43,7 @@ const Layout = () => {
     { name: 'Approvals', href: '/sales-funnel/approvals', icon: ClipboardCheck },
     { name: 'Consultants', href: '/consultants', icon: UserCog },
     { name: 'Handover Alerts', href: '/handover-alerts', icon: AlertTriangle },
+    { name: 'User Management', href: '/user-management', icon: Shield },
   ];
 
   const isActive = (href) => {
