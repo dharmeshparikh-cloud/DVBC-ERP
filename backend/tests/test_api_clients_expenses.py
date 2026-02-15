@@ -112,7 +112,7 @@ class TestClientsNegative:
     
     @pytest.mark.asyncio
     async def test_client021_create_missing_name(self, admin_client):
-        """TC-CLIENT-021: Create client without name fails."""
+        """TC-CLIENT-021: Create client without company_name fails."""
         response = await admin_client.post("/api/clients", json={
             "industry": "IT Services"
         })
