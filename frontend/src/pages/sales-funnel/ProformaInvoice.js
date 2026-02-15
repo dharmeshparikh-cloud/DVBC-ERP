@@ -362,6 +362,7 @@ const ProformaInvoice = () => {
                 Create Proforma Invoice
               </Button>
             )}
+          </div>
         </div>
       </div>
 
