@@ -212,12 +212,17 @@ class TestDataFactory:
     def expense(overrides: dict = None) -> dict:
         """Generate test expense data."""
         data = {
-            "title": f"Test Expense {uuid.uuid4().hex[:6]}",
-            "category": "travel",
-            "amount": 1500.00,
-            "currency": "INR",
-            "expense_date": datetime.now(timezone.utc).isoformat(),
-            "description": "Test expense for API testing"
+            "employee_id": "",  # Will be set by test or API
+            "employee_name": "Test Employee",
+            "is_office_expense": True,
+            "line_items": [
+                {
+                    "category": "travel",
+                    "description": "Test expense for API testing",
+                    "amount": 1500.00,
+                    "date": datetime.now(timezone.utc).isoformat()
+                }
+            ]
         }
         if overrides:
             data.update(overrides)
