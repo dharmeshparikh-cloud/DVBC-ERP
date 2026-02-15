@@ -7857,13 +7857,17 @@ async def get_payroll_inputs(month: str, current_user: User = Depends(get_curren
 
 @api_router.post("/payroll/inputs")
 async def save_payroll_input(data: dict, current_user: User = Depends(get_current_user)):
-    """Save payroll input for a single employee for a month (Admin/HR only)"""
+    """Save payroll input for a single employee for a month (Admin/HR only). All numeric fields mandatory."""
     if current_user.role not in ["admin", "hr_manager"]:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update payroll inputs")
     employee_id = data.get("employee_id")
     month = data.get("month")
     if not employee_id or not month:
         raise HTTPException(status_code=400, detail="employee_id and month required")
+    required_fields = ["working_days", "present_days", "absent_days", "public_holidays", "leaves", "overtime_hours", "incentive", "advance", "penalty"]
+    for f in required_fields:
+        if data.get(f) is None or data.get(f) == '':
+            raise HTTPException(status_code=400, detail=f"Field '{f.replace('_', ' ')}' is mandatory. Enter 0 if not applicable.")
     input_doc = {
         "employee_id": employee_id,
         "month": month,
