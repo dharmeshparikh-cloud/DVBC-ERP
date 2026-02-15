@@ -860,3 +860,425 @@ async def get_full_change_log(sow_id: str):
     all_changes.sort(key=lambda x: x.get("changed_at", ""), reverse=True)
     
     return all_changes
+
+
+# ============== Task Management Within Scopes ==============
+
+@router.post("/{sow_id}/scopes/{scope_id}/tasks")
+async def create_scope_task(
+    sow_id: str,
+    scope_id: str,
+    task_data: dict,
+    current_user_id: str = None,
+    current_user_name: str = "Unknown"
+):
+    """Create a task under a specific scope"""
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    scopes = sow.get("scopes", [])
+    scope_idx = next((i for i, s in enumerate(scopes) if s.get("id") == scope_id), None)
+    
+    if scope_idx is None:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    
+    scope = scopes[scope_idx]
+    now = datetime.now(timezone.utc)
+    
+    # Create new task
+    new_task = {
+        "id": str(uuid.uuid4()),
+        "name": task_data.get("name", "Untitled Task"),
+        "description": task_data.get("description", ""),
+        "status": "pending",  # pending, in_progress, completed, approved
+        "priority": task_data.get("priority", "medium"),
+        "due_date": task_data.get("due_date"),
+        "assigned_to_id": task_data.get("assigned_to_id"),
+        "assigned_to_name": task_data.get("assigned_to_name"),
+        "created_by_id": current_user_id,
+        "created_by_name": current_user_name,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+        "attachments": [],
+        "approval_status": None,  # None, pending, manager_approved, client_approved, fully_approved
+        "manager_approval": None,
+        "client_approval": None,
+        "notes": task_data.get("notes", "")
+    }
+    
+    # Initialize tasks list if not exists
+    if "tasks" not in scope:
+        scope["tasks"] = []
+    
+    scope["tasks"].append(new_task)
+    scope["updated_at"] = now.isoformat()
+    scopes[scope_idx] = scope
+    
+    await db.enhanced_sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "scopes": scopes,
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    return {"message": "Task created", "task": new_task}
+
+
+@router.patch("/{sow_id}/scopes/{scope_id}/tasks/{task_id}")
+async def update_scope_task(
+    sow_id: str,
+    scope_id: str,
+    task_id: str,
+    task_update: dict,
+    current_user_id: str = None,
+    current_user_name: str = "Unknown"
+):
+    """Update a task within a scope"""
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    scopes = sow.get("scopes", [])
+    scope_idx = next((i for i, s in enumerate(scopes) if s.get("id") == scope_id), None)
+    
+    if scope_idx is None:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    
+    scope = scopes[scope_idx]
+    tasks = scope.get("tasks", [])
+    task_idx = next((i for i, t in enumerate(tasks) if t.get("id") == task_id), None)
+    
+    if task_idx is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    now = datetime.now(timezone.utc)
+    task = tasks[task_idx]
+    
+    # Update allowed fields
+    updatable_fields = ["name", "description", "status", "priority", "due_date", 
+                        "assigned_to_id", "assigned_to_name", "notes"]
+    for field in updatable_fields:
+        if field in task_update and task_update[field] is not None:
+            task[field] = task_update[field]
+    
+    task["updated_at"] = now.isoformat()
+    tasks[task_idx] = task
+    scope["tasks"] = tasks
+    scope["updated_at"] = now.isoformat()
+    scopes[scope_idx] = scope
+    
+    await db.enhanced_sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "scopes": scopes,
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    return {"message": "Task updated", "task": task}
+
+
+@router.post("/{sow_id}/scopes/{scope_id}/tasks/{task_id}/attachments")
+async def upload_task_attachment(
+    sow_id: str,
+    scope_id: str,
+    task_id: str,
+    attachment_data: dict,
+    current_user_id: str = None,
+    current_user_name: str = "Unknown"
+):
+    """Upload attachment to a task"""
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    scopes = sow.get("scopes", [])
+    scope_idx = next((i for i, s in enumerate(scopes) if s.get("id") == scope_id), None)
+    
+    if scope_idx is None:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    
+    scope = scopes[scope_idx]
+    tasks = scope.get("tasks", [])
+    task_idx = next((i for i, t in enumerate(tasks) if t.get("id") == task_id), None)
+    
+    if task_idx is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    now = datetime.now(timezone.utc)
+    task = tasks[task_idx]
+    
+    # Create attachment
+    attachment = {
+        "id": str(uuid.uuid4()),
+        "filename": f"{str(uuid.uuid4())}_{attachment_data.get('filename')}",
+        "original_filename": attachment_data.get("filename"),
+        "file_type": attachment_data.get("filename", "").split(".")[-1] if "." in attachment_data.get("filename", "") else "unknown",
+        "uploaded_by": current_user_id,
+        "uploaded_by_name": current_user_name,
+        "uploaded_at": now.isoformat(),
+        "description": attachment_data.get("description")
+    }
+    
+    # Store file data
+    await db.task_attachments.insert_one({
+        "id": attachment["id"],
+        "file_data": attachment_data.get("file_data"),
+        "created_at": now.isoformat()
+    })
+    
+    if "attachments" not in task:
+        task["attachments"] = []
+    task["attachments"].append(attachment)
+    task["updated_at"] = now.isoformat()
+    
+    tasks[task_idx] = task
+    scope["tasks"] = tasks
+    scopes[scope_idx] = scope
+    
+    await db.enhanced_sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "scopes": scopes,
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    return {"message": "Attachment uploaded", "attachment": attachment}
+
+
+# ============== Task Approval Workflow ==============
+
+@router.post("/{sow_id}/scopes/{scope_id}/tasks/{task_id}/request-approval")
+async def request_task_approval(
+    sow_id: str,
+    scope_id: str,
+    task_id: str,
+    approval_request: dict,
+    current_user_id: str = None,
+    current_user_name: str = "Unknown"
+):
+    """
+    Initiate approval request for a task.
+    Parallel approval flow: Manager and Client approve independently.
+    """
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    scopes = sow.get("scopes", [])
+    scope_idx = next((i for i, s in enumerate(scopes) if s.get("id") == scope_id), None)
+    
+    if scope_idx is None:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    
+    scope = scopes[scope_idx]
+    tasks = scope.get("tasks", [])
+    task_idx = next((i for i, t in enumerate(tasks) if t.get("id") == task_id), None)
+    
+    if task_idx is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    now = datetime.now(timezone.utc)
+    task = tasks[task_idx]
+    
+    # Initialize approval tracking
+    task["approval_status"] = "pending"
+    task["approval_request_date"] = now.isoformat()
+    task["approval_requested_by_id"] = current_user_id
+    task["approval_requested_by_name"] = current_user_name
+    task["approval_notes"] = approval_request.get("notes", "")
+    
+    # Manager approval tracking
+    task["manager_approval"] = {
+        "status": "pending",
+        "manager_id": approval_request.get("manager_id"),
+        "manager_name": approval_request.get("manager_name"),
+        "requested_at": now.isoformat(),
+        "approved_at": None,
+        "notes": None
+    }
+    
+    # Client approval tracking
+    task["client_approval"] = {
+        "status": "pending",
+        "client_id": approval_request.get("client_id"),
+        "client_name": approval_request.get("client_name"),
+        "client_email": approval_request.get("client_email"),
+        "requested_at": now.isoformat(),
+        "approved_at": None,
+        "notes": None
+    }
+    
+    task["updated_at"] = now.isoformat()
+    tasks[task_idx] = task
+    scope["tasks"] = tasks
+    scopes[scope_idx] = scope
+    
+    await db.enhanced_sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "scopes": scopes,
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    # Create notification records for reminders (2-day reminder logic can be handled by a cron job)
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "task_approval_request",
+        "sow_id": sow_id,
+        "scope_id": scope_id,
+        "task_id": task_id,
+        "task_name": task.get("name"),
+        "requested_by_id": current_user_id,
+        "requested_by_name": current_user_name,
+        "manager_id": approval_request.get("manager_id"),
+        "client_email": approval_request.get("client_email"),
+        "created_at": now.isoformat(),
+        "status": "pending",
+        "last_reminder_sent": None
+    }
+    await db.task_approval_notifications.insert_one(notification)
+    
+    return {
+        "message": "Approval request sent to Manager and Client",
+        "task_id": task_id,
+        "approval_status": "pending"
+    }
+
+
+@router.post("/{sow_id}/scopes/{scope_id}/tasks/{task_id}/approve")
+async def approve_task(
+    sow_id: str,
+    scope_id: str,
+    task_id: str,
+    approval_data: dict,
+    current_user_id: str = None,
+    current_user_name: str = "Unknown",
+    current_user_role: str = "consultant"
+):
+    """
+    Process approval from Manager or Client.
+    Approval type: 'manager' or 'client'
+    Both can approve independently (parallel).
+    """
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    scopes = sow.get("scopes", [])
+    scope_idx = next((i for i, s in enumerate(scopes) if s.get("id") == scope_id), None)
+    
+    if scope_idx is None:
+        raise HTTPException(status_code=404, detail="Scope not found")
+    
+    scope = scopes[scope_idx]
+    tasks = scope.get("tasks", [])
+    task_idx = next((i for i, t in enumerate(tasks) if t.get("id") == task_id), None)
+    
+    if task_idx is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    now = datetime.now(timezone.utc)
+    task = tasks[task_idx]
+    
+    approval_type = approval_data.get("approval_type", "manager")  # 'manager' or 'client'
+    approved = approval_data.get("approved", True)
+    notes = approval_data.get("notes", "")
+    
+    if approval_type == "manager":
+        if not task.get("manager_approval"):
+            raise HTTPException(status_code=400, detail="No manager approval pending")
+        
+        task["manager_approval"]["status"] = "approved" if approved else "rejected"
+        task["manager_approval"]["approved_at"] = now.isoformat()
+        task["manager_approval"]["approved_by_id"] = current_user_id
+        task["manager_approval"]["approved_by_name"] = current_user_name
+        task["manager_approval"]["notes"] = notes
+        
+    elif approval_type == "client":
+        if not task.get("client_approval"):
+            raise HTTPException(status_code=400, detail="No client approval pending")
+        
+        task["client_approval"]["status"] = "approved" if approved else "rejected"
+        task["client_approval"]["approved_at"] = now.isoformat()
+        task["client_approval"]["approved_by_id"] = current_user_id
+        task["client_approval"]["approved_by_name"] = current_user_name
+        task["client_approval"]["notes"] = notes
+    
+    # Check if fully approved (both Manager and Client approved)
+    manager_approved = task.get("manager_approval", {}).get("status") == "approved"
+    client_approved = task.get("client_approval", {}).get("status") == "approved"
+    
+    if manager_approved and client_approved:
+        task["approval_status"] = "fully_approved"
+        task["status"] = "approved"
+    elif manager_approved:
+        task["approval_status"] = "manager_approved"
+    elif client_approved:
+        task["approval_status"] = "client_approved"
+    
+    # Check for rejection
+    manager_rejected = task.get("manager_approval", {}).get("status") == "rejected"
+    client_rejected = task.get("client_approval", {}).get("status") == "rejected"
+    
+    if manager_rejected or client_rejected:
+        task["approval_status"] = "rejected"
+    
+    task["updated_at"] = now.isoformat()
+    tasks[task_idx] = task
+    scope["tasks"] = tasks
+    scopes[scope_idx] = scope
+    
+    await db.enhanced_sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "scopes": scopes,
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    # Update notification status
+    await db.task_approval_notifications.update_one(
+        {"task_id": task_id},
+        {"$set": {
+            "status": task["approval_status"],
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    return {
+        "message": f"Task {approval_type} approval recorded",
+        "task_id": task_id,
+        "approval_status": task["approval_status"],
+        "manager_status": task.get("manager_approval", {}).get("status"),
+        "client_status": task.get("client_approval", {}).get("status")
+    }
+
+
+@router.get("/{sow_id}/tasks/pending-approvals")
+async def get_pending_task_approvals(
+    sow_id: str,
+    current_user_id: str = None,
+    current_user_role: str = "consultant"
+):
+    """Get all tasks pending approval for this SOW"""
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    pending_tasks = []
+    for scope in sow.get("scopes", []):
+        for task in scope.get("tasks", []):
+            if task.get("approval_status") in ["pending", "manager_approved", "client_approved"]:
+                pending_tasks.append({
+                    "scope_id": scope.get("id"),
+                    "scope_name": scope.get("name"),
+                    "task": task
+                })
+    
+    return pending_tasks
+
