@@ -25,7 +25,7 @@ import SOWBuilder from './pages/sales-funnel/SOWBuilder';
 import SalesScopeSelection from './pages/sales-funnel/SalesScopeSelection';
 import ConsultingScopeView from './pages/sales-funnel/ConsultingScopeView';
 import SalesSOWList from './pages/sales-funnel/SalesSOWList';
-import Quotations from './pages/sales-funnel/Quotations';
+import ProformaInvoice from './pages/sales-funnel/ProformaInvoice';
 import Agreements from './pages/sales-funnel/Agreements';
 import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
 import ConsultingSOWList from './pages/consulting/ConsultingSOWList';
