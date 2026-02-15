@@ -12,7 +12,8 @@ import {
   ArrowLeft, Plus, Check, X, CheckCircle, AlertCircle, Clock,
   FileText, Upload, Download, Eye, Edit2, Save, Send,
   Calendar, BarChart3, Columns3, History, Loader2, XCircle,
-  ChevronRight, Paperclip, MessageSquare, Ban
+  ChevronRight, Paperclip, MessageSquare, Ban, ChevronDown,
+  ListTodo, User, Users, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, addWeeks, addDays, startOfWeek } from 'date-fns';
