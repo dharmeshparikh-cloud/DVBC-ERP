@@ -4130,7 +4130,7 @@ async def get_project_tasks_for_gantt(
     project_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get tasks formatted for Gantt chart"""
+    """Get tasks formatted for Gantt chart, grouped by SOW item"""
     tasks = await db.tasks.find({"project_id": project_id}, {"_id": 0}).sort("order", 1).to_list(1000)
     
     gantt_data = []
@@ -4152,12 +4152,150 @@ async def get_project_tasks_for_gantt(
             "category": task.get('category', 'general'),
             "priority": task.get('priority', 'medium'),
             "assigned_to": task.get('assigned_to'),
+            "sow_id": task.get('sow_id'),
+            "sow_item_id": task.get('sow_item_id'),
+            "sow_item_title": task.get('sow_item_title', ''),
             "dependencies": task.get('dependencies', []),
             "progress": 100 if task.get('status') == TaskStatus.COMPLETED else 
                        50 if task.get('status') == TaskStatus.IN_PROGRESS else 0
         })
     
     return gantt_data
+
+
+# --- SOW Progress (calculated from linked tasks) ---
+@api_router.get("/sow/{sow_id}/progress")
+async def get_sow_progress(sow_id: str, current_user: User = Depends(get_current_user)):
+    """Get progress of each SOW item based on linked tasks"""
+    sow = await db.sows.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    tasks = await db.tasks.find({"sow_id": sow_id}, {"_id": 0}).to_list(500)
+    item_progress = {}
+    for task in tasks:
+        item_id = task.get('sow_item_id', 'unlinked')
+        if item_id not in item_progress:
+            item_progress[item_id] = {"total": 0, "completed": 0, "in_progress": 0, "delayed": 0}
+        item_progress[item_id]["total"] += 1
+        if task.get('status') == 'completed':
+            item_progress[item_id]["completed"] += 1
+        elif task.get('status') == 'in_progress':
+            item_progress[item_id]["in_progress"] += 1
+        elif task.get('status') == 'delayed':
+            item_progress[item_id]["delayed"] += 1
+    result = []
+    for item in sow.get('items', []):
+        prog = item_progress.get(item['id'], {"total": 0, "completed": 0, "in_progress": 0, "delayed": 0})
+        pct = round(prog["completed"] / prog["total"] * 100) if prog["total"] > 0 else 0
+        result.append({
+            "sow_item_id": item['id'], "title": item.get('title', ''), "status": item.get('status', ''),
+            "total_tasks": prog["total"], "completed_tasks": prog["completed"],
+            "in_progress_tasks": prog["in_progress"], "delayed_tasks": prog["delayed"],
+            "progress_percent": pct
+        })
+    return {"sow_id": sow_id, "sow_title": sow.get('title', ''), "items": result}
+
+
+# --- Client Communication Log ---
+@api_router.post("/client-communications")
+async def create_client_communication(data: dict, current_user: User = Depends(get_current_user)):
+    """Log a communication sent to client (manual or auto-generated)"""
+    comm = {
+        "id": str(uuid.uuid4()),
+        "project_id": data.get("project_id"),
+        "sow_id": data.get("sow_id"),
+        "client_id": data.get("client_id"),
+        "client_name": data.get("client_name", ""),
+        "type": data.get("type", "progress_update"),  # progress_update, manual_update, escalation
+        "subject": data.get("subject", ""),
+        "message": data.get("message", ""),
+        "sow_progress": data.get("sow_progress"),  # optional progress snapshot
+        "sent_via": data.get("sent_via", "email"),
+        "sent_by": current_user.id,
+        "sent_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.client_communications.insert_one(comm)
+    # Log email (MOCKED)
+    print(f"[CLIENT EMAIL] To: {comm['client_name']} | Subject: {comm['subject']} | By: {current_user.full_name}")
+    # Notify admins
+    await notify_admins(
+        notif_type="client_communication",
+        title=f"Client Update Sent: {comm['client_name']}",
+        message=f"{current_user.full_name} sent '{comm['subject']}' to {comm['client_name']}.",
+        reference_type="client_communication", reference_id=comm['id']
+    )
+    return {"message": "Communication logged", "id": comm['id']}
+
+@api_router.get("/client-communications")
+async def get_client_communications(
+    project_id: Optional[str] = None,
+    sow_id: Optional[str] = None,
+    client_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get client communication log"""
+    query = {}
+    if project_id: query["project_id"] = project_id
+    if sow_id: query["sow_id"] = sow_id
+    if client_id: query["client_id"] = client_id
+    comms = await db.client_communications.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return comms
+
+
+@api_router.post("/sow/{sow_id}/send-progress-report")
+async def send_sow_progress_report(sow_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Generate and send SOW progress report to client"""
+    sow = await db.sows.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    # Get progress
+    tasks = await db.tasks.find({"sow_id": sow_id}, {"_id": 0}).to_list(500)
+    total_tasks = len(tasks)
+    completed = sum(1 for t in tasks if t.get('status') == 'completed')
+    delayed = sum(1 for t in tasks if t.get('status') == 'delayed')
+    overall_pct = round(completed / total_tasks * 100) if total_tasks > 0 else 0
+    # Build report
+    report_items = []
+    for item in sow.get('items', []):
+        item_tasks = [t for t in tasks if t.get('sow_item_id') == item['id']]
+        item_done = sum(1 for t in item_tasks if t.get('status') == 'completed')
+        report_items.append({
+            "title": item.get('title', ''),
+            "total": len(item_tasks), "completed": item_done,
+            "progress": round(item_done / len(item_tasks) * 100) if item_tasks else 0
+        })
+    client_name = data.get("client_name", "Client")
+    subject = data.get("subject", f"Progress Report: {sow.get('title', 'SOW')} - {overall_pct}% Complete")
+    message = data.get("message", "")
+    # Auto-generate message if empty
+    if not message:
+        lines = [f"Dear {client_name},\n", f"Please find the progress update for {sow.get('title', 'your project')}:\n",
+                 f"Overall Progress: {overall_pct}% ({completed}/{total_tasks} tasks completed)\n"]
+        if delayed > 0:
+            lines.append(f"Attention: {delayed} task(s) are currently delayed.\n")
+        for ri in report_items:
+            lines.append(f"- {ri['title']}: {ri['progress']}% ({ri['completed']}/{ri['total']} tasks)")
+        lines.append(f"\nBest regards,\n{current_user.full_name}\nD&V Business Consulting")
+        message = "\n".join(lines)
+    # Save communication log
+    comm = {
+        "id": str(uuid.uuid4()), "project_id": sow.get('project_id') or sow.get('lead_id'),
+        "sow_id": sow_id, "client_id": data.get("client_id"),
+        "client_name": client_name, "type": "progress_update",
+        "subject": subject, "message": message,
+        "sow_progress": {"overall_percent": overall_pct, "total_tasks": total_tasks, "completed": completed, "delayed": delayed, "items": report_items},
+        "sent_via": "email", "sent_by": current_user.id, "sent_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.client_communications.insert_one(comm)
+    print(f"[CLIENT PROGRESS REPORT] To: {client_name} | {overall_pct}% complete | By: {current_user.full_name}")
+    await notify_admins(
+        notif_type="client_progress_report", title=f"Progress Report Sent: {sow.get('title', 'SOW')}",
+        message=f"{current_user.full_name} sent progress report ({overall_pct}%) to {client_name}.",
+        reference_type="sow", reference_id=sow_id
+    )
+    return {"message": "Progress report sent", "id": comm['id'], "progress": overall_pct}
 
 # ==================== SOW (SCOPE OF WORK) MANAGEMENT ====================
 
