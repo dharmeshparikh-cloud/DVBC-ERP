@@ -357,7 +357,14 @@ const Payroll = () => {
         /* ========== PAYROLL INPUTS TAB ========== */
         <div className="space-y-3">
           {isHR && (
-            <div className="flex justify-end">
+            <div className="flex items-center justify-end gap-2">
+              <Button onClick={downloadTemplate} variant="outline" size="sm" className="text-xs gap-1" data-testid="download-template-btn">
+                <Download className="w-3.5 h-3.5" /> Download CSV
+              </Button>
+              <label className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-sm cursor-pointer hover:bg-zinc-50 transition-colors" data-testid="upload-csv-label">
+                <Upload className="w-3.5 h-3.5" /> Upload CSV
+                <input type="file" accept=".csv" onChange={handleUpload} className="hidden" data-testid="upload-csv-input" />
+              </label>
               <Button onClick={saveAllInputs} disabled={savingInputs} size="sm" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm text-xs gap-1" data-testid="save-all-inputs">
                 <Save className="w-3.5 h-3.5" /> {savingInputs ? 'Saving...' : 'Save All'}
               </Button>
