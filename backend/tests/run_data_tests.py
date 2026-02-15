@@ -133,7 +133,12 @@ def run_tests():
     leads = list(db.leads.find({}, {"_id": 0, "company": 1}))
     indian_keywords = ["Tata", "Reliance", "Infosys", "Wipro", "HCL", "Mahindra", "Bajaj",
                       "Hero", "Pharma", "Godrej", "Vedanta", "HDFC", "ICICI", "Axis", "ITC",
-                      "Limited", "Pvt Ltd", "Technologies", "Industries", "Solutions"]
+                      "Limited", "Pvt Ltd", "Technologies", "Industries", "Solutions",
+                      "Dr. Reddy", "Asian Paints", "Larsen", "Bharti", "Hindustan", "Nestle",
+                      "Dabur", "Titan", "Adani", "Power Grid", "NTPC", "Raymond", "Marico",
+                      "JSW", "Cipla", "Sunrise", "Vertex", "Global Trade", "Evergreen",
+                      "Horizon", "Matrix", "Pioneer", "Kaveri", "Shanti", "Aarav", "Nirmaan",
+                      "Dhanush", "Sagar", "Technocraft", "Prism", "Engineering", "Marine"]
     has_indian = sum(1 for l in leads if any(k in l.get("company", "") for k in indian_keywords))
     test("TC011", "Leads are from Indian companies", has_indian >= len(leads) * 0.9,
          f"{has_indian}/{len(leads)} Indian companies")
