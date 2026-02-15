@@ -266,6 +266,139 @@ const ConsultingScopeView = () => {
     };
   }, [sow?.scopes]);
 
+  // Prepare Gantt tasks from scopes
+  const ganttTasks = useMemo(() => {
+    if (!sow?.scopes) return [];
+    
+    const today = new Date();
+    
+    return sow.scopes.map((scope, idx) => {
+      // Use actual dates if available, otherwise calculate from timeline_weeks
+      let startDate = scope.start_date ? new Date(scope.start_date) : addDays(today, idx * 7);
+      let endDate = scope.end_date ? new Date(scope.end_date) : addDays(startDate, (scope.timeline_weeks || 2) * 7);
+      
+      // Determine progress based on status
+      let progress = scope.progress_percentage || 0;
+      if (scope.status === 'completed') progress = 100;
+      if (scope.status === 'not_applicable') progress = 100;
+      
+      // Custom class based on status
+      let customClass = '';
+      if (scope.status === 'completed') customClass = 'gantt-task-completed';
+      else if (scope.status === 'in_progress') customClass = 'gantt-task-in-progress';
+      else if (scope.status === 'not_applicable') customClass = 'gantt-task-na';
+      else customClass = 'gantt-task-not-started';
+      
+      return {
+        id: scope.id,
+        name: scope.name,
+        start: format(startDate, 'yyyy-MM-dd'),
+        end: format(endDate, 'yyyy-MM-dd'),
+        progress: progress,
+        custom_class: customClass,
+        // Store original scope for reference
+        _scope: scope
+      };
+    });
+  }, [sow?.scopes]);
+
+  // Initialize/update Gantt chart
+  useEffect(() => {
+    if (viewMode !== 'gantt' || !ganttContainerRef.current || ganttTasks.length === 0) {
+      return;
+    }
+    
+    // Clear existing gantt
+    if (ganttContainerRef.current) {
+      ganttContainerRef.current.innerHTML = '';
+    }
+    
+    try {
+      ganttInstanceRef.current = new Gantt(ganttContainerRef.current, ganttTasks, {
+        view_mode: ganttViewMode,
+        date_format: 'YYYY-MM-DD',
+        bar_height: 24,
+        bar_corner_radius: 4,
+        arrow_curve: 5,
+        padding: 18,
+        view_modes: ['Day', 'Week', 'Month'],
+        custom_popup_html: (task) => {
+          const scope = task._scope;
+          return `
+            <div class="gantt-popup p-3 bg-white rounded-lg shadow-lg border border-zinc-200 min-w-[200px]">
+              <h4 class="font-semibold text-zinc-900 mb-2">${task.name}</h4>
+              <div class="text-sm text-zinc-600 space-y-1">
+                <p><span class="font-medium">Category:</span> ${scope?.category_name || 'N/A'}</p>
+                <p><span class="font-medium">Status:</span> ${STATUS_CONFIG[scope?.status]?.label || 'Not Started'}</p>
+                <p><span class="font-medium">Progress:</span> ${task.progress}%</p>
+                <p><span class="font-medium">Days:</span> ${scope?.days_spent || 0}</p>
+                <p><span class="font-medium">Meetings:</span> ${scope?.meetings_count || 0}</p>
+              </div>
+            </div>
+          `;
+        },
+        on_click: (task) => {
+          const scope = sow?.scopes?.find(s => s.id === task.id);
+          if (scope) {
+            openEditDialog(scope);
+          }
+        },
+        on_date_change: async (task, start, end) => {
+          // Update scope dates when dragged
+          try {
+            await axios.patch(
+              `${API}/enhanced-sow/${sow.id}/scopes/${task.id}`,
+              { start_date: start, end_date: end },
+              {
+                params: {
+                  current_user_id: user?.id,
+                  current_user_name: user?.full_name || user?.email,
+                  current_user_role: user?.role
+                }
+              }
+            );
+            toast.success('Timeline updated');
+            fetchData();
+          } catch (error) {
+            toast.error('Failed to update timeline');
+          }
+        },
+        on_progress_change: async (task, progress) => {
+          // Update progress when bar is resized
+          try {
+            await axios.patch(
+              `${API}/enhanced-sow/${sow.id}/scopes/${task.id}`,
+              { progress_percentage: Math.round(progress) },
+              {
+                params: {
+                  current_user_id: user?.id,
+                  current_user_name: user?.full_name || user?.email,
+                  current_user_role: user?.role
+                }
+              }
+            );
+            toast.success('Progress updated');
+          } catch (error) {
+            toast.error('Failed to update progress');
+          }
+        }
+      });
+    } catch (err) {
+      console.error('Gantt init error:', err);
+    }
+    
+    return () => {
+      ganttInstanceRef.current = null;
+    };
+  }, [viewMode, ganttTasks, ganttViewMode, sow?.id, user]);
+
+  // Change Gantt view mode
+  useEffect(() => {
+    if (ganttInstanceRef.current && viewMode === 'gantt') {
+      ganttInstanceRef.current.change_view_mode(ganttViewMode);
+    }
+  }, [ganttViewMode, viewMode]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
