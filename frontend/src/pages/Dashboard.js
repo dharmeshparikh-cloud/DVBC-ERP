@@ -115,39 +115,6 @@ const Dashboard = () => {
     return <HRDashboard />;
   }
 
-  const fetchStats = async () => {
-    try {
-      const response = await axios.get(`${API}/stats/dashboard`);
-      setStats(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch dashboard stats');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchHighPriorityLeads = async () => {
-    try {
-      const response = await axios.get(`${API}/leads`);
-      // Get top 3 leads with highest scores
-      const topLeads = response.data
-        .sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0))
-        .slice(0, 3);
-      setHighPriorityLeads(topLeads);
-    } catch (error) {
-      console.error('Failed to fetch high priority leads');
-    }
-  };
-
-  const fetchPendingApprovals = async () => {
-    try {
-      const response = await axios.get(`${API}/agreements/pending-approval`);
-      setPendingApprovalsCount(response.data.length);
-    } catch (error) {
-      console.error('Failed to fetch pending approvals');
-    }
-  };
-
   const statCards = [
     {
       title: 'Total Leads',
