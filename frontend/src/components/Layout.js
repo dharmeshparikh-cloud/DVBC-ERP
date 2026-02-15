@@ -104,11 +104,13 @@ const Layout = () => {
     ? [
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
+        { name: 'Gantt Chart', href: '/gantt-chart', icon: GanttChartSquare },
         { name: 'Meetings', href: '/consulting-meetings', icon: CalendarCheck },
       ]
     : [
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
+        { name: 'Gantt Chart', href: '/gantt-chart', icon: GanttChartSquare },
         { name: 'Meetings', href: '/consulting-meetings', icon: CalendarCheck },
         { name: 'Performance', href: '/consultant-performance', icon: Star },
         { name: 'Consultants', href: '/consultants', icon: UserCog },
