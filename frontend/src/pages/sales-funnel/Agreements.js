@@ -19,11 +19,41 @@ const DEFAULT_TEAM_ROLES = [
   'Project Manager',
   'Lead Consultant',
   'Senior Consultant',
+  'Lean Consultant',
+  'Principal Consultant',
   'Data Analyst',
   'Digital Marketing Manager',
   'HR Consultant',
   'Sales Trainer',
-  'Operations Consultant'
+  'Operations Consultant',
+  'Subject Matter Expert',
+  'Account Manager'
+];
+
+const MEETING_TYPES = [
+  'Monthly Review',
+  'Weekly Review',
+  'Online Review',
+  'On-site Visit',
+  'Strategy Session',
+  'Training Session',
+  'Progress Update',
+  'Kickoff Meeting',
+  'Quarterly Business Review',
+  'Data Analysis Review',
+  'Marketing Review',
+  'HR Consultation'
+];
+
+const FREQUENCY_OPTIONS = [
+  '1 per month',
+  '2 per month',
+  '1 per week',
+  '2 per week',
+  '1 per quarter',
+  'Bi-weekly',
+  'As needed',
+  'On demand'
 ];
 
 const Agreements = () => {
