@@ -7,7 +7,30 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### NEW: SOW List Views for Sales & Consulting ✅ (LATEST)
+### BUG FIX: Sales Funnel SOW Selection Flow ✅ (LATEST - Dec 15, 2026)
+
+**Issue Fixed:** The sales funnel workflow was broken - after selecting scopes on the SOW Selection page, the app was incorrectly redirecting.
+
+**Changes Made:**
+1. **SalesScopeSelection.js** - Updated UI:
+   - Changed to table layout with 2 scopes per row
+   - Removed scope descriptions (only shows scope name)
+   - Maintained "Add Custom Scope" button
+   - Fixed redirection to `/sales-funnel/quotations?pricing_plan_id=...`
+
+2. **Quotations.js** - Enhanced to handle URL params:
+   - Now reads `pricing_plan_id` from URL query params
+   - Auto-opens "Create Quotation" dialog when coming from SOW Selection
+   - Pre-selects the correct pricing plan
+
+**Flow Now Working:**
+```
+Pricing Plan → SOW Selection (select scopes) → Quotation Page (dialog auto-opens)
+```
+
+---
+
+### NEW: SOW List Views for Sales & Consulting ✅
 
 **1. Sales SOW List Dashboard (`/sales-funnel/sow-list`):**
 - Lists all SOWs created by sales team
