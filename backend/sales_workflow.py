@@ -207,6 +207,15 @@ class AgreementSection(BaseModel):
     order: int = 0
     is_required: bool = True
 
+class TeamDeploymentMember(BaseModel):
+    """Team member deployment structure for agreement"""
+    role: str  # e.g., "Project Manager", "Data Analyst", "Digital Marketing Manager"
+    meeting_type: str  # e.g., "Monthly Review", "Online Review", "On-site Visit"
+    frequency: str  # e.g., "1 per month", "2 per week", "As needed"
+    mode: str = "online"  # online, offline, mixed
+    notes: Optional[str] = None
+
+
 class Agreement(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -231,6 +240,11 @@ class Agreement(BaseModel):
     payment_terms: str = 'Net 30 days'
     payment_conditions: str = ""
     signature_section: str = ""
+    
+    # NEW: Team Deployment Structure (for consulting team visibility)
+    meeting_frequency: str = "Monthly"  # Weekly, Bi-weekly, Monthly, Quarterly
+    project_tenure_months: int = 12  # Project duration in months
+    team_deployment: List[Dict[str, Any]] = []  # List of TeamDeploymentMember as dicts
     
     # Structured sections for export
     sections: List[AgreementSection] = []
