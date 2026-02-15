@@ -30,9 +30,9 @@ TEST_USERS = {
 pytest_plugins = ('pytest_asyncio',)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def event_loop():
-    """Create an event loop for the session."""
+    """Create an event loop for each test function."""
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
@@ -40,55 +40,17 @@ def event_loop():
 
 @pytest.fixture
 async def db():
-    """MongoDB database fixture - creates new client per test for proper async handling."""
+    """MongoDB database fixture."""
     client = AsyncIOMotorClient(MONGO_URL)
     database = client[DB_NAME]
     yield database
     client.close()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def api_url():
     """API base URL fixture."""
     return API_URL
-
-
-class AuthTokenManager:
-    """Manages authentication tokens for different user roles."""
-    
-    def __init__(self, api_url: str):
-        self.api_url = api_url
-        self._tokens = {}
-    
-    async def get_token(self, role: str) -> str:
-        """Get or create auth token for a role."""
-        if role in self._tokens:
-            return self._tokens[role]
-        
-        if role not in TEST_USERS:
-            raise ValueError(f"Unknown test user role: {role}")
-        
-        creds = TEST_USERS[role]
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{self.api_url}/api/auth/login",
-                json=creds
-            )
-            if response.status_code == 200:
-                data = response.json()
-                self._tokens[role] = data["access_token"]
-                return self._tokens[role]
-            raise Exception(f"Login failed for {role}: {response.status_code} - {response.text}")
-    
-    def clear_tokens(self):
-        """Clear cached tokens."""
-        self._tokens = {}
-
-
-@pytest.fixture(scope="module")
-def token_manager(api_url):
-    """Token manager fixture."""
-    return AuthTokenManager(api_url)
 
 
 @pytest.fixture
@@ -358,6 +320,19 @@ class APIClient:
             )
 
 
+async def _get_token(api_url: str, role: str) -> str:
+    """Get authentication token for a role."""
+    creds = TEST_USERS[role]
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            f"{api_url}/api/auth/login",
+            json=creds
+        )
+        if response.status_code == 200:
+            return response.json()["access_token"]
+        raise Exception(f"Login failed for {role}: {response.status_code}")
+
+
 @pytest.fixture
 def api_client(api_url):
     """Unauthenticated API client fixture."""
@@ -365,21 +340,37 @@ def api_client(api_url):
 
 
 @pytest.fixture
-async def admin_client(api_url, token_manager):
+async def token_manager(api_url):
+    """Simple token provider."""
+    class TokenProvider:
+        def __init__(self, url):
+            self.url = url
+            self._cache = {}
+        
+        async def get_token(self, role: str) -> str:
+            if role not in self._cache:
+                self._cache[role] = await _get_token(self.url, role)
+            return self._cache[role]
+    
+    return TokenProvider(api_url)
+
+
+@pytest.fixture
+async def admin_client(api_url):
     """Admin-authenticated API client fixture."""
-    token = await token_manager.get_token("admin")
+    token = await _get_token(api_url, "admin")
     return APIClient(api_url, token)
 
 
 @pytest.fixture
-async def manager_client(api_url, token_manager):
+async def manager_client(api_url):
     """Manager-authenticated API client fixture."""
-    token = await token_manager.get_token("manager")
+    token = await _get_token(api_url, "manager")
     return APIClient(api_url, token)
 
 
 @pytest.fixture
-async def executive_client(api_url, token_manager):
+async def executive_client(api_url):
     """Executive-authenticated API client fixture."""
-    token = await token_manager.get_token("executive")
+    token = await _get_token(api_url, "executive")
     return APIClient(api_url, token)
