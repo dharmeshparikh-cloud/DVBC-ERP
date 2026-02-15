@@ -245,12 +245,13 @@ class TestDataFactory:
     def client(overrides: dict = None) -> dict:
         """Generate test client data."""
         data = {
-            "name": f"Test Client {uuid.uuid4().hex[:6]}",
+            "company_name": f"Test Client {uuid.uuid4().hex[:6]}",
             "industry": "IT Services",
-            "company_size": "large",
             "website": "https://testclient.com",
             "address": "Test Address, Mumbai",
-            "status": "active"
+            "city": "Mumbai",
+            "state": "Maharashtra",
+            "country": "India"
         }
         if overrides:
             data.update(overrides)
