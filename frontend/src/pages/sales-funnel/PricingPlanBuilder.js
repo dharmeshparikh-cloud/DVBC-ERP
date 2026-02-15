@@ -336,9 +336,47 @@ const PricingPlanBuilder = () => {
 
   const totals = calculateTotals();
 
+  // Custom payment handlers
+  const addCustomPayment = () => {
+    const newPayment = {
+      id: Date.now(),
+      date: paymentPlan.start_date || new Date().toISOString().split('T')[0],
+      amount: 0,
+      description: ''
+    };
+    setPaymentPlan(prev => ({
+      ...prev,
+      custom_payments: [...prev.custom_payments, newPayment]
+    }));
+  };
+
+  const updateCustomPayment = (id, field, value) => {
+    setPaymentPlan(prev => ({
+      ...prev,
+      custom_payments: prev.custom_payments.map(p => 
+        p.id === id ? { ...p, [field]: field === 'amount' ? parseFloat(value) || 0 : value } : p
+      )
+    }));
+  };
+
+  const removeCustomPayment = (id) => {
+    setPaymentPlan(prev => ({
+      ...prev,
+      custom_payments: prev.custom_payments.filter(p => p.id !== id)
+    }));
+  };
+
+  // Calculate custom payments total
+  const customPaymentsTotal = useMemo(() => {
+    return paymentPlan.custom_payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  }, [paymentPlan.custom_payments]);
+
   // Calculate number of payments based on schedule
   const numberOfPayments = useMemo(() => {
     const schedule = formData.payment_schedule;
+    if (schedule === 'custom') {
+      return paymentPlan.custom_payments.length;
+    }
     const durationMonths = formData.project_duration_months;
     const frequencyMap = {
       'monthly': 1,
@@ -348,16 +386,47 @@ const PricingPlanBuilder = () => {
     };
     const frequencyMonths = frequencyMap[schedule] || 1;
     return Math.ceil(durationMonths / frequencyMonths);
-  }, [formData.payment_schedule, formData.project_duration_months]);
+  }, [formData.payment_schedule, formData.project_duration_months, paymentPlan.custom_payments.length]);
 
   // Generate payment schedule breakdown
   const paymentScheduleBreakdown = useMemo(() => {
     if (!paymentPlan.start_date || totalInvestment <= 0) return [];
     
-    const startDate = new Date(paymentPlan.start_date);
     const schedule = formData.payment_schedule;
-    const durationMonths = formData.project_duration_months;
     const afterDiscount = totals.afterDiscount;
+    
+    // Handle custom payment schedule
+    if (schedule === 'custom') {
+      return paymentPlan.custom_payments.map(payment => {
+        const basicAmount = payment.amount;
+        let gst = 0, tds = 0, conveyance = 0;
+        
+        if (paymentPlan.selected_components.includes('gst')) {
+          gst = Math.round(basicAmount * (paymentPlan.component_values.gst / 100));
+        }
+        if (paymentPlan.selected_components.includes('tds')) {
+          tds = Math.round(basicAmount * (paymentPlan.component_values.tds / 100));
+        }
+        if (paymentPlan.selected_components.includes('conveyance') && paymentPlan.custom_payments.length > 0) {
+          conveyance = Math.round(paymentPlan.conveyance_lumpsum / paymentPlan.custom_payments.length);
+        }
+        
+        return {
+          frequency: payment.description || `Payment ${paymentPlan.custom_payments.indexOf(payment) + 1}`,
+          due_date: new Date(payment.date),
+          basic: basicAmount,
+          gst,
+          tds,
+          conveyance,
+          net: basicAmount + gst + conveyance - tds,
+          is_custom: true
+        };
+      });
+    }
+    
+    // Standard payment schedule logic
+    const startDate = new Date(paymentPlan.start_date);
+    const durationMonths = formData.project_duration_months;
     
     // Determine payment frequency in months
     const frequencyMap = {
