@@ -16,6 +16,7 @@ const Quotations = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
+  const pricingPlanIdFromUrl = searchParams.get('pricing_plan_id');
   
   const [quotations, setQuotations] = useState([]);
   const [pricingPlans, setPricingPlans] = useState([]);
@@ -25,9 +26,10 @@ const Quotations = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [selectedPlanDetails, setSelectedPlanDetails] = useState(null);
+  const [autoOpenHandled, setAutoOpenHandled] = useState(false);
   
   const [formData, setFormData] = useState({
-    pricing_plan_id: '',
+    pricing_plan_id: pricingPlanIdFromUrl || '',
     lead_id: leadId || '',
     base_rate_per_meeting: 12500,
     validity_days: 30,
@@ -37,6 +39,23 @@ const Quotations = () => {
   useEffect(() => {
     fetchData();
   }, [leadId]);
+
+  // Auto-open dialog with pre-selected plan when coming from SOW selection
+  useEffect(() => {
+    if (!loading && pricingPlanIdFromUrl && !autoOpenHandled && pricingPlans.length > 0) {
+      const plan = pricingPlans.find(p => p.id === pricingPlanIdFromUrl);
+      if (plan) {
+        setSelectedPlanDetails(plan);
+        setFormData(prev => ({ 
+          ...prev, 
+          pricing_plan_id: pricingPlanIdFromUrl,
+          lead_id: plan.lead_id || prev.lead_id 
+        }));
+        setDialogOpen(true);
+        setAutoOpenHandled(true);
+      }
+    }
+  }, [loading, pricingPlanIdFromUrl, pricingPlans, autoOpenHandled]);
 
   const fetchData = async () => {
     try {
