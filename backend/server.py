@@ -4074,6 +4074,20 @@ async def reorder_tasks(
     
     return {"message": "Tasks reordered successfully"}
 
+@api_router.patch("/tasks/{task_id}/dates")
+async def update_task_dates(task_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Update task start/end dates (for Gantt chart drag-and-drop)"""
+    task = await db.tasks.find_one({"id": task_id}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    update = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if "start_date" in data:
+        update["start_date"] = data["start_date"]
+    if "end_date" in data or "due_date" in data:
+        update["due_date"] = data.get("due_date") or data.get("end_date")
+    await db.tasks.update_one({"id": task_id}, {"$set": update})
+    return {"message": "Task dates updated"}
+
 @api_router.get("/projects/{project_id}/tasks-gantt")
 async def get_project_tasks_for_gantt(
     project_id: str,
