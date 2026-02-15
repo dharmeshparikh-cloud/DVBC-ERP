@@ -9322,6 +9322,7 @@ async def download_postman_collection():
 
 
 app.include_router(api_router)
+api_router.include_router(masters_router.router)
 
 app.add_middleware(
     CORSMiddleware,
