@@ -211,8 +211,11 @@ const Layout = () => {
         </div>
       </aside>
 
-      <main className="flex-1">
-        <div className="p-8">
+      <main className="flex-1 flex flex-col">
+        <div className="flex items-center justify-end px-8 py-3 border-b border-zinc-100 bg-white sticky top-0 z-10">
+          <NotificationBell />
+        </div>
+        <div className="flex-1 p-8">
           <Outlet />
         </div>
       </main>
