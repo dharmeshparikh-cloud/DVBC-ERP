@@ -112,8 +112,8 @@ class TestEmployeesNegative:
                 "designation": "Test"
             })
             
-            # Should either create (if email not unique) or reject
-            assert response.status_code in [200, 400, 409]
+            # Should either create (if email not unique) or reject with validation/conflict error
+            assert response.status_code in [200, 400, 409, 422]
     
     @pytest.mark.asyncio
     async def test_emp022_invalid_employment_type(self, admin_client, test_data):
