@@ -5782,6 +5782,16 @@ async def action_approval(
                 "is_read": False,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
+
+            # Notify admins about approval completion
+            await notify_admins(
+                notif_type="approval_completed",
+                title=f"Approved: {approval['approval_type'].replace('_', ' ').title()}",
+                message=f"'{approval['reference_title']}' by {approval['requester_name']} has been approved.",
+                reference_type=approval['approval_type'],
+                reference_id=approval['reference_id'],
+                exclude_user_id=current_user.id
+            )
     else:
         # Rejected
         approval['overall_status'] = ApprovalStatus.REJECTED
@@ -5802,6 +5812,16 @@ async def action_approval(
             "is_read": False,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
+
+        # Notify admins about rejection
+        await notify_admins(
+            notif_type="approval_rejected",
+            title=f"Rejected: {approval['approval_type'].replace('_', ' ').title()}",
+            message=f"'{approval['reference_title']}' by {approval['requester_name']} was rejected by {current_user.full_name}.",
+            reference_type=approval['approval_type'],
+            reference_id=approval['reference_id'],
+            exclude_user_id=current_user.id
+        )
     
     approval['updated_at'] = datetime.now(timezone.utc).isoformat()
     
