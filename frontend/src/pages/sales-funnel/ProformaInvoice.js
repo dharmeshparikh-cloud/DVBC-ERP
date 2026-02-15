@@ -611,19 +611,57 @@ const ProformaInvoice = () => {
               </thead>
               <tbody>
                 <tr>
-                  <td className="border border-zinc-300 px-3 py-2">1</td>
+                  <td className="border border-zinc-300 px-3 py-2 align-top">1</td>
                   <td className="border border-zinc-300 px-3 py-2">
-                    Professional Fees - Consulting Services
-                    <br />
-                    <span className="text-xs text-zinc-500">
+                    <div className="font-medium">Professional Fees - Consulting Services</div>
+                    <div className="text-xs text-zinc-500 mt-1">
                       {selectedPlanDetails?.project_duration_months || 12} months ({selectedPlanDetails?.project_duration_type?.replace('_', ' ') || 'yearly'})
-                    </span>
+                    </div>
+                    
+                    {/* Team Structure Section */}
+                    {selectedPlanDetails && (selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).length > 0 && (
+                      <div className="mt-3 pt-2 border-t border-zinc-200">
+                        <div className="text-xs font-medium text-zinc-700 mb-2">Team Deployment Structure:</div>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-zinc-50">
+                              <th className="px-2 py-1 text-left font-medium">Role</th>
+                              <th className="px-2 py-1 text-left font-medium">Meeting Type</th>
+                              <th className="px-2 py-1 text-left font-medium">Frequency</th>
+                              <th className="px-2 py-1 text-center font-medium">Meetings</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants).map((member, idx) => {
+                              const meetings = (member.committed_meetings || member.meetings || 0) * (member.count || 1);
+                              return (
+                                <tr key={idx} className="border-t border-zinc-100">
+                                  <td className="px-2 py-1">{member.role || member.consultant_type}</td>
+                                  <td className="px-2 py-1">{member.meeting_type || '-'}</td>
+                                  <td className="px-2 py-1">{member.frequency || '-'}</td>
+                                  <td className="px-2 py-1 text-center">{meetings}</td>
+                                </tr>
+                              );
+                            })}
+                            <tr className="border-t border-zinc-200 bg-zinc-50">
+                              <td colSpan="3" className="px-2 py-1 text-right font-medium">Total Meetings:</td>
+                              <td className="px-2 py-1 text-center font-medium">
+                                {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).reduce((sum, m) => {
+                                  const meetings = (m.committed_meetings || m.meetings || 0) * (m.count || 1);
+                                  return sum + meetings;
+                                }, 0)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </td>
-                  <td className="border border-zinc-300 px-3 py-2 text-center">998311</td>
-                  <td className="border border-zinc-300 px-3 py-2 text-center">
+                  <td className="border border-zinc-300 px-3 py-2 text-center align-top">998311</td>
+                  <td className="border border-zinc-300 px-3 py-2 text-center align-top">
                     {selectedPlanDetails?.project_duration_months || 12} Months
                   </td>
-                  <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR(selectedInvoice?.subtotal || 0)}</td>
+                  <td className="border border-zinc-300 px-3 py-2 text-right align-top">{formatINR(selectedInvoice?.subtotal || 0)}</td>
                 </tr>
                 {/* Tax rows */}
                 <tr>
