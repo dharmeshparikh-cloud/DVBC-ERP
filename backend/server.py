@@ -3879,6 +3879,9 @@ class Task(BaseModel):
     priority: str = "medium"  # low, medium, high, urgent
     assigned_to: Optional[str] = None  # consultant user id
     delegated_to: Optional[str] = None  # if delegated
+    sow_id: Optional[str] = None  # Link to SOW
+    sow_item_id: Optional[str] = None  # Link to specific SOW item
+    sow_item_title: Optional[str] = None  # SOW item title for display
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     completed_date: Optional[datetime] = None
@@ -3898,6 +3901,9 @@ class TaskCreate(BaseModel):
     status: Optional[str] = TaskStatus.TO_DO
     priority: Optional[str] = "medium"
     assigned_to: Optional[str] = None
+    sow_id: Optional[str] = None
+    sow_item_id: Optional[str] = None
+    sow_item_title: Optional[str] = None
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     estimated_hours: Optional[float] = None
@@ -3912,6 +3918,9 @@ class TaskUpdate(BaseModel):
     priority: Optional[str] = None
     assigned_to: Optional[str] = None
     delegated_to: Optional[str] = None
+    sow_id: Optional[str] = None
+    sow_item_id: Optional[str] = None
+    sow_item_title: Optional[str] = None
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     completed_date: Optional[datetime] = None
