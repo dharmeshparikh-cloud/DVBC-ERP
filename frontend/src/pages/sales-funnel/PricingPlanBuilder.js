@@ -336,6 +336,20 @@ const PricingPlanBuilder = () => {
 
   const totals = calculateTotals();
 
+  // Calculate number of payments based on schedule
+  const numberOfPayments = useMemo(() => {
+    const schedule = formData.payment_schedule;
+    const durationMonths = formData.project_duration_months;
+    const frequencyMap = {
+      'monthly': 1,
+      'quarterly': 3,
+      'milestone': durationMonths,
+      'upfront': durationMonths
+    };
+    const frequencyMonths = frequencyMap[schedule] || 1;
+    return Math.ceil(durationMonths / frequencyMonths);
+  }, [formData.payment_schedule, formData.project_duration_months]);
+
   // Generate payment schedule breakdown
   const paymentScheduleBreakdown = useMemo(() => {
     if (!paymentPlan.start_date || totalInvestment <= 0) return [];
