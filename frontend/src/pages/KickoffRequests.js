@@ -12,8 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { toast } from 'sonner';
 import { 
   Send, Inbox, CheckCircle, XCircle, Clock, Plus, Eye, Edit2,
-  Building2, Calendar, DollarSign, Users, ArrowRight, FileText,
-  RotateCcw, CalendarCheck, MessageSquare, ChevronRight, AlertCircle
+  Building2, Calendar, Users, ArrowRight, FileText,
+  RotateCcw, CalendarCheck, MessageSquare, ChevronRight, AlertCircle,
+  Briefcase, UserCheck
 } from 'lucide-react';
 
 const KickoffRequests = () => {
@@ -39,7 +40,8 @@ const KickoffRequests = () => {
     project_name: '',
     project_type: 'mixed',
     total_meetings: 0,
-    project_value: '',
+    meeting_frequency: 'Monthly',
+    project_tenure_months: 12,
     expected_start_date: '',
     assigned_pm_id: '',
     assigned_pm_name: '',
@@ -132,9 +134,10 @@ const KickoffRequests = () => {
       setFormData(prev => ({
         ...prev,
         agreement_id: agreementId,
-        client_name: agreement.client_name || '',
-        project_name: `${agreement.client_name || 'Client'} - Project`,
-        project_value: agreement.total_value || ''
+        client_name: agreement.client_name || agreement.party_name || '',
+        project_name: `${agreement.client_name || agreement.party_name || 'Client'} - Project`,
+        meeting_frequency: agreement.meeting_frequency || 'Monthly',
+        project_tenure_months: agreement.project_tenure_months || 12
       }));
     }
   };
@@ -158,7 +161,7 @@ const KickoffRequests = () => {
       const payload = {
         ...formData,
         total_meetings: parseInt(formData.total_meetings) || 0,
-        project_value: parseFloat(formData.project_value) || null,
+        project_tenure_months: parseInt(formData.project_tenure_months) || 12,
         expected_start_date: formData.expected_start_date ? new Date(formData.expected_start_date).toISOString() : null
       };
 
@@ -176,8 +179,9 @@ const KickoffRequests = () => {
         setShowCreateDialog(false);
         setFormData({
           agreement_id: '', client_name: '', project_name: '',
-          project_type: 'mixed', total_meetings: 0, project_value: '',
-          expected_start_date: '', assigned_pm_id: '', assigned_pm_name: '', notes: ''
+          project_type: 'mixed', total_meetings: 0, meeting_frequency: 'Monthly',
+          project_tenure_months: 12, expected_start_date: '', assigned_pm_id: '', 
+          assigned_pm_name: '', notes: ''
         });
         fetchRequests();
       } else {
@@ -390,11 +394,11 @@ const KickoffRequests = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-zinc-400" />
-                          <span>{request.total_meetings || 0} meetings</span>
+                          <span>{request.meeting_frequency || 'Monthly'}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-zinc-400" />
-                          <span>₹{((request.project_value || 0) / 100000).toFixed(1)}L</span>
+                          <Briefcase className="w-4 h-4 text-zinc-400" />
+                          <span>{request.project_tenure_months || 12} months</span>
                         </div>
                       </div>
                       {request.return_reason && (
@@ -466,11 +470,11 @@ const KickoffRequests = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-zinc-400" />
-                          <span>{request.total_meetings || 0} meetings</span>
+                          <span>{request.meeting_frequency || 'Monthly'}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-zinc-400" />
-                          <span>₹{((request.project_value || 0) / 100000).toFixed(1)}L</span>
+                          <Briefcase className="w-4 h-4 text-zinc-400" />
+                          <span>{request.project_tenure_months || 12} months</span>
                         </div>
                       </div>
                       <p className="text-xs text-zinc-500 mt-2">
@@ -583,7 +587,7 @@ const KickoffRequests = () => {
                 <SelectContent>
                   {agreements.map((agreement) => (
                     <SelectItem key={agreement.id} value={agreement.id}>
-                      {agreement.client_name || agreement.id} - {agreement.title || 'Agreement'}
+                      {agreement.party_name || agreement.client_name || agreement.id} - {agreement.agreement_number || 'Agreement'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -624,22 +628,30 @@ const KickoffRequests = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Total Meetings</Label>
-                <Input 
-                  type="number"
-                  value={formData.total_meetings}
-                  onChange={(e) => setFormData({...formData, total_meetings: e.target.value})}
-                />
+                <Label>Meeting Frequency</Label>
+                <Select value={formData.meeting_frequency} onValueChange={(v) => setFormData({...formData, meeting_frequency: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Weekly">Weekly</SelectItem>
+                    <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
+                    <SelectItem value="Monthly">Monthly</SelectItem>
+                    <SelectItem value="Quarterly">Quarterly</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Project Value (₹)</Label>
+                <Label>Project Tenure (months)</Label>
                 <Input 
                   type="number"
-                  value={formData.project_value}
-                  onChange={(e) => setFormData({...formData, project_value: e.target.value})}
+                  min="1"
+                  max="60"
+                  value={formData.project_tenure_months}
+                  onChange={(e) => setFormData({...formData, project_tenure_months: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -699,7 +711,7 @@ const KickoffRequests = () => {
               {selectedRequest && getStatusBadge(selectedRequest.status)}
             </DialogTitle>
             <DialogDescription>
-              Review the scope of work and meeting commitments before accepting
+              Review the scope of work and team deployment before accepting
             </DialogDescription>
           </DialogHeader>
           
@@ -711,8 +723,8 @@ const KickoffRequests = () => {
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="team">Team Deployment</TabsTrigger>
                 <TabsTrigger value="sow">Scope of Work</TabsTrigger>
-                <TabsTrigger value="meetings">Meetings</TabsTrigger>
                 <TabsTrigger value="agreement">Agreement</TabsTrigger>
               </TabsList>
               
@@ -736,12 +748,12 @@ const KickoffRequests = () => {
                       <p className="font-medium capitalize">{detailData.kickoff_request?.project_type}</p>
                     </div>
                     <div>
-                      <Label className="text-zinc-500 text-xs">Total Meetings</Label>
-                      <p className="font-medium">{detailData.kickoff_request?.total_meetings || 0}</p>
+                      <Label className="text-zinc-500 text-xs">Meeting Frequency</Label>
+                      <p className="font-medium">{detailData.kickoff_request?.meeting_frequency || detailData.agreement?.meeting_frequency || 'Monthly'}</p>
                     </div>
                     <div>
-                      <Label className="text-zinc-500 text-xs">Project Value</Label>
-                      <p className="font-medium">₹{((detailData.kickoff_request?.project_value || 0) / 100000).toFixed(2)} Lakhs</p>
+                      <Label className="text-zinc-500 text-xs">Project Tenure</Label>
+                      <p className="font-medium">{detailData.kickoff_request?.project_tenure_months || detailData.agreement?.project_tenure_months || 12} months</p>
                     </div>
                     <div>
                       <Label className="text-zinc-500 text-xs">Expected Start Date</Label>
@@ -788,7 +800,7 @@ const KickoffRequests = () => {
                 {detailData.lead && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-base">Lead Information</CardTitle>
+                      <CardTitle className="text-base">Client Information</CardTitle>
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 gap-4">
                       <div>
@@ -810,6 +822,78 @@ const KickoffRequests = () => {
                     </CardContent>
                   </Card>
                 )}
+              </TabsContent>
+
+              {/* Team Deployment Tab */}
+              <TabsContent value="team" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <UserCheck className="w-5 h-5" />
+                      Team Deployment Structure
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {detailData.team_deployment && detailData.team_deployment.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-4 gap-4 text-sm font-medium text-zinc-500 border-b pb-2">
+                          <div>Role</div>
+                          <div>Meeting Type</div>
+                          <div>Frequency</div>
+                          <div>Mode</div>
+                        </div>
+                        {detailData.team_deployment.map((member, i) => (
+                          <div key={i} className="grid grid-cols-4 gap-4 text-sm py-2 border-b border-zinc-100">
+                            <div className="font-medium">{member.role}</div>
+                            <div>{member.meeting_type}</div>
+                            <div>{member.frequency}</div>
+                            <div className="capitalize">{member.mode}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : detailData.agreement?.team_deployment && detailData.agreement.team_deployment.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-4 gap-4 text-sm font-medium text-zinc-500 border-b pb-2">
+                          <div>Role</div>
+                          <div>Meeting Type</div>
+                          <div>Frequency</div>
+                          <div>Mode</div>
+                        </div>
+                        {detailData.agreement.team_deployment.map((member, i) => (
+                          <div key={i} className="grid grid-cols-4 gap-4 text-sm py-2 border-b border-zinc-100">
+                            <div className="font-medium">{member.role}</div>
+                            <div>{member.meeting_type}</div>
+                            <div>{member.frequency}</div>
+                            <div className="capitalize">{member.mode}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-zinc-500">
+                        <Users className="w-8 h-8 mx-auto mb-2 text-zinc-300" />
+                        <p>No team deployment structure defined</p>
+                        <p className="text-sm">Team members will be assigned after project creation</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Meeting Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Meeting Schedule Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-zinc-500 text-xs">Meeting Frequency</Label>
+                      <p className="font-medium text-lg">{detailData.agreement?.meeting_frequency || detailData.kickoff_request?.meeting_frequency || 'Monthly'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-zinc-500 text-xs">Project Duration</Label>
+                      <p className="font-medium text-lg">{detailData.agreement?.project_tenure_months || detailData.kickoff_request?.project_tenure_months || 12} months</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* SOW Tab */}
@@ -862,68 +946,6 @@ const KickoffRequests = () => {
                 )}
               </TabsContent>
 
-              {/* Meetings Tab */}
-              <TabsContent value="meetings" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Meeting Commitments</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {detailData.pricing_plan?.consultants?.length > 0 ? (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-4 gap-4 text-sm font-medium text-zinc-500 border-b pb-2">
-                          <div>Consultant Type</div>
-                          <div>Count</div>
-                          <div>Meetings</div>
-                          <div>Rate/Meeting</div>
-                        </div>
-                        {detailData.pricing_plan.consultants.map((c, i) => (
-                          <div key={i} className="grid grid-cols-4 gap-4 text-sm">
-                            <div className="capitalize">{c.consultant_type?.replace(/_/g, ' ')}</div>
-                            <div>{c.count}</div>
-                            <div>{c.meetings}</div>
-                            <div>₹{(c.rate_per_meeting || 12500).toLocaleString()}</div>
-                          </div>
-                        ))}
-                        <div className="border-t pt-2 font-medium">
-                          <div className="flex justify-between">
-                            <span>Total Meetings:</span>
-                            <span>{detailData.pricing_plan.consultants.reduce((acc, c) => acc + c.meetings, 0)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-zinc-500">No consultant allocation defined</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {detailData.meetings?.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Sales Meeting History</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {detailData.meetings.slice(0, 5).map((meeting) => (
-                          <div key={meeting.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
-                            <div>
-                              <p className="font-medium text-sm">{meeting.title || 'Sales Meeting'}</p>
-                              <p className="text-xs text-zinc-500">
-                                {new Date(meeting.meeting_date).toLocaleDateString()} • {meeting.mode}
-                              </p>
-                            </div>
-                            <Badge variant={meeting.is_delivered ? 'default' : 'secondary'}>
-                              {meeting.is_delivered ? 'Completed' : 'Scheduled'}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
               {/* Agreement Tab */}
               <TabsContent value="agreement" className="space-y-4">
                 {detailData.agreement ? (
@@ -947,19 +969,21 @@ const KickoffRequests = () => {
                         </div>
                         <div>
                           <Label className="text-zinc-500 text-xs">Project Duration</Label>
-                          <p className="font-medium">{detailData.agreement.project_duration_months || '-'} months</p>
+                          <p className="font-medium">{detailData.agreement.project_duration_months || detailData.agreement.project_tenure_months || '-'} months</p>
                         </div>
                         <div>
                           <Label className="text-zinc-500 text-xs">Start Date</Label>
                           <p className="font-medium">
                             {detailData.agreement.project_start_date 
                               ? new Date(detailData.agreement.project_start_date).toLocaleDateString()
-                              : '-'}
+                              : detailData.agreement.start_date 
+                                ? new Date(detailData.agreement.start_date).toLocaleDateString()
+                                : '-'}
                           </p>
                         </div>
                         <div>
-                          <Label className="text-zinc-500 text-xs">Payment Terms</Label>
-                          <p className="font-medium">{detailData.agreement.payment_terms || '-'}</p>
+                          <Label className="text-zinc-500 text-xs">Meeting Frequency</Label>
+                          <p className="font-medium">{detailData.agreement.meeting_frequency || 'Monthly'}</p>
                         </div>
                       </div>
                       
@@ -1083,6 +1107,7 @@ const KickoffRequests = () => {
                   <SelectItem value="missing_details">Missing Project Details</SelectItem>
                   <SelectItem value="unrealistic_timeline">Unrealistic Timeline</SelectItem>
                   <SelectItem value="resource_conflict">Resource Conflict</SelectItem>
+                  <SelectItem value="team_deployment_unclear">Team Deployment Unclear</SelectItem>
                   <SelectItem value="clarification_needed">Clarification Needed</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
