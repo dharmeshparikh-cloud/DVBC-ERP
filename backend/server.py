@@ -489,28 +489,6 @@ async def register(user_create: UserCreate):
     await db.users.insert_one(doc)
     return user
 
-@api_router.post("/auth/login", response_model=Token)
-async def login(user_login: UserLogin):
-    user_data = await db.users.find_one({"email": user_login.email}, {"_id": 0})
-    if not user_data:
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
-    
-    if not verify_password(user_login.password, user_data['hashed_password']):
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
-    
-    if isinstance(user_data.get('created_at'), str):
-        user_data['created_at'] = datetime.fromisoformat(user_data['created_at'])
-    
-    user_data.pop('hashed_password', None)
-    user = User(**user_data)
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    
-    return Token(access_token=access_token, token_type="bearer", user=user)
-
 @api_router.get("/auth/me", response_model=User)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
