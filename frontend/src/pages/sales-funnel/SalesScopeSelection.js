@@ -5,11 +5,9 @@ import { API, AuthContext } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { 
-  ArrowLeft, ArrowRight, Plus, Check, X, CheckCircle, 
+  ArrowLeft, ArrowRight, Check, CheckCircle, 
   FileText, FolderOpen, Search, Loader2, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,11 +28,6 @@ const SalesScopeSelection = () => {
   const [groupedScopes, setGroupedScopes] = useState([]);
   const [selectedScopes, setSelectedScopes] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Custom scope dialog
-  const [customScopeDialog, setCustomScopeDialog] = useState(false);
-  const [customScopes, setCustomScopes] = useState([]);
-  const [newCustomScope, setNewCustomScope] = useState({ name: '', category_id: '', description: '' });
   
   // Existing SOW check
   const [existingSOW, setExistingSOW] = useState(null);
@@ -99,25 +92,8 @@ const SalesScopeSelection = () => {
     setSelectedScopes(newSelected);
   };
 
-  const addCustomScope = () => {
-    if (!newCustomScope.name.trim() || !newCustomScope.category_id) {
-      toast.error('Please fill in scope name and select a category');
-      return;
-    }
-    
-    setCustomScopes([...customScopes, { ...newCustomScope, id: `custom-${Date.now()}` }]);
-    setNewCustomScope({ name: '', category_id: '', description: '' });
-    setCustomScopeDialog(false);
-    toast.success('Custom scope added');
-  };
-
-  const removeCustomScope = (customId) => {
-    setCustomScopes(customScopes.filter(s => s.id !== customId));
-  };
-
   const handleSubmit = async () => {
-    const totalSelected = selectedScopes.size + customScopes.length;
-    if (totalSelected === 0) {
+    if (selectedScopes.size === 0) {
       toast.error('Please select at least one scope');
       return;
     }
@@ -126,11 +102,7 @@ const SalesScopeSelection = () => {
     try {
       const payload = {
         scope_template_ids: Array.from(selectedScopes),
-        custom_scopes: customScopes.map(s => ({
-          name: s.name,
-          category_id: s.category_id,
-          description: s.description
-        }))
+        custom_scopes: [] // No custom scopes from sales - only admin can add
       };
       
       await axios.post(
@@ -146,7 +118,8 @@ const SalesScopeSelection = () => {
       );
       
       toast.success('Scope of Work created successfully!');
-      navigate(`/sales-funnel/sow-review/${pricingPlanId}`);
+      // Navigate to SOW List page after selection
+      navigate('/sales-funnel/sow-list');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create SOW');
     } finally {
@@ -170,7 +143,7 @@ const SalesScopeSelection = () => {
     );
   }
 
-  // If SOW already exists, redirect to review page
+  // If SOW already exists, show message and redirect options
   if (existingSOW) {
     return (
       <div data-testid="sales-scope-selection-page">
@@ -188,10 +161,10 @@ const SalesScopeSelection = () => {
             </p>
             <div className="flex gap-3">
               <Button 
-                onClick={() => navigate(`/sales-funnel/sow-review/${pricingPlanId}`)}
+                onClick={() => navigate('/sales-funnel/sow-list')}
                 className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
               >
-                View SOW
+                View SOW List
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -222,14 +195,14 @@ const SalesScopeSelection = () => {
             <div className="text-right">
               <div className="text-sm text-zinc-500">Selected Scopes</div>
               <div className="text-2xl font-semibold text-zinc-950">
-                {selectedScopes.size + customScopes.length}
+                {selectedScopes.size}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search and Actions */}
+      {/* Search */}
       <div className="flex items-center justify-between mb-6 gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -241,68 +214,14 @@ const SalesScopeSelection = () => {
             data-testid="scope-search-input"
           />
         </div>
-        <Button
-          onClick={() => setCustomScopeDialog(true)}
-          variant="outline"
-          className="rounded-sm"
-          data-testid="add-custom-scope-btn"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Custom Scope
-        </Button>
       </div>
 
-      {/* Custom Scopes Section */}
-      {customScopes.length > 0 && (
-        <Card className="border-blue-200 bg-blue-50/50 shadow-none rounded-sm mb-6">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-blue-700 flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Custom Scopes ({customScopes.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {customScopes.map(scope => {
-                const category = groupedScopes.find(g => g.category.id === scope.category_id)?.category;
-                return (
-                  <div 
-                    key={scope.id} 
-                    className="flex items-center justify-between p-3 bg-white rounded-sm border border-blue-200"
-                  >
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <div className="font-medium text-zinc-900">{scope.name}</div>
-                        <div className="text-xs text-zinc-500">
-                          {category?.name || 'Unknown Category'}
-                          {scope.description && ` • ${scope.description}`}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => removeCustomScope(scope.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Scope Categories */}
+      {/* Scope List - Categories with List Items */}
       <div className="space-y-4">
         {filteredGroupedScopes.map(group => {
           const categoryScopes = group.scopes;
           const selectedInCategory = categoryScopes.filter(s => selectedScopes.has(s.id)).length;
           const allSelected = selectedInCategory === categoryScopes.length && categoryScopes.length > 0;
-          const someSelected = selectedInCategory > 0 && selectedInCategory < categoryScopes.length;
           
           return (
             <Card 
@@ -311,7 +230,7 @@ const SalesScopeSelection = () => {
               data-testid={`category-${group.category.code}`}
             >
               <CardHeader 
-                className="pb-2 cursor-pointer hover:bg-zinc-50 transition-colors"
+                className="pb-2 cursor-pointer hover:bg-zinc-50 transition-colors border-b border-zinc-100"
                 onClick={() => toggleCategory(categoryScopes)}
               >
                 <div className="flex items-center justify-between">
@@ -328,7 +247,6 @@ const SalesScopeSelection = () => {
                   </CardTitle>
                   <Checkbox
                     checked={allSelected}
-                    data-state={someSelected ? 'indeterminate' : allSelected ? 'checked' : 'unchecked'}
                     className="border-zinc-300"
                     data-testid={`category-checkbox-${group.category.code}`}
                   />
@@ -337,37 +255,39 @@ const SalesScopeSelection = () => {
                   <p className="text-xs text-zinc-500 mt-1">{group.category.description}</p>
                 )}
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <CardContent className="p-0">
+                {/* List View */}
+                <div className="divide-y divide-zinc-100">
                   {categoryScopes.map(scope => {
                     const isSelected = selectedScopes.has(scope.id);
                     return (
                       <div
                         key={scope.id}
                         onClick={() => toggleScope(scope.id)}
-                        className={`p-3 rounded-sm border cursor-pointer transition-all ${
+                        className={`px-4 py-3 cursor-pointer transition-all flex items-center gap-3 ${
                           isSelected 
-                            ? 'border-emerald-300 bg-emerald-50' 
-                            : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+                            ? 'bg-emerald-50' 
+                            : 'hover:bg-zinc-50'
                         }`}
                         data-testid={`scope-item-${scope.id}`}
                       >
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            className={isSelected ? 'border-emerald-500 data-[state=checked]:bg-emerald-500' : 'border-zinc-300'}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className={`text-sm font-medium ${isSelected ? 'text-emerald-900' : 'text-zinc-900'}`}>
-                              {scope.name}
-                            </div>
-                            {scope.description && (
-                              <div className="text-xs text-zinc-500 mt-0.5 line-clamp-2">
-                                {scope.description}
-                              </div>
-                            )}
+                        <Checkbox
+                          checked={isSelected}
+                          className={isSelected ? 'border-emerald-500 data-[state=checked]:bg-emerald-500' : 'border-zinc-300'}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm font-medium ${isSelected ? 'text-emerald-900' : 'text-zinc-900'}`}>
+                            {scope.name}
                           </div>
+                          {scope.description && (
+                            <div className="text-xs text-zinc-500 mt-0.5">
+                              {scope.description}
+                            </div>
+                          )}
                         </div>
+                        {isSelected && (
+                          <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        )}
                       </div>
                     );
                   })}
@@ -398,7 +318,7 @@ const SalesScopeSelection = () => {
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={submitting || (selectedScopes.size + customScopes.length === 0)}
+          disabled={submitting || selectedScopes.size === 0}
           className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
           data-testid="submit-scopes-btn"
         >
@@ -410,80 +330,11 @@ const SalesScopeSelection = () => {
           ) : (
             <>
               <Send className="w-4 h-4 mr-2" />
-              Create SOW ({selectedScopes.size + customScopes.length} scopes)
+              Create SOW ({selectedScopes.size} scopes)
             </>
           )}
         </Button>
       </div>
-
-      {/* Custom Scope Dialog */}
-      <Dialog open={customScopeDialog} onOpenChange={setCustomScopeDialog}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
-              Add Custom Scope
-            </DialogTitle>
-            <DialogDescription className="text-zinc-500">
-              Add a custom scope that will be saved to master for future use.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Category *</Label>
-              <select
-                value={newCustomScope.category_id}
-                onChange={(e) => setNewCustomScope({ ...newCustomScope, category_id: e.target.value })}
-                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
-                data-testid="custom-scope-category"
-              >
-                <option value="">Select category...</option>
-                {groupedScopes.map(group => (
-                  <option key={group.category.id} value={group.category.id}>
-                    {group.category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>Scope Name *</Label>
-              <Input
-                value={newCustomScope.name}
-                onChange={(e) => setNewCustomScope({ ...newCustomScope, name: e.target.value })}
-                placeholder="Enter scope name..."
-                className="rounded-sm"
-                data-testid="custom-scope-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Description (Optional)</Label>
-              <textarea
-                value={newCustomScope.description}
-                onChange={(e) => setNewCustomScope({ ...newCustomScope, description: e.target.value })}
-                placeholder="Brief description..."
-                rows={2}
-                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-400"
-                data-testid="custom-scope-description"
-              />
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button 
-                onClick={() => setCustomScopeDialog(false)} 
-                variant="outline" 
-                className="flex-1 rounded-sm"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={addCustomScope}
-                className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                data-testid="save-custom-scope-btn"
-              >
-                Add Scope
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
