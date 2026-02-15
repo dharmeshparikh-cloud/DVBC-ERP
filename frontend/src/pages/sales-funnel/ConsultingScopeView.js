@@ -264,9 +264,9 @@ const ConsultingScopeView = () => {
     };
   }, [sow?.scopes]);
 
-  // Prepare Gantt tasks from scopes
+  // Prepare Gantt tasks for gantt-task-react
   const ganttTasks = useMemo(() => {
-    if (!sow?.scopes) return [];
+    if (!sow?.scopes || sow.scopes.length === 0) return [];
     
     const today = new Date();
     
@@ -275,30 +275,113 @@ const ConsultingScopeView = () => {
       let startDate = scope.start_date ? new Date(scope.start_date) : addDays(today, idx * 7);
       let endDate = scope.end_date ? new Date(scope.end_date) : addDays(startDate, (scope.timeline_weeks || 2) * 7);
       
+      // Ensure end date is after start date
+      if (endDate <= startDate) {
+        endDate = addDays(startDate, 7);
+      }
+      
       // Determine progress based on status
       let progress = scope.progress_percentage || 0;
       if (scope.status === 'completed') progress = 100;
       if (scope.status === 'not_applicable') progress = 100;
       
-      // Custom class based on status
-      let customClass = '';
-      if (scope.status === 'completed') customClass = 'gantt-task-completed';
-      else if (scope.status === 'in_progress') customClass = 'gantt-task-in-progress';
-      else if (scope.status === 'not_applicable') customClass = 'gantt-task-na';
-      else customClass = 'gantt-task-not-started';
+      // Determine style based on status
+      let styles = {
+        progressColor: '#3b82f6',
+        progressSelectedColor: '#2563eb',
+        backgroundColor: '#93c5fd',
+        backgroundSelectedColor: '#60a5fa'
+      };
+      
+      if (scope.status === 'completed') {
+        styles = {
+          progressColor: '#10b981',
+          progressSelectedColor: '#059669',
+          backgroundColor: '#6ee7b7',
+          backgroundSelectedColor: '#34d399'
+        };
+      } else if (scope.status === 'not_applicable') {
+        styles = {
+          progressColor: '#f97316',
+          progressSelectedColor: '#ea580c',
+          backgroundColor: '#fdba74',
+          backgroundSelectedColor: '#fb923c'
+        };
+      } else if (scope.status === 'not_started') {
+        styles = {
+          progressColor: '#71717a',
+          progressSelectedColor: '#52525b',
+          backgroundColor: '#d4d4d8',
+          backgroundSelectedColor: '#a1a1aa'
+        };
+      }
       
       return {
-        id: scope.id,
+        start: startDate,
+        end: endDate,
         name: scope.name,
-        start: format(startDate, 'yyyy-MM-dd'),
-        end: format(endDate, 'yyyy-MM-dd'),
+        id: scope.id,
+        type: 'task',
         progress: progress,
-        custom_class: customClass,
+        isDisabled: false,
+        styles: styles,
         // Store original scope for reference
         _scope: scope
       };
     });
   }, [sow?.scopes]);
+
+  // Handle Gantt task date change
+  const handleGanttDateChange = async (task) => {
+    try {
+      await axios.patch(
+        `${API}/enhanced-sow/${sow.id}/scopes/${task.id}`,
+        { 
+          start_date: task.start.toISOString(), 
+          end_date: task.end.toISOString() 
+        },
+        {
+          params: {
+            current_user_id: user?.id,
+            current_user_name: user?.full_name || user?.email,
+            current_user_role: user?.role
+          }
+        }
+      );
+      toast.success('Timeline updated');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to update timeline');
+    }
+  };
+
+  // Handle Gantt task progress change
+  const handleGanttProgressChange = async (task) => {
+    try {
+      await axios.patch(
+        `${API}/enhanced-sow/${sow.id}/scopes/${task.id}`,
+        { progress_percentage: Math.round(task.progress) },
+        {
+          params: {
+            current_user_id: user?.id,
+            current_user_name: user?.full_name || user?.email,
+            current_user_role: user?.role
+          }
+        }
+      );
+      toast.success('Progress updated');
+    } catch (error) {
+      toast.error('Failed to update progress');
+    }
+  };
+
+  // Handle Gantt task click
+  const handleGanttTaskClick = (task) => {
+    const scope = sow?.scopes?.find(s => s.id === task.id);
+    if (scope) {
+      openEditDialog(scope);
+    }
+  };
 
   // Initialize/update Gantt chart
   useEffect(() => {
