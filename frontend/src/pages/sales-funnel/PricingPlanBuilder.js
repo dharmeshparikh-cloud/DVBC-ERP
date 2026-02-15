@@ -1418,10 +1418,10 @@ const PricingPlanBuilder = () => {
           <Button
             type="submit"
             disabled={loading || teamDeployment.length === 0 || totalInvestment <= 0 || !paymentPlan.start_date}
-            className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+            className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
             data-testid="create-pricing-plan-btn"
           >
-            {loading ? 'Creating...' : 'Create Pricing Plan & Continue to SOW'}
+            {loading ? 'Creating...' : 'Save & Continue to Scope Selection →'}
           </Button>
         </div>
       </form>
