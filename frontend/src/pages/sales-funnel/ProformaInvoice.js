@@ -557,203 +557,314 @@ const ProformaInvoice = () => {
             </div>
           </DialogHeader>
           
-          {/* Printable Invoice Content */}
-          <div ref={invoiceRef} className="bg-white p-6 border border-zinc-200 rounded-sm">
-            {/* Header */}
-            <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-zinc-300">
-              <div>
-                <h1 className="text-2xl font-bold text-zinc-950">D&V®</h1>
-                <p className="text-xs text-zinc-500 mt-1">Business Consulting</p>
-              </div>
-              <div className="text-right">
-                <h2 className="text-xl font-bold text-zinc-700">TAX INVOICE</h2>
-              </div>
-            </div>
-
-            {/* Invoice Details & Company Info */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
-              <div className="space-y-1 text-sm">
-                <div className="flex"><span className="w-32 text-zinc-500">Invoice No.:</span><span className="font-semibold">{selectedInvoice?.quotation_number}</span></div>
-                <div className="flex"><span className="w-32 text-zinc-500">Dated:</span><span>{formatDate(selectedInvoice?.created_at)}</span></div>
-                <div className="flex"><span className="w-32 text-zinc-500">Payment Terms:</span><span>ADVANCE</span></div>
-              </div>
-              <div className="text-right text-sm">
-                <p className="font-semibold">{companyDetails.name}</p>
-                <p className="text-zinc-600">{companyDetails.address}</p>
-                <p className="text-zinc-600">GSTIN: {companyDetails.gstin}</p>
-                <p className="text-zinc-600">State: {companyDetails.state}, Code: {companyDetails.stateCode}</p>
-                <p className="text-zinc-600">{companyDetails.phone}</p>
-              </div>
-            </div>
-
-            {/* Buyer Details */}
-            <div className="mb-6 p-4 bg-zinc-50 rounded-sm">
-              <h3 className="text-sm font-semibold text-zinc-700 mb-2">Buyer (Bill to)</h3>
-              <div className="text-sm">
-                <p className="font-semibold">{selectedLead?.company || 'Client Company'}</p>
-                <p className="text-zinc-600">{selectedLead?.first_name} {selectedLead?.last_name}</p>
-                <p className="text-zinc-600">{selectedLead?.address || 'Address not provided'}</p>
-                {selectedLead?.gstin && <p className="text-zinc-600">GSTIN: {selectedLead.gstin}</p>}
-                <p className="text-zinc-600">State: Gujarat, Code: 24</p>
-              </div>
-            </div>
-
-            {/* Line Items Table - Simplified without per meeting cost */}
-            <table className="w-full text-sm mb-4 border border-zinc-300">
-              <thead>
-                <tr className="bg-zinc-100">
-                  <th className="border border-zinc-300 px-3 py-2 text-left">SI No.</th>
-                  <th className="border border-zinc-300 px-3 py-2 text-left">Description of Services</th>
-                  <th className="border border-zinc-300 px-3 py-2 text-center">HSN/SAC</th>
-                  <th className="border border-zinc-300 px-3 py-2 text-center">Period</th>
-                  <th className="border border-zinc-300 px-3 py-2 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="border border-zinc-300 px-3 py-2 align-top">1</td>
-                  <td className="border border-zinc-300 px-3 py-2">
-                    <div className="font-medium">Professional Fees - Consulting Services</div>
-                    <div className="text-xs text-zinc-500 mt-1">
-                      {selectedPlanDetails?.project_duration_months || 12} months ({selectedPlanDetails?.project_duration_type?.replace('_', ' ') || 'yearly'})
-                    </div>
-                    
-                    {/* Team Structure Section */}
-                    {selectedPlanDetails && (selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).length > 0 && (
-                      <div className="mt-3 pt-2 border-t border-zinc-200">
-                        <div className="text-xs font-medium text-zinc-700 mb-2">Team Deployment Structure:</div>
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="bg-zinc-50">
-                              <th className="px-2 py-1 text-left font-medium">Role</th>
-                              <th className="px-2 py-1 text-left font-medium">Meeting Type</th>
-                              <th className="px-2 py-1 text-left font-medium">Frequency</th>
-                              <th className="px-2 py-1 text-center font-medium">Meetings</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants).map((member, idx) => {
-                              const meetings = (member.committed_meetings || member.meetings || 0) * (member.count || 1);
-                              return (
-                                <tr key={idx} className="border-t border-zinc-100">
-                                  <td className="px-2 py-1">{member.role || member.consultant_type}</td>
-                                  <td className="px-2 py-1">{member.meeting_type || '-'}</td>
-                                  <td className="px-2 py-1">{member.frequency || '-'}</td>
-                                  <td className="px-2 py-1 text-center">{meetings}</td>
-                                </tr>
-                              );
-                            })}
-                            <tr className="border-t border-zinc-200 bg-zinc-50">
-                              <td colSpan="3" className="px-2 py-1 text-right font-medium">Total Meetings:</td>
-                              <td className="px-2 py-1 text-center font-medium">
-                                {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).reduce((sum, m) => {
-                                  const meetings = (m.committed_meetings || m.meetings || 0) * (m.count || 1);
-                                  return sum + meetings;
-                                }, 0)}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </td>
-                  <td className="border border-zinc-300 px-3 py-2 text-center align-top">998311</td>
-                  <td className="border border-zinc-300 px-3 py-2 text-center align-top">
-                    {selectedPlanDetails?.project_duration_months || 12} Months
-                  </td>
-                  <td className="border border-zinc-300 px-3 py-2 text-right align-top">{formatINR(selectedInvoice?.subtotal || 0)}</td>
-                </tr>
-                {/* Tax rows */}
-                <tr>
-                  <td colSpan="4" className="border border-zinc-300 px-3 py-2 text-right font-semibold">Taxable Value</td>
-                  <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR(selectedInvoice?.subtotal || 0)}</td>
-                </tr>
-                <tr>
-                  <td colSpan="4" className="border border-zinc-300 px-3 py-2 text-right">CGST @ 9%</td>
-                  <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
-                </tr>
-                <tr>
-                  <td colSpan="4" className="border border-zinc-300 px-3 py-2 text-right">SGST @ 9%</td>
-                  <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
-                </tr>
-                <tr className="bg-zinc-100">
-                  <td colSpan="4" className="border border-zinc-300 px-3 py-2 text-right font-bold">Grand Total</td>
-                  <td className="border border-zinc-300 px-3 py-2 text-right font-bold">{formatINR(selectedInvoice?.grand_total || 0)}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Amount in Words */}
-            <div className="mb-4 p-3 bg-zinc-50 rounded-sm">
-              <p className="text-sm"><span className="font-semibold">Amount Chargeable (in words):</span> {numberToWords(selectedInvoice?.grand_total || 0)}</p>
-            </div>
-
-            {/* HSN Summary */}
-            <table className="w-full text-xs mb-4 border border-zinc-300">
-              <thead>
-                <tr className="bg-zinc-100">
-                  <th className="border border-zinc-300 px-2 py-1">HSN/SAC</th>
-                  <th className="border border-zinc-300 px-2 py-1">Taxable Value</th>
-                  <th className="border border-zinc-300 px-2 py-1" colSpan="2">CGST</th>
-                  <th className="border border-zinc-300 px-2 py-1" colSpan="2">SGST/UTGST</th>
-                  <th className="border border-zinc-300 px-2 py-1">Total Tax</th>
-                </tr>
-                <tr className="bg-zinc-50">
-                  <th className="border border-zinc-300 px-2 py-1"></th>
-                  <th className="border border-zinc-300 px-2 py-1"></th>
-                  <th className="border border-zinc-300 px-2 py-1">Rate</th>
-                  <th className="border border-zinc-300 px-2 py-1">Amount</th>
-                  <th className="border border-zinc-300 px-2 py-1">Rate</th>
-                  <th className="border border-zinc-300 px-2 py-1">Amount</th>
-                  <th className="border border-zinc-300 px-2 py-1">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="border border-zinc-300 px-2 py-1 text-center">998311</td>
-                  <td className="border border-zinc-300 px-2 py-1 text-right">{formatINR(selectedInvoice?.subtotal || 0)}</td>
-                  <td className="border border-zinc-300 px-2 py-1 text-center">9%</td>
-                  <td className="border border-zinc-300 px-2 py-1 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
-                  <td className="border border-zinc-300 px-2 py-1 text-center">9%</td>
-                  <td className="border border-zinc-300 px-2 py-1 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
-                  <td className="border border-zinc-300 px-2 py-1 text-right">{formatINR(selectedInvoice?.gst_amount || 0)}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Terms */}
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold mb-2">Terms of Delivery:</h4>
-              <ol className="text-xs text-zinc-600 list-decimal list-inside space-y-1">
-                <li>Payment to be paid via Bank transfer or cheques</li>
-                <li>Payment refund is not permissible</li>
-                <li>Any breach of information is subject to violation of agreement</li>
-                <li>TDS amount to be paid regularly and submit challan to biller</li>
-                <li>Disputes subject to Ahmedabad jurisdiction.</li>
-              </ol>
-            </div>
-
-            {/* Bank Details */}
-            <div className="grid grid-cols-2 gap-6 mb-4">
-              <div className="p-3 bg-zinc-50 rounded-sm">
-                <h4 className="text-sm font-semibold mb-2">Company's Bank Details</h4>
-                <div className="text-xs space-y-1">
-                  <div className="flex"><span className="w-28 text-zinc-500">Bank Name:</span><span>{companyDetails.bankName}</span></div>
-                  <div className="flex"><span className="w-28 text-zinc-500">A/c Holder:</span><span>{companyDetails.accountName}</span></div>
-                  <div className="flex"><span className="w-28 text-zinc-500">A/c No.:</span><span>{companyDetails.accountNo}</span></div>
-                  <div className="flex"><span className="w-28 text-zinc-500">Branch & IFS:</span><span>{companyDetails.branch} & {companyDetails.ifscCode}</span></div>
-                  <div className="flex"><span className="w-28 text-zinc-500">SWIFT Code:</span><span>{companyDetails.swiftCode}</span></div>
+          {/* Printable Invoice Content - Modern Layout */}
+          <div ref={invoiceRef} className="bg-white">
+            {/* Header with gradient accent */}
+            <div className="bg-gradient-to-r from-zinc-900 to-zinc-700 text-white p-6 rounded-t-sm">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">D&V®</h1>
+                  <p className="text-zinc-300 text-sm mt-1">Business Consulting</p>
+                </div>
+                <div className="text-right">
+                  <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-sm">
+                    <h2 className="text-lg font-bold">PROFORMA INVOICE</h2>
+                    <p className="text-zinc-300 text-xs">{selectedInvoice?.quotation_number}</p>
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold mb-8">For {companyDetails.name}</p>
-                <p className="text-xs text-zinc-500 border-t border-zinc-300 pt-2">Authorised Signatory</p>
-              </div>
             </div>
 
-            {/* Footer */}
-            <div className="text-center text-xs text-zinc-400 pt-4 border-t border-zinc-200">
-              This is a Computer Generated Invoice
+            <div className="p-6 space-y-6">
+              {/* Invoice Meta & Company Info */}
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="bg-zinc-50 rounded-sm p-4">
+                    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">Invoice Details</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Invoice No.</span>
+                        <span className="font-semibold">{selectedInvoice?.quotation_number}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Date</span>
+                        <span>{formatDate(selectedInvoice?.created_at)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Payment Terms</span>
+                        <span className="font-medium text-emerald-600">ADVANCE</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Valid Until</span>
+                        <span>{formatDate(new Date(new Date(selectedInvoice?.created_at).getTime() + 30*24*60*60*1000))}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Buyer Details */}
+                  <div className="bg-blue-50 rounded-sm p-4 border-l-4 border-blue-500">
+                    <h3 className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">Bill To</h3>
+                    <div className="text-sm">
+                      <p className="font-bold text-zinc-900 text-base">{selectedLead?.company || 'Client Company'}</p>
+                      <p className="text-zinc-600 mt-1">{selectedLead?.first_name} {selectedLead?.last_name}</p>
+                      <p className="text-zinc-500 text-xs mt-2">{selectedLead?.address || 'Address not provided'}</p>
+                      {selectedLead?.gstin && <p className="text-zinc-600 text-xs mt-1">GSTIN: {selectedLead.gstin}</p>}
+                      <p className="text-zinc-500 text-xs">State: Gujarat, Code: 24</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Company Details */}
+                  <div className="bg-zinc-50 rounded-sm p-4">
+                    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">From</h3>
+                    <div className="text-sm">
+                      <p className="font-bold text-zinc-900">{companyDetails.name}</p>
+                      <p className="text-zinc-600 text-xs mt-2">{companyDetails.address}</p>
+                      <p className="text-zinc-600 text-xs mt-1">GSTIN: {companyDetails.gstin}</p>
+                      <p className="text-zinc-600 text-xs">State: {companyDetails.state}, Code: {companyDetails.stateCode}</p>
+                      <p className="text-zinc-600 text-xs mt-1">{companyDetails.phone}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Quick Summary Card */}
+                  <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-sm p-4 text-white">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide opacity-80 mb-2">Amount Due</h3>
+                    <p className="text-3xl font-bold">{formatINR(selectedInvoice?.grand_total || 0)}</p>
+                    <p className="text-xs opacity-70 mt-1">Including 18% GST</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project Overview */}
+              <div className="bg-zinc-900 text-white rounded-sm p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">Project Duration</h3>
+                    <p className="text-zinc-400 text-sm">{selectedPlanDetails?.project_duration_type?.replace('_', ' ')?.toUpperCase() || 'CUSTOM'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold">{selectedPlanDetails?.project_duration_months || 12}</p>
+                    <p className="text-zinc-400 text-xs">MONTHS</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Deployment Structure */}
+              {selectedPlanDetails && (selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).length > 0 && (
+                <div className="border border-zinc-200 rounded-sm overflow-hidden">
+                  <div className="bg-zinc-100 px-4 py-3 border-b border-zinc-200">
+                    <h3 className="font-semibold text-zinc-800 flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Team Deployment Structure
+                    </h3>
+                    <p className="text-xs text-zinc-500 mt-1">Consultant allocation for the project duration</p>
+                  </div>
+                  <div className="p-4">
+                    <div className="grid grid-cols-4 gap-3 mb-3">
+                      <div className="text-xs font-semibold text-zinc-500 uppercase">Role</div>
+                      <div className="text-xs font-semibold text-zinc-500 uppercase">Meeting Type</div>
+                      <div className="text-xs font-semibold text-zinc-500 uppercase">Frequency</div>
+                      <div className="text-xs font-semibold text-zinc-500 uppercase text-center">Meetings</div>
+                    </div>
+                    {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants).map((member, idx) => {
+                      const meetings = (member.committed_meetings || member.meetings || 0) * (member.count || 1);
+                      return (
+                        <div key={idx} className="grid grid-cols-4 gap-3 py-3 border-t border-zinc-100 items-center">
+                          <div>
+                            <span className="inline-flex items-center px-2 py-1 bg-zinc-100 text-zinc-700 text-xs font-medium rounded-sm">
+                              {member.role || member.consultant_type}
+                            </span>
+                          </div>
+                          <div className="text-sm text-zinc-600">{member.meeting_type || '-'}</div>
+                          <div className="text-sm text-zinc-600">{member.frequency || '-'}</div>
+                          <div className="text-center">
+                            <span className="inline-flex items-center justify-center w-10 h-10 bg-blue-50 text-blue-700 font-bold rounded-full text-sm">
+                              {meetings}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="grid grid-cols-4 gap-3 py-3 border-t-2 border-zinc-200 bg-zinc-50 -mx-4 px-4 mt-3">
+                      <div className="col-span-3 text-right font-semibold text-zinc-700">Total Meetings</div>
+                      <div className="text-center">
+                        <span className="inline-flex items-center justify-center w-12 h-10 bg-zinc-900 text-white font-bold rounded-sm text-sm">
+                          {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).reduce((sum, m) => {
+                            const meetings = (m.committed_meetings || m.meetings || 0) * (m.count || 1);
+                            return sum + meetings;
+                          }, 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pricing Breakdown */}
+              <div className="border border-zinc-200 rounded-sm overflow-hidden">
+                <div className="bg-zinc-100 px-4 py-3 border-b border-zinc-200">
+                  <h3 className="font-semibold text-zinc-800">Pricing Summary</h3>
+                </div>
+                <div className="p-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-200">
+                        <th className="text-left py-2 text-zinc-500 font-medium">Description</th>
+                        <th className="text-center py-2 text-zinc-500 font-medium">HSN/SAC</th>
+                        <th className="text-center py-2 text-zinc-500 font-medium">Period</th>
+                        <th className="text-right py-2 text-zinc-500 font-medium">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-zinc-100">
+                        <td className="py-3">
+                          <div className="font-medium text-zinc-900">Professional Fees - Consulting Services</div>
+                          <div className="text-xs text-zinc-500">{selectedPlanDetails?.project_duration_months || 12} months engagement</div>
+                        </td>
+                        <td className="py-3 text-center text-zinc-600">998311</td>
+                        <td className="py-3 text-center text-zinc-600">{selectedPlanDetails?.project_duration_months || 12} Months</td>
+                        <td className="py-3 text-right font-semibold">{formatINR(selectedInvoice?.subtotal || 0)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  
+                  {/* Tax & Total Section */}
+                  <div className="mt-4 pt-4 border-t border-zinc-200">
+                    <div className="flex justify-end">
+                      <div className="w-72 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-zinc-500">Subtotal</span>
+                          <span className="font-medium">{formatINR(selectedInvoice?.subtotal || 0)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-zinc-500">CGST @ 9%</span>
+                          <span>{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-zinc-500">SGST @ 9%</span>
+                          <span>{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm pt-2 border-t border-zinc-200">
+                          <span className="text-zinc-500">Total Tax (18%)</span>
+                          <span className="font-medium">{formatINR(selectedInvoice?.gst_amount || 0)}</span>
+                        </div>
+                        <div className="flex justify-between text-lg pt-2 border-t-2 border-zinc-900">
+                          <span className="font-bold">Grand Total</span>
+                          <span className="font-bold text-emerald-600">{formatINR(selectedInvoice?.grand_total || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Amount in Words */}
+              <div className="bg-amber-50 border border-amber-200 rounded-sm p-4">
+                <p className="text-sm">
+                  <span className="font-semibold text-amber-800">Amount in Words:</span>
+                  <span className="text-amber-900 ml-2">{numberToWords(selectedInvoice?.grand_total || 0)}</span>
+                </p>
+              </div>
+
+              {/* HSN Summary */}
+              <div className="border border-zinc-200 rounded-sm overflow-hidden">
+                <div className="bg-zinc-100 px-4 py-2 border-b border-zinc-200">
+                  <h3 className="font-medium text-zinc-700 text-sm">HSN/SAC Summary</h3>
+                </div>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-zinc-50">
+                      <th className="px-4 py-2 text-left font-medium text-zinc-600">HSN/SAC</th>
+                      <th className="px-4 py-2 text-right font-medium text-zinc-600">Taxable Value</th>
+                      <th className="px-4 py-2 text-center font-medium text-zinc-600">CGST Rate</th>
+                      <th className="px-4 py-2 text-right font-medium text-zinc-600">CGST Amt</th>
+                      <th className="px-4 py-2 text-center font-medium text-zinc-600">SGST Rate</th>
+                      <th className="px-4 py-2 text-right font-medium text-zinc-600">SGST Amt</th>
+                      <th className="px-4 py-2 text-right font-medium text-zinc-600">Total Tax</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="px-4 py-2">998311</td>
+                      <td className="px-4 py-2 text-right">{formatINR(selectedInvoice?.subtotal || 0)}</td>
+                      <td className="px-4 py-2 text-center">9%</td>
+                      <td className="px-4 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
+                      <td className="px-4 py-2 text-center">9%</td>
+                      <td className="px-4 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
+                      <td className="px-4 py-2 text-right font-medium">{formatINR(selectedInvoice?.gst_amount || 0)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Terms & Bank Details */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="border border-zinc-200 rounded-sm p-4">
+                  <h4 className="text-sm font-semibold text-zinc-800 mb-3">Terms of Delivery</h4>
+                  <ol className="text-xs text-zinc-600 space-y-2">
+                    <li className="flex gap-2">
+                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">1</span>
+                      <span>Payment to be paid via Bank transfer or cheques</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">2</span>
+                      <span>Payment refund is not permissible</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">3</span>
+                      <span>Any breach of information is subject to violation of agreement</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">4</span>
+                      <span>TDS amount to be paid regularly and submit challan to biller</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="flex-shrink-0 w-5 h-5 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 font-medium">5</span>
+                      <span>Disputes subject to Ahmedabad jurisdiction</span>
+                    </li>
+                  </ol>
+                </div>
+                
+                <div className="border border-zinc-200 rounded-sm p-4 bg-zinc-50">
+                  <h4 className="text-sm font-semibold text-zinc-800 mb-3">Bank Details</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-zinc-200">
+                      <span className="text-zinc-500">Bank Name</span>
+                      <span className="font-medium">{companyDetails.bankName}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-zinc-200">
+                      <span className="text-zinc-500">Account Holder</span>
+                      <span className="font-medium">{companyDetails.accountName}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-zinc-200">
+                      <span className="text-zinc-500">Account No.</span>
+                      <span className="font-medium font-mono">{companyDetails.accountNo}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-zinc-200">
+                      <span className="text-zinc-500">Branch & IFSC</span>
+                      <span className="font-medium">{companyDetails.branch} | {companyDetails.ifscCode}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-zinc-500">SWIFT Code</span>
+                      <span className="font-medium font-mono">{companyDetails.swiftCode}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Signature Section */}
+              <div className="flex justify-between items-end pt-6 border-t border-zinc-200">
+                <div>
+                  <p className="text-xs text-zinc-400">This is a Computer Generated Invoice</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-zinc-700 mb-8">For {companyDetails.name}</p>
+                  <div className="border-t border-zinc-300 pt-2">
+                    <p className="text-xs text-zinc-500">Authorised Signatory</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
