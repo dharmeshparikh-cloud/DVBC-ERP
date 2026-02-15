@@ -7,7 +7,78 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### Complete Sales Flow Redesign ✅ (Latest)
+### P0 Sprint: Top-Down Pricing Redesign ✅ (LATEST - Completed)
+
+**Major Feature: Top-Down Pricing Model**
+Implemented a complete redesign of the pricing model. Instead of the salesperson manually calculating rates and totals (bottom-up), they now simply enter the **Total Client Investment** and the system automatically allocates costs to team members based on admin-defined allocation rules.
+
+**Key Changes:**
+
+1. **Admin Masters Module (NEW)**
+   - Created `/admin-masters` page (admin-only access)
+   - Manages **Tenure Types** with allocation percentages:
+     - Full-time Engagement: 70%
+     - Weekly Engagement: 20%
+     - Bi-weekly Engagement: 10%
+     - Monthly Engagement: 5%
+     - Quarterly Review: 2.5%
+     - On-demand Support: 0%
+   - Manages **Consultant Roles** with rate ranges
+   - Manages **Meeting Types** with default durations
+   - Backend: `/app/backend/routers/masters.py`
+   - Frontend: `/app/frontend/src/pages/AdminMasters.js`
+
+2. **Top-Down Pricing Flow**
+   ```
+   Total Client Investment (₹10,00,000)
+         ↓
+   Team Member Selection (Role + Tenure Type)
+         ↓
+   Auto-Calculate: Allocation % (normalized)
+         ↓
+   Auto-Calculate: Breakup Amount = Total × Allocation %
+         ↓
+   Auto-Calculate: Rate/Meeting = Breakup ÷ Total Meetings (READ-ONLY)
+   ```
+
+3. **Calculation Example:**
+   - Total Investment: ₹10,00,000
+   - Team Member: Principal Consultant (Full-time: 70%)
+   - If only 1 member: Allocation = 100% (normalized)
+   - Breakup Amount: ₹10,00,000
+   - Total Meetings: 22/month × 12 months = 264
+   - Rate/Meeting: ₹10,00,000 ÷ 264 = ₹3,788 (READ-ONLY)
+
+4. **Rate Override: NOT ALLOWED**
+   - Rate per Meeting field is locked (read-only)
+   - Shows lock icon to indicate auto-calculated value
+
+**New API Endpoints:**
+- `GET /api/masters/tenure-types` - List tenure types with allocation %
+- `POST /api/masters/tenure-types` - Create tenure type
+- `PUT /api/masters/tenure-types/{id}` - Update tenure type
+- `DELETE /api/masters/tenure-types/{id}` - Soft delete tenure type
+- `GET /api/masters/consultant-roles` - List consultant roles
+- `POST /api/masters/consultant-roles` - Create consultant role
+- `GET /api/masters/meeting-types` - List meeting types
+- `POST /api/masters/seed-defaults` - Seed default master data
+- `POST /api/masters/calculate-allocation` - Calculate allocation breakdown
+
+**Files Modified/Created:**
+- `/app/backend/routers/masters.py` (NEW)
+- `/app/backend/routers/__init__.py` (NEW)
+- `/app/backend/server.py` (Updated - added masters router)
+- `/app/backend/sales_workflow.py` (Updated - added total_investment, allocation fields)
+- `/app/frontend/src/pages/AdminMasters.js` (NEW)
+- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` (REWRITTEN)
+- `/app/frontend/src/App.js` (Updated - added admin-masters route)
+- `/app/frontend/src/components/Layout.js` (Updated - added Admin Masters nav)
+
+---
+
+## Previous Updates
+
+### Complete Sales Flow Redesign ✅ (Feb 14, 2026)
 
 **Major Feature: Pricing Plan as Source of Truth**
 The entire sales flow has been redesigned so that the **Pricing Plan** is the single source of truth for team deployment and pricing data. Data now flows correctly through the pipeline:
@@ -19,330 +90,105 @@ Pricing Plan → Quotation → Agreement
   (Source)     from Plan    from Plan
 ```
 
-**Key Changes:**
-
-1. **Duration Type → Duration Months Auto-Conversion**
-   - Monthly = 1 month
-   - Quarterly = 3 months
-   - Half Yearly = 6 months
-   - Yearly = 12 months
-   - Custom = Manual entry
-
-2. **Frequency-Based Meeting Calculation in Pricing Plan**
-   - Added frequency options: Daily (1-2/day), Weekly (1-5/week), Bi-weekly, Monthly (1-4/month), Quarterly
-   - Auto-calculates committed meetings: `frequency × 4 weeks × duration months`
-   - Example for 3-month project: 5/week = 60 meetings, 1/week = 12 meetings, 1/month = 3 meetings
-
-3. **Team Deployment Data Flow**
-   - Created in Pricing Plan with: Role, Meeting Type, Frequency, Rate/Meeting, Count, Mode
-   - Displayed in Quotation creation dialog (inherited from Pricing Plan)
-   - Auto-populated in Agreement form when quotation is selected
-   - Can be modified in Agreement if needed (with "Inherited from Plan" banner)
-
-4. **Base Rate per Meeting (₹)** - Now editable at all stages
-
-**Files Modified:**
-- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - Complete rewrite
-- `/app/frontend/src/pages/sales-funnel/Quotations.js` - Added team breakdown display
-- `/app/frontend/src/pages/sales-funnel/Agreements.js` - Auto-populate from pricing plan
-- `/app/backend/sales_workflow.py` - Added team_deployment to models
-
 ### Team Deployment & Financial Data Separation ✅
 
 **Major Feature: Team Deployment Structure for Kickoff Requests**
-- Added Team Deployment Structure to Agreement creation:
-  - Role (Project Manager, Data Analyst, Digital Marketing Manager, etc.) - Dropdown
-  - Meeting Type (Monthly Review, Online Review, etc.) - Now Dropdown
-  - Frequency (1 per month, Weekly, etc.) - Now Dropdown
-  - Mode (Online, Offline, Mixed) - Dropdown
-- PM can now review team commitments before accepting projects
-- **Routes:** `/kickoff-requests` (updated), `/sales-funnel/agreements` (updated)
+- Added Team Deployment Structure to Agreement creation
+- PM can review team commitments before accepting projects
 
 **Major Feature: Consulting Team Financial Data Isolation**
-- Consulting team (PM, Consultants) can NO longer see:
-  - Project costing/pricing
-  - Profits and P&L
-  - Financial values (₹)
-- Replaced pricing columns with:
-  - Meeting Frequency (Weekly, Bi-weekly, Monthly, Quarterly)
-  - Project Tenure (months)
-- Backend enforces `can_see_financials` flag based on role
-
-**Enhanced Kickoff Request Detail Modal:**
-- Overview tab: Shows project info, meeting frequency, tenure (no pricing)
-- Team Deployment tab: Shows team structure with roles and meeting commitments
-- Scope of Work tab: SOW items and deliverables
-- Agreement tab: Agreement details (financial data hidden for consulting)
-
-**New Model Fields:**
-- Agreement: `meeting_frequency`, `project_tenure_months`, `team_deployment[]`
-- KickoffRequest: `meeting_frequency`, `project_tenure_months`
-
-**Updated API Endpoints:**
-- `GET /api/kickoff-requests/{id}/details` - Now excludes pricing for PM/consulting roles
-- `POST /api/agreements` - Now accepts team_deployment array
-
-### Comprehensive Workflow Redesign ✅
-
-**Major Feature: Domain-Specific Dashboards**
-Implemented role/department-based dashboard routing:
-- **Sales Dashboard**: For Executive, Account Manager roles
-  - Sales Pipeline funnel visualization
-  - My Clients (user-specific, not company-wide)
-  - Pending Quotations, Agreements tracking
-  - Revenue metrics and Kickoff Requests status
-- **Consulting Dashboard**: For Consultant, Project Manager roles
-  - Project delivery status (Active, Completed, At Risk)
-  - Meeting delivery progress with efficiency score
-  - Incoming Kickoff requests for PM
-  - Consultant workload distribution
-- **HR Dashboard**: For HR Manager, HR Executive roles
-  - Employee stats by department
-  - Today's attendance (Present, WFH, Absent)
-  - Pending leave requests and expense approvals
-  - Payroll processing status
-- **Admin Dashboard**: For Admin, Manager roles
-  - Cross-department overview (original dashboard)
-
-**Major Feature: Kickoff Request Workflow (Sales → Consulting Handoff)**
-- Sales team creates kickoff request after Agreement approval
-- Assigns to specific Project Manager
-- PM receives in "Kickoff Inbox" on Consulting Dashboard
-- PM can Accept (creates project), Return to Sender, or Reject
-- PM can edit kickoff date before accepting
-- PM can view full SOW and team deployment before accepting
-- Notifications sent on status changes
-- **Routes:** `/kickoff-requests`
-- **API Endpoints:**
-  - `POST /api/kickoff-requests` - Create request
-  - `GET /api/kickoff-requests` - List requests
-  - `GET /api/kickoff-requests/{id}/details` - Get full details with SOW/team
-  - `PUT /api/kickoff-requests/{id}` - Update kickoff date
-  - `POST /api/kickoff-requests/{id}/accept` - Accept & create project
-  - `POST /api/kickoff-requests/{id}/return` - Return to sender with feedback
-  - `POST /api/kickoff-requests/{id}/resubmit` - Sales resubmits after revision
-  - `POST /api/kickoff-requests/{id}/reject` - Reject request
-
-**Navigation Updates:**
-- Sales section: Added "Kickoff Requests" and renamed "Clients" to "My Clients"
-- Consulting section: Added "Kickoff Inbox" for PM role
-
-**New Backend APIs:**
-- `GET /api/stats/sales-dashboard` - Sales-specific metrics
-- `GET /api/stats/consulting-dashboard` - Consulting metrics
-- `GET /api/stats/hr-dashboard` - HR metrics
-- `GET /api/my-clients` - User-specific clients
-
-### Admin Downloads Page Created ✅
-Created an admin-only "Developer Resources" page with downloadable assets:
-- **Route:** `/downloads`
-- **Access:** Admin and Manager roles only
-- **Downloads Available:**
-  - API Documentation (HTML)
-  - Postman Collection (JSON)
-  - Feature Index (DOCX)
-
-### API Test Suite Fixes ✅
-Fixed all failing tests in the comprehensive API test suite:
-- **Pass Rate:** 100% (All tests passing)
-- **Coverage:** All API endpoints across 10 modules
+- Consulting team (PM, Consultants) can NO longer see pricing/P&L data
+- Replaced pricing columns with Meeting Frequency and Project Tenure
 
 ---
 
-## Business Flow Structure
+## Code Architecture
 
-### Comprehensive API Test Suite Created
-Created a production-grade, OWASP-compliant API test suite covering all backend modules:
-
-**Test Statistics (After Fixes):**
-- **Total Tests:** 291
-- **Pass Rate:** 100% (All tests now passing)
-- **Coverage:** All API endpoints across 10 modules
-
-**Test Files Created:**
-- `conftest.py` - Shared fixtures, helpers, OWASP payloads
-- `test_api_auth.py` - Authentication & security tests (30 tests)
-- `test_api_leads.py` - Leads CRUD + security (37 tests)
-- `test_api_employees.py` - Employee management tests (26 tests)
-- `test_api_clients_expenses.py` - Clients & expenses tests (26 tests)
-- `test_api_projects_meetings.py` - Projects & meetings tests (32 tests)
-- `test_api_sales_pipeline.py` - SOW, quotations, agreements (31 tests)
-- `test_api_hr_module.py` - Leave, attendance, payroll (35 tests)
-- `test_api_users_roles.py` - RBAC & permissions tests (24 tests)
-- `test_owasp_security.py` - Full OWASP Top 10 2021 (30 tests)
-- `test_api_performance.py` - Performance benchmarks (20 tests)
-- `reset_test_passwords.py` - Test user credential reset utility
-
-**OWASP Top 10 2021 Coverage:**
-- A01: Broken Access Control ✅
-- A02: Cryptographic Failures ✅
-- A03: Injection (SQL, NoSQL, XSS, Command) ✅
-- A04: Insecure Design ✅
-- A05: Security Misconfiguration ✅
-- A06: Vulnerable Components ✅
-- A07: Authentication Failures ✅
-- A08: Software Integrity Failures ✅
-- A09: Logging & Monitoring Failures ✅
-- A10: SSRF ✅
+```
+/app/
+├── backend/
+│   ├── .env
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   └── masters.py           # NEW: Admin Masters CRUD
+│   ├── models/
+│   ├── sales_workflow.py        # Updated: total_investment, allocation fields
+│   ├── requirements.txt
+│   └── server.py                # Updated: includes masters router
+└── frontend/
+    └── src/
+        ├── App.js               # Updated: admin-masters route
+        ├── components/
+        │   └── Layout.js        # Updated: Admin Masters nav
+        └── pages/
+            ├── AdminMasters.js  # NEW: Admin Masters UI
+            └── sales-funnel/
+                ├── Agreements.js
+                ├── PricingPlanBuilder.js  # REWRITTEN: Top-down pricing
+                └── Quotations.js
+```
 
 ---
 
-## Original Requirements Summary
+## Technical Stack
 
-### Authentication & Roles
-- Customizable role and permissions management system
-- Google Auth for specific domain (@dvconsulting.co.in) alongside password-based login
-- Multiple roles: Admin, Principal Consultant, Lead Consultant, Senior Consultant, Consultant, Lean Consultant, Project Manager, Account Manager, HR Manager, HR Executive, etc.
+### Frontend
+- React 18
+- Tailwind CSS
+- Shadcn/UI components
+- DHTMLX Gantt
 
-### Sales Workflow
-- Lead → Pricing Plan → SOW → Quotation → Agreement → Approval pipeline
-- Lead scoring and management
-- Communication logs
-- Email templates
+### Backend
+- FastAPI
+- Pydantic models
+- Motor (async MongoDB driver)
+- JWT authentication
 
-### Scope of Work (SOW)
-- Advanced SOW builder with spreadsheet-style inline editing
-- Version history and status tracking
-- Document uploads
-- Consultant assignment
-
-### Approval Workflows
-- Multi-level approval system based on reporting manager hierarchy
-- Leave, expense, and agreement approvals
-
-### Employees Module
-- Employee data management (personal details, HR information)
-- Hierarchical organizational chart
-- Bank details, salary information
-
-### Reporting Manager Rules
-- Granular permissions for managers
-- Notification/action rights over direct/indirect reports
-- Approval escalations
-- Self-approval restrictions
-
-### HR Module
-- Leave Management with balances
-- Attendance tracking
-- Advanced Payroll system with customizable components
-- Bulk CSV input for payroll
-- Salary slip generation with PDF download
-
-### Self-Service Workspace
-- My Attendance, My Leaves, My Expenses, My Salary Slips
-
-### Project Management
-- Project tracking with deliverables
-- Drag-and-drop Gantt Chart linked to SOW
-- Client communication module
-- Task management
-
-### Admin & Security
-- Security audit log for login and critical events
-- User management
+### Database
+- MongoDB
 
 ---
 
-## Implementation Status
+## Test Credentials
 
-### Completed Features ✅
-
-#### Authentication & Security
-- [x] Password-based JWT authentication
-- [x] Google OAuth 2.0 via Emergent-managed Google Auth (domain restricted)
-- [x] Security audit logging for all login events
-- [x] OTP-based admin password reset
-- [x] Role-based access control
-
-#### HR Module
-- [x] Employee management with full CRUD
-- [x] Org Chart visualization
-- [x] Leave management with balances
-- [x] Attendance tracking (individual and bulk)
-- [x] Advanced Payroll with customizable salary components
-- [x] Payroll input management (CSV import/export)
-- [x] Salary slip generation with PDF download
-
-#### Sales Pipeline
-- [x] Lead management with scoring
-- [x] Communication logs
-- [x] Pricing plan builder
-- [x] SOW builder with inline editing
-- [x] Quotation generation
-- [x] Agreement management
-- [x] Approval workflows
-
-#### Project Management
-- [x] Project creation and tracking
-- [x] Task management linked to SOW items
-- [x] Gantt chart with drag-and-drop
-- [x] Client communication module
-- [x] Meeting management with MOM
-
-#### Self-Service
-- [x] My Workspace dashboards
-- [x] Self-service leave requests
-- [x] Self-service expense submissions
-- [x] Salary slip viewing
-
-#### Admin
-- [x] User management
-- [x] Role management
-- [x] Security audit log dashboard
-- [x] Notification system (in-app bell + browser push)
+- **Admin:** admin@company.com / admin123
+- **Manager:** manager@company.com / manager123
+- **Executive:** executive@company.com / executive123
 
 ---
 
-## Data Seeding (December 15, 2025)
+## Upcoming Tasks (P1)
 
-### Indian HR Consulting Test Data Created:
-- **Users**: 42 (across all roles)
-- **Employees**: 41 with complete HR data
-- **Leads**: 45 from major Indian companies (Tata Steel, Reliance, Infosys, etc.)
-- **Clients**: 6 converted clients
-- **Pricing Plans**: 30
-- **SOWs**: 30 with HR consulting services
-- **Quotations**: 18
-- **Agreements**: 10
-- **Projects**: 6 active/completed
-- **Tasks**: 96 linked to SOW items
-- **Meetings**: 48 (sales and consulting)
-- **Expense Requests**: 120
-- **Leave Requests**: 68
-- **Attendance Records**: 2665 (3 months history)
-- **Salary Components**: 10 (earnings + deductions)
-- **Payroll Inputs**: 246 (6 months history)
-- **Communication Logs**: 137
-- **Notifications**: 140
+1. **P&L Variance Tracking**
+   - Implement logic to flag over-delivery (actual vs. committed meetings)
+   - Create variance alerts for projects exceeding committed scope
 
-### Test Credentials:
-- **Admin**: admin@company.com / admin123
-- **All Other Users**: [email] / password123
+2. **Employee Cost Integration**
+   - Integrate with HR/Payroll data to pull actual employee CTC
+   - Enable actual cost calculations for P&L analysis
+
+3. **Project P&L Dashboard**
+   - Dashboard showing committed vs. actual costs and revenue
+   - Variance alerts and profitability indicators
+
+4. **Masters Sync Engine**
+   - Ensure all forms across the application are automatically updated when admin changes master data
 
 ---
 
-## Upcoming Tasks (P1 - High Priority)
+## Future Tasks (P2)
 
-1. **RACI Matrix for SOW**
-   - Inline-editable role assignments (Responsible, Accountable, Consulted, Informed)
-   - Export to PDF/Excel
+1. **Finance Module**
+   - Full P&L, invoicing, and revenue recognition
 
-2. **User Training Guide**
-   - Comprehensive downloadable Word/PDF document
-   - Coverage of all features, roles, and workflows
+2. **Detailed Reporting**
+   - Role-wise and client-wise profitability reports
 
----
-
-## Future Tasks (P2 - Medium Priority)
-
-1. **Real Email Integration (SMTP)**
+3. **Real Email Integration (SMTP)**
    - Replace mock email system with actual SMTP service
 
-2. **Rocket Reach Integration**
+4. **Rocket Reach Integration**
    - Lead enrichment from Rocket Reach API
-
-3. **Detailed Time Tracking**
-   - Hourly time tracking against projects and tasks
 
 ---
 
@@ -354,40 +200,24 @@ Created a production-grade, OWASP-compliant API test suite covering all backend 
 
 ---
 
-## Technical Stack
+## Mocked Features
 
-### Frontend
-- React 18
-- Tailwind CSS
-- Shadcn/UI components
-- DHTMLX Gantt
-- react-to-print, xlsx, file-saver
+- **Email sending** - Currently logs to console (SMTP not integrated)
 
-### Backend
-- FastAPI
-- Pydantic models
-- Motor (async MongoDB driver)
-- JWT authentication
+---
 
-### Database
-- MongoDB
+## 3rd Party Integrations
 
-### Authentication
-- Dual: JWT (password-based) + Google OAuth 2.0 (Emergent-managed)
+- **Emergent-managed Google Auth** - Domain restricted (@dvconsulting.co.in)
+- **DHTMLX Gantt** - For project roadmap/Gantt charts
 
 ---
 
 ## Key Files Reference
 
-- `/app/backend/server.py` - Main API server (needs refactoring)
-- `/app/backend/seed_indian_data.py` - Data seeding script
-- `/app/frontend/src/pages/` - All page components
-- `/app/frontend/src/components/Layout.js` - Navigation and layout
-
----
-
-## Notes
-
-- Email sending is currently MOCKED (logs to console)
-- Org Chart depends on correct reporting_manager data
-- The server.py file has grown large and needs modular refactoring
+- `/app/backend/server.py` - Main API server
+- `/app/backend/routers/masters.py` - Admin Masters module
+- `/app/backend/sales_workflow.py` - Sales models (PricingPlan, Quotation, Agreement)
+- `/app/frontend/src/pages/AdminMasters.js` - Admin Masters UI
+- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - Top-down pricing UI
+- `/app/memory/PRD.md` - This file
