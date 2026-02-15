@@ -1,5 +1,16 @@
 # DVBC - NETRA Changelog
 
+## Feb 15, 2026 — Reporting Manager Rules
+- Managers notified for direct + second-line reportees' activities
+- Can only approve direct reportees' requests (not second-line)
+- Can view/approve attendance for all reportees (direct + second-line)
+- View-only leave balance for reportees
+- Can approve reportees' expenses, can only create own
+- Self-approval blocked (leaves, expenses)
+- Non-admin cannot modify own payroll
+- Manager's own leaves escalate to their reporting manager + admin
+- New endpoint: GET /api/leave-balance/reportees
+
 ## Feb 15, 2026 — Real-Time Notifications
 - In-app notification bell in header with unread badge and dropdown
 - Browser push notifications via Web Notification API (polls every 15s)
