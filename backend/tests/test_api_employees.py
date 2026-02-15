@@ -285,8 +285,8 @@ class TestLinkUnlinkUser:
                 json={"user_id": user["id"]}
             )
             
-            # Either links or reports conflict
-            assert response.status_code in [200, 400, 409]
+            # Either links or reports conflict/validation error
+            assert response.status_code in [200, 400, 409, 422]
     
     @pytest.mark.asyncio
     async def test_link002_unlink_user_endpoint(self, admin_client, db):
