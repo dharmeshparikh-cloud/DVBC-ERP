@@ -1009,7 +1009,7 @@ const PricingPlanBuilder = () => {
                           <th className="px-4 py-3 text-right">TDS ({paymentPlan.component_values.tds}%)</th>
                         )}
                         {paymentPlan.selected_components.includes('conveyance') && (
-                          <th className="px-4 py-3 text-right">Conveyance ({paymentPlan.component_values.conveyance}%)</th>
+                          <th className="px-4 py-3 text-right">Conveyance (Lumpsum)</th>
                         )}
                         <th className="px-4 py-3 text-right font-bold">Net Receivable</th>
                       </tr>
