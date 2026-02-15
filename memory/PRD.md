@@ -7,7 +7,50 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### Bug Fixes & Enhancements ✅ (LATEST - Completed)
+### New Features: Custom Payments, Notes & Agreement Sections ✅ (LATEST)
+
+**1. Custom (Irregular) Payment Schedule:**
+- New "Custom (Irregular)" option in Payment Schedule dropdown
+- Users can manually define each payment with:
+  - **Date** - custom due date
+  - **Amount** - flexible amount per payment
+  - **Description/Milestone** - e.g., "30% Upfront", "Final Delivery"
+- Add unlimited payments via "Add Payment" button
+- Validation shows error (red) when total doesn't match project value
+- Validation shows success (green) when totals match
+
+**Example - 30-40-30 Split:**
+```
+Payment #1: ₹3,00,000 - "30% Upfront - Project Kickoff"
+Payment #2: ₹4,00,000 - "40% - Mid-Project Milestone"
+Payment #3: ₹3,00,000 - "30% - Final Delivery"
+Total: ₹10,00,000 ✅ (matches project value)
+```
+
+**2. Notes & Descriptions Section:**
+- 4 textarea fields for adding notes across sections:
+  - Pricing Notes
+  - Team Deployment Notes
+  - Payment Terms Notes
+  - General Notes
+- Notes are saved with the pricing plan and included in agreements
+
+**3. Agreement Sections Configuration:**
+- 8 toggleable checkboxes to control what appears in the agreement:
+  1. Pricing Summary
+  2. Team Deployment
+  3. Payment Schedule
+  4. GST Details
+  5. TDS Details
+  6. Conveyance Details
+  7. Discount Details
+  8. Notes & Terms
+- Visual eye icon shows section visibility status
+- Unchecked sections are hidden from final agreement
+
+---
+
+### Bug Fixes & Enhancements ✅ (Completed Earlier)
 
 **1. Multiple Team Members Bug Fix:**
 - **Issue:** Adding multiple team members was replacing previous entries (race condition)
