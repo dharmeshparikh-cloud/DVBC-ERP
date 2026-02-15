@@ -235,10 +235,9 @@ const PricingPlanBuilder = () => {
     };
     
     const updatedTeam = [...teamDeployment, memberData];
-    setTeamDeployment(updatedTeam);
     
-    // Recalculate all allocations with the new member
-    setTimeout(() => recalculateAllocations(), 0);
+    // Recalculate all allocations with the new member (pass the updated team directly)
+    recalculateAllocations(updatedTeam);
     
     setNewMember({
       role: '',
