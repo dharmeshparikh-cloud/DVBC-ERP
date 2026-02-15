@@ -185,7 +185,7 @@ const Projects = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="budget" className="text-sm font-medium text-zinc-950">
-                      Budget ($)
+                      Budget (₹)
                     </Label>
                     <Input
                       id="budget"
