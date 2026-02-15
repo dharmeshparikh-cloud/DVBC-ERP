@@ -46,10 +46,8 @@ const ConsultingScopeView = () => {
   // View mode
   const [viewMode, setViewMode] = useState('list'); // list, kanban, gantt, timeline
   
-  // Gantt chart ref and instance
-  const ganttContainerRef = useRef(null);
-  const ganttInstanceRef = useRef(null);
-  const [ganttViewMode, setGanttViewMode] = useState('Week'); // Day, Week, Month
+  // Gantt chart settings
+  const [ganttViewMode, setGanttViewMode] = useState(ViewMode.Week); // Day, Week, Month
   
   // Dialogs
   const [editScopeDialog, setEditScopeDialog] = useState(false);
