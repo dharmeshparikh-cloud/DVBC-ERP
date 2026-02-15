@@ -7,44 +7,53 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### Lumpsum Conveyance Feature ✅ (LATEST - Completed)
+### Bug Fixes & Enhancements ✅ (LATEST - Completed)
+
+**1. Multiple Team Members Bug Fix:**
+- **Issue:** Adding multiple team members was replacing previous entries (race condition)
+- **Fix:** `recalculateAllocations()` now accepts optional `currentTeam` parameter, avoiding setTimeout race condition
+- **Result:** Can now add unlimited team members that accumulate correctly
+
+**2. Dynamic Payment Count Display:**
+- **Issue:** Conveyance helper text showed hardcoded "12 months" regardless of payment schedule
+- **Fix:** Added `numberOfPayments` useMemo that calculates actual payments based on schedule
+- **Result:** 
+  - Monthly (12 months) → "(split across 12 payments)"
+  - Quarterly (12 months) → "(split across 4 payments)"
+  - Upfront → "(split across 1 payment)"
+
+**3. Conveyance Summary Tooltip:**
+- Added help icon (?) next to conveyance input
+- Tooltip shows: Total amount, Per-payment amount, Distribution info
+
+---
+
+### Lumpsum Conveyance Feature ✅ (Completed)
 
 **Changes Made:**
 Changed the Conveyance field from a percentage-based input to a **lumpsum amount** that is distributed evenly across all payment periods.
 
 1. **Previous Behavior:** Conveyance was 5% of basic amount per payment
-2. **New Behavior:** Conveyance is a fixed lumpsum amount (e.g., ₹60,000) distributed evenly across all months
+2. **New Behavior:** Conveyance is a fixed lumpsum amount (e.g., ₹60,000) distributed evenly across all payments
 
 **UI Changes:**
 - Conveyance input now shows ₹ symbol instead of %
-- Helper text: "(split across 12 months)"
+- Helper text: "(split across X payments)" - dynamically calculated
 - Column header: "CONVEYANCE (LUMPSUM)" instead of "CONVEYANCE (5%)"
 
-**Calculation Example:**
+**Calculation Example (Quarterly):**
 ```
 Total Investment: ₹12,00,000
-Conveyance Lumpsum: ₹60,000
-Duration: 12 months (Monthly payments)
-Basic per month: ₹1,00,000
+Conveyance Lumpsum: ₹48,000
+Duration: 12 months (Quarterly payments = 4 quarters)
+Basic per quarter: ₹3,00,000
 
 Distribution:
-- Conveyance per month: ₹60,000 ÷ 12 = ₹5,000
+- Conveyance per quarter: ₹48,000 ÷ 4 = ₹12,000
 
-Components selected: GST (18%), TDS (10%), Conveyance (Lumpsum)
-- GST (18%): +₹18,000
-- TDS (10%): -₹10,000
-- Conveyance: +₹5,000
-
-Net per month: ₹1,00,000 + ₹18,000 + ₹5,000 - ₹10,000 = ₹1,13,000
-Total Conveyance: +₹60,000 (matches lumpsum input)
+Net per quarter: ₹3,00,000 + ₹54,000 (GST) + ₹12,000 (Conv) = ₹3,66,000
+Total Conveyance: +₹48,000.00
 ```
-
-**Files Modified:**
-- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js`
-  - `PAYMENT_COMPONENTS` array updated with `isLumpsum: true` for conveyance
-  - `paymentPlan` state now uses `conveyance_lumpsum` instead of percentage
-  - `paymentScheduleBreakdown` calculation updated for lumpsum distribution
-  - UI updated with currency input and helper text
 
 ---
 
