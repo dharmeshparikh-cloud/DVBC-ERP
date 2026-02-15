@@ -247,6 +247,133 @@ const ConsultingScopeView = () => {
     return Object.values(grouped);
   }, [sow?.scopes]);
 
+  // Task management functions
+  const toggleScopeExpand = (scopeId) => {
+    setExpandedScopes(prev => ({ ...prev, [scopeId]: !prev[scopeId] }));
+  };
+
+  const openAddTaskDialog = (scope) => {
+    setSelectedScope(scope);
+    setNewTask({ name: '', description: '', priority: 'medium', due_date: '', assigned_to_id: '' });
+    setAddTaskDialog(true);
+  };
+
+  const handleCreateTask = async () => {
+    if (!selectedScope || !newTask.name) return;
+    
+    try {
+      const assignee = employees.find(e => e.id === newTask.assigned_to_id);
+      const payload = {
+        ...newTask,
+        assigned_to_name: assignee ? `${assignee.first_name} ${assignee.last_name}` : null
+      };
+      
+      await axios.post(`${API}/enhanced-sow/${sow.id}/scopes/${selectedScope.id}/tasks`, payload, {
+        params: { current_user_id: user?.id, current_user_name: user?.name || user?.email }
+      });
+      
+      toast.success('Task created successfully');
+      setAddTaskDialog(false);
+      setNewTask({ name: '', description: '', priority: 'medium', due_date: '', assigned_to_id: '' });
+      fetchData();
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error('Failed to create task');
+    }
+  };
+
+  const handleUpdateTask = async (scopeId, taskId, updates) => {
+    try {
+      await axios.patch(`${API}/enhanced-sow/${sow.id}/scopes/${scopeId}/tasks/${taskId}`, updates, {
+        params: { current_user_id: user?.id, current_user_name: user?.name || user?.email }
+      });
+      
+      toast.success('Task updated');
+      fetchData();
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
+    }
+  };
+
+  const openApprovalDialog = (scope, task) => {
+    setSelectedScope(scope);
+    setSelectedTask(task);
+    // Pre-fill with any manager data
+    const managers = employees.filter(e => e.role === 'manager' || e.role === 'admin');
+    setApprovalData({
+      manager_id: managers[0]?.id || '',
+      manager_name: managers[0] ? `${managers[0].first_name} ${managers[0].last_name}` : '',
+      client_name: lead?.company_name || lead?.contact_name || '',
+      client_email: lead?.email || '',
+      notes: ''
+    });
+    setTaskApprovalDialog(true);
+  };
+
+  const handleRequestApproval = async () => {
+    if (!selectedScope || !selectedTask) return;
+    
+    try {
+      await axios.post(`${API}/enhanced-sow/${sow.id}/scopes/${selectedScope.id}/tasks/${selectedTask.id}/request-approval`, approvalData, {
+        params: { current_user_id: user?.id, current_user_name: user?.name || user?.email }
+      });
+      
+      toast.success('Approval request sent to Manager and Client');
+      setTaskApprovalDialog(false);
+      fetchData();
+    } catch (error) {
+      console.error('Error requesting approval:', error);
+      toast.error('Failed to send approval request');
+    }
+  };
+
+  const handleApproveTask = async (scopeId, taskId, approvalType, approved, notes = '') => {
+    try {
+      await axios.post(`${API}/enhanced-sow/${sow.id}/scopes/${scopeId}/tasks/${taskId}/approve`, {
+        approval_type: approvalType,
+        approved,
+        notes
+      }, {
+        params: { current_user_id: user?.id, current_user_name: user?.name || user?.email, current_user_role: user?.role }
+      });
+      
+      toast.success(`Task ${approved ? 'approved' : 'rejected'} by ${approvalType}`);
+      fetchData();
+    } catch (error) {
+      console.error('Error processing approval:', error);
+      toast.error('Failed to process approval');
+    }
+  };
+
+  const getTaskStatusBadge = (task) => {
+    if (!task.approval_status) {
+      const statusColors = {
+        pending: 'bg-zinc-100 text-zinc-700',
+        in_progress: 'bg-blue-100 text-blue-700',
+        completed: 'bg-green-100 text-green-700',
+        approved: 'bg-emerald-100 text-emerald-700'
+      };
+      return <span className={`px-2 py-0.5 rounded-sm text-xs ${statusColors[task.status] || statusColors.pending}`}>{task.status}</span>;
+    }
+    
+    const approvalColors = {
+      pending: 'bg-amber-100 text-amber-700',
+      manager_approved: 'bg-blue-100 text-blue-700',
+      client_approved: 'bg-purple-100 text-purple-700',
+      fully_approved: 'bg-green-100 text-green-700',
+      rejected: 'bg-red-100 text-red-700'
+    };
+    const approvalLabels = {
+      pending: 'Awaiting Approval',
+      manager_approved: 'Manager Approved',
+      client_approved: 'Client Approved',
+      fully_approved: 'Fully Approved',
+      rejected: 'Rejected'
+    };
+    return <span className={`px-2 py-0.5 rounded-sm text-xs ${approvalColors[task.approval_status]}`}>{approvalLabels[task.approval_status]}</span>;
+  };
+
   // Kanban columns
   const kanbanColumns = useMemo(() => {
     if (!sow?.scopes) return [];
