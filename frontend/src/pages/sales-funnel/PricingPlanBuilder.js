@@ -1377,10 +1377,17 @@ const PricingPlanBuilder = () => {
                   }))}
                   data-testid={`agreement-section-${section.id}`}
                 >
-                  <Checkbox
-                    checked={agreementSections[section.id]}
-                    className="pointer-events-none"
-                  />
+                  <div className={`h-4 w-4 shrink-0 rounded-sm border shadow flex items-center justify-center ${
+                    agreementSections[section.id] 
+                      ? 'bg-zinc-900 border-zinc-900 text-white' 
+                      : 'bg-white border-zinc-300'
+                  }`}>
+                    {agreementSections[section.id] && (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    )}
+                  </div>
                   {agreementSections[section.id] ? (
                     <Eye className="w-4 h-4 text-emerald-600" />
                   ) : (
