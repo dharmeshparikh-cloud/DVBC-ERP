@@ -150,7 +150,8 @@ const NotificationBell = () => {
               </div>
             ) : (
               notifications.slice(0, 20).map(notif => {
-                const meta = NOTIF_ICONS[notif.type] || NOTIF_ICONS.default;
+                const notifType = notif.type || notif.notification_type || 'default';
+                const meta = NOTIF_ICONS[notifType] || NOTIF_ICONS.default;
                 return (
                   <div
                     key={notif.id}
