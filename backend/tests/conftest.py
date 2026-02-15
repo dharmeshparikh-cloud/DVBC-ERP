@@ -29,11 +29,15 @@ TEST_USERS = {
 # Configure pytest-asyncio
 pytest_plugins = ('pytest_asyncio',)
 
+# Set async mode for pytest-asyncio
+def pytest_configure(config):
+    config.addinivalue_line("markers", "asyncio: mark test as async")
 
 @pytest.fixture(scope="function")
 def event_loop():
     """Create an event loop for each test function."""
-    loop = asyncio.new_event_loop()
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
     yield loop
     loop.close()
 
