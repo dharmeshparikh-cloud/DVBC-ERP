@@ -1,5 +1,13 @@
 # DVBC - NETRA Changelog
 
+## Feb 15, 2026 — Real-Time Notifications
+- In-app notification bell in header with unread badge and dropdown
+- Browser push notifications via Web Notification API (polls every 15s)
+- Admin auto-notified for: approval requests, leave requests, expenses, approval completions/rejections
+- Failed logins excluded from notifications (per user request)
+- Mark as read (individual + mark all) functionality
+- Color-coded by type: amber=approval, blue=leave, purple=expense, green=approved, red=rejected
+
 ## Feb 15, 2026 — Login Activity Dashboard Widget
 - Added Login Activity widget on admin Dashboard (recent logins, failed attempts, IP tracking)
 - Widget shows success/failed counters and color-coded event badges
