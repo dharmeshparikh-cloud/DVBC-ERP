@@ -1,124 +1,211 @@
-# Business Management Application - PRD
+# D&V Business Consulting - Comprehensive Business Management Application
 
-## Original Problem Statement
-A comprehensive business management application for a 50-person consulting organization covering HR, Marketing, Sales, Finance, and Consulting project workflows.
+## Product Overview
+A comprehensive business management application for D&V Business Consulting, a 50-person HR consulting organization covering HR, Marketing, Sales, Finance, and Consulting projects.
 
-## Application Name: DVBC - NETRA
+---
 
-## Core Requirements
-- **Authentication**: Dual login — Google OAuth (domain-restricted to @dvconsulting.co.in) + Email/Password (admin-created accounts)
-- **Sales Workflow**: Lead → Pricing Plan → **SOW** → Quotation → Agreement (with SOW) → Approval → Project → Kick-off
-- **SOW Management**: Sales creates SOW after Pricing Plan, with version tracking and freeze after kick-off
-- **Agreement Structure**: Party Info, NDA, NCA, Renewal, Conveyance, SOW, Project Details, Team, Pricing, Payment Terms, Signature
-- **Currency**: Indian Rupees (₹)
-- **No Deletion**: Soft delete only - all versions preserved
-- **Integrations**: Rocket Reach for lead generation (pending)
+## Original Requirements Summary
 
-## User Personas & Roles (13 Roles - Customizable)
+### Authentication & Roles
+- Customizable role and permissions management system
+- Google Auth for specific domain (@dvconsulting.co.in) alongside password-based login
+- Multiple roles: Admin, Principal Consultant, Lead Consultant, Senior Consultant, Consultant, Lean Consultant, Project Manager, Account Manager, HR Manager, HR Executive, etc.
 
-### System Roles (Cannot be deleted)
-1. **Admin**: Full system access, manage users/roles/permissions, edit frozen SOW
-2. **Manager**: View/download access, approve agreements, handover alerts
-3. **Executive**: Sales team - create leads, SOW, quotations, agreements
-4. **Consultant**: View SOW, update progress/status on assigned items
-5. **Project Manager**: Audit, approve, authorize SOW for client
-6. **Principal Consultant**: Freeze SOW, lead kick-off meetings
+### Sales Workflow
+- Lead → Pricing Plan → SOW → Quotation → Agreement → Approval pipeline
+- Lead scoring and management
+- Communication logs
+- Email templates
 
-### Custom Roles (Can be deleted/modified)
-7-13: Lean Consultant, Lead Consultant, Senior Consultant, HR Executive, HR Manager, Account Manager, Subject Matter Expert
+### Scope of Work (SOW)
+- Advanced SOW builder with spreadsheet-style inline editing
+- Version history and status tracking
+- Document uploads
+- Consultant assignment
 
-## Authentication System (Feb 15, 2026)
-- **Dual Login**: Email/Password (primary, all users) + Google OAuth (secondary, @dvconsulting.co.in only)
-- **Domain Restriction**: Google login restricted to dvconsulting.co.in Google Workspace accounts
-- **Pre-Registered Only**: Google email must match existing employee record in DB
-- **Admin Password Fallback**: Admin can always login via email/password
-- **OTP Password Reset**: Admin-only, 6-digit OTP with 10-min expiry
-- **Change Password**: Logged-in users can change their password
-- **Security Audit Log**: All auth events logged (login success/failure, OTP, password changes) with IP, user agent, timestamps
-- **Admin Audit Report**: Filterable table with Export CSV
+### Approval Workflows
+- Multi-level approval system based on reporting manager hierarchy
+- Leave, expense, and agreement approvals
 
-## Implemented Features
+### Employees Module
+- Employee data management (personal details, HR information)
+- Hierarchical organizational chart
+- Bank details, salary information
 
-### Authentication & Security (Feb 15, 2026) ✅
-- Google OAuth via Emergent Auth with domain restriction
-- Email/Password login for all users
-- Admin OTP password reset
-- Security Audit Log with search, filter, export
-- All auth events tracked with IP address
+### Reporting Manager Rules
+- Granular permissions for managers
+- Notification/action rights over direct/indirect reports
+- Approval escalations
+- Self-approval restrictions
 
-### Approval Workflow Engine ✅
-- Approvals Center with pending/my-requests/all tabs
-- Multi-level approval chain based on reporting manager hierarchy
-- Leave Request System auto-routed to manager → HR
+### HR Module
+- Leave Management with balances
+- Attendance tracking
+- Advanced Payroll system with customizable components
+- Bulk CSV input for payroll
+- Salary slip generation with PDF download
 
-### Role & Permissions Management ✅
-- 13 customizable roles with RBAC
-- User Management page with role assignment
+### Self-Service Workspace
+- My Attendance, My Leaves, My Expenses, My Salary Slips
 
-### Sales Workflow ✅
-- Lead management with scoring
-- Pricing Plan Builder
-- SOW Builder with version history
-- Quotations with approval workflow
-- Agreements with templates
-- Manager Approvals
+### Project Management
+- Project tracking with deliverables
+- Drag-and-drop Gantt Chart linked to SOW
+- Client communication module
+- Task management
 
-### HR Module ✅
-- Employee Management
-- Org Chart (visual hierarchy)
-- Leave Management with approval
-- Attendance tracking (manual/Excel)
-- Payroll with salary components
-- Expense Management with approval
+### Admin & Security
+- Security audit log for login and critical events
+- User management
 
-### My Workspace (Self-Service) ✅
-- My Attendance, My Leaves, My Salary Slips, My Expenses
+---
 
-### Meetings & MOM ✅
-- Sales Meetings and Consulting Meetings (separate modules)
-- Consulting MOMs linked to SOWs with commitment tracking
+## Implementation Status
 
-### Consulting ✅
-- Project Roadmap (Table/Kanban views)
-- Consultant Performance reviews
+### Completed Features ✅
 
-### Reports & Documents ✅
-- Comprehensive reporting with Excel/PDF download
-- Feature Index Word document generation
+#### Authentication & Security
+- [x] Password-based JWT authentication
+- [x] Google OAuth 2.0 via Emergent-managed Google Auth (domain restricted)
+- [x] Security audit logging for all login events
+- [x] OTP-based admin password reset
+- [x] Role-based access control
 
-## Upcoming Tasks (P1)
-- RACI Matrix for SOW
-- Drag-and-Drop Gantt Chart
+#### HR Module
+- [x] Employee management with full CRUD
+- [x] Org Chart visualization
+- [x] Leave management with balances
+- [x] Attendance tracking (individual and bulk)
+- [x] Advanced Payroll with customizable salary components
+- [x] Payroll input management (CSV import/export)
+- [x] Salary slip generation with PDF download
 
-## Future Tasks (P2)
-- Real Email Integration (SMTP)
-- Rocket Reach Integration
-- Detailed Time Tracking
-- Project Stage Tracking
-- Quarterly Activity Reports
+#### Sales Pipeline
+- [x] Lead management with scoring
+- [x] Communication logs
+- [x] Pricing plan builder
+- [x] SOW builder with inline editing
+- [x] Quotation generation
+- [x] Agreement management
+- [x] Approval workflows
+
+#### Project Management
+- [x] Project creation and tracking
+- [x] Task management linked to SOW items
+- [x] Gantt chart with drag-and-drop
+- [x] Client communication module
+- [x] Meeting management with MOM
+
+#### Self-Service
+- [x] My Workspace dashboards
+- [x] Self-service leave requests
+- [x] Self-service expense submissions
+- [x] Salary slip viewing
+
+#### Admin
+- [x] User management
+- [x] Role management
+- [x] Security audit log dashboard
+- [x] Notification system (in-app bell + browser push)
+
+---
+
+## Data Seeding (December 15, 2025)
+
+### Indian HR Consulting Test Data Created:
+- **Users**: 42 (across all roles)
+- **Employees**: 41 with complete HR data
+- **Leads**: 45 from major Indian companies (Tata Steel, Reliance, Infosys, etc.)
+- **Clients**: 6 converted clients
+- **Pricing Plans**: 30
+- **SOWs**: 30 with HR consulting services
+- **Quotations**: 18
+- **Agreements**: 10
+- **Projects**: 6 active/completed
+- **Tasks**: 96 linked to SOW items
+- **Meetings**: 48 (sales and consulting)
+- **Expense Requests**: 120
+- **Leave Requests**: 68
+- **Attendance Records**: 2665 (3 months history)
+- **Salary Components**: 10 (earnings + deductions)
+- **Payroll Inputs**: 246 (6 months history)
+- **Communication Logs**: 137
+- **Notifications**: 140
+
+### Test Credentials:
+- **Admin**: admin@company.com / admin123
+- **All Other Users**: [email] / password123
+
+---
+
+## Upcoming Tasks (P1 - High Priority)
+
+1. **RACI Matrix for SOW**
+   - Inline-editable role assignments (Responsible, Accountable, Consulted, Informed)
+   - Export to PDF/Excel
+
+2. **User Training Guide**
+   - Comprehensive downloadable Word/PDF document
+   - Coverage of all features, roles, and workflows
+
+---
+
+## Future Tasks (P2 - Medium Priority)
+
+1. **Real Email Integration (SMTP)**
+   - Replace mock email system with actual SMTP service
+
+2. **Rocket Reach Integration**
+   - Lead enrichment from Rocket Reach API
+
+3. **Detailed Time Tracking**
+   - Hourly time tracking against projects and tasks
+
+---
 
 ## Backlog (P3)
-- Marketing Flow Module
-- Finance & Accounts Flow Module
-- Salary Slip PDF Download
-- Server.py refactoring into modular routers
 
-## Tech Stack
-- **Frontend**: React, Tailwind CSS, Shadcn/UI
-- **Backend**: FastAPI, Pydantic, Motor (async MongoDB)
-- **Database**: MongoDB
-- **Authentication**: JWT + Google OAuth (Emergent Auth)
-- **Document Generation**: python-docx
+1. Marketing Flow Module
+2. Finance & Accounts Flow Module
+3. **Refactor server.py** - Break monolithic file into modular FastAPI routers
 
-## Key API Endpoints
-- `/api/auth/login` - Email/password login
-- `/api/auth/google` - Google OAuth login
-- `/api/auth/admin/request-otp` - Generate OTP for admin
-- `/api/auth/admin/reset-password` - Reset password with OTP
-- `/api/auth/change-password` - Change password (logged in)
-- `/api/security-audit-logs` - Security audit logs (admin only)
+---
 
-## Test Credentials
-- Admin: admin@company.com / admin123
-- Manager: manager@company.com / manager123
-- Executive: executive@company.com / executive123
+## Technical Stack
+
+### Frontend
+- React 18
+- Tailwind CSS
+- Shadcn/UI components
+- DHTMLX Gantt
+- react-to-print, xlsx, file-saver
+
+### Backend
+- FastAPI
+- Pydantic models
+- Motor (async MongoDB driver)
+- JWT authentication
+
+### Database
+- MongoDB
+
+### Authentication
+- Dual: JWT (password-based) + Google OAuth 2.0 (Emergent-managed)
+
+---
+
+## Key Files Reference
+
+- `/app/backend/server.py` - Main API server (needs refactoring)
+- `/app/backend/seed_indian_data.py` - Data seeding script
+- `/app/frontend/src/pages/` - All page components
+- `/app/frontend/src/components/Layout.js` - Navigation and layout
+
+---
+
+## Notes
+
+- Email sending is currently MOCKED (logs to console)
+- Org Chart depends on correct reporting_manager data
+- The server.py file has grown large and needs modular refactoring
