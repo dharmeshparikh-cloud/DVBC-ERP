@@ -153,6 +153,7 @@ class PricingPlan(BaseModel):
     project_duration_months: int
     payment_schedule: str  # 'monthly', 'quarterly', 'milestone', 'upfront'
     consultants: List[ConsultantAllocation] = []
+    team_deployment: List[Dict[str, Any]] = []  # New: Full team deployment data
     sow_id: Optional[str] = None  # Link to SOW
     base_amount: float = 0
     discount_percentage: float = 0
@@ -171,6 +172,7 @@ class PricingPlanCreate(BaseModel):
     project_duration_months: int
     payment_schedule: str
     consultants: List[ConsultantAllocation] = []
+    team_deployment: Optional[List[Dict[str, Any]]] = []  # New: Full team deployment data
     discount_percentage: Optional[float] = 0
     growth_consulting_plan: Optional[str] = None
     growth_guarantee: Optional[str] = None
