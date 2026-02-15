@@ -116,6 +116,7 @@ const Layout = () => {
     { name: 'User Management', href: '/user-management', icon: Shield },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
+    { name: 'Security Audit', href: '/security-audit', icon: Shield },
   ];
 
   return (
