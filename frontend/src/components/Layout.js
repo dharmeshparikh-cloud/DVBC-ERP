@@ -82,10 +82,11 @@ const Layout = () => {
     { name: 'Pricing Plans', href: '/sales-funnel/pricing-plans', icon: DollarSign },
     { name: 'Quotations', href: '/sales-funnel/quotations', icon: FileText },
     { name: 'Agreements', href: '/sales-funnel/agreements', icon: FileCheck },
+    { name: 'Kickoff Requests', href: '/kickoff-requests', icon: Send },
   ];
 
   const salesOtherItems = [
-    { name: 'Clients', href: '/clients', icon: Building2 },
+    { name: 'My Clients', href: '/clients', icon: Building2 },
     { name: 'Sales Meetings', href: '/sales-meetings', icon: Calendar },
     { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3 },
   ];
