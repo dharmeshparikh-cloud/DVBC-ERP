@@ -20,7 +20,7 @@ const HRDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${API}/api/stats/hr-dashboard`, {
+      const response = await fetch(`${API}/stats/hr-dashboard`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {

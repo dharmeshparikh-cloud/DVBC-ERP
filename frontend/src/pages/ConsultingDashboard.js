@@ -20,7 +20,7 @@ const ConsultingDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${API}/api/stats/consulting-dashboard`, {
+      const response = await fetch(`${API}/stats/consulting-dashboard`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {

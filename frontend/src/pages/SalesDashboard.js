@@ -20,7 +20,7 @@ const SalesDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${API}/api/stats/sales-dashboard`, {
+      const response = await fetch(`${API}/stats/sales-dashboard`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
