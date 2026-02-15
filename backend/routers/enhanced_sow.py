@@ -796,8 +796,6 @@ async def get_scope_variance_report(sow_id: str):
         "changes": []
     }
     
-    original_ids = {s.get("id") for s in original_scopes}
-    
     for scope in current_scopes:
         if scope.get("source") == "consulting_added":
             report["scopes_added_by_consulting"] += 1
