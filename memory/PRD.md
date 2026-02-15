@@ -7,7 +7,53 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### NEW: Role-Based SOW Workflow ✅ (LATEST)
+### NEW: SOW List Views for Sales & Consulting ✅ (LATEST)
+
+**1. Sales SOW List Dashboard (`/sales-funnel/sow-list`):**
+- Lists all SOWs created by sales team
+- Stats: Total SOWs, Draft, Handed Over, In Progress
+- Search by client/company
+- Status filter dropdown
+- Actions per SOW:
+  - Edit (navigate to scope selection)
+  - View (navigate to SOW review)
+  - Handover (locks SOW and sends to consulting)
+  - Quotation (proceed to quotation flow)
+
+**2. Consulting My Projects Dashboard (`/consulting/projects`):**
+- Lists all projects handed over to consulting
+- Stats: Total Projects, Pending Kickoff, Active, Completed
+- Progress circle showing completion percentage
+- Scope status breakdown (not started, in progress, completed, N/A)
+- Actions per Project:
+  - View Scopes (detailed scope view with Gantt/Kanban)
+  - Tasks (navigate to task management)
+
+**3. Project Tasks Page (`/consulting/project-tasks/:sowId`):**
+- Task list view showing all scopes as tasks
+- Per-task tracking: Status, Progress %, Days, Meetings
+- File upload per task
+- Two approval workflows:
+  - "Send to Manager" - Internal approval
+  - "Send to Client" - External approval
+- Select specific scopes for approval requests
+
+**4. Updated Navigation:**
+- Sales: Added "SOW List" menu item
+- Consulting: Added "My Projects" menu item
+
+**Flow:**
+```
+Pricing Plan → Scope Selection → SOW List (Sales)
+                                     ↓ [Handover]
+                              My Projects (Consulting)
+                                     ↓
+                              Project Tasks (Add/Edit/Upload)
+                                     ↓
+                              Send for Approval (Manager/Client)
+```
+
+### Previous: Gantt Chart Library Integration ✅ (Feb 15, 2026)
 
 **Implemented comprehensive role-based SOW (Scope of Work) workflow:**
 
