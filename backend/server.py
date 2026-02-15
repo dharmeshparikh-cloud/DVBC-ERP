@@ -7199,17 +7199,28 @@ async def get_expenses(
     client_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get expense requests"""
+    """Get expense requests. HR/Admin see all, managers see reportees + own, others see own only."""
     query = {}
     
-    # Non-admin/hr users can only see their own expenses
-    if current_user.role not in ['admin', 'hr_manager', 'manager', 'project_manager']:
-        employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
-        if employee:
-            query['employee_id'] = employee['id']
-    else:
+    if current_user.role in ['admin', 'hr_manager']:
+        # Full access
         if employee_id:
             query['employee_id'] = employee_id
+    else:
+        # Check if user has reportees (reporting manager)
+        reportee_emp_ids = await get_all_reportee_ids(current_user.id)
+        own_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
+        own_id = own_emp['id'] if own_emp else None
+        
+        if reportee_emp_ids:
+            # Show own + reportees
+            all_visible = reportee_emp_ids + ([own_id] if own_id else [])
+            if employee_id:
+                query['employee_id'] = employee_id  # Allow filtering
+            else:
+                query['employee_id'] = {"$in": all_visible}
+        elif own_id:
+            query['employee_id'] = own_id
     
     if status:
         query['status'] = status
@@ -7217,7 +7228,6 @@ async def get_expenses(
         query['client_id'] = client_id
     
     expenses = await db.expenses.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
-    
     return expenses
 
 @api_router.get("/expenses/{expense_id}")
