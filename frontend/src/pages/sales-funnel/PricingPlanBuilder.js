@@ -1284,6 +1284,120 @@ const PricingPlanBuilder = () => {
           </CardContent>
         </Card>
 
+        {/* Notes Section */}
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950 flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Notes & Descriptions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-700">Pricing Notes</Label>
+                <Textarea
+                  value={sectionNotes.pricing}
+                  onChange={(e) => setSectionNotes({ ...sectionNotes, pricing: e.target.value })}
+                  placeholder="Add notes about pricing, special terms, or conditions..."
+                  className="min-h-[80px] text-sm rounded-sm border-zinc-200"
+                  data-testid="notes-pricing"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-700">Team Deployment Notes</Label>
+                <Textarea
+                  value={sectionNotes.team_deployment}
+                  onChange={(e) => setSectionNotes({ ...sectionNotes, team_deployment: e.target.value })}
+                  placeholder="Add notes about team structure, availability, or roles..."
+                  className="min-h-[80px] text-sm rounded-sm border-zinc-200"
+                  data-testid="notes-team"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-700">Payment Terms Notes</Label>
+                <Textarea
+                  value={sectionNotes.payment_plan}
+                  onChange={(e) => setSectionNotes({ ...sectionNotes, payment_plan: e.target.value })}
+                  placeholder="Add notes about payment milestones, invoicing terms..."
+                  className="min-h-[80px] text-sm rounded-sm border-zinc-200"
+                  data-testid="notes-payment"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-700">General Notes</Label>
+                <Textarea
+                  value={sectionNotes.general}
+                  onChange={(e) => setSectionNotes({ ...sectionNotes, general: e.target.value })}
+                  placeholder="Add any additional notes or comments..."
+                  className="min-h-[80px] text-sm rounded-sm border-zinc-200"
+                  data-testid="notes-general"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Agreement Sections Configuration */}
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950 flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Agreement Sections
+              <span className="text-xs font-normal text-zinc-500 ml-2">
+                (Select sections to include in the agreement)
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { id: 'pricing_summary', label: 'Pricing Summary', icon: Calculator },
+                { id: 'team_deployment', label: 'Team Deployment', icon: Users },
+                { id: 'payment_schedule', label: 'Payment Schedule', icon: Calendar },
+                { id: 'gst_details', label: 'GST Details', icon: Receipt },
+                { id: 'tds_details', label: 'TDS Details', icon: Receipt },
+                { id: 'conveyance_details', label: 'Conveyance Details', icon: Receipt },
+                { id: 'discount_details', label: 'Discount Details', icon: IndianRupee },
+                { id: 'notes', label: 'Notes & Terms', icon: FileText }
+              ].map(section => (
+                <div 
+                  key={section.id} 
+                  className={`flex items-center gap-3 p-3 rounded-sm border cursor-pointer transition-all ${
+                    agreementSections[section.id] 
+                      ? 'border-emerald-300 bg-emerald-50' 
+                      : 'border-zinc-200 bg-zinc-50'
+                  }`}
+                  onClick={() => setAgreementSections(prev => ({
+                    ...prev,
+                    [section.id]: !prev[section.id]
+                  }))}
+                  data-testid={`agreement-section-${section.id}`}
+                >
+                  <Checkbox
+                    checked={agreementSections[section.id]}
+                    onCheckedChange={(checked) => setAgreementSections(prev => ({
+                      ...prev,
+                      [section.id]: checked
+                    }))}
+                  />
+                  {agreementSections[section.id] ? (
+                    <Eye className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 text-zinc-400" />
+                  )}
+                  <span className={`text-sm ${agreementSections[section.id] ? 'text-zinc-900 font-medium' : 'text-zinc-500'}`}>
+                    {section.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-zinc-500 mt-4">
+              Unchecked sections will be hidden from the final agreement document.
+            </p>
+          </CardContent>
+        </Card>
+
         <div className="flex gap-4">
           <Button
             type="button"
