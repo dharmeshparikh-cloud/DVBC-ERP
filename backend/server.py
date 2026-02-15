@@ -7639,12 +7639,27 @@ async def bulk_upload_attendance(records: List[dict], current_user: User = Depen
 
 @api_router.get("/attendance")
 async def get_attendance(employee_id: Optional[str] = None, month: Optional[str] = None, current_user: User = Depends(get_current_user)):
-    """Get attendance records. month format: YYYY-MM"""
+    """Get attendance records. HR sees all, managers see their reportees, others see own only."""
     query = {}
     if employee_id:
         query["employee_id"] = employee_id
     if month:
         query["date"] = {"$regex": f"^{month}"}
+    
+    # Scope filtering based on role
+    if current_user.role not in ["admin", "hr_manager", "hr_executive", "manager"]:
+        # Non-manager: check if they have reportees, otherwise only show own
+        reportee_ids = await get_all_reportee_ids(current_user.id)
+        if reportee_ids:
+            own_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
+            all_ids = reportee_ids + ([own_emp['id']] if own_emp else [])
+            if not employee_id:
+                query["employee_id"] = {"$in": all_ids}
+        else:
+            own_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
+            if own_emp and not employee_id:
+                query["employee_id"] = own_emp['id']
+    
     records = await db.attendance.find(query, {"_id": 0}).sort("date", -1).to_list(2000)
     return records
 
