@@ -163,8 +163,7 @@ class PricingPlan(BaseModel):
     discount_percentage: float = 0
     gst_percentage: float = 18
     total_amount: float = 0
-    growth_consulting_plan: Optional[str] = None
-    growth_guarantee: Optional[str] = None
+    payment_plan: Optional[Dict[str, Any]] = None  # Payment plan breakup with components
     is_active: bool = True  # Soft delete flag
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -179,8 +178,7 @@ class PricingPlanCreate(BaseModel):
     team_deployment: Optional[List[Dict[str, Any]]] = []  # Full team deployment data with allocation
     total_investment: Optional[float] = 0  # TOP-DOWN: Primary input
     discount_percentage: Optional[float] = 0
-    growth_consulting_plan: Optional[str] = None
-    growth_guarantee: Optional[str] = None
+    payment_plan: Optional[Dict[str, Any]] = None  # Payment plan breakup with components
 
 class Quotation(BaseModel):
     model_config = ConfigDict(extra="ignore")
