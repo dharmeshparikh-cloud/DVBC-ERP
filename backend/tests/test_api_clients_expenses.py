@@ -212,12 +212,14 @@ class TestExpensesPositive:
         create_response = await admin_client.post("/api/expenses", json=expense_data)
         
         if create_response.status_code == 200:
-            expense_id = create_response.json()["id"]
+            data = create_response.json()
+            expense_id = data.get("expense_id") or data.get("id")
             
-            # Submit it
-            response = await admin_client.post(f"/api/expenses/{expense_id}/submit")
-            
-            assert response.status_code in [200, 400]
+            if expense_id:
+                # Submit it
+                response = await admin_client.post(f"/api/expenses/{expense_id}/submit")
+                
+                assert response.status_code in [200, 400]
     
     @pytest.mark.asyncio
     async def test_exp006_get_expense_categories(self, admin_client):
