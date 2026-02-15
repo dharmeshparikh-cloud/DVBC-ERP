@@ -9,10 +9,11 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { 
   ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, 
-  Download, Printer, ArrowRight, Building2, Phone, Mail, MapPin
+  Download, Printer, ArrowRight, Building2, Phone, Mail, MapPin, AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
+import SalesFunnelProgress from '../../components/SalesFunnelProgress';
 
 const ProformaInvoice = () => {
   const { user } = useContext(AuthContext);
@@ -28,6 +29,7 @@ const ProformaInvoice = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [sowData, setSowData] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedPlanDetails, setSelectedPlanDetails] = useState(null);
   const [selectedLead, setSelectedLead] = useState(null);
