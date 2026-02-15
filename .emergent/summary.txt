@@ -11,86 +11,84 @@ The user requires a comprehensive business management application for a 50-perso
 -   **Expenses Module:** A system for employees to record expenses and submit them for approval.
 -   **Reporting Module:** A comprehensive reporting system with downloadable Excel and PDF reports.
 -   **Meetings & MOM:** A feature to create and manage Minutes of Meeting (MOM), with different workflows for Sales and Consulting projects. Consulting MOMs must be detailed, linked to client projects/agreements, and track against committed deliverables.
+-   **HR Module Expansion:** Add features for Leave Management, Attendance, Payroll, and a hierarchical Org Chart.
+-   **Self-Service Workspace:** A dedicated My Workspace for all users to manage their leaves, expenses, and view salary slips.
+-   **Project Management:** Implement Project Roadmaps and configurable Consultant Performance metrics linked to SOWs.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack React/FastAPI app with JWT-based RBAC. It features modules for SOW, Employees, Clients, Expenses, Approvals, and Reporting.
-
-In the last session, the agent implemented two major features:
-1.  **Agreement Export:** Users can now download SOW and Agreement documents as Word (.docx) or PDF files from the SOW Builder and Agreements pages.
-2.  **Meeting Form with MOM:** A new module was created to capture Minutes of Meeting (MOM), including agenda, discussion points, decisions, and action items.
-
-However, immediately after the MOM feature was delivered, the user provided critical feedback that the implementation is too generic and must be separated into two distinct workflows: a simple one for internal sales meetings and a detailed, project-linked one for billable client consulting meetings.
+The application is a large, full-stack business management suite. In the last session, the agent performed a massive feature expansion across multiple domains:
+1.  **Meetings & MOM Refactor:** The generic Meetings module was split into two distinct, role-based modules: Sales Meetings and Consulting Meetings, with the latter linked to SOWs and tracking commitments.
+2.  **Navigation Overhaul:** The sidebar was completely restructured into domain-specific, role-based sections: HR, Sales, Consulting, and Admin, with visual branch flows for key processes.
+3.  **HR Module Expansion:** Four new HR features were built: a visual hierarchical Org Chart, a dedicated Leave Management page with an approval workflow, an Attendance tracking page (manual/Excel entry), and a Payroll page for designing salary components and generating slips.
+4.  **My Workspace Implementation:** A new self-service section was added for all users, providing pages for managing personal leaves, expenses, attendance, and viewing salary slips.
+5.  **Project & Performance Management:** New Consulting features were added, including a Project Roadmap with table and Kanban views and a configurable Consultant Performance review module.
+6.  **Feature Index:** A downloadable Word document was generated, indexing all 67+ completed features and outlining the remaining backlog.
+7.  **Payroll & Expenses Integration:** The payroll generation logic was updated to automatically include approved employee expenses as a reimbursement component in their salary slips.
 
 **Last working item**:
--   **Last item agent was working:** The agent had just finished a generic implementation of the Meeting Form with MOM feature and was met with a user request for significant changes. The user needs to differentiate between Sales and Consulting meetings, where consulting meetings are much more detailed, linked to projects, and measured against commitments in the SOW. The agent's work was stopped pending this new directive.
--   **Status:** IN PROGRESS
--   **Agent Testing Done:** Y (For the generic MOM feature, which is now being reworked)
+-   **Last item agent was working:** The agent had just provided the user with a list of remaining high-priority features (P1 tasks) and recommended starting with the **RACI Matrix for SOW**. The agent is currently waiting for the user to confirm this priority or choose another task.
+-   **Status:** USER VERIFICATION PENDING
+-   **Agent Testing Done:** Y
 -   **Which testing method agent to use?** both
--   **User Testing Done:** N (User reviewed the feature and immediately requested a major refactor)
+-   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Refactor Meetings & MOM Module (P0)**
-    -   **Description:** The current one-size-fits-all MOM feature does not meet the user's business requirements. It needs to be split into two distinct workflows: a lightweight version for Sales meetings and a detailed, project-linked version for billable Consulting meetings.
-    -   **Attempted fixes:** A generic MOM module was created, but it did not account for the different meeting types.
+-   **Issue 1: Monolithic  file (P3 - Tech Debt)**
+    -   **Description:** The main backend file, , now exceeds 7700 lines of code. It contains the logic for almost all modules, making it extremely difficult to maintain, debug, and scale.
+    -   **Attempted fixes:** None in this session. The issue has been repeatedly acknowledged but deferred in favor of feature development.
     -   **Next debug checklist:**
-        1.  **Backend:**
-            -   Modify the  collection schema in  to include a  field ('sales' or 'consulting') and a  or  link for consulting meetings.
-            -   Update the Pydantic models (, ) to reflect the new schema.
-            -   Refactor the  and  endpoints to handle the different logic for each meeting type.
-            -   Add a new data model to track committed meetings from an SOW.
-        2.  **Frontend:**
-            -   Modify  to allow users to select a meeting type ('Sales' or 'Consulting').
-            -   When 'Consulting' is selected, display an additional field to link the meeting to a specific client/project.
-            -   The MOM form for consulting meetings should be detailed as implemented, while the form for sales meetings should be simplified (e.g., no action item assignment).
-        3.  **Reporting:**
-            -   Create a new dashboard or enhance the existing one to report on consulting meetings, tracking actual vs. committed meetings per project.
-    -   **Why fix this issue and what will be achieved with the fix?** To align the application with the user's core business process, enabling accurate tracking and billing of client-facing work.
+        1.  Plan a phased refactoring strategy.
+        2.  Create a  directory in .
+        3.  Create separate router files for each domain (e.g., , , , ).
+        4.  Systematically move related Pydantic models and FastAPI endpoints from  into their respective router files.
+        5.  Update  to use  for each new module.
+        6.  Run comprehensive regression tests after each module is migrated.
+    -   **Why fix this issue and what will be achieved with the fix?** To improve code maintainability, scalability, and developer velocity. It will prevent merge conflicts and make the codebase easier to understand.
     -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** backend
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Refactor Meetings & MOM Module**
-    -   **Where to resume:** Start by modifying the backend data models and APIs in  as outlined in Issue 1 above.
-    -   **What will be achieved with this?** A fully functional and business-aligned Meetings & MOM module.
-    -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None
+-   None. The agent is awaiting user direction.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    -   **(P1) Enhance Gantt Chart:** Implement draggable bars for date/week adjustments and display performance metrics (completion rate, on-time delivery) in both the SOW Builder and Project Tasks views.
-    -   **(P1) RACI Matrix for SOW:** Add an inline-editable RACI (Responsible, Accountable, Consulted, Informed) role assignment feature for each SOW item, with an option to export the matrix to PDF/Excel.
--   **Future Tasks:**
-    -   Expand Reporting Module to include the remaining 30+ reports.
-    -   Refactor the monolithic  into modular FastAPI routers.
-    -   Implement SOW linkages with consultant performance and project roadmap.
-    -   Rocket Reach Integration for lead enrichment.
-    -   HR Module (Detailed Time Tracking).
-    -   Marketing Workflow Module.
-    -   Finance and Accounts Flow Module.
+-   **Upcoming Tasks (P1 - High Priority):**
+    -   **RACI Matrix for SOW:** Implement an inline-editable RACI (Responsible, Accountable, Consulted, Informed) role assignment feature for each SOW item, with an option to export the matrix to PDF/Excel.
+    -   **Drag-and-Drop Gantt Chart:** Enhance the Gantt chart with draggable bars for date/week adjustments and display performance metrics.
+
+-   **Future Tasks (P2 - Medium Priority):**
+    -   **Real Email Integration (SMTP):** Replace the current mock email system with a real SMTP service for notifications, approvals, and sending MOMs to clients.
+    -   **Rocket Reach Integration:** Integrate with Rocket Reach for lead enrichment.
+    -   **Detailed Time Tracking:** Implement a module for hourly time tracking against specific projects and tasks.
+    -   **Project Stage Tracking:** Add functionality to track project progress through different stages.
+    -   **Quarterly Activity Reports:** Develop comprehensive, cross-domain summary reports.
+
+-   **Backlog (P3):**
+    -   Marketing Flow Module.
+    -   Finance & Accounts Flow Module.
+    -   Salary Slip PDF Download.
 
 **Completed work in this session**
--   **Agreement Export to Word/PDF (DONE):** Implemented backend logic () and frontend buttons (, ) to generate and download SOW/agreement documents.
--   **Initial Meeting Form with MOM (DONE, but requires rework):** Created a new module with backend APIs () and a frontend page () to create and manage Minutes of Meeting.
+-   **Meetings & MOM Refactor:** Split the module into role-based Sales Meetings and Consulting Meetings. (DONE)
+-   **Navigation Overhaul:** Restructured the UI into domain-based sections (HR, Sales, Consulting, Admin). (DONE)
+-   **HR Module Expansion:** Added pages for Org Chart (visual tree), Leave Management, Attendance, and Payroll. (DONE)
+-   **My Workspace Section:** Created a self-service area for all users (My Leaves, My Expenses, My Salary, My Attendance). (DONE)
+-   **Project Roadmap & Performance:** Implemented project roadmaps (Table/Kanban) and consultant performance reviews. (DONE)
+-   **Payroll-Expense Integration:** Linked approved expenses to be paid out during the payroll run. (DONE)
+-   **Feature Index Generation:** Created a script and endpoint to download a complete feature index as a Word document. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Org Chart is a simplified list, not a hierarchical tree.**
-    -   **Debug checklist:** Re-implement the hierarchical chart in  using a safe, non-recursive approach to avoid stack overflows.
-    -   **Why to solve this issue and what will be achieved with this?** To fulfill the original user requirement for a visual organizational chart.
-    -   **Should Test frontend/backend/both after fix:** frontend
-    -   **Is recurring issue?** Y
--   **Issue 2: Monolithic  file.**
-    -   **Debug checklist:** Plan and execute the refactoring of  into separate FastAPI routers based on domain (e.g., , , ).
-    -   **Why to solve this issue and what will be achieved with this?** To improve code maintainability, scalability, and reduce the risk of conflicts.
+-   **Issue 1: Monolithic  file.**
+    -   **Debug checklist:** Plan and execute the refactoring of  into separate FastAPI routers.
+    -   **Why to solve this issue and what will be achieved with this?** To improve code maintainability and scalability.
     -   **Should Test frontend/backend/both after fix:** backend
     -   **Is recurring issue?** Y
 
 **Known issue recurrence from previous fork**
--   None.
+-   The monolithic  file is a recurring issue that has been carried over and exacerbated in this session.
 
 **Code Architecture**
 
@@ -100,79 +98,73 @@ However, immediately after the MOM feature was delivered, the user provided crit
 -   **Backend:** FastAPI, Pydantic, Motor (async MongoDB)
 -   **Database:** MongoDB
 -   **Authentication:** JWT with role-based access control (RBAC)
--   **Document Generation:**  for Word,  for PDF.
+-   **Document Generation:**  for Word
 
 **key DB schema**
--   **users**: {email, password, name, role}
--   **roles**: {name, permissions}
--   **employees**: {user_id, employee_id, reporting_manager_id}
--   **clients**: {company_name, industry, location, contacts}
--   **expenses**: {employee_id, client_id, items, status}
--   **sow**: {client_id, items: [...], status}
--   **agreements**: {sow_id, content, status}
--   **meetings**: (New) {title, agenda, discussion_points, decisions, action_items, mom_status}
--   **moms**: (New) {meeting_id, content}
+-   **meetings**: {sow_id, type: 'sales' | 'consulting', ...}
+-   **attendance**: {employee_id, date, status, check_in, check_out}
+-   **salary_slips**: {employee_id, month, year, components, net_pay}
+-   **roadmaps**: {sow_id, name, status: 'draft' | 'submitted'}
+-   **roadmap_items**: {roadmap_id, phase, task, assigned_to, due_date, status}
+-   **performance_metrics**: {name, description, project_id, status: 'pending' | 'approved'}
+-   **performance_reviews**: {employee_id, project_id, scores: [{metric_id, score, comment}]}
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   : **Heavily modified** with new endpoints for document generation and the new Meetings/MOM feature.
--   : **New** file containing logic for generating Word and PDF documents.
--   : **New** page for the Meetings & MOM feature.
--   : Modified to add download buttons.
--   : Modified to add download buttons.
--   : Updated with the route for the new meetings page.
--   : Updated with a navigation link for the new meetings page.
--   : Updated to reflect completed features.
+-   : Heavily modified with dozens of new endpoints for HR, My Workspace, and Consulting features.
+-   : Completely rewritten to support the new domain-based navigation structure.
+-   **New Frontend Pages:**
+    -   
+    -   
+    -   , , , 
+    -   , , , 
+    -   , 
 
 **Areas that need refactoring**:
--   **/app/backend/server.py**: This remains a critical issue. The file's size and complexity continue to grow, making it difficult to maintain. A refactoring into FastAPI routers is urgently needed.
--   **/app/frontend/src/pages/meetings/Meetings.js** (and associated backend logic): The entire MOM feature needs to be refactored to support the user's request for separate 'Sales' and 'Consulting' workflows.
+-   **/app/backend/server.py**: This is the highest priority for technical debt. Its size is unmanageable and poses a significant risk to future development. It must be broken down into modular FastAPI routers.
 
 **key api endpoints**
--   : (NEW) Downloads an agreement as a .docx file.
--   : (NEW) Downloads an agreement as a .pdf file.
--   : (NEW) Downloads an SOW as a .docx file.
--   : (NEW) Downloads an SOW as a .pdf file.
--   : (NEW) CRUD endpoints for meetings.
--   : (NEW) CRUD endpoints for MOM associated with a meeting.
+-   : (NEW) GET endpoint for consulting meeting statistics.
+-   , , : (NEW) HR endpoints.
+-   , , , : (NEW) Self-service endpoints.
+-   , , : (NEW) Consulting endpoints.
+-   : (NEW) Serves the generated feature index Word document.
 
 **Critical Info for New Agent**
--   **Highest Priority:** The most critical task is to address the user's feedback on the **Meeting Form with MOM** feature. Do not proceed with other tasks until this is resolved. The user wants the feature split into two distinct workflows: a simple one for Sales and a detailed, project-linked one for Consulting. Your first action should be to plan and execute this refactor.
--   **Technical Debt:** The monolithic  file is a growing problem. The previous agent added even more code to it. A plan to refactor this file into smaller, domain-specific routers should be proposed to the user after the MOM feature is fixed.
--   The Agreement Export feature is complete and tested. The user's other P1 requests (Gantt chart enhancements, RACI matrix) are the next items in the backlog.
+-   **Await User Direction:** Your immediate first step is to wait for the user to confirm the next task. The agent has recommended the **RACI Matrix for SOW**, but the user may choose the Drag-and-Drop Gantt Chart or another feature. Do not proceed until you have this confirmation.
+-   **Technical Debt:** The monolithic  is a critical issue. After completing the next P1 feature, you should strongly propose a plan to the user to refactor this file.
+-   **Testing Agent Fixes:** The testing agent has been instrumental in this session, not just for validation but also for fixing bugs. It corrected a MongoDB  serialization error and a React  dependency issue. Pay close attention to its reports.
 
 **documents and test reports created in this job**
--   
--   
--    (updated)
+-    through 
+-    (updated extensively)
+-    (generated feature list)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Implement p1 all suggestions**: User approved implementing the four P1 features suggested by the agent. (Status: **IN PROGRESS**)
-2.  **User clarified requirements for P1 features**: both for performance metrics; Date and week adjustment as well for Gantt drag; Both for applying Gantt changes; Yes for inline editable RACI and PDF/Excel export; Yes for linking MOM to project/client; Yes for creating follow-up tasks from MOM action items. (Status: **RESOLVED**)
-3.  **Yes do it p1 / Anyone from p1**: User prompted the agent to start work on the P1 tasks. (Status: **RESOLVED**)
-4.  **Where this meetings are linked...**: The user's most recent and critical message. They have reviewed the new MOM feature and found it insufficient. They require a clear distinction between Sales meetings and Consulting meetings, with the latter being linked to specific projects and tracked against commitments. (Status: **PENDING ACTION**)
+1.  **User:** Can you create a index of all the features... (Status: **RESOLVED**)
+2.  **Agent:** Generated a Word document with a full feature index and download link. (Status: **RESOLVED**)
+3.  **User:** Is my all work saved from previous session (repeated twice) (Status: **RESOLVED**)
+4.  **Agent:** Confirmed that all work is saved and recommended using Save to GitHub for external backup. (Status: **RESOLVED**)
+5.  **User:** What should be my now priority (Status: **PENDING ACTION**)
+6.  **Agent:** Provided a prioritized list of remaining features (P1, P2, P3) and recommended tackling the RACI Matrix for SOW next, asking the user for their choice. (Status: **PENDING USER RESPONSE**)
 
 **Project Health Check:**
--   **Broken:**
-    -   No features are currently crashing the application.
--   **Mocked:**
-    -   Email sending is still a log-based placeholder.
--   **Needs Rework:**
-    -   The entire **Meetings & MOM module** needs to be refactored to meet new user requirements.
+-   **Broken:** None.
+-   **Mocked:** Email sending functionality logs to the console instead of sending real emails.
+-   **Needs Rework:** The Org Chart is functional but relies on  data being correctly set for employees to form a proper hierarchy.
 
 **3rd Party Integrations**
 -   **react-gantt-timeline:** Requested, but not yet installed.
 -   **Rocket Reach:** Requested, but not yet implemented.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (used for both the Agreement Export and MOM features).
+-   **Testing agent used after significant changes:** YES (used 5 times for major feature releases).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:**
-    -   
-    -   
--   **Known regressions:** None.
+    -    to 
+-   **Known regressions:** None. The testing agent caught and fixed potential regressions.
 
 **Credentials to test flow:**
 -   **Admin:**  / 
@@ -180,5 +172,4 @@ However, immediately after the MOM feature was delivered, the user provided crit
 -   **Executive:**  / 
 
 **What agent forgot to execute**
--   The agent did not get user confirmation on which P1 task to prioritize and chose one (Meeting Form with MOM). This led to implementing a feature that did not fully align with the user's unstated, more nuanced requirements, forcing an immediate rework.
--   The agent continued to add significant logic to the monolithic  file, further increasing technical debt despite it being marked for refactoring.</analysis>
+-   The agent successfully implemented all user requests from this session. The only pending item is the long-standing technical debt of refactoring , which has been consciously deferred to prioritize feature delivery.</analysis>
