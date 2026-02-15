@@ -235,16 +235,83 @@ const AgreementView = () => {
     setTimeout(() => printWindow.print(), 500);
   };
 
+  // Canvas signature functions
+  const startDrawing = (e) => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const draw = (e) => {
+    if (!isDrawing || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    setHasSignature(true);
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearSignature = () => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasSignature(false);
+    setSignatureData(prev => ({ ...prev, signature_image: null }));
+  };
+
+  const getSignatureImage = () => {
+    if (!canvasRef.current || !hasSignature) return null;
+    return canvasRef.current.toDataURL('image/png');
+  };
+
+  const initCanvas = () => {
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      ctx.strokeStyle = '#18181b';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+    }
+  };
+
+  // Initialize canvas when dialog opens
+  useEffect(() => {
+    if (signatureDialogOpen) {
+      setTimeout(initCanvas, 100);
+    }
+  }, [signatureDialogOpen]);
+
   const handleESignature = async () => {
     if (!signatureData.signer_name || !signatureData.signer_email) {
       toast.error('Please fill signer name and email');
       return;
     }
+
+    if (!hasSignature) {
+      toast.error('Please draw your signature');
+      return;
+    }
     
     setSaving(true);
     try {
+      const signatureImage = getSignatureImage();
       await axios.post(`${API}/agreements/${agreementId}/sign`, {
         ...signatureData,
+        signature_image: signatureImage,
         signed_at: new Date().toISOString()
       });
       toast.success('Agreement signed successfully');
