@@ -111,6 +111,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="expenses" element={<Expenses />} />
         <Route path="reports" element={<Reports />} />
         <Route path="security-audit" element={<SecurityAuditLog />} />
+        <Route path="gantt-chart" element={<GanttChart />} />
       </Route>
     </Routes>
   );
