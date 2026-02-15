@@ -1,5 +1,13 @@
 # DVBC - NETRA Changelog
 
+## Feb 15, 2026 — Salary Slip Redesign
+- Modern salary slip format with company logo, PAYSLIP badge, reference number
+- Net pay shown in words (Indian number system)
+- Employer/Employee signature lines
+- System-generated disclosure footer with confidentiality notice
+- Download/Print functionality via new browser window
+- Summary cards on My Salary Slips page (Total Slips, Latest Net Pay, YTD)
+
 ## Feb 15, 2026 — Reporting Manager Rules
 - Managers notified for direct + second-line reportees' activities
 - Can only approve direct reportees' requests (not second-line)
