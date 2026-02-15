@@ -174,6 +174,26 @@ const Agreements = () => {
     }));
   };
 
+  // Recalculate committed meetings for all team members when tenure changes
+  const handleTenureChange = (newTenure) => {
+    const updatedTeamDeployment = formData.team_deployment.map(member => ({
+      ...member,
+      committed_meetings: calculateCommittedMeetings(member.frequency, newTenure)
+    }));
+    setFormData(prev => ({
+      ...prev,
+      project_tenure_months: newTenure,
+      team_deployment: updatedTeamDeployment
+    }));
+  };
+
+  // Calculate total cost for team deployment
+  const calculateTeamTotals = () => {
+    const totalMeetings = formData.team_deployment.reduce((sum, m) => sum + (m.committed_meetings || 0), 0);
+    const totalCost = formData.team_deployment.reduce((sum, m) => sum + ((m.committed_meetings || 0) * (m.base_rate_per_meeting || 12500)), 0);
+    return { totalMeetings, totalCost };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
