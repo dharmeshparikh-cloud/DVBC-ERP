@@ -557,7 +557,8 @@ const PricingPlanBuilder = () => {
 
       const response = await axios.post(`${API}/pricing-plans`, pricingPlan);
       toast.success('Pricing plan created successfully');
-      navigate(`/sales-funnel/sow/${response.data.id}?lead_id=${leadId}`);
+      // Navigate to new scope selection flow
+      navigate(`/sales-funnel/scope-selection/${response.data.id}?lead_id=${leadId}`);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create pricing plan');
     } finally {
