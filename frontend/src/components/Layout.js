@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
   User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronDown,
-  GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download
+  GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox
 } from 'lucide-react';
 
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
