@@ -46,15 +46,27 @@ const MEETING_TYPES = [
 ];
 
 const FREQUENCY_OPTIONS = [
-  '1 per month',
-  '2 per month',
-  '1 per week',
-  '2 per week',
-  '1 per quarter',
-  'Bi-weekly',
-  'As needed',
-  'On demand'
+  { value: '1 per week', label: '1 per week', perMonth: 4 },
+  { value: '2 per week', label: '2 per week', perMonth: 8 },
+  { value: '3 per week', label: '3 per week', perMonth: 12 },
+  { value: '4 per week', label: '4 per week', perMonth: 16 },
+  { value: '5 per week', label: '5 per week', perMonth: 20 },
+  { value: '1 per month', label: '1 per month', perMonth: 1 },
+  { value: '2 per month', label: '2 per month', perMonth: 2 },
+  { value: '3 per month', label: '3 per month', perMonth: 3 },
+  { value: '4 per month', label: '4 per month', perMonth: 4 },
+  { value: 'Bi-weekly', label: 'Bi-weekly', perMonth: 2 },
+  { value: '1 per quarter', label: '1 per quarter', perMonth: 0.33 },
+  { value: 'As needed', label: 'As needed', perMonth: 0 },
+  { value: 'On demand', label: 'On demand', perMonth: 0 }
 ];
+
+// Helper function to calculate committed meetings based on frequency and tenure
+const calculateCommittedMeetings = (frequency, tenureMonths) => {
+  const freqOption = FREQUENCY_OPTIONS.find(f => f.value === frequency);
+  if (!freqOption || freqOption.perMonth === 0) return 0;
+  return Math.round(freqOption.perMonth * tenureMonths);
+};
 
 const Agreements = () => {
   const { user } = useContext(AuthContext);
