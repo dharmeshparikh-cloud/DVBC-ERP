@@ -1340,6 +1340,197 @@ const ConsultingScopeView = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add Task Dialog */}
+      <Dialog open={addTaskDialog} onOpenChange={setAddTaskDialog}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+              Add New Task
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              Add a task to scope: {selectedScope?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Task Name *</Label>
+              <Input
+                value={newTask.name}
+                onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
+                placeholder="Enter task name..."
+                className="rounded-sm"
+                data-testid="task-name-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <textarea
+                value={newTask.description}
+                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                rows={2}
+                placeholder="Task description..."
+                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                data-testid="task-description-input"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <select
+                  value={newTask.priority}
+                  onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
+                  data-testid="task-priority-select"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input
+                  type="date"
+                  value={newTask.due_date}
+                  onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                  className="rounded-sm"
+                  data-testid="task-due-date-input"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Assign To</Label>
+              <select
+                value={newTask.assigned_to_id}
+                onChange={(e) => setNewTask({ ...newTask, assigned_to_id: e.target.value })}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
+                data-testid="task-assign-select"
+              >
+                <option value="">Unassigned</option>
+                {employees.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button 
+                onClick={() => setAddTaskDialog(false)} 
+                variant="outline" 
+                className="flex-1 rounded-sm"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateTask}
+                disabled={!newTask.name}
+                className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none disabled:opacity-50"
+                data-testid="create-task-button"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Task
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Approval Request Dialog */}
+      <Dialog open={taskApprovalDialog} onOpenChange={setTaskApprovalDialog}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+              Request Task Approval
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              Request approval for: {selectedTask?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-sm p-3">
+              <div className="text-sm text-blue-700">
+                <strong>Parallel Approval:</strong> Both Manager and Client will receive the request and can approve independently.
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Manager *</Label>
+              <select
+                value={approvalData.manager_id}
+                onChange={(e) => {
+                  const mgr = employees.find(emp => emp.id === e.target.value);
+                  setApprovalData({ 
+                    ...approvalData, 
+                    manager_id: e.target.value,
+                    manager_name: mgr ? `${mgr.first_name} ${mgr.last_name}` : ''
+                  });
+                }}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
+                data-testid="approval-manager-select"
+              >
+                <option value="">Select Manager...</option>
+                {employees.filter(e => e.role === 'manager' || e.role === 'admin').map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Client Name</Label>
+              <Input
+                value={approvalData.client_name}
+                onChange={(e) => setApprovalData({ ...approvalData, client_name: e.target.value })}
+                placeholder="Client contact name..."
+                className="rounded-sm"
+                data-testid="approval-client-name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Client Email *</Label>
+              <Input
+                type="email"
+                value={approvalData.client_email}
+                onChange={(e) => setApprovalData({ ...approvalData, client_email: e.target.value })}
+                placeholder="client@company.com"
+                className="rounded-sm"
+                data-testid="approval-client-email"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Notes (Optional)</Label>
+              <textarea
+                value={approvalData.notes}
+                onChange={(e) => setApprovalData({ ...approvalData, notes: e.target.value })}
+                rows={2}
+                placeholder="Additional notes for approvers..."
+                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                data-testid="approval-notes"
+              />
+            </div>
+            
+            <div className="flex gap-3 pt-2">
+              <Button 
+                onClick={() => setTaskApprovalDialog(false)} 
+                variant="outline" 
+                className="flex-1 rounded-sm"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleRequestApproval}
+                disabled={!approvalData.manager_id || !approvalData.client_email}
+                className="flex-1 bg-amber-500 text-white hover:bg-amber-600 rounded-sm shadow-none disabled:opacity-50"
+                data-testid="submit-approval-request"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Request Approval
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
