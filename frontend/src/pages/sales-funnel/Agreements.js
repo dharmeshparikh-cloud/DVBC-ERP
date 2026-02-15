@@ -77,6 +77,7 @@ const Agreements = () => {
   
   const [agreements, setAgreements] = useState([]);
   const [quotations, setQuotations] = useState([]);
+  const [pricingPlans, setPricingPlans] = useState([]);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -89,6 +90,7 @@ const Agreements = () => {
     cc_emails: ''
   });
   const [downloading, setDownloading] = useState({});
+  const [inheritedFromPlan, setInheritedFromPlan] = useState(false);
   
   const [formData, setFormData] = useState({
     quotation_id: quotationId || '',
