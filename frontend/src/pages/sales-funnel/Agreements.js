@@ -124,21 +124,75 @@ const Agreements = () => {
 
   const fetchData = async () => {
     try {
-      const [agreementsRes, quotationsRes, leadsRes, templatesRes] = await Promise.all([
+      const [agreementsRes, quotationsRes, leadsRes, templatesRes, plansRes] = await Promise.all([
         axios.get(`${API}/agreements`, { params: leadId ? { lead_id: leadId } : {} }),
         axios.get(`${API}/quotations`),
         axios.get(`${API}/leads`),
-        axios.get(`${API}/email-templates`)
+        axios.get(`${API}/email-templates`),
+        axios.get(`${API}/pricing-plans`)
       ]);
       setAgreements(agreementsRes.data);
       setQuotations(quotationsRes.data.filter(q => q.is_final));
       setLeads(leadsRes.data);
       setEmailTemplates(templatesRes.data);
+      setPricingPlans(plansRes.data);
+      
+      // If quotationId is provided, auto-populate from the pricing plan
+      if (quotationId) {
+        const quotation = quotationsRes.data.find(q => q.id === quotationId);
+        if (quotation) {
+          const plan = plansRes.data.find(p => p.id === quotation.pricing_plan_id);
+          if (plan) {
+            autoPopulateFromPlan(plan, quotation);
+          }
+        }
+      }
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Auto-populate team deployment from pricing plan
+  const autoPopulateFromPlan = (plan, quotation) => {
+    const teamData = plan.team_deployment?.length > 0 ? plan.team_deployment : plan.consultants;
+    
+    if (teamData && teamData.length > 0) {
+      const convertedTeam = teamData.map((member, idx) => ({
+        id: Date.now() + idx,
+        role: member.role || member.consultant_type || '',
+        meeting_type: member.meeting_type || '',
+        frequency: member.frequency || '',
+        mode: member.mode || 'Online',
+        base_rate_per_meeting: member.rate_per_meeting || 12500,
+        count: member.count || 1,
+        committed_meetings: (member.committed_meetings || member.meetings || 0) * (member.count || 1),
+        notes: member.notes || ''
+      }));
+      
+      setFormData(prev => ({
+        ...prev,
+        quotation_id: quotation.id,
+        lead_id: quotation.lead_id,
+        project_tenure_months: plan.project_duration_months || 12,
+        meeting_frequency: plan.project_duration_type === 'monthly' ? 'Monthly' : 'Custom',
+        team_deployment: convertedTeam
+      }));
+      setInheritedFromPlan(true);
+    }
+  };
+
+  // Handle quotation selection change
+  const handleQuotationSelect = (quotationId) => {
+    const quotation = quotations.find(q => q.id === quotationId);
+    if (quotation) {
+      const plan = pricingPlans.find(p => p.id === quotation.pricing_plan_id);
+      if (plan) {
+        autoPopulateFromPlan(plan, quotation);
+      }
+    }
+    setFormData(prev => ({ ...prev, quotation_id: quotationId }));
   };
 
   const addTeamMember = () => {
