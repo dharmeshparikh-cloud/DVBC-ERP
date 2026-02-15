@@ -638,7 +638,7 @@ const ProformaInvoice = () => {
                   <option value="">Select a pricing plan</option>
                   {pricingPlans.filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
                     <option key={plan.id} value={plan.id}>
-                      {plan.project_duration_months} months ({plan.project_duration_type}) - {formatINR(plan.total_amount || calculatePlanTotals(plan).subtotal)}
+                      Plan #{plan.id.slice(-6).toUpperCase()} • {plan.project_duration_months} months ({plan.project_duration_type}) • {formatINR(plan.total_amount || plan.total_investment || calculatePlanTotals(plan).subtotal)}
                     </option>
                   ))}
                 </select>
