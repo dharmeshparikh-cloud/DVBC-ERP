@@ -9326,6 +9326,8 @@ async def download_postman_collection():
 
 
 api_router.include_router(masters_router.router)
+api_router.include_router(sow_masters_router.router)
+api_router.include_router(enhanced_sow_router.router)
 app.include_router(api_router)
 
 app.add_middleware(
