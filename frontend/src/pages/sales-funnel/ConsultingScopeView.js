@@ -43,6 +43,7 @@ const ConsultingScopeView = () => {
   const [sow, setSow] = useState(null);
   const [lead, setLead] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [employees, setEmployees] = useState([]);
   
   // View mode
   const [viewMode, setViewMode] = useState('list'); // list, kanban, gantt, timeline
@@ -56,6 +57,8 @@ const ConsultingScopeView = () => {
   const [attachmentDialog, setAttachmentDialog] = useState(false);
   const [changeLogDialog, setChangeLogDialog] = useState(false);
   const [roadmapSubmitDialog, setRoadmapSubmitDialog] = useState(false);
+  const [addTaskDialog, setAddTaskDialog] = useState(false);
+  const [taskApprovalDialog, setTaskApprovalDialog] = useState(false);
   
   // Selected scope for editing
   const [selectedScope, setSelectedScope] = useState(null);
@@ -66,6 +69,12 @@ const ConsultingScopeView = () => {
   
   // Roadmap submit data
   const [roadmapData, setRoadmapData] = useState({ approval_cycle: 'monthly', period_label: '' });
+  
+  // Task management
+  const [expandedScopes, setExpandedScopes] = useState({});
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [newTask, setNewTask] = useState({ name: '', description: '', priority: 'medium', due_date: '' });
+  const [approvalData, setApprovalData] = useState({ manager_id: '', manager_name: '', client_email: '', notes: '' });
   
   // Role checks
   const consultingRoles = ['consultant', 'lean_consultant', 'lead_consultant', 'senior_consultant', 'principal_consultant', 'subject_matter_expert', 'project_manager'];
