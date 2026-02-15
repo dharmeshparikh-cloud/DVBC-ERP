@@ -203,25 +203,30 @@ async def create_sow_from_sales_selection(
         }
         scopes.append(scope)
         
-        # Add custom scope to master for future use
-        existing_template = await db.sow_scope_templates.find_one({
-            "category_code": category.get("code") if category else "",
-            "name": custom.get("name")
-        })
-        if not existing_template and category:
-            new_template = {
-                "id": str(uuid.uuid4()),
-                "category_id": custom.get("category_id"),
-                "category_code": category.get("code"),
-                "name": custom.get("name"),
-                "description": custom.get("description"),
-                "is_custom": True,
-                "is_active": True,
-                "created_by": current_user_id,
-                "created_at": now.isoformat(),
-                "updated_at": now.isoformat()
-            }
-            await db.sow_scope_templates.insert_one(new_template)
+        # Add custom scope to master list for future use
+        if category and custom.get("name"):
+            category_code = category.get("code", "")
+            scope_name = custom.get("name", "").strip()
+            
+            existing_template = await db.sow_scope_templates.find_one({
+                "category_code": category_code,
+                "name": scope_name
+            })
+            
+            if not existing_template:
+                new_template = {
+                    "id": str(uuid.uuid4()),
+                    "category_id": custom.get("category_id"),
+                    "category_code": category_code,
+                    "name": scope_name,
+                    "description": custom.get("description", ""),
+                    "is_custom": True,
+                    "is_active": True,
+                    "created_by": current_user_id,
+                    "created_at": now.isoformat(),
+                    "updated_at": now.isoformat()
+                }
+                await db.sow_scope_templates.insert_one(new_template)
     
     # Create original scope snapshot (locked, never editable)
     original_snapshot = {
