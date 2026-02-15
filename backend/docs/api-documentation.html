@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&V Business Consulting - API Documentation</title>
+    <style>
+        :root {
+            --primary: #1e3a5f;
+            --secondary: #2563eb;
+            --accent: #10b981;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, #2d4a6f 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        header p { opacity: 0.9; font-size: 1.1rem; }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin: 0.25rem;
+        }
+        .badge-get { background: #dbeafe; color: #1d4ed8; }
+        .badge-post { background: #dcfce7; color: #16a34a; }
+        .badge-put { background: #fef3c7; color: #d97706; }
+        .badge-patch { background: #e0e7ff; color: #4f46e5; }
+        .badge-delete { background: #fee2e2; color: #dc2626; }
+        .toc {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .toc h2 { margin-bottom: 1rem; color: var(--primary); }
+        .toc ul { list-style: none; columns: 2; }
+        .toc li { padding: 0.5rem 0; }
+        .toc a { color: var(--secondary); text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .section {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .endpoint {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+        .endpoint-header:hover { background: #f1f5f9; }
+        .endpoint-method {
+            font-family: monospace;
+            font-weight: 700;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            margin-right: 1rem;
+            font-size: 0.85rem;
+        }
+        .method-get { background: #dbeafe; color: #1d4ed8; }
+        .method-post { background: #dcfce7; color: #16a34a; }
+        .method-put { background: #fef3c7; color: #d97706; }
+        .method-patch { background: #e0e7ff; color: #4f46e5; }
+        .method-delete { background: #fee2e2; color: #dc2626; }
+        .endpoint-path {
+            font-family: monospace;
+            color: var(--text);
+            flex: 1;
+        }
+        .endpoint-desc { color: var(--muted); font-size: 0.9rem; }
+        .endpoint-body { padding: 1rem; display: none; }
+        .endpoint.open .endpoint-body { display: block; }
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        .param-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        .param-table th, .param-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .param-table th { background: #f8fafc; font-weight: 600; }
+        .required { color: #dc2626; font-size: 0.75rem; }
+        .auth-section {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .auth-section h3 { color: #92400e; margin-bottom: 0.5rem; }
+        .download-section {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        .download-btn {
+            display: inline-block;
+            background: var(--secondary);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 0.5rem;
+            transition: transform 0.2s;
+        }
+        .download-btn:hover { transform: translateY(-2px); }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--primary); }
+        .stat-label { color: var(--muted); font-size: 0.85rem; }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+        @media print {
+            .endpoint-body { display: block !important; }
+            .download-section { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>D&V Business Consulting</h1>
+        <p>API Documentation v1.0</p>
+        <div style="margin-top: 1rem;">
+            <span class="badge badge-get">211 Endpoints</span>
+            <span class="badge badge-post">OWASP Compliant</span>
+            <span class="badge badge-patch">JWT Auth</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="download-section">
+            <h2>Download API Resources</h2>
+            <p style="margin: 1rem 0; color: var(--muted);">Get the complete API collection for your preferred tool</p>
+            <a href="/api/downloads/feature-index" class="download-btn">📄 Feature Index</a>
+            <a href="DV_Business_Consulting_API.postman_collection.json" class="download-btn" download>📦 Postman Collection</a>
+        </div>
+
+        <div class="auth-section">
+            <h3>🔐 Authentication</h3>
+            <p>All API endpoints require JWT Bearer token authentication. Obtain a token via the <code>/api/auth/login</code> endpoint.</p>
+            <div class="code-block">
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+            </div>
+            <p style="margin-top: 0.5rem;"><strong>Test Credentials:</strong> admin@company.com / admin123</p>
+        </div>
+
+        <div class="toc">
+            <h2>📑 Table of Contents</h2>
+            <ul>
+                <li><a href="#auth">Authentication (7 endpoints)</a></li>
+                <li><a href="#leads">Leads Management (7 endpoints)</a></li>
+                <li><a href="#employees">Employees (12 endpoints)</a></li>
+                <li><a href="#clients">Clients (8 endpoints)</a></li>
+                <li><a href="#projects">Projects (6 endpoints)</a></li>
+                <li><a href="#meetings">Meetings & MOM (7 endpoints)</a></li>
+                <li><a href="#sow">Scope of Work (12 endpoints)</a></li>
+                <li><a href="#quotations">Quotations & Agreements (10 endpoints)</a></li>
+                <li><a href="#leave">Leave Management (4 endpoints)</a></li>
+                <li><a href="#attendance">Attendance (4 endpoints)</a></li>
+                <li><a href="#payroll">Payroll (6 endpoints)</a></li>
+                <li><a href="#expenses">Expenses (7 endpoints)</a></li>
+                <li><a href="#approvals">Approvals (5 endpoints)</a></li>
+                <li><a href="#users">Users & Roles (9 endpoints)</a></li>
+                <li><a href="#reports">Reports (4 endpoints)</a></li>
+                <li><a href="#security">Security & Admin (3 endpoints)</a></li>
+            </ul>
+        </div>
+
+        <!-- AUTHENTICATION -->
+        <section id="auth" class="section">
+            <h2>🔐 Authentication</h2>
+            
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/auth/login</span>
+                    <span class="endpoint-desc">Authenticate and get JWT token</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body</h4>
+                    <div class="code-block">{
+  "email": "admin@company.com",
+  "password": "admin123"
+}</div>
+                    <h4>Response (200 OK)</h4>
+                    <div class="code-block">{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "user": {
+    "id": "uuid",
+    "email": "admin@company.com",
+    "full_name": "System Administrator",
+    "role": "admin",
+    "is_active": true
+  }
+}</div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/auth/register</span>
+                    <span class="endpoint-desc">Register new user</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/auth/me</span>
+                    <span class="endpoint-desc">Get current user info</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/auth/google</span>
+                    <span class="endpoint-desc">Google OAuth login (@dvconsulting.co.in only)</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/auth/change-password</span>
+                    <span class="endpoint-desc">Change user password</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/auth/admin/request-otp</span>
+                    <span class="endpoint-desc">Request OTP for admin password reset</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/auth/admin/reset-password</span>
+                    <span class="endpoint-desc">Reset admin password with OTP</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEADS -->
+        <section id="leads" class="section">
+            <h2>👥 Leads Management</h2>
+            
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/leads</span>
+                    <span class="endpoint-desc">Get all leads with optional filters</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <table class="param-table">
+                        <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+                        <tr><td>status</td><td>string</td><td>Filter by status (new, contacted, qualified, proposal, agreement, closed, lost)</td></tr>
+                        <tr><td>assigned_to</td><td>string</td><td>Filter by assigned user ID</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/leads</span>
+                    <span class="endpoint-desc">Create new lead</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body</h4>
+                    <div class="code-block">{
+  "first_name": "Rajesh",
+  "last_name": "Kumar",
+  "company": "Tata Steel Ltd",
+  "email": "rajesh.kumar@tatasteel.com",
+  "phone": "+91-9876543210",
+  "job_title": "HR Director",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "country": "India",
+  "status": "new",
+  "notes": "Interested in HR consulting"
+}</div>
+                    <p>Lead score is automatically calculated based on job title, contact completeness, and engagement status.</p>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/leads/{lead_id}</span>
+                    <span class="endpoint-desc">Get lead by ID</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-put">PUT</span>
+                    <span class="endpoint-path">/api/leads/{lead_id}</span>
+                    <span class="endpoint-desc">Update lead</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-delete">DELETE</span>
+                    <span class="endpoint-path">/api/leads/{lead_id}</span>
+                    <span class="endpoint-desc">Delete lead (Admin only)</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/leads/{lead_id}/suggestions</span>
+                    <span class="endpoint-desc">Get AI-powered suggestions for lead</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/leads/bulk-upload</span>
+                    <span class="endpoint-desc">Bulk upload leads via CSV</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- EMPLOYEES -->
+        <section id="employees" class="section">
+            <h2>👨‍💼 Employees</h2>
+            
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/employees</span>
+                    <span class="endpoint-desc">Get all employees</span>
+                </div>
+            </div>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/employees</span>
+                    <span class="endpoint-desc">Create new employee</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body</h4>
+                    <div class="code-block">{
+  "employee_id": "EMP-001",
+  "first_name": "Amit",
+  "last_name": "Sharma",
+  "email": "amit.sharma@dvconsulting.co.in",
+  "phone": "+91-9876543210",
+  "department": "Consulting",
+  "designation": "Senior Consultant",
+  "employment_type": "full_time",
+  "reporting_manager_id": "uuid"
+}</div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/employees/{employee_id}</span>
+                    <span class="endpoint-desc">Get employee by ID</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-patch">PATCH</span>
+                    <span class="endpoint-path">/api/employees/{employee_id}</span>
+                    <span class="endpoint-desc">Update employee</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-delete">DELETE</span>
+                    <span class="endpoint-path">/api/employees/{employee_id}</span>
+                    <span class="endpoint-desc">Delete employee</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/employees/org-chart/hierarchy</span>
+                    <span class="endpoint-desc">Get organizational hierarchy</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/employees/departments/list</span>
+                    <span class="endpoint-desc">Get all departments</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/employees/stats/summary</span>
+                    <span class="endpoint-desc">Get employee statistics</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/employees/sync-from-users</span>
+                    <span class="endpoint-desc">Sync employees from user accounts</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/employees/{employee_id}/link-user</span>
+                    <span class="endpoint-desc">Link employee to user account</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/employees/{employee_id}/documents</span>
+                    <span class="endpoint-desc">Upload employee document</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/employees/{employee_id}/subordinates</span>
+                    <span class="endpoint-desc">Get employee's subordinates</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CLIENTS -->
+        <section id="clients" class="section">
+            <h2>🏢 Clients</h2>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/clients</span>
+                    <span class="endpoint-desc">Get all clients</span>
+                </div>
+            </div>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/clients</span>
+                    <span class="endpoint-desc">Create new client</span>
+                </div>
+                <div class="endpoint-body">
+                    <div class="code-block">{
+  "company_name": "Infosys Ltd",
+  "industry": "IT Services",
+  "city": "Bangalore",
+  "state": "Karnataka",
+  "country": "India",
+  "website": "https://www.infosys.com"
+}</div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/clients/{client_id}</span>
+                    <span class="endpoint-desc">Get client by ID</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-patch">PATCH</span>
+                    <span class="endpoint-path">/api/clients/{client_id}</span>
+                    <span class="endpoint-desc">Update client</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/clients/{client_id}/contacts</span>
+                    <span class="endpoint-desc">Add client contact</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/clients/{client_id}/revenue</span>
+                    <span class="endpoint-desc">Add revenue record</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/clients/industries/list</span>
+                    <span class="endpoint-desc">Get industry list</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/clients/stats/summary</span>
+                    <span class="endpoint-desc">Get client statistics</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROJECTS -->
+        <section id="projects" class="section">
+            <h2>📊 Projects</h2>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/projects</span>
+                    <span class="endpoint-desc">Get all projects</span>
+                </div>
+            </div>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/projects</span>
+                    <span class="endpoint-desc">Create new project</span>
+                </div>
+                <div class="endpoint-body">
+                    <div class="code-block">{
+  "name": "HR Transformation Project",
+  "client_name": "Tata Steel Ltd",
+  "project_type": "mixed",
+  "start_date": "2025-12-01T00:00:00Z",
+  "total_meetings_committed": 24,
+  "budget": 2500000
+}</div>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/projects/{project_id}</span>
+                    <span class="endpoint-desc">Get project by ID</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/projects/handover-alerts</span>
+                    <span class="endpoint-desc">Get handover deadline alerts</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/projects/{project_id}/assign-consultant</span>
+                    <span class="endpoint-desc">Assign consultant to project</span>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/projects/{project_id}/tasks-gantt</span>
+                    <span class="endpoint-desc">Get tasks for Gantt chart</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Add more sections as needed... -->
+
+        <!-- HR MODULES -->
+        <section id="leave" class="section">
+            <h2>🏖️ Leave Management</h2>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/leave-requests</span>
+                    <span class="endpoint-desc">Get my leave requests</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/leave-requests</span>
+                    <span class="endpoint-desc">Create leave request</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/leave-requests/all</span>
+                    <span class="endpoint-desc">Get all leave requests (Admin)</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/leave-balance/reportees</span>
+                    <span class="endpoint-desc">Get reportees leave balance</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="attendance" class="section">
+            <h2>📅 Attendance</h2>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/attendance</span>
+                    <span class="endpoint-desc">Get attendance records</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/attendance</span>
+                    <span class="endpoint-desc">Record attendance</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/attendance/bulk</span>
+                    <span class="endpoint-desc">Bulk attendance upload</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/attendance/summary</span>
+                    <span class="endpoint-desc">Get attendance summary</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="payroll" class="section">
+            <h2>💰 Payroll</h2>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/payroll/salary-components</span>
+                    <span class="endpoint-desc">Get salary components</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/payroll/salary-components/add</span>
+                    <span class="endpoint-desc">Add salary component</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/payroll/inputs</span>
+                    <span class="endpoint-desc">Get payroll inputs</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/payroll/inputs</span>
+                    <span class="endpoint-desc">Add payroll input</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/payroll/salary-slips</span>
+                    <span class="endpoint-desc">Get salary slips</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/payroll/generate-slip</span>
+                    <span class="endpoint-desc">Generate salary slip</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SELF SERVICE -->
+        <section id="selfservice" class="section">
+            <h2>🏠 Self-Service (My Workspace)</h2>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/my/attendance</span>
+                    <span class="endpoint-desc">My attendance records</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/my/leave-balance</span>
+                    <span class="endpoint-desc">My leave balance</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/my/salary-slips</span>
+                    <span class="endpoint-desc">My salary slips</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/my/expenses</span>
+                    <span class="endpoint-desc">My expenses</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECURITY -->
+        <section id="security" class="section">
+            <h2>🔒 Security & Admin</h2>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/security-audit-logs</span>
+                    <span class="endpoint-desc">Get security audit logs (Admin only)</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/stats/dashboard</span>
+                    <span class="endpoint-desc">Get dashboard statistics</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-patch">PATCH</span>
+                    <span class="endpoint-path">/api/notifications/mark-all-read</span>
+                    <span class="endpoint-desc">Mark all notifications as read</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ROLE PERMISSIONS -->
+        <section id="users" class="section">
+            <h2>👤 Users & Roles</h2>
+            <p style="margin-bottom: 1rem; color: var(--muted);">Role-based access control with customizable permissions</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">Default Roles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">15+</div>
+                    <div class="stat-label">Permission Modules</div>
+                </div>
+            </div>
+
+            <h4 style="margin: 1rem 0;">Available Roles</h4>
+            <ul style="columns: 2; list-style: inside; margin-bottom: 1rem;">
+                <li>Admin</li>
+                <li>Principal Consultant</li>
+                <li>Lead Consultant</li>
+                <li>Senior Consultant</li>
+                <li>Consultant</li>
+                <li>Lean Consultant</li>
+                <li>Project Manager</li>
+                <li>Account Manager</li>
+                <li>HR Manager</li>
+                <li>HR Executive</li>
+                <li>Manager</li>
+                <li>Executive</li>
+            </ul>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/users</span>
+                    <span class="endpoint-desc">Get all users</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/roles</span>
+                    <span class="endpoint-desc">Get all roles</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-post">POST</span>
+                    <span class="endpoint-path">/api/roles</span>
+                    <span class="endpoint-desc">Create custom role</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-get">GET</span>
+                    <span class="endpoint-path">/api/role-permissions</span>
+                    <span class="endpoint-desc">Get role permissions</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-patch">PATCH</span>
+                    <span class="endpoint-path">/api/role-permissions/{role_id}</span>
+                    <span class="endpoint-desc">Update role permissions</span>
+                </div>
+            </div>
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="endpoint-method method-patch">PATCH</span>
+                    <span class="endpoint-path">/api/users/{user_id}/role</span>
+                    <span class="endpoint-desc">Change user role</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>D&V Business Consulting API Documentation v1.0</p>
+        <p>Generated: December 2025 | 211 Endpoints | OWASP Compliant</p>
+    </footer>
+
+    <script>
+        document.querySelectorAll('.endpoint-header').forEach(header => {
+            header.addEventListener('click', () => {
+                header.parentElement.classList.toggle('open');
+            });
+        });
+    </script>
+</body>
+</html>
