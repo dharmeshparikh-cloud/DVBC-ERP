@@ -544,12 +544,15 @@ const PricingPlanBuilder = () => {
           start_date: paymentPlan.start_date,
           selected_components: paymentPlan.selected_components,
           component_values: paymentPlan.component_values,
-          conveyance_lumpsum: paymentPlan.conveyance_lumpsum || 0,  // Lumpsum amount
+          conveyance_lumpsum: paymentPlan.conveyance_lumpsum || 0,
+          custom_payments: formData.payment_schedule === 'custom' ? paymentPlan.custom_payments : [],
           schedule_breakdown: paymentScheduleBreakdown.map(p => ({
             ...p,
             due_date: p.due_date.toISOString()
           }))
-        }
+        },
+        section_notes: sectionNotes,
+        agreement_sections: agreementSections
       };
 
       const response = await axios.post(`${API}/pricing-plans`, pricingPlan);
