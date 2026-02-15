@@ -287,11 +287,11 @@ const Projects = () => {
                   {project.budget && (
                     <div>
                       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 mb-1">
-                        <DollarSign className="w-3 h-3" strokeWidth={1.5} />
+                        <IndianRupee className="w-3 h-3" strokeWidth={1.5} />
                         Budget
                       </div>
                       <div className="text-sm font-medium text-zinc-950 data-text">
-                        ${project.budget.toLocaleString()}
+                        ₹{project.budget.toLocaleString('en-IN')}
                       </div>
                     </div>
                   )}
