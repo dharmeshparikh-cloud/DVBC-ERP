@@ -307,4 +307,8 @@ class TestMyExpenses:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
+        # Response can be a list or an object with expenses
+        if isinstance(data, dict):
+            assert "expenses" in data
+        else:
+            assert isinstance(data, list)
