@@ -593,16 +593,23 @@ const Agreements = () => {
                   <Users className="w-4 h-4" />
                   Team Deployment Structure
                 </Label>
+                {formData.team_deployment.length > 0 && (
+                  <div className="text-xs text-zinc-500">
+                    Total: <span className="font-semibold text-emerald-600">{calculateTeamTotals().totalMeetings}</span> meetings | 
+                    <span className="font-semibold text-emerald-600"> {formatINR(calculateTeamTotals().totalCost)}</span>
+                  </div>
+                )}
               </div>
               
               {/* Add Team Member Form */}
-              <div className="grid grid-cols-5 gap-2 items-end bg-zinc-50 p-3 rounded-sm">
+              <div className="grid grid-cols-6 gap-2 items-end bg-zinc-50 p-3 rounded-sm">
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-500">Role</Label>
                   <select
                     value={newTeamMember.role}
                     onChange={(e) => setNewTeamMember({ ...newTeamMember, role: e.target.value })}
                     className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
+                    data-testid="team-role-select"
                   >
                     <option value="">Select role</option>
                     {DEFAULT_TEAM_ROLES.map(role => (
@@ -619,7 +626,7 @@ const Agreements = () => {
                     className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
                     data-testid="team-meeting-type-select"
                   >
-                    <option value="">Select meeting type</option>
+                    <option value="">Select type</option>
                     {MEETING_TYPES.map(type => (
                       <option key={type} value={type}>{type}</option>
                     ))}
@@ -633,11 +640,22 @@ const Agreements = () => {
                     className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
                     data-testid="team-frequency-select"
                   >
-                    <option value="">Select frequency</option>
+                    <option value="">Select</option>
                     {FREQUENCY_OPTIONS.map(freq => (
-                      <option key={freq} value={freq}>{freq}</option>
+                      <option key={freq.value} value={freq.value}>{freq.label}</option>
                     ))}
                   </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-500">Rate/Meeting (₹)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={newTeamMember.base_rate_per_meeting}
+                    onChange={(e) => setNewTeamMember({ ...newTeamMember, base_rate_per_meeting: parseFloat(e.target.value) || 0 })}
+                    className="h-9 text-sm rounded-sm border-zinc-200"
+                    data-testid="team-rate-input"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-500">Mode</Label>
@@ -645,44 +663,65 @@ const Agreements = () => {
                     value={newTeamMember.mode}
                     onChange={(e) => setNewTeamMember({ ...newTeamMember, mode: e.target.value })}
                     className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
+                    data-testid="team-mode-select"
                   >
                     {MEETING_MODES.map(mode => (
                       <option key={mode} value={mode}>{mode}</option>
                     ))}
                   </select>
                 </div>
-                <Button type="button" onClick={addTeamMember} size="sm" className="h-9">
+                <Button type="button" onClick={addTeamMember} size="sm" className="h-9" data-testid="add-team-member-btn">
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
 
+              {/* Preview of committed meetings */}
+              {newTeamMember.frequency && (
+                <div className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-sm">
+                  Preview: <span className="font-semibold">{calculateCommittedMeetings(newTeamMember.frequency, formData.project_tenure_months)}</span> committed meetings for {formData.project_tenure_months} months @ {formatINR(newTeamMember.base_rate_per_meeting)}/meeting = <span className="font-semibold">{formatINR(calculateCommittedMeetings(newTeamMember.frequency, formData.project_tenure_months) * newTeamMember.base_rate_per_meeting)}</span>
+                </div>
+              )}
+
               {/* Team Members List */}
               {formData.team_deployment.length > 0 && (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-5 gap-2 text-xs font-medium text-zinc-500 px-2">
+                  <div className="grid grid-cols-7 gap-2 text-xs font-medium text-zinc-500 px-2">
                     <div>Role</div>
                     <div>Meeting Type</div>
                     <div>Frequency</div>
-                    <div>Mode</div>
+                    <div>Rate (₹)</div>
+                    <div>Committed</div>
+                    <div>Subtotal</div>
                     <div></div>
                   </div>
                   {formData.team_deployment.map((member, index) => (
-                    <div key={member.id || index} className="grid grid-cols-5 gap-2 items-center p-2 bg-white border border-zinc-100 rounded-sm text-sm">
-                      <div className="font-medium">{member.role}</div>
-                      <div>{member.meeting_type}</div>
-                      <div>{member.frequency}</div>
-                      <div>{member.mode}</div>
+                    <div key={member.id || index} className="grid grid-cols-7 gap-2 items-center p-2 bg-white border border-zinc-100 rounded-sm text-sm" data-testid={`team-member-${index}`}>
+                      <div className="font-medium truncate" title={member.role}>{member.role}</div>
+                      <div className="truncate" title={member.meeting_type}>{member.meeting_type}</div>
+                      <div className="truncate">{member.frequency}</div>
+                      <div>{formatINR(member.base_rate_per_meeting || 12500)}</div>
+                      <div className="font-semibold text-blue-600">{member.committed_meetings || 0}</div>
+                      <div className="font-semibold text-emerald-600">{formatINR((member.committed_meetings || 0) * (member.base_rate_per_meeting || 12500))}</div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => removeTeamMember(index)}
                         className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        data-testid={`remove-team-member-${index}`}
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
                   ))}
+                  
+                  {/* Totals Row */}
+                  <div className="grid grid-cols-7 gap-2 items-center p-2 bg-zinc-100 border border-zinc-200 rounded-sm text-sm font-semibold">
+                    <div className="col-span-4 text-right">Total:</div>
+                    <div className="text-blue-700">{calculateTeamTotals().totalMeetings}</div>
+                    <div className="text-emerald-700">{formatINR(calculateTeamTotals().totalCost)}</div>
+                    <div></div>
+                  </div>
                 </div>
               )}
               
