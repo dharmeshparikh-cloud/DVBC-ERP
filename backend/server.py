@@ -7187,6 +7187,15 @@ async def submit_expense_for_approval(
         }}
     )
     
+    # Notify admins about expense submission
+    await notify_admins(
+        notif_type="expense_submitted",
+        title="Expense Submitted",
+        message=f"Expense of ₹{expense['total_amount']:,.2f} submitted for approval.",
+        reference_type="expense",
+        reference_id=expense_id
+    )
+    
     return {"message": "Expense submitted for approval", "approval_id": approval['id']}
 
 @api_router.post("/expenses/{expense_id}/mark-reimbursed")
