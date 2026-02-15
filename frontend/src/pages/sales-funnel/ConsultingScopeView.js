@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, addWeeks, addDays, startOfWeek } from 'date-fns';
-import Gantt from 'frappe-gantt';
+import { Gantt, ViewMode } from 'gantt-task-react';
+import "gantt-task-react/dist/index.css";
 
 const STATUS_CONFIG = {
   not_started: { label: 'Not Started', color: 'bg-zinc-100 text-zinc-700', icon: Clock },
