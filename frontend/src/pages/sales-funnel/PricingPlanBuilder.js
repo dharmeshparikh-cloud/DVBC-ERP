@@ -8,7 +8,8 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
-import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell, HelpCircle } from 'lucide-react';
+import { Textarea } from '../../components/ui/textarea';
+import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell, HelpCircle, FileText, Settings, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 
