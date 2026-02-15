@@ -7,191 +7,110 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### New Features: Custom Payments, Notes & Agreement Sections ✅ (LATEST)
+### NEW: Role-Based SOW Workflow ✅ (LATEST)
+
+**Implemented comprehensive role-based SOW (Scope of Work) workflow:**
+
+**1. SOW Master Management (Admin)**
+- 8 default categories: Sales, HR, Operations, Training, Analytics, Digital Marketing, Finance, Strategy
+- 41+ pre-defined scope templates under each category
+- Admin can add/edit/delete categories and scope templates
+- Custom scopes auto-save to master for future use
+
+**2. Sales Team SOW Selection (Simple View)**
+- Checkbox list of scopes grouped by category
+- Select multiple scopes from master data
+- Add custom scopes (auto-saves to master)
+- Visual selection counter showing selected scope count
+- Search functionality to filter scopes
+- Creates "Original Scope Snapshot" - locked, immutable record
+
+**3. Consulting Team SOW View (Detailed)**
+- See all assigned scopes (inherited from Sales)
+- Can ADD new scopes (PM, Consultant, Principal Consultant roles)
+- CANNOT DELETE any scopes (conflict prevention)
+- Track per scope:
+  - Status: Not Started | In Progress | Completed | Not Applicable
+  - Progress percentage (0-100%)
+  - Days spent (not hours - as per user requirement)
+  - Meetings count
+  - Notes
+  - Attachments
+- **4 View Modes:**
+  - List View (grouped by category)
+  - Kanban Board (columns: Not Started → In Progress → Completed → N/A)
+  - Gantt Chart (timeline visualization)
+  - Timeline View (milestone-based)
+
+**4. Scope Revision Workflow**
+- Revision statuses: Pending Review | Confirmed | Revised | Not Applicable
+- Mandatory reason for revisions
+- Client consent tracking
+- Change log for audit trail
+
+**5. Roadmap Approval Workflow**
+- Submit roadmap for client approval (Monthly/Quarterly/Yearly cycles)
+- Client consent document upload (email/document proof)
+- Approval history tracking
+- Variance report: Original vs Current scopes
+
+**6. Conflict Prevention Features**
+- Original Scope Snapshot (locked, never editable)
+- Change reason mandatory for modifications
+- Client consent flag for changes
+- Complete audit trail (who, when, why)
+- No delete policy - status changes only
+
+**New Routes:**
+- `/sales-funnel/scope-selection/:pricingPlanId` - Sales team scope selection
+- `/sales-funnel/sow-review/:pricingPlanId` - Consulting team scope view
+
+**New API Endpoints:**
+- `GET /api/sow-masters/categories` - List SOW categories
+- `POST /api/sow-masters/categories` - Create category
+- `GET /api/sow-masters/scopes` - List scope templates
+- `GET /api/sow-masters/scopes/grouped` - Get scopes grouped by category
+- `POST /api/sow-masters/scopes` - Create scope template
+- `POST /api/sow-masters/seed-defaults` - Seed default data
+- `POST /api/enhanced-sow/:planId/sales-selection` - Create SOW from selection
+- `GET /api/enhanced-sow/:sowId` - Get enhanced SOW
+- `GET /api/enhanced-sow/by-pricing-plan/:planId` - Get SOW by pricing plan
+- `PATCH /api/enhanced-sow/:sowId/scopes/:scopeId` - Update scope
+- `POST /api/enhanced-sow/:sowId/scopes` - Add scope (consulting team)
+- `POST /api/enhanced-sow/:sowId/roadmap/submit` - Submit for approval
+- `POST /api/enhanced-sow/:sowId/consent-documents` - Upload consent
+- `GET /api/enhanced-sow/:sowId/variance-report` - Variance report
+- `GET /api/enhanced-sow/:sowId/change-log` - Full change log
+
+---
+
+### Previous Updates
+
+### Custom Payments, Notes & Agreement Sections ✅ (Feb 15, 2026)
 
 **1. Custom (Irregular) Payment Schedule:**
 - New "Custom (Irregular)" option in Payment Schedule dropdown
-- Users can manually define each payment with:
-  - **Date** - custom due date
-  - **Amount** - flexible amount per payment
-  - **Description/Milestone** - e.g., "30% Upfront", "Final Delivery"
-- Add unlimited payments via "Add Payment" button
-- Validation shows error (red) when total doesn't match project value
-- Validation shows success (green) when totals match
-
-**Example - 30-40-30 Split:**
-```
-Payment #1: ₹3,00,000 - "30% Upfront - Project Kickoff"
-Payment #2: ₹4,00,000 - "40% - Mid-Project Milestone"
-Payment #3: ₹3,00,000 - "30% - Final Delivery"
-Total: ₹10,00,000 ✅ (matches project value)
-```
+- Users can manually define each payment with custom date, amount, description
+- Validation for total matching project value
 
 **2. Notes & Descriptions Section:**
-- 4 textarea fields for adding notes across sections:
-  - Pricing Notes
-  - Team Deployment Notes
-  - Payment Terms Notes
-  - General Notes
-- Notes are saved with the pricing plan and included in agreements
+- 4 textarea fields for notes: Pricing, Team Deployment, Payment Terms, General
 
 **3. Agreement Sections Configuration:**
-- 8 toggleable checkboxes to control what appears in the agreement:
-  1. Pricing Summary
-  2. Team Deployment
-  3. Payment Schedule
-  4. GST Details
-  5. TDS Details
-  6. Conveyance Details
-  7. Discount Details
-  8. Notes & Terms
-- Visual eye icon shows section visibility status
-- Unchecked sections are hidden from final agreement
+- 8 toggleable checkboxes to control agreement visibility
 
----
+### Bug Fixes & Enhancements ✅
+- Multiple Team Members Bug Fix (race condition)
+- Dynamic Payment Count Display
+- Conveyance Summary Tooltip
 
-### Bug Fixes & Enhancements ✅ (Completed Earlier)
+### Lumpsum Conveyance Feature ✅
+- Changed from percentage-based to lumpsum amount
+- Distributed evenly across all payment periods
 
-**1. Multiple Team Members Bug Fix:**
-- **Issue:** Adding multiple team members was replacing previous entries (race condition)
-- **Fix:** `recalculateAllocations()` now accepts optional `currentTeam` parameter, avoiding setTimeout race condition
-- **Result:** Can now add unlimited team members that accumulate correctly
-
-**2. Dynamic Payment Count Display:**
-- **Issue:** Conveyance helper text showed hardcoded "12 months" regardless of payment schedule
-- **Fix:** Added `numberOfPayments` useMemo that calculates actual payments based on schedule
-- **Result:** 
-  - Monthly (12 months) → "(split across 12 payments)"
-  - Quarterly (12 months) → "(split across 4 payments)"
-  - Upfront → "(split across 1 payment)"
-
-**3. Conveyance Summary Tooltip:**
-- Added help icon (?) next to conveyance input
-- Tooltip shows: Total amount, Per-payment amount, Distribution info
-
----
-
-### Lumpsum Conveyance Feature ✅ (Completed)
-
-**Changes Made:**
-Changed the Conveyance field from a percentage-based input to a **lumpsum amount** that is distributed evenly across all payment periods.
-
-1. **Previous Behavior:** Conveyance was 5% of basic amount per payment
-2. **New Behavior:** Conveyance is a fixed lumpsum amount (e.g., ₹60,000) distributed evenly across all payments
-
-**UI Changes:**
-- Conveyance input now shows ₹ symbol instead of %
-- Helper text: "(split across X payments)" - dynamically calculated
-- Column header: "CONVEYANCE (LUMPSUM)" instead of "CONVEYANCE (5%)"
-
-**Calculation Example (Quarterly):**
-```
-Total Investment: ₹12,00,000
-Conveyance Lumpsum: ₹48,000
-Duration: 12 months (Quarterly payments = 4 quarters)
-Basic per quarter: ₹3,00,000
-
-Distribution:
-- Conveyance per quarter: ₹48,000 ÷ 4 = ₹12,000
-
-Net per quarter: ₹3,00,000 + ₹54,000 (GST) + ₹12,000 (Conv) = ₹3,66,000
-Total Conveyance: +₹48,000.00
-```
-
----
-
-### Payment Plan Breakup Feature ✅ (Completed Earlier)
-
-**Major Feature: Top-Down Pricing Model**
-Implemented a complete redesign of the pricing model. Instead of the salesperson manually calculating rates and totals (bottom-up), they now simply enter the **Total Client Investment** and the system automatically allocates costs to team members based on admin-defined allocation rules.
-
-**Key Changes:**
-
-1. **Admin Masters Module (NEW)**
-   - Created `/admin-masters` page (admin-only access)
-   - Manages **Tenure Types** with allocation percentages:
-     - Full-time Engagement: 70%
-     - Weekly Engagement: 20%
-     - Bi-weekly Engagement: 10%
-     - Monthly Engagement: 5%
-     - Quarterly Review: 2.5%
-     - On-demand Support: 0%
-   - Manages **Consultant Roles** with rate ranges
-   - Manages **Meeting Types** with default durations
-   - Backend: `/app/backend/routers/masters.py`
-   - Frontend: `/app/frontend/src/pages/AdminMasters.js`
-
-2. **Top-Down Pricing Flow**
-   ```
-   Total Client Investment (₹10,00,000)
-         ↓
-   Team Member Selection (Role + Tenure Type)
-         ↓
-   Auto-Calculate: Allocation % (normalized)
-         ↓
-   Auto-Calculate: Breakup Amount = Total × Allocation %
-         ↓
-   Auto-Calculate: Rate/Meeting = Breakup ÷ Total Meetings (READ-ONLY)
-   ```
-
-3. **Calculation Example:**
-   - Total Investment: ₹10,00,000
-   - Team Member: Principal Consultant (Full-time: 70%)
-   - If only 1 member: Allocation = 100% (normalized)
-   - Breakup Amount: ₹10,00,000
-   - Total Meetings: 22/month × 12 months = 264
-   - Rate/Meeting: ₹10,00,000 ÷ 264 = ₹3,788 (READ-ONLY)
-
-4. **Rate Override: NOT ALLOWED**
-   - Rate per Meeting field is locked (read-only)
-   - Shows lock icon to indicate auto-calculated value
-
-**New API Endpoints:**
-- `GET /api/masters/tenure-types` - List tenure types with allocation %
-- `POST /api/masters/tenure-types` - Create tenure type
-- `PUT /api/masters/tenure-types/{id}` - Update tenure type
-- `DELETE /api/masters/tenure-types/{id}` - Soft delete tenure type
-- `GET /api/masters/consultant-roles` - List consultant roles
-- `POST /api/masters/consultant-roles` - Create consultant role
-- `GET /api/masters/meeting-types` - List meeting types
-- `POST /api/masters/seed-defaults` - Seed default master data
-- `POST /api/masters/calculate-allocation` - Calculate allocation breakdown
-
-**Files Modified/Created:**
-- `/app/backend/routers/masters.py` (NEW)
-- `/app/backend/routers/__init__.py` (NEW)
-- `/app/backend/server.py` (Updated - added masters router)
-- `/app/backend/sales_workflow.py` (Updated - added total_investment, allocation fields)
-- `/app/frontend/src/pages/AdminMasters.js` (NEW)
-- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` (REWRITTEN)
-- `/app/frontend/src/App.js` (Updated - added admin-masters route)
-- `/app/frontend/src/components/Layout.js` (Updated - added Admin Masters nav)
-
----
-
-## Previous Updates
-
-### Complete Sales Flow Redesign ✅ (Feb 14, 2026)
-
-**Major Feature: Pricing Plan as Source of Truth**
-The entire sales flow has been redesigned so that the **Pricing Plan** is the single source of truth for team deployment and pricing data. Data now flows correctly through the pipeline:
-
-```
-Pricing Plan → Quotation → Agreement
-     ↓              ↓           ↓
-  Team Data    Inherited    Inherited
-  (Source)     from Plan    from Plan
-```
-
-### Team Deployment & Financial Data Separation ✅
-
-**Major Feature: Team Deployment Structure for Kickoff Requests**
-- Added Team Deployment Structure to Agreement creation
-- PM can review team commitments before accepting projects
-
-**Major Feature: Consulting Team Financial Data Isolation**
-- Consulting team (PM, Consultants) can NO longer see pricing/P&L data
-- Replaced pricing columns with Meeting Frequency and Project Tenure
+### Payment Plan Breakup Feature ✅
+- Top-Down Pricing Model: Total Client Investment drives all calculations
+- Admin Masters Module for Tenure Types with allocation percentages
 
 ---
 
@@ -201,24 +120,31 @@ Pricing Plan → Quotation → Agreement
 /app/
 ├── backend/
 │   ├── .env
+│   ├── models/
+│   │   └── enhanced_sow.py          # NEW: Enhanced SOW models
 │   ├── routers/
 │   │   ├── __init__.py
-│   │   └── masters.py           # NEW: Admin Masters CRUD
-│   ├── models/
-│   ├── sales_workflow.py        # Updated: total_investment, allocation fields
+│   │   ├── masters.py               # Admin Masters CRUD
+│   │   ├── sow_masters.py           # NEW: SOW Categories & Scopes
+│   │   └── enhanced_sow.py          # NEW: Enhanced SOW workflow
+│   ├── sales_workflow.py
 │   ├── requirements.txt
-│   └── server.py                # Updated: includes masters router
+│   ├── server.py
+│   └── tests/
+│       └── test_enhanced_sow.py     # NEW: 21 test cases
 └── frontend/
     └── src/
-        ├── App.js               # Updated: admin-masters route
+        ├── App.js                   # Updated: new routes
         ├── components/
-        │   └── Layout.js        # Updated: Admin Masters nav
+        │   └── Layout.js
         └── pages/
-            ├── AdminMasters.js  # NEW: Admin Masters UI
+            ├── AdminMasters.js
             └── sales-funnel/
-                ├── Agreements.js
-                ├── PricingPlanBuilder.js  # REWRITTEN: Top-down pricing
-                └── Quotations.js
+                ├── SalesScopeSelection.js    # NEW: Sales team UI
+                ├── ConsultingScopeView.js    # NEW: Consulting team UI
+                ├── PricingPlanBuilder.js
+                ├── SOWBuilder.js             # Legacy SOW (still available)
+                └── ...
 ```
 
 ---
@@ -229,7 +155,7 @@ Pricing Plan → Quotation → Agreement
 - React 18
 - Tailwind CSS
 - Shadcn/UI components
-- DHTMLX Gantt
+- date-fns for date handling
 
 ### Backend
 - FastAPI
@@ -254,18 +180,15 @@ Pricing Plan → Quotation → Agreement
 
 1. **P&L Variance Tracking**
    - Implement logic to flag over-delivery (actual vs. committed meetings)
-   - Create variance alerts for projects exceeding committed scope
 
 2. **Employee Cost Integration**
    - Integrate with HR/Payroll data to pull actual employee CTC
-   - Enable actual cost calculations for P&L analysis
 
 3. **Project P&L Dashboard**
    - Dashboard showing committed vs. actual costs and revenue
-   - Variance alerts and profitability indicators
 
-4. **Masters Sync Engine**
-   - Ensure all forms across the application are automatically updated when admin changes master data
+4. **SMTP Email Integration**
+   - Replace mock email with real SMTP for roadmap approval notifications
 
 ---
 
@@ -277,10 +200,7 @@ Pricing Plan → Quotation → Agreement
 2. **Detailed Reporting**
    - Role-wise and client-wise profitability reports
 
-3. **Real Email Integration (SMTP)**
-   - Replace mock email system with actual SMTP service
-
-4. **Rocket Reach Integration**
+3. **Rocket Reach Integration**
    - Lead enrichment from Rocket Reach API
 
 ---
@@ -290,6 +210,7 @@ Pricing Plan → Quotation → Agreement
 1. Marketing Flow Module
 2. Finance & Accounts Flow Module
 3. **Refactor server.py** - Break monolithic file into modular FastAPI routers
+4. **Refactor PricingPlanBuilder.js** - Break into smaller components
 
 ---
 
@@ -302,7 +223,7 @@ Pricing Plan → Quotation → Agreement
 ## 3rd Party Integrations
 
 - **Emergent-managed Google Auth** - Domain restricted (@dvconsulting.co.in)
-- **DHTMLX Gantt** - For project roadmap/Gantt charts
+- **Gantt Chart** - React-based open source (for consulting view)
 
 ---
 
@@ -310,7 +231,17 @@ Pricing Plan → Quotation → Agreement
 
 - `/app/backend/server.py` - Main API server
 - `/app/backend/routers/masters.py` - Admin Masters module
-- `/app/backend/sales_workflow.py` - Sales models (PricingPlan, Quotation, Agreement)
-- `/app/frontend/src/pages/AdminMasters.js` - Admin Masters UI
-- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - Top-down pricing UI
+- `/app/backend/routers/sow_masters.py` - **NEW** SOW Categories & Scopes
+- `/app/backend/routers/enhanced_sow.py` - **NEW** Enhanced SOW workflow
+- `/app/backend/models/enhanced_sow.py` - **NEW** Enhanced SOW data models
+- `/app/frontend/src/pages/sales-funnel/SalesScopeSelection.js` - **NEW** Sales scope selection
+- `/app/frontend/src/pages/sales-funnel/ConsultingScopeView.js` - **NEW** Consulting scope view
+- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - Pricing plan builder
 - `/app/memory/PRD.md` - This file
+
+---
+
+## Test Reports
+
+- `/app/test_reports/iteration_27.json` - Latest test report (21/21 backend tests passed)
+- `/app/backend/tests/test_enhanced_sow.py` - Enhanced SOW test suite
