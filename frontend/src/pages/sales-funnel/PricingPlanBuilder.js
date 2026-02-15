@@ -1100,6 +1100,102 @@ const PricingPlanBuilder = () => {
               </div>
             </div>
 
+            {/* Custom Payment Schedule (shown only when custom is selected) */}
+            {formData.payment_schedule === 'custom' && (
+              <div className="space-y-4 p-4 bg-amber-50 rounded-sm border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Custom Payment Schedule
+                  </h4>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={addCustomPayment}
+                    className="h-8 text-xs"
+                    data-testid="add-custom-payment-btn"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Payment
+                  </Button>
+                </div>
+                
+                {/* Validation message */}
+                {customPaymentsTotal !== totals.afterDiscount && paymentPlan.custom_payments.length > 0 && (
+                  <div className="p-2 bg-red-50 border border-red-200 rounded-sm text-xs text-red-700 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Total custom payments ({formatINR(customPaymentsTotal)}) does not match project value ({formatINR(totals.afterDiscount)})
+                  </div>
+                )}
+                
+                {/* Custom payments list */}
+                <div className="space-y-3">
+                  {paymentPlan.custom_payments.map((payment, index) => (
+                    <div key={payment.id} className="grid grid-cols-12 gap-3 items-end p-3 bg-white rounded-sm border border-amber-100">
+                      <div className="col-span-2 space-y-1">
+                        <Label className="text-xs text-zinc-500">Payment #{index + 1}</Label>
+                        <Input
+                          type="date"
+                          value={payment.date}
+                          onChange={(e) => updateCustomPayment(payment.id, 'date', e.target.value)}
+                          className="h-9 text-sm rounded-sm"
+                          data-testid={`custom-payment-date-${index}`}
+                        />
+                      </div>
+                      <div className="col-span-3 space-y-1">
+                        <Label className="text-xs text-zinc-500">Amount (₹)</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={payment.amount || ''}
+                          onChange={(e) => updateCustomPayment(payment.id, 'amount', e.target.value)}
+                          placeholder="Enter amount"
+                          className="h-9 text-sm rounded-sm"
+                          data-testid={`custom-payment-amount-${index}`}
+                        />
+                      </div>
+                      <div className="col-span-6 space-y-1">
+                        <Label className="text-xs text-zinc-500">Description / Milestone</Label>
+                        <Input
+                          type="text"
+                          value={payment.description}
+                          onChange={(e) => updateCustomPayment(payment.id, 'description', e.target.value)}
+                          placeholder="e.g., 30% Upfront, Project Kickoff, Final Delivery"
+                          className="h-9 text-sm rounded-sm"
+                          data-testid={`custom-payment-desc-${index}`}
+                        />
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCustomPayment(payment.id)}
+                          className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          disabled={paymentPlan.custom_payments.length === 1}
+                          data-testid={`remove-custom-payment-${index}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Custom payments summary */}
+                {paymentPlan.custom_payments.length > 0 && (
+                  <div className="flex justify-between items-center p-2 bg-white rounded-sm border border-amber-100">
+                    <span className="text-sm text-zinc-600">Total Custom Payments:</span>
+                    <span className={`text-sm font-bold ${customPaymentsTotal === totals.afterDiscount ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {formatINR(customPaymentsTotal)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Payment Schedule Table */}
             {paymentScheduleBreakdown.length > 0 && totalInvestment > 0 && (
               <div className="space-y-3">
