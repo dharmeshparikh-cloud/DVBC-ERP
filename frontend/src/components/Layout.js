@@ -122,6 +122,7 @@ const Layout = () => {
 
   const adminItems = [
     { name: 'User Management', href: '/user-management', icon: Shield },
+    { name: 'Admin Masters', href: '/admin-masters', icon: Settings },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
