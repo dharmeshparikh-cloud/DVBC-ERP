@@ -5457,6 +5457,80 @@ async def get_reporting_chain(user_id: str, max_levels: int = 3) -> List[dict]:
     
     return chain
 
+
+# --- Reporting Manager Helper Functions ---
+async def get_direct_reportee_ids(user_id: str) -> List[str]:
+    """Get employee IDs of direct reportees of a user"""
+    employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
+    if not employee:
+        return []
+    mgr_emp_id = employee['id']
+    reportees = await db.employees.find(
+        {"reporting_manager_id": mgr_emp_id, "is_active": True},
+        {"_id": 0, "id": 1, "user_id": 1}
+    ).to_list(200)
+    return [r['id'] for r in reportees]
+
+
+async def get_all_reportee_ids(user_id: str) -> List[str]:
+    """Get employee IDs of direct + second-line reportees"""
+    employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
+    if not employee:
+        return []
+    mgr_emp_id = employee['id']
+    # Direct reportees
+    direct = await db.employees.find(
+        {"reporting_manager_id": mgr_emp_id, "is_active": True},
+        {"_id": 0, "id": 1}
+    ).to_list(200)
+    direct_ids = [r['id'] for r in direct]
+    # Second-line reportees (reportees of direct reportees)
+    second_line = []
+    if direct_ids:
+        second = await db.employees.find(
+            {"reporting_manager_id": {"$in": direct_ids}, "is_active": True},
+            {"_id": 0, "id": 1}
+        ).to_list(500)
+        second_line = [r['id'] for r in second]
+    return direct_ids + second_line
+
+
+async def get_reportee_user_ids(user_id: str) -> List[str]:
+    """Get user IDs of direct + second-line reportees"""
+    employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
+    if not employee:
+        return []
+    mgr_emp_id = employee['id']
+    direct = await db.employees.find(
+        {"reporting_manager_id": mgr_emp_id, "is_active": True},
+        {"_id": 0, "id": 1, "user_id": 1}
+    ).to_list(200)
+    direct_ids = [r['id'] for r in direct]
+    direct_user_ids = [r['user_id'] for r in direct if r.get('user_id')]
+    second_line_user_ids = []
+    if direct_ids:
+        second = await db.employees.find(
+            {"reporting_manager_id": {"$in": direct_ids}, "is_active": True},
+            {"_id": 0, "user_id": 1}
+        ).to_list(500)
+        second_line_user_ids = [r['user_id'] for r in second if r.get('user_id')]
+    return direct_user_ids + second_line_user_ids
+
+
+async def is_direct_reportee(manager_user_id: str, employee_id: str) -> bool:
+    """Check if employee is a direct reportee of the manager"""
+    manager_emp = await db.employees.find_one({"user_id": manager_user_id}, {"_id": 0, "id": 1})
+    if not manager_emp:
+        return False
+    reportee = await db.employees.find_one({"id": employee_id, "reporting_manager_id": manager_emp['id']}, {"_id": 0})
+    return reportee is not None
+
+
+async def is_any_reportee(manager_user_id: str, employee_id: str) -> bool:
+    """Check if employee is a direct or second-line reportee"""
+    all_ids = await get_all_reportee_ids(manager_user_id)
+    return employee_id in all_ids
+
 # Helper function to get fallback approvers by role
 async def get_role_based_approvers(roles: List[str]) -> List[dict]:
     """Get approvers based on roles (fallback when no reporting manager)"""
