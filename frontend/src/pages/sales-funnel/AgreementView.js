@@ -763,42 +763,86 @@ const AgreementView = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Full Name *</Label>
-              <Input
-                value={signatureData.signer_name}
-                onChange={(e) => setSignatureData({...signatureData, signer_name: e.target.value})}
-                placeholder="Enter your full name"
-                className="rounded-sm"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Full Name *</Label>
+                <Input
+                  value={signatureData.signer_name}
+                  onChange={(e) => setSignatureData({...signatureData, signer_name: e.target.value})}
+                  placeholder="Enter your full name"
+                  className="rounded-sm"
+                  data-testid="signer-name-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Designation</Label>
+                <Input
+                  value={signatureData.signer_designation}
+                  onChange={(e) => setSignatureData({...signatureData, signer_designation: e.target.value})}
+                  placeholder="e.g., Director, CEO"
+                  className="rounded-sm"
+                  data-testid="signer-designation-input"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Designation</Label>
-              <Input
-                value={signatureData.signer_designation}
-                onChange={(e) => setSignatureData({...signatureData, signer_designation: e.target.value})}
-                placeholder="e.g., Director, CEO"
-                className="rounded-sm"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Email *</Label>
+                <Input
+                  type="email"
+                  value={signatureData.signer_email}
+                  onChange={(e) => setSignatureData({...signatureData, signer_email: e.target.value})}
+                  placeholder="your@email.com"
+                  className="rounded-sm"
+                  data-testid="signer-email-input"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Date</Label>
+                <Input
+                  type="date"
+                  value={signatureData.signature_date}
+                  onChange={(e) => setSignatureData({...signatureData, signature_date: e.target.value})}
+                  className="rounded-sm"
+                  data-testid="signature-date-input"
+                />
+              </div>
             </div>
+            
+            {/* Canvas Signature Pad */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Email *</Label>
-              <Input
-                type="email"
-                value={signatureData.signer_email}
-                onChange={(e) => setSignatureData({...signatureData, signer_email: e.target.value})}
-                placeholder="your@email.com"
-                className="rounded-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Date</Label>
-              <Input
-                type="date"
-                value={signatureData.signature_date}
-                onChange={(e) => setSignatureData({...signatureData, signature_date: e.target.value})}
-                className="rounded-sm"
-              />
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Draw Your Signature *</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSignature}
+                  className="text-xs text-zinc-500 hover:text-zinc-900"
+                  data-testid="clear-signature-btn"
+                >
+                  <X className="w-3 h-3 mr-1" /> Clear
+                </Button>
+              </div>
+              <div className="border-2 border-dashed border-zinc-300 rounded-sm bg-white">
+                <canvas
+                  ref={canvasRef}
+                  width={460}
+                  height={120}
+                  className="w-full cursor-crosshair touch-none"
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                  data-testid="signature-canvas"
+                />
+              </div>
+              <p className="text-xs text-zinc-500 text-center">
+                {hasSignature ? 'Signature captured' : 'Draw your signature above using mouse or touch'}
+              </p>
             </div>
             
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm text-sm text-amber-800">
@@ -808,15 +852,19 @@ const AgreementView = () => {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => setSignatureDialogOpen(false)}
+                onClick={() => {
+                  setSignatureDialogOpen(false);
+                  clearSignature();
+                }}
                 className="flex-1 rounded-sm"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleESignature}
-                disabled={saving}
-                className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm"
+                disabled={saving || !hasSignature || !signatureData.signer_name || !signatureData.signer_email}
+                className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm disabled:opacity-50"
+                data-testid="sign-agreement-btn"
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
