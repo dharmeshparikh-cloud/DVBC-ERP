@@ -123,6 +123,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-dashboard" element={<SalesDashboard />} />
         <Route path="consulting-dashboard" element={<ConsultingDashboard />} />
         <Route path="hr-dashboard" element={<HRDashboard />} />
+        <Route path="admin-masters" element={<AdminMasters />} />
       </Route>
     </Routes>
   );
