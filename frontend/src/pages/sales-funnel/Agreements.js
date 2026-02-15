@@ -558,8 +558,9 @@ const Agreements = () => {
                   min="1"
                   max="60"
                   value={formData.project_tenure_months}
-                  onChange={(e) => setFormData({ ...formData, project_tenure_months: parseInt(e.target.value) || 12 })}
+                  onChange={(e) => handleTenureChange(parseInt(e.target.value) || 12)}
                   className="rounded-sm border-zinc-200"
+                  data-testid="project-tenure-input"
                 />
               </div>
             </div>
