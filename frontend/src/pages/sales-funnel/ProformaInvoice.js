@@ -255,18 +255,80 @@ const ProformaInvoice = () => {
     return `${year}-${nextYear.toString().slice(-2)}/PI-${Math.floor(Math.random() * 9000) + 1000}`;
   };
 
+  // Get current lead ID from pricing plan
+  const currentPlan = pricingPlans.find(p => p.id === pricingPlanIdFromUrl);
+  const currentLeadId = currentPlan?.lead_id || leadId;
+
   return (
     <div className="max-w-6xl mx-auto" data-testid="proforma-invoice-page">
+      {/* Progress Bar - Show when we have a pricing plan context */}
+      {pricingPlanIdFromUrl && (
+        <SalesFunnelProgress
+          currentStep={3}
+          pricingPlanId={pricingPlanIdFromUrl}
+          leadId={currentLeadId}
+          quotationId={currentInvoice?.id}
+          sowCompleted={!!sowData}
+          proformaCompleted={isProformaFinalized}
+          agreementCompleted={false}
+        />
+      )}
+
       <div className="mb-6">
-        <Button
-          onClick={handleBackToFlow}
-          variant="ghost"
-          className="mb-4 hover:bg-zinc-100 rounded-sm"
-          data-testid="back-to-flow-btn"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
-          Back to {pricingPlanIdFromUrl ? 'Scope Selection' : 'Pricing Plans'}
-        </Button>
+        {/* Flow Navigation Alert */}
+        {pricingPlanIdFromUrl && !hasProformaInvoice && (
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-sm flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">Action Required</p>
+              <p className="text-sm text-amber-700 mt-1">
+                Create a Proforma Invoice for this pricing plan to proceed to the Agreement step.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Success Message when Invoice is Created */}
+        {pricingPlanIdFromUrl && hasProformaInvoice && !isProformaFinalized && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-sm flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800">Proforma Invoice Created</p>
+              <p className="text-sm text-blue-700 mt-1">
+                Finalize the invoice to proceed to the Agreement step.
+              </p>
+            </div>
+            <Button
+              onClick={() => handleFinalize(currentInvoice.id)}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-sm"
+            >
+              Finalize Now
+            </Button>
+          </div>
+        )}
+
+        {/* Ready for Agreement */}
+        {pricingPlanIdFromUrl && isProformaFinalized && (
+          <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-sm flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-emerald-800">Ready for Agreement</p>
+              <p className="text-sm text-emerald-700 mt-1">
+                Proforma Invoice is finalized. You can now proceed to create the Agreement.
+              </p>
+            </div>
+            <Button
+              onClick={() => navigate(`/sales-funnel/agreements?quotationId=${currentInvoice.id}&leadId=${currentLeadId}`)}
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm"
+            >
+              <ArrowRight className="w-4 h-4 mr-2" />
+              Proceed to Agreement
+            </Button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
@@ -274,20 +336,32 @@ const ProformaInvoice = () => {
             </h1>
             <p className="text-zinc-500">Create and manage proforma invoices for clients</p>
           </div>
-          {canEdit && (
+          <div className="flex gap-3">
+            {/* Back Button */}
             <Button
-              onClick={() => {
-                setSelectedPlanDetails(null);
-                setSelectedLead(null);
-                setDialogOpen(true);
-              }}
-              data-testid="create-invoice-btn"
-              className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+              onClick={handleBackToFlow}
+              variant="outline"
+              className="rounded-sm border-zinc-300"
+              data-testid="back-to-flow-btn"
             >
-              <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-              Create Proforma Invoice
+              <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
+              Back to SOW
             </Button>
-          )}
+            
+            {canEdit && (
+              <Button
+                onClick={() => {
+                  setSelectedPlanDetails(null);
+                  setSelectedLead(null);
+                  setDialogOpen(true);
+                }}
+                data-testid="create-invoice-btn"
+                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+              >
+                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                Create Proforma Invoice
+              </Button>
+            )}
         </div>
       </div>
 
