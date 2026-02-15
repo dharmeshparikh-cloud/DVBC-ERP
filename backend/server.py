@@ -7612,11 +7612,14 @@ async def bulk_upload_attendance(records: List[dict], current_user: User = Depen
         raise HTTPException(status_code=403, detail="You have no reportees to manage attendance for")
     
     created, updated, skipped = 0, 0, 0
-    created, updated = 0, 0
     for rec in records:
         emp_id = rec.get("employee_id")
         date_str = rec.get("date")
         if not emp_id or not date_str:
+            continue
+        # Reporting managers can only upload for their reportees
+        if not is_hr and emp_id not in reportee_ids:
+            skipped += 1
             continue
         existing = await db.attendance.find_one({"employee_id": emp_id, "date": date_str})
         if existing:
@@ -7632,7 +7635,7 @@ async def bulk_upload_attendance(records: List[dict], current_user: User = Depen
                 "created_by": current_user.id, "created_at": datetime.now(timezone.utc).isoformat()
             })
             created += 1
-    return {"message": f"Created {created}, Updated {updated}", "created": created, "updated": updated}
+    return {"message": f"Created {created}, Updated {updated}, Skipped {skipped}", "created": created, "updated": updated, "skipped": skipped}
 
 @api_router.get("/attendance")
 async def get_attendance(employee_id: Optional[str] = None, month: Optional[str] = None, current_user: User = Depends(get_current_user)):
