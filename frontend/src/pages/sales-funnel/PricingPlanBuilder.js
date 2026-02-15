@@ -357,6 +357,10 @@ const PricingPlanBuilder = () => {
     const numberOfPayments = Math.ceil(durationMonths / frequencyMonths);
     const basicPerPayment = Math.round(afterDiscount / numberOfPayments);
     
+    // Calculate conveyance per payment (lumpsum distributed evenly)
+    const conveyanceLumpsum = paymentPlan.conveyance_lumpsum || 0;
+    const conveyancePerPayment = numberOfPayments > 0 ? Math.round(conveyanceLumpsum / numberOfPayments) : 0;
+    
     const breakdown = [];
     let currentDate = new Date(startDate);
     
@@ -381,8 +385,9 @@ const PricingPlanBuilder = () => {
       if (paymentPlan.selected_components.includes('tds')) {
         payment.tds = Math.round(basicPerPayment * (paymentPlan.component_values.tds / 100));
       }
+      // Conveyance is now lumpsum distributed evenly
       if (paymentPlan.selected_components.includes('conveyance')) {
-        payment.conveyance = Math.round(basicPerPayment * (paymentPlan.component_values.conveyance / 100));
+        payment.conveyance = conveyancePerPayment;
       }
       
       // Net = Basic + GST + Conveyance - TDS
