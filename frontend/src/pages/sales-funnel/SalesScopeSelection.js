@@ -13,6 +13,7 @@ import {
   FileText, FolderOpen, Search, Loader2, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
+import SalesFunnelProgress from '../../components/SalesFunnelProgress';
 
 const SalesScopeSelection = () => {
   const { pricingPlanId } = useParams();
