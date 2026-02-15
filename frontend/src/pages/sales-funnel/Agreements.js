@@ -561,21 +561,31 @@ const Agreements = () => {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-500">Meeting Type</Label>
-                  <Input
+                  <select
                     value={newTeamMember.meeting_type}
                     onChange={(e) => setNewTeamMember({ ...newTeamMember, meeting_type: e.target.value })}
-                    placeholder="e.g., Monthly Review"
-                    className="h-9 text-sm rounded-sm border-zinc-200"
-                  />
+                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
+                    data-testid="team-meeting-type-select"
+                  >
+                    <option value="">Select meeting type</option>
+                    {MEETING_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-500">Frequency</Label>
-                  <Input
+                  <select
                     value={newTeamMember.frequency}
                     onChange={(e) => setNewTeamMember({ ...newTeamMember, frequency: e.target.value })}
-                    placeholder="e.g., 1 per month"
-                    className="h-9 text-sm rounded-sm border-zinc-200"
-                  />
+                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
+                    data-testid="team-frequency-select"
+                  >
+                    <option value="">Select frequency</option>
+                    {FREQUENCY_OPTIONS.map(freq => (
+                      <option key={freq} value={freq}>{freq}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-500">Mode</Label>
