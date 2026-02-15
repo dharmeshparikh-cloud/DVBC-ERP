@@ -145,11 +145,12 @@ const PricingPlanBuilder = () => {
   };
 
   // Recalculate all team member allocations based on total investment
-  const recalculateAllocations = () => {
-    if (teamDeployment.length === 0 || totalInvestment <= 0) return;
+  const recalculateAllocations = (currentTeam = null) => {
+    const team = currentTeam || teamDeployment;
+    if (team.length === 0 || totalInvestment <= 0) return;
     
     // Calculate total allocation percentage
-    const totalAllocationPercent = teamDeployment.reduce((sum, m) => {
+    const totalAllocationPercent = team.reduce((sum, m) => {
       const tenure = tenureTypes.find(t => t.code === m.tenure_type_code);
       return sum + (tenure?.allocation_percentage || 0);
     }, 0);
@@ -157,7 +158,7 @@ const PricingPlanBuilder = () => {
     if (totalAllocationPercent === 0) return;
     
     // Recalculate each member
-    const updatedTeam = teamDeployment.map(member => {
+    const updatedTeam = team.map(member => {
       const tenure = tenureTypes.find(t => t.code === member.tenure_type_code);
       if (!tenure) return member;
       
