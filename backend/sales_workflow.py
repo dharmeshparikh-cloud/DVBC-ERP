@@ -23,6 +23,7 @@ class ConsultantAllocation(BaseModel):
     consultant_type: str  # 'lead', 'lean', 'principal', 'hr', 'sales', 'project_manager', 'trainer'
     role: Optional[str] = None  # Full role name e.g., "Project Manager"
     meeting_type: Optional[str] = None  # e.g., "Weekly Review", "Monthly Review"
+    tenure_type_code: Optional[str] = None  # e.g., "full_time", "weekly" - for top-down pricing
     frequency: Optional[str] = None  # e.g., "5 per week", "1 per month"
     mode: Optional[str] = "Online"  # Online, Offline, Mixed
     count: int = 1
@@ -30,6 +31,8 @@ class ConsultantAllocation(BaseModel):
     hours: int = 0
     rate_per_meeting: Optional[float] = 12500
     committed_meetings: Optional[int] = 0  # Auto-calculated based on frequency and duration
+    allocation_percentage: Optional[float] = 0  # TOP-DOWN: Percentage of total investment
+    breakup_amount: Optional[float] = 0  # TOP-DOWN: Allocated amount for this consultant
 
 class SOWItemStatus(str):
     DRAFT = "draft"
