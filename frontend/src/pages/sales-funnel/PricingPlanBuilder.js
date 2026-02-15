@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../../App';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock } from 'lucide-react';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 
@@ -21,6 +22,13 @@ const DURATION_TYPE_MONTHS = {
 
 // Meeting modes
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
+
+// Payment components with default percentages
+const PAYMENT_COMPONENTS = [
+  { id: 'gst', name: 'GST', defaultPercent: 18, type: 'add', editable: false },
+  { id: 'tds', name: 'TDS', defaultPercent: 10, type: 'subtract', editable: true },
+  { id: 'conveyance', name: 'Conveyance', defaultPercent: 5, type: 'add', editable: true }
+];
 
 const PricingPlanBuilder = () => {
   const { user } = useContext(AuthContext);
@@ -56,9 +64,18 @@ const PricingPlanBuilder = () => {
     project_duration_type: 'yearly',
     project_duration_months: 12,
     payment_schedule: 'monthly',
-    discount_percentage: 0,
-    growth_consulting_plan: '',
-    growth_guarantee: ''
+    discount_percentage: 0
+  });
+
+  // Payment Plan Breakup State
+  const [paymentPlan, setPaymentPlan] = useState({
+    start_date: '',
+    selected_components: ['gst'], // GST selected by default
+    component_values: {
+      gst: 18,
+      tds: 10,
+      conveyance: 5
+    }
   });
 
   useEffect(() => {
@@ -66,6 +83,11 @@ const PricingPlanBuilder = () => {
     if (leadId) {
       fetchLead();
     }
+    // Set default start date to today
+    setPaymentPlan(prev => ({
+      ...prev,
+      start_date: new Date().toISOString().split('T')[0]
+    }));
   }, [leadId]);
 
   // Recalculate allocations when total investment or team changes
@@ -264,24 +286,123 @@ const PricingPlanBuilder = () => {
     setTotalInvestment(amount);
   };
 
-  // Calculate totals
+  // Toggle payment component selection
+  const togglePaymentComponent = (componentId) => {
+    setPaymentPlan(prev => {
+      const isSelected = prev.selected_components.includes(componentId);
+      return {
+        ...prev,
+        selected_components: isSelected
+          ? prev.selected_components.filter(id => id !== componentId)
+          : [...prev.selected_components, componentId]
+      };
+    });
+  };
+
+  // Update component percentage
+  const updateComponentValue = (componentId, value) => {
+    setPaymentPlan(prev => ({
+      ...prev,
+      component_values: {
+        ...prev.component_values,
+        [componentId]: parseFloat(value) || 0
+      }
+    }));
+  };
+
+  // Calculate totals (before discount, without GST)
   const calculateTotals = () => {
     const totalMeetings = teamDeployment.reduce((sum, m) => sum + (m.committed_meetings || 0), 0);
     const subtotal = totalInvestment;
     const discount = subtotal * (formData.discount_percentage / 100);
     const afterDiscount = subtotal - discount;
-    const gst = afterDiscount * 0.18;
+    
+    // Calculate GST based on selection
+    const gstPercent = paymentPlan.selected_components.includes('gst') 
+      ? paymentPlan.component_values.gst : 0;
+    const gst = afterDiscount * (gstPercent / 100);
+    
     const total = afterDiscount + gst;
     
     // Validate allocation percentages
     const allocatedTotal = teamDeployment.reduce((sum, m) => sum + (m.breakup_amount || 0), 0);
     const allocationDiff = Math.abs(allocatedTotal - subtotal);
-    const isAllocationValid = allocationDiff < 1; // Allow ₹1 rounding difference
+    const isAllocationValid = allocationDiff < 1;
     
-    return { totalMeetings, subtotal, discount, gst, total, allocatedTotal, isAllocationValid };
+    return { totalMeetings, subtotal, discount, gst, total, allocatedTotal, isAllocationValid, afterDiscount };
   };
 
   const totals = calculateTotals();
+
+  // Generate payment schedule breakdown
+  const paymentScheduleBreakdown = useMemo(() => {
+    if (!paymentPlan.start_date || totalInvestment <= 0) return [];
+    
+    const startDate = new Date(paymentPlan.start_date);
+    const schedule = formData.payment_schedule;
+    const durationMonths = formData.project_duration_months;
+    const afterDiscount = totals.afterDiscount;
+    
+    // Determine payment frequency in months
+    const frequencyMap = {
+      'monthly': 1,
+      'quarterly': 3,
+      'milestone': durationMonths, // Single payment
+      'upfront': durationMonths // Single payment upfront
+    };
+    
+    const frequencyMonths = frequencyMap[schedule] || 1;
+    const numberOfPayments = Math.ceil(durationMonths / frequencyMonths);
+    const basicPerPayment = Math.round(afterDiscount / numberOfPayments);
+    
+    const breakdown = [];
+    let currentDate = new Date(startDate);
+    
+    for (let i = 0; i < numberOfPayments; i++) {
+      const payment = {
+        frequency: schedule === 'monthly' ? `Month ${i + 1}` 
+          : schedule === 'quarterly' ? `Q${i + 1}`
+          : schedule === 'upfront' ? 'Upfront'
+          : `Milestone ${i + 1}`,
+        due_date: new Date(currentDate),
+        basic: basicPerPayment,
+        gst: 0,
+        tds: 0,
+        conveyance: 0,
+        net: basicPerPayment
+      };
+      
+      // Calculate selected components
+      if (paymentPlan.selected_components.includes('gst')) {
+        payment.gst = Math.round(basicPerPayment * (paymentPlan.component_values.gst / 100));
+      }
+      if (paymentPlan.selected_components.includes('tds')) {
+        payment.tds = Math.round(basicPerPayment * (paymentPlan.component_values.tds / 100));
+      }
+      if (paymentPlan.selected_components.includes('conveyance')) {
+        payment.conveyance = Math.round(basicPerPayment * (paymentPlan.component_values.conveyance / 100));
+      }
+      
+      // Net = Basic + GST + Conveyance - TDS
+      payment.net = payment.basic + payment.gst + payment.conveyance - payment.tds;
+      
+      breakdown.push(payment);
+      
+      // Move to next payment date
+      currentDate.setMonth(currentDate.getMonth() + frequencyMonths);
+    }
+    
+    return breakdown;
+  }, [paymentPlan, totalInvestment, formData.payment_schedule, formData.project_duration_months, formData.discount_percentage, totals.afterDiscount]);
+
+  // Format date for display
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-IN', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+  };
 
   // Convert team deployment for backend
   const convertToBackendFormat = () => {
@@ -313,6 +434,11 @@ const PricingPlanBuilder = () => {
       toast.error('Please enter Total Client Investment');
       return;
     }
+
+    if (!paymentPlan.start_date) {
+      toast.error('Please select a project start date');
+      return;
+    }
     
     setLoading(true);
 
@@ -323,7 +449,16 @@ const PricingPlanBuilder = () => {
         total_investment: totalInvestment,
         consultants: convertToBackendFormat(),
         team_deployment: teamDeployment,
-        sow_items: []
+        sow_items: [],
+        payment_plan: {
+          start_date: paymentPlan.start_date,
+          selected_components: paymentPlan.selected_components,
+          component_values: paymentPlan.component_values,
+          schedule_breakdown: paymentScheduleBreakdown.map(p => ({
+            ...p,
+            due_date: p.due_date.toISOString()
+          }))
+        }
       };
 
       const response = await axios.post(`${API}/pricing-plans`, pricingPlan);
@@ -480,6 +615,7 @@ const PricingPlanBuilder = () => {
                   value={formData.payment_schedule}
                   onChange={(e) => setFormData({ ...formData, payment_schedule: e.target.value })}
                   className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                  data-testid="payment-schedule-select"
                 >
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
@@ -722,10 +858,12 @@ const PricingPlanBuilder = () => {
                 <span className="text-zinc-600">Discount ({formData.discount_percentage}%):</span>
                 <span className="font-semibold text-red-600" data-testid="discount">- {formatINR(totals.discount)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-600">GST (18%):</span>
-                <span className="font-semibold text-zinc-950" data-testid="gst">+ {formatINR(totals.gst)}</span>
-              </div>
+              {paymentPlan.selected_components.includes('gst') && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-600">GST ({paymentPlan.component_values.gst}%):</span>
+                  <span className="font-semibold text-zinc-950" data-testid="gst">+ {formatINR(totals.gst)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-lg font-bold pt-2 border-t border-zinc-300">
                 <span className="text-zinc-950">Grand Total:</span>
                 <span className="text-emerald-600" data-testid="grand-total">{formatINR(totals.total)}</span>
@@ -734,34 +872,174 @@ const PricingPlanBuilder = () => {
           </CardContent>
         </Card>
 
-        {/* Growth Plans */}
+        {/* Payment Plan Breakup - NEW */}
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardHeader>
-            <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950">
-              Growth Consulting & Guarantee
+            <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950 flex items-center gap-2">
+              <Receipt className="w-5 h-5" />
+              Payment Plan Breakup
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Growth Consulting Plan</Label>
-              <textarea
-                value={formData.growth_consulting_plan}
-                onChange={(e) => setFormData({ ...formData, growth_consulting_plan: e.target.value })}
-                rows={3}
-                placeholder="Describe the growth consulting plan..."
-                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-              />
+          <CardContent className="space-y-6">
+            {/* Start Date & Component Selection */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Start Date */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Project Start Date *
+                </Label>
+                <Input
+                  type="date"
+                  value={paymentPlan.start_date}
+                  onChange={(e) => setPaymentPlan({ ...paymentPlan, start_date: e.target.value })}
+                  className="rounded-sm border-zinc-200"
+                  data-testid="start-date-input"
+                />
+                <p className="text-xs text-zinc-500">
+                  Payment reminders will be sent 7 days before each due date
+                </p>
+              </div>
+
+              {/* Variable Components Selection */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-zinc-950">
+                  Payment Components (Multi-select)
+                </Label>
+                <div className="space-y-3">
+                  {PAYMENT_COMPONENTS.map(comp => (
+                    <div key={comp.id} className="flex items-center gap-4 p-2 bg-zinc-50 rounded-sm">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id={comp.id}
+                          checked={paymentPlan.selected_components.includes(comp.id)}
+                          onCheckedChange={() => togglePaymentComponent(comp.id)}
+                          data-testid={`component-${comp.id}`}
+                        />
+                        <label htmlFor={comp.id} className="text-sm font-medium cursor-pointer">
+                          {comp.name}
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2 ml-auto">
+                        {comp.editable ? (
+                          <>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              value={paymentPlan.component_values[comp.id]}
+                              onChange={(e) => updateComponentValue(comp.id, e.target.value)}
+                              className="w-20 h-8 text-sm rounded-sm"
+                              disabled={!paymentPlan.selected_components.includes(comp.id)}
+                            />
+                            <span className="text-sm text-zinc-500">%</span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-zinc-600 font-medium">
+                            {paymentPlan.component_values[comp.id]}% (Fixed)
+                          </span>
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          comp.type === 'add' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {comp.type === 'add' ? '+Add' : '-Deduct'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Net = Basic + GST + Conveyance - TDS
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Growth Guarantee</Label>
-              <textarea
-                value={formData.growth_guarantee}
-                onChange={(e) => setFormData({ ...formData, growth_guarantee: e.target.value })}
-                rows={3}
-                placeholder="Specific growth metrics and guarantees..."
-                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-              />
-            </div>
+
+            {/* Payment Schedule Table */}
+            {paymentScheduleBreakdown.length > 0 && totalInvestment > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-zinc-950">Payment Schedule</h4>
+                  <div className="flex items-center gap-2 text-xs text-amber-600">
+                    <Bell className="w-3 h-3" />
+                    Auto-reminders 7 days before due date
+                  </div>
+                </div>
+                
+                <div className="rounded-lg border border-zinc-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-zinc-100">
+                      <tr className="text-xs font-medium text-zinc-500 uppercase">
+                        <th className="px-4 py-3 text-left">Frequency</th>
+                        <th className="px-4 py-3 text-left">Due Date</th>
+                        <th className="px-4 py-3 text-right">Basic</th>
+                        {paymentPlan.selected_components.includes('gst') && (
+                          <th className="px-4 py-3 text-right">GST ({paymentPlan.component_values.gst}%)</th>
+                        )}
+                        {paymentPlan.selected_components.includes('tds') && (
+                          <th className="px-4 py-3 text-right">TDS ({paymentPlan.component_values.tds}%)</th>
+                        )}
+                        {paymentPlan.selected_components.includes('conveyance') && (
+                          <th className="px-4 py-3 text-right">Conveyance ({paymentPlan.component_values.conveyance}%)</th>
+                        )}
+                        <th className="px-4 py-3 text-right font-bold">Net Receivable</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {paymentScheduleBreakdown.map((payment, index) => (
+                        <tr key={index} className="text-sm hover:bg-zinc-50" data-testid={`payment-row-${index}`}>
+                          <td className="px-4 py-3 font-medium text-zinc-900">{payment.frequency}</td>
+                          <td className="px-4 py-3 text-zinc-600">{formatDate(payment.due_date)}</td>
+                          <td className="px-4 py-3 text-right text-zinc-900">{formatINR(payment.basic)}</td>
+                          {paymentPlan.selected_components.includes('gst') && (
+                            <td className="px-4 py-3 text-right text-emerald-600">+{formatINR(payment.gst)}</td>
+                          )}
+                          {paymentPlan.selected_components.includes('tds') && (
+                            <td className="px-4 py-3 text-right text-red-600">-{formatINR(payment.tds)}</td>
+                          )}
+                          {paymentPlan.selected_components.includes('conveyance') && (
+                            <td className="px-4 py-3 text-right text-emerald-600">+{formatINR(payment.conveyance)}</td>
+                          )}
+                          <td className="px-4 py-3 text-right font-bold text-blue-600">{formatINR(payment.net)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-zinc-100">
+                      <tr className="text-sm font-bold">
+                        <td className="px-4 py-3" colSpan={2}>Total</td>
+                        <td className="px-4 py-3 text-right">
+                          {formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.basic, 0))}
+                        </td>
+                        {paymentPlan.selected_components.includes('gst') && (
+                          <td className="px-4 py-3 text-right text-emerald-600">
+                            +{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.gst, 0))}
+                          </td>
+                        )}
+                        {paymentPlan.selected_components.includes('tds') && (
+                          <td className="px-4 py-3 text-right text-red-600">
+                            -{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.tds, 0))}
+                          </td>
+                        )}
+                        {paymentPlan.selected_components.includes('conveyance') && (
+                          <td className="px-4 py-3 text-right text-emerald-600">
+                            +{formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.conveyance, 0))}
+                          </td>
+                        )}
+                        <td className="px-4 py-3 text-right text-blue-700">
+                          {formatINR(paymentScheduleBreakdown.reduce((sum, p) => sum + p.net, 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {(paymentScheduleBreakdown.length === 0 || totalInvestment <= 0) && (
+              <div className="text-center py-8 text-zinc-400 text-sm">
+                Enter Total Investment and Start Date to generate payment schedule
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -776,7 +1054,7 @@ const PricingPlanBuilder = () => {
           </Button>
           <Button
             type="submit"
-            disabled={loading || teamDeployment.length === 0 || totalInvestment <= 0}
+            disabled={loading || teamDeployment.length === 0 || totalInvestment <= 0 || !paymentPlan.start_date}
             className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
             data-testid="create-pricing-plan-btn"
           >
