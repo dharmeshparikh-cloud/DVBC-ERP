@@ -297,12 +297,18 @@ const SalesScopeSelection = () => {
         </Card>
       )}
 
-      {/* Scope List - Categories with List Items */}
+      {/* Scope Table - Categories with 2 scopes per row */}
       <div className="space-y-4">
         {filteredGroupedScopes.map(group => {
           const categoryScopes = group.scopes;
           const selectedInCategory = categoryScopes.filter(s => selectedScopes.has(s.id)).length;
           const allSelected = selectedInCategory === categoryScopes.length && categoryScopes.length > 0;
+          
+          // Create pairs of scopes (2 per row)
+          const scopePairs = [];
+          for (let i = 0; i < categoryScopes.length; i += 2) {
+            scopePairs.push(categoryScopes.slice(i, i + 2));
+          }
           
           return (
             <Card 
@@ -332,46 +338,42 @@ const SalesScopeSelection = () => {
                     data-testid={`category-checkbox-${group.category.code}`}
                   />
                 </div>
-                {group.category.description && (
-                  <p className="text-xs text-zinc-500 mt-1">{group.category.description}</p>
-                )}
               </CardHeader>
-              <CardContent className="p-0">
-                {/* List View */}
-                <div className="divide-y divide-zinc-100">
-                  {categoryScopes.map(scope => {
-                    const isSelected = selectedScopes.has(scope.id);
-                    return (
-                      <div
-                        key={scope.id}
-                        onClick={() => toggleScope(scope.id)}
-                        className={`px-4 py-3 cursor-pointer transition-all flex items-center gap-3 ${
-                          isSelected 
-                            ? 'bg-emerald-50' 
-                            : 'hover:bg-zinc-50'
-                        }`}
-                        data-testid={`scope-item-${scope.id}`}
-                      >
-                        <Checkbox
-                          checked={isSelected}
-                          className={isSelected ? 'border-emerald-500 data-[state=checked]:bg-emerald-500' : 'border-zinc-300'}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className={`text-sm font-medium ${isSelected ? 'text-emerald-900' : 'text-zinc-900'}`}>
-                            {scope.name}
+              <CardContent className="p-4">
+                {/* Table View - 2 scopes per row */}
+                <div className="space-y-2">
+                  {scopePairs.map((pair, pairIndex) => (
+                    <div key={pairIndex} className="grid grid-cols-2 gap-3">
+                      {pair.map(scope => {
+                        const isSelected = selectedScopes.has(scope.id);
+                        return (
+                          <div
+                            key={scope.id}
+                            onClick={() => toggleScope(scope.id)}
+                            className={`px-4 py-3 cursor-pointer transition-all flex items-center gap-3 rounded-sm border ${
+                              isSelected 
+                                ? 'bg-emerald-50 border-emerald-200' 
+                                : 'bg-white border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300'
+                            }`}
+                            data-testid={`scope-item-${scope.id}`}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              className={isSelected ? 'border-emerald-500 data-[state=checked]:bg-emerald-500' : 'border-zinc-300'}
+                            />
+                            <span className={`text-sm font-medium flex-1 truncate ${isSelected ? 'text-emerald-900' : 'text-zinc-900'}`}>
+                              {scope.name}
+                            </span>
+                            {isSelected && (
+                              <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                            )}
                           </div>
-                          {scope.description && (
-                            <div className="text-xs text-zinc-500 mt-0.5">
-                              {scope.description}
-                            </div>
-                          )}
-                        </div>
-                        {isSelected && (
-                          <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                      {/* Fill empty space if odd number of scopes */}
+                      {pair.length === 1 && <div className="hidden md:block"></div>}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
