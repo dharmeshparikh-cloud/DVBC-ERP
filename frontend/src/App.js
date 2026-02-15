@@ -30,6 +30,7 @@ import ConsultantDashboard from './pages/ConsultantDashboard';
 import ProjectTasks from './pages/ProjectTasks';
 import HandoverAlerts from './pages/HandoverAlerts';
 import KickoffMeeting from './pages/KickoffMeeting';
+import KickoffRequests from './pages/KickoffRequests';
 import UserProfile from './pages/UserProfile';
 import UserManagement from './pages/UserManagement';
 import Employees from './pages/Employees';
@@ -40,6 +41,9 @@ import Reports from './pages/Reports';
 import SecurityAuditLog from './pages/SecurityAuditLog';
 import GanttChart from './pages/GanttChart';
 import Downloads from './pages/Downloads';
+import SalesDashboard from './pages/SalesDashboard';
+import ConsultingDashboard from './pages/ConsultingDashboard';
+import HRDashboard from './pages/HRDashboard';
 import Layout from './components/Layout';
 import './App.css';
 
