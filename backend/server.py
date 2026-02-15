@@ -6049,22 +6049,24 @@ async def create_leave_request(
     leave_data: LeaveRequestCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a leave request (automatically routed to reporting manager + HR)"""
-    # Get employee record
+    """Create a leave request. Manager's own leave escalates to their reporting manager + admin."""
     employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=400, detail="Employee record not found. Please contact HR.")
     
-    # Calculate days
     days = (leave_data.end_date - leave_data.start_date).days + 1
     
-    # Check leave balance
     leave_balance = employee.get('leave_balance', {})
     leave_type_key = leave_data.leave_type.replace('_leave', '')
     available = leave_balance.get(leave_data.leave_type, 0) - leave_balance.get(f'used_{leave_type_key}', 0)
     
     if days > available:
         raise HTTPException(status_code=400, detail=f"Insufficient leave balance. Available: {available} days")
+    
+    # Check if user is a manager/reporting manager — their leave must escalate to THEIR manager + admin
+    is_manager_role = current_user.role in ['manager', 'project_manager', 'hr_manager', 'principal_consultant']
+    has_reportees = len(await get_direct_reportee_ids(current_user.id)) > 0
+    requires_admin = is_manager_role or has_reportees  # Manager's own leave needs admin approval
     
     leave_request = {
         "id": str(uuid.uuid4()),
@@ -6083,24 +6085,22 @@ async def create_leave_request(
     
     await db.leave_requests.insert_one(leave_request)
     
-    # Create approval request (Reporting Manager → HR)
+    # Create approval request — manager's leave escalates to their RM + admin
     approval = await create_approval_request(
         approval_type=ApprovalType.LEAVE_REQUEST,
         reference_id=leave_request['id'],
         reference_title=f"{leave_data.leave_type.replace('_', ' ').title()} - {days} day(s)",
         requester_id=current_user.id,
         requires_hr_approval=True,
-        requires_admin_approval=False,
+        requires_admin_approval=requires_admin,
         is_client_facing=False
     )
     
-    # Link approval to leave request
     await db.leave_requests.update_one(
         {"id": leave_request['id']},
         {"$set": {"approval_request_id": approval['id']}}
     )
     
-    # Notify admins about new leave request
     await notify_admins(
         notif_type="leave_request",
         title="New Leave Request",
@@ -6108,6 +6108,22 @@ async def create_leave_request(
         reference_type="leave_request",
         reference_id=leave_request['id']
     )
+    
+    # Notify reporting manager (direct + second-line)
+    reporting_chain = await get_reporting_chain(current_user.id, max_levels=2)
+    for rm in reporting_chain:
+        if rm.get('user_id'):
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": rm['user_id'],
+                "type": "leave_request",
+                "title": "Reportee Leave Request",
+                "message": f"{leave_request['employee_name']} requested {leave_data.leave_type.replace('_', ' ').title()} for {days} day(s).",
+                "reference_type": "leave_request",
+                "reference_id": leave_request['id'],
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
     
     return {"message": "Leave request submitted for approval", "leave_request_id": leave_request['id']}
 
