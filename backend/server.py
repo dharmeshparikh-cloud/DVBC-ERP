@@ -6899,6 +6899,353 @@ async def preview_approval_chain(
         "total_levels": len(approval_levels)
     }
 
+# ==================== SCOPE TASK APPROVAL MODULE ====================
+# Parallel approval system for SOW scope tasks (Manager + Client)
+
+class ScopeTaskApprovalStatus(str):
+    PENDING = "pending"
+    MANAGER_APPROVED = "manager_approved"
+    CLIENT_APPROVED = "client_approved"
+    FULLY_APPROVED = "fully_approved"
+    MANAGER_REJECTED = "manager_rejected"
+    CLIENT_REJECTED = "client_rejected"
+
+class ScopeTaskApproval(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sow_id: str
+    scope_id: str
+    scope_name: str
+    
+    # Initiator
+    initiated_by: str
+    initiated_by_name: str
+    initiated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    # Parallel approvals
+    manager_approval: Optional[dict] = None  # {status, approver_id, approver_name, approved_at, comments}
+    client_approval: Optional[dict] = None   # {status, approver_id, approver_name, approved_at, comments}
+    
+    # Overall status
+    status: str = ScopeTaskApprovalStatus.PENDING
+    
+    # Deadline and reminders
+    deadline: Optional[datetime] = None
+    reminder_interval_days: int = 2
+    last_reminder_sent: Optional[datetime] = None
+    reminder_count: int = 0
+    
+    # Notes
+    notes: Optional[str] = None
+    attachments: List[str] = []
+    
+    # Timestamps
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = None
+
+class ScopeTaskApprovalCreate(BaseModel):
+    sow_id: str
+    scope_ids: List[str]  # Can submit multiple scopes at once
+    deadline_days: Optional[int] = 7  # Days from now
+    notes: Optional[str] = None
+
+class ScopeTaskApprovalAction(BaseModel):
+    action: str  # approve, reject
+    approver_type: str  # manager, client
+    comments: Optional[str] = None
+
+@api_router.post("/scope-task-approvals")
+async def create_scope_task_approval(
+    approval_data: ScopeTaskApprovalCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create task approval requests for selected scopes (parallel Manager + Client approval)"""
+    # Get SOW
+    sow = await db.enhanced_sows.find_one({"id": approval_data.sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    created_approvals = []
+    deadline = datetime.now(timezone.utc) + timedelta(days=approval_data.deadline_days or 7)
+    
+    for scope_id in approval_data.scope_ids:
+        # Find scope in SOW
+        scope = None
+        for s in sow.get('scopes', []):
+            if s.get('id') == scope_id:
+                scope = s
+                break
+        
+        if not scope:
+            continue
+        
+        # Check if approval already exists and is pending
+        existing = await db.scope_task_approvals.find_one({
+            "sow_id": approval_data.sow_id,
+            "scope_id": scope_id,
+            "status": {"$in": [ScopeTaskApprovalStatus.PENDING, ScopeTaskApprovalStatus.MANAGER_APPROVED, ScopeTaskApprovalStatus.CLIENT_APPROVED]}
+        })
+        if existing:
+            continue  # Skip if pending approval exists
+        
+        approval = ScopeTaskApproval(
+            sow_id=approval_data.sow_id,
+            scope_id=scope_id,
+            scope_name=scope.get('name', 'Unknown Scope'),
+            initiated_by=current_user.id,
+            initiated_by_name=current_user.full_name,
+            deadline=deadline,
+            notes=approval_data.notes,
+            manager_approval={"status": "pending", "approver_id": None, "approver_name": None, "approved_at": None, "comments": None},
+            client_approval={"status": "pending", "approver_id": None, "approver_name": None, "approved_at": None, "comments": None}
+        )
+        
+        doc = approval.model_dump()
+        doc['created_at'] = doc['created_at'].isoformat()
+        doc['updated_at'] = doc['updated_at'].isoformat()
+        doc['initiated_at'] = doc['initiated_at'].isoformat()
+        if doc['deadline']:
+            doc['deadline'] = doc['deadline'].isoformat()
+        
+        await db.scope_task_approvals.insert_one(doc)
+        created_approvals.append(doc)
+        
+        # Update scope status in SOW
+        for s in sow.get('scopes', []):
+            if s.get('id') == scope_id:
+                s['approval_status'] = 'pending_approval'
+                s['approval_id'] = approval.id
+                break
+    
+    # Update SOW with new approval statuses
+    await db.enhanced_sows.update_one(
+        {"id": approval_data.sow_id},
+        {"$set": {"scopes": sow['scopes'], "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Create notifications for managers (project team)
+    project = await db.projects.find_one({"sow_id": approval_data.sow_id}, {"_id": 0})
+    if project:
+        # Notify all team members
+        for member in project.get('team_members', []):
+            if member.get('user_id') and member['user_id'] != current_user.id:
+                await db.notifications.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "user_id": member['user_id'],
+                    "type": "task_approval_request",
+                    "title": "Task Approval Required",
+                    "message": f"{current_user.full_name} has requested approval for {len(created_approvals)} scope task(s)",
+                    "reference_type": "scope_task_approval",
+                    "reference_id": approval_data.sow_id,
+                    "is_read": False,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+    
+    return {
+        "message": f"Created {len(created_approvals)} task approval request(s)",
+        "approvals": created_approvals
+    }
+
+@api_router.get("/scope-task-approvals/sow/{sow_id}")
+async def get_sow_task_approvals(
+    sow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all task approvals for a SOW"""
+    approvals = await db.scope_task_approvals.find(
+        {"sow_id": sow_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return approvals
+
+@api_router.get("/scope-task-approvals/pending")
+async def get_pending_task_approvals(
+    current_user: User = Depends(get_current_user)
+):
+    """Get all pending task approvals for the current user (as manager or client)"""
+    # Get SOWs where user is a team member
+    projects = await db.projects.find(
+        {"team_members.user_id": current_user.id},
+        {"_id": 0, "sow_id": 1}
+    ).to_list(100)
+    sow_ids = [p['sow_id'] for p in projects if p.get('sow_id')]
+    
+    # Get pending approvals
+    approvals = await db.scope_task_approvals.find({
+        "sow_id": {"$in": sow_ids},
+        "status": {"$in": [
+            ScopeTaskApprovalStatus.PENDING,
+            ScopeTaskApprovalStatus.MANAGER_APPROVED,
+            ScopeTaskApprovalStatus.CLIENT_APPROVED
+        ]}
+    }, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    return approvals
+
+@api_router.post("/scope-task-approvals/{approval_id}/action")
+async def action_scope_task_approval(
+    approval_id: str,
+    action_data: ScopeTaskApprovalAction,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve or reject a scope task (Manager or Client)"""
+    approval = await db.scope_task_approvals.find_one({"id": approval_id}, {"_id": 0})
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval not found")
+    
+    if approval['status'] == ScopeTaskApprovalStatus.FULLY_APPROVED:
+        raise HTTPException(status_code=400, detail="This task has already been fully approved")
+    
+    now = datetime.now(timezone.utc)
+    update_data = {"updated_at": now.isoformat()}
+    
+    if action_data.approver_type == "manager":
+        if approval.get('manager_approval', {}).get('status') != 'pending':
+            raise HTTPException(status_code=400, detail="Manager approval already processed")
+        
+        update_data['manager_approval'] = {
+            "status": "approved" if action_data.action == "approve" else "rejected",
+            "approver_id": current_user.id,
+            "approver_name": current_user.full_name,
+            "approved_at": now.isoformat(),
+            "comments": action_data.comments
+        }
+        
+        if action_data.action == "reject":
+            update_data['status'] = ScopeTaskApprovalStatus.MANAGER_REJECTED
+            update_data['completed_at'] = now.isoformat()
+        elif approval.get('client_approval', {}).get('status') == 'approved':
+            update_data['status'] = ScopeTaskApprovalStatus.FULLY_APPROVED
+            update_data['completed_at'] = now.isoformat()
+        else:
+            update_data['status'] = ScopeTaskApprovalStatus.MANAGER_APPROVED
+            
+    elif action_data.approver_type == "client":
+        if approval.get('client_approval', {}).get('status') != 'pending':
+            raise HTTPException(status_code=400, detail="Client approval already processed")
+        
+        update_data['client_approval'] = {
+            "status": "approved" if action_data.action == "approve" else "rejected",
+            "approver_id": current_user.id,
+            "approver_name": current_user.full_name,
+            "approved_at": now.isoformat(),
+            "comments": action_data.comments
+        }
+        
+        if action_data.action == "reject":
+            update_data['status'] = ScopeTaskApprovalStatus.CLIENT_REJECTED
+            update_data['completed_at'] = now.isoformat()
+        elif approval.get('manager_approval', {}).get('status') == 'approved':
+            update_data['status'] = ScopeTaskApprovalStatus.FULLY_APPROVED
+            update_data['completed_at'] = now.isoformat()
+        else:
+            update_data['status'] = ScopeTaskApprovalStatus.CLIENT_APPROVED
+    
+    await db.scope_task_approvals.update_one(
+        {"id": approval_id},
+        {"$set": update_data}
+    )
+    
+    # Update scope status in SOW if fully approved or rejected
+    if update_data.get('status') in [ScopeTaskApprovalStatus.FULLY_APPROVED, ScopeTaskApprovalStatus.MANAGER_REJECTED, ScopeTaskApprovalStatus.CLIENT_REJECTED]:
+        sow = await db.enhanced_sows.find_one({"id": approval['sow_id']}, {"_id": 0})
+        if sow:
+            new_scope_status = "approved" if update_data['status'] == ScopeTaskApprovalStatus.FULLY_APPROVED else "rejected"
+            for scope in sow.get('scopes', []):
+                if scope.get('id') == approval['scope_id']:
+                    scope['approval_status'] = new_scope_status
+                    break
+            await db.enhanced_sows.update_one(
+                {"id": approval['sow_id']},
+                {"$set": {"scopes": sow['scopes'], "updated_at": now.isoformat()}}
+            )
+    
+    # Create notification for initiator
+    status_msg = "approved" if action_data.action == "approve" else "rejected"
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": approval['initiated_by'],
+        "type": "task_approval_update",
+        "title": f"Task {status_msg.title()} by {action_data.approver_type.title()}",
+        "message": f"'{approval['scope_name']}' has been {status_msg} by {current_user.full_name} ({action_data.approver_type})",
+        "reference_type": "scope_task_approval",
+        "reference_id": approval_id,
+        "is_read": False,
+        "created_at": now.isoformat()
+    })
+    
+    return {
+        "message": f"Task {status_msg} by {action_data.approver_type}",
+        "status": update_data.get('status', approval['status'])
+    }
+
+# Background task to send reminders (called periodically)
+async def send_approval_reminders():
+    """Send reminders for pending approvals every 2 days"""
+    now = datetime.now(timezone.utc)
+    two_days_ago = now - timedelta(days=2)
+    
+    # Find approvals that need reminders
+    pending_approvals = await db.scope_task_approvals.find({
+        "status": {"$in": [
+            ScopeTaskApprovalStatus.PENDING,
+            ScopeTaskApprovalStatus.MANAGER_APPROVED,
+            ScopeTaskApprovalStatus.CLIENT_APPROVED
+        ]},
+        "$or": [
+            {"last_reminder_sent": None},
+            {"last_reminder_sent": {"$lt": two_days_ago.isoformat()}}
+        ]
+    }, {"_id": 0}).to_list(100)
+    
+    for approval in pending_approvals:
+        # Get SOW and project info
+        sow = await db.enhanced_sows.find_one({"id": approval['sow_id']}, {"_id": 0})
+        if not sow:
+            continue
+        
+        project = await db.projects.find_one({"sow_id": approval['sow_id']}, {"_id": 0})
+        
+        # Send notification to all team members
+        if project:
+            for member in project.get('team_members', []):
+                if member.get('user_id'):
+                    await db.notifications.insert_one({
+                        "id": str(uuid.uuid4()),
+                        "user_id": member['user_id'],
+                        "type": "task_approval_reminder",
+                        "title": "Task Approval Reminder",
+                        "message": f"Pending approval for '{approval['scope_name']}' - Please review",
+                        "reference_type": "scope_task_approval",
+                        "reference_id": approval['id'],
+                        "is_read": False,
+                        "created_at": now.isoformat()
+                    })
+        
+        # Update reminder tracking
+        await db.scope_task_approvals.update_one(
+            {"id": approval['id']},
+            {"$set": {
+                "last_reminder_sent": now.isoformat(),
+                "reminder_count": approval.get('reminder_count', 0) + 1
+            }}
+        )
+    
+    return len(pending_approvals)
+
+@api_router.post("/scope-task-approvals/send-reminders")
+async def trigger_approval_reminders(
+    current_user: User = Depends(get_current_user)
+):
+    """Manually trigger approval reminders (admin only)"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    count = await send_approval_reminders()
+    return {"message": f"Sent reminders for {count} pending approvals"}
+
 # ==================== LEAVE REQUEST MODULE ====================
 
 class LeaveType(str):
