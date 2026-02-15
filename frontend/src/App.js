@@ -38,6 +38,7 @@ import Clients from './pages/Clients';
 import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
 import SecurityAuditLog from './pages/SecurityAuditLog';
+import GanttChart from './pages/GanttChart';
 import Layout from './components/Layout';
 import './App.css';
 
