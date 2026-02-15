@@ -7700,16 +7700,15 @@ async def get_attendance(employee_id: Optional[str] = None, month: Optional[str]
         query["date"] = {"$regex": f"^{month}"}
     
     # Scope filtering based on role
-    if current_user.role not in ["admin", "hr_manager", "hr_executive", "manager"]:
-        # Non-manager: check if they have reportees, otherwise only show own
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        # Non-HR: check if they have reportees, otherwise only show own
         reportee_ids = await get_all_reportee_ids(current_user.id)
+        own_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
         if reportee_ids:
-            own_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
             all_ids = reportee_ids + ([own_emp['id']] if own_emp else [])
             if not employee_id:
                 query["employee_id"] = {"$in": all_ids}
         else:
-            own_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
             if own_emp and not employee_id:
                 query["employee_id"] = own_emp['id']
     
