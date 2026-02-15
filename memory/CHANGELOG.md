@@ -1,5 +1,13 @@
 # DVBC - NETRA Changelog
 
+## Feb 15, 2026 — Payroll Components & Input Table
+- HR/Admin can add/remove salary components (earnings & deductions)
+- New payroll input spreadsheet: Working Days, Present, Absent, Holidays, Leaves, OT Hours, Incentive, Advance, Penalty (all with reasons), Remarks
+- Incentives → earnings, Advances/Penalties → deductions in generated slips
+- Overtime calculated at 1.5x hourly rate
+- Save All or per-row save functionality
+- New endpoints: POST /api/payroll/salary-components/add, DELETE /api/payroll/salary-components/{type}/{key}, GET/POST /api/payroll/inputs, POST /api/payroll/inputs/bulk
+
 ## Feb 15, 2026 — Salary Slip Redesign
 - Modern salary slip format with company logo, PAYSLIP badge, reference number
 - Net pay shown in words (Indian number system)
