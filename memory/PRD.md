@@ -5,9 +5,47 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ---
 
-## Latest Update (December 15, 2026)
+## Latest Update (February 15, 2026)
 
-### FEATURE: Renamed Quotations to Proforma Invoice + Downloadable Invoice ✅ (LATEST)
+### BUG FIXES: Proforma Invoice & Sales Flow Improvements ✅ (LATEST)
+
+**Issues Fixed:**
+
+1. **PDF Export Format Fixed (P0)**
+   - Updated `handleDownloadPDF` function with comprehensive print CSS styles
+   - Modern layout now preserved in PDF download
+   - All background colors, borders, and spacing render correctly
+
+2. **Pricing Plan ID Now Visible in Dialog (P1)**
+   - Dropdown now shows format: `Plan #ABC123 • 12 months (yearly) • ₹10,00,000`
+   - Easy to distinguish between multiple pricing plans
+
+3. **Custom Scopes Now Saved to Master List (P2)**
+   - Backend enhanced to save custom scopes to `sow_scope_templates` collection
+   - Custom scopes have `is_custom: true` flag
+   - Available for future SOW selections
+
+4. **Added Logo to Proforma Invoice**
+   - D&V® logo icon displayed in invoice header
+   - Professional branding with "Business Consulting" text
+
+5. **Added "Save and Continue" Buttons Throughout Flow**
+   - Green (emerald-600) buttons with arrow icons
+   - Pricing Plan Builder: "Save & Continue to Scope Selection →"
+   - SOW Selection: "Save & Continue to Proforma Invoice"
+   - Create Invoice Dialog: "Save & Create Invoice"
+
+**Files Modified:**
+- `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js`
+- `/app/frontend/src/pages/sales-funnel/SalesScopeSelection.js`
+- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js`
+- `/app/backend/routers/enhanced_sow.py`
+
+---
+
+## Previous Update (December 15, 2026)
+
+### FEATURE: Renamed Quotations to Proforma Invoice + Downloadable Invoice ✅
 
 **Changes Made:**
 1. **Renamed "Quotations" to "Proforma Invoice"** throughout the app
