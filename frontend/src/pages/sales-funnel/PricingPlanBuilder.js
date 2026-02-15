@@ -251,36 +251,13 @@ const PricingPlanBuilder = () => {
   // Remove team member
   const removeTeamMember = (index) => {
     const updated = teamDeployment.filter((_, i) => i !== index);
-    setTeamDeployment(updated);
     
-    // Recalculate allocations after removal
-    setTimeout(() => {
-      if (updated.length > 0 && totalInvestment > 0) {
-        const totalAllocationPercent = updated.reduce((sum, m) => {
-          const tenure = tenureTypes.find(t => t.code === m.tenure_type_code);
-          return sum + (tenure?.allocation_percentage || 0);
-        }, 0);
-        
-        const recalculated = updated.map(member => {
-          const tenure = tenureTypes.find(t => t.code === member.tenure_type_code);
-          if (!tenure || totalAllocationPercent === 0) return member;
-          
-          const normalizedPercent = (tenure.allocation_percentage / totalAllocationPercent) * 100;
-          const breakupAmount = totalInvestment * (normalizedPercent / 100);
-          const totalMeetings = Math.round((tenure.meetings_per_month || 1) * formData.project_duration_months * (member.count || 1));
-          const ratePerMeeting = totalMeetings > 0 ? Math.round(breakupAmount / totalMeetings) : 0;
-          
-          return {
-            ...member,
-            allocation_percentage: normalizedPercent,
-            breakup_amount: breakupAmount,
-            committed_meetings: totalMeetings,
-            rate_per_meeting: ratePerMeeting
-          };
-        });
-        setTeamDeployment(recalculated);
-      }
-    }, 0);
+    // Recalculate allocations after removal (pass the updated team directly)
+    if (updated.length > 0 && totalInvestment > 0) {
+      recalculateAllocations(updated);
+    } else {
+      setTeamDeployment(updated);
+    }
   };
 
   // Handle total investment change
