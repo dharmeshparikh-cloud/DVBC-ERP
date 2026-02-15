@@ -461,6 +461,7 @@ const PricingPlanBuilder = () => {
           start_date: paymentPlan.start_date,
           selected_components: paymentPlan.selected_components,
           component_values: paymentPlan.component_values,
+          conveyance_lumpsum: paymentPlan.conveyance_lumpsum || 0,  // Lumpsum amount
           schedule_breakdown: paymentScheduleBreakdown.map(p => ({
             ...p,
             due_date: p.due_date.toISOString()
