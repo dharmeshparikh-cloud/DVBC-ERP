@@ -326,10 +326,20 @@ class TestTeamDeploymentFeatures:
                 
                 if create_response.status_code in [200, 201]:
                     created = create_response.json()
-                    print(f"Created kickoff meeting_frequency: {created.get('meeting_frequency')}")
-                    print(f"Created kickoff project_tenure_months: {created.get('project_tenure_months')}")
-                    assert created.get('meeting_frequency') == "Weekly"
-                    assert created.get('project_tenure_months') == 6
+                    kickoff_id = created.get('id')
+                    print(f"Created kickoff ID: {kickoff_id}")
+                    
+                    # Verify by fetching the created kickoff
+                    get_response = requests.get(
+                        f"{BASE_URL}/api/kickoff-requests/{kickoff_id}",
+                        headers=self.get_auth_headers(self.admin_token)
+                    )
+                    if get_response.status_code == 200:
+                        kickoff = get_response.json()
+                        print(f"Created kickoff meeting_frequency: {kickoff.get('meeting_frequency')}")
+                        print(f"Created kickoff project_tenure_months: {kickoff.get('project_tenure_months')}")
+                        assert kickoff.get('meeting_frequency') == "Weekly"
+                        assert kickoff.get('project_tenure_months') == 6
 
 
 class TestPricingExclusionForConsultingRoles:
