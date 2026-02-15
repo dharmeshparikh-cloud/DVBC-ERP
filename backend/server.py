@@ -5815,6 +5815,19 @@ async def action_approval(
     if not can_action:
         raise HTTPException(status_code=403, detail="You cannot action this approval")
     
+    # RULE: Manager cannot approve their own leave request
+    if approval.get('requester_id') == current_user.id:
+        raise HTTPException(status_code=403, detail="You cannot approve your own request. It must be escalated to your reporting manager or admin.")
+    
+    # RULE: For leave/expense approvals, non-admin approvers can only approve direct reportees
+    if current_user.role != 'admin' and approval.get('approval_type') in [ApprovalType.LEAVE_REQUEST, ApprovalType.EXPENSE]:
+        requester_emp = await db.employees.find_one({"user_id": approval['requester_id']}, {"_id": 0, "id": 1})
+        if requester_emp:
+            is_direct = await is_direct_reportee(current_user.id, requester_emp['id'])
+            # Allow HR managers to approve regardless
+            if not is_direct and current_user.role not in ['hr_manager']:
+                raise HTTPException(status_code=403, detail="You can only approve requests from your direct reportees.")
+    
     # Update the level
     new_status = ApprovalStatus.APPROVED if action_data.action == 'approve' else ApprovalStatus.REJECTED
     approval['approval_levels'][current_level_idx]['status'] = new_status
