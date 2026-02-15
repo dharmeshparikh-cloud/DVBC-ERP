@@ -329,27 +329,65 @@ class TestExpenseAuthorization:
 class TestApprovalSelfBlock:
     """Test self-approval blocking rules"""
 
-    def test_self_approval_blocked_concept(self, admin_token):
-        """Verify self-approval block exists in code logic"""
-        # The code at line 5818-5820 blocks self-approval:
-        # if approval.get('requester_id') == current_user.id:
-        #     raise HTTPException(status_code=403, detail="You cannot approve your own request...")
+    def test_self_approval_blocked(self, admin_token):
+        """Test that user cannot approve their own request - requester_id = current_user.id"""
+        import pymongo
+        from bson import ObjectId
         
-        # To properly test this, we would need:
-        # 1. Create a leave/expense request
-        # 2. Have that request routed to the requester as approver (edge case)
-        # 3. Try to approve it
+        # Create a test approval where admin is both requester AND approver
+        client = pymongo.MongoClient("mongodb://localhost:27017")
+        db = client.test_database
         
-        # For now, we verify by checking an approval exists and test the endpoint
-        response = requests.get(
-            f"{BASE_URL}/api/approvals",
-            headers={"Authorization": f"Bearer {admin_token}"}
-        )
-        if response.status_code == 200:
-            approvals = response.json()
-            print(f"✓ Approvals endpoint works (count: {len(approvals)})")
-        else:
-            print(f"✓ Self-approval block verified in code review (line 5818-5820)")
+        test_approval = {
+            "id": "TEST-self-approval-block",
+            "approval_type": "leave_request",
+            "reference_id": "test-leave-123",
+            "reference_title": "Test Self Approval Block",
+            "requester_id": "0d5534bf-26a9-4372-b6cd-cfe74071349b",  # Admin user ID
+            "requester_name": "Admin Demo",
+            "requester_employee_id": "45a3801d-7e7b-4a01-ab94-9da708560136",
+            "approval_levels": [{
+                "level": 1,
+                "approver_id": "0d5534bf-26a9-4372-b6cd-cfe74071349b",  # Same as requester
+                "approver_name": "Admin Demo",
+                "approver_role": "admin",
+                "approver_type": "role_based",
+                "status": "pending",
+                "comments": None,
+                "action_date": None
+            }],
+            "current_level": 1,
+            "max_level": 1,
+            "overall_status": "pending",
+            "requires_hr_approval": False,
+            "requires_admin_approval": False,
+            "is_client_facing": False,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "completed_at": None
+        }
+        
+        try:
+            # Insert test approval
+            db.approval_requests.delete_one({"id": "TEST-self-approval-block"})
+            db.approval_requests.insert_one(test_approval)
+            
+            # Try to approve own request - should fail with 403
+            response = requests.post(
+                f"{BASE_URL}/api/approvals/TEST-self-approval-block/action",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                json={"action": "approve", "comments": "Testing self approval block"}
+            )
+            
+            assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
+            assert "cannot approve your own request" in response.json().get("detail", "").lower(), \
+                f"Expected self-approval error message, got: {response.text}"
+            print(f"✓ Self-approval correctly blocked with 403")
+            
+        finally:
+            # Cleanup
+            db.approval_requests.delete_one({"id": "TEST-self-approval-block"})
+            client.close()
 
 
 class TestSecurityAuditAndNotifications:
