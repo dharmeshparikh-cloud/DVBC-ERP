@@ -1,0 +1,77 @@
+{
+  "summary": "Tested Conveyance Lumpsum feature in Pricing Plan Builder. CHANGE: Conveyance field changed from percentage to lumpsum amount. When enabled, the lumpsum (e.g., ₹60,000) is divided evenly across all payment periods (e.g., ₹5,000/month for 12 months). All 8 backend API tests PASSED. All frontend UI features VERIFIED working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Sidebar", "issues": ["XSS payload visible in admin username display - shows raw HTML text '<img src=x onerror=alert(...)>' - inherited from previous iteration"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_conveyance_lumpsum.py",
+    "/app/test_reports/pytest/pytest_conveyance_lumpsum.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Conveyance field correctly changed from percentage to lumpsum amount in PAYMENT_COMPONENTS (isPercentage: false, isLumpsum: true)",
+    "paymentPlan state correctly includes conveyance_lumpsum: 0 as separate field",
+    "Conveyance distribution formula correct: conveyanceLumpsum / numberOfPayments",
+    "UI shows currency input (₹) with 'Lumpsum' placeholder and helper text '(split across 12 months)'",
+    "Column header correctly shows 'CONVEYANCE (LUMPSUM)'",
+    "Net formula: Net = Basic + GST + Conveyance - TDS working correctly",
+    "Total footer shows sum of conveyance equals entered lumpsum amount"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_conveyance_lumpsum.py"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (all UI components verified)"
+  },
+  "test_credentials": {
+    "admin": "admin@company.com / admin123"
+  },
+  "seed_data_creation": "None - used existing leads for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Conveyance lumpsum feature fully implemented. Key change: conveyance is now a lumpsum currency amount (not percentage) that gets distributed evenly across payment periods. Test file: /app/backend/tests/test_conveyance_lumpsum.py. Frontend data structure: paymentPlan.conveyance_lumpsum (number).",
+  "features_tested": {
+    "Conveyance lumpsum input field visible in Payment Components": "PASSED",
+    "Conveyance lumpsum distributed evenly across all payment periods": "PASSED - ₹60,000 / 12 = ₹5,000 per month",
+    "Payment Schedule Table shows Conveyance (Lumpsum) column header": "PASSED",
+    "Net Receivable calculation includes correctly distributed conveyance": "PASSED - Net = Basic + GST + Conveyance - TDS",
+    "Backend accepts pricing plan with conveyance_lumpsum field": "PASSED",
+    "Total conveyance in table footer equals entered lumpsum amount": "PASSED - +₹60,000.00"
+  },
+  "calculation_verification": {
+    "test_case": {
+      "total_investment": "₹12,00,000",
+      "conveyance_lumpsum": "₹60,000",
+      "duration_months": 12,
+      "payment_schedule": "monthly"
+    },
+    "expected_per_month": {
+      "basic": "₹1,00,000",
+      "gst_18%": "+₹18,000",
+      "tds_10%": "-₹10,000",
+      "conveyance": "+₹5,000 (60,000 / 12)",
+      "net_receivable": "₹1,13,000"
+    },
+    "expected_totals": {
+      "basic": "₹12,00,000",
+      "gst": "+₹2,16,000",
+      "tds": "-₹1,20,000",
+      "conveyance": "+₹60,000",
+      "total_net": "₹13,56,000"
+    },
+    "formula": "Net = 1,00,000 + 18,000 + 5,000 - 10,000 = 1,13,000"
+  },
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": ["Email/payment reminders - logs to console"]
+  }
+}
