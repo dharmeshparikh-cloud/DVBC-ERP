@@ -108,9 +108,12 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
         <Route path="sales-funnel/scope-selection/:pricingPlanId" element={<SalesScopeSelection />} />
         <Route path="sales-funnel/sow-review/:pricingPlanId" element={<ConsultingScopeView />} />
+        <Route path="sales-funnel/sow-list" element={<SalesSOWList />} />
         <Route path="sales-funnel/quotations" element={<Quotations />} />
         <Route path="sales-funnel/agreements" element={<Agreements />} />
         <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
+        <Route path="consulting/projects" element={<ConsultingSOWList />} />
+        <Route path="consulting/project-tasks/:sowId" element={<ConsultingProjectTasks />} />
         <Route path="consultants" element={<Consultants />} />
         <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
         <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
