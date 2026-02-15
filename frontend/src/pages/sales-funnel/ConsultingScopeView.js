@@ -671,59 +671,201 @@ const ConsultingScopeView = () => {
                     const statusConfig = STATUS_CONFIG[scope.status] || STATUS_CONFIG.not_started;
                     const revisionConfig = REVISION_STATUS_CONFIG[scope.revision_status] || REVISION_STATUS_CONFIG.pending_review;
                     const StatusIcon = statusConfig.icon;
+                    const isExpanded = expandedScopes[scope.id];
+                    const tasks = scope.tasks || [];
                     
                     return (
                       <div 
                         key={scope.id} 
-                        className="p-4 hover:bg-zinc-50 transition-colors"
+                        className="hover:bg-zinc-50/50 transition-colors"
                         data-testid={`scope-item-${scope.id}`}
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-zinc-900">{scope.name}</span>
-                              {scope.source === 'consulting_added' && (
-                                <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-sm">
-                                  Added by Consulting
-                                </span>
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <button 
+                                  onClick={() => toggleScopeExpand(scope.id)}
+                                  className="p-0.5 hover:bg-zinc-200 rounded transition-colors"
+                                  data-testid={`expand-scope-${scope.id}`}
+                                >
+                                  <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                                </button>
+                                <span className="font-medium text-zinc-900">{scope.name}</span>
+                                {scope.source === 'consulting_added' && (
+                                  <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-sm">
+                                    Added by Consulting
+                                  </span>
+                                )}
+                                {tasks.length > 0 && (
+                                  <span className="text-xs px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded-sm flex items-center gap-1">
+                                    <ListTodo className="w-3 h-3" /> {tasks.length} task{tasks.length !== 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                              {scope.description && (
+                                <p className="text-sm text-zinc-500 mb-2 ml-6">{scope.description}</p>
                               )}
+                              <div className="flex items-center gap-4 text-xs text-zinc-500 ml-6">
+                                <span className={`px-2 py-0.5 rounded-sm ${statusConfig.color}`}>
+                                  {statusConfig.label}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-sm ${revisionConfig.color}`}>
+                                  {revisionConfig.label}
+                                </span>
+                                {scope.progress_percentage > 0 && (
+                                  <span className="flex items-center gap-1">
+                                    <Progress value={scope.progress_percentage} className="w-16 h-1.5" />
+                                    {scope.progress_percentage}%
+                                  </span>
+                                )}
+                                {scope.days_spent > 0 && <span>{scope.days_spent} days</span>}
+                                {scope.meetings_count > 0 && <span>{scope.meetings_count} meetings</span>}
+                                {scope.attachments?.length > 0 && (
+                                  <span className="flex items-center gap-1 text-blue-600">
+                                    <Paperclip className="w-3 h-3" />
+                                    {scope.attachments.length}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            {scope.description && (
-                              <p className="text-sm text-zinc-500 mb-2">{scope.description}</p>
-                            )}
-                            <div className="flex items-center gap-4 text-xs text-zinc-500">
-                              <span className={`px-2 py-0.5 rounded-sm ${statusConfig.color}`}>
-                                {statusConfig.label}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded-sm ${revisionConfig.color}`}>
-                                {revisionConfig.label}
-                              </span>
-                              {scope.progress_percentage > 0 && (
-                                <span className="flex items-center gap-1">
-                                  <Progress value={scope.progress_percentage} className="w-16 h-1.5" />
-                                  {scope.progress_percentage}%
-                                </span>
-                              )}
-                              {scope.days_spent > 0 && <span>{scope.days_spent} days</span>}
-                              {scope.meetings_count > 0 && <span>{scope.meetings_count} meetings</span>}
-                              {scope.attachments?.length > 0 && (
-                                <span className="flex items-center gap-1 text-blue-600">
-                                  <Paperclip className="w-3 h-3" />
-                                  {scope.attachments.length}
-                                </span>
-                              )}
+                            <div className="flex items-center gap-1">
+                              <Button
+                                onClick={() => openAddTaskDialog(scope)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                data-testid={`add-task-${scope.id}`}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => openEditDialog(scope)}
+                                variant="ghost"
+                                size="sm"
+                                className="text-zinc-500 hover:text-zinc-900"
+                                data-testid={`edit-scope-${scope.id}`}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
-                          <Button
-                            onClick={() => openEditDialog(scope)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-zinc-500 hover:text-zinc-900"
-                            data-testid={`edit-scope-${scope.id}`}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
                         </div>
+                        
+                        {/* Tasks Section */}
+                        {isExpanded && (
+                          <div className="border-t border-zinc-100 bg-zinc-50/50 px-4 py-3 ml-6 mr-4 mb-3 rounded-sm">
+                            {tasks.length === 0 ? (
+                              <div className="text-sm text-zinc-400 flex items-center gap-2 py-2">
+                                <ListTodo className="w-4 h-4" />
+                                No tasks yet. Click + to add a task.
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-2">Tasks</div>
+                                {tasks.map(task => (
+                                  <div 
+                                    key={task.id} 
+                                    className="bg-white border border-zinc-200 rounded-sm p-3"
+                                    data-testid={`task-item-${task.id}`}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className="font-medium text-sm text-zinc-900">{task.name}</span>
+                                          {getTaskStatusBadge(task)}
+                                          {task.priority && task.priority !== 'medium' && (
+                                            <span className={`text-xs px-1.5 py-0.5 rounded-sm ${
+                                              task.priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-600'
+                                            }`}>
+                                              {task.priority}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {task.description && (
+                                          <p className="text-xs text-zinc-500 mb-2">{task.description}</p>
+                                        )}
+                                        <div className="flex items-center gap-3 text-xs text-zinc-500">
+                                          {task.assigned_to_name && (
+                                            <span className="flex items-center gap-1">
+                                              <User className="w-3 h-3" /> {task.assigned_to_name}
+                                            </span>
+                                          )}
+                                          {task.due_date && (
+                                            <span className="flex items-center gap-1">
+                                              <Calendar className="w-3 h-3" /> {new Date(task.due_date).toLocaleDateString()}
+                                            </span>
+                                          )}
+                                          {task.attachments?.length > 0 && (
+                                            <span className="flex items-center gap-1 text-blue-600">
+                                              <Paperclip className="w-3 h-3" /> {task.attachments.length}
+                                            </span>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Approval Status Details */}
+                                        {task.approval_status && task.approval_status !== 'fully_approved' && (
+                                          <div className="mt-2 p-2 bg-amber-50 rounded-sm border border-amber-200">
+                                            <div className="text-xs text-amber-800 space-y-1">
+                                              <div className="flex items-center gap-2">
+                                                <Users className="w-3 h-3" />
+                                                <span>Manager: {task.manager_approval?.status || 'N/A'}</span>
+                                                {task.manager_approval?.status === 'pending' && (user?.role === 'manager' || user?.role === 'admin') && (
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-5 text-xs px-2 bg-green-50 border-green-200 text-green-700"
+                                                    onClick={() => handleApproveTask(scope.id, task.id, 'manager', true)}
+                                                    data-testid={`approve-manager-${task.id}`}
+                                                  >
+                                                    <Check className="w-3 h-3 mr-1" /> Approve
+                                                  </Button>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <User className="w-3 h-3" />
+                                                <span>Client: {task.client_approval?.status || 'N/A'}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-1">
+                                        {/* Status Toggle */}
+                                        {!task.approval_status && (
+                                          <select
+                                            value={task.status}
+                                            onChange={(e) => handleUpdateTask(scope.id, task.id, { status: e.target.value })}
+                                            className="text-xs border border-zinc-200 rounded px-1.5 py-1 bg-white"
+                                            data-testid={`task-status-${task.id}`}
+                                          >
+                                            <option value="pending">Pending</option>
+                                            <option value="in_progress">In Progress</option>
+                                            <option value="completed">Completed</option>
+                                          </select>
+                                        )}
+                                        
+                                        {/* Request Approval Button */}
+                                        {(task.status === 'completed' || task.status === 'in_progress') && !task.approval_status && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-7 text-xs bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                                            onClick={() => openApprovalDialog(scope, task)}
+                                            data-testid={`request-approval-${task.id}`}
+                                          >
+                                            <Sparkles className="w-3 h-3 mr-1" /> Request Approval
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
