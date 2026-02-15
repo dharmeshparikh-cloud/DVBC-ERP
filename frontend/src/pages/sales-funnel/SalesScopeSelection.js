@@ -176,6 +176,16 @@ const SalesScopeSelection = () => {
   if (existingSOW) {
     return (
       <div data-testid="sales-scope-selection-page">
+        {/* Progress Bar */}
+        <SalesFunnelProgress
+          currentStep={2}
+          pricingPlanId={pricingPlanId}
+          leadId={lead?.id || leadId}
+          sowCompleted={true}
+          proformaCompleted={false}
+          agreementCompleted={false}
+        />
+
         <Button onClick={() => navigate('/sales-funnel/pricing-plans')} variant="ghost" className="mb-4 hover:bg-zinc-100 rounded-sm">
           <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
           Back to Pricing Plans
@@ -191,10 +201,10 @@ const SalesScopeSelection = () => {
             <div className="flex gap-3">
               <Button 
                 onClick={() => navigate(`/sales-funnel/proforma-invoice?pricing_plan_id=${pricingPlanId}`)}
-                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
               >
-                Proceed to Proforma Invoice
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowRight className="w-4 h-4 mr-2" />
+                Save & Continue to Proforma Invoice
               </Button>
             </div>
           </CardContent>
