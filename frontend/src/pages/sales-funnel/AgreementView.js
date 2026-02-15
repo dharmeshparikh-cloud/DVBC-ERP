@@ -43,9 +43,13 @@ const AgreementView = () => {
     signer_name: '',
     signer_designation: '',
     signer_email: '',
-    signature_date: new Date().toISOString().split('T')[0]
+    signature_date: new Date().toISOString().split('T')[0],
+    signature_image: null
   });
   const [saving, setSaving] = useState(false);
+  const canvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
 
   useEffect(() => {
     if (agreementId) {
