@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { DollarSign, FileText, RefreshCw, Users as UsersIcon, Plus, Trash2, Save, Table2, Settings, Receipt } from 'lucide-react';
+import { DollarSign, FileText, RefreshCw, Users as UsersIcon, Plus, Trash2, Save, Table2, Settings, Receipt, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
