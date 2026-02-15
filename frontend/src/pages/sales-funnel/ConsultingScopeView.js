@@ -644,63 +644,125 @@ const ConsultingScopeView = () => {
         </div>
       )}
 
-      {/* Gantt View */}
+      {/* Gantt View with frappe-gantt */}
       {viewMode === 'gantt' && (
         <Card className="border-zinc-200 shadow-none rounded-sm">
-          <CardContent className="p-4 overflow-x-auto">
-            <div className="min-w-[1000px]">
-              {/* Header */}
-              <div className="flex border-b border-zinc-200 bg-zinc-50">
-                <div className="w-64 px-4 py-2 font-medium text-xs uppercase tracking-wide text-zinc-500 border-r border-zinc-200">
-                  Scope
-                </div>
-                <div className="flex-1 flex">
-                  {Array.from({ length: ganttData.maxWeeks }, (_, i) => (
-                    <div key={i} className="flex-1 px-1 py-2 text-center text-xs text-zinc-500 border-r border-zinc-100">
-                      W{i + 1}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Rows */}
-              {ganttData.scopes.length > 0 ? (
-                ganttData.scopes.map(scope => {
-                  const statusConfig = STATUS_CONFIG[scope.status] || STATUS_CONFIG.not_started;
-                  return (
-                    <div key={scope.id} className="flex border-b border-zinc-100 hover:bg-zinc-50">
-                      <div className="w-64 px-4 py-3 border-r border-zinc-200">
-                        <div className="font-medium text-sm text-zinc-900 truncate">{scope.name}</div>
-                        <div className="text-xs text-zinc-500">{scope.category_name}</div>
-                      </div>
-                      <div className="flex-1 flex relative py-2">
-                        {Array.from({ length: ganttData.maxWeeks }, (_, i) => (
-                          <div key={i} className="flex-1 border-r border-zinc-50" />
-                        ))}
-                        <div
-                          className={`absolute h-6 rounded-sm top-1/2 -translate-y-1/2 ${
-                            scope.status === 'completed' ? 'bg-emerald-500' :
-                            scope.status === 'in_progress' ? 'bg-blue-500' :
-                            scope.status === 'not_applicable' ? 'bg-orange-400' :
-                            'bg-zinc-400'
-                          }`}
-                          style={{
-                            left: `${((scope.startWeek - 1) / ganttData.maxWeeks) * 100}%`,
-                            width: `${((scope.endWeek - scope.startWeek + 1) / ganttData.maxWeeks) * 100}%`,
-                            minWidth: '30px'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-12 text-zinc-400">
-                  No scopes with timeline data. Update scope timelines to see the Gantt chart.
-                </div>
-              )}
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-700">
+              Project Timeline
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-500">View:</span>
+              {['Day', 'Week', 'Month'].map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setGanttViewMode(mode)}
+                  className={`px-2 py-1 text-xs rounded-sm transition-colors ${
+                    ganttViewMode === mode 
+                      ? 'bg-zinc-900 text-white' 
+                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
             </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {ganttTasks.length > 0 ? (
+              <div className="gantt-container overflow-x-auto">
+                <style>{`
+                  .gantt-container svg {
+                    font-family: inherit;
+                  }
+                  .gantt-container .bar-wrapper:hover .bar {
+                    filter: brightness(0.95);
+                  }
+                  .gantt-task-completed .bar {
+                    fill: #10b981 !important;
+                  }
+                  .gantt-task-completed .bar-progress {
+                    fill: #059669 !important;
+                  }
+                  .gantt-task-in-progress .bar {
+                    fill: #3b82f6 !important;
+                  }
+                  .gantt-task-in-progress .bar-progress {
+                    fill: #2563eb !important;
+                  }
+                  .gantt-task-na .bar {
+                    fill: #f97316 !important;
+                  }
+                  .gantt-task-na .bar-progress {
+                    fill: #ea580c !important;
+                  }
+                  .gantt-task-not-started .bar {
+                    fill: #a1a1aa !important;
+                  }
+                  .gantt-task-not-started .bar-progress {
+                    fill: #71717a !important;
+                  }
+                  .gantt .grid-header {
+                    fill: #fafafa;
+                  }
+                  .gantt .grid-row {
+                    fill: #fff;
+                  }
+                  .gantt .grid-row:nth-child(odd) {
+                    fill: #fafafa;
+                  }
+                  .gantt .row-line {
+                    stroke: #e4e4e7;
+                  }
+                  .gantt .tick {
+                    stroke: #e4e4e7;
+                  }
+                  .gantt .today-highlight {
+                    fill: #dbeafe;
+                    opacity: 0.5;
+                  }
+                  .gantt .handle {
+                    fill: #71717a;
+                  }
+                  .gantt .bar-label {
+                    font-size: 11px;
+                    font-weight: 500;
+                  }
+                  .gantt-popup {
+                    font-family: inherit;
+                  }
+                `}</style>
+                <div ref={ganttContainerRef} className="min-h-[300px]" />
+              </div>
+            ) : (
+              <div className="text-center py-12 text-zinc-400">
+                <Calendar className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
+                <p>No scope data available.</p>
+                <p className="text-sm">Add scopes and set timelines to view the Gantt chart.</p>
+              </div>
+            )}
           </CardContent>
+          <div className="px-4 pb-4 flex items-center gap-4 text-xs text-zinc-500 border-t border-zinc-100 pt-3">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-emerald-500" />
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-blue-500" />
+              <span>In Progress</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-zinc-400" />
+              <span>Not Started</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-orange-500" />
+              <span>N/A</span>
+            </div>
+            <div className="ml-auto text-zinc-400">
+              Drag bars to update timeline • Click to edit
+            </div>
+          </div>
         </Card>
       )}
 
