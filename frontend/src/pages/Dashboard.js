@@ -44,28 +44,6 @@ const Dashboard = () => {
   
   // Determine user domain
   const userDomain = getUserDomain(user);
-  
-  // Show domain-specific dashboard for non-admin users
-  if (userDomain === 'sales') {
-    return <SalesDashboard />;
-  }
-  if (userDomain === 'consulting') {
-    return <ConsultingDashboard />;
-  }
-  if (userDomain === 'hr') {
-    return <HRDashboard />;
-  }
-
-  useEffect(() => {
-    fetchStats();
-    fetchHighPriorityLeads();
-    if (user?.role === 'manager' || user?.role === 'admin') {
-      fetchPendingApprovals();
-    }
-    if (user?.role === 'admin') {
-      fetchLoginActivity();
-    }
-  }, [user]);
 
   const fetchLoginActivity = async () => {
     try {
@@ -78,6 +56,64 @@ const Dashboard = () => {
       console.error('Failed to fetch login activity');
     }
   };
+
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get(`${API}/stats/dashboard`);
+      setStats(response.data);
+    } catch (error) {
+      toast.error('Failed to fetch dashboard stats');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHighPriorityLeads = async () => {
+    try {
+      const response = await axios.get(`${API}/leads`);
+      const topLeads = response.data
+        .sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0))
+        .slice(0, 3);
+      setHighPriorityLeads(topLeads);
+    } catch (error) {
+      console.error('Failed to fetch high priority leads');
+    }
+  };
+
+  const fetchPendingApprovals = async () => {
+    try {
+      const response = await axios.get(`${API}/approvals?status=pending`);
+      setPendingApprovalsCount(response.data.length);
+    } catch (error) {
+      console.error('Failed to fetch pending approvals');
+    }
+  };
+
+  // Call useEffect BEFORE any conditional returns
+  useEffect(() => {
+    // Only fetch data for admin dashboard
+    if (userDomain === 'admin' || userDomain === 'general') {
+      fetchStats();
+      fetchHighPriorityLeads();
+      if (user?.role === 'manager' || user?.role === 'admin') {
+        fetchPendingApprovals();
+      }
+      if (user?.role === 'admin') {
+        fetchLoginActivity();
+      }
+    }
+  }, [user, userDomain]);
+
+  // Show domain-specific dashboard for non-admin users
+  if (userDomain === 'sales') {
+    return <SalesDashboard />;
+  }
+  if (userDomain === 'consulting') {
+    return <ConsultingDashboard />;
+  }
+  if (userDomain === 'hr') {
+    return <HRDashboard />;
+  }
 
   const fetchStats = async () => {
     try {
