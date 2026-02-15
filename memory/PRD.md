@@ -7,33 +7,45 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### Team Deployment Auto-Calculation Enhancement ✅ (Latest)
+### Complete Sales Flow Redesign ✅ (Latest)
 
-**Major Feature: Automatic Meeting Calculation Based on Frequency & Tenure**
-- Added `base_rate_per_meeting` input field (editable, default ₹12,500)
-- Added `committed_meetings` auto-calculation based on:
-  - Frequency (1-5 per week, 1-4 per month, bi-weekly, quarterly)
-  - Project tenure in months
-- **Calculation Logic:**
-  - 5 per week × 4 weeks × tenure months = total meetings
-  - 1 per week × 4 weeks × tenure months = total meetings
-  - 1 per month × tenure months = total meetings
-- **Example:** For 2-month project: 5/week=40, 1/week=8, 1/month=2
-- Real-time preview before adding team member
-- Auto-recalculation when tenure changes
-- Totals row showing sum of meetings and costs
-- **Files Modified:** 
-  - `/app/frontend/src/pages/sales-funnel/Agreements.js`
-  - `/app/backend/sales_workflow.py`
+**Major Feature: Pricing Plan as Source of Truth**
+The entire sales flow has been redesigned so that the **Pricing Plan** is the single source of truth for team deployment and pricing data. Data now flows correctly through the pipeline:
 
-### Team Deployment Dropdowns Enhancement ✅
+```
+Pricing Plan → Quotation → Agreement
+     ↓              ↓           ↓
+  Team Data    Inherited    Inherited
+  (Source)     from Plan    from Plan
+```
 
-**UI Enhancement: Team Deployment Structure Dropdowns**
-- Converted `Meeting Type` and `Frequency` inputs from free-text to dropdowns:
-  - **Meeting Type Options:** Monthly Review, Weekly Review, Online Review, On-site Visit, Strategy Session, Training Session, Progress Update, Kickoff Meeting, Quarterly Business Review, Data Analysis Review, Marketing Review, HR Consultation
-  - **Frequency Options:** 1-5 per week, 1-4 per month, Bi-weekly, 1 per quarter, As needed, On demand
-- Ensures data consistency and improved user experience
-- **File Modified:** `/app/frontend/src/pages/sales-funnel/Agreements.js`
+**Key Changes:**
+
+1. **Duration Type → Duration Months Auto-Conversion**
+   - Monthly = 1 month
+   - Quarterly = 3 months
+   - Half Yearly = 6 months
+   - Yearly = 12 months
+   - Custom = Manual entry
+
+2. **Frequency-Based Meeting Calculation in Pricing Plan**
+   - Added frequency options: Daily (1-2/day), Weekly (1-5/week), Bi-weekly, Monthly (1-4/month), Quarterly
+   - Auto-calculates committed meetings: `frequency × 4 weeks × duration months`
+   - Example for 3-month project: 5/week = 60 meetings, 1/week = 12 meetings, 1/month = 3 meetings
+
+3. **Team Deployment Data Flow**
+   - Created in Pricing Plan with: Role, Meeting Type, Frequency, Rate/Meeting, Count, Mode
+   - Displayed in Quotation creation dialog (inherited from Pricing Plan)
+   - Auto-populated in Agreement form when quotation is selected
+   - Can be modified in Agreement if needed (with "Inherited from Plan" banner)
+
+4. **Base Rate per Meeting (₹)** - Now editable at all stages
+
+**Files Modified:**
+- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - Complete rewrite
+- `/app/frontend/src/pages/sales-funnel/Quotations.js` - Added team breakdown display
+- `/app/frontend/src/pages/sales-funnel/Agreements.js` - Auto-populate from pricing plan
+- `/app/backend/sales_workflow.py` - Added team_deployment to models
 
 ### Team Deployment & Financial Data Separation ✅
 
