@@ -4,8 +4,34 @@ import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, ClipboardCheck, ArrowRight, Shield, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, ClipboardCheck, ArrowRight, Shield, AlertTriangle, CheckCircle, XCircle, Building2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Import domain-specific dashboards
+import SalesDashboard from './SalesDashboard';
+import ConsultingDashboard from './ConsultingDashboard';
+import HRDashboard from './HRDashboard';
+
+// Helper to determine user's primary domain
+const getUserDomain = (user) => {
+  if (!user) return 'general';
+  
+  const role = user.role?.toLowerCase() || '';
+  const department = user.department?.toLowerCase() || '';
+  
+  // Check department first
+  if (department.includes('hr') || department.includes('human')) return 'hr';
+  if (department.includes('sales') || department.includes('business development')) return 'sales';
+  if (department.includes('consulting') || department.includes('delivery')) return 'consulting';
+  
+  // Check role if department not set
+  if (role.includes('hr') || role === 'hr_manager' || role === 'hr_executive') return 'hr';
+  if (role === 'executive' || role === 'account_manager') return 'sales';
+  if (role === 'consultant' || role.includes('consultant') || role === 'project_manager') return 'consulting';
+  if (role === 'admin' || role === 'manager') return 'admin';
+  
+  return 'general';
+};
 
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
@@ -15,6 +41,20 @@ const Dashboard = () => {
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   const [loginActivity, setLoginActivity] = useState({ logs: [], total: 0, failedCount: 0, successCount: 0 });
   const [loading, setLoading] = useState(true);
+  
+  // Determine user domain
+  const userDomain = getUserDomain(user);
+  
+  // Show domain-specific dashboard for non-admin users
+  if (userDomain === 'sales') {
+    return <SalesDashboard />;
+  }
+  if (userDomain === 'consulting') {
+    return <ConsultingDashboard />;
+  }
+  if (userDomain === 'hr') {
+    return <HRDashboard />;
+  }
 
   useEffect(() => {
     fetchStats();
