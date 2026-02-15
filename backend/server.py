@@ -4658,6 +4658,15 @@ async def get_unread_notification_count(
     })
     return {"count": count}
 
+@api_router.patch("/notifications/mark-all-read")
+async def mark_all_notifications_read(current_user: User = Depends(get_current_user)):
+    """Mark all notifications as read for the current user"""
+    result = await db.notifications.update_many(
+        {"user_id": current_user.id, "is_read": False},
+        {"$set": {"is_read": True}}
+    )
+    return {"message": f"{result.modified_count} notifications marked as read"}
+
 # ==================== ENHANCED CONSULTANT PROFILE ====================
 
 class ConsultantProfileUpdate(BaseModel):
