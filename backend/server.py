@@ -5611,6 +5611,37 @@ async def create_approval_notification(
     # Log email notification (MOCKED)
     print(f"[EMAIL NOTIFICATION] Approval request sent to user {approver_id} for {reference_title}")
 
+    # Also notify all admins (if approver is not already admin)
+    await notify_admins(
+        notif_type="approval_request",
+        title=f"New Approval: {approval_type.replace('_', ' ').title()}",
+        message=f"{requester_name} submitted '{reference_title}' for approval.",
+        reference_type=approval_type,
+        reference_id=approval_request_id,
+        exclude_user_id=approver_id
+    )
+
+
+async def notify_admins(notif_type: str, title: str, message: str, reference_type: str = None, reference_id: str = None, exclude_user_id: str = None):
+    """Send a notification to all admin-role users"""
+    query = {"role": "admin", "is_active": {"$ne": False}}
+    admins = await db.users.find(query, {"_id": 0, "id": 1}).to_list(50)
+    for admin in admins:
+        if exclude_user_id and admin['id'] == exclude_user_id:
+            continue
+        notif = {
+            "id": str(uuid.uuid4()),
+            "user_id": admin['id'],
+            "type": notif_type,
+            "title": title,
+            "message": message,
+            "reference_type": reference_type,
+            "reference_id": reference_id,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notif)
+
 # API: Get pending approvals for current user
 @api_router.get("/approvals/pending")
 async def get_pending_approvals(current_user: User = Depends(get_current_user)):
