@@ -125,6 +125,91 @@ const Payroll = () => {
     }
   };
 
+  // --- Download payroll inputs as CSV ---
+  const downloadTemplate = () => {
+    const headers = ['Employee ID', 'Emp Code', 'Name', 'Department', 'CTC', 'Working Days', 'Present Days', 'Absent Days', 'Public Holidays', 'Leaves', 'OT Hours', 'Incentive', 'Incentive Reason', 'Advance', 'Advance Reason', 'Penalty', 'Penalty Reason', 'Remarks'];
+    const rows = payrollInputs.map(inp => [
+      inp.employee_id, inp.emp_code, inp.name, inp.department, inp.salary,
+      inp.working_days, inp.present_days, inp.absent_days, inp.public_holidays, inp.leaves,
+      inp.overtime_hours, inp.incentive, inp.incentive_reason, inp.advance, inp.advance_reason,
+      inp.penalty, inp.penalty_reason, inp.remarks
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Payroll_Inputs_${month}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Template downloaded');
+  };
+
+  // --- Upload CSV and parse ---
+  const handleUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const text = evt.target.result;
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) return toast.error('File is empty or has no data rows');
+        const headerLine = lines[0];
+        // Parse CSV handling quoted fields
+        const parseCSVLine = (line) => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            if (line[i] === '"') { inQuotes = !inQuotes; }
+            else if (line[i] === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+            else { current += line[i]; }
+          }
+          result.push(current.trim());
+          return result;
+        };
+        const headers = parseCSVLine(headerLine);
+        const empIdIdx = headers.findIndex(h => h.toLowerCase().includes('employee id'));
+        if (empIdIdx === -1) return toast.error('CSV must have "Employee ID" column');
+        let updated = 0;
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCSVLine(lines[i]);
+          const empId = cols[empIdIdx];
+          if (!empId) continue;
+          const match = payrollInputs.find(p => p.employee_id === empId);
+          if (!match) continue;
+          // Map columns by header name
+          const getCol = (keyword) => {
+            const idx = headers.findIndex(h => h.toLowerCase().includes(keyword.toLowerCase()));
+            return idx >= 0 ? cols[idx] : null;
+          };
+          const toNum = (v) => parseFloat(v) || 0;
+          match.working_days = toNum(getCol('Working Days'));
+          match.present_days = toNum(getCol('Present Days'));
+          match.absent_days = toNum(getCol('Absent Days'));
+          match.public_holidays = toNum(getCol('Public Holidays'));
+          match.leaves = toNum(getCol('Leaves'));
+          match.overtime_hours = toNum(getCol('OT Hours'));
+          match.incentive = toNum(getCol('Incentive'));
+          match.incentive_reason = getCol('Incentive Reason') || '';
+          match.advance = toNum(getCol('Advance'));
+          match.advance_reason = getCol('Advance Reason') || '';
+          match.penalty = toNum(getCol('Penalty'));
+          match.penalty_reason = getCol('Penalty Reason') || '';
+          match.remarks = getCol('Remarks') || '';
+          updated++;
+        }
+        setPayrollInputs([...payrollInputs]);
+        toast.success(`Imported ${updated} rows. Click "Save All" to persist.`);
+      } catch (err) {
+        toast.error('Failed to parse CSV');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const totalPayout = slips.reduce((s, sl) => s + (sl.net_salary || 0), 0);
 
   const tabs = [
