@@ -7,7 +7,43 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### P0 Sprint: Top-Down Pricing Redesign ✅ (LATEST - Completed)
+### Payment Plan Breakup Feature ✅ (LATEST - Completed)
+
+**Changes Made:**
+1. **Removed:** Growth Consulting & Guarantee section from Pricing Plan Builder
+2. **Added:** Payment Plan Breakup section with:
+   - **Project Start Date** picker
+   - **Payment Components** (Multi-select):
+     - GST: 18% (Fixed, cannot be changed)
+     - TDS: -10% (Editable, deducted from payment)
+     - Conveyance: +5% (Editable, added to payment)
+   - **Auto-Generated Payment Schedule Table** showing:
+     - Frequency (Month 1, Month 2, Q1, Q2, etc.)
+     - Due Date (calculated from start date)
+     - Basic Amount (Total ÷ Number of payments)
+     - GST (+18% if selected)
+     - TDS (-10% if selected, deducted)
+     - Conveyance (+5% if selected)
+     - **Net Receivable** = Basic + GST + Conveyance - TDS
+   - **Payment Reminder Note:** "Auto-reminders 7 days before due date"
+
+**Calculation Example:**
+```
+Total Investment: ₹12,00,000
+Duration: 12 months (Monthly payments)
+Basic per month: ₹1,00,000
+
+Components selected: GST, TDS, Conveyance
+- GST (18%): +₹18,000
+- TDS (10%): -₹10,000
+- Conveyance (5%): +₹5,000
+
+Net per month: ₹1,00,000 + ₹18,000 + ₹5,000 - ₹10,000 = ₹1,13,000
+```
+
+---
+
+### P0 Sprint: Top-Down Pricing Redesign ✅ (Completed Earlier Today)
 
 **Major Feature: Top-Down Pricing Model**
 Implemented a complete redesign of the pricing model. Instead of the salesperson manually calculating rates and totals (bottom-up), they now simply enter the **Total Client Investment** and the system automatically allocates costs to team members based on admin-defined allocation rules.
