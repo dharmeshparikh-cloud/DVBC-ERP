@@ -5938,18 +5938,6 @@ async def preview_approval_chain(
         "total_levels": len(approval_levels)
     }
 
-# Note: Notifications APIs already exist above at lines 3846-3867
-# Added mark-all-read endpoint here as it's new
-
-@api_router.post("/notifications/mark-all-read")
-async def mark_all_notifications_read_v2(current_user: User = Depends(get_current_user)):
-    """Mark all notifications as read"""
-    await db.notifications.update_many(
-        {"user_id": current_user.id, "is_read": False},
-        {"$set": {"is_read": True}}
-    )
-    return {"message": "All notifications marked as read"}
-
 # ==================== LEAVE REQUEST MODULE ====================
 
 class LeaveType(str):
