@@ -113,6 +113,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/quotations" element={<ProformaInvoice />} />
         <Route path="sales-funnel/proforma-invoice" element={<ProformaInvoice />} />
         <Route path="sales-funnel/agreements" element={<Agreements />} />
+        <Route path="sales-funnel/agreement/:agreementId" element={<AgreementView />} />
+        <Route path="sales-funnel/agreement" element={<AgreementView />} />
         <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
         <Route path="consulting/projects" element={<ConsultingSOWList />} />
         <Route path="consulting/project-tasks/:sowId" element={<ConsultingProjectTasks />} />
