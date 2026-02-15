@@ -58,6 +58,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 43200
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
+# Google Auth Config
+ALLOWED_DOMAIN = os.environ.get('ALLOWED_DOMAIN', 'dvconsulting.co.in')
+EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+
 class UserRole(str):
     ADMIN = "admin"
     MANAGER = "manager"
