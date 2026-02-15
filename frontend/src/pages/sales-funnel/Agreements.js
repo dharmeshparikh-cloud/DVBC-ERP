@@ -568,9 +568,10 @@ const Agreements = () => {
                 <Label className="text-sm font-medium text-zinc-950">Quotation *</Label>
                 <select
                   value={formData.quotation_id}
-                  onChange={(e) => setFormData({ ...formData, quotation_id: e.target.value })}
+                  onChange={(e) => handleQuotationSelect(e.target.value)}
                   required
                   className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                  data-testid="quotation-select"
                 >
                   <option value="">Select a quotation</option>
                   {quotations.filter(q => !formData.lead_id || q.lead_id === formData.lead_id).map(q => (
@@ -581,6 +582,14 @@ const Agreements = () => {
                 </select>
               </div>
             </div>
+
+            {/* Inherited Team Info Banner */}
+            {inheritedFromPlan && formData.team_deployment.length > 0 && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-sm text-sm text-blue-700 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Team Deployment inherited from Pricing Plan ({formData.project_tenure_months} months). You can modify if needed.
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
