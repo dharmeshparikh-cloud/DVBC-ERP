@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Toaster } from './components/ui/sonner';
 import Login from './pages/Login';
+import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Projects from './pages/Projects';
@@ -36,6 +37,7 @@ import ApprovalsCenter from './pages/ApprovalsCenter';
 import Clients from './pages/Clients';
 import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
+import SecurityAuditLog from './pages/SecurityAuditLog';
 import Layout from './components/Layout';
 import './App.css';
 
@@ -43,6 +45,75 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
 export const AuthContext = React.createContext(null);
+
+function AppRouter({ user, login, logout, loading }) {
+  const location = useLocation();
+
+  // Check URL fragment for session_id synchronously during render (prevents race conditions)
+  if (location.hash?.includes('session_id=')) {
+    return <AuthCallback onLogin={login} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-zinc-500">Loading...</div>
+      </div>
+    );
+  }
+
+  const getDefaultDashboard = () => {
+    if (user?.role === 'consultant') {
+      return <ConsultantDashboard />;
+    }
+    return <Dashboard />;
+  };
+
+  return (
+    <Routes>
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+      <Route
+        path="/"
+        element={user ? <Layout /> : <Navigate to="/login" />}
+      >
+        <Route index element={getDefaultDashboard()} />
+        <Route path="leads" element={<Leads />} />
+        <Route path="projects" element={<Projects />} />
+        <Route path="sales-meetings" element={<SalesMeetings />} />
+        <Route path="consulting-meetings" element={<ConsultingMeetings />} />
+        <Route path="org-chart" element={<OrgChart />} />
+        <Route path="leave-management" element={<LeaveManagement />} />
+        <Route path="attendance" element={<Attendance />} />
+        <Route path="payroll" element={<Payroll />} />
+        <Route path="my-attendance" element={<MyAttendance />} />
+        <Route path="my-leaves" element={<MyLeaves />} />
+        <Route path="my-salary-slips" element={<MySalarySlips />} />
+        <Route path="my-expenses" element={<MyExpenses />} />
+        <Route path="project-roadmap" element={<ProjectRoadmap />} />
+        <Route path="consultant-performance" element={<ConsultantPerformance />} />
+        <Route path="email-templates" element={<EmailTemplates />} />
+        <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
+        <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
+        <Route path="sales-funnel/quotations" element={<Quotations />} />
+        <Route path="sales-funnel/agreements" element={<Agreements />} />
+        <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
+        <Route path="consultants" element={<Consultants />} />
+        <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
+        <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
+        <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
+        <Route path="handover-alerts" element={<HandoverAlerts />} />
+        <Route path="profile" element={<UserProfile />} />
+        <Route path="user-management" element={<UserManagement />} />
+        <Route path="employees" element={<Employees />} />
+        <Route path="approvals" element={<ApprovalsCenter />} />
+        <Route path="clients" element={<Clients />} />
+        <Route path="expenses" element={<Expenses />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="security-audit" element={<SecurityAuditLog />} />
+      </Route>
+    </Routes>
+  );
+}
 
 function App() {
   const [user, setUser] = useState(null);
@@ -83,67 +154,11 @@ function App() {
     setUser(null);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-zinc-500">Loading...</div>
-      </div>
-    );
-  }
-
-  // Determine default route based on user role
-  const getDefaultDashboard = () => {
-    if (user?.role === 'consultant') {
-      return <ConsultantDashboard />;
-    }
-    return <Dashboard />;
-  };
-
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       <Toaster position="top-right" />
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-          <Route
-            path="/"
-            element={user ? <Layout /> : <Navigate to="/login" />}
-          >
-            <Route index element={getDefaultDashboard()} />
-            <Route path="leads" element={<Leads />} />
-            <Route path="projects" element={<Projects />} />
-            <Route path="sales-meetings" element={<SalesMeetings />} />
-            <Route path="consulting-meetings" element={<ConsultingMeetings />} />
-            <Route path="org-chart" element={<OrgChart />} />
-            <Route path="leave-management" element={<LeaveManagement />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="payroll" element={<Payroll />} />
-            <Route path="my-attendance" element={<MyAttendance />} />
-            <Route path="my-leaves" element={<MyLeaves />} />
-            <Route path="my-salary-slips" element={<MySalarySlips />} />
-            <Route path="my-expenses" element={<MyExpenses />} />
-            <Route path="project-roadmap" element={<ProjectRoadmap />} />
-            <Route path="consultant-performance" element={<ConsultantPerformance />} />
-            <Route path="email-templates" element={<EmailTemplates />} />
-            <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
-            <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
-            <Route path="sales-funnel/quotations" element={<Quotations />} />
-            <Route path="sales-funnel/agreements" element={<Agreements />} />
-            <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
-            <Route path="consultants" element={<Consultants />} />
-            <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
-            <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
-            <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
-            <Route path="handover-alerts" element={<HandoverAlerts />} />
-            <Route path="profile" element={<UserProfile />} />
-            <Route path="user-management" element={<UserManagement />} />
-            <Route path="employees" element={<Employees />} />
-            <Route path="approvals" element={<ApprovalsCenter />} />
-            <Route path="clients" element={<Clients />} />
-            <Route path="expenses" element={<Expenses />} />
-            <Route path="reports" element={<Reports />} />
-          </Route>
-        </Routes>
+        <AppRouter user={user} login={login} logout={logout} loading={loading} />
       </BrowserRouter>
     </AuthContext.Provider>
   );
