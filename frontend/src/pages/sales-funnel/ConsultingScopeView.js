@@ -89,15 +89,17 @@ const ConsultingScopeView = () => {
 
   const fetchData = async () => {
     try {
-      const [sowRes, catsRes] = await Promise.all([
+      const [sowRes, catsRes, employeesRes] = await Promise.all([
         axios.get(`${API}/enhanced-sow/by-pricing-plan/${pricingPlanId}`, {
           params: { current_user_role: user?.role }
         }),
-        axios.get(`${API}/sow-masters/categories`)
+        axios.get(`${API}/sow-masters/categories`),
+        axios.get(`${API}/employees`).catch(() => ({ data: [] }))
       ]);
       
       setSow(sowRes.data);
       setCategories(catsRes.data || []);
+      setEmployees(employeesRes.data || []);
       
       // Fetch lead info
       if (sowRes.data?.lead_id) {
