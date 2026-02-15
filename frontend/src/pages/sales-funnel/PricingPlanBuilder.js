@@ -945,7 +945,7 @@ const PricingPlanBuilder = () => {
                       </div>
                       <div className="flex items-center gap-2 ml-auto">
                         {comp.isLumpsum ? (
-                          // Lumpsum conveyance input (currency)
+                          // Lumpsum conveyance input (currency) with tooltip
                           <>
                             <span className="text-sm text-zinc-500">₹</span>
                             <Input
@@ -965,6 +965,23 @@ const PricingPlanBuilder = () => {
                             <span className="text-xs text-zinc-400">
                               (split across {numberOfPayments} {numberOfPayments === 1 ? 'payment' : 'payments'})
                             </span>
+                            {paymentPlan.conveyance_lumpsum > 0 && paymentPlan.selected_components.includes('conveyance') && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="w-4 h-4 text-zinc-400 cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-zinc-900 text-white p-3 max-w-xs">
+                                    <div className="space-y-1">
+                                      <p className="font-semibold">Conveyance Distribution</p>
+                                      <p>Total: {formatINR(paymentPlan.conveyance_lumpsum)}</p>
+                                      <p>Per {formData.payment_schedule === 'monthly' ? 'month' : 'payment'}: {formatINR(Math.round(paymentPlan.conveyance_lumpsum / numberOfPayments))}</p>
+                                      <p className="text-zinc-400 text-xs mt-1">Split evenly across {numberOfPayments} {numberOfPayments === 1 ? 'payment' : 'payments'}</p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </>
                         ) : comp.editable ? (
                           <>
