@@ -81,7 +81,7 @@ const Layout = () => {
     { name: 'Leads', href: '/leads', icon: Users },
     { name: 'Pricing Plans', href: '/sales-funnel/pricing-plans', icon: DollarSign },
     { name: 'SOW List', href: '/sales-funnel/sow-list', icon: FileText },
-    { name: 'Quotations', href: '/sales-funnel/quotations', icon: FileText },
+    { name: 'Proforma Invoice', href: '/sales-funnel/proforma-invoice', icon: FileText },
     { name: 'Agreements', href: '/sales-funnel/agreements', icon: FileCheck },
     { name: 'Kickoff Requests', href: '/kickoff-requests', icon: Send },
   ];
