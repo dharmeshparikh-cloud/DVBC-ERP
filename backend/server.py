@@ -314,11 +314,15 @@ class KickoffRequest(BaseModel):
     project_name: str
     project_type: str = "mixed"  # online, offline, mixed
     total_meetings: int = 0
-    project_value: Optional[float] = None
+    # Meeting and tenure fields (visible to consulting)
+    meeting_frequency: str = "Monthly"  # Weekly, Bi-weekly, Monthly, Quarterly
+    project_tenure_months: int = 12
+    # Financial fields (hidden from consulting roles)
+    project_value: Optional[float] = None  # Only visible to sales/admin
     expected_start_date: Optional[datetime] = None
     assigned_pm_id: Optional[str] = None  # Project Manager assigned
     assigned_pm_name: Optional[str] = None
-    status: str = "pending"  # pending, accepted, rejected, converted
+    status: str = "pending"  # pending, accepted, rejected, converted, returned
     notes: Optional[str] = None
     requested_by: str
     requested_by_name: Optional[str] = None
@@ -326,6 +330,12 @@ class KickoffRequest(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     accepted_at: Optional[datetime] = None
     project_id: Optional[str] = None  # Set when converted to project
+    # Return fields
+    return_reason: Optional[str] = None
+    return_notes: Optional[str] = None
+    returned_by: Optional[str] = None
+    returned_by_name: Optional[str] = None
+    returned_at: Optional[datetime] = None
 
 class KickoffRequestCreate(BaseModel):
     agreement_id: str
@@ -335,7 +345,9 @@ class KickoffRequestCreate(BaseModel):
     project_name: str
     project_type: Optional[str] = "mixed"
     total_meetings: Optional[int] = 0
-    project_value: Optional[float] = None
+    meeting_frequency: Optional[str] = "Monthly"
+    project_tenure_months: Optional[int] = 12
+    project_value: Optional[float] = None  # Optional, only for internal tracking
     expected_start_date: Optional[datetime] = None
     assigned_pm_id: Optional[str] = None
     assigned_pm_name: Optional[str] = None
