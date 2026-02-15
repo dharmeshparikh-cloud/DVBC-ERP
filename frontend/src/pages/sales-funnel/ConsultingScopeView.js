@@ -669,10 +669,14 @@ const ConsultingScopeView = () => {
           </CardHeader>
           <CardContent className="p-0">
             {ganttTasks.length > 0 ? (
-              <div className="gantt-container overflow-x-auto">
+              <div className="gantt-container overflow-x-auto bg-white">
                 <style>{`
+                  .gantt-container {
+                    background: white !important;
+                  }
                   .gantt-container svg {
                     font-family: inherit;
+                    background: white !important;
                   }
                   .gantt-container .bar-wrapper:hover .bar {
                     filter: brightness(0.95);
@@ -702,22 +706,26 @@ const ConsultingScopeView = () => {
                     fill: #71717a !important;
                   }
                   .gantt .grid-header {
-                    fill: #fafafa;
+                    fill: #fafafa !important;
                   }
                   .gantt .grid-row {
-                    fill: #fff;
+                    fill: #fff !important;
                   }
                   .gantt .grid-row:nth-child(odd) {
-                    fill: #fafafa;
+                    fill: #fafafa !important;
                   }
                   .gantt .row-line {
-                    stroke: #e4e4e7;
+                    stroke: #e4e4e7 !important;
                   }
                   .gantt .tick {
-                    stroke: #e4e4e7;
+                    stroke: #e4e4e7 !important;
+                  }
+                  .gantt .lower-text, .gantt .upper-text {
+                    fill: #52525b !important;
+                    font-size: 11px;
                   }
                   .gantt .today-highlight {
-                    fill: #dbeafe;
+                    fill: #dbeafe !important;
                     opacity: 0.5;
                   }
                   .gantt .handle {
