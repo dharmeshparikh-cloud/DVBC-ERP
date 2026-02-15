@@ -7,7 +7,8 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
-import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
+import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 
