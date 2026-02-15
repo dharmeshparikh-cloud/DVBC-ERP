@@ -302,6 +302,45 @@ class ConsultantProfile(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# Kickoff Request Model - Sales to Consulting Handoff
+class KickoffRequest(BaseModel):
+    """Request from Sales team to Project Manager for project kickoff"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    agreement_id: str
+    lead_id: Optional[str] = None
+    client_id: Optional[str] = None
+    client_name: str
+    project_name: str
+    project_type: str = "mixed"  # online, offline, mixed
+    total_meetings: int = 0
+    project_value: Optional[float] = None
+    expected_start_date: Optional[datetime] = None
+    assigned_pm_id: Optional[str] = None  # Project Manager assigned
+    assigned_pm_name: Optional[str] = None
+    status: str = "pending"  # pending, accepted, rejected, converted
+    notes: Optional[str] = None
+    requested_by: str
+    requested_by_name: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    accepted_at: Optional[datetime] = None
+    project_id: Optional[str] = None  # Set when converted to project
+
+class KickoffRequestCreate(BaseModel):
+    agreement_id: str
+    lead_id: Optional[str] = None
+    client_id: Optional[str] = None
+    client_name: str
+    project_name: str
+    project_type: Optional[str] = "mixed"
+    total_meetings: Optional[int] = 0
+    project_value: Optional[float] = None
+    expected_start_date: Optional[datetime] = None
+    assigned_pm_id: Optional[str] = None
+    assigned_pm_name: Optional[str] = None
+    notes: Optional[str] = None
+
 # Meeting role access constants
 SALES_MEETING_ROLES = ["admin", "executive", "account_manager"]
 CONSULTING_MEETING_ROLES = ["admin", "project_manager", "consultant", "principal_consultant",
