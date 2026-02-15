@@ -7,6 +7,51 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
+### Comprehensive Workflow Redesign ✅
+
+**Major Feature: Domain-Specific Dashboards**
+Implemented role/department-based dashboard routing:
+- **Sales Dashboard**: For Executive, Account Manager roles
+  - Sales Pipeline funnel visualization
+  - My Clients (user-specific, not company-wide)
+  - Pending Quotations, Agreements tracking
+  - Revenue metrics and Kickoff Requests status
+- **Consulting Dashboard**: For Consultant, Project Manager roles
+  - Project delivery status (Active, Completed, At Risk)
+  - Meeting delivery progress with efficiency score
+  - Incoming Kickoff requests for PM
+  - Consultant workload distribution
+- **HR Dashboard**: For HR Manager, HR Executive roles
+  - Employee stats by department
+  - Today's attendance (Present, WFH, Absent)
+  - Pending leave requests and expense approvals
+  - Payroll processing status
+- **Admin Dashboard**: For Admin, Manager roles
+  - Cross-department overview (original dashboard)
+
+**Major Feature: Kickoff Request Workflow (Sales → Consulting Handoff)**
+- Sales team creates kickoff request after Agreement approval
+- Assigns to specific Project Manager
+- PM receives in "Kickoff Inbox" on Consulting Dashboard
+- PM can Accept (creates project) or Reject
+- Notifications sent on status changes
+- **Routes:** `/kickoff-requests`
+- **API Endpoints:**
+  - `POST /api/kickoff-requests` - Create request
+  - `GET /api/kickoff-requests` - List requests
+  - `POST /api/kickoff-requests/{id}/accept` - Accept & create project
+  - `POST /api/kickoff-requests/{id}/reject` - Reject request
+
+**Navigation Updates:**
+- Sales section: Added "Kickoff Requests" and renamed "Clients" to "My Clients"
+- Consulting section: Added "Kickoff Inbox" for PM role
+
+**New Backend APIs:**
+- `GET /api/stats/sales-dashboard` - Sales-specific metrics
+- `GET /api/stats/consulting-dashboard` - Consulting metrics
+- `GET /api/stats/hr-dashboard` - HR metrics
+- `GET /api/my-clients` - User-specific clients
+
 ### Admin Downloads Page Created ✅
 Created an admin-only "Developer Resources" page with downloadable assets:
 - **Route:** `/downloads`
@@ -15,27 +60,15 @@ Created an admin-only "Developer Resources" page with downloadable assets:
   - API Documentation (HTML)
   - Postman Collection (JSON)
   - Feature Index (DOCX)
-- **Security:** Non-admin users see "Access Restricted" message
 
 ### API Test Suite Fixes ✅
 Fixed all failing tests in the comprehensive API test suite:
-
-**Fixes Applied:**
-- Added `pytest.ini` with `asyncio_mode=auto` for async fixture handling
-- Fixed `conftest.py` event_loop fixture for pytest-asyncio compatibility
-- Updated test assertions to accept 422 validation errors
-- Fixed schema mismatches (id vs expense_id, employee_id)
-- Fixed endpoint responses (objects vs lists)
-- Fixed role-restricted endpoints to accept 403 responses
-
-**Test Statistics:**
-- **Total Tests:** 291
 - **Pass Rate:** 100% (All tests passing)
 - **Coverage:** All API endpoints across 10 modules
 
 ---
 
-## Previous Update (December 15, 2025)
+## Business Flow Structure
 
 ### Comprehensive API Test Suite Created
 Created a production-grade, OWASP-compliant API test suite covering all backend modules:
