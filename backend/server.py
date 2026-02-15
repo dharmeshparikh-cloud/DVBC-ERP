@@ -7750,16 +7750,16 @@ async def get_salary_components(current_user: User = Depends(get_current_user)):
         default = {
             "type": "salary_components",
             "earnings": [
-                {"name": "Basic Salary", "key": "basic", "percentage": 40},
-                {"name": "HRA", "key": "hra", "percentage": 20},
-                {"name": "Special Allowance", "key": "special_allowance", "percentage": 20},
-                {"name": "Conveyance Allowance", "key": "conveyance", "fixed": 1600},
-                {"name": "Medical Allowance", "key": "medical", "fixed": 1250}
+                {"name": "Basic Salary", "key": "basic", "percentage": 40, "is_default": True},
+                {"name": "HRA", "key": "hra", "percentage": 20, "is_default": True},
+                {"name": "Special Allowance", "key": "special_allowance", "percentage": 20, "is_default": True},
+                {"name": "Conveyance Allowance", "key": "conveyance", "fixed": 1600, "is_default": True},
+                {"name": "Medical Allowance", "key": "medical", "fixed": 1250, "is_default": True}
             ],
             "deductions": [
-                {"name": "Provident Fund", "key": "pf", "percentage": 12},
-                {"name": "Professional Tax", "key": "pt", "fixed": 200},
-                {"name": "ESI", "key": "esi", "percentage": 0.75}
+                {"name": "Provident Fund", "key": "pf", "percentage": 12, "is_default": True},
+                {"name": "Professional Tax", "key": "pt", "fixed": 200, "is_default": True},
+                {"name": "ESI", "key": "esi", "percentage": 0.75, "is_default": True}
             ]
         }
         await db.payroll_config.insert_one(default)
@@ -7773,6 +7773,144 @@ async def update_salary_components(data: dict, current_user: User = Depends(get_
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update salary components")
     await db.payroll_config.update_one({"type": "salary_components"}, {"$set": data}, upsert=True)
     return {"message": "Salary components updated"}
+
+@api_router.post("/payroll/salary-components/add")
+async def add_salary_component(data: dict, current_user: User = Depends(get_current_user)):
+    """Add a new salary component (Admin/HR only)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can modify salary components")
+    comp_type = data.get("type")  # "earnings" or "deductions"
+    if comp_type not in ["earnings", "deductions"]:
+        raise HTTPException(status_code=400, detail="type must be 'earnings' or 'deductions'")
+    name = data.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Component name is required")
+    key = data.get("key", name.lower().replace(" ", "_"))
+    component = {"name": name, "key": key, "is_default": False}
+    if data.get("percentage"):
+        component["percentage"] = float(data["percentage"])
+    elif data.get("fixed") is not None:
+        component["fixed"] = float(data["fixed"])
+    else:
+        raise HTTPException(status_code=400, detail="Either percentage or fixed amount required")
+    config = await db.payroll_config.find_one({"type": "salary_components"}, {"_id": 0})
+    if not config:
+        raise HTTPException(status_code=400, detail="Salary components not initialized")
+    existing_keys = [c["key"] for c in config.get(comp_type, [])]
+    if key in existing_keys:
+        raise HTTPException(status_code=400, detail=f"Component with key '{key}' already exists")
+    config[comp_type].append(component)
+    await db.payroll_config.update_one({"type": "salary_components"}, {"$set": {comp_type: config[comp_type]}})
+    return {"message": f"{name} added to {comp_type}"}
+
+@api_router.delete("/payroll/salary-components/{comp_type}/{comp_key}")
+async def remove_salary_component(comp_type: str, comp_key: str, current_user: User = Depends(get_current_user)):
+    """Remove a salary component (Admin/HR only). Cannot remove default components."""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can modify salary components")
+    if comp_type not in ["earnings", "deductions"]:
+        raise HTTPException(status_code=400, detail="type must be 'earnings' or 'deductions'")
+    config = await db.payroll_config.find_one({"type": "salary_components"}, {"_id": 0})
+    if not config:
+        raise HTTPException(status_code=404, detail="Config not found")
+    updated = [c for c in config.get(comp_type, []) if c["key"] != comp_key]
+    if len(updated) == len(config.get(comp_type, [])):
+        raise HTTPException(status_code=404, detail="Component not found")
+    await db.payroll_config.update_one({"type": "salary_components"}, {"$set": {comp_type: updated}})
+    return {"message": f"Component removed from {comp_type}"}
+
+
+# --- Payroll Input Table (Monthly per-employee overrides) ---
+@api_router.get("/payroll/inputs")
+async def get_payroll_inputs(month: str, current_user: User = Depends(get_current_user)):
+    """Get payroll input data for a month (Admin/HR only)"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can access payroll inputs")
+    inputs = await db.payroll_inputs.find({"month": month}, {"_id": 0}).to_list(500)
+    input_map = {i["employee_id"]: i for i in inputs}
+    employees = await db.employees.find({"is_active": True}, {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1, "salary": 1}).to_list(500)
+    result = []
+    for emp in employees:
+        existing = input_map.get(emp["id"], {})
+        result.append({
+            "employee_id": emp["id"],
+            "emp_code": emp.get("employee_id", ""),
+            "name": f"{emp['first_name']} {emp['last_name']}",
+            "department": emp.get("department", ""),
+            "salary": emp.get("salary", 0),
+            "month": month,
+            "present_days": existing.get("present_days", 0),
+            "absent_days": existing.get("absent_days", 0),
+            "public_holidays": existing.get("public_holidays", 0),
+            "leaves": existing.get("leaves", 0),
+            "working_days": existing.get("working_days", 30),
+            "incentive": existing.get("incentive", 0),
+            "incentive_reason": existing.get("incentive_reason", ""),
+            "advance": existing.get("advance", 0),
+            "advance_reason": existing.get("advance_reason", ""),
+            "penalty": existing.get("penalty", 0),
+            "penalty_reason": existing.get("penalty_reason", ""),
+            "overtime_hours": existing.get("overtime_hours", 0),
+            "remarks": existing.get("remarks", ""),
+        })
+    return result
+
+@api_router.post("/payroll/inputs")
+async def save_payroll_input(data: dict, current_user: User = Depends(get_current_user)):
+    """Save payroll input for a single employee for a month (Admin/HR only)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update payroll inputs")
+    employee_id = data.get("employee_id")
+    month = data.get("month")
+    if not employee_id or not month:
+        raise HTTPException(status_code=400, detail="employee_id and month required")
+    input_doc = {
+        "employee_id": employee_id,
+        "month": month,
+        "present_days": data.get("present_days", 0),
+        "absent_days": data.get("absent_days", 0),
+        "public_holidays": data.get("public_holidays", 0),
+        "leaves": data.get("leaves", 0),
+        "working_days": data.get("working_days", 30),
+        "incentive": data.get("incentive", 0),
+        "incentive_reason": data.get("incentive_reason", ""),
+        "advance": data.get("advance", 0),
+        "advance_reason": data.get("advance_reason", ""),
+        "penalty": data.get("penalty", 0),
+        "penalty_reason": data.get("penalty_reason", ""),
+        "overtime_hours": data.get("overtime_hours", 0),
+        "remarks": data.get("remarks", ""),
+        "updated_by": current_user.id,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payroll_inputs.update_one(
+        {"employee_id": employee_id, "month": month},
+        {"$set": input_doc},
+        upsert=True
+    )
+    return {"message": "Payroll input saved"}
+
+@api_router.post("/payroll/inputs/bulk")
+async def save_payroll_inputs_bulk(data: dict, current_user: User = Depends(get_current_user)):
+    """Save payroll inputs for multiple employees (Admin/HR only)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update payroll inputs")
+    month = data.get("month")
+    inputs = data.get("inputs", [])
+    if not month or not inputs:
+        raise HTTPException(status_code=400, detail="month and inputs required")
+    saved = 0
+    for inp in inputs:
+        inp["month"] = month
+        inp["updated_by"] = current_user.id
+        inp["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.payroll_inputs.update_one(
+            {"employee_id": inp["employee_id"], "month": month},
+            {"$set": inp},
+            upsert=True
+        )
+        saved += 1
+    return {"message": f"Saved {saved} payroll inputs"}
 
 @api_router.get("/payroll/salary-slips")
 async def get_salary_slips(employee_id: Optional[str] = None, month: Optional[str] = None, current_user: User = Depends(get_current_user)):
