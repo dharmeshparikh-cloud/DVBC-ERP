@@ -146,8 +146,8 @@ const SalesScopeSelection = () => {
       );
       
       toast.success('Scope of Work created successfully!');
-      // Navigate to Quotation page after scope selection
-      navigate(`/sales-funnel/quotations?pricing_plan_id=${pricingPlanId}`);
+      // Navigate to Proforma Invoice page after scope selection
+      navigate(`/sales-funnel/proforma-invoice?pricing_plan_id=${pricingPlanId}`);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create SOW');
     } finally {
