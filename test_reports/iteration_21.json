@@ -1,0 +1,63 @@
+{
+  "summary": "Tested Team Deployment and Meeting Frequency features. All requested features verified working: 1) Kickoff Request list shows Meeting Frequency & Tenure (no pricing), 2) Kickoff detail modal Overview tab shows Meeting Frequency & Tenure, 3) Kickoff detail Team Deployment tab shows team structure, 4) Agreement list shows Meeting Frequency & Project Tenure columns, 5) Agreement create dialog has all new fields including Team Deployment Structure input. Backend API correctly hides pricing from PM/consulting roles.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Agreements list page",
+        "issues": ["Existing agreements don't show Team Deployment summary in cards (only new agreements with team_deployment will show it)"]
+      },
+      {
+        "screen": "User name in sidebar",
+        "issues": ["XSS payload visible in admin user's display name - shows as raw HTML text '<img src=x onerror=alert('XSS')>' in sidebar"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_team_deployment.py",
+    "/app/test_reports/pytest/pytest_team_deployment.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Backend correctly implements pricing exclusion for PM/consulting roles via can_see_financials flag",
+    "Team deployment structure supports Role, Meeting Type, Frequency, Mode fields as specified",
+    "Agreement model updated with meeting_frequency, project_tenure_months, team_deployment fields",
+    "KickoffRequest model has meeting_frequency and project_tenure_months fields visible to consulting",
+    "Frontend properly displays team deployment in both Kickoff and Agreement views"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_team_deployment.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (all UI flows verified)"
+  },
+  "test_credentials": {
+    "admin": "admin@company.com / admin123",
+    "manager": "manager@company.com / manager123"
+  },
+  "seed_data_creation": "Created test kickoff requests with meeting_frequency='Weekly' and project_tenure_months=6",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Team deployment features fully implemented. Key URLs: /kickoff-requests (shows Meeting Frequency & Tenure), /sales-funnel/agreements (has Team Deployment Structure input). Backend API at /api/kickoff-requests/{id}/details excludes pricing for PM/consulting roles.",
+  "features_tested": {
+    "Kickoff Request list page shows Meeting Frequency and Tenure instead of pricing/value": "PASSED",
+    "Kickoff Request detail modal Overview tab shows Meeting Frequency and Tenure (no pricing)": "PASSED",
+    "Kickoff Request detail modal Team Deployment tab shows team deployment structure": "PASSED",
+    "Agreement list page shows Meeting Frequency and Project Tenure columns": "PASSED",
+    "Agreement create dialog has Meeting Frequency dropdown": "PASSED",
+    "Agreement create dialog has Project Tenure input": "PASSED",
+    "Agreement create dialog has Team Deployment Structure input with Role, Meeting Type, Frequency, Mode fields": "PASSED",
+    "Backend API: GET /api/kickoff-requests/{id}/details excludes pricing for PM/consulting roles": "PASSED",
+    "Backend API: Agreement endpoints support team_deployment array": "PASSED"
+  },
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": ["Email sending via SMTP - logs to console"]
+  }
+}
