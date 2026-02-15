@@ -17,14 +17,12 @@ load_dotenv('/app/backend/.env')
 mongo_url = os.environ.get('MONGO_URL')
 db_name = os.environ.get('DB_NAME')
 
-@pytest.fixture(scope="module")
-def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# Configure pytest-asyncio
+pytest_plugins = ('pytest_asyncio',)
 
+# Create a synchronous fixture that returns the database
 @pytest.fixture(scope="module")
-async def db():
+def db():
     client = AsyncIOMotorClient(mongo_url)
     database = client[db_name]
     yield database
