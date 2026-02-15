@@ -7604,9 +7604,14 @@ async def create_attendance(data: dict, current_user: User = Depends(get_current
 
 @api_router.post("/attendance/bulk")
 async def bulk_upload_attendance(records: List[dict], current_user: User = Depends(get_current_user)):
-    """Bulk upload attendance from Excel data"""
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
-        raise HTTPException(status_code=403, detail="Only HR can manage attendance")
+    """Bulk upload attendance. HR has full access, managers can upload for reportees only."""
+    is_hr = current_user.role in ["admin", "hr_manager", "hr_executive"]
+    reportee_ids = [] if is_hr else await get_all_reportee_ids(current_user.id)
+    
+    if not is_hr and not reportee_ids:
+        raise HTTPException(status_code=403, detail="You have no reportees to manage attendance for")
+    
+    created, updated, skipped = 0, 0, 0
     created, updated = 0, 0
     for rec in records:
         emp_id = rec.get("employee_id")
