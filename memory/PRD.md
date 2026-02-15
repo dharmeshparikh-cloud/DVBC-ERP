@@ -223,7 +223,7 @@ A comprehensive business management application for D&V Business Consulting, a 5
 ## 3rd Party Integrations
 
 - **Emergent-managed Google Auth** - Domain restricted (@dvconsulting.co.in)
-- **Gantt Chart** - React-based open source (for consulting view)
+- **gantt-task-react** - React Gantt chart library for consulting SOW timeline visualization
 
 ---
 
