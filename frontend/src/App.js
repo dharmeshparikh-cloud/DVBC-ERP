@@ -27,6 +27,7 @@ import ConsultingScopeView from './pages/sales-funnel/ConsultingScopeView';
 import SalesSOWList from './pages/sales-funnel/SalesSOWList';
 import ProformaInvoice from './pages/sales-funnel/ProformaInvoice';
 import Agreements from './pages/sales-funnel/Agreements';
+import AgreementView from './pages/sales-funnel/AgreementView';
 import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
 import ConsultingSOWList from './pages/consulting/ConsultingSOWList';
 import ConsultingProjectTasks from './pages/consulting/ConsultingProjectTasks';
