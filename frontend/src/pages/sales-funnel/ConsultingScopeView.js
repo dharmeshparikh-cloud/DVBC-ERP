@@ -628,7 +628,7 @@ const ConsultingScopeView = () => {
         </div>
       )}
 
-      {/* Gantt View with frappe-gantt */}
+      {/* Gantt View with gantt-task-react */}
       {viewMode === 'gantt' && (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
@@ -637,94 +637,43 @@ const ConsultingScopeView = () => {
             </CardTitle>
             <div className="flex items-center gap-2">
               <span className="text-xs text-zinc-500">View:</span>
-              {['Day', 'Week', 'Month'].map(mode => (
+              {[
+                { id: ViewMode.Day, label: 'Day' },
+                { id: ViewMode.Week, label: 'Week' },
+                { id: ViewMode.Month, label: 'Month' }
+              ].map(mode => (
                 <button
-                  key={mode}
-                  onClick={() => setGanttViewMode(mode)}
+                  key={mode.id}
+                  onClick={() => setGanttViewMode(mode.id)}
                   className={`px-2 py-1 text-xs rounded-sm transition-colors ${
-                    ganttViewMode === mode 
+                    ganttViewMode === mode.id 
                       ? 'bg-zinc-900 text-white' 
                       : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                   }`}
                 >
-                  {mode}
+                  {mode.label}
                 </button>
               ))}
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-4">
             {ganttTasks.length > 0 ? (
-              <div className="gantt-container overflow-x-auto bg-white">
-                <style>{`
-                  .gantt-container {
-                    background: white !important;
-                  }
-                  .gantt-container svg {
-                    font-family: inherit;
-                    background: white !important;
-                  }
-                  .gantt-container .bar-wrapper:hover .bar {
-                    filter: brightness(0.95);
-                  }
-                  .gantt-task-completed .bar {
-                    fill: #10b981 !important;
-                  }
-                  .gantt-task-completed .bar-progress {
-                    fill: #059669 !important;
-                  }
-                  .gantt-task-in-progress .bar {
-                    fill: #3b82f6 !important;
-                  }
-                  .gantt-task-in-progress .bar-progress {
-                    fill: #2563eb !important;
-                  }
-                  .gantt-task-na .bar {
-                    fill: #f97316 !important;
-                  }
-                  .gantt-task-na .bar-progress {
-                    fill: #ea580c !important;
-                  }
-                  .gantt-task-not-started .bar {
-                    fill: #a1a1aa !important;
-                  }
-                  .gantt-task-not-started .bar-progress {
-                    fill: #71717a !important;
-                  }
-                  .gantt .grid-header {
-                    fill: #fafafa !important;
-                  }
-                  .gantt .grid-row {
-                    fill: #fff !important;
-                  }
-                  .gantt .grid-row:nth-child(odd) {
-                    fill: #fafafa !important;
-                  }
-                  .gantt .row-line {
-                    stroke: #e4e4e7 !important;
-                  }
-                  .gantt .tick {
-                    stroke: #e4e4e7 !important;
-                  }
-                  .gantt .lower-text, .gantt .upper-text {
-                    fill: #52525b !important;
-                    font-size: 11px;
-                  }
-                  .gantt .today-highlight {
-                    fill: #dbeafe !important;
-                    opacity: 0.5;
-                  }
-                  .gantt .handle {
-                    fill: #71717a;
-                  }
-                  .gantt .bar-label {
-                    font-size: 11px;
-                    font-weight: 500;
-                  }
-                  .gantt-popup {
-                    font-family: inherit;
-                  }
-                `}</style>
-                <div ref={ganttContainerRef} className="min-h-[300px]" />
+              <div className="gantt-wrapper overflow-x-auto">
+                <Gantt
+                  tasks={ganttTasks}
+                  viewMode={ganttViewMode}
+                  onDateChange={handleGanttDateChange}
+                  onProgressChange={handleGanttProgressChange}
+                  onClick={handleGanttTaskClick}
+                  listCellWidth=""
+                  columnWidth={ganttViewMode === ViewMode.Month ? 150 : ganttViewMode === ViewMode.Week ? 100 : 50}
+                  barCornerRadius={4}
+                  todayColor="rgba(59, 130, 246, 0.1)"
+                  barProgressColor="#3b82f6"
+                  barProgressSelectedColor="#2563eb"
+                  barBackgroundColor="#93c5fd"
+                  barBackgroundSelectedColor="#60a5fa"
+                />
               </div>
             ) : (
               <div className="text-center py-12 text-zinc-400">
