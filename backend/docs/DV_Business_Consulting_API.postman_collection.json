@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://agreement-builder-3.preview.emergentagent.com",
+      "value": "https://consult-pricing.preview.emergentagent.com",
       "type": "string"
     },
     {
