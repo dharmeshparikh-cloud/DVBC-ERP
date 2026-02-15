@@ -285,6 +285,10 @@ class AgreementCreate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     terms_and_conditions: Optional[str] = None
+    # NEW: Team Deployment fields
+    meeting_frequency: Optional[str] = "Monthly"
+    project_tenure_months: Optional[int] = 12
+    team_deployment: Optional[List[Dict[str, Any]]] = []
 
 def calculate_quotation_totals(consultants: List[ConsultantAllocation], discount_percentage: float, gst_percentage: float, base_rate: float) -> dict:
     """Calculate quotation totals based on consultants and pricing"""
