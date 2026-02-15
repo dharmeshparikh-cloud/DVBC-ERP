@@ -108,6 +108,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
         <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
         <Route path="handover-alerts" element={<HandoverAlerts />} />
+        <Route path="kickoff-requests" element={<KickoffRequests />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="user-management" element={<UserManagement />} />
         <Route path="employees" element={<Employees />} />
@@ -118,6 +119,9 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="security-audit" element={<SecurityAuditLog />} />
         <Route path="gantt-chart" element={<GanttChart />} />
         <Route path="downloads" element={<Downloads />} />
+        <Route path="sales-dashboard" element={<SalesDashboard />} />
+        <Route path="consulting-dashboard" element={<ConsultingDashboard />} />
+        <Route path="hr-dashboard" element={<HRDashboard />} />
       </Route>
     </Routes>
   );
