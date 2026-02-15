@@ -23,11 +23,12 @@ const DURATION_TYPE_MONTHS = {
 // Meeting modes
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
 
-// Payment components with default percentages
+// Payment components with default values
+// GST and TDS are percentage-based, Conveyance is lumpsum
 const PAYMENT_COMPONENTS = [
-  { id: 'gst', name: 'GST', defaultPercent: 18, type: 'add', editable: false },
-  { id: 'tds', name: 'TDS', defaultPercent: 10, type: 'subtract', editable: true },
-  { id: 'conveyance', name: 'Conveyance', defaultPercent: 5, type: 'add', editable: true }
+  { id: 'gst', name: 'GST', defaultPercent: 18, type: 'add', editable: false, isPercentage: true },
+  { id: 'tds', name: 'TDS', defaultPercent: 10, type: 'subtract', editable: true, isPercentage: true },
+  { id: 'conveyance', name: 'Conveyance', defaultValue: 0, type: 'add', editable: true, isPercentage: false, isLumpsum: true }
 ];
 
 const PricingPlanBuilder = () => {
@@ -68,14 +69,15 @@ const PricingPlanBuilder = () => {
   });
 
   // Payment Plan Breakup State
+  // Note: conveyance is now a lumpsum amount (not percentage)
   const [paymentPlan, setPaymentPlan] = useState({
     start_date: '',
     selected_components: ['gst'], // GST selected by default
     component_values: {
       gst: 18,
-      tds: 10,
-      conveyance: 5
-    }
+      tds: 10
+    },
+    conveyance_lumpsum: 0  // Lumpsum amount distributed across all tenures
   });
 
   useEffect(() => {
