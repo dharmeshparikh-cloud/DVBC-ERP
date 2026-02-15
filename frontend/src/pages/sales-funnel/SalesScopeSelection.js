@@ -413,7 +413,7 @@ const SalesScopeSelection = () => {
           ) : (
             <>
               <Send className="w-4 h-4 mr-2" />
-              Create SOW & Proceed to Quotation ({selectedScopes.size + customScopes.length} scopes)
+              Create SOW & Proceed to Proforma Invoice ({selectedScopes.size + customScopes.length} scopes)
             </>
           )}
         </Button>
