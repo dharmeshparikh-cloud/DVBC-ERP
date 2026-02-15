@@ -704,7 +704,21 @@ const PricingPlanBuilder = () => {
                 <Label className="text-sm font-medium text-zinc-950">Payment Schedule</Label>
                 <select
                   value={formData.payment_schedule}
-                  onChange={(e) => setFormData({ ...formData, payment_schedule: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, payment_schedule: e.target.value });
+                    // Initialize with one custom payment when switching to custom
+                    if (e.target.value === 'custom' && paymentPlan.custom_payments.length === 0) {
+                      setPaymentPlan(prev => ({
+                        ...prev,
+                        custom_payments: [{
+                          id: Date.now(),
+                          date: prev.start_date || new Date().toISOString().split('T')[0],
+                          amount: totals.afterDiscount,
+                          description: 'Payment 1'
+                        }]
+                      }));
+                    }
+                  }}
                   className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
                   data-testid="payment-schedule-select"
                 >
@@ -712,6 +726,7 @@ const PricingPlanBuilder = () => {
                   <option value="quarterly">Quarterly</option>
                   <option value="milestone">Milestone Based</option>
                   <option value="upfront">Upfront</option>
+                  <option value="custom">Custom (Irregular)</option>
                 </select>
               </div>
             </div>
