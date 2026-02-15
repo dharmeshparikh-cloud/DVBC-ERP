@@ -37,7 +37,7 @@
   "seed_data_creation": "Created multiple TEST_ prefixed tasks during testing for approval workflow verification",
   "retest_needed": false,
   "should_main_agent_self_test": false,
-  "context_for_next_testing_agent": "P0 features tested: 1) Task management in ConsultingScopeView works with add/edit/status change. 2) Approval workflow with parallel Manager+Client approval verified. 3) AgreementView with canvas e-signature fully functional. 4) PDF download button present. Test SOW: pricing_plan_id=ede84071-204d-4a36-bc3b-8b1d5acf1635, agreement_id=83bca478-93e6-4d96-aa57-170be5d7de4e (approved, unsigned for e-sign testing).",
+  "context_for_next_testing_agent": "P0 features tested: 1) Task management in ConsultingScopeView works with add/edit/status change. 2) Approval workflow with parallel Manager+Client approval verified. 3) AgreementView with canvas e-signature fully functional. 4) PDF download button present. Test SOW: pricing_plan_id=biz-management-hub-8, agreement_id=biz-management-hub-8 (approved, unsigned for e-sign testing).",
   "features_tested": {
     "Task creation in ConsultingScopeView": "PASSED - Add task dialog with name, description, priority, due date, assign to fields",
     "Task status management": "PASSED - Tasks show with status badges (pending, completed, in_progress)",
