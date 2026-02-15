@@ -7,9 +7,24 @@ import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { ArrowLeft, Plus, FileCheck, Send, Clock, CheckCircle, XCircle, Mail, Download, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { ArrowLeft, Plus, FileCheck, Send, Clock, CheckCircle, XCircle, Mail, Download, FileText, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
+
+const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];
+const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
+
+const DEFAULT_TEAM_ROLES = [
+  'Project Manager',
+  'Lead Consultant',
+  'Senior Consultant',
+  'Data Analyst',
+  'Digital Marketing Manager',
+  'HR Consultant',
+  'Sales Trainer',
+  'Operations Consultant'
+];
 
 const Agreements = () => {
   const { user } = useContext(AuthContext);
@@ -40,7 +55,20 @@ const Agreements = () => {
     payment_terms: 'Net 30 days from invoice date',
     special_conditions: '',
     start_date: '',
-    end_date: ''
+    end_date: '',
+    // New Team Deployment fields
+    meeting_frequency: 'Monthly',
+    project_tenure_months: 12,
+    team_deployment: []
+  });
+
+  // New team member form
+  const [newTeamMember, setNewTeamMember] = useState({
+    role: '',
+    meeting_type: '',
+    frequency: '',
+    mode: 'Online',
+    notes: ''
   });
 
   useEffect(() => {
@@ -66,12 +94,43 @@ const Agreements = () => {
     }
   };
 
+  const addTeamMember = () => {
+    if (!newTeamMember.role || !newTeamMember.meeting_type || !newTeamMember.frequency) {
+      toast.error('Please fill role, meeting type, and frequency');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      team_deployment: [...prev.team_deployment, { ...newTeamMember, id: Date.now() }]
+    }));
+    setNewTeamMember({ role: '', meeting_type: '', frequency: '', mode: 'Online', notes: '' });
+  };
+
+  const removeTeamMember = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      team_deployment: prev.team_deployment.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await axios.post(`${API}/agreements`, formData);
       toast.success('Agreement created and sent for approval');
       setDialogOpen(false);
+      setFormData({
+        quotation_id: '',
+        lead_id: '',
+        agreement_type: 'standard',
+        payment_terms: 'Net 30 days from invoice date',
+        special_conditions: '',
+        start_date: '',
+        end_date: '',
+        meeting_frequency: 'Monthly',
+        project_tenure_months: 12,
+        team_deployment: []
+      });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create agreement');
@@ -111,7 +170,6 @@ const Agreements = () => {
         responseType: 'blob'
       });
       
-      // Get filename from response headers or create default
       const contentDisposition = response.headers['content-disposition'];
       let filename = format === 'pdf' ? 'Agreement.pdf' : 'Agreement.docx';
       if (contentDisposition) {
@@ -119,7 +177,6 @@ const Agreements = () => {
         if (matches) filename = matches[1];
       }
       
-      // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -251,8 +308,12 @@ const Agreements = () => {
                       <div className="text-sm font-medium text-zinc-950 capitalize">{agreement.agreement_type}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-zinc-500 uppercase tracking-wide">Payment Terms</div>
-                      <div className="text-sm font-medium text-zinc-950">{agreement.payment_terms}</div>
+                      <div className="text-xs text-zinc-500 uppercase tracking-wide">Meeting Frequency</div>
+                      <div className="text-sm font-medium text-zinc-950">{agreement.meeting_frequency || 'Monthly'}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500 uppercase tracking-wide">Project Tenure</div>
+                      <div className="text-sm font-medium text-zinc-950">{agreement.project_tenure_months || 12} months</div>
                     </div>
                     <div>
                       <div className="text-xs text-zinc-500 uppercase tracking-wide">Start Date</div>
@@ -260,13 +321,27 @@ const Agreements = () => {
                         {agreement.start_date ? new Date(agreement.start_date).toLocaleDateString() : 'Not set'}
                       </div>
                     </div>
-                    <div>
-                      <div className="text-xs text-zinc-500 uppercase tracking-wide">End Date</div>
-                      <div className="text-sm font-medium text-zinc-950">
-                        {agreement.end_date ? new Date(agreement.end_date).toLocaleDateString() : 'Not set'}
+                  </div>
+
+                  {/* Team Deployment Summary */}
+                  {agreement.team_deployment && agreement.team_deployment.length > 0 && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded-sm">
+                      <div className="text-xs text-blue-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        Team Deployment ({agreement.team_deployment.length} members)
+                      </div>
+                      <div className="space-y-1">
+                        {agreement.team_deployment.slice(0, 3).map((member, idx) => (
+                          <div key={idx} className="text-sm text-zinc-700">
+                            {member.role}: {member.meeting_type} - {member.frequency}
+                          </div>
+                        ))}
+                        {agreement.team_deployment.length > 3 && (
+                          <div className="text-xs text-zinc-500">+{agreement.team_deployment.length - 3} more...</div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                   
                   {agreement.special_conditions && (
                     <div className="mb-4 p-3 bg-zinc-50 rounded-sm">
@@ -276,7 +351,6 @@ const Agreements = () => {
                   )}
 
                   <div className="flex gap-2 flex-wrap">
-                    {/* Download buttons - always visible */}
                     <Button
                       onClick={() => handleDownload(agreement.id, 'pdf')}
                       size="sm"
@@ -326,60 +400,89 @@ const Agreements = () => {
 
       {/* Create Agreement Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-lg">
+        <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
               Create Agreement
             </DialogTitle>
             <DialogDescription className="text-zinc-500">
-              Create an agreement from a finalized quotation
+              Create an agreement with team deployment structure
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Lead</Label>
-              <select
-                value={formData.lead_id}
-                onChange={(e) => setFormData({ ...formData, lead_id: e.target.value })}
-                required
-                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-              >
-                <option value="">Select a lead</option>
-                {leads.map(lead => (
-                  <option key={lead.id} value={lead.id}>
-                    {lead.first_name} {lead.last_name} - {lead.company}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Lead *</Label>
+                <select
+                  value={formData.lead_id}
+                  onChange={(e) => setFormData({ ...formData, lead_id: e.target.value })}
+                  required
+                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                >
+                  <option value="">Select a lead</option>
+                  {leads.map(lead => (
+                    <option key={lead.id} value={lead.id}>
+                      {lead.first_name} {lead.last_name} - {lead.company}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Quotation *</Label>
+                <select
+                  value={formData.quotation_id}
+                  onChange={(e) => setFormData({ ...formData, quotation_id: e.target.value })}
+                  required
+                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                >
+                  <option value="">Select a quotation</option>
+                  {quotations.filter(q => !formData.lead_id || q.lead_id === formData.lead_id).map(q => (
+                    <option key={q.id} value={q.id}>
+                      {q.quotation_number} - {formatINR(q.grand_total)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Quotation</Label>
-              <select
-                value={formData.quotation_id}
-                onChange={(e) => setFormData({ ...formData, quotation_id: e.target.value })}
-                required
-                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-              >
-                <option value="">Select a quotation</option>
-                {quotations.filter(q => !formData.lead_id || q.lead_id === formData.lead_id).map(q => (
-                  <option key={q.id} value={q.id}>
-                    {q.quotation_number} - {formatINR(q.grand_total)}
-                  </option>
-                ))}
-              </select>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Agreement Type</Label>
+                <select
+                  value={formData.agreement_type}
+                  onChange={(e) => setFormData({ ...formData, agreement_type: e.target.value })}
+                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                >
+                  <option value="standard">Standard</option>
+                  <option value="nda">NDA</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Meeting Frequency *</Label>
+                <select
+                  value={formData.meeting_frequency}
+                  onChange={(e) => setFormData({ ...formData, meeting_frequency: e.target.value })}
+                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                >
+                  {MEETING_FREQUENCIES.map(freq => (
+                    <option key={freq} value={freq}>{freq}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Project Tenure (months) *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={formData.project_tenure_months}
+                  onChange={(e) => setFormData({ ...formData, project_tenure_months: parseInt(e.target.value) || 12 })}
+                  className="rounded-sm border-zinc-200"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Agreement Type</Label>
-              <select
-                value={formData.agreement_type}
-                onChange={(e) => setFormData({ ...formData, agreement_type: e.target.value })}
-                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-              >
-                <option value="standard">Standard</option>
-                <option value="nda">NDA</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-zinc-950">Start Date</Label>
@@ -400,6 +503,104 @@ const Agreements = () => {
                 />
               </div>
             </div>
+
+            {/* Team Deployment Section */}
+            <div className="border border-zinc-200 rounded-sm p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-zinc-950 flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Team Deployment Structure
+                </Label>
+              </div>
+              
+              {/* Add Team Member Form */}
+              <div className="grid grid-cols-5 gap-2 items-end bg-zinc-50 p-3 rounded-sm">
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-500">Role</Label>
+                  <select
+                    value={newTeamMember.role}
+                    onChange={(e) => setNewTeamMember({ ...newTeamMember, role: e.target.value })}
+                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
+                  >
+                    <option value="">Select role</option>
+                    {DEFAULT_TEAM_ROLES.map(role => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-500">Meeting Type</Label>
+                  <Input
+                    value={newTeamMember.meeting_type}
+                    onChange={(e) => setNewTeamMember({ ...newTeamMember, meeting_type: e.target.value })}
+                    placeholder="e.g., Monthly Review"
+                    className="h-9 text-sm rounded-sm border-zinc-200"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-500">Frequency</Label>
+                  <Input
+                    value={newTeamMember.frequency}
+                    onChange={(e) => setNewTeamMember({ ...newTeamMember, frequency: e.target.value })}
+                    placeholder="e.g., 1 per month"
+                    className="h-9 text-sm rounded-sm border-zinc-200"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-500">Mode</Label>
+                  <select
+                    value={newTeamMember.mode}
+                    onChange={(e) => setNewTeamMember({ ...newTeamMember, mode: e.target.value })}
+                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
+                  >
+                    {MEETING_MODES.map(mode => (
+                      <option key={mode} value={mode}>{mode}</option>
+                    ))}
+                  </select>
+                </div>
+                <Button type="button" onClick={addTeamMember} size="sm" className="h-9">
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Team Members List */}
+              {formData.team_deployment.length > 0 && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-5 gap-2 text-xs font-medium text-zinc-500 px-2">
+                    <div>Role</div>
+                    <div>Meeting Type</div>
+                    <div>Frequency</div>
+                    <div>Mode</div>
+                    <div></div>
+                  </div>
+                  {formData.team_deployment.map((member, index) => (
+                    <div key={member.id || index} className="grid grid-cols-5 gap-2 items-center p-2 bg-white border border-zinc-100 rounded-sm text-sm">
+                      <div className="font-medium">{member.role}</div>
+                      <div>{member.meeting_type}</div>
+                      <div>{member.frequency}</div>
+                      <div>{member.mode}</div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeTeamMember(index)}
+                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {formData.team_deployment.length === 0 && (
+                <p className="text-sm text-zinc-400 text-center py-4">
+                  No team members added. Add team deployment structure above.
+                </p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Payment Terms</Label>
               <Input
