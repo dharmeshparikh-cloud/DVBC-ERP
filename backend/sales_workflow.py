@@ -21,10 +21,15 @@ class CommunicationLogCreate(BaseModel):
 
 class ConsultantAllocation(BaseModel):
     consultant_type: str  # 'lead', 'lean', 'principal', 'hr', 'sales', 'project_manager', 'trainer'
+    role: Optional[str] = None  # Full role name e.g., "Project Manager"
+    meeting_type: Optional[str] = None  # e.g., "Weekly Review", "Monthly Review"
+    frequency: Optional[str] = None  # e.g., "5 per week", "1 per month"
+    mode: Optional[str] = "Online"  # Online, Offline, Mixed
     count: int = 1
     meetings: int = 0
     hours: int = 0
     rate_per_meeting: Optional[float] = 12500
+    committed_meetings: Optional[int] = 0  # Auto-calculated based on frequency and duration
 
 class SOWItemStatus(str):
     DRAFT = "draft"
