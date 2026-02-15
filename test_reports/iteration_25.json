@@ -1,0 +1,70 @@
+{
+  "summary": "Tested two bug fixes in PricingPlanBuilder.js: 1) Multiple team members now accumulate correctly (fixed race condition by passing updated team directly to recalculateAllocations), 2) Conveyance helper text now shows dynamic number of payments based on payment schedule (not hardcoded 12 months). All tests PASSED.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Sidebar", "issues": ["XSS payload visible in admin username display - shows raw HTML text '<img src=x onerror=alert(...)>' - inherited from previous iterations"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_25.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Bug Fix 1: recalculateAllocations now accepts optional currentTeam parameter, fixing the setTimeout race condition where old teamDeployment state was used",
+    "Bug Fix 2: Conveyance helper text uses dynamically calculated numberOfPayments instead of hardcoded months",
+    "numberOfPayments is correctly calculated using useMemo based on payment_schedule and project_duration_months"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% (all bug fixes verified)"
+  },
+  "test_credentials": {
+    "admin": "admin@company.com / admin123"
+  },
+  "seed_data_creation": "None - used existing leads for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fixes verified for PricingPlanBuilder.js. Key fixes: 1) addTeamMember and removeTeamMember now pass updated team directly to recalculateAllocations, 2) Conveyance helper text uses numberOfPayments from useMemo. Test by adding 3 team members (should accumulate) and changing payment schedule (conveyance text should update).",
+  "features_tested": {
+    "Bug Fix 1: Multiple team members accumulate": "PASSED - Added 3 members, all 3 appeared correctly",
+    "Bug Fix 1: Team allocations normalize to 100%": "PASSED - 66.7% + 19.0% + 14.3% = 100%",
+    "Bug Fix 1: Remove team member recalculates allocations": "PASSED - After removal: 57.1% + 42.9% = 100%",
+    "Bug Fix 2: Monthly schedule shows '12 payments'": "PASSED - Text: '(split across 12 payments)'",
+    "Bug Fix 2: Quarterly schedule shows '4 payments'": "PASSED - Text: '(split across 4 payments)'",
+    "Bug Fix 2: Upfront schedule shows '1 payment'": "PASSED - Text: '(split across 1 payment)'",
+    "Conveyance tooltip shows distribution breakdown": "PASSED - Shows Total, Per month, and Split info"
+  },
+  "test_scenarios_executed": [
+    {
+      "scenario": "Add 3 team members",
+      "result": "PASSED",
+      "details": "All 3 members accumulated correctly, not replaced"
+    },
+    {
+      "scenario": "Change payment schedule to quarterly",
+      "result": "PASSED",
+      "details": "Conveyance text shows '4 payments' not '12 months'"
+    },
+    {
+      "scenario": "Remove team member",
+      "result": "PASSED",
+      "details": "Allocations recalculated: 57.1% + 42.9% = 100%"
+    },
+    {
+      "scenario": "Conveyance tooltip hover",
+      "result": "PASSED",
+      "details": "Shows: Total: ₹60,000.00, Per month: ₹5,000.00, Split evenly across 12 payments"
+    }
+  ],
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": ["Email/payment reminders - logs to console"]
+  }
+}
