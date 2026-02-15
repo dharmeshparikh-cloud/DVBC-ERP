@@ -515,6 +515,236 @@ async def login(user_login: UserLogin):
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
+# --- Security Audit Logging ---
+async def log_security_event(event_type: str, email: str = None, details: dict = None, request: Request = None):
+    """Log a security event to the audit log collection"""
+    log_entry = {
+        "id": str(uuid.uuid4()),
+        "event_type": event_type,
+        "email": email,
+        "details": details or {},
+        "ip_address": request.client.host if request else None,
+        "user_agent": request.headers.get("user-agent", "") if request else None,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.security_audit_logs.insert_one(log_entry)
+
+
+# --- Google Auth Endpoint ---
+class GoogleAuthRequest(BaseModel):
+    session_id: str
+
+@api_router.post("/auth/google", response_model=Token)
+async def google_auth(auth_req: GoogleAuthRequest, request: Request):
+    """Authenticate via Google (Emergent Auth) - restricted to allowed domain, pre-registered users only"""
+    # 1. Call Emergent Auth to get session data
+    try:
+        async with httpx.AsyncClient() as client_http:
+            resp = await client_http.get(
+                EMERGENT_AUTH_URL,
+                headers={"X-Session-ID": auth_req.session_id},
+                timeout=10.0
+            )
+            if resp.status_code != 200:
+                await log_security_event("google_login_failed", details={"reason": "emergent_auth_error", "status": resp.status_code}, request=request)
+                raise HTTPException(status_code=401, detail="Google authentication failed")
+            session_data = resp.json()
+    except httpx.RequestError:
+        raise HTTPException(status_code=502, detail="Could not reach authentication service")
+
+    google_email = session_data.get("email", "").lower()
+    google_name = session_data.get("name", "")
+
+    # 2. Domain restriction
+    email_domain = google_email.split("@")[-1] if "@" in google_email else ""
+    if email_domain != ALLOWED_DOMAIN:
+        await log_security_event("google_login_rejected_domain", email=google_email, details={"domain": email_domain, "allowed": ALLOWED_DOMAIN}, request=request)
+        raise HTTPException(status_code=403, detail=f"Access restricted to @{ALLOWED_DOMAIN} accounts only")
+
+    # 3. Pre-registered check — user must exist in DB
+    user_data = await db.users.find_one({"email": google_email}, {"_id": 0})
+    if not user_data:
+        await log_security_event("google_login_rejected_unregistered", email=google_email, request=request)
+        raise HTTPException(status_code=403, detail="Your account is not registered. Please contact your administrator.")
+
+    if not user_data.get("is_active", True):
+        await log_security_event("google_login_rejected_inactive", email=google_email, request=request)
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact your administrator.")
+
+    # 4. Update google profile info if available
+    update_fields = {"last_login": datetime.now(timezone.utc).isoformat(), "auth_method": "google"}
+    if google_name and not user_data.get("full_name"):
+        update_fields["full_name"] = google_name
+    if session_data.get("picture"):
+        update_fields["google_picture"] = session_data["picture"]
+    await db.users.update_one({"email": google_email}, {"$set": update_fields})
+
+    # 5. Issue JWT token (same as password login)
+    if isinstance(user_data.get('created_at'), str):
+        user_data['created_at'] = datetime.fromisoformat(user_data['created_at'])
+    user_data.pop('hashed_password', None)
+    user = User(**user_data)
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+
+    await log_security_event("google_login_success", email=google_email, request=request)
+    return Token(access_token=access_token, token_type="bearer", user=user)
+
+
+# --- Admin OTP Password Reset ---
+class OTPRequestModel(BaseModel):
+    email: EmailStr
+
+class OTPVerifyModel(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+@api_router.post("/auth/admin/request-otp")
+async def request_admin_otp(otp_req: OTPRequestModel, request: Request):
+    """Generate an OTP for admin password reset. Only admin-role users can request OTP."""
+    user_data = await db.users.find_one({"email": otp_req.email}, {"_id": 0})
+    if not user_data:
+        await log_security_event("otp_request_failed", email=otp_req.email, details={"reason": "user_not_found"}, request=request)
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user_data.get("role") != "admin":
+        await log_security_event("otp_request_rejected", email=otp_req.email, details={"reason": "not_admin"}, request=request)
+        raise HTTPException(status_code=403, detail="OTP password reset is only available for admin accounts")
+
+    # Generate 6-digit OTP
+    otp_code = ''.join(random.choices(string.digits, k=6))
+    otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+    await db.otp_tokens.delete_many({"email": otp_req.email})
+    await db.otp_tokens.insert_one({
+        "email": otp_req.email,
+        "otp": otp_code,
+        "expires_at": otp_expiry.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    await log_security_event("otp_generated", email=otp_req.email, details={"otp_code": otp_code}, request=request)
+    # In production, send OTP via email/SMS. For now, return it (admin can view in audit log)
+    return {"message": "OTP generated successfully", "otp": otp_code, "expires_in_minutes": 10}
+
+
+@api_router.post("/auth/admin/reset-password")
+async def reset_admin_password(otp_verify: OTPVerifyModel, request: Request):
+    """Verify OTP and reset admin password"""
+    otp_record = await db.otp_tokens.find_one({"email": otp_verify.email, "otp": otp_verify.otp}, {"_id": 0})
+    if not otp_record:
+        await log_security_event("otp_verify_failed", email=otp_verify.email, details={"reason": "invalid_otp"}, request=request)
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    expires_at = datetime.fromisoformat(otp_record["expires_at"])
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        await db.otp_tokens.delete_many({"email": otp_verify.email})
+        await log_security_event("otp_verify_failed", email=otp_verify.email, details={"reason": "otp_expired"}, request=request)
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new one.")
+
+    if len(otp_verify.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    new_hash = get_password_hash(otp_verify.new_password)
+    await db.users.update_one({"email": otp_verify.email}, {"$set": {"hashed_password": new_hash}})
+    await db.otp_tokens.delete_many({"email": otp_verify.email})
+
+    await log_security_event("password_reset_success", email=otp_verify.email, request=request)
+    return {"message": "Password reset successfully"}
+
+
+# --- Admin Change Password (while logged in) ---
+class ChangePasswordModel(BaseModel):
+    current_password: str
+    new_password: str
+
+@api_router.post("/auth/change-password")
+async def change_password(pwd_data: ChangePasswordModel, current_user: User = Depends(get_current_user), request: Request = None):
+    """Change password for current user (admin only, since employees use Google)"""
+    user_data = await db.users.find_one({"email": current_user.email}, {"_id": 0})
+    if not user_data or not user_data.get("hashed_password"):
+        raise HTTPException(status_code=400, detail="No password set for this account")
+
+    if not verify_password(pwd_data.current_password, user_data["hashed_password"]):
+        await log_security_event("password_change_failed", email=current_user.email, details={"reason": "wrong_current_password"}, request=request)
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if len(pwd_data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    new_hash = get_password_hash(pwd_data.new_password)
+    await db.users.update_one({"email": current_user.email}, {"$set": {"hashed_password": new_hash}})
+
+    await log_security_event("password_change_success", email=current_user.email, request=request)
+    return {"message": "Password changed successfully"}
+
+
+# --- Security Audit Logs Endpoint ---
+@api_router.get("/security-audit-logs")
+async def get_security_audit_logs(
+    event_type: Optional[str] = None,
+    email: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user)
+):
+    """Get security audit logs (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can view security audit logs")
+
+    query = {}
+    if event_type:
+        query["event_type"] = event_type
+    if email:
+        query["email"] = {"$regex": email, "$options": "i"}
+    if date_from:
+        query.setdefault("timestamp", {})["$gte"] = date_from
+    if date_to:
+        query.setdefault("timestamp", {})["$lte"] = date_to
+
+    total = await db.security_audit_logs.count_documents(query)
+    logs = await db.security_audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+
+    return {"logs": logs, "total": total}
+
+
+# --- Update existing login to add audit logging ---
+@api_router.post("/auth/login", response_model=Token)
+async def login(user_login: UserLogin, request: Request = None):
+    user_data = await db.users.find_one({"email": user_login.email}, {"_id": 0})
+    if not user_data:
+        await log_security_event("password_login_failed", email=user_login.email, details={"reason": "user_not_found"}, request=request)
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+
+    if not verify_password(user_login.password, user_data.get('hashed_password', '')):
+        await log_security_event("password_login_failed", email=user_login.email, details={"reason": "wrong_password"}, request=request)
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+
+    if isinstance(user_data.get('created_at'), str):
+        user_data['created_at'] = datetime.fromisoformat(user_data['created_at'])
+
+    user_data.pop('hashed_password', None)
+    user = User(**user_data)
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+
+    await log_security_event("password_login_success", email=user_login.email, request=request)
+    await db.users.update_one({"email": user_login.email}, {"$set": {"last_login": datetime.now(timezone.utc).isoformat(), "auth_method": "password"}})
+    return Token(access_token=access_token, token_type="bearer", user=user)
+
+
 @api_router.post("/leads", response_model=Lead)
 async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_current_user)):
     if current_user.role == UserRole.MANAGER:
