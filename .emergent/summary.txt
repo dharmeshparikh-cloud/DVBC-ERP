@@ -2,64 +2,63 @@
 The user requires a comprehensive business management application for a 50-person consulting organization covering HR, Marketing, Sales, Finance, and Consulting projects.
 
 **PRODUCT REQUIREMENTS (based on user clarifications):**
--   **Authentication & Roles:** A comprehensive, customizable role and permissions management system, including Google Auth.
--   **Top-Down Sales Workflow:** A sales process where the salesperson inputs the , and the system auto-allocates costs and calculates the rate-per-meeting for each team member based on admin-defined rules. The flow is Pricing Plan → SOW → Quotation → Agreement → Approval.
--   **Project Kickoff Workflow:** A formal handover process from Sales to Consulting. The consulting team must not have visibility into any project pricing, costing, or financial data.
--   **Dynamic & Role-Specific Dashboards:** Users should see dashboards tailored to their department.
--   **Modules:** Employees, Client Master, Expenses, Reporting, Meetings & MOM, HR (Leave, Attendance, Payroll), My Workspace, Project Management, and a new **Admin Masters** module for managing core business rules (e.g., cost allocation percentages).
--   **P&L / Variance Tracking:** The ability to flag projects where actual delivery (e.g., number of meetings held) exceeds the committed scope, impacting profitability.
+*   **Authentication & Roles:** A comprehensive, customizable role and permissions management system, including Google Auth.
+*   **Top-Down Sales Workflow:** A sales process where the salesperson inputs the , and the system auto-allocates costs and calculates the rate-per-meeting for each team member based on admin-defined rules. The flow is Pricing Plan → SOW → Quotation → Agreement → Approval.
+*   **Project Kickoff Workflow:** A formal handover process from Sales to Consulting. The consulting team must not have visibility into any project pricing, costing, or financial data.
+*   **Dynamic & Role-Specific Dashboards:** Users should see dashboards tailored to their department.
+*   **Modules:** Employees, Client Master, Expenses, Reporting, Meetings & MOM, HR (Leave, Attendance, Payroll), My Workspace, Project Management, and an Admin Masters module.
+*   **Lumpsum Conveyance:** Conveyance costs should be handled as a fixed, user-inputted lumpsum amount, distributed evenly across the payment schedule.
+*   **Custom Payment Schedules:** In addition to standard monthly/quarterly schedules, users must be able to define custom payment schedules with irregular dates, amounts, and descriptions for each installment.
+*   **Notes & Agreement Configuration:** Users need the ability to add free-text notes to different sections of the pricing plan and select which sections (e.g., Pricing Summary, Team Deployment) are included in the final generated agreement document.
+*   **P&L / Variance Tracking:** The ability to flag projects where actual delivery exceeds the committed scope.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a sales funnel (Pricing Plan -> Quotation -> Agreement). The application now uses a top-down pricing model where the salesperson inputs a , and the system reverse-calculates team member rates based on allocation rules. An Admin Masters module exists for managing these rules. The  page also features a Payment Plan Breakup section, which auto-generates a monthly payment schedule based on the project start date and includes selectable components like GST and TDS.
+A full-stack application with a sophisticated sales funnel (Pricing Plan -> Quotation -> Agreement). The  page is the core of this funnel and now includes:
+- A top-down pricing model where  drives all cost calculations.
+- A fixed-up team deployment bug, allowing multiple team members to be added.
+- A Payment Plan Breakup section with a dynamic payment schedule table.
+- Conveyance costs handled as a lumpsum amount, correctly distributed across any selected payment schedule (monthly, quarterly, or custom).
+- A new Custom payment schedule option, allowing users to manually define each payment date, amount, and description.
+- A Notes section for adding context to pricing, team, and payment terms.
+- An Agreement Sections feature allowing users to toggle the visibility of different parts of the plan in the final document.
 
 **Last working item**:
--   **Last item agent was working:** The user requested a modification to the Payment Plan Breakup feature. Instead of being a percentage, Conveyance should be a single, lumpsum amount input by the user, which is then distributed evenly across the monthly payment schedule. The agent has acknowledged this requirement and is ready to begin implementation.
--   **Status:** NOT STARTED
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** both
+-   **Last item agent was working:** Implementation of a Custom Payment Schedule feature, a Notes Section, and Agreement Section toggles. The agent completed the full implementation, including a bug fix provided by the testing subagent for the agreement checkboxes.
+-   **Status:** USER VERIFICATION PENDING
+-   **Agent Testing Done:** Y
+-   **Which testing method agent to use?** NA
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Implement Lumpsum Conveyance in Payment Plan (P0)**
--   **Issue 2: Complete Workflow & Dashboard Redesign (P2)**
--   **Issue 3: Monolithic  file (P3 - Tech Debt)**
+-   **Issue 1: Complete Workflow & Dashboard Redesign (P2)**
+-   **Issue 2: Monolithic  file (P3 - Tech Debt)**
+-   **Issue 3: Monolithic  Component (P3 - Tech Debt)**
 
 **Issues Detail:**
--   **Issue 1: Implement Lumpsum Conveyance in Payment Plan**
-    -   **Attempted fixes:** None. This is a new requirement based on the last user message.
-    -   **Next debug checklist:**
-        1.  **Frontend ():** Modify the Conveyance component in the Payment Components section from a percentage-based checkbox to a currency input field for a lumpsum amount.
-        2.  **Frontend ():** Update the calculation logic to divide the entered lumpsum conveyance amount by the number of payment periods (e.g., 12 months).
-        3.  **Frontend ():** Ensure the Payment Schedule Table correctly displays this distributed conveyance amount in a new Conveyance column and updates the Net Receivable for each month.
-        4.  **Backend ():** Update the  model within the  model to store  instead of a percentage.
-        5.  **Testing:** Perform an end-to-end test: enter a total investment, add a team, input a lumpsum conveyance amount, and verify the payment schedule table is calculated correctly.
-    -   **Why fix this issue and what will be achieved with the fix?** To align the application with the user's business requirement for handling conveyance costs as a fixed total amount rather than a variable percentage.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
-
--   **Issue 2: Complete Workflow & Dashboard Redesign**
-    -   **Next debug checklist:**
-        1.  Design and implement the Consulting Efficiency Scorecard dashboard.
-        2.  Create dashboards for other departments (HR, Finance).
+-   **Issue 1: Complete Workflow & Dashboard Redesign**
+    -   **Next debug checklist:** Design and implement the Consulting Efficiency Scorecard dashboard and create dashboards for other departments (HR, Finance).
     -   **Why fix this issue and what will be achieved with the fix?** To fulfill the core request for a fully dynamic, role-specific application experience.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
--   **Issue 3: Monolithic  file**
-    -   **Next debug checklist:**
-        1.  Create a  directory in  (already done).
-        2.  Move remaining related models and endpoints from  into separate router files (e.g., , ).
-        3.  Update  to use  for the new router files.
-    -   **Why fix this issue and what will be achieved with the fix?** To improve code maintainability and scalability.
+-   **Issue 2: Monolithic  file**
+    -   **Next debug checklist:** Continue moving related models and endpoints from  into separate router files (e.g., , ) and update  to use .
+    -   **Why fix this issue and what will be achieved with the fix?** To improve code maintainability and scalability on the backend.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on other issue:** None
+
+-   **Issue 3: Monolithic  Component**
+    -   **Next debug checklist:** Plan the decomposition of the  file (currently >1500 lines) into smaller, reusable components (e.g., , , , ).
+    -   **Why fix this issue and what will be achieved with the fix?** To improve frontend code maintainability, readability, and performance. The component's complexity is high, making future changes difficult and error-prone.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
@@ -67,7 +66,7 @@ A full-stack application with a sales funnel (Pricing Plan -> Quotation -> Agree
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks (P1):**
-    -   **P&L Variance Tracking:** Implement logic to flag over-delivery (actual vs. committed meetings) during project execution.
+    -   **P&L Variance Tracking:** Implement logic to flag over-delivery (actual vs. committed meetings).
     -   **Employee Cost Integration:** Integrate with HR/Payroll data to pull actual employee CTC for P&L calculations.
     -   **Project P&L Dashboard:** Create a dashboard showing committed vs. actual costs and revenue with variance alerts.
     -   **Masters Sync Engine:** Ensure all forms across the application are automatically updated when an admin changes data in the Masters module.
@@ -78,23 +77,16 @@ A full-stack application with a sales funnel (Pricing Plan -> Quotation -> Agree
     -   **Rocket Reach Integration.**
 
 **Completed work in this session**
--   **Top-Down Pricing Redesign (P0 Task):**
-    -   Created a backend Admin Masters module () and a corresponding frontend UI () to manage allocation rules for team members.
-    -   Rewrote the  page to use a top-down model, where the  is the primary input, and all team member rates are auto-calculated and read-only.
-    -   Updated backend models in  to support this new data structure.
-    -   Fully tested the flow using the testing agent.
--   **Payment Plan Breakup Feature:**
-    -   Added a Payment Plan Breakup section to .
-    -   Implemented a dynamic monthly payment schedule table based on a project start date.
-    -   Included multi-select components for GST, TDS, and Conveyance (initially as a percentage).
-    -   The feature was fully tested using the testing agent.
+-   **Lumpsum Conveyance Feature:** Replaced the percentage-based conveyance with a lumpsum currency input and implemented logic to distribute it evenly across the selected payment schedule.
+-   **Bug Fix (Team Deployment):** Resolved a race condition that prevented adding more than one team member to the pricing plan.
+-   **Enhancement (Dynamic Helper Text):** Made the conveyance helper text dynamic to show the correct number of payments based on the selected schedule (e.g., split across 4 payments for quarterly).
+-   **Feature (Custom Payment Schedule):** Added a Custom option to the payment schedule, allowing users to manually add, edit, and delete payment milestones with custom dates, amounts, and descriptions.
+-   **Feature (Notes Section):** Implemented text areas for users to add notes related to pricing, team deployment, payment terms, and general comments.
+-   **Feature (Agreement Sections):** Added checkboxes to allow users to include or exclude specific sections from the final agreement document.
+-   **Subagent Fix (Checkboxes):** A testing subagent fixed an infinite loop bug caused by the Radix UI checkbox component in the Agreement Sections feature.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Monolithic  file.**
-    -   **Debug checklist:** Plan and execute the refactoring of  into separate FastAPI routers.
-    -   **Why to solve this issue and what will be achieved with this?** To improve code maintainability and scalability.
-    -   **Should Test frontend/backend/both after fix:** backend
-    -   **Is recurring issue?** Y
+-   **Issue 1: Monolithic  file.** This remains a known technical debt item.
 
 **Known issue recurrence from previous fork**
 -   The monolithic  file remains a recurring technical debt issue.
@@ -103,50 +95,45 @@ A full-stack application with a sales funnel (Pricing Plan -> Quotation -> Agree
 
 
 **Key Technical Concepts**
--   **Frontend:** React, Tailwind CSS, Shadcn/UI, Controlled Components, , .
+-   **Frontend:** React, Tailwind CSS, Shadcn/UI, extensive use of  and  for managing complex, interdependent form state in a single component.
 -   **Backend:** FastAPI, Pydantic, Motor (async MongoDB).
--   **Architecture:** Single source of truth data flow, Top-down pricing model.
+-   **Debugging:** Identified and fixed a race condition in React state updates by passing the updated state directly to the dependent function instead of relying on the state variable immediately after a  call.
 
 **key DB schema**
--   **PricingPlan ():** The model now includes  and a nested  object which stores the start date, schedule type, and component selections. The  sub-model stores the calculated breakup amount and rate per meeting.
+-   **PricingPlan ():** The model sent to the backend now includes  (float),  (list of objects with date, amount, description),  (object with string fields), and  (object with boolean fields).
 
 **All files of reference**
--   : **This file needs modification** for the new lumpsum conveyance logic.
--   : **This file needs modification** to store the lumpsum conveyance amount.
--   : The  endpoint might need verification after the model change.
--   : The newly created Admin Masters page (completed).
--   : The newly created Masters router (completed).
+-   : The central file for all work done in this session. It contains the logic for all new features and bug fixes. **It has become very large and complex.**
+-   : Modified to reflect the new data structure for pricing plans.
+-   : The  endpoint was implicitly updated to handle the new, larger request body.
 
 **Areas that need refactoring**:
--    needs to be broken down into smaller router files.
--   The payment plan logic in  will be refactored to support the lumpsum conveyance requirement.
+-   **CRITICAL:**  has become a monolithic god component and is now over 1500 lines long. It urgently needs to be broken down into smaller, manageable child components to improve maintainability.
+-    still needs to be broken down into smaller router files.
 
 **key api endpoints**
--   : Handles creation of pricing plans with the new top-down and payment plan structure.
--   : Full CRUD for tenure types.
--   : Full CRUD for allocation rules.
+-   : Handles creation of pricing plans. Its request body has been significantly expanded to include custom payments, notes, and agreement section configurations.
 
 **Critical Info for New Agent**
--   Your immediate priority (P0) is to implement the user's latest request: change the Conveyance field in the Payment Plan section from a percentage to a **lumpsum amount**. This amount should be distributed evenly across the months in the payment schedule table.
--   The core Top-Down Pricing and Admin Masters features are complete and have been tested. Do not alter this core logic.
--   The refactoring of the monolithic  file remains a P3 technical debt task to be addressed after higher-priority features.
+-   Your first action should be to present the recently completed features (Custom Payment Schedule, Notes, Agreement Sections) to the user for verification. Do not start new work until the user confirms these features meet their expectations.
+-   The most significant technical debt is now the  component. After user verification, you should strongly recommend and plan for its refactoring before adding more features to it. The complexity is high, and adding more will be risky.
+-   The backend  file also remains a tech debt item to be addressed.
 
 **documents and test reports created in this job**
+-    (Updated)
 -   
 -   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Requests to remove the Growth Guarantee section and add a Payment Plan Breakup section with multi-select components (like GST, TDS, Conveyance).
-2.  **Agent:** Implements the Payment Plan Breakup feature as requested.
-3.  **Agent:** Verifies the implementation with a screenshot showing the new section works correctly with percentage-based components.
-4.  **Agent:** Runs the testing agent, which confirms both backend and frontend pass with a 100% success rate.
-5.  **User (Pending):** only one change as conveyance is not fixed % , pls have top down pricing input that can be splitted across all tenures , lumsum inputs required - This is the current, highest-priority task.
+1.  **User:** Reports a bug where they cannot add multiple team members and requests that the conveyance cost be split dynamically based on the number of payments, not a hardcoded value. (COMPLETED)
+2.  **User:** Requests a major new feature: a Custom Payment Schedule option for defining manual payment milestones. (COMPLETED)
+3.  **User:** Adds to the feature request: also needs a Notes Section for adding descriptions and checkboxes to hide/show sections in the final agreement. (COMPLETED)
 
 **Project Health Check:**
 -   **Broken:** None.
 -   **Mocked:** Email sending functionality.
--   **Needs Rework:** The Conveyance calculation logic in  must be changed from a percentage to a lumpsum distribution model. The  monolith remains a critical tech debt item.
+-   **Needs Rework:**  is now a critical tech debt item due to its size and complexity. The  monolith also remains.
 
 **3rd Party Integrations**
 -   **Emergent-managed Google Auth**
@@ -154,11 +141,28 @@ A full-stack application with a sales funnel (Pricing Plan -> Quotation -> Agree
 -   **Rocket Reach** (Requested, not implemented)
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. The agent ran the testing agent twice after completing the Top-Down Pricing feature and the Payment Plan feature.
+-   **Testing agent used after significant changes:** YES. The agent was used multiple times, including after the final feature implementation, where it found and fixed a bug in the agreement section checkboxes.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:**
-    -   
-    -   
+-   **Test files created:** Test reports were generated, but no new persistent ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+________________________ ERROR collecting backend/tests ________________________
+Defining 'pytest_plugins' in a non-top-level conftest is no longer supported:
+It affects the entire test suite instead of just below the conftest as expected.
+  /app/backend/tests/conftest.py
+Please move it to a top level conftest file at the rootdir:
+  /app
+For more information, visit:
+  https://docs.pytest.org/en/stable/deprecations.html#pytest-plugins-in-non-top-level-conftest-files
+=========================== short test summary info ============================
+ERROR backend/tests - Failed: Defining 'pytest_plugins' in a non-top-level co...
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 1.83s =============================== files were created.
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
@@ -167,4 +171,4 @@ A full-stack application with a sales funnel (Pricing Plan -> Quotation -> Agree
 -   **Executive:**  / 
 
 **What agent forgot to execute**
--   The agent has been diligent and has not forgotten to execute any planned tasks or user requests from the session. The agent correctly prioritized the user's latest feedback as the next item to work on.</analysis>
+-   The agent successfully implemented all user requests from the session.</analysis>

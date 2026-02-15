@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://business-ops-4.preview.emergentagent.com",
+      "value": "https://consult-sales.preview.emergentagent.com",
       "type": "string"
     },
     {
