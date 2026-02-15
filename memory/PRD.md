@@ -7,12 +7,31 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### Team Deployment Dropdowns Enhancement ✅ (Latest)
+### Team Deployment Auto-Calculation Enhancement ✅ (Latest)
+
+**Major Feature: Automatic Meeting Calculation Based on Frequency & Tenure**
+- Added `base_rate_per_meeting` input field (editable, default ₹12,500)
+- Added `committed_meetings` auto-calculation based on:
+  - Frequency (1-5 per week, 1-4 per month, bi-weekly, quarterly)
+  - Project tenure in months
+- **Calculation Logic:**
+  - 5 per week × 4 weeks × tenure months = total meetings
+  - 1 per week × 4 weeks × tenure months = total meetings
+  - 1 per month × tenure months = total meetings
+- **Example:** For 2-month project: 5/week=40, 1/week=8, 1/month=2
+- Real-time preview before adding team member
+- Auto-recalculation when tenure changes
+- Totals row showing sum of meetings and costs
+- **Files Modified:** 
+  - `/app/frontend/src/pages/sales-funnel/Agreements.js`
+  - `/app/backend/sales_workflow.py`
+
+### Team Deployment Dropdowns Enhancement ✅
 
 **UI Enhancement: Team Deployment Structure Dropdowns**
 - Converted `Meeting Type` and `Frequency` inputs from free-text to dropdowns:
   - **Meeting Type Options:** Monthly Review, Weekly Review, Online Review, On-site Visit, Strategy Session, Training Session, Progress Update, Kickoff Meeting, Quarterly Business Review, Data Analysis Review, Marketing Review, HR Consultation
-  - **Frequency Options:** 1 per month, 2 per month, 1 per week, 2 per week, 1 per quarter, Bi-weekly, As needed, On demand
+  - **Frequency Options:** 1-5 per week, 1-4 per month, Bi-weekly, 1 per quarter, As needed, On demand
 - Ensures data consistency and improved user experience
 - **File Modified:** `/app/frontend/src/pages/sales-funnel/Agreements.js`
 
