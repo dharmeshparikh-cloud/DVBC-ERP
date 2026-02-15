@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Response
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Response, Request
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from dotenv import load_dotenv
@@ -13,6 +13,9 @@ from datetime import datetime, timezone, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import uuid
+import httpx
+import random
+import string
 from email_templates import (
     EmailTemplate, EmailTemplateCreate, FollowUpReminder, FollowUpReminderCreate,
     generate_email_from_template, check_lead_for_suggestions
