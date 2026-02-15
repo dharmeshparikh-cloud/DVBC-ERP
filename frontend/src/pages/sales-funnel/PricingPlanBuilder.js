@@ -928,7 +928,29 @@ const PricingPlanBuilder = () => {
                         </label>
                       </div>
                       <div className="flex items-center gap-2 ml-auto">
-                        {comp.editable ? (
+                        {comp.isLumpsum ? (
+                          // Lumpsum conveyance input (currency)
+                          <>
+                            <span className="text-sm text-zinc-500">₹</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="1000"
+                              value={paymentPlan.conveyance_lumpsum || ''}
+                              onChange={(e) => setPaymentPlan({ 
+                                ...paymentPlan, 
+                                conveyance_lumpsum: parseFloat(e.target.value) || 0 
+                              })}
+                              className="w-28 h-8 text-sm rounded-sm"
+                              placeholder="Lumpsum"
+                              disabled={!paymentPlan.selected_components.includes(comp.id)}
+                              data-testid="conveyance-lumpsum-input"
+                            />
+                            <span className="text-xs text-zinc-400">
+                              (split across {formData.project_duration_months} {formData.payment_schedule === 'monthly' ? 'months' : 'payments'})
+                            </span>
+                          </>
+                        ) : comp.editable ? (
                           <>
                             <Input
                               type="number"
