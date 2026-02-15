@@ -7,43 +7,48 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### Payment Plan Breakup Feature ✅ (LATEST - Completed)
+### Lumpsum Conveyance Feature ✅ (LATEST - Completed)
 
 **Changes Made:**
-1. **Removed:** Growth Consulting & Guarantee section from Pricing Plan Builder
-2. **Added:** Payment Plan Breakup section with:
-   - **Project Start Date** picker
-   - **Payment Components** (Multi-select):
-     - GST: 18% (Fixed, cannot be changed)
-     - TDS: -10% (Editable, deducted from payment)
-     - Conveyance: +5% (Editable, added to payment)
-   - **Auto-Generated Payment Schedule Table** showing:
-     - Frequency (Month 1, Month 2, Q1, Q2, etc.)
-     - Due Date (calculated from start date)
-     - Basic Amount (Total ÷ Number of payments)
-     - GST (+18% if selected)
-     - TDS (-10% if selected, deducted)
-     - Conveyance (+5% if selected)
-     - **Net Receivable** = Basic + GST + Conveyance - TDS
-   - **Payment Reminder Note:** "Auto-reminders 7 days before due date"
+Changed the Conveyance field from a percentage-based input to a **lumpsum amount** that is distributed evenly across all payment periods.
+
+1. **Previous Behavior:** Conveyance was 5% of basic amount per payment
+2. **New Behavior:** Conveyance is a fixed lumpsum amount (e.g., ₹60,000) distributed evenly across all months
+
+**UI Changes:**
+- Conveyance input now shows ₹ symbol instead of %
+- Helper text: "(split across 12 months)"
+- Column header: "CONVEYANCE (LUMPSUM)" instead of "CONVEYANCE (5%)"
 
 **Calculation Example:**
 ```
 Total Investment: ₹12,00,000
+Conveyance Lumpsum: ₹60,000
 Duration: 12 months (Monthly payments)
 Basic per month: ₹1,00,000
 
-Components selected: GST, TDS, Conveyance
+Distribution:
+- Conveyance per month: ₹60,000 ÷ 12 = ₹5,000
+
+Components selected: GST (18%), TDS (10%), Conveyance (Lumpsum)
 - GST (18%): +₹18,000
 - TDS (10%): -₹10,000
-- Conveyance (5%): +₹5,000
+- Conveyance: +₹5,000
 
 Net per month: ₹1,00,000 + ₹18,000 + ₹5,000 - ₹10,000 = ₹1,13,000
+Total Conveyance: +₹60,000 (matches lumpsum input)
 ```
+
+**Files Modified:**
+- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js`
+  - `PAYMENT_COMPONENTS` array updated with `isLumpsum: true` for conveyance
+  - `paymentPlan` state now uses `conveyance_lumpsum` instead of percentage
+  - `paymentScheduleBreakdown` calculation updated for lumpsum distribution
+  - UI updated with currency input and helper text
 
 ---
 
-### P0 Sprint: Top-Down Pricing Redesign ✅ (Completed Earlier Today)
+### Payment Plan Breakup Feature ✅ (Completed Earlier)
 
 **Major Feature: Top-Down Pricing Model**
 Implemented a complete redesign of the pricing model. Instead of the salesperson manually calculating rates and totals (bottom-up), they now simply enter the **Total Client Investment** and the system automatically allocates costs to team members based on admin-defined allocation rules.
