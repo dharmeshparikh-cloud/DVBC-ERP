@@ -1765,17 +1765,24 @@ async def get_kickoff_request_details(
     request_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get detailed kickoff request with SOW and meeting commitments from the parent Agreement"""
+    """Get detailed kickoff request with SOW and team deployment from the parent Agreement.
+    
+    Note: Pricing/costing data is hidden from consulting roles (PM, consultants).
+    Only Sales and Admin can see financial information.
+    """
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
     if not kickoff:
         raise HTTPException(status_code=404, detail="Kickoff request not found")
     
+    # Determine if user can see financial data (only sales/admin roles)
+    can_see_financials = current_user.role in ['admin', 'executive', 'account_manager']
+    
     # Get the agreement details
     agreement = None
     sow = None
-    pricing_plan = None
     lead = None
     meetings = []
+    team_deployment = []
     
     if kickoff.get('agreement_id'):
         agreement = await db.agreements.find_one({"id": kickoff['agreement_id']}, {"_id": 0})
@@ -1785,28 +1792,44 @@ async def get_kickoff_request_details(
             if agreement.get('sow_id'):
                 sow = await db.sow.find_one({"id": agreement['sow_id']}, {"_id": 0})
             
-            # Get pricing plan
-            if agreement.get('pricing_plan_id'):
-                pricing_plan = await db.pricing_plans.find_one({"id": agreement['pricing_plan_id']}, {"_id": 0})
-            
-            # Get the lead info
+            # Get the lead info (limited for consulting)
             if agreement.get('lead_id'):
-                lead = await db.leads.find_one({"id": agreement['lead_id']}, {"_id": 0})
+                lead_projection = {"_id": 0}
+                lead = await db.leads.find_one({"id": agreement['lead_id']}, lead_projection)
+            
+            # Get team deployment from agreement
+            team_deployment = agreement.get('team_deployment', [])
+            
+            # Remove financial/pricing data from agreement for consulting roles
+            if not can_see_financials and agreement:
+                # Remove sensitive financial fields
+                sensitive_fields = [
+                    'quotation_id', 'pricing_plan_id', 'payment_terms', 
+                    'payment_conditions', 'total_value', 'base_amount',
+                    'discount_percentage', 'gst_amount', 'grand_total'
+                ]
+                for field in sensitive_fields:
+                    agreement.pop(field, None)
     
-    # Get any sales meetings related to this lead
+    # Get any sales meetings related to this lead (hide financial notes)
     if kickoff.get('lead_id'):
         meetings = await db.meetings.find(
             {"lead_id": kickoff['lead_id'], "type": "sales"},
             {"_id": 0}
         ).sort("meeting_date", -1).to_list(50)
     
+    # Remove financial data from kickoff request for consulting roles
+    if not can_see_financials:
+        kickoff.pop('project_value', None)
+    
     return {
         "kickoff_request": kickoff,
         "agreement": agreement,
         "sow": sow,
-        "pricing_plan": pricing_plan,
+        "team_deployment": team_deployment,
         "lead": lead,
-        "meetings": meetings
+        "meetings": meetings,
+        "can_see_financials": can_see_financials
     }
 
 
