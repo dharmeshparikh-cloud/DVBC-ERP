@@ -4020,6 +4020,34 @@ async def update_task(
     if 'status' in update_data:
         if update_data['status'] == TaskStatus.COMPLETED and not update_data.get('completed_date'):
             update_data['completed_date'] = datetime.now(timezone.utc).isoformat()
+        # Notify reporting manager + admin on status changes
+        old_status = task.get('status', '')
+        new_status = update_data['status']
+        if old_status != new_status:
+            task_title = task.get('title', 'Task')
+            project = await db.projects.find_one({"id": task.get('project_id')}, {"_id": 0, "name": 1})
+            proj_name = project.get('name', '') if project else ''
+            # Notify assigned consultant's reporting manager
+            if task.get('assigned_to'):
+                chain = await get_reporting_chain(task['assigned_to'], max_levels=2)
+                for rm in chain:
+                    if rm.get('user_id'):
+                        await db.notifications.insert_one({
+                            "id": str(uuid.uuid4()), "user_id": rm['user_id'],
+                            "type": "task_status_change",
+                            "title": f"Task {new_status.replace('_', ' ').title()}: {task_title}",
+                            "message": f"'{task_title}' in {proj_name} changed from {old_status.replace('_', ' ')} to {new_status.replace('_', ' ')}.",
+                            "reference_type": "task", "reference_id": task['id'],
+                            "is_read": False, "created_at": datetime.now(timezone.utc).isoformat()
+                        })
+            # Notify admin on delayed/overdue
+            if new_status in ['delayed', 'cancelled']:
+                await notify_admins(
+                    notif_type="task_alert",
+                    title=f"Task {new_status.title()}: {task_title}",
+                    message=f"'{task_title}' in {proj_name} is now {new_status}.",
+                    reference_type="task", reference_id=task['id']
+                )
     
     # Handle datetime fields
     if 'start_date' in update_data and update_data['start_date']:
