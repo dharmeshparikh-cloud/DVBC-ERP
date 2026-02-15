@@ -962,7 +962,7 @@ const PricingPlanBuilder = () => {
                               data-testid="conveyance-lumpsum-input"
                             />
                             <span className="text-xs text-zinc-400">
-                              (split across {formData.project_duration_months} {formData.payment_schedule === 'monthly' ? 'months' : 'payments'})
+                              (split across {numberOfPayments} {numberOfPayments === 1 ? 'payment' : 'payments'})
                             </span>
                           </>
                         ) : comp.editable ? (
