@@ -1,0 +1,701 @@
+import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
+import { API, AuthContext } from '../App';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { 
+  Plus, Pencil, Trash2, Settings, Users, Calendar, 
+  ChevronDown, ChevronUp, Check, X, Database, Percent
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+const AdminMasters = () => {
+  const { user } = useContext(AuthContext);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('tenure-types');
+  
+  // Data states
+  const [tenureTypes, setTenureTypes] = useState([]);
+  const [consultantRoles, setConsultantRoles] = useState([]);
+  const [meetingTypes, setMeetingTypes] = useState([]);
+  
+  // Edit states
+  const [editingTenure, setEditingTenure] = useState(null);
+  const [editingRole, setEditingRole] = useState(null);
+  
+  // New item forms
+  const [showNewTenure, setShowNewTenure] = useState(false);
+  const [showNewRole, setShowNewRole] = useState(false);
+  const [newTenure, setNewTenure] = useState({
+    name: '', code: '', allocation_percentage: 0, 
+    meetings_per_month: 0, description: ''
+  });
+  const [newRole, setNewRole] = useState({
+    name: '', code: '', min_rate_per_meeting: 10000, 
+    max_rate_per_meeting: 50000, default_rate: 12500, seniority_level: 1
+  });
+
+  useEffect(() => {
+    fetchAllMasters();
+  }, []);
+
+  const fetchAllMasters = async () => {
+    try {
+      setLoading(true);
+      const [tenureRes, rolesRes, meetingsRes] = await Promise.all([
+        axios.get(`${API}/masters/tenure-types?include_inactive=true`),
+        axios.get(`${API}/masters/consultant-roles?include_inactive=true`),
+        axios.get(`${API}/masters/meeting-types?include_inactive=true`)
+      ]);
+      setTenureTypes(tenureRes.data);
+      setConsultantRoles(rolesRes.data);
+      setMeetingTypes(meetingsRes.data);
+    } catch (error) {
+      toast.error('Failed to fetch master data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSeedDefaults = async () => {
+    try {
+      const response = await axios.post(`${API}/masters/seed-defaults`);
+      toast.success(`Seeded: ${response.data.created.tenure_types} tenure types, ${response.data.created.consultant_roles} roles, ${response.data.created.meeting_types} meeting types`);
+      fetchAllMasters();
+    } catch (error) {
+      toast.error('Failed to seed defaults');
+    }
+  };
+
+  // Tenure Type CRUD
+  const handleCreateTenure = async () => {
+    try {
+      if (!newTenure.name || !newTenure.code) {
+        toast.error('Name and Code are required');
+        return;
+      }
+      await axios.post(`${API}/masters/tenure-types`, newTenure);
+      toast.success('Tenure type created');
+      setShowNewTenure(false);
+      setNewTenure({ name: '', code: '', allocation_percentage: 0, meetings_per_month: 0, description: '' });
+      fetchAllMasters();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create tenure type');
+    }
+  };
+
+  const handleUpdateTenure = async (id, data) => {
+    try {
+      await axios.put(`${API}/masters/tenure-types/${id}`, data);
+      toast.success('Tenure type updated');
+      setEditingTenure(null);
+      fetchAllMasters();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update tenure type');
+    }
+  };
+
+  const handleDeleteTenure = async (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this tenure type?')) return;
+    try {
+      await axios.delete(`${API}/masters/tenure-types/${id}`);
+      toast.success('Tenure type deactivated');
+      fetchAllMasters();
+    } catch (error) {
+      toast.error('Failed to deactivate tenure type');
+    }
+  };
+
+  // Consultant Role CRUD
+  const handleCreateRole = async () => {
+    try {
+      if (!newRole.name || !newRole.code) {
+        toast.error('Name and Code are required');
+        return;
+      }
+      await axios.post(`${API}/masters/consultant-roles`, newRole);
+      toast.success('Consultant role created');
+      setShowNewRole(false);
+      setNewRole({ name: '', code: '', min_rate_per_meeting: 10000, max_rate_per_meeting: 50000, default_rate: 12500, seniority_level: 1 });
+      fetchAllMasters();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create role');
+    }
+  };
+
+  const handleUpdateRole = async (id, data) => {
+    try {
+      await axios.put(`${API}/masters/consultant-roles/${id}`, data);
+      toast.success('Consultant role updated');
+      setEditingRole(null);
+      fetchAllMasters();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update role');
+    }
+  };
+
+  const handleDeleteRole = async (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this role?')) return;
+    try {
+      await axios.delete(`${API}/masters/consultant-roles/${id}`);
+      toast.success('Consultant role deactivated');
+      fetchAllMasters();
+    } catch (error) {
+      toast.error('Failed to deactivate role');
+    }
+  };
+
+  // Format currency
+  const formatINR = (amount) => {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+  };
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Card className="p-8 text-center">
+          <CardContent>
+            <Settings className="w-12 h-12 text-zinc-400 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-zinc-950 mb-2">Access Restricted</h2>
+            <p className="text-zinc-500">Only administrators can access the Masters module.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto" data-testid="admin-masters-page">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+            Admin Masters
+          </h1>
+          <p className="text-zinc-500">Manage tenure types, allocation rules, and consultant roles</p>
+        </div>
+        <Button 
+          onClick={handleSeedDefaults}
+          variant="outline"
+          className="border-zinc-300"
+          data-testid="seed-defaults-btn"
+        >
+          <Database className="w-4 h-4 mr-2" />
+          Seed Defaults
+        </Button>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 bg-zinc-100 p-1 rounded-lg">
+          <TabsTrigger 
+            value="tenure-types" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+            data-testid="tenure-types-tab"
+          >
+            <Percent className="w-4 h-4 mr-2" />
+            Tenure Types & Allocation
+          </TabsTrigger>
+          <TabsTrigger 
+            value="consultant-roles"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+            data-testid="consultant-roles-tab"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Consultant Roles
+          </TabsTrigger>
+          <TabsTrigger 
+            value="meeting-types"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+            data-testid="meeting-types-tab"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Meeting Types
+          </TabsTrigger>
+        </TabsList>
+
+        {/* TENURE TYPES TAB */}
+        <TabsContent value="tenure-types" className="space-y-4">
+          <Card className="border-zinc-200 shadow-none rounded-sm">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950">
+                  Tenure Types & Allocation Percentages
+                </CardTitle>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Define allocation percentages for top-down pricing calculations
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => setShowNewTenure(!showNewTenure)}
+                className="bg-zinc-950 text-white"
+                data-testid="add-tenure-btn"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Tenure Type
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {/* New Tenure Form */}
+              {showNewTenure && (
+                <div className="p-4 bg-blue-50 rounded-lg mb-4 space-y-4" data-testid="new-tenure-form">
+                  <div className="grid grid-cols-5 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Name *</Label>
+                      <Input
+                        value={newTenure.name}
+                        onChange={(e) => setNewTenure({...newTenure, name: e.target.value})}
+                        placeholder="e.g., Full-time"
+                        className="h-9"
+                        data-testid="new-tenure-name"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Code *</Label>
+                      <Input
+                        value={newTenure.code}
+                        onChange={(e) => setNewTenure({...newTenure, code: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
+                        placeholder="e.g., full_time"
+                        className="h-9"
+                        data-testid="new-tenure-code"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Allocation %</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={newTenure.allocation_percentage}
+                        onChange={(e) => setNewTenure({...newTenure, allocation_percentage: parseFloat(e.target.value) || 0})}
+                        className="h-9"
+                        data-testid="new-tenure-allocation"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Meetings/Month</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={newTenure.meetings_per_month}
+                        onChange={(e) => setNewTenure({...newTenure, meetings_per_month: parseFloat(e.target.value) || 0})}
+                        className="h-9"
+                        data-testid="new-tenure-meetings"
+                      />
+                    </div>
+                    <div className="space-y-1 flex items-end gap-2">
+                      <Button size="sm" onClick={handleCreateTenure} className="h-9" data-testid="save-tenure-btn">
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setShowNewTenure(false)} className="h-9">
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Description</Label>
+                    <Input
+                      value={newTenure.description}
+                      onChange={(e) => setNewTenure({...newTenure, description: e.target.value})}
+                      placeholder="Brief description..."
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Tenure Types Table */}
+              <div className="rounded-lg border border-zinc-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-zinc-50">
+                    <tr className="text-xs font-medium text-zinc-500 uppercase">
+                      <th className="px-4 py-3 text-left">Name</th>
+                      <th className="px-4 py-3 text-left">Code</th>
+                      <th className="px-4 py-3 text-center">Allocation %</th>
+                      <th className="px-4 py-3 text-center">Meetings/Month</th>
+                      <th className="px-4 py-3 text-left">Description</th>
+                      <th className="px-4 py-3 text-center">Status</th>
+                      <th className="px-4 py-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {loading ? (
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-400">Loading...</td></tr>
+                    ) : tenureTypes.length === 0 ? (
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-zinc-400">No tenure types found. Click "Seed Defaults" to add default types.</td></tr>
+                    ) : (
+                      tenureTypes.map((tenure) => (
+                        <tr 
+                          key={tenure.id} 
+                          className={`hover:bg-zinc-50 ${!tenure.is_active ? 'opacity-50 bg-zinc-100' : ''}`}
+                          data-testid={`tenure-row-${tenure.code}`}
+                        >
+                          {editingTenure === tenure.id ? (
+                            <EditTenureRow 
+                              tenure={tenure} 
+                              onSave={(data) => handleUpdateTenure(tenure.id, data)}
+                              onCancel={() => setEditingTenure(null)}
+                            />
+                          ) : (
+                            <>
+                              <td className="px-4 py-3 text-sm font-medium text-zinc-900">
+                                {tenure.name}
+                                {tenure.is_default && (
+                                  <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Default</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-zinc-600 font-mono">{tenure.code}</td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                <span className="font-semibold text-emerald-600">{tenure.allocation_percentage}%</span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-center text-zinc-600">{tenure.meetings_per_month || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-zinc-500 max-w-xs truncate">{tenure.description || '-'}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`px-2 py-1 text-xs rounded ${tenure.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {tenure.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    onClick={() => setEditingTenure(tenure.id)}
+                                    className="h-8 w-8 p-0 text-zinc-500 hover:text-blue-600"
+                                    data-testid={`edit-tenure-${tenure.code}`}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                  {tenure.is_active && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost" 
+                                      onClick={() => handleDeleteTenure(tenure.id)}
+                                      className="h-8 w-8 p-0 text-zinc-500 hover:text-red-600"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Info box about allocation */}
+              <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <h4 className="text-sm font-medium text-amber-800 mb-2">How Allocation Works</h4>
+                <p className="text-xs text-amber-700">
+                  When creating a Pricing Plan, the salesperson enters the <strong>Total Client Investment</strong>. 
+                  The system then distributes this amount among team members based on the allocation percentages defined here. 
+                  For example, a Full-time resource with 70% allocation gets a larger share than a Weekly resource with 20% allocation.
+                  The <strong>Rate per Meeting</strong> is calculated automatically as: Breakup Amount ÷ Total Meetings.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CONSULTANT ROLES TAB */}
+        <TabsContent value="consultant-roles" className="space-y-4">
+          <Card className="border-zinc-200 shadow-none rounded-sm">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950">
+                  Consultant Roles & Rate Ranges
+                </CardTitle>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Define consultant roles with minimum, maximum, and default rates
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => setShowNewRole(!showNewRole)}
+                className="bg-zinc-950 text-white"
+                data-testid="add-role-btn"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Role
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {/* New Role Form */}
+              {showNewRole && (
+                <div className="p-4 bg-blue-50 rounded-lg mb-4 space-y-4" data-testid="new-role-form">
+                  <div className="grid grid-cols-6 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Name *</Label>
+                      <Input
+                        value={newRole.name}
+                        onChange={(e) => setNewRole({...newRole, name: e.target.value})}
+                        placeholder="e.g., Senior Consultant"
+                        className="h-9"
+                        data-testid="new-role-name"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Code *</Label>
+                      <Input
+                        value={newRole.code}
+                        onChange={(e) => setNewRole({...newRole, code: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
+                        placeholder="e.g., senior_consultant"
+                        className="h-9"
+                        data-testid="new-role-code"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Min Rate</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={newRole.min_rate_per_meeting}
+                        onChange={(e) => setNewRole({...newRole, min_rate_per_meeting: parseFloat(e.target.value) || 0})}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Max Rate</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={newRole.max_rate_per_meeting}
+                        onChange={(e) => setNewRole({...newRole, max_rate_per_meeting: parseFloat(e.target.value) || 0})}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Default Rate</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={newRole.default_rate}
+                        onChange={(e) => setNewRole({...newRole, default_rate: parseFloat(e.target.value) || 0})}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1 flex items-end gap-2">
+                      <Button size="sm" onClick={handleCreateRole} className="h-9" data-testid="save-role-btn">
+                        <Check className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setShowNewRole(false)} className="h-9">
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Consultant Roles Table */}
+              <div className="rounded-lg border border-zinc-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-zinc-50">
+                    <tr className="text-xs font-medium text-zinc-500 uppercase">
+                      <th className="px-4 py-3 text-left">Role Name</th>
+                      <th className="px-4 py-3 text-left">Code</th>
+                      <th className="px-4 py-3 text-center">Seniority</th>
+                      <th className="px-4 py-3 text-right">Min Rate</th>
+                      <th className="px-4 py-3 text-right">Max Rate</th>
+                      <th className="px-4 py-3 text-right">Default Rate</th>
+                      <th className="px-4 py-3 text-center">Status</th>
+                      <th className="px-4 py-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {loading ? (
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-zinc-400">Loading...</td></tr>
+                    ) : consultantRoles.length === 0 ? (
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-zinc-400">No roles found.</td></tr>
+                    ) : (
+                      consultantRoles.map((role) => (
+                        <tr 
+                          key={role.id} 
+                          className={`hover:bg-zinc-50 ${!role.is_active ? 'opacity-50 bg-zinc-100' : ''}`}
+                          data-testid={`role-row-${role.code}`}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium text-zinc-900">{role.name}</td>
+                          <td className="px-4 py-3 text-sm text-zinc-600 font-mono">{role.code}</td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              {[1,2,3,4,5].map(level => (
+                                <div 
+                                  key={level}
+                                  className={`w-2 h-4 rounded-sm ${level <= role.seniority_level ? 'bg-blue-500' : 'bg-zinc-200'}`}
+                                />
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right text-zinc-600">{formatINR(role.min_rate_per_meeting)}</td>
+                          <td className="px-4 py-3 text-sm text-right text-zinc-600">{formatINR(role.max_rate_per_meeting)}</td>
+                          <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-600">{formatINR(role.default_rate)}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 text-xs rounded ${role.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {role.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => setEditingRole(role.id)}
+                                className="h-8 w-8 p-0 text-zinc-500 hover:text-blue-600"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              {role.is_active && (
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => handleDeleteRole(role.id)}
+                                  className="h-8 w-8 p-0 text-zinc-500 hover:text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* MEETING TYPES TAB */}
+        <TabsContent value="meeting-types" className="space-y-4">
+          <Card className="border-zinc-200 shadow-none rounded-sm">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-100 pb-4">
+              <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950">
+                Meeting Types
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="rounded-lg border border-zinc-200 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-zinc-50">
+                    <tr className="text-xs font-medium text-zinc-500 uppercase">
+                      <th className="px-4 py-3 text-left">Name</th>
+                      <th className="px-4 py-3 text-left">Code</th>
+                      <th className="px-4 py-3 text-center">Default Duration</th>
+                      <th className="px-4 py-3 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {loading ? (
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-400">Loading...</td></tr>
+                    ) : meetingTypes.length === 0 ? (
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-400">No meeting types found.</td></tr>
+                    ) : (
+                      meetingTypes.map((mt) => (
+                        <tr 
+                          key={mt.id} 
+                          className={`hover:bg-zinc-50 ${!mt.is_active ? 'opacity-50 bg-zinc-100' : ''}`}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium text-zinc-900">{mt.name}</td>
+                          <td className="px-4 py-3 text-sm text-zinc-600 font-mono">{mt.code}</td>
+                          <td className="px-4 py-3 text-sm text-center text-zinc-600">{mt.default_duration_minutes} min</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 text-xs rounded ${mt.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {mt.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+// Inline edit component for Tenure Types
+const EditTenureRow = ({ tenure, onSave, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: tenure.name,
+    allocation_percentage: tenure.allocation_percentage,
+    meetings_per_month: tenure.meetings_per_month || 0,
+    description: tenure.description || '',
+    is_active: tenure.is_active,
+    is_default: tenure.is_default
+  });
+
+  return (
+    <>
+      <td className="px-4 py-2">
+        <Input 
+          value={formData.name} 
+          onChange={(e) => setFormData({...formData, name: e.target.value})}
+          className="h-8 text-sm"
+        />
+      </td>
+      <td className="px-4 py-2 text-sm text-zinc-600 font-mono">{tenure.code}</td>
+      <td className="px-4 py-2">
+        <Input 
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+          value={formData.allocation_percentage}
+          onChange={(e) => setFormData({...formData, allocation_percentage: parseFloat(e.target.value) || 0})}
+          className="h-8 text-sm text-center w-20 mx-auto"
+        />
+      </td>
+      <td className="px-4 py-2">
+        <Input 
+          type="number"
+          min="0"
+          step="0.1"
+          value={formData.meetings_per_month}
+          onChange={(e) => setFormData({...formData, meetings_per_month: parseFloat(e.target.value) || 0})}
+          className="h-8 text-sm text-center w-20 mx-auto"
+        />
+      </td>
+      <td className="px-4 py-2">
+        <Input 
+          value={formData.description}
+          onChange={(e) => setFormData({...formData, description: e.target.value})}
+          className="h-8 text-sm"
+        />
+      </td>
+      <td className="px-4 py-2 text-center">
+        <label className="flex items-center justify-center gap-2 text-xs">
+          <input 
+            type="checkbox"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+          />
+          Active
+        </label>
+      </td>
+      <td className="px-4 py-2 text-center">
+        <div className="flex items-center justify-center gap-1">
+          <Button size="sm" variant="ghost" onClick={() => onSave(formData)} className="h-7 w-7 p-0 text-green-600">
+            <Check className="w-4 h-4" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onCancel} className="h-7 w-7 p-0 text-red-600">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </td>
+    </>
+  );
+};
+
+export default AdminMasters;
