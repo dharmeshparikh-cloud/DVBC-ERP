@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D&V Business Management - Complete Workflow Guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      line-height: 1.6; 
+      color: #18181b;
+      background: #fff;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px; }
+    
+    /* Header */
+    .header { 
+      text-align: center; 
+      margin-bottom: 40px; 
+      padding-bottom: 30px; 
+      border-bottom: 3px solid #18181b;
+    }
+    .logo { 
+      font-size: 42px; 
+      font-weight: 800; 
+      color: #18181b;
+      letter-spacing: -1px;
+    }
+    .logo sup { font-size: 14px; }
+    .subtitle { 
+      font-size: 14px; 
+      color: #71717a; 
+      margin-top: 5px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .doc-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 30px;
+      color: #18181b;
+    }
+    .doc-version {
+      font-size: 12px;
+      color: #a1a1aa;
+      margin-top: 10px;
+    }
+    
+    /* Table of Contents */
+    .toc {
+      background: #fafafa;
+      padding: 25px 30px;
+      border-radius: 8px;
+      margin-bottom: 40px;
+    }
+    .toc h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: #18181b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .toc ul { list-style: none; }
+    .toc li { 
+      padding: 6px 0; 
+      border-bottom: 1px solid #e4e4e7;
+    }
+    .toc li:last-child { border-bottom: none; }
+    .toc a { 
+      color: #3b82f6; 
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .toc a:hover { text-decoration: underline; }
+    
+    /* Sections */
+    .section {
+      margin-bottom: 50px;
+      page-break-inside: avoid;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #18181b;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e4e4e7;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #27272a;
+      margin: 25px 0 15px;
+    }
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #3f3f46;
+      margin: 20px 0 10px;
+    }
+    p { margin-bottom: 12px; font-size: 14px; }
+    
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0 25px;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border: 1px solid #e4e4e7;
+    }
+    th {
+      background: #f4f4f5;
+      font-weight: 600;
+      color: #18181b;
+    }
+    tr:nth-child(even) { background: #fafafa; }
+    
+    /* Flow Diagrams */
+    .flow-box {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-ok { background: #dcfce7; color: #166534; }
+    .badge-issue { background: #fef2f2; color: #dc2626; }
+    .badge-warn { background: #fef9c3; color: #a16207; }
+    
+    /* Lists */
+    ul, ol { margin: 10px 0 15px 25px; font-size: 14px; }
+    li { margin-bottom: 6px; }
+    
+    /* Callouts */
+    .callout {
+      padding: 15px 20px;
+      border-radius: 6px;
+      margin: 15px 0;
+      font-size: 13px;
+    }
+    .callout-info { background: #eff6ff; border-left: 4px solid #3b82f6; }
+    .callout-warn { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .callout-error { background: #fef2f2; border-left: 4px solid #ef4444; }
+    .callout-success { background: #f0fdf4; border-left: 4px solid #22c55e; }
+    
+    /* Print Styles */
+    @media print {
+      body { font-size: 11px; }
+      .container { padding: 20px; }
+      .section { page-break-inside: avoid; }
+      .no-print { display: none; }
+    }
+    
+    /* Download Button */
+    .download-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #18181b;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+    }
+    .download-btn:hover { background: #27272a; }
+    .download-btn svg { width: 18px; height: 18px; }
+  </style>
+</head>
+<body>
+  <button class="download-btn no-print" onclick="window.print()">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+    Download PDF
+  </button>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">D&V<sup>®</sup></div>
+      <div class="subtitle">Business Consulting</div>
+      <div class="doc-title">Complete Application Workflow Guide</div>
+      <div class="doc-version">Version 1.0 | February 2026</div>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc">
+      <h2>Table of Contents</h2>
+      <ul>
+        <li><a href="#overview">1. Application Overview</a></li>
+        <li><a href="#roles">2. User Roles & Access Control</a></li>
+        <li><a href="#sales-flow">3. Sales Department Workflow</a></li>
+        <li><a href="#consulting-flow">4. Consulting Department Workflow</a></li>
+        <li><a href="#hr-flow">5. HR Department Workflow</a></li>
+        <li><a href="#e2e-flow">6. End-to-End Process Flow</a></li>
+        <li><a href="#features">7. Feature Details by Module</a></li>
+        <li><a href="#issues">8. Connectivity Issues & Gaps</a></li>
+        <li><a href="#duplications">9. Duplication Analysis</a></li>
+        <li><a href="#recommendations">10. Recommendations</a></li>
+      </ul>
+    </div>
+
+    <!-- Section 1: Overview -->
+    <div class="section" id="overview">
+      <h1>1. Application Overview</h1>
+      <p>D&V Business Consulting Management Application is a comprehensive business management system designed for a 50-person HR consulting organization. The application covers:</p>
+      
+      <ul>
+        <li><strong>HR Management</strong> - Employee records, attendance, leave, payroll</li>
+        <li><strong>Sales Management</strong> - Lead tracking, pricing plans, quotations, agreements</li>
+        <li><strong>Consulting Management</strong> - Project scopes, task management, approvals</li>
+        <li><strong>Finance</strong> - Invoicing, payment tracking, expense management</li>
+      </ul>
+
+      <h3>Technology Stack</h3>
+      <table>
+        <tr><th>Component</th><th>Technology</th></tr>
+        <tr><td>Frontend</td><td>React 18 + Tailwind CSS + Shadcn/UI</td></tr>
+        <tr><td>Backend</td><td>FastAPI + Python</td></tr>
+        <tr><td>Database</td><td>MongoDB</td></tr>
+        <tr><td>Authentication</td><td>JWT + Emergent-managed Google Auth</td></tr>
+      </table>
+    </div>
+
+    <!-- Section 2: Roles -->
+    <div class="section" id="roles">
+      <h1>2. User Roles & Access Control</h1>
+      
+      <table>
+        <tr>
+          <th>Role</th>
+          <th>Department</th>
+          <th>Access Level</th>
+        </tr>
+        <tr><td>Admin</td><td>All</td><td>Full system access, all modules</td></tr>
+        <tr><td>Manager</td><td>All</td><td>View/Download access, approve agreements</td></tr>
+        <tr><td>Executive</td><td>Sales</td><td>Create leads, SOW, quotations</td></tr>
+        <tr><td>Account Manager</td><td>Sales</td><td>Client accounts and sales</td></tr>
+        <tr><td>Project Manager</td><td>Consulting</td><td>Audit, approve, authorize SOW</td></tr>
+        <tr><td>Principal Consultant</td><td>Consulting</td><td>Freeze authority, scope management</td></tr>
+        <tr><td>Lead Consultant</td><td>Consulting</td><td>Team oversight, scope updates</td></tr>
+        <tr><td>Senior Consultant</td><td>Consulting</td><td>Advanced permissions</td></tr>
+        <tr><td>Consultant</td><td>Consulting</td><td>View SOW, update progress/status</td></tr>
+        <tr><td>Lean Consultant</td><td>Consulting</td><td>Junior consultant role</td></tr>
+        <tr><td>HR Manager</td><td>HR</td><td>HR team manager</td></tr>
+        <tr><td>HR Executive</td><td>HR</td><td>HR team member</td></tr>
+      </table>
+
+      <h3>Navigation Access by Role</h3>
+      <div class="flow-box">
+ADMIN / MANAGER:
+  All sections visible (HR, Sales, Consulting, Admin)
+
+SALES ROLES (Executive, Account Manager):
+  - Sales section
+  - My Workspace
+
+CONSULTING ROLES (PM, Consultants):
+  - Consulting section
+  - My Workspace
+
+HR ROLES (HR Manager, HR Executive):
+  - HR section
+  - My Workspace
+      </div>
+    </div>
+
+    <!-- Section 3: Sales Flow -->
+    <div class="section" id="sales-flow">
+      <h1>3. Sales Department Workflow</h1>
+      
+      <div class="flow-box">
+[1] LEAD CAPTURE (/leads)
+    |
+    v
+[2] PRICING PLAN BUILDER (/sales-funnel/pricing-plans)
+    | - Enter Total Client Investment (Top-Down)
+    | - Add Team Deployment Structure
+    | - Configure Payment Schedule
+    | - Set Project Duration
+    |
+    v
+[3] SOW SCOPE SELECTION (/sales-funnel/scope-selection/:id)
+    | - Select scopes from master categories
+    | - Add custom scopes if needed
+    |
+    v
+[4] PROFORMA INVOICE (/sales-funnel/proforma-invoice)
+    | - Auto-generated from pricing plan
+    | - PDF download available
+    | - GST/TDS calculations
+    |
+    v
+[5] AGREEMENT (/sales-funnel/agreements)
+    | - Auto-populated from pricing plan
+    | - Editable milestones
+    | - E-signature via canvas
+    |
+    v
+[6] HANDOVER TO CONSULTING
+    | - Kickoff Request creation
+    | - Assign Project Manager
+      </div>
+
+      <h3>Key Sales Pages</h3>
+      <table>
+        <tr><th>Step</th><th>Route</th><th>Purpose</th></tr>
+        <tr><td>1</td><td>/leads</td><td>Lead Management</td></tr>
+        <tr><td>2</td><td>/sales-funnel/pricing-plans</td><td>Pricing Plan Builder</td></tr>
+        <tr><td>3</td><td>/sales-funnel/scope-selection/:id</td><td>SOW Scope Selection</td></tr>
+        <tr><td>4</td><td>/sales-funnel/proforma-invoice</td><td>Proforma Invoice</td></tr>
+        <tr><td>5</td><td>/sales-funnel/agreements</td><td>Agreement List</td></tr>
+        <tr><td>6</td><td>/sales-funnel/agreement/:id</td><td>Agreement Detail & E-Sign</td></tr>
+      </table>
+    </div>
+
+    <!-- Section 4: Consulting Flow -->
+    <div class="section" id="consulting-flow">
+      <h1>4. Consulting Department Workflow</h1>
+      
+      <div class="flow-box">
+[1] RECEIVE KICKOFF REQUEST
+    |
+    v
+[2] MY PROJECTS DASHBOARD (/consulting/projects)
+    | - View handed-over projects
+    | - Check scope status breakdown
+    |
+    v
+[3] PROJECT SCOPE VIEW (/sales-funnel/sow-review/:id)
+    | - List View (grouped by category)
+    | - Kanban Board
+    | - Gantt Chart (timeline)
+    | - Timeline View
+    |
+    v
+[4] SCOPE MANAGEMENT
+    | - Update status
+    | - Track progress %
+    | - Log days spent
+    | - Record meetings
+    |
+    v
+[5] TASK MANAGEMENT
+    | - Create tasks within scopes
+    | - Assign to team members
+    | - Set priority & due dates
+    |
+    v
+[6] APPROVAL WORKFLOW (Parallel)
+    |
+    +---> Manager Approval
+    |
+    +---> Client Approval
+    |
+    v
+[7] TASK FULLY APPROVED
+      </div>
+
+      <h3>4 View Modes in Scope Management</h3>
+      <table>
+        <tr><th>View</th><th>Description</th><th>Best For</th></tr>
+        <tr><td>List View</td><td>Grouped by category, expandable</td><td>Detailed tracking</td></tr>
+        <tr><td>Kanban</td><td>4 columns by status</td><td>Visual workflow</td></tr>
+        <tr><td>Gantt</td><td>Interactive timeline</td><td>Timeline planning</td></tr>
+        <tr><td>Timeline</td><td>Milestone-based</td><td>Progress overview</td></tr>
+      </table>
+    </div>
+
+    <!-- Section 5: HR Flow -->
+    <div class="section" id="hr-flow">
+      <h1>5. HR Department Workflow</h1>
+      
+      <div class="flow-box">
+EMPLOYEE MANAGEMENT (/employees)
+    |
+    +---> Personal details, Role assignment
+    |
+    v
+ORG CHART (/org-chart)
+    |
+    +---> Hierarchical view, Reporting relationships
+    |
+    v
+ATTENDANCE (/attendance)
+    |
+    +---> Check-in/out tracking
+    |
+    v
+LEAVE MANAGEMENT (/leave-management)
+    |
+    +---> Leave requests, Approval workflow
+    |
+    v
+PAYROLL (/payroll)
+    |
+    +---> Salary slip generation
+      </div>
+    </div>
+
+    <!-- Section 6: E2E Flow -->
+    <div class="section" id="e2e-flow">
+      <h1>6. End-to-End Process Flow</h1>
+      
+      <h2>Complete Business Cycle: Lead to Project Completion</h2>
+      
+      <div class="callout callout-info">
+        <strong>10-Phase Workflow:</strong> From lead acquisition to project completion, the application follows a structured workflow across Sales and Consulting departments.
+      </div>
+
+      <h3>Phase 1-3: Sales Acquisition</h3>
+      <div class="flow-box">
+PHASE 1: Lead created with client details, auto-scored
+    |
+PHASE 2: Pricing Plan with top-down investment model
+    |
+PHASE 3: SOW scopes selected from 8 categories (41+ templates)
+      </div>
+
+      <h3>Phase 4-5: Documentation</h3>
+      <div class="flow-box">
+PHASE 4: Proforma Invoice auto-generated
+    | - Team deployment breakdown
+    | - GST @ 18% (CGST + SGST)
+    | - Amount in words
+    |
+PHASE 5: Agreement with e-signature
+    | - Canvas-based signature
+    | - PDF download
+      </div>
+
+      <h3>Phase 6-10: Execution</h3>
+      <div class="flow-box">
+PHASE 6: Handover via Kickoff Request
+    |
+PHASE 7: Consulting tracks scopes (4 view modes)
+    |
+PHASE 8: Tasks created and assigned
+    |
+PHASE 9: Parallel approval (Manager + Client)
+    |
+PHASE 10: Project completion
+      </div>
+    </div>
+
+    <!-- Section 7: Features -->
+    <div class="section" id="features">
+      <h1>7. Feature Details by Module</h1>
+      
+      <h2>7.1 Pricing Plan Builder</h2>
+      <p><strong>Top-Down Pricing Model:</strong></p>
+      <ul>
+        <li>Total Client Investment as primary input</li>
+        <li>Auto-allocation to team based on tenure type %</li>
+        <li>Committed meetings auto-calculated</li>
+        <li>Rate per meeting auto-calculated</li>
+      </ul>
+
+      <h2>7.2 Proforma Invoice</h2>
+      <ul>
+        <li>Professional template with D&V branding</li>
+        <li>HSN/SAC code (998311) for consulting</li>
+        <li>GST split (CGST 9% + SGST 9%)</li>
+        <li>Bank details included</li>
+        <li>PDF download functionality</li>
+      </ul>
+
+      <h2>7.3 Agreement E-Signature</h2>
+      <ul>
+        <li>Canvas-based signature drawing</li>
+        <li>Mouse and touch support</li>
+        <li>Signer details capture (name, designation, email)</li>
+        <li>Signature stored as base64 image</li>
+      </ul>
+
+      <h2>7.4 Task Approval Workflow</h2>
+      <ul>
+        <li>Parallel approval (not sequential)</li>
+        <li>Manager and Client approve independently</li>
+        <li>Both approvals required for "Fully Approved"</li>
+        <li>Status tracking with badges</li>
+      </ul>
+    </div>
+
+    <!-- Section 8: Issues -->
+    <div class="section" id="issues">
+      <h1>8. Connectivity Issues & Gaps</h1>
+      
+      <div class="callout callout-error">
+        <strong>ISSUE 1: Missing "View" Button on Agreements List</strong><br>
+        Location: /sales-funnel/agreements<br>
+        Problem: No direct navigation to detailed agreement view<br>
+        Impact: Users cannot easily access E-signature page
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>ISSUE 2: Back Navigation Inconsistency</strong><br>
+        Location: AgreementView.js<br>
+        Problem: Back button always goes to proforma-invoice<br>
+        Impact: Confusing navigation experience
+      </div>
+
+      <div class="callout callout-warn">
+        <strong>ISSUE 3: Kickoff Request Flow Gap</strong><br>
+        Problem: No automated kickoff request on agreement signature<br>
+        Impact: Manual process required for handover
+      </div>
+
+      <h3>Working Connections</h3>
+      <table>
+        <tr><th>From</th><th>To</th><th>Status</th></tr>
+        <tr><td>Lead</td><td>Pricing Plan</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td>Pricing Plan</td><td>SOW Selection</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td>SOW Selection</td><td>Proforma Invoice</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td>Proforma Invoice</td><td>Agreement</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td>Agreements List</td><td>Agreement Detail</td><td><span class="badge badge-issue">NEEDS FIX</span></td></tr>
+        <tr><td>Agreement</td><td>Kickoff</td><td><span class="badge badge-warn">MANUAL</span></td></tr>
+      </table>
+    </div>
+
+    <!-- Section 9: Duplications -->
+    <div class="section" id="duplications">
+      <h1>9. Duplication Analysis</h1>
+      
+      <h2>Identified Duplications</h2>
+      
+      <table>
+        <tr><th>Item</th><th>Location 1</th><th>Location 2</th><th>Resolution</th></tr>
+        <tr>
+          <td>Team Deployment Entry</td>
+          <td>Pricing Plan Builder</td>
+          <td>Agreement Dialog</td>
+          <td>Agreement should inherit only</td>
+        </tr>
+        <tr>
+          <td>Payment Configuration</td>
+          <td>Pricing Plan (schedule)</td>
+          <td>Agreement (milestones)</td>
+          <td>Auto-populate from plan</td>
+        </tr>
+        <tr>
+          <td>Client Information</td>
+          <td>Lead, Invoice, Agreement</td>
+          <td>Multiple places</td>
+          <td>Single source from Lead</td>
+        </tr>
+      </table>
+
+      <h2>Code-Level Issues</h2>
+      <div class="callout callout-warn">
+        <strong>Large File: ConsultingScopeView.js</strong><br>
+        Size: 1500+ lines<br>
+        Contains: List, Kanban, Gantt, Timeline, Task dialogs<br>
+        Recommendation: Break into sub-components
+      </div>
+    </div>
+
+    <!-- Section 10: Recommendations -->
+    <div class="section" id="recommendations">
+      <h1>10. Recommendations</h1>
+      
+      <h2>High Priority Fixes</h2>
+      <ol>
+        <li><strong>Add "View" button to Agreements list</strong> - Navigate to /sales-funnel/agreement/:id</li>
+        <li><strong>Auto-populate Agreement milestones</strong> - Inherit from Pricing Plan payment schedule</li>
+        <li><strong>Kickoff Request automation</strong> - Auto-create on Agreement signature</li>
+      </ol>
+
+      <h2>Code Refactoring Priorities</h2>
+      <ol>
+        <li>Break down ConsultingScopeView.js into smaller components</li>
+        <li>Break down PricingPlanBuilder.js into smaller components</li>
+        <li>Refactor server.py into modular routers</li>
+      </ol>
+
+      <h2>Feature Enhancements</h2>
+      <ol>
+        <li><strong>Real Email Integration</strong> - Replace mocked email with SMTP</li>
+        <li><strong>P&L Tracking</strong> - Compare committed vs actual meetings</li>
+        <li><strong>Dashboard Consolidation</strong> - Executive overview dashboard</li>
+      </ol>
+    </div>
+
+    <!-- Appendix -->
+    <div class="section">
+      <h1>Appendix: Test Credentials</h1>
+      <table>
+        <tr><th>Role</th><th>Email</th><th>Password</th></tr>
+        <tr><td>Admin</td><td>admin@company.com</td><td>admin123</td></tr>
+        <tr><td>Manager</td><td>manager@company.com</td><td>manager123</td></tr>
+        <tr><td>Executive</td><td>executive@company.com</td><td>executive123</td></tr>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #e4e4e7; text-align: center; color: #71717a; font-size: 12px;">
+      <p>D&V Business Consulting Management System - Workflow Documentation</p>
+      <p>Generated: February 2026 | Version 1.0</p>
+    </div>
+  </div>
+</body>
+</html>
