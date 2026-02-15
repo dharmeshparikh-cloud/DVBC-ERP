@@ -7,6 +7,41 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
+### Team Deployment & Financial Data Separation ✅ (Latest)
+
+**Major Feature: Team Deployment Structure for Kickoff Requests**
+- Added Team Deployment Structure to Agreement creation:
+  - Role (Project Manager, Data Analyst, Digital Marketing Manager, etc.)
+  - Meeting Type (Monthly Review, Online Review, etc.)
+  - Frequency (1 per month, Weekly, etc.)
+  - Mode (Online, Offline, Mixed)
+- PM can now review team commitments before accepting projects
+- **Routes:** `/kickoff-requests` (updated), `/sales-funnel/agreements` (updated)
+
+**Major Feature: Consulting Team Financial Data Isolation**
+- Consulting team (PM, Consultants) can NO longer see:
+  - Project costing/pricing
+  - Profits and P&L
+  - Financial values (₹)
+- Replaced pricing columns with:
+  - Meeting Frequency (Weekly, Bi-weekly, Monthly, Quarterly)
+  - Project Tenure (months)
+- Backend enforces `can_see_financials` flag based on role
+
+**Enhanced Kickoff Request Detail Modal:**
+- Overview tab: Shows project info, meeting frequency, tenure (no pricing)
+- Team Deployment tab: Shows team structure with roles and meeting commitments
+- Scope of Work tab: SOW items and deliverables
+- Agreement tab: Agreement details (financial data hidden for consulting)
+
+**New Model Fields:**
+- Agreement: `meeting_frequency`, `project_tenure_months`, `team_deployment[]`
+- KickoffRequest: `meeting_frequency`, `project_tenure_months`
+
+**Updated API Endpoints:**
+- `GET /api/kickoff-requests/{id}/details` - Now excludes pricing for PM/consulting roles
+- `POST /api/agreements` - Now accepts team_deployment array
+
 ### Comprehensive Workflow Redesign ✅
 
 **Major Feature: Domain-Specific Dashboards**
@@ -33,13 +68,19 @@ Implemented role/department-based dashboard routing:
 - Sales team creates kickoff request after Agreement approval
 - Assigns to specific Project Manager
 - PM receives in "Kickoff Inbox" on Consulting Dashboard
-- PM can Accept (creates project) or Reject
+- PM can Accept (creates project), Return to Sender, or Reject
+- PM can edit kickoff date before accepting
+- PM can view full SOW and team deployment before accepting
 - Notifications sent on status changes
 - **Routes:** `/kickoff-requests`
 - **API Endpoints:**
   - `POST /api/kickoff-requests` - Create request
   - `GET /api/kickoff-requests` - List requests
+  - `GET /api/kickoff-requests/{id}/details` - Get full details with SOW/team
+  - `PUT /api/kickoff-requests/{id}` - Update kickoff date
   - `POST /api/kickoff-requests/{id}/accept` - Accept & create project
+  - `POST /api/kickoff-requests/{id}/return` - Return to sender with feedback
+  - `POST /api/kickoff-requests/{id}/resubmit` - Sales resubmits after revision
   - `POST /api/kickoff-requests/{id}/reject` - Reject request
 
 **Navigation Updates:**
