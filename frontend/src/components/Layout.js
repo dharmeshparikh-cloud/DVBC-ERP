@@ -104,12 +104,14 @@ const Layout = () => {
 
   const consultingItems = isConsultant
     ? [
+        { name: 'My Projects', href: '/consulting/projects', icon: Briefcase },
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
         { name: 'Gantt Chart', href: '/gantt-chart', icon: GanttChartSquare },
         { name: 'Meetings', href: '/consulting-meetings', icon: CalendarCheck },
       ]
     : [
+        { name: 'My Projects', href: '/consulting/projects', icon: Briefcase },
         { name: 'Kickoff Inbox', href: '/kickoff-requests', icon: Inbox },
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
