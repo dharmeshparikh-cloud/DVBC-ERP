@@ -78,7 +78,28 @@ const PricingPlanBuilder = () => {
       gst: 18,
       tds: 10
     },
-    conveyance_lumpsum: 0  // Lumpsum amount distributed across all tenures
+    conveyance_lumpsum: 0,  // Lumpsum amount distributed across all tenures
+    custom_payments: []  // For custom payment schedule [{id, date, amount, description}]
+  });
+
+  // Section notes for agreement
+  const [sectionNotes, setSectionNotes] = useState({
+    pricing: '',
+    team_deployment: '',
+    payment_plan: '',
+    general: ''
+  });
+
+  // Agreement sections to include (checkboxes)
+  const [agreementSections, setAgreementSections] = useState({
+    pricing_summary: true,
+    team_deployment: true,
+    payment_schedule: true,
+    gst_details: true,
+    tds_details: true,
+    conveyance_details: true,
+    discount_details: true,
+    notes: true
   });
 
   useEffect(() => {
