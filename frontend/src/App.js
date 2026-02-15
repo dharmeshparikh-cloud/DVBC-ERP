@@ -22,6 +22,8 @@ import ConsultantPerformance from './pages/ConsultantPerformance';
 import EmailTemplates from './pages/EmailTemplates';
 import PricingPlanBuilder from './pages/sales-funnel/PricingPlanBuilder';
 import SOWBuilder from './pages/sales-funnel/SOWBuilder';
+import SalesScopeSelection from './pages/sales-funnel/SalesScopeSelection';
+import ConsultingScopeView from './pages/sales-funnel/ConsultingScopeView';
 import Quotations from './pages/sales-funnel/Quotations';
 import Agreements from './pages/sales-funnel/Agreements';
 import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
