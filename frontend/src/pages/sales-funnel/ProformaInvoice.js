@@ -598,55 +598,48 @@ const ProformaInvoice = () => {
               </div>
             </div>
 
-            {/* Line Items Table */}
+            {/* Line Items Table - Simplified without per meeting cost */}
             <table className="w-full text-sm mb-4 border border-zinc-300">
               <thead>
                 <tr className="bg-zinc-100">
                   <th className="border border-zinc-300 px-3 py-2 text-left">SI No.</th>
                   <th className="border border-zinc-300 px-3 py-2 text-left">Description of Services</th>
                   <th className="border border-zinc-300 px-3 py-2 text-center">HSN/SAC</th>
-                  <th className="border border-zinc-300 px-3 py-2 text-center">Qty</th>
-                  <th className="border border-zinc-300 px-3 py-2 text-right">Rate</th>
+                  <th className="border border-zinc-300 px-3 py-2 text-center">Period</th>
                   <th className="border border-zinc-300 px-3 py-2 text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
-                {selectedPlanDetails && (selectedPlanDetails.team_deployment || selectedPlanDetails.consultants || []).map((member, idx) => {
-                  const meetings = (member.committed_meetings || member.meetings || 0) * (member.count || 1);
-                  const rate = member.rate_per_meeting || 12500;
-                  const amount = meetings * rate;
-                  return (
-                    <tr key={idx}>
-                      <td className="border border-zinc-300 px-3 py-2">{idx + 1}</td>
-                      <td className="border border-zinc-300 px-3 py-2">
-                        Professional Fees - {member.role || member.consultant_type}
-                        <br />
-                        <span className="text-xs text-zinc-500">
-                          {selectedPlanDetails.project_duration_months} months ({selectedPlanDetails.project_duration_type})
-                        </span>
-                      </td>
-                      <td className="border border-zinc-300 px-3 py-2 text-center">998311</td>
-                      <td className="border border-zinc-300 px-3 py-2 text-center">{meetings}</td>
-                      <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR(rate)}</td>
-                      <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR(amount)}</td>
-                    </tr>
-                  );
-                })}
+                <tr>
+                  <td className="border border-zinc-300 px-3 py-2">1</td>
+                  <td className="border border-zinc-300 px-3 py-2">
+                    Professional Fees - Consulting Services
+                    <br />
+                    <span className="text-xs text-zinc-500">
+                      {selectedPlanDetails?.project_duration_months || 12} months ({selectedPlanDetails?.project_duration_type?.replace('_', ' ') || 'yearly'})
+                    </span>
+                  </td>
+                  <td className="border border-zinc-300 px-3 py-2 text-center">998311</td>
+                  <td className="border border-zinc-300 px-3 py-2 text-center">
+                    {selectedPlanDetails?.project_duration_months || 12} Months
+                  </td>
+                  <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR(selectedInvoice?.subtotal || 0)}</td>
+                </tr>
                 {/* Tax rows */}
                 <tr>
-                  <td colSpan="5" className="border border-zinc-300 px-3 py-2 text-right font-semibold">Taxable Value</td>
+                  <td colSpan="4" className="border border-zinc-300 px-3 py-2 text-right font-semibold">Taxable Value</td>
                   <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR(selectedInvoice?.subtotal || 0)}</td>
                 </tr>
                 <tr>
-                  <td colSpan="5" className="border border-zinc-300 px-3 py-2 text-right">CGST @ 9%</td>
+                  <td colSpan="4" className="border border-zinc-300 px-3 py-2 text-right">CGST @ 9%</td>
                   <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
                 </tr>
                 <tr>
-                  <td colSpan="5" className="border border-zinc-300 px-3 py-2 text-right">SGST @ 9%</td>
+                  <td colSpan="4" className="border border-zinc-300 px-3 py-2 text-right">SGST @ 9%</td>
                   <td className="border border-zinc-300 px-3 py-2 text-right">{formatINR((selectedInvoice?.gst_amount || 0) / 2)}</td>
                 </tr>
                 <tr className="bg-zinc-100">
-                  <td colSpan="5" className="border border-zinc-300 px-3 py-2 text-right font-bold">Grand Total</td>
+                  <td colSpan="4" className="border border-zinc-300 px-3 py-2 text-right font-bold">Grand Total</td>
                   <td className="border border-zinc-300 px-3 py-2 text-right font-bold">{formatINR(selectedInvoice?.grand_total || 0)}</td>
                 </tr>
               </tbody>
