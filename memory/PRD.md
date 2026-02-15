@@ -5,9 +5,43 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ---
 
-## Latest Update (February 15, 2026)
+## Latest Update (December 15, 2026)
 
-### BUG FIX: Sales Funnel SOW Selection Flow ✅ (LATEST - Dec 15, 2026)
+### FEATURE: Renamed Quotations to Proforma Invoice + Downloadable Invoice ✅ (LATEST)
+
+**Changes Made:**
+1. **Renamed "Quotations" to "Proforma Invoice"** throughout the app
+   - Navigation sidebar updated
+   - All page titles and buttons updated
+   - New route: `/sales-funnel/proforma-invoice`
+
+2. **Added "Back to Previous Flow" Navigation**
+   - "Back to Scope Selection" when coming from SOW selection
+   - "Back to Pricing Plans" when accessed directly
+
+3. **Downloadable Proforma Invoice View** (matching provided PDF template)
+   - D&V® header with "TAX INVOICE" label
+   - Invoice details: Invoice No., Date, Payment Terms
+   - Company details: Address, GSTIN, State Code, Phone
+   - Buyer (Bill to) section with client details
+   - Line Items Table: SI No., Description of Services, HSN/SAC, Qty, Rate, Amount
+   - Tax Breakdown: Taxable Value, CGST @ 9%, SGST @ 9%
+   - Grand Total with Amount in Words (Indian Rupees format)
+   - HSN Summary Table
+   - Terms of Delivery (5 standard terms)
+   - Company's Bank Details: Bank Name, A/c Holder, A/c No., Branch & IFS, SWIFT Code
+   - Footer: "This is a Computer Generated Invoice"
+
+4. **Download PDF & Send to Client buttons** for easy sharing
+
+**Flow Now:**
+```
+Pricing Plan → SOW Selection → Proforma Invoice (with Download PDF option) → Agreement
+```
+
+---
+
+### BUG FIX: Sales Funnel SOW Selection Flow ✅ (Dec 15, 2026)
 
 **Issue Fixed:** The sales funnel workflow was broken - after selecting scopes on the SOW Selection page, the app was incorrectly redirecting.
 
@@ -16,21 +50,16 @@ A comprehensive business management application for D&V Business Consulting, a 5
    - Changed to table layout with 2 scopes per row
    - Removed scope descriptions (only shows scope name)
    - Maintained "Add Custom Scope" button
-   - Fixed redirection to `/sales-funnel/quotations?pricing_plan_id=...`
+   - Fixed redirection to `/sales-funnel/proforma-invoice?pricing_plan_id=...`
 
-2. **Quotations.js** - Enhanced to handle URL params:
+2. **ProformaInvoice.js** (formerly Quotations.js) - Enhanced:
    - Now reads `pricing_plan_id` from URL query params
-   - Auto-opens "Create Quotation" dialog when coming from SOW Selection
+   - Auto-opens "Create Proforma Invoice" dialog when coming from SOW Selection
    - Pre-selects the correct pricing plan
-
-**Flow Now Working:**
-```
-Pricing Plan → SOW Selection (select scopes) → Quotation Page (dialog auto-opens)
-```
 
 ---
 
-### NEW: SOW List Views for Sales & Consulting ✅
+### SOW List Views for Sales & Consulting ✅
 
 **1. Sales SOW List Dashboard (`/sales-funnel/sow-list`):**
 - Lists all SOWs created by sales team
