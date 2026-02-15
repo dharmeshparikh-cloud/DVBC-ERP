@@ -736,10 +736,11 @@ const ProformaInvoice = () => {
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
                 data-testid="create-invoice-submit"
               >
-                Create Proforma Invoice
+                <ArrowRight className="w-4 h-4 mr-2" />
+                Save & Create Invoice
               </Button>
             </div>
           </form>
