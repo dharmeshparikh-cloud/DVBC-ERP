@@ -8,7 +8,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://consult-sales.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sow-sales-funnel.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 MANAGER_EMAIL = "manager@company.com"

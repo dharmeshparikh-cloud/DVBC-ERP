@@ -2,60 +2,76 @@
 The user requires a comprehensive business management application for a 50-person consulting organization covering HR, Marketing, Sales, Finance, and Consulting projects.
 
 **PRODUCT REQUIREMENTS (based on user clarifications):**
-*   **Authentication & Roles:** A comprehensive, customizable role and permissions management system, including Google Auth.
-*   **Top-Down Sales Workflow:** A sales process where the salesperson inputs the , and the system auto-allocates costs and calculates the rate-per-meeting for each team member based on admin-defined rules. The flow is Pricing Plan → SOW → Quotation → Agreement → Approval.
-*   **Project Kickoff Workflow:** A formal handover process from Sales to Consulting. The consulting team must not have visibility into any project pricing, costing, or financial data.
+*   **Authentication & Roles:** A comprehensive, customizable role and permissions management system.
+*   **Top-Down Sales Workflow:** A sales process where the salesperson inputs , and the system auto-calculates costs. The flow is Pricing Plan → SOW Selection → Quotation → Agreement → Approval.
+*   **Role-Based SOW Workflow:**
+    *   **Sales Team:** Selects the scope of work from a pre-defined, categorized master list. Can also add custom scopes. This selection should lead directly to the Quotation step.
+    *   **Consulting Team:** Views the SOW only after a formal handover from Sales. They manage project execution using detailed views (Gantt, Kanban), track progress, and add tasks. They cannot see pricing/cost data.
+*   **SOW & Project Management:**
+    *   Consulting view must include Gantt charts for timelines, Kanban boards for status, and the ability to add/manage tasks against scopes.
+    *   An approval workflow is needed for tasks, allowing them to be sent to a reporting manager and the client separately.
+*   **List Views/Dashboards:**
+    *   A dashboard for Sales to list all their SOWs with statuses (Draft, Handed Over) and actions (Edit, View, Handover, Proceed to Quotation).
+    *   A dashboard for Consulting (My Projects) to list all projects assigned to them, with statuses (Pending Kickoff, Active, Completed) and quick access to scopes and tasks.
 *   **Dynamic & Role-Specific Dashboards:** Users should see dashboards tailored to their department.
-*   **Modules:** Employees, Client Master, Expenses, Reporting, Meetings & MOM, HR (Leave, Attendance, Payroll), My Workspace, Project Management, and an Admin Masters module.
-*   **Lumpsum Conveyance:** Conveyance costs should be handled as a fixed, user-inputted lumpsum amount, distributed evenly across the payment schedule.
-*   **Custom Payment Schedules:** In addition to standard monthly/quarterly schedules, users must be able to define custom payment schedules with irregular dates, amounts, and descriptions for each installment.
-*   **Notes & Agreement Configuration:** Users need the ability to add free-text notes to different sections of the pricing plan and select which sections (e.g., Pricing Summary, Team Deployment) are included in the final generated agreement document.
-*   **P&L / Variance Tracking:** The ability to flag projects where actual delivery exceeds the committed scope.
+*   **Other Modules:** Employees, Client Master, Expenses, Reporting, Meetings & MOM, HR, My Workspace, and Admin Masters.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a sophisticated sales funnel (Pricing Plan -> Quotation -> Agreement). The  page is the core of this funnel and now includes:
-- A top-down pricing model where  drives all cost calculations.
-- A fixed-up team deployment bug, allowing multiple team members to be added.
-- A Payment Plan Breakup section with a dynamic payment schedule table.
-- Conveyance costs handled as a lumpsum amount, correctly distributed across any selected payment schedule (monthly, quarterly, or custom).
-- A new Custom payment schedule option, allowing users to manually define each payment date, amount, and description.
-- A Notes section for adding context to pricing, team, and payment terms.
-- An Agreement Sections feature allowing users to toggle the visibility of different parts of the plan in the final document.
+A full-stack application with a sales funnel (Pricing Plan -> SOW -> Quotation). The core recent work is a sophisticated, role-based Statement of Work (SOW) module:
+*   **Backend:** APIs and data models for managing SOW master data (categories, scopes) and project-specific SOWs.
+*   **Sales Flow:** A  page where the sales team can pick from a categorized list of scopes or add custom ones. A  page serves as a dashboard for sales to track their SOWs and perform actions like Handover to Consulting.
+*   **Consulting Flow:** A  dashboard (My Projects) that lists projects only after they are handed over from sales. A detailed  page provides Kanban and Gantt chart visualizations () for tracking scope progress. A  page has been created for task management.
+*   **UI/UX:** Navigation has been updated with SOW List (for Sales) and My Projects (for Consulting).
 
 **Last working item**:
--   **Last item agent was working:** Implementation of a Custom Payment Schedule feature, a Notes Section, and Agreement Section toggles. The agent completed the full implementation, including a bug fix provided by the testing subagent for the agreement checkboxes.
--   **Status:** USER VERIFICATION PENDING
--   **Agent Testing Done:** Y
--   **Which testing method agent to use?** NA
+-   **Last item agent was working:** Fixing a broken user flow on the  page. The user reported that after saving the selected scopes, the application was incorrectly redirecting to the consulting view instead of the quotation page, blocking the sales funnel.
+-   **Status:** IN PROGRESS
+-   **Agent Testing Done:** N (The agent rewrote the component and was about to test the redirection flow.)
+-   **Which testing method agent to use?** Frontend testing agent to verify the entire sales funnel from Pricing Plan -> SOW Selection -> Quotation.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Complete Workflow & Dashboard Redesign (P2)**
--   **Issue 2: Monolithic  file (P3 - Tech Debt)**
--   **Issue 3: Monolithic  Component (P3 - Tech Debt)**
+-   **Issue 1: Broken SOW to Quotation Workflow (P0)**
+-   **Issue 2: SOW List View for Sales and Consulting (P1)**
+-   **Issue 3: Monolithic  file (P3 - Tech Debt)**
+-   **Issue 4: Monolithic  &  Components (P3 - Tech Debt)**
 
 **Issues Detail:**
--   **Issue 1: Complete Workflow & Dashboard Redesign**
-    -   **Next debug checklist:** Design and implement the Consulting Efficiency Scorecard dashboard and create dashboards for other departments (HR, Finance).
-    -   **Why fix this issue and what will be achieved with the fix?** To fulfill the core request for a fully dynamic, role-specific application experience.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
+-   **Issue 1: Broken SOW to Quotation Workflow**
+    -   **Attempted fixes:** The agent rewrote  to fix the UI (changed from cards to a list) and updated the  function to navigate to .
+    -   **Next debug checklist:**
+        1.  Start on the  page for a given pricing plan.
+        2.  Select one or more scopes.
+        3.  Click the Save Scopes button.
+        4.  **Verify the application correctly redirects to the Quotation page** with the correct  in the URL.
+        5.  Ensure the quotation page loads correctly.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a critical bug that blocks the entire sales funnel. Users cannot create quotations.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** Y (The agent misunderstood the flow in the previous attempt.)
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None.
 
--   **Issue 2: Monolithic  file**
-    -   **Next debug checklist:** Continue moving related models and endpoints from  into separate router files (e.g., , ) and update  to use .
-    -   **Why fix this issue and what will be achieved with the fix?** To improve code maintainability and scalability on the backend.
+-   **Issue 2: SOW List View for Sales and Consulting**
+    -   **Next debug checklist:** User wants SOWs to be in a list view for both sales and consulting roles. The agent has created  and . The flow and functionality of these pages need to be fully verified post-fix of Issue 1.
+    -   **Why fix this issue and what will be achieved with the fix?** To meet the user's requirement for a clear dashboard/list view for managing SOWs and projects.
+    -   **Status:** TESTING PENDING
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** Issue 1
+
+-   **Issue 3: Monolithic  file**
+    -   **Next debug checklist:** Continue moving related models and endpoints from  into separate router files (e.g., , ).
+    -   **Why fix this issue and what will be achieved with the fix?** To improve backend code maintainability and scalability.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** backend
     -   **Blocked on other issue:** None
 
--   **Issue 3: Monolithic  Component**
-    -   **Next debug checklist:** Plan the decomposition of the  file (currently >1500 lines) into smaller, reusable components (e.g., , , , ).
-    -   **Why fix this issue and what will be achieved with the fix?** To improve frontend code maintainability, readability, and performance. The component's complexity is high, making future changes difficult and error-prone.
+-   **Issue 4: Monolithic  &  Components**
+    -   **Next debug checklist:** Plan the decomposition of  (>1500 lines) and the newly created  into smaller, reusable components.
+    -   **Why fix this issue and what will be achieved with the fix?** To improve frontend code maintainability, readability, and performance.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** frontend
@@ -66,27 +82,27 @@ A full-stack application with a sophisticated sales funnel (Pricing Plan -> Quot
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks (P1):**
+    -   **Task Approval Workflow:** Implement the feature for consultants to add tasks to scopes and submit them for approval to a reporting manager and the client separately.
     -   **P&L Variance Tracking:** Implement logic to flag over-delivery (actual vs. committed meetings).
     -   **Employee Cost Integration:** Integrate with HR/Payroll data to pull actual employee CTC for P&L calculations.
-    -   **Project P&L Dashboard:** Create a dashboard showing committed vs. actual costs and revenue with variance alerts.
-    -   **Masters Sync Engine:** Ensure all forms across the application are automatically updated when an admin changes data in the Masters module.
 -   **Future Tasks (P2):**
+    -   **Project P&L Dashboard:** Create a dashboard showing committed vs. actual costs and revenue.
     -   **Finance Module:** Build out a full finance module for P&L, invoicing, and revenue recognition.
     -   **Detailed Reporting:** Create reports for role-wise and client-wise profitability.
     -   **Real Email Integration (SMTP).**
-    -   **Rocket Reach Integration.**
 
 **Completed work in this session**
--   **Lumpsum Conveyance Feature:** Replaced the percentage-based conveyance with a lumpsum currency input and implemented logic to distribute it evenly across the selected payment schedule.
--   **Bug Fix (Team Deployment):** Resolved a race condition that prevented adding more than one team member to the pricing plan.
--   **Enhancement (Dynamic Helper Text):** Made the conveyance helper text dynamic to show the correct number of payments based on the selected schedule (e.g., split across 4 payments for quarterly).
--   **Feature (Custom Payment Schedule):** Added a Custom option to the payment schedule, allowing users to manually add, edit, and delete payment milestones with custom dates, amounts, and descriptions.
--   **Feature (Notes Section):** Implemented text areas for users to add notes related to pricing, team deployment, payment terms, and general comments.
--   **Feature (Agreement Sections):** Added checkboxes to allow users to include or exclude specific sections from the final agreement document.
--   **Subagent Fix (Checkboxes):** A testing subagent fixed an infinite loop bug caused by the Radix UI checkbox component in the Agreement Sections feature.
+-   **Role-Based SOW Module:**
+    -   Created backend infrastructure (, , ) to manage SOWs, master scopes, and categories.
+    -   Implemented a **Sales SOW Selection** page () for choosing scopes.
+    -   Implemented a **Consulting SOW View** () with a **Kanban board** and a **Gantt chart** (using ).
+    -   Created **SOW List dashboards** for both Sales () and Consulting ().
+    -   Implemented the **Handover to Consulting** workflow, which updates SOW status and visibility.
+-   **Gantt Chart Implementation:** Switched from a failing  implementation to a working  solution.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Monolithic  file.** This remains a known technical debt item.
+-   **Issue 1:** Monolithic  file.
+-   **Issue 2:** Monolithic  component.
 
 **Known issue recurrence from previous fork**
 -   The monolithic  file remains a recurring technical debt issue.
@@ -95,75 +111,85 @@ A full-stack application with a sophisticated sales funnel (Pricing Plan -> Quot
 
 
 **Key Technical Concepts**
--   **Frontend:** React, Tailwind CSS, Shadcn/UI, extensive use of  and  for managing complex, interdependent form state in a single component.
--   **Backend:** FastAPI, Pydantic, Motor (async MongoDB).
--   **Debugging:** Identified and fixed a race condition in React state updates by passing the updated state directly to the dependent function instead of relying on the state variable immediately after a  call.
+-   **Frontend:** React, Tailwind CSS, Shadcn/UI,  library for Gantt charts, role-based rendering.
+-   **Backend:** FastAPI, Pydantic, Motor (async MongoDB), router-based architecture.
+-   **State Management:** Heavy use of , , , and  for complex form and page state.
 
 **key DB schema**
--   **PricingPlan ():** The model sent to the backend now includes  (float),  (list of objects with date, amount, description),  (object with string fields), and  (object with boolean fields).
+-   **SOWMasterCategory**: 
+-   **SOWMasterScope**: ,  (links to SOWMasterCategory)
+-   **SOW**: ,  (e.g., 'Draft', 'Handed Over'),  (list of SOWScope)
+-   **SOWScope**:  (optional), ,  (e.g., 'Not Started'), , , 
+
+**changes in tech stack**
+-   yarn add v1.22.22
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+success Saved lockfile.
+success Saved 1 new dependency.
+info Direct dependencies
+└─ gantt-task-react@0.3.9
+info All dependencies
+└─ gantt-task-react@0.3.9
+Done in 18.38s.
+-   yarn remove v1.22.22
+[1/2] Removing module frappe-gantt...
+info Visit https://yarnpkg.com/en/docs/cli/remove for documentation about this command. (implicitly removed due to replacement)
 
 **All files of reference**
--   : The central file for all work done in this session. It contains the logic for all new features and bug fixes. **It has become very large and complex.**
--   : Modified to reflect the new data structure for pricing plans.
--   : The  endpoint was implicitly updated to handle the new, larger request body.
+-   **/app/frontend/src/pages/sales-funnel/SalesScopeSelection.js**: **CRITICAL FILE.** This file contains the broken workflow and the latest attempted fix.
+-   **/app/frontend/src/pages/sales-funnel/SOWList.js**: Sales team's SOW dashboard.
+-   **/app/frontend/src/pages/consulting/ConsultingProjects.js**: Consulting team's project dashboard.
+-   **/app/frontend/src/pages/consulting/ConsultingScopeView.js**: Contains the Kanban and Gantt chart implementation.
+-   **/app/backend/routers/sow.py**: Contains all backend logic for SOW creation, update, and handover.
+-   **/app/frontend/src/App.js**: Contains the frontend routing setup.
+-   **/app/frontend/src/components/Layout.js**: Contains the main navigation links.
 
 **Areas that need refactoring**:
--   **CRITICAL:**  has become a monolithic god component and is now over 1500 lines long. It urgently needs to be broken down into smaller, manageable child components to improve maintainability.
--    still needs to be broken down into smaller router files.
+-   **CRITICAL:**  is a >1500 line monolith.
+-   **/app/frontend/src/pages/consulting/ConsultingScopeView.js** is growing large and should be broken into smaller components (e.g., , ).
+-   **/app/backend/server.py** still needs to be broken down into more router files.
 
 **key api endpoints**
--   : Handles creation of pricing plans. Its request body has been significantly expanded to include custom payments, notes, and agreement section configurations.
+-   
+-   
+-   
+-   
+-   
 
 **Critical Info for New Agent**
--   Your first action should be to present the recently completed features (Custom Payment Schedule, Notes, Agreement Sections) to the user for verification. Do not start new work until the user confirms these features meet their expectations.
--   The most significant technical debt is now the  component. After user verification, you should strongly recommend and plan for its refactoring before adding more features to it. The complexity is high, and adding more will be risky.
--   The backend  file also remains a tech debt item to be addressed.
+-   **Your immediate task is to fix the broken sales funnel.** The user cannot proceed from SOW selection to the Quotation page.
+-   The previous agent has already rewritten  to address UI feedback and update the navigation logic. **You must verify this fix works.**
+-   The correct flow is: **Pricing Plan -> SOW Selection -> Quotation**. The previous agent incorrectly routed to the Consulting view, which you must confirm is fixed.
+-   Do not start any new features until this critical workflow is repaired and verified.
 
 **documents and test reports created in this job**
 -    (Updated)
 -   
--   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Reports a bug where they cannot add multiple team members and requests that the conveyance cost be split dynamically based on the number of payments, not a hardcoded value. (COMPLETED)
-2.  **User:** Requests a major new feature: a Custom Payment Schedule option for defining manual payment milestones. (COMPLETED)
-3.  **User:** Adds to the feature request: also needs a Notes Section for adding descriptions and checkboxes to hide/show sections in the final agreement. (COMPLETED)
+1.  **User:** Asks for SOW list views for both Sales and Consulting, and a task management feature for consultants with an approval workflow. (COMPLETED/IN PROGRESS)
+2.  **User:** Clarifies choices for the SOW list views and the new workflow: Pricing Plan → Scope Selection → SOW List (Sales) → SOW Review (Consulting) -> Add Task. (COMPLETED)
+3.  **User:** Reports the SOW selection page is broken. It should be a list view, not cards, shouldn't let them move to Quotation, and is redirecting to the wrong page. (CURRENT ISSUE)
+4.  **User:** Corrects the agent's summary of the fix. The Add Custom Scope button *should* exist. The main issue is the incorrect redirection after selection; it must go to the Quotation page. (CURRENT ISSUE)
+5.  **Agent:** Confirms understanding: keep list view, restore Add Custom Scope button, redirect to . (AGENT'S LAST ACTION PLAN)
 
 **Project Health Check:**
--   **Broken:** None.
--   **Mocked:** Email sending functionality.
--   **Needs Rework:**  is now a critical tech debt item due to its size and complexity. The  monolith also remains.
+-   **Broken:** The primary sales workflow is non-functional. Users cannot create a quotation after defining a Statement of Work.
+-   **Mocked:** Email sending functionality for notifications.
+-   **Needs Rework:** , , .
 
 **3rd Party Integrations**
 -   **Emergent-managed Google Auth**
--   **DHTMLX Gantt** (Mentioned in original spec, not yet implemented)
--   **Rocket Reach** (Requested, not implemented)
+-   **gantt-task-react:** Used for rendering Gantt charts in the consulting view.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. The agent was used multiple times, including after the final feature implementation, where it found and fixed a bug in the agreement section checkboxes.
+-   **Testing agent used after significant changes:** YES, the initial SOW features were tested and passed.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** Test reports were generated, but no new persistent ============================= test session starts ==============================
-platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-rootdir: /app
-plugins: asyncio-1.3.0, anyio-4.12.1
-asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 0 items / 1 error
-
-==================================== ERRORS ====================================
-________________________ ERROR collecting backend/tests ________________________
-Defining 'pytest_plugins' in a non-top-level conftest is no longer supported:
-It affects the entire test suite instead of just below the conftest as expected.
-  /app/backend/tests/conftest.py
-Please move it to a top level conftest file at the rootdir:
-  /app
-For more information, visit:
-  https://docs.pytest.org/en/stable/deprecations.html#pytest-plugins-in-non-top-level-conftest-files
-=========================== short test summary info ============================
-ERROR backend/tests - Failed: Defining 'pytest_plugins' in a non-top-level co...
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-=============================== 1 error in 1.83s =============================== files were created.
--   **Known regressions:** None.
+-   **Test files created:** 
+-   **Known regressions:** The sales funnel flow from SOW selection to Quotation is a new regression introduced in the last few interactions.
 
 **Credentials to test flow:**
 -   **Admin:**  / 
@@ -171,4 +197,4 @@ ERROR backend/tests - Failed: Defining 'pytest_plugins' in a non-top-level co...
 -   **Executive:**  / 
 
 **What agent forgot to execute**
--   The agent successfully implemented all user requests from the session.</analysis>
+-   The agent misunderstood the user's requirements for the SOW selection flow multiple times, initially removing the Add Custom Scope button incorrectly and implementing the wrong redirection logic. This led to the current critical bug. The agent failed to test the end-to-end flow after making changes, which would have caught the regression.</analysis>

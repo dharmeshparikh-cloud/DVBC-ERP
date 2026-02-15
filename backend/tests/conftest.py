@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 load_dotenv('/app/backend/.env')
 
 # API Configuration
-API_URL = os.environ.get('TEST_API_URL', 'https://consult-sales.preview.emergentagent.com')
+API_URL = os.environ.get('TEST_API_URL', 'https://sow-sales-funnel.preview.emergentagent.com')
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 DB_NAME = os.environ.get('DB_NAME', 'test_database')
 
