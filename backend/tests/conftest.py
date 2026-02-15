@@ -38,9 +38,9 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope="module")
-def db():
-    """MongoDB database fixture."""
+@pytest.fixture
+async def db():
+    """MongoDB database fixture - creates new client per test for proper async handling."""
     client = AsyncIOMotorClient(MONGO_URL)
     database = client[DB_NAME]
     yield database
