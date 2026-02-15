@@ -179,15 +179,14 @@ class TestDataFactory:
     def employee(overrides: dict = None) -> dict:
         """Generate test employee data."""
         data = {
+            "employee_id": f"EMP-{uuid.uuid4().hex[:6].upper()}",
             "first_name": "Test",
             "last_name": "Employee",
             "email": f"test_{uuid.uuid4().hex[:8]}@dvconsulting.co.in",
             "phone": "+91-9876543210",
             "department": "Consulting",
             "designation": "Consultant",
-            "date_of_joining": datetime.now(timezone.utc).isoformat(),
-            "employment_type": "full_time",
-            "status": "active"
+            "employment_type": "full_time"
         }
         if overrides:
             data.update(overrides)
