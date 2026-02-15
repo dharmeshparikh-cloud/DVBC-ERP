@@ -76,10 +76,11 @@ class TestClientsPositive:
             response = await admin_client.post(
                 f"/api/clients/{client['id']}/revenue",
                 json={
+                    "year": 2025,
+                    "quarter": 4,
                     "amount": 500000,
                     "currency": "INR",
-                    "description": "Q4 2025 consulting fees",
-                    "date": "2025-12-01T00:00:00Z"
+                    "notes": "Q4 2025 consulting fees"
                 }
             )
             
