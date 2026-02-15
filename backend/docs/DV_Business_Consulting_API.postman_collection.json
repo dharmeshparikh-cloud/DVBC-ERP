@@ -1,0 +1,1250 @@
+{
+  "info": {
+    "name": "D&V Business Consulting API",
+    "description": "Comprehensive API collection for D&V Business Consulting Management Application. Includes all endpoints for HR, Sales, Projects, and Administration modules.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://enterprise-suite-55.preview.emergentagent.com",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('access_token', jsonData.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@company.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login",
+            "description": "Authenticate user and receive JWT token"
+          }
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@company.com\",\n  \"password\": \"password123\",\n  \"full_name\": \"New User\",\n  \"role\": \"executive\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"admin123\",\n  \"new_password\": \"newpassword123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/change-password"
+          }
+        },
+        {
+          "name": "Google Auth",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"emergent-session-id\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/google"
+          }
+        },
+        {
+          "name": "Request Admin OTP",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@company.com\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/admin/request-otp"
+          }
+        },
+        {
+          "name": "Reset Admin Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@company.com\",\n  \"otp\": \"123456\",\n  \"new_password\": \"newpassword123\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/admin/reset-password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leads",
+      "item": [
+        {
+          "name": "Get All Leads",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/leads?status=new",
+              "host": ["{{base_url}}"],
+              "path": ["api", "leads"],
+              "query": [
+                {"key": "status", "value": "new", "disabled": true},
+                {"key": "assigned_to", "value": "", "disabled": true}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Lead",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Rajesh\",\n  \"last_name\": \"Kumar\",\n  \"company\": \"Tata Steel Ltd\",\n  \"email\": \"rajesh.kumar@tatasteel.com\",\n  \"phone\": \"+91-9876543210\",\n  \"job_title\": \"HR Director\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"status\": \"new\",\n  \"notes\": \"Interested in HR consulting services\"\n}"
+            },
+            "url": "{{base_url}}/api/leads"
+          }
+        },
+        {
+          "name": "Get Lead by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/leads/{{lead_id}}"
+          }
+        },
+        {
+          "name": "Update Lead",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"qualified\",\n  \"notes\": \"Meeting scheduled for next week\"\n}"
+            },
+            "url": "{{base_url}}/api/leads/{{lead_id}}"
+          }
+        },
+        {
+          "name": "Delete Lead",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/leads/{{lead_id}}"
+          }
+        },
+        {
+          "name": "Get Lead Suggestions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/leads/{{lead_id}}/suggestions"
+          }
+        },
+        {
+          "name": "Bulk Upload Leads",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "multipart/form-data"}],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "file", "type": "file", "src": ""}
+              ]
+            },
+            "url": "{{base_url}}/api/leads/bulk-upload"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/employees"
+          }
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"EMP-001\",\n  \"first_name\": \"Amit\",\n  \"last_name\": \"Sharma\",\n  \"email\": \"amit.sharma@dvconsulting.co.in\",\n  \"phone\": \"+91-9876543210\",\n  \"department\": \"Consulting\",\n  \"designation\": \"Senior Consultant\",\n  \"employment_type\": \"full_time\"\n}"
+            },
+            "url": "{{base_url}}/api/employees"
+          }
+        },
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/employees/{{employee_id}}"
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"designation\": \"Principal Consultant\",\n  \"salary\": 150000\n}"
+            },
+            "url": "{{base_url}}/api/employees/{{employee_id}}"
+          }
+        },
+        {
+          "name": "Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/employees/{{employee_id}}"
+          }
+        },
+        {
+          "name": "Get Org Chart",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/employees/org-chart/hierarchy"
+          }
+        },
+        {
+          "name": "Get Departments List",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/employees/departments/list"
+          }
+        },
+        {
+          "name": "Get Employee Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/employees/stats/summary"
+          }
+        },
+        {
+          "name": "Sync from Users",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/employees/sync-from-users"
+          }
+        },
+        {
+          "name": "Link User to Employee",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\"\n}"
+            },
+            "url": "{{base_url}}/api/employees/{{employee_id}}/link-user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "Get All Clients",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/clients"
+          }
+        },
+        {
+          "name": "Create Client",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_name\": \"Infosys Ltd\",\n  \"industry\": \"IT Services\",\n  \"city\": \"Bangalore\",\n  \"state\": \"Karnataka\",\n  \"country\": \"India\",\n  \"website\": \"https://www.infosys.com\"\n}"
+            },
+            "url": "{{base_url}}/api/clients"
+          }
+        },
+        {
+          "name": "Get Client by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/clients/{{client_id}}"
+          }
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"industry\": \"Technology\"\n}"
+            },
+            "url": "{{base_url}}/api/clients/{{client_id}}"
+          }
+        },
+        {
+          "name": "Add Client Contact",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Priya Sharma\",\n  \"email\": \"priya.sharma@infosys.com\",\n  \"phone\": \"+91-9876543210\",\n  \"designation\": \"HR Manager\",\n  \"is_primary\": true\n}"
+            },
+            "url": "{{base_url}}/api/clients/{{client_id}}/contacts"
+          }
+        },
+        {
+          "name": "Add Revenue Record",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500000,\n  \"currency\": \"INR\",\n  \"description\": \"Q4 2025 consulting fees\",\n  \"date\": \"2025-12-01T00:00:00Z\"\n}"
+            },
+            "url": "{{base_url}}/api/clients/{{client_id}}/revenue"
+          }
+        },
+        {
+          "name": "Get Industries List",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/clients/industries/list"
+          }
+        },
+        {
+          "name": "Get Client Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/clients/stats/summary"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Get All Projects",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/projects"
+          }
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"HR Transformation Project\",\n  \"client_name\": \"Tata Steel Ltd\",\n  \"project_type\": \"mixed\",\n  \"start_date\": \"2025-12-01T00:00:00Z\",\n  \"total_meetings_committed\": 24,\n  \"budget\": 2500000,\n  \"notes\": \"Complete HR policy restructuring\"\n}"
+            },
+            "url": "{{base_url}}/api/projects"
+          }
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/projects/{{project_id}}"
+          }
+        },
+        {
+          "name": "Get Handover Alerts",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/projects/handover-alerts"
+          }
+        },
+        {
+          "name": "Assign Consultant",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consultant_id\": \"{{consultant_id}}\",\n  \"role_in_project\": \"lead_consultant\",\n  \"meetings_committed\": 12\n}"
+            },
+            "url": "{{base_url}}/api/projects/{{project_id}}/assign-consultant"
+          }
+        },
+        {
+          "name": "Get Project Tasks (Gantt)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/projects/{{project_id}}/tasks-gantt"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Meetings & MOM",
+      "item": [
+        {
+          "name": "Get All Meetings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/meetings?project_id={{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "meetings"],
+              "query": [
+                {"key": "project_id", "value": "{{project_id}}", "disabled": true},
+                {"key": "meeting_type", "value": "consulting", "disabled": true}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Meeting",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"consulting\",\n  \"project_id\": \"{{project_id}}\",\n  \"meeting_date\": \"2025-12-20T10:00:00Z\",\n  \"mode\": \"online\",\n  \"title\": \"Project Kickoff Meeting\",\n  \"duration_minutes\": 60,\n  \"attendee_names\": [\"Rajesh Kumar\", \"Amit Sharma\"]\n}"
+            },
+            "url": "{{base_url}}/api/meetings"
+          }
+        },
+        {
+          "name": "Get Meeting by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/meetings/{{meeting_id}}"
+          }
+        },
+        {
+          "name": "Update Meeting MOM",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Project Kickoff Meeting\",\n  \"agenda\": [\"Introduction\", \"Project scope review\", \"Timeline discussion\"],\n  \"discussion_points\": [\"Discussed HR policy gaps\", \"Identified key stakeholders\"],\n  \"decisions_made\": [\"Weekly sync calls on Mondays\"],\n  \"action_items\": [\n    {\n      \"description\": \"Prepare current state assessment\",\n      \"assigned_to_name\": \"Amit Sharma\",\n      \"due_date\": \"2025-12-25T00:00:00Z\",\n      \"priority\": \"high\"\n    }\n  ],\n  \"next_meeting_date\": \"2025-12-27T10:00:00Z\"\n}"
+            },
+            "url": "{{base_url}}/api/meetings/{{meeting_id}}/mom"
+          }
+        },
+        {
+          "name": "Add Action Item",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Complete compliance audit\",\n  \"assigned_to_id\": \"{{user_id}}\",\n  \"due_date\": \"2025-12-30T00:00:00Z\",\n  \"priority\": \"high\",\n  \"create_follow_up_task\": true,\n  \"notify_reporting_manager\": true\n}"
+            },
+            "url": "{{base_url}}/api/meetings/{{meeting_id}}/action-items"
+          }
+        },
+        {
+          "name": "Send MOM to Client",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/meetings/{{meeting_id}}/send-mom"
+          }
+        },
+        {
+          "name": "Get Consulting Tracking",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/consulting-meetings/tracking"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SOW (Scope of Work)",
+      "item": [
+        {
+          "name": "Get SOW Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/sow-categories"
+          }
+        },
+        {
+          "name": "Create SOW",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pricing_plan_id\": \"{{pricing_plan_id}}\",\n  \"title\": \"HR Consulting Services SOW\"\n}"
+            },
+            "url": "{{base_url}}/api/sow"
+          }
+        },
+        {
+          "name": "Get SOW by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/sow/{{sow_id}}"
+          }
+        },
+        {
+          "name": "Add SOW Item",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"HR Policy Development\",\n  \"deliverable\": \"Employee Handbook Creation\",\n  \"delivery_date\": \"2025-12-31T00:00:00Z\",\n  \"consultant_days\": 10,\n  \"unit_cost\": 15000\n}"
+            },
+            "url": "{{base_url}}/api/sow/{{sow_id}}/items"
+          }
+        },
+        {
+          "name": "Bulk Add SOW Items",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\"category\": \"Training\", \"deliverable\": \"Leadership Training\", \"consultant_days\": 5},\n    {\"category\": \"Audit\", \"deliverable\": \"Compliance Review\", \"consultant_days\": 3}\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/sow/{{sow_id}}/items/bulk"
+          }
+        },
+        {
+          "name": "Update SOW Item Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"progress_percentage\": 50\n}"
+            },
+            "url": "{{base_url}}/api/sow/{{sow_id}}/items/{{item_id}}/status"
+          }
+        },
+        {
+          "name": "Get SOW Versions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/sow/{{sow_id}}/versions"
+          }
+        },
+        {
+          "name": "Get SOW Progress",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/sow/{{sow_id}}/progress"
+          }
+        },
+        {
+          "name": "Submit SOW for Approval",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/sow/{{sow_id}}/submit-for-approval"
+          }
+        },
+        {
+          "name": "Get Pending Approval SOWs",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/sow/pending-approval"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quotations & Agreements",
+      "item": [
+        {
+          "name": "Get All Quotations",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/quotations"
+          }
+        },
+        {
+          "name": "Create Quotation",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sow_id\": \"{{sow_id}}\",\n  \"valid_until\": \"2026-01-31T00:00:00Z\",\n  \"terms\": \"Net 30\"\n}"
+            },
+            "url": "{{base_url}}/api/quotations"
+          }
+        },
+        {
+          "name": "Finalize Quotation",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/quotations/{{quotation_id}}/finalize"
+          }
+        },
+        {
+          "name": "Get All Agreements",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/agreements"
+          }
+        },
+        {
+          "name": "Create Agreement",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quotation_id\": \"{{quotation_id}}\",\n  \"title\": \"Consulting Services Agreement\"\n}"
+            },
+            "url": "{{base_url}}/api/agreements"
+          }
+        },
+        {
+          "name": "Get Full Agreement",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/agreements/{{agreement_id}}/full"
+          }
+        },
+        {
+          "name": "Export Agreement",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/agreements/{{agreement_id}}/export"
+          }
+        },
+        {
+          "name": "Download Agreement PDF",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/agreements/{{agreement_id}}/download"
+          }
+        },
+        {
+          "name": "Approve Agreement",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/agreements/{{agreement_id}}/approve"
+          }
+        },
+        {
+          "name": "Reject Agreement",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejection_reason\": \"Terms need revision\"\n}"
+            },
+            "url": "{{base_url}}/api/agreements/{{agreement_id}}/reject"
+          }
+        }
+      ]
+    },
+    {
+      "name": "HR - Leave Management",
+      "item": [
+        {
+          "name": "Get Leave Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/leave-requests"
+          }
+        },
+        {
+          "name": "Create Leave Request",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leave_type\": \"casual\",\n  \"start_date\": \"2025-12-25T00:00:00Z\",\n  \"end_date\": \"2025-12-26T00:00:00Z\",\n  \"reason\": \"Personal work\"\n}"
+            },
+            "url": "{{base_url}}/api/leave-requests"
+          }
+        },
+        {
+          "name": "Get All Leave Requests (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/leave-requests/all"
+          }
+        },
+        {
+          "name": "Get Reportees Leave Balance",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/leave-balance/reportees"
+          }
+        }
+      ]
+    },
+    {
+      "name": "HR - Attendance",
+      "item": [
+        {
+          "name": "Get Attendance",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/attendance"
+          }
+        },
+        {
+          "name": "Post Attendance",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{employee_id}}\",\n  \"date\": \"2025-12-15T00:00:00Z\",\n  \"status\": \"present\",\n  \"check_in\": \"09:00\",\n  \"check_out\": \"18:00\"\n}"
+            },
+            "url": "{{base_url}}/api/attendance"
+          }
+        },
+        {
+          "name": "Bulk Attendance Upload",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\"employee_id\": \"emp1\", \"date\": \"2025-12-15T00:00:00Z\", \"status\": \"present\"},\n    {\"employee_id\": \"emp2\", \"date\": \"2025-12-15T00:00:00Z\", \"status\": \"present\"}\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/attendance/bulk"
+          }
+        },
+        {
+          "name": "Get Attendance Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/attendance/summary"
+          }
+        }
+      ]
+    },
+    {
+      "name": "HR - Payroll",
+      "item": [
+        {
+          "name": "Get Salary Components",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/payroll/salary-components"
+          }
+        },
+        {
+          "name": "Add Salary Component",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"earning\",\n  \"key\": \"performance_bonus\",\n  \"label\": \"Performance Bonus\",\n  \"is_taxable\": true\n}"
+            },
+            "url": "{{base_url}}/api/payroll/salary-components/add"
+          }
+        },
+        {
+          "name": "Get Payroll Inputs",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/payroll/inputs"
+          }
+        },
+        {
+          "name": "Add Payroll Input",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{employee_id}}\",\n  \"month\": 12,\n  \"year\": 2025,\n  \"basic_salary\": 50000,\n  \"components\": {}\n}"
+            },
+            "url": "{{base_url}}/api/payroll/inputs"
+          }
+        },
+        {
+          "name": "Get Salary Slips",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/payroll/salary-slips"
+          }
+        },
+        {
+          "name": "Generate Salary Slip",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{employee_id}}\",\n  \"month\": 12,\n  \"year\": 2025\n}"
+            },
+            "url": "{{base_url}}/api/payroll/generate-slip"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "Get All Expenses",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/expenses"
+          }
+        },
+        {
+          "name": "Create Expense",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": \"{{employee_id}}\",\n  \"employee_name\": \"Amit Sharma\",\n  \"is_office_expense\": true,\n  \"line_items\": [\n    {\n      \"category\": \"travel\",\n      \"description\": \"Client visit - Mumbai to Pune\",\n      \"amount\": 2500,\n      \"date\": \"2025-12-15T00:00:00Z\"\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/expenses"
+          }
+        },
+        {
+          "name": "Get Expense by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/expenses/{{expense_id}}"
+          }
+        },
+        {
+          "name": "Submit Expense",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/expenses/{{expense_id}}/submit"
+          }
+        },
+        {
+          "name": "Mark Expense Reimbursed",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/expenses/{{expense_id}}/mark-reimbursed"
+          }
+        },
+        {
+          "name": "Get Expense Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/expenses/categories/list"
+          }
+        },
+        {
+          "name": "Get Expense Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/expenses/stats/summary"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Approvals",
+      "item": [
+        {
+          "name": "Get Pending Approvals",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/approvals/pending"
+          }
+        },
+        {
+          "name": "Get All Approvals",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/approvals/all"
+          }
+        },
+        {
+          "name": "Get My Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/approvals/my-requests"
+          }
+        },
+        {
+          "name": "Approval Action",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\",\n  \"comments\": \"Approved\"\n}"
+            },
+            "url": "{{base_url}}/api/approvals/{{approval_id}}/action"
+          }
+        },
+        {
+          "name": "Preview Approval Chain",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/approvals/preview-chain?request_type=expense&requester_id={{employee_id}}&amount=5000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "approvals", "preview-chain"],
+              "query": [
+                {"key": "request_type", "value": "expense"},
+                {"key": "requester_id", "value": "{{employee_id}}"},
+                {"key": "amount", "value": "5000"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users & Roles",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users/me"
+          }
+        },
+        {
+          "name": "Update Current User",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Updated Name\"\n}"
+            },
+            "url": "{{base_url}}/api/users/me"
+          }
+        },
+        {
+          "name": "Get My Permissions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users/me/permissions"
+          }
+        },
+        {
+          "name": "Get All Roles",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/roles"
+          }
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"custom_role\",\n  \"name\": \"Custom Role\",\n  \"description\": \"A custom role for specific permissions\"\n}"
+            },
+            "url": "{{base_url}}/api/roles"
+          }
+        },
+        {
+          "name": "Get Role Permissions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/role-permissions"
+          }
+        },
+        {
+          "name": "Update Role Permissions",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissions\": {\n    \"leads\": {\"view\": true, \"create\": true, \"edit\": true, \"delete\": false}\n  }\n}"
+            },
+            "url": "{{base_url}}/api/role-permissions/{{role_id}}"
+          }
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"consultant\"\n}"
+            },
+            "url": "{{base_url}}/api/users/{{user_id}}/role"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Self-Service (My Workspace)",
+      "item": [
+        {
+          "name": "My Attendance",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/my/attendance"
+          }
+        },
+        {
+          "name": "My Leave Balance",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/my/leave-balance"
+          }
+        },
+        {
+          "name": "My Salary Slips",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/my/salary-slips"
+          }
+        },
+        {
+          "name": "My Expenses",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/my/expenses"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get Available Reports",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/reports"
+          }
+        },
+        {
+          "name": "Get Report Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/reports/categories"
+          }
+        },
+        {
+          "name": "Preview Report",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/reports/{{report_id}}/preview"
+          }
+        },
+        {
+          "name": "Generate Report",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_id\": \"employees\",\n  \"format\": \"excel\"\n}"
+            },
+            "url": "{{base_url}}/api/reports/generate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Security & Admin",
+      "item": [
+        {
+          "name": "Get Security Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/security-audit-logs?event_type=password_login_success&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "security-audit-logs"],
+              "query": [
+                {"key": "event_type", "value": "password_login_success", "disabled": true},
+                {"key": "email", "value": "", "disabled": true},
+                {"key": "date_from", "value": "", "disabled": true},
+                {"key": "date_to", "value": "", "disabled": true},
+                {"key": "skip", "value": "0", "disabled": true},
+                {"key": "limit", "value": "50"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/stats/dashboard"
+          }
+        },
+        {
+          "name": "Mark All Notifications Read",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/notifications/mark-all-read"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultants",
+      "item": [
+        {
+          "name": "Get All Consultants",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/consultants"
+          }
+        },
+        {
+          "name": "Get Consultant by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/consultants/{{consultant_id}}"
+          }
+        },
+        {
+          "name": "My Projects (Consultant)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/consultant/my-projects"
+          }
+        },
+        {
+          "name": "Consultant Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/consultant/dashboard-stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Get All Tasks",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/tasks"
+          }
+        },
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Complete HR Policy Draft\",\n  \"project_id\": \"{{project_id}}\",\n  \"assigned_to\": \"{{user_id}}\",\n  \"priority\": \"high\",\n  \"status\": \"pending\"\n}"
+            },
+            "url": "{{base_url}}/api/tasks"
+          }
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/tasks/{{task_id}}"
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"progress\": 50\n}"
+            },
+            "url": "{{base_url}}/api/tasks/{{task_id}}"
+          }
+        },
+        {
+          "name": "Update Task Dates (Gantt)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_date\": \"2025-12-20T00:00:00Z\",\n  \"end_date\": \"2025-12-25T00:00:00Z\"\n}"
+            },
+            "url": "{{base_url}}/api/tasks/{{task_id}}/dates"
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/tasks/{{task_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}
