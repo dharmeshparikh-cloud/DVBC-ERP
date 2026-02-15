@@ -424,14 +424,18 @@ const Payroll = () => {
                     </td>
                     {['working_days', 'present_days', 'absent_days', 'public_holidays', 'leaves', 'overtime_hours'].map(f => (
                       <td key={f} className="px-1 py-1">
-                        <input type="number" value={inp[f] || 0} onChange={e => updateInput(inp.employee_id, f, parseInt(e.target.value) || 0)}
-                          className="w-full h-7 px-1.5 text-center text-[11px] rounded border border-zinc-200 bg-white focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400"
+                        <input type="number" value={inp[f] ?? ''} onChange={e => updateInput(inp.employee_id, f, e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                          className={`w-full h-7 px-1.5 text-center text-[11px] rounded border bg-white focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 ${
+                            (inp[f] === '' || inp[f] === null || inp[f] === undefined) ? 'border-red-400 bg-red-50/50' : 'border-zinc-200'
+                          }`}
                           disabled={!isHR} data-testid={`${f}-${inp.employee_id}`} />
                       </td>
                     ))}
                     <td className="px-1 py-1">
-                      <input type="number" value={inp.incentive || 0} onChange={e => updateInput(inp.employee_id, 'incentive', parseFloat(e.target.value) || 0)}
-                        className="w-full h-7 px-1.5 text-right text-[11px] rounded border border-emerald-200 bg-emerald-50/30 focus:ring-1 focus:ring-emerald-300"
+                      <input type="number" value={inp.incentive ?? ''} onChange={e => updateInput(inp.employee_id, 'incentive', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                        className={`w-full h-7 px-1.5 text-right text-[11px] rounded border focus:ring-1 focus:ring-emerald-300 ${
+                          (inp.incentive === '' || inp.incentive === null || inp.incentive === undefined) ? 'border-red-400 bg-red-50/50' : 'border-emerald-200 bg-emerald-50/30'
+                        }`}
                         disabled={!isHR} />
                     </td>
                     <td className="px-1 py-1">
