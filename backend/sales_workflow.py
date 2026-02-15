@@ -213,6 +213,8 @@ class TeamDeploymentMember(BaseModel):
     meeting_type: str  # e.g., "Monthly Review", "Online Review", "On-site Visit"
     frequency: str  # e.g., "1 per month", "2 per week", "As needed"
     mode: str = "online"  # online, offline, mixed
+    base_rate_per_meeting: float = 12500  # Rate per meeting in INR
+    committed_meetings: int = 0  # Auto-calculated based on frequency and tenure
     notes: Optional[str] = None
 
 
