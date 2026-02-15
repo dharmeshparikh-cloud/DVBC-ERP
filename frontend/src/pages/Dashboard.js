@@ -13,6 +13,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [highPriorityLeads, setHighPriorityLeads] = useState([]);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [loginActivity, setLoginActivity] = useState({ logs: [], total: 0, failedCount: 0, successCount: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,7 +22,22 @@ const Dashboard = () => {
     if (user?.role === 'manager' || user?.role === 'admin') {
       fetchPendingApprovals();
     }
+    if (user?.role === 'admin') {
+      fetchLoginActivity();
+    }
   }, [user]);
+
+  const fetchLoginActivity = async () => {
+    try {
+      const resp = await axios.get(`${API}/security-audit-logs?limit=8`);
+      const logs = resp.data.logs || [];
+      const failedCount = logs.filter(l => l.event_type?.includes('failed') || l.event_type?.includes('rejected')).length;
+      const successCount = logs.filter(l => l.event_type?.includes('success')).length;
+      setLoginActivity({ logs, total: resp.data.total, failedCount, successCount });
+    } catch (err) {
+      console.error('Failed to fetch login activity');
+    }
+  };
 
   const fetchStats = async () => {
     try {
