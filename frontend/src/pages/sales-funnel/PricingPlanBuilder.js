@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Plus, Trash2, ArrowLeft, Users, Calculator } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 
@@ -16,70 +16,11 @@ const DURATION_TYPE_MONTHS = {
   'quarterly': 3,
   'half_yearly': 6,
   'yearly': 12,
-  'custom': null // User enters manually
+  'custom': null
 };
-
-// Consultant roles
-const CONSULTANT_ROLES = [
-  'Project Manager',
-  'Principal Consultant',
-  'Lead Consultant',
-  'Senior Consultant',
-  'Lean Consultant',
-  'HR Consultant',
-  'Sales Trainer',
-  'Operations Consultant',
-  'Data Analyst',
-  'Digital Marketing Manager',
-  'Subject Matter Expert',
-  'Account Manager'
-];
-
-// Meeting types
-const MEETING_TYPES = [
-  'Monthly Review',
-  'Weekly Review',
-  'Daily Standup',
-  'Online Review',
-  'On-site Visit',
-  'Strategy Session',
-  'Training Session',
-  'Progress Update',
-  'Kickoff Meeting',
-  'Quarterly Business Review',
-  'Data Analysis Review',
-  'Marketing Review',
-  'HR Consultation'
-];
-
-// Frequency options with per-month multiplier
-const FREQUENCY_OPTIONS = [
-  { value: '1 per day', label: '1 per day (Daily)', perMonth: 22 }, // 22 working days
-  { value: '2 per day', label: '2 per day', perMonth: 44 },
-  { value: '5 per week', label: '5 per week', perMonth: 20 },
-  { value: '4 per week', label: '4 per week', perMonth: 16 },
-  { value: '3 per week', label: '3 per week', perMonth: 12 },
-  { value: '2 per week', label: '2 per week', perMonth: 8 },
-  { value: '1 per week', label: '1 per week', perMonth: 4 },
-  { value: 'Bi-weekly', label: 'Bi-weekly', perMonth: 2 },
-  { value: '4 per month', label: '4 per month', perMonth: 4 },
-  { value: '3 per month', label: '3 per month', perMonth: 3 },
-  { value: '2 per month', label: '2 per month', perMonth: 2 },
-  { value: '1 per month', label: '1 per month', perMonth: 1 },
-  { value: '1 per quarter', label: '1 per quarter', perMonth: 0.33 },
-  { value: 'As needed', label: 'As needed', perMonth: 0 },
-  { value: 'On demand', label: 'On demand', perMonth: 0 }
-];
 
 // Meeting modes
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
-
-// Helper function to calculate committed meetings
-const calculateCommittedMeetings = (frequency, durationMonths) => {
-  const freqOption = FREQUENCY_OPTIONS.find(f => f.value === frequency);
-  if (!freqOption || freqOption.perMonth === 0) return 0;
-  return Math.round(freqOption.perMonth * durationMonths);
-};
 
 const PricingPlanBuilder = () => {
   const { user } = useContext(AuthContext);
@@ -89,17 +30,25 @@ const PricingPlanBuilder = () => {
   
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [mastersLoading, setMastersLoading] = useState(true);
   
-  // Team deployment (replaces old consultants array)
+  // Masters data from Admin
+  const [tenureTypes, setTenureTypes] = useState([]);
+  const [consultantRoles, setConsultantRoles] = useState([]);
+  const [meetingTypes, setMeetingTypes] = useState([]);
+  
+  // TOP-DOWN: Total Investment is the primary input
+  const [totalInvestment, setTotalInvestment] = useState(0);
+  
+  // Team deployment
   const [teamDeployment, setTeamDeployment] = useState([]);
   
   // New team member form
   const [newMember, setNewMember] = useState({
     role: '',
+    tenure_type_code: '',
     meeting_type: '',
-    frequency: '',
     mode: 'Online',
-    rate_per_meeting: 12500,
     count: 1
   });
   
@@ -113,10 +62,36 @@ const PricingPlanBuilder = () => {
   });
 
   useEffect(() => {
+    fetchMasters();
     if (leadId) {
       fetchLead();
     }
   }, [leadId]);
+
+  // Recalculate allocations when total investment or team changes
+  useEffect(() => {
+    if (totalInvestment > 0 && teamDeployment.length > 0) {
+      recalculateAllocations();
+    }
+  }, [totalInvestment, formData.project_duration_months]);
+
+  const fetchMasters = async () => {
+    try {
+      setMastersLoading(true);
+      const [tenureRes, rolesRes, meetingsRes] = await Promise.all([
+        axios.get(`${API}/masters/tenure-types`),
+        axios.get(`${API}/masters/consultant-roles`),
+        axios.get(`${API}/masters/meeting-types`)
+      ]);
+      setTenureTypes(tenureRes.data);
+      setConsultantRoles(rolesRes.data);
+      setMeetingTypes(meetingsRes.data);
+    } catch (error) {
+      toast.error('Failed to fetch master data. Please ensure masters are seeded.');
+    } finally {
+      setMastersLoading(false);
+    }
+  };
 
   const fetchLead = async () => {
     try {
@@ -127,16 +102,10 @@ const PricingPlanBuilder = () => {
     }
   };
 
-  // Handle duration type change - auto-fill months
+  // Handle duration type change
   const handleDurationTypeChange = (type) => {
     const months = DURATION_TYPE_MONTHS[type];
     if (months !== null) {
-      // Auto-fill months and recalculate all team members
-      const updatedTeam = teamDeployment.map(member => ({
-        ...member,
-        committed_meetings: calculateCommittedMeetings(member.frequency, months)
-      }));
-      setTeamDeployment(updatedTeam);
       setFormData(prev => ({
         ...prev,
         project_duration_type: type,
@@ -150,77 +119,185 @@ const PricingPlanBuilder = () => {
     }
   };
 
-  // Handle duration months change - recalculate all team members
-  const handleDurationMonthsChange = (months) => {
-    const updatedTeam = teamDeployment.map(member => ({
-      ...member,
-      committed_meetings: calculateCommittedMeetings(member.frequency, months)
-    }));
+  // Recalculate all team member allocations based on total investment
+  const recalculateAllocations = () => {
+    if (teamDeployment.length === 0 || totalInvestment <= 0) return;
+    
+    // Calculate total allocation percentage
+    const totalAllocationPercent = teamDeployment.reduce((sum, m) => {
+      const tenure = tenureTypes.find(t => t.code === m.tenure_type_code);
+      return sum + (tenure?.allocation_percentage || 0);
+    }, 0);
+    
+    if (totalAllocationPercent === 0) return;
+    
+    // Recalculate each member
+    const updatedTeam = teamDeployment.map(member => {
+      const tenure = tenureTypes.find(t => t.code === member.tenure_type_code);
+      if (!tenure) return member;
+      
+      // Normalize allocation percentage
+      const normalizedPercent = (tenure.allocation_percentage / totalAllocationPercent) * 100;
+      
+      // Calculate breakup amount
+      const breakupAmount = totalInvestment * (normalizedPercent / 100);
+      
+      // Calculate total meetings
+      const meetingsPerMonth = tenure.meetings_per_month || 1;
+      const totalMeetings = Math.round(meetingsPerMonth * formData.project_duration_months * (member.count || 1));
+      
+      // Calculate rate per meeting
+      const ratePerMeeting = totalMeetings > 0 ? Math.round(breakupAmount / totalMeetings) : 0;
+      
+      return {
+        ...member,
+        allocation_percentage: normalizedPercent,
+        breakup_amount: breakupAmount,
+        meetings_per_month: meetingsPerMonth,
+        committed_meetings: totalMeetings,
+        rate_per_meeting: ratePerMeeting
+      };
+    });
+    
     setTeamDeployment(updatedTeam);
-    setFormData(prev => ({
-      ...prev,
-      project_duration_months: months,
-      // If months doesn't match a preset, set to custom
-      project_duration_type: Object.entries(DURATION_TYPE_MONTHS).find(([_, v]) => v === months)?.[0] || 'custom'
-    }));
   };
 
   // Add team member
   const addTeamMember = () => {
-    if (!newMember.role || !newMember.meeting_type || !newMember.frequency) {
-      toast.error('Please fill Role, Meeting Type, and Frequency');
+    if (!newMember.role || !newMember.tenure_type_code || !newMember.meeting_type) {
+      toast.error('Please fill Role, Tenure Type, and Meeting Type');
       return;
     }
     
-    const committedMeetings = calculateCommittedMeetings(newMember.frequency, formData.project_duration_months);
+    const tenure = tenureTypes.find(t => t.code === newMember.tenure_type_code);
+    const role = consultantRoles.find(r => r.name === newMember.role);
+    
+    if (!tenure) {
+      toast.error('Invalid tenure type selected');
+      return;
+    }
+    
+    // Calculate total allocation after adding this member
+    const currentTotalAllocation = teamDeployment.reduce((sum, m) => {
+      const t = tenureTypes.find(tt => tt.code === m.tenure_type_code);
+      return sum + (t?.allocation_percentage || 0);
+    }, 0);
+    const newTotalAllocation = currentTotalAllocation + tenure.allocation_percentage;
+    
+    // Calculate allocation for new member based on total investment
+    const normalizedPercent = totalInvestment > 0 
+      ? (tenure.allocation_percentage / newTotalAllocation) * 100
+      : tenure.allocation_percentage;
+    
+    const breakupAmount = totalInvestment > 0 
+      ? totalInvestment * (normalizedPercent / 100)
+      : 0;
+    
+    const meetingsPerMonth = tenure.meetings_per_month || 1;
+    const totalMeetings = Math.round(meetingsPerMonth * formData.project_duration_months * (newMember.count || 1));
+    const ratePerMeeting = totalMeetings > 0 ? Math.round(breakupAmount / totalMeetings) : 0;
+    
     const memberData = {
       ...newMember,
-      committed_meetings: committedMeetings,
-      id: Date.now()
+      id: Date.now(),
+      allocation_percentage: normalizedPercent,
+      breakup_amount: breakupAmount,
+      meetings_per_month: meetingsPerMonth,
+      committed_meetings: totalMeetings,
+      rate_per_meeting: ratePerMeeting,
+      default_rate: role?.default_rate || 12500
     };
     
-    setTeamDeployment(prev => [...prev, memberData]);
+    const updatedTeam = [...teamDeployment, memberData];
+    setTeamDeployment(updatedTeam);
+    
+    // Recalculate all allocations with the new member
+    setTimeout(() => recalculateAllocations(), 0);
+    
     setNewMember({
       role: '',
+      tenure_type_code: '',
       meeting_type: '',
-      frequency: '',
       mode: 'Online',
-      rate_per_meeting: 12500,
       count: 1
     });
   };
 
   // Remove team member
   const removeTeamMember = (index) => {
-    setTeamDeployment(prev => prev.filter((_, i) => i !== index));
+    const updated = teamDeployment.filter((_, i) => i !== index);
+    setTeamDeployment(updated);
+    
+    // Recalculate allocations after removal
+    setTimeout(() => {
+      if (updated.length > 0 && totalInvestment > 0) {
+        const totalAllocationPercent = updated.reduce((sum, m) => {
+          const tenure = tenureTypes.find(t => t.code === m.tenure_type_code);
+          return sum + (tenure?.allocation_percentage || 0);
+        }, 0);
+        
+        const recalculated = updated.map(member => {
+          const tenure = tenureTypes.find(t => t.code === member.tenure_type_code);
+          if (!tenure || totalAllocationPercent === 0) return member;
+          
+          const normalizedPercent = (tenure.allocation_percentage / totalAllocationPercent) * 100;
+          const breakupAmount = totalInvestment * (normalizedPercent / 100);
+          const totalMeetings = Math.round((tenure.meetings_per_month || 1) * formData.project_duration_months * (member.count || 1));
+          const ratePerMeeting = totalMeetings > 0 ? Math.round(breakupAmount / totalMeetings) : 0;
+          
+          return {
+            ...member,
+            allocation_percentage: normalizedPercent,
+            breakup_amount: breakupAmount,
+            committed_meetings: totalMeetings,
+            rate_per_meeting: ratePerMeeting
+          };
+        });
+        setTeamDeployment(recalculated);
+      }
+    }, 0);
+  };
+
+  // Handle total investment change
+  const handleTotalInvestmentChange = (value) => {
+    const amount = parseFloat(value) || 0;
+    setTotalInvestment(amount);
   };
 
   // Calculate totals
   const calculateTotals = () => {
-    const totalMeetings = teamDeployment.reduce((sum, m) => sum + ((m.committed_meetings || 0) * (m.count || 1)), 0);
-    const subtotal = teamDeployment.reduce((sum, m) => sum + ((m.committed_meetings || 0) * (m.count || 1) * (m.rate_per_meeting || 12500)), 0);
+    const totalMeetings = teamDeployment.reduce((sum, m) => sum + (m.committed_meetings || 0), 0);
+    const subtotal = totalInvestment;
     const discount = subtotal * (formData.discount_percentage / 100);
     const afterDiscount = subtotal - discount;
     const gst = afterDiscount * 0.18;
     const total = afterDiscount + gst;
     
-    return { totalMeetings, subtotal, discount, gst, total };
+    // Validate allocation percentages
+    const allocatedTotal = teamDeployment.reduce((sum, m) => sum + (m.breakup_amount || 0), 0);
+    const allocationDiff = Math.abs(allocatedTotal - subtotal);
+    const isAllocationValid = allocationDiff < 1; // Allow ₹1 rounding difference
+    
+    return { totalMeetings, subtotal, discount, gst, total, allocatedTotal, isAllocationValid };
   };
 
   const totals = calculateTotals();
 
-  // Convert team deployment to consultants format for backend compatibility
-  const convertToConsultantsFormat = () => {
+  // Convert team deployment for backend
+  const convertToBackendFormat = () => {
     return teamDeployment.map(member => ({
       consultant_type: member.role.toLowerCase().replace(/\s+/g, '_'),
       role: member.role,
       meeting_type: member.meeting_type,
-      frequency: member.frequency,
+      tenure_type_code: member.tenure_type_code,
+      frequency: `${member.meetings_per_month || 1} per month`,
       mode: member.mode,
       count: member.count || 1,
       meetings: member.committed_meetings || 0,
-      rate_per_meeting: member.rate_per_meeting || 12500,
-      committed_meetings: member.committed_meetings || 0
+      rate_per_meeting: member.rate_per_meeting || 0,
+      committed_meetings: member.committed_meetings || 0,
+      allocation_percentage: member.allocation_percentage || 0,
+      breakup_amount: member.breakup_amount || 0
     }));
   };
 
@@ -232,13 +309,19 @@ const PricingPlanBuilder = () => {
       return;
     }
     
+    if (totalInvestment <= 0) {
+      toast.error('Please enter Total Client Investment');
+      return;
+    }
+    
     setLoading(true);
 
     try {
       const pricingPlan = {
         lead_id: leadId,
         ...formData,
-        consultants: convertToConsultantsFormat(),
+        total_investment: totalInvestment,
+        consultants: convertToBackendFormat(),
         team_deployment: teamDeployment,
         sow_items: []
       };
@@ -253,9 +336,42 @@ const PricingPlanBuilder = () => {
     }
   };
 
+  // Get tenure type name
+  const getTenureTypeName = (code) => {
+    const tenure = tenureTypes.find(t => t.code === code);
+    return tenure?.name || code;
+  };
+
   // Preview calculation for new member
-  const previewMeetings = newMember.frequency ? calculateCommittedMeetings(newMember.frequency, formData.project_duration_months) : 0;
-  const previewCost = previewMeetings * (newMember.count || 1) * (newMember.rate_per_meeting || 12500);
+  const getNewMemberPreview = () => {
+    if (!newMember.tenure_type_code || totalInvestment <= 0) return null;
+    
+    const tenure = tenureTypes.find(t => t.code === newMember.tenure_type_code);
+    if (!tenure) return null;
+    
+    const currentTotalAllocation = teamDeployment.reduce((sum, m) => {
+      const t = tenureTypes.find(tt => tt.code === m.tenure_type_code);
+      return sum + (t?.allocation_percentage || 0);
+    }, 0);
+    const newTotalAllocation = currentTotalAllocation + tenure.allocation_percentage;
+    const normalizedPercent = (tenure.allocation_percentage / newTotalAllocation) * 100;
+    const breakupAmount = totalInvestment * (normalizedPercent / 100);
+    const meetingsPerMonth = tenure.meetings_per_month || 1;
+    const totalMeetings = Math.round(meetingsPerMonth * formData.project_duration_months * (newMember.count || 1));
+    const ratePerMeeting = totalMeetings > 0 ? Math.round(breakupAmount / totalMeetings) : 0;
+    
+    return { breakupAmount, totalMeetings, ratePerMeeting, normalizedPercent };
+  };
+
+  const preview = getNewMemberPreview();
+
+  if (mastersLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-zinc-500">Loading master data...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto" data-testid="pricing-plan-builder">
@@ -279,6 +395,48 @@ const PricingPlanBuilder = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* TOTAL INVESTMENT - PRIMARY INPUT */}
+        <Card className="border-2 border-emerald-200 shadow-none rounded-sm bg-emerald-50">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium uppercase tracking-wide text-emerald-800 flex items-center gap-2">
+              <IndianRupee className="w-5 h-5" />
+              Total Client Investment (Top-Down Pricing)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label className="text-sm font-medium text-emerald-800 mb-2 block">
+                  Enter Total Project Investment *
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600 font-medium">₹</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={totalInvestment || ''}
+                    onChange={(e) => handleTotalInvestmentChange(e.target.value)}
+                    placeholder="Enter total investment amount"
+                    className="pl-8 h-12 text-xl font-semibold border-emerald-300 bg-white"
+                    data-testid="total-investment-input"
+                  />
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-emerald-600 mb-1">Total Investment</p>
+                <p className="text-2xl font-bold text-emerald-700" data-testid="total-investment-display">
+                  {formatINR(totalInvestment)}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-emerald-600 mt-3 flex items-center gap-1">
+              <Info className="w-3 h-3" />
+              The system will auto-allocate this amount to team members based on tenure type allocation percentages.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Project Duration */}
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardHeader>
@@ -310,7 +468,7 @@ const PricingPlanBuilder = () => {
                   min="1"
                   max="60"
                   value={formData.project_duration_months}
-                  onChange={(e) => handleDurationMonthsChange(parseInt(e.target.value) || 1)}
+                  onChange={(e) => setFormData({ ...formData, project_duration_months: parseInt(e.target.value) || 1 })}
                   className="rounded-sm border-zinc-200"
                   data-testid="duration-months-input"
                   disabled={formData.project_duration_type !== 'custom'}
@@ -331,13 +489,9 @@ const PricingPlanBuilder = () => {
               </div>
             </div>
             
-            {/* Duration info box */}
             <div className="p-3 bg-blue-50 rounded-sm text-sm text-blue-700">
               <Calculator className="w-4 h-4 inline mr-2" />
               Project Duration: <span className="font-semibold">{formData.project_duration_months} months</span>
-              {formData.project_duration_type !== 'custom' && (
-                <span className="text-blue-500"> (auto-set from {formData.project_duration_type.replace('_', ' ')})</span>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -353,8 +507,7 @@ const PricingPlanBuilder = () => {
             </div>
             {teamDeployment.length > 0 && (
               <div className="text-sm text-zinc-600">
-                Total: <span className="font-semibold text-emerald-600">{totals.totalMeetings}</span> meetings | 
-                <span className="font-semibold text-emerald-600"> {formatINR(totals.subtotal)}</span>
+                Total: <span className="font-semibold text-emerald-600">{totals.totalMeetings}</span> meetings
               </div>
             )}
           </CardHeader>
@@ -362,7 +515,7 @@ const PricingPlanBuilder = () => {
             {/* Add Team Member Form */}
             <div className="p-4 bg-zinc-50 rounded-sm space-y-4">
               <div className="text-xs font-medium text-zinc-500 uppercase">Add Team Member</div>
-              <div className="grid grid-cols-7 gap-2 items-end">
+              <div className="grid grid-cols-6 gap-3 items-end">
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-500">Role *</Label>
                   <select
@@ -371,9 +524,25 @@ const PricingPlanBuilder = () => {
                     className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
                     data-testid="team-role-select"
                   >
-                    <option value="">Select</option>
-                    {CONSULTANT_ROLES.map(role => (
-                      <option key={role} value={role}>{role}</option>
+                    <option value="">Select Role</option>
+                    {consultantRoles.map(role => (
+                      <option key={role.code} value={role.name}>{role.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-500">Tenure Type *</Label>
+                  <select
+                    value={newMember.tenure_type_code}
+                    onChange={(e) => setNewMember({ ...newMember, tenure_type_code: e.target.value })}
+                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
+                    data-testid="team-tenure-select"
+                  >
+                    <option value="">Select Tenure</option>
+                    {tenureTypes.map(tt => (
+                      <option key={tt.code} value={tt.code}>
+                        {tt.name} ({tt.allocation_percentage}%)
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -385,47 +554,11 @@ const PricingPlanBuilder = () => {
                     className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
                     data-testid="team-meeting-type-select"
                   >
-                    <option value="">Select</option>
-                    {MEETING_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
+                    <option value="">Select Type</option>
+                    {meetingTypes.map(mt => (
+                      <option key={mt.code} value={mt.name}>{mt.name}</option>
                     ))}
                   </select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-500">Frequency *</Label>
-                  <select
-                    value={newMember.frequency}
-                    onChange={(e) => setNewMember({ ...newMember, frequency: e.target.value })}
-                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
-                    data-testid="team-frequency-select"
-                  >
-                    <option value="">Select</option>
-                    {FREQUENCY_OPTIONS.map(freq => (
-                      <option key={freq.value} value={freq.value}>{freq.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-500">Rate/Meeting (₹)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={newMember.rate_per_meeting}
-                    onChange={(e) => setNewMember({ ...newMember, rate_per_meeting: parseFloat(e.target.value) || 0 })}
-                    className="h-9 text-sm rounded-sm border-zinc-200"
-                    data-testid="team-rate-input"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-500">Count</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={newMember.count}
-                    onChange={(e) => setNewMember({ ...newMember, count: parseInt(e.target.value) || 1 })}
-                    className="h-9 text-sm rounded-sm border-zinc-200"
-                    data-testid="team-count-input"
-                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-zinc-500">Mode</Label>
@@ -440,11 +573,23 @@ const PricingPlanBuilder = () => {
                     ))}
                   </select>
                 </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-zinc-500">Count</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={newMember.count}
+                    onChange={(e) => setNewMember({ ...newMember, count: parseInt(e.target.value) || 1 })}
+                    className="h-9 text-sm rounded-sm border-zinc-200"
+                    data-testid="team-count-input"
+                  />
+                </div>
                 <Button 
                   type="button" 
                   onClick={addTeamMember} 
                   size="sm" 
                   className="h-9"
+                  disabled={totalInvestment <= 0}
                   data-testid="add-team-member-btn"
                 >
                   <Plus className="w-4 h-4" />
@@ -452,10 +597,20 @@ const PricingPlanBuilder = () => {
               </div>
               
               {/* Preview */}
-              {newMember.frequency && (
+              {preview && totalInvestment > 0 && (
                 <div className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-sm">
                   <Calculator className="w-3 h-3 inline mr-1" />
-                  Preview: <span className="font-semibold">{previewMeetings}</span> meetings × {newMember.count || 1} resource(s) = <span className="font-semibold">{previewMeetings * (newMember.count || 1)}</span> total meetings @ {formatINR(newMember.rate_per_meeting)}/meeting = <span className="font-semibold">{formatINR(previewCost)}</span>
+                  Preview: Allocation <span className="font-semibold">{preview.normalizedPercent.toFixed(1)}%</span> = 
+                  <span className="font-semibold"> {formatINR(preview.breakupAmount)}</span> | 
+                  <span className="font-semibold"> {preview.totalMeetings}</span> meetings | 
+                  Rate: <span className="font-semibold">{formatINR(preview.ratePerMeeting)}</span>/meeting
+                </div>
+              )}
+              
+              {totalInvestment <= 0 && (
+                <div className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-sm flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Enter Total Client Investment above to enable team member addition
                 </div>
               )}
             </div>
@@ -463,59 +618,71 @@ const PricingPlanBuilder = () => {
             {/* Team Members Table */}
             {teamDeployment.length > 0 && (
               <div className="space-y-2">
-                <div className="grid grid-cols-8 gap-2 text-xs font-medium text-zinc-500 px-3 py-2 bg-zinc-100 rounded-t-sm">
+                <div className="grid grid-cols-9 gap-2 text-xs font-medium text-zinc-500 px-3 py-2 bg-zinc-100 rounded-t-sm">
                   <div>Role</div>
+                  <div>Tenure Type</div>
                   <div>Meeting Type</div>
-                  <div>Frequency</div>
-                  <div>Rate (₹)</div>
-                  <div>Count</div>
-                  <div>Committed</div>
-                  <div>Subtotal</div>
+                  <div className="text-center">Allocation %</div>
+                  <div className="text-right">Breakup (₹)</div>
+                  <div className="text-center">Meetings</div>
+                  <div className="text-right flex items-center justify-end gap-1">
+                    Rate/Meeting <Lock className="w-3 h-3 text-zinc-400" />
+                  </div>
+                  <div className="text-center">Count</div>
                   <div></div>
                 </div>
-                {teamDeployment.map((member, index) => {
-                  const memberMeetings = (member.committed_meetings || 0) * (member.count || 1);
-                  const memberCost = memberMeetings * (member.rate_per_meeting || 12500);
-                  return (
-                    <div 
-                      key={member.id || index} 
-                      className="grid grid-cols-8 gap-2 items-center px-3 py-2 bg-white border border-zinc-100 rounded-sm text-sm"
-                      data-testid={`team-member-${index}`}
-                    >
-                      <div className="font-medium truncate" title={member.role}>{member.role}</div>
-                      <div className="truncate" title={member.meeting_type}>{member.meeting_type}</div>
-                      <div className="truncate">{member.frequency}</div>
-                      <div>{formatINR(member.rate_per_meeting || 12500)}</div>
-                      <div>{member.count || 1}</div>
-                      <div className="font-semibold text-blue-600">{memberMeetings}</div>
-                      <div className="font-semibold text-emerald-600">{formatINR(memberCost)}</div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeTeamMember(index)}
-                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        data-testid={`remove-team-member-${index}`}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                {teamDeployment.map((member, index) => (
+                  <div 
+                    key={member.id || index} 
+                    className="grid grid-cols-9 gap-2 items-center px-3 py-2 bg-white border border-zinc-100 rounded-sm text-sm"
+                    data-testid={`team-member-${index}`}
+                  >
+                    <div className="font-medium truncate" title={member.role}>{member.role}</div>
+                    <div className="truncate text-zinc-600" title={getTenureTypeName(member.tenure_type_code)}>
+                      {getTenureTypeName(member.tenure_type_code)}
                     </div>
-                  );
-                })}
+                    <div className="truncate" title={member.meeting_type}>{member.meeting_type}</div>
+                    <div className="text-center font-semibold text-blue-600">
+                      {(member.allocation_percentage || 0).toFixed(1)}%
+                    </div>
+                    <div className="text-right font-semibold text-emerald-600">
+                      {formatINR(member.breakup_amount || 0)}
+                    </div>
+                    <div className="text-center font-semibold text-blue-600">
+                      {member.committed_meetings || 0}
+                    </div>
+                    <div className="text-right text-zinc-600 flex items-center justify-end gap-1">
+                      {formatINR(member.rate_per_meeting || 0)}
+                      <Lock className="w-3 h-3 text-zinc-300" />
+                    </div>
+                    <div className="text-center">{member.count || 1}</div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTeamMember(index)}
+                      className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      data-testid={`remove-team-member-${index}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
                 
                 {/* Totals Row */}
-                <div className="grid grid-cols-8 gap-2 items-center px-3 py-2 bg-zinc-100 border border-zinc-200 rounded-b-sm text-sm font-semibold">
-                  <div className="col-span-5 text-right">Total:</div>
-                  <div className="text-blue-700">{totals.totalMeetings}</div>
-                  <div className="text-emerald-700">{formatINR(totals.subtotal)}</div>
-                  <div></div>
+                <div className="grid grid-cols-9 gap-2 items-center px-3 py-2 bg-zinc-100 border border-zinc-200 rounded-b-sm text-sm font-semibold">
+                  <div className="col-span-3 text-right">Total:</div>
+                  <div className="text-center">100%</div>
+                  <div className="text-right text-emerald-700">{formatINR(totals.allocatedTotal)}</div>
+                  <div className="text-center text-blue-700">{totals.totalMeetings}</div>
+                  <div className="col-span-3"></div>
                 </div>
               </div>
             )}
             
             {teamDeployment.length === 0 && (
               <p className="text-sm text-zinc-400 text-center py-8">
-                No team members added. Add your team deployment structure above.
+                No team members added. Enter Total Investment above, then add your team deployment structure.
               </p>
             )}
           </CardContent>
@@ -544,12 +711,12 @@ const PricingPlanBuilder = () => {
             </div>
             <div className="space-y-2 pt-4 border-t border-zinc-200">
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-600">Total Meetings:</span>
-                <span className="font-semibold text-zinc-950" data-testid="total-meetings">{totals.totalMeetings}</span>
+                <span className="text-zinc-600">Total Client Investment:</span>
+                <span className="font-semibold text-zinc-950" data-testid="subtotal">{formatINR(totals.subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-600">Subtotal:</span>
-                <span className="font-semibold text-zinc-950" data-testid="subtotal">{formatINR(totals.subtotal)}</span>
+                <span className="text-zinc-600">Total Meetings:</span>
+                <span className="font-semibold text-zinc-950" data-testid="total-meetings">{totals.totalMeetings}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-600">Discount ({formData.discount_percentage}%):</span>
@@ -609,7 +776,7 @@ const PricingPlanBuilder = () => {
           </Button>
           <Button
             type="submit"
-            disabled={loading || teamDeployment.length === 0}
+            disabled={loading || teamDeployment.length === 0 || totalInvestment <= 0}
             className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
             data-testid="create-pricing-plan-btn"
           >
