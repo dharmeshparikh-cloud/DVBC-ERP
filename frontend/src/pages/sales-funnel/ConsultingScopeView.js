@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../../App';
@@ -15,7 +15,9 @@ import {
   ChevronRight, Paperclip, MessageSquare, Ban
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, differenceInDays, addWeeks, startOfWeek } from 'date-fns';
+import { format, differenceInDays, addWeeks, addDays, startOfWeek } from 'date-fns';
+import Gantt from 'frappe-gantt';
+import 'frappe-gantt/dist/frappe-gantt.css';
 
 const STATUS_CONFIG = {
   not_started: { label: 'Not Started', color: 'bg-zinc-100 text-zinc-700', icon: Clock },
