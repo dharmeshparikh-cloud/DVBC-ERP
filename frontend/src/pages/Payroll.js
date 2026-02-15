@@ -254,7 +254,7 @@ const Payroll = () => {
                           <span className={`font-medium text-xs ${type === 'earnings' ? 'text-emerald-700' : 'text-red-700'}`}>
                             {c.percentage ? `${c.percentage}% of CTC` : fmt(c.fixed)}
                           </span>
-                          {isHR && !c.is_default && (
+                          {isHR && (
                             <button onClick={() => removeComponent(type, c.key, c.name)} className="text-zinc-400 hover:text-red-500 transition-colors" data-testid={`remove-${c.key}`}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
