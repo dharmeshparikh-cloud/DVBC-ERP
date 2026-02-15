@@ -144,11 +144,27 @@ const Agreements = () => {
       toast.error('Please fill role, meeting type, and frequency');
       return;
     }
+    // Calculate committed meetings based on frequency and project tenure
+    const committedMeetings = calculateCommittedMeetings(newTeamMember.frequency, formData.project_tenure_months);
+    const teamMemberData = {
+      ...newTeamMember,
+      committed_meetings: committedMeetings,
+      id: Date.now()
+    };
     setFormData(prev => ({
       ...prev,
-      team_deployment: [...prev.team_deployment, { ...newTeamMember, id: Date.now() }]
+      team_deployment: [...prev.team_deployment, teamMemberData]
     }));
-    setNewTeamMember({ role: '', meeting_type: '', frequency: '', mode: 'Online', notes: '' });
+    setNewTeamMember({ 
+      role: '', 
+      meeting_type: '', 
+      frequency: '', 
+      mode: 'Online', 
+      base_rate_per_meeting: 12500,
+      meetings_per_period: 0,
+      committed_meetings: 0,
+      notes: '' 
+    });
   };
 
   const removeTeamMember = (index) => {
