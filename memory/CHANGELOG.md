@@ -1,5 +1,14 @@
 # DVBC - NETRA Changelog
 
+## Feb 15, 2026 — Drag-and-Drop Gantt Chart
+- Interactive Gantt chart in Consulting domain with draggable bars
+- Resize from edges to change task duration
+- Color-coded by status (blue=in progress, green=done, red=delayed) and priority
+- Timeline zoom in/out, prev/next navigation, today highlight
+- Project selector, unscheduled tasks section
+- New endpoint: PATCH /api/tasks/{task_id}/dates
+- Added to Consulting sidebar for all consulting roles
+
 ## Feb 15, 2026 — Payroll Components & Input Table
 - HR/Admin can add/remove salary components (earnings & deductions)
 - New payroll input spreadsheet: Working Days, Present, Absent, Holidays, Leaves, OT Hours, Incentive, Advance, Penalty (all with reasons), Remarks
