@@ -189,10 +189,10 @@ const SalesScopeSelection = () => {
             </p>
             <div className="flex gap-3">
               <Button 
-                onClick={() => navigate(`/sales-funnel/quotations?pricing_plan_id=${pricingPlanId}`)}
+                onClick={() => navigate(`/sales-funnel/proforma-invoice?pricing_plan_id=${pricingPlanId}`)}
                 className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
               >
-                Proceed to Quotation
+                Proceed to Proforma Invoice
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
