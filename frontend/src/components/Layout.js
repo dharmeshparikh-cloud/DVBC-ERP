@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
   User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronDown,
-  GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare
+  GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download
 } from 'lucide-react';
 
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
@@ -123,6 +123,7 @@ const Layout = () => {
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
+    { name: 'Downloads', href: '/downloads', icon: Download },
   ];
 
   const workspaceItems = [

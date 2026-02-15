@@ -39,6 +39,7 @@ import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
 import SecurityAuditLog from './pages/SecurityAuditLog';
 import GanttChart from './pages/GanttChart';
+import Downloads from './pages/Downloads';
 import Layout from './components/Layout';
 import './App.css';
 
@@ -112,6 +113,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="reports" element={<Reports />} />
         <Route path="security-audit" element={<SecurityAuditLog />} />
         <Route path="gantt-chart" element={<GanttChart />} />
+        <Route path="downloads" element={<Downloads />} />
       </Route>
     </Routes>
   );
