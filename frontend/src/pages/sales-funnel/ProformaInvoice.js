@@ -93,12 +93,28 @@ const ProformaInvoice = () => {
       setInvoices(invoicesRes.data);
       setPricingPlans(plansRes.data);
       setLeads(leadsRes.data);
+      
+      // Fetch SOW data if we have a pricing plan ID
+      if (pricingPlanIdFromUrl) {
+        try {
+          const sowRes = await axios.get(`${API}/enhanced-sow/${pricingPlanIdFromUrl}`);
+          setSowData(sowRes.data);
+        } catch (e) {
+          // SOW might not exist yet
+          setSowData(null);
+        }
+      }
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
       setLoading(false);
     }
   };
+
+  // Check if proforma invoice exists for current pricing plan
+  const currentInvoice = invoices.find(inv => inv.pricing_plan_id === pricingPlanIdFromUrl);
+  const hasProformaInvoice = !!currentInvoice;
+  const isProformaFinalized = currentInvoice?.is_final || false;
 
   const handlePlanSelect = (planId) => {
     const plan = pricingPlans.find(p => p.id === planId);
