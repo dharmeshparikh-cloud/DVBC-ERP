@@ -139,7 +139,7 @@ class TestClientsSecurity:
     async def test_client030_xss_in_name(self, admin_client, owasp_payloads, test_data):
         """TC-CLIENT-030: XSS in client name handled safely."""
         for payload in owasp_payloads.XSS_PAYLOADS[:2]:
-            client_data = test_data.client({"name": payload})
+            client_data = test_data.client({"company_name": payload})
             response = await admin_client.post("/api/clients", json=client_data)
             
             assert response.status_code != 500
