@@ -104,7 +104,26 @@ const Payroll = () => {
     ));
   };
 
+  const REQUIRED_NUMERIC_FIELDS = ['working_days', 'present_days', 'absent_days', 'public_holidays', 'leaves', 'overtime_hours', 'incentive', 'advance', 'penalty'];
+
+  const validateInput = (inp) => {
+    for (const f of REQUIRED_NUMERIC_FIELDS) {
+      if (inp[f] === '' || inp[f] === null || inp[f] === undefined) return f;
+    }
+    return null;
+  };
+
   const saveAllInputs = async () => {
+    // Validate all rows
+    const invalid = [];
+    for (const inp of payrollInputs) {
+      const field = validateInput(inp);
+      if (field !== null) invalid.push(`${inp.name} → ${field.replace(/_/g, ' ')}`);
+    }
+    if (invalid.length > 0) {
+      toast.error(`All fields are mandatory. Put 0 where not applicable.\nMissing: ${invalid.slice(0, 3).join(', ')}${invalid.length > 3 ? ` +${invalid.length - 3} more` : ''}`);
+      return;
+    }
     setSavingInputs(true);
     try {
       await axios.post(`${API}/payroll/inputs/bulk`, { month, inputs: payrollInputs });
@@ -117,6 +136,11 @@ const Payroll = () => {
   };
 
   const saveSingleInput = async (input) => {
+    const field = validateInput(input);
+    if (field !== null) {
+      toast.error(`All fields mandatory. "${field.replace(/_/g, ' ')}" is empty for ${input.name}. Put 0 if not applicable.`);
+      return;
+    }
     try {
       await axios.post(`${API}/payroll/inputs`, { ...input, month });
       toast.success('Saved');
