@@ -205,12 +205,18 @@ const SalesScopeSelection = () => {
 
   return (
     <div data-testid="sales-scope-selection-page">
+      {/* Progress Bar */}
+      <SalesFunnelProgress
+        currentStep={2}
+        pricingPlanId={pricingPlanId}
+        leadId={lead?.id || leadId}
+        sowCompleted={!!existingSOW}
+        proformaCompleted={false}
+        agreementCompleted={false}
+      />
+
       {/* Header */}
       <div className="mb-6">
-        <Button onClick={() => navigate('/sales-funnel/pricing-plans')} variant="ghost" className="mb-4 hover:bg-zinc-100 rounded-sm">
-          <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
-          Back to Pricing Plans
-        </Button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
@@ -220,7 +226,15 @@ const SalesScopeSelection = () => {
               {lead ? `${lead.first_name} ${lead.last_name} - ${lead.company}` : 'Loading...'}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={() => navigate('/sales-funnel/pricing-plans')} 
+              variant="outline" 
+              className="rounded-sm border-zinc-300"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
+              Back to Pricing
+            </Button>
             <div className="text-right">
               <div className="text-sm text-zinc-500">Selected Scopes</div>
               <div className="text-2xl font-semibold text-zinc-950">
