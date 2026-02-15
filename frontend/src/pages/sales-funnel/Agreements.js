@@ -110,6 +110,9 @@ const Agreements = () => {
     meeting_type: '',
     frequency: '',
     mode: 'Online',
+    base_rate_per_meeting: 12500,
+    meetings_per_period: 0,
+    committed_meetings: 0,
     notes: ''
   });
 
