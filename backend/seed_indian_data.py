@@ -540,6 +540,9 @@ async def seed_leads(db):
         
         sales_person = random.choice(sales_users) if sales_users else admin_user
         
+        # Generate clean company domain
+        clean_company = ''.join(c for c in company["name"].lower() if c.isalnum())[:12]
+        
         lead = {
             "id": str(uuid.uuid4()),
             "lead_owner": sales_person["id"],
@@ -548,7 +551,7 @@ async def seed_leads(db):
             "company": company["name"],
             "contact_person": f"{first_name} {last_name}",
             "job_title": job_title,
-            "email": generate_email(first_name, last_name, company["name"].lower().replace(" ", "").replace("&", "")[:10] + ".com"),
+            "email": f"{first_name.lower()}.{last_name.lower()}@{clean_company}.com",
             "phone": generate_indian_phone(),
             "linkedin_url": f"https://www.linkedin.com/in/{first_name.lower()}-{last_name.lower()}-{random.randint(1000,9999)}",
             "street": f"{random.randint(1, 500)}, {random.choice(['MG Road', 'Park Street', 'Ring Road', 'Industrial Area', 'Business Park', 'Tech Park'])}",
