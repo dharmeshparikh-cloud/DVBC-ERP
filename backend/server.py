@@ -7326,6 +7326,22 @@ async def submit_expense_for_approval(
         reference_id=expense_id
     )
     
+    # Notify reporting manager chain (direct + second-line)
+    reporting_chain = await get_reporting_chain(current_user.id, max_levels=2)
+    for rm in reporting_chain:
+        if rm.get('user_id'):
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": rm['user_id'],
+                "type": "expense_submitted",
+                "title": "Reportee Expense Submitted",
+                "message": f"Expense of ₹{expense['total_amount']:,.2f} submitted by {expense.get('employee_name', 'Employee')}.",
+                "reference_type": "expense",
+                "reference_id": expense_id,
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
     return {"message": "Expense submitted for approval", "approval_id": approval['id']}
 
 @api_router.post("/expenses/{expense_id}/mark-reimbursed")
