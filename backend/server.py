@@ -6009,6 +6009,15 @@ async def create_leave_request(
         {"$set": {"approval_request_id": approval['id']}}
     )
     
+    # Notify admins about new leave request
+    await notify_admins(
+        notif_type="leave_request",
+        title="New Leave Request",
+        message=f"{leave_request['employee_name']} requested {leave_data.leave_type.replace('_', ' ').title()} for {days} day(s).",
+        reference_type="leave_request",
+        reference_id=leave_request['id']
+    )
+    
     return {"message": "Leave request submitted for approval", "leave_request_id": leave_request['id']}
 
 @api_router.get("/leave-requests")
