@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://enterprise-suite-55.preview.emergentagent.com",
+      "value": "https://dev-resources-7.preview.emergentagent.com",
       "type": "string"
     },
     {
