@@ -44,6 +44,7 @@ import Downloads from './pages/Downloads';
 import SalesDashboard from './pages/SalesDashboard';
 import ConsultingDashboard from './pages/ConsultingDashboard';
 import HRDashboard from './pages/HRDashboard';
+import AdminMasters from './pages/AdminMasters';
 import Layout from './components/Layout';
 import './App.css';
 
