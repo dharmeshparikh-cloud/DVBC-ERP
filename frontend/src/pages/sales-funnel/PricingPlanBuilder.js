@@ -1371,16 +1371,19 @@ const PricingPlanBuilder = () => {
                       ? 'border-emerald-300 bg-emerald-50' 
                       : 'border-zinc-200 bg-zinc-50'
                   }`}
-                  onClick={() => setAgreementSections(prev => ({
-                    ...prev,
-                    [section.id]: !prev[section.id]
-                  }))}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setAgreementSections(prev => ({
+                      ...prev,
+                      [section.id]: !prev[section.id]
+                    }));
+                  }}
                   data-testid={`agreement-section-${section.id}`}
                 >
                   <Checkbox
                     checked={agreementSections[section.id]}
                     onCheckedChange={() => {}}
-                    onClick={(e) => e.stopPropagation()}
                   />
                   {agreementSections[section.id] ? (
                     <Eye className="w-4 h-4 text-emerald-600" />
