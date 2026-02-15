@@ -1379,10 +1379,8 @@ const PricingPlanBuilder = () => {
                 >
                   <Checkbox
                     checked={agreementSections[section.id]}
-                    onCheckedChange={(checked) => setAgreementSections(prev => ({
-                      ...prev,
-                      [section.id]: checked
-                    }))}
+                    onCheckedChange={() => {}}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   {agreementSections[section.id] ? (
                     <Eye className="w-4 h-4 text-emerald-600" />
