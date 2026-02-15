@@ -7979,6 +7979,43 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     present_days = sum(1 for r in att_records if r.get("status") in ["present", "work_from_home"])
     absent_days = sum(1 for r in att_records if r.get("status") == "absent")
     half_days = sum(1 for r in att_records if r.get("status") == "half_day")
+
+    # Get payroll inputs (manual overrides)
+    payroll_input = await db.payroll_inputs.find_one({"employee_id": employee_id, "month": month}, {"_id": 0})
+    if payroll_input:
+        # Override attendance from payroll inputs if provided
+        if payroll_input.get("present_days", 0) > 0:
+            present_days = payroll_input["present_days"]
+        if payroll_input.get("absent_days", 0) > 0:
+            absent_days = payroll_input["absent_days"]
+        # Add incentive as earning
+        incentive_amt = payroll_input.get("incentive", 0) or 0
+        if incentive_amt > 0:
+            reason = payroll_input.get("incentive_reason", "")
+            earnings.append({"name": f"Incentive{(' - ' + reason) if reason else ''}", "key": "incentive", "amount": round(incentive_amt, 2)})
+            total_earnings += incentive_amt
+        # Add overtime if any
+        ot_hours = payroll_input.get("overtime_hours", 0) or 0
+        if ot_hours > 0:
+            ot_rate = round(gross_salary / (30 * 8), 2)  # hourly rate
+            ot_amount = round(ot_hours * ot_rate * 1.5, 2)
+            earnings.append({"name": f"Overtime ({ot_hours} hrs)", "key": "overtime", "amount": ot_amount})
+            total_earnings += ot_amount
+        # Add advance as deduction
+        advance_amt = payroll_input.get("advance", 0) or 0
+        if advance_amt > 0:
+            reason = payroll_input.get("advance_reason", "")
+            deductions.append({"name": f"Salary Advance{(' - ' + reason) if reason else ''}", "key": "advance", "amount": round(advance_amt, 2)})
+            total_deductions += advance_amt
+        # Add penalty as deduction
+        penalty_amt = payroll_input.get("penalty", 0) or 0
+        if penalty_amt > 0:
+            reason = payroll_input.get("penalty_reason", "")
+            deductions.append({"name": f"Penalty{(' - ' + reason) if reason else ''}", "key": "penalty", "amount": round(penalty_amt, 2)})
+            total_deductions += penalty_amt
+    working_days = payroll_input.get("working_days", 30) if payroll_input else 30
+    public_holidays = payroll_input.get("public_holidays", 0) if payroll_input else 0
+    leaves_count = payroll_input.get("leaves", 0) if payroll_input else 0
     # Fetch approved/reimbursed expenses for this employee in this month
     expense_reimb = 0
     expense_query = {"employee_id": employee_id, "status": {"$in": ["approved", "reimbursed"]}}
