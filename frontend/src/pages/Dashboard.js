@@ -290,6 +290,95 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Login Activity Widget - Admin Only */}
+      {user?.role === 'admin' && (
+        <Card className="border-zinc-200 shadow-none rounded-sm mt-4" data-testid="login-activity-widget">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-zinc-600" strokeWidth={1.5} />
+              <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950">
+                Login Activity
+              </CardTitle>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-xs font-medium text-emerald-700">{loginActivity.successCount} success</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <XCircle className="w-3.5 h-3.5 text-red-500" />
+                <span className="text-xs font-medium text-red-600">{loginActivity.failedCount} failed</span>
+              </div>
+              <button
+                onClick={() => navigate('/security-audit')}
+                className="text-xs text-zinc-500 hover:text-zinc-950 transition-colors"
+                data-testid="view-all-audit"
+              >
+                View All
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loginActivity.logs.length === 0 ? (
+              <div className="text-sm text-zinc-400 text-center py-4">No login activity recorded yet</div>
+            ) : (
+              <div className="space-y-1">
+                {loginActivity.logs.map((log) => {
+                  const isSuccess = log.event_type?.includes('success');
+                  const isFailed = log.event_type?.includes('failed') || log.event_type?.includes('rejected');
+                  const eventLabel = {
+                    google_login_success: 'Google Login',
+                    password_login_success: 'Password Login',
+                    google_login_failed: 'Google Failed',
+                    password_login_failed: 'Password Failed',
+                    google_login_rejected_domain: 'Domain Rejected',
+                    google_login_rejected_unregistered: 'Unregistered',
+                    google_login_rejected_inactive: 'Inactive Account',
+                    otp_generated: 'OTP Generated',
+                    otp_request_rejected: 'OTP Rejected',
+                    password_reset_success: 'Password Reset',
+                    password_change_success: 'Password Changed',
+                    password_change_failed: 'Change Failed',
+                  }[log.event_type] || log.event_type;
+
+                  const time = new Date(log.timestamp);
+                  const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const dateStr = time.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+                  return (
+                    <div
+                      key={log.id}
+                      className="flex items-center gap-3 px-3 py-2 rounded-sm hover:bg-zinc-50 transition-colors"
+                      data-testid={`activity-${log.id}`}
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                        isSuccess ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-500'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-zinc-800 truncate">{log.email || 'Unknown'}</span>
+                          <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 font-medium ${
+                            isSuccess ? 'bg-emerald-50 text-emerald-700' : isFailed ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                          }`}>
+                            {eventLabel}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-zinc-400 whitespace-nowrap">
+                        {dateStr}, {timeStr}
+                      </div>
+                      <div className="text-[10px] text-zinc-300 font-mono whitespace-nowrap">
+                        {log.ip_address || ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
