@@ -109,6 +109,7 @@ const Layout = () => {
         { name: 'Meetings', href: '/consulting-meetings', icon: CalendarCheck },
       ]
     : [
+        { name: 'Kickoff Inbox', href: '/kickoff-requests', icon: Inbox },
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
         { name: 'Gantt Chart', href: '/gantt-chart', icon: GanttChartSquare },
