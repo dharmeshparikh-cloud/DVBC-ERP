@@ -64,9 +64,17 @@ def run_tests():
     users = list(db.users.find({}, {"_id": 0, "full_name": 1}))
     indian_names = ["Rajesh", "Amit", "Suresh", "Vikram", "Priya", "Sneha", "Pooja", "Neha",
                    "Anand", "Deepak", "Nitin", "Manoj", "Anjali", "Swati", "Kavita", "Sunita",
-                   "Meera", "Divya", "Ritu", "Anita", "Shweta", "Pallavi", "Rekha", "Lakshmi"]
+                   "Meera", "Divya", "Ritu", "Anita", "Shweta", "Pallavi", "Rekha", "Lakshmi",
+                   "Arun", "Prakash", "Sanjay", "Rahul", "Kiran", "Gaurav", "Manish", "Pradeep",
+                   "Ramesh", "Dinesh", "Sunil", "Mukesh", "Pankaj", "Naveen", "Arvind", "Sandeep",
+                   "Jitendra", "Yogesh", "Deepika", "Manisha", "Nisha", "Preeti", "Rashmi", 
+                   "Shalini", "Archana", "Geeta", "Mamta", "Vandana", "Seema", "Jyoti", "Sapna", "Komal",
+                   "Sharma", "Verma", "Singh", "Kumar", "Gupta", "Patel", "Reddy", "Rao", "Naidu",
+                   "Iyer", "Nair", "Menon", "Pillai", "Choudhary", "Malhotra", "Kapoor", "Joshi",
+                   "Desai", "Mehta", "Shah", "Bhat", "Kulkarni", "Patil", "Deshpande", "Agarwal",
+                   "Bansal", "Mittal", "Garg", "Saxena", "Tiwari", "Pandey", "Mishra", "Vinod", "Ashok", "Ravi"]
     non_admin = [u for u in users if u.get("full_name") != "System Administrator"]
-    has_indian_names = all(any(n in u.get("full_name", "") for n in indian_names) for u in non_admin[:10])
+    has_indian_names = all(any(n in u.get("full_name", "") for n in indian_names) for u in non_admin)
     test("TC002", "Users have valid Indian names", has_indian_names)
     
     # TC003: Employee email domain
