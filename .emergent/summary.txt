@@ -3,106 +3,111 @@ The user requires a comprehensive business management application for a 50-perso
 
 **PRODUCT REQUIREMENTS (based on user clarifications):**
 *   **Authentication & Roles:** A comprehensive, customizable role and permissions management system.
-*   **Top-Down Sales Workflow:** A sales process where the salesperson inputs , and the system auto-calculates costs. The flow is Pricing Plan → SOW Selection → Quotation → Agreement → Approval.
+*   **Top-Down Sales Workflow:** A sales process where the salesperson inputs , and the system auto-calculates costs. The flow is Pricing Plan → SOW Selection → Proforma Invoice → Agreement → Approval.
 *   **Role-Based SOW Workflow:**
-    *   **Sales Team:** Selects the scope of work from a pre-defined, categorized master list. Can also add custom scopes. This selection should lead directly to the Quotation step.
+    *   **Sales Team:** Selects the scope of work from a pre-defined, categorized master list. Can also add custom scopes, which should be automatically saved to the master list for future use. This selection should lead directly to the Proforma Invoice step.
     *   **Consulting Team:** Views the SOW only after a formal handover from Sales. They manage project execution using detailed views (Gantt, Kanban), track progress, and add tasks. They cannot see pricing/cost data.
 *   **SOW & Project Management:**
     *   Consulting view must include Gantt charts for timelines, Kanban boards for status, and the ability to add/manage tasks against scopes.
     *   An approval workflow is needed for tasks, allowing them to be sent to a reporting manager and the client separately.
+*   **Proforma Invoice:**
+    *   Rename Quotation to Proforma Invoice.
+    *   The invoice should have a modern layout, including team structure and pricing details, but without per-meeting costs.
+    *   Provide a downloadable PDF version that retains the on-screen format.
+    *   Allow navigation back to the previous step in the flow.
+*   **Sales Funnel Tracking:** A progress bar should be visible at each step of the sales funnel (Pricing, SOW, Invoice, Agreement) to track progress and allow navigation.
 *   **List Views/Dashboards:**
-    *   A dashboard for Sales to list all their SOWs with statuses (Draft, Handed Over) and actions (Edit, View, Handover, Proceed to Quotation).
-    *   A dashboard for Consulting (My Projects) to list all projects assigned to them, with statuses (Pending Kickoff, Active, Completed) and quick access to scopes and tasks.
-*   **Dynamic & Role-Specific Dashboards:** Users should see dashboards tailored to their department.
+    *   A dashboard for Sales to list all their SOWs with statuses (Draft, Handed Over) and actions (Edit, View, Handover, Proceed to Proforma Invoice).
+    *   A dashboard for Consulting (My Projects) to list all projects assigned to them.
 *   **Other Modules:** Employees, Client Master, Expenses, Reporting, Meetings & MOM, HR, My Workspace, and Admin Masters.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a sales funnel (Pricing Plan -> SOW -> Quotation). The core recent work is a sophisticated, role-based Statement of Work (SOW) module:
-*   **Backend:** APIs and data models for managing SOW master data (categories, scopes) and project-specific SOWs.
-*   **Sales Flow:** A  page where the sales team can pick from a categorized list of scopes or add custom ones. A  page serves as a dashboard for sales to track their SOWs and perform actions like Handover to Consulting.
-*   **Consulting Flow:** A  dashboard (My Projects) that lists projects only after they are handed over from sales. A detailed  page provides Kanban and Gantt chart visualizations () for tracking scope progress. A  page has been created for task management.
-*   **UI/UX:** Navigation has been updated with SOW List (for Sales) and My Projects (for Consulting).
+A full-stack application featuring a four-step sales funnel: Pricing Plan → SOW Selection → Proforma Invoice → Agreement.
+*   **Sales Funnel UI:** A reusable progress bar component () has been integrated into the  and  pages, providing clear step tracking and navigation.
+*   **SOW Selection:** The  page has a two-column table layout for selecting scopes.
+*   **Proforma Invoice:** The former  page has been completely redesigned and renamed to . It features a modern, multi-section layout built with Shadcn UI components. It displays project duration, team deployment structure, and a pricing summary without showing per-meeting costs. It also includes functionality to generate a PDF.
+*   **Backend:** FastAPI backend with routers for SOWs and master data.
 
 **Last working item**:
--   **Last item agent was working:** Fixing a broken user flow on the  page. The user reported that after saving the selected scopes, the application was incorrectly redirecting to the consulting view instead of the quotation page, blocking the sales funnel.
--   **Status:** IN PROGRESS
--   **Agent Testing Done:** N (The agent rewrote the component and was about to test the redirection flow.)
--   **Which testing method agent to use?** Frontend testing agent to verify the entire sales funnel from Pricing Plan -> SOW Selection -> Quotation.
--   **User Testing Done:** N
+-   **Last item agent was working:** The user reported three new issues after the agent completed the Proforma Invoice and progress bar implementation. The agent acknowledged the issues and was preparing to fix them.
+-   **Status:** NOT STARTED
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?**
+    1.  **PDF Format:** Use the screenshot tool on the browser's print preview to verify the layout.
+    2.  **Pricing ID Dropdown:** Use the screenshot tool to verify the UI change in the dialog.
+    3.  **Custom Scope Save:** Use  to call the SOW creation API with a custom scope, then another  to  to verify the new scope appears in the master list.
+-   **User Testing Done:** Y (User found the new issues)
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Broken SOW to Quotation Workflow (P0)**
--   **Issue 2: SOW List View for Sales and Consulting (P1)**
--   **Issue 3: Monolithic  file (P3 - Tech Debt)**
--   **Issue 4: Monolithic  &  Components (P3 - Tech Debt)**
+-   **Issue 1: Proforma Invoice PDF Export Formatting is Broken (P0)**
+-   **Issue 2: Unclear Pricing Plan Selection in Proforma Invoice Dialog (P1)**
+-   **Issue 3: Custom Scopes Not Saved to Master List (P2)**
+-   **Issue 4: Monolithic  file (P3 - Tech Debt)**
+-   **Issue 5: Monolithic  &  Components (P3 - Tech Debt)**
 
 **Issues Detail:**
--   **Issue 1: Broken SOW to Quotation Workflow**
-    -   **Attempted fixes:** The agent rewrote  to fix the UI (changed from cards to a list) and updated the  function to navigate to .
+-   **Issue 1: Proforma Invoice PDF Export Formatting is Broken**
+    -   **Attempted fixes:** None. The agent just implemented the PDF generation using  and .
     -   **Next debug checklist:**
-        1.  Start on the  page for a given pricing plan.
-        2.  Select one or more scopes.
-        3.  Click the Save Scopes button.
-        4.  **Verify the application correctly redirects to the Quotation page** with the correct  in the URL.
-        5.  Ensure the quotation page loads correctly.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical bug that blocks the entire sales funnel. Users cannot create quotations.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** Y (The agent misunderstood the flow in the previous attempt.)
+        1.  Review the print-specific CSS () within .
+        2.  Ensure styles for dark backgrounds, colors, and layout are correctly overridden for printing (e.g., setting , ).
+        3.  Verify the  and  implementation correctly captures the styled component.
+    -   **Why fix this issue and what will be achieved with the fix?** The downloadable PDF is a critical feature for sending invoices to clients. The format must be professional and match the on-screen view.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on other issue:** None.
 
--   **Issue 2: SOW List View for Sales and Consulting**
-    -   **Next debug checklist:** User wants SOWs to be in a list view for both sales and consulting roles. The agent has created  and . The flow and functionality of these pages need to be fully verified post-fix of Issue 1.
-    -   **Why fix this issue and what will be achieved with the fix?** To meet the user's requirement for a clear dashboard/list view for managing SOWs and projects.
-    -   **Status:** TESTING PENDING
+-   **Issue 2: Unclear Pricing Plan Selection in Proforma Invoice Dialog**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:**
+        1.  Modify the dropdown/select component within the Create Proforma Invoice dialog in .
+        2.  Update the mapping logic for the dropdown options to display more identifying information, such as  or a descriptive name, alongside the existing details.
+    -   **Why fix this issue and what will be achieved with the fix?** To improve user experience and prevent errors by making it clear which pricing plan is being selected.
+    -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** Issue 1
+    -   **Blocked on other issue:** None.
 
--   **Issue 3: Monolithic  file**
-    -   **Next debug checklist:** Continue moving related models and endpoints from  into separate router files (e.g., , ).
-    -   **Why fix this issue and what will be achieved with the fix?** To improve backend code maintainability and scalability.
+-   **Issue 3: Custom Scopes Not Saved to Master List**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:**
+        1.  Modify the SOW creation endpoint in .
+        2.  Inside the function that handles , iterate through the scopes being saved.
+        3.  For any scope marked as custom, check if a scope with the same name already exists in the  collection.
+        4.  If it doesn't exist, create a new entry in , possibly assigning it to a default or Custom category.
+    -   **Why fix this issue and what will be achieved with the fix?** This automates the process of building the master SOW list, saving admin time and ensuring useful custom scopes are available for future projects.
     -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
+    -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** backend
-    -   **Blocked on other issue:** None
-
--   **Issue 4: Monolithic  &  Components**
-    -   **Next debug checklist:** Plan the decomposition of  (>1500 lines) and the newly created  into smaller, reusable components.
-    -   **Why fix this issue and what will be achieved with the fix?** To improve frontend code maintainability, readability, and performance.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** None
+    -   **Blocked on other issue:** None.
 
 **In progress Task List**:
 -   None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks (P1):**
+    -   **Agreement Page Implementation:** Build the final Agreement step (Step 4) of the sales funnel, including its view and functionality.
     -   **Task Approval Workflow:** Implement the feature for consultants to add tasks to scopes and submit them for approval to a reporting manager and the client separately.
     -   **P&L Variance Tracking:** Implement logic to flag over-delivery (actual vs. committed meetings).
-    -   **Employee Cost Integration:** Integrate with HR/Payroll data to pull actual employee CTC for P&L calculations.
 -   **Future Tasks (P2):**
+    -   **Employee Cost Integration:** Integrate with HR/Payroll data to pull actual employee CTC for P&L calculations.
     -   **Project P&L Dashboard:** Create a dashboard showing committed vs. actual costs and revenue.
-    -   **Finance Module:** Build out a full finance module for P&L, invoicing, and revenue recognition.
-    -   **Detailed Reporting:** Create reports for role-wise and client-wise profitability.
+    -   **Finance Module:** Build out a full finance module for invoicing and revenue recognition.
     -   **Real Email Integration (SMTP).**
 
 **Completed work in this session**
--   **Role-Based SOW Module:**
-    -   Created backend infrastructure (, , ) to manage SOWs, master scopes, and categories.
-    -   Implemented a **Sales SOW Selection** page () for choosing scopes.
-    -   Implemented a **Consulting SOW View** () with a **Kanban board** and a **Gantt chart** (using ).
-    -   Created **SOW List dashboards** for both Sales () and Consulting ().
-    -   Implemented the **Handover to Consulting** workflow, which updates SOW status and visibility.
--   **Gantt Chart Implementation:** Switched from a failing  implementation to a working  solution.
+-   **Sales Funnel Flow Fixed:** Corrected the critical bug that blocked navigation from SOW selection to the next step.
+-   **Quotation to Proforma Invoice Refactor:** Renamed the component, route, and all user-facing text from Quotation to Proforma Invoice.
+-   **Modern Proforma Invoice UI:** Implemented a completely new, visually rich invoice layout using Shadcn UI components. The new design includes sections for team structure and pricing summary while omitting per-meeting costs, as requested.
+-   **Sales Funnel Progress Bar:** Created a reusable  component and integrated it into the  and  pages to visually track the user's progress through the sales workflow.
+-   **SOW Selection UI Update:** The UI was updated to a 2-column table layout for selecting scopes.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1:** Monolithic  file.
--   **Issue 2:** Monolithic  component.
+-   **Issue 1:** Monolithic  file remains a technical debt item.
+-   **Issue 2:** Monolithic  and  components need to be broken down.
 
 **Known issue recurrence from previous fork**
 -   The monolithic  file remains a recurring technical debt issue.
@@ -111,85 +116,111 @@ A full-stack application with a sales funnel (Pricing Plan -> SOW -> Quotation).
 
 
 **Key Technical Concepts**
--   **Frontend:** React, Tailwind CSS, Shadcn/UI,  library for Gantt charts, role-based rendering.
--   **Backend:** FastAPI, Pydantic, Motor (async MongoDB), router-based architecture.
--   **State Management:** Heavy use of , , , and  for complex form and page state.
+-   **Frontend:** React, Tailwind CSS, Shadcn/UI, .
+-   **PDF Generation:**  and  for converting React components to downloadable PDFs.
+-   **UI Components:** Creation of a reusable  component for tracking workflow progress.
+-   **Backend:** FastAPI, Pydantic, Motor (async MongoDB).
 
 **key DB schema**
 -   **SOWMasterCategory**: 
--   **SOWMasterScope**: ,  (links to SOWMasterCategory)
--   **SOW**: ,  (e.g., 'Draft', 'Handed Over'),  (list of SOWScope)
--   **SOWScope**:  (optional), ,  (e.g., 'Not Started'), , , 
+-   **SOWMasterScope**: , 
+-   **SOW**: , , 
+-   **SOWScope**:  (optional), , , , , 
 
 **changes in tech stack**
 -   yarn add v1.22.22
 [1/4] Resolving packages...
 [2/4] Fetching packages...
+info There appears to be trouble with your network connection. Retrying...
+info There appears to be trouble with your network connection. Retrying...
+info There appears to be trouble with your network connection. Retrying...
 [3/4] Linking dependencies...
 [4/4] Building fresh packages...
 success Saved lockfile.
-success Saved 1 new dependency.
+success Saved 20 new dependencies.
 info Direct dependencies
-└─ gantt-task-react@0.3.9
+├─ html2canvas@1.4.1
+└─ jspdf@4.1.0
 info All dependencies
-└─ gantt-task-react@0.3.9
-Done in 18.38s.
--   yarn remove v1.22.22
-[1/2] Removing module frappe-gantt...
-info Visit https://yarnpkg.com/en/docs/cli/remove for documentation about this command. (implicitly removed due to replacement)
+├─ @babel/runtime@7.28.6
+├─ @types/pako@2.0.4
+├─ @types/raf@3.4.3
+├─ @types/trusted-types@2.0.7
+├─ base64-arraybuffer@1.0.2
+├─ canvg@3.0.11
+├─ css-line-break@2.1.0
+├─ dompurify@3.3.1
+├─ fast-png@6.4.0
+├─ fflate@0.8.2
+├─ html2canvas@1.4.1
+├─ iobuffer@5.4.0
+├─ jspdf@4.1.0
+├─ pako@2.1.0
+├─ raf@3.4.1
+├─ regenerator-runtime@0.13.11
+├─ rgbcolor@1.0.1
+├─ stackblur-canvas@2.7.0
+├─ svg-pathdata@6.0.3
+└─ text-segmentation@1.0.3
+Done in 177.64s.
 
 **All files of reference**
--   **/app/frontend/src/pages/sales-funnel/SalesScopeSelection.js**: **CRITICAL FILE.** This file contains the broken workflow and the latest attempted fix.
--   **/app/frontend/src/pages/sales-funnel/SOWList.js**: Sales team's SOW dashboard.
--   **/app/frontend/src/pages/consulting/ConsultingProjects.js**: Consulting team's project dashboard.
--   **/app/frontend/src/pages/consulting/ConsultingScopeView.js**: Contains the Kanban and Gantt chart implementation.
--   **/app/backend/routers/sow.py**: Contains all backend logic for SOW creation, update, and handover.
--   **/app/frontend/src/App.js**: Contains the frontend routing setup.
--   **/app/frontend/src/components/Layout.js**: Contains the main navigation links.
+-   **/app/frontend/src/pages/sales-funnel/ProformaInvoice.js**: **CRITICAL FILE.** Contains the new invoice layout and the broken PDF export logic.
+-   **/app/frontend/src/pages/sales-funnel/SalesScopeSelection.js**: Contains the SOW selection logic and the progress bar integration. The backend logic it calls needs to be updated for Issue #3.
+-   **/app/frontend/src/components/Stepper.js**: The new reusable progress bar component.
+-   **/app/backend/routers/sow.py**: The backend router file that needs modification to save custom scopes to the master list.
+-   **/app/frontend/src/App.js**: Contains the updated frontend route for .
+-   **/app/frontend/src/components/Layout.js**: Contains the updated navigation link.
 
 **Areas that need refactoring**:
 -   **CRITICAL:**  is a >1500 line monolith.
--   **/app/frontend/src/pages/consulting/ConsultingScopeView.js** is growing large and should be broken into smaller components (e.g., , ).
+-   **/app/frontend/src/pages/consulting/ConsultingScopeView.js** is growing large and should be broken down.
 -   **/app/backend/server.py** still needs to be broken down into more router files.
 
 **key api endpoints**
 -   
--   
+-    (Needs modification for Issue #3)
 -   
 -   
 -   
 
 **Critical Info for New Agent**
--   **Your immediate task is to fix the broken sales funnel.** The user cannot proceed from SOW selection to the Quotation page.
--   The previous agent has already rewritten  to address UI feedback and update the navigation logic. **You must verify this fix works.**
--   The correct flow is: **Pricing Plan -> SOW Selection -> Quotation**. The previous agent incorrectly routed to the Consulting view, which you must confirm is fixed.
--   Do not start any new features until this critical workflow is repaired and verified.
+-   **Your immediate priority is to fix the three issues reported by the user in their last message.**
+    1.  **PDF Export Format:** The generated PDF invoice does not retain the modern UI's styling.
+    2.  **Pricing Plan Dropdown:** The dialog for creating a new proforma invoice doesn't show enough detail (like the Pricing Plan ID) to distinguish between plans.
+    3.  **Custom Scopes:** Custom scopes added during SOW creation are not being saved back to the master list for future use.
+-   Address these three issues before moving on to any new features.
 
 **documents and test reports created in this job**
--    (Updated)
--   
+-    (Updated by the agent)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asks for SOW list views for both Sales and Consulting, and a task management feature for consultants with an approval workflow. (COMPLETED/IN PROGRESS)
-2.  **User:** Clarifies choices for the SOW list views and the new workflow: Pricing Plan → Scope Selection → SOW List (Sales) → SOW Review (Consulting) -> Add Task. (COMPLETED)
-3.  **User:** Reports the SOW selection page is broken. It should be a list view, not cards, shouldn't let them move to Quotation, and is redirecting to the wrong page. (CURRENT ISSUE)
-4.  **User:** Corrects the agent's summary of the fix. The Add Custom Scope button *should* exist. The main issue is the incorrect redirection after selection; it must go to the Quotation page. (CURRENT ISSUE)
-5.  **Agent:** Confirms understanding: keep list view, restore Add Custom Scope button, redirect to . (AGENT'S LAST ACTION PLAN)
+1.  **User:** Requests Quotation page be renamed to Proforma Invoice with a back button and a downloadable PDF. (COMPLETED)
+2.  **User:** Requests removal of per meeting cost from the invoice. (COMPLETED)
+3.  **User:** Asks to include the team structure in the invoice description. (COMPLETED)
+4.  **User:** Asks for the Proforma Invoice to be enhanced with a modern layout using the available library. (COMPLETED)
+5.  **User:** Asks for a progress bar to track the sales funnel steps (Pricing -> SOW -> Invoice -> Agreement). (COMPLETED)
+6.  **User:** Reports 3 new issues:
+    -   PDF export format is broken.
+    -   Pricing plan ID is not visible in the invoice creation dialog.
+    -   Custom scopes are not being saved to the master SOW list. (PENDING)
 
 **Project Health Check:**
--   **Broken:** The primary sales workflow is non-functional. Users cannot create a quotation after defining a Statement of Work.
--   **Mocked:** Email sending functionality for notifications.
--   **Needs Rework:** , , .
+-   **Broken:** Proforma Invoice PDF export functionality.
+-   **Mocked:** Email sending (Send to Client button exists but is not functional).
+-   **Needs Rework:** , .
 
 **3rd Party Integrations**
 -   **Emergent-managed Google Auth**
--   **gantt-task-react:** Used for rendering Gantt charts in the consulting view.
+-   **gantt-task-react:** Used for Gantt charts.
+-   **html2canvas:** Used for PDF generation.
+-   **jspdf:** Used for PDF generation.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, the initial SOW features were tested and passed.
+-   **Testing agent used after significant changes:** YES, to verify the initial sales funnel redirection fix.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** 
--   **Known regressions:** The sales funnel flow from SOW selection to Quotation is a new regression introduced in the last few interactions.
+-   **Test files created:** None in this session.
+-   **Known regressions:** The PDF export feature is a new regression or was not fully tested upon creation.
 
 **Credentials to test flow:**
 -   **Admin:**  / 
@@ -197,4 +228,5 @@ info Visit https://yarnpkg.com/en/docs/cli/remove for documentation about this c
 -   **Executive:**  / 
 
 **What agent forgot to execute**
--   The agent misunderstood the user's requirements for the SOW selection flow multiple times, initially removing the Add Custom Scope button incorrectly and implementing the wrong redirection logic. This led to the current critical bug. The agent failed to test the end-to-end flow after making changes, which would have caught the regression.</analysis>
+-   The agent did not thoroughly test the PDF export functionality across different browsers or print settings, leading to the user discovering the formatting bug.
+-   The agent did not implement the implicit requirement of saving custom-added scopes back to the master list, which the user has now explicitly requested.</analysis>

@@ -164,7 +164,7 @@ const ProformaInvoice = () => {
   const handleDownloadPDF = () => {
     if (!invoiceRef.current) return;
     
-    // Use browser print functionality for PDF generation
+    // Generate professional print-ready PDF with proper styling
     const printContent = invoiceRef.current.innerHTML;
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -172,26 +172,153 @@ const ProformaInvoice = () => {
         <head>
           <title>Proforma Invoice - ${selectedInvoice?.quotation_number}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; }
-            .invoice-container { max-width: 800px; margin: 0 auto; }
-            table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-            th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; }
-            th { background-color: #f0f0f0; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .font-bold { font-weight: bold; }
-            .border-none { border: none !important; }
-            .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-            .company-name { font-size: 24px; font-weight: bold; color: #000; }
-            .section-title { background-color: #f0f0f0; padding: 8px; font-weight: bold; margin: 15px 0 5px 0; }
-            @media print { body { -webkit-print-color-adjust: exact; } }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              margin: 0; 
+              padding: 24px; 
+              font-size: 11px;
+              color: #18181b;
+              background: white;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .bg-white { background-color: #ffffff !important; }
+            .bg-zinc-50 { background-color: #fafafa !important; }
+            .bg-zinc-100 { background-color: #f4f4f5 !important; }
+            .bg-zinc-900 { background-color: #18181b !important; color: white !important; }
+            .bg-blue-50 { background-color: #eff6ff !important; }
+            .bg-amber-50 { background-color: #fffbeb !important; }
+            .bg-emerald-50 { background-color: #ecfdf5 !important; }
+            .bg-emerald-500, .bg-emerald-600 { background-color: #10b981 !important; color: white !important; }
+            .text-white { color: white !important; }
+            .text-zinc-300, .text-zinc-400 { color: #a1a1aa !important; }
+            .text-zinc-500 { color: #71717a !important; }
+            .text-zinc-600 { color: #52525b !important; }
+            .text-zinc-700 { color: #3f3f46 !important; }
+            .text-zinc-800 { color: #27272a !important; }
+            .text-zinc-900 { color: #18181b !important; }
+            .text-emerald-600, .text-emerald-700 { color: #059669 !important; }
+            .text-blue-600, .text-blue-700 { color: #2563eb !important; }
+            .text-amber-800, .text-amber-900 { color: #92400e !important; }
+            .font-bold { font-weight: 700 !important; }
+            .font-semibold { font-weight: 600 !important; }
+            .font-medium { font-weight: 500 !important; }
+            .text-xs { font-size: 10px !important; }
+            .text-sm { font-size: 11px !important; }
+            .text-base { font-size: 12px !important; }
+            .text-lg { font-size: 14px !important; }
+            .text-xl { font-size: 16px !important; }
+            .text-2xl { font-size: 18px !important; }
+            .text-3xl { font-size: 22px !important; }
+            .text-right { text-align: right !important; }
+            .text-center { text-align: center !important; }
+            .uppercase { text-transform: uppercase !important; }
+            .rounded-sm { border-radius: 4px !important; }
+            .rounded-full { border-radius: 9999px !important; }
+            .border { border: 1px solid #e4e4e7 !important; }
+            .border-t { border-top: 1px solid #e4e4e7 !important; }
+            .border-b { border-bottom: 1px solid #e4e4e7 !important; }
+            .border-t-2 { border-top: 2px solid #18181b !important; }
+            .border-zinc-100 { border-color: #f4f4f5 !important; }
+            .border-zinc-200 { border-color: #e4e4e7 !important; }
+            .border-amber-200 { border-color: #fde68a !important; }
+            .border-blue-500 { border-color: #3b82f6 !important; }
+            .border-l-4 { border-left: 4px solid !important; }
+            .p-2 { padding: 8px !important; }
+            .p-3 { padding: 12px !important; }
+            .p-4 { padding: 16px !important; }
+            .p-6 { padding: 24px !important; }
+            .px-2 { padding-left: 8px !important; padding-right: 8px !important; }
+            .px-4 { padding-left: 16px !important; padding-right: 16px !important; }
+            .py-1 { padding-top: 4px !important; padding-bottom: 4px !important; }
+            .py-2 { padding-top: 8px !important; padding-bottom: 8px !important; }
+            .py-3 { padding-top: 12px !important; padding-bottom: 12px !important; }
+            .pt-2 { padding-top: 8px !important; }
+            .pt-6 { padding-top: 24px !important; }
+            .mb-2 { margin-bottom: 8px !important; }
+            .mb-3 { margin-bottom: 12px !important; }
+            .mb-8 { margin-bottom: 32px !important; }
+            .mt-1 { margin-top: 4px !important; }
+            .mt-2 { margin-top: 8px !important; }
+            .mt-3 { margin-top: 12px !important; }
+            .mt-4 { margin-top: 16px !important; }
+            .gap-2 { gap: 8px !important; }
+            .gap-3 { gap: 12px !important; }
+            .gap-6 { gap: 24px !important; }
+            .gap-8 { gap: 32px !important; }
+            .space-y-2 > * + * { margin-top: 8px !important; }
+            .space-y-4 > * + * { margin-top: 16px !important; }
+            .space-y-6 > * + * { margin-top: 24px !important; }
+            .grid { display: grid !important; }
+            .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+            .col-span-3 { grid-column: span 3 / span 3 !important; }
+            .flex { display: flex !important; }
+            .flex-shrink-0 { flex-shrink: 0 !important; }
+            .items-center { align-items: center !important; }
+            .items-start { align-items: flex-start !important; }
+            .items-end { align-items: flex-end !important; }
+            .justify-between { justify-content: space-between !important; }
+            .justify-center { justify-content: center !important; }
+            .justify-end { justify-content: flex-end !important; }
+            .w-4 { width: 16px !important; }
+            .w-5 { width: 20px !important; }
+            .w-10 { width: 40px !important; }
+            .w-12 { width: 48px !important; }
+            .w-72 { width: 288px !important; }
+            .w-full { width: 100% !important; }
+            .h-4 { height: 16px !important; }
+            .h-5 { height: 20px !important; }
+            .h-10 { height: 40px !important; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e4e4e7; }
+            th { background-color: #fafafa; font-weight: 500; color: #71717a; font-size: 10px; text-transform: uppercase; }
+            .inline-flex { display: inline-flex !important; }
+            .overflow-hidden { overflow: hidden !important; }
+            .tracking-wide { letter-spacing: 0.025em !important; }
+            
+            /* Logo styling */
+            .logo-container { 
+              background: linear-gradient(135deg, #18181b 0%, #3f3f46 100%) !important; 
+              padding: 24px !important;
+              border-radius: 4px 4px 0 0 !important;
+            }
+            .logo-text {
+              font-size: 32px !important;
+              font-weight: 800 !important;
+              color: white !important;
+              letter-spacing: -0.02em !important;
+            }
+            .logo-registered {
+              font-size: 14px !important;
+              vertical-align: super !important;
+            }
+            
+            /* Print-specific styles */
+            @media print {
+              body { 
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .page-break { page-break-before: always; }
+              .no-break { page-break-inside: avoid; }
+            }
           </style>
         </head>
-        <body>${printContent}</body>
+        <body>
+          <div class="invoice-content">
+            ${printContent}
+          </div>
+        </body>
       </html>
     `);
     printWindow.document.close();
-    printWindow.print();
+    
+    // Wait for content to render before printing
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
   };
 
   const getStatusBadge = (status, isFinal) => {
