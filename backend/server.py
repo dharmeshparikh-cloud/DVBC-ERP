@@ -7571,14 +7571,22 @@ ATTENDANCE_STATUSES = ["present", "absent", "half_day", "work_from_home", "on_le
 
 @api_router.post("/attendance")
 async def create_attendance(data: dict, current_user: User = Depends(get_current_user)):
-    """Create/update attendance record for an employee on a date"""
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
-        raise HTTPException(status_code=403, detail="Only HR can manage attendance")
+    """Create/update attendance record. HR can manage all, reporting managers can manage their reportees."""
     employee_id = data.get("employee_id")
     date_str = data.get("date")
     att_status = data.get("status", "present")
     if not employee_id or not date_str:
         raise HTTPException(status_code=400, detail="employee_id and date required")
+    
+    # Access control: HR, admin, or reporting manager of the employee
+    if current_user.role in ["admin", "hr_manager", "hr_executive"]:
+        pass  # Full access
+    else:
+        # Check if the employee is a reportee (direct or second-line)
+        is_reportee = await is_any_reportee(current_user.id, employee_id)
+        if not is_reportee:
+            raise HTTPException(status_code=403, detail="You can only manage attendance for your reportees")
+    
     existing = await db.attendance.find_one({"employee_id": employee_id, "date": date_str})
     if existing:
         await db.attendance.update_one(
