@@ -1,0 +1,90 @@
+{
+  "summary": "Tested 3 new features in PricingPlanBuilder.js: 1) Custom Payment Schedule - PASSED, 2) Notes Section - PASSED, 3) Agreement Sections - BUG FIXED. Found and fixed 'Maximum update depth exceeded' React error when toggling Agreement Section checkboxes caused by conflicting onClick handlers.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Sidebar", "issues": ["XSS payload visible in admin username display - shows '<img src=x onerror=alert(...)>' - inherited from previous iterations"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_26.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BUG FIXED: Agreement Sections checkboxes were causing 'Maximum update depth exceeded' error",
+    "Root cause: Radix UI Checkbox component had conflicting event handlers - both parent div onClick and Checkbox onCheckedChange were triggering state updates",
+    "Fix: Replaced Radix UI Checkbox with a simple visual div indicator that doesn't handle its own click events"
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js"
+  ],
+  "success_rate": {
+    "backend": "N/A (frontend-only testing)",
+    "frontend": "100% (all features verified)"
+  },
+  "test_credentials": {
+    "admin": "admin@company.com / admin123"
+  },
+  "seed_data_creation": "None - used existing lead for testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Three new features in PricingPlanBuilder.js working correctly after bug fix: 1) Custom Payment Schedule (select 'Custom (Irregular)' from dropdown), 2) Notes Section (4 textareas at bottom), 3) Agreement Sections (8 toggleable checkboxes). Bug fix replaced Radix Checkbox component with simple visual div to prevent infinite loop.",
+  "features_tested": {
+    "Custom payment schedule dropdown option": "PASSED - 'Custom (Irregular)' appears in Payment Schedule dropdown",
+    "Adding multiple custom payments": "PASSED - Added 3 payments (30000, 40000, 30000) successfully",
+    "Custom payment validation": "PASSED - Red error shows when total doesn't match (₹70,000 vs ₹1,00,000), green when matched",
+    "Custom payments in table": "PASSED - All 3 payments show with correct breakdown in Payment Schedule table",
+    "Notes Section": "PASSED - 4 textareas present: Pricing Notes, Team Deployment Notes, Payment Terms Notes, General Notes",
+    "Agreement Sections checkboxes": "PASSED - 8 toggleable items with eye icons visible",
+    "Agreement Sections toggle": "FIXED - Was causing 'Maximum update depth exceeded' error, now works correctly",
+    "Conveyance split text for custom": "PASSED - Shows '(split across 3 payments)' when 3 custom payments added"
+  },
+  "test_scenarios_executed": [
+    {
+      "scenario": "Select Custom (Irregular) payment schedule",
+      "result": "PASSED",
+      "details": "Custom Payment Schedule section appears with Add Payment button"
+    },
+    {
+      "scenario": "Add 3 custom payments (30-40-30 split)",
+      "result": "PASSED",
+      "details": "All 3 payments added with dates, amounts, descriptions"
+    },
+    {
+      "scenario": "Validation when totals don't match",
+      "result": "PASSED",
+      "details": "Red error: 'Total custom payments (₹70,000.00) does not match project value (₹1,00,000.00)'"
+    },
+    {
+      "scenario": "Validation when totals match",
+      "result": "PASSED",
+      "details": "Error disappears, total shows in green (₹1,00,000.00)"
+    },
+    {
+      "scenario": "Notes Section has 4 textareas",
+      "result": "PASSED",
+      "details": "All 4 present: Pricing, Team Deployment, Payment Terms, General"
+    },
+    {
+      "scenario": "Toggle Agreement Section checkboxes",
+      "result": "FIXED",
+      "details": "Previously caused React infinite loop error, now toggles correctly between green (checked) and gray (unchecked)"
+    }
+  ],
+  "bug_fix_details": {
+    "bug": "Maximum update depth exceeded when clicking Agreement Section checkboxes",
+    "root_cause": "Both parent div onClick and Radix Checkbox onCheckedChange were calling setAgreementSections, causing event conflict and infinite re-render loop",
+    "fix_applied": "Replaced Radix UI Checkbox component with simple visual div element that doesn't handle its own click events",
+    "file_modified": "/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js",
+    "lines_changed": "1380-1386"
+  },
+  "mocked_apis": {
+    "has_mocked_apis": true,
+    "mocked_apis_list": ["Email/payment reminders - logs to console"]
+  }
+}
