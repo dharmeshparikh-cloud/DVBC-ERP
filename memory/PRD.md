@@ -7,14 +7,23 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ## Latest Update (February 15, 2026)
 
-### Team Deployment & Financial Data Separation ✅ (Latest)
+### Team Deployment Dropdowns Enhancement ✅ (Latest)
+
+**UI Enhancement: Team Deployment Structure Dropdowns**
+- Converted `Meeting Type` and `Frequency` inputs from free-text to dropdowns:
+  - **Meeting Type Options:** Monthly Review, Weekly Review, Online Review, On-site Visit, Strategy Session, Training Session, Progress Update, Kickoff Meeting, Quarterly Business Review, Data Analysis Review, Marketing Review, HR Consultation
+  - **Frequency Options:** 1 per month, 2 per month, 1 per week, 2 per week, 1 per quarter, Bi-weekly, As needed, On demand
+- Ensures data consistency and improved user experience
+- **File Modified:** `/app/frontend/src/pages/sales-funnel/Agreements.js`
+
+### Team Deployment & Financial Data Separation ✅
 
 **Major Feature: Team Deployment Structure for Kickoff Requests**
 - Added Team Deployment Structure to Agreement creation:
-  - Role (Project Manager, Data Analyst, Digital Marketing Manager, etc.)
-  - Meeting Type (Monthly Review, Online Review, etc.)
-  - Frequency (1 per month, Weekly, etc.)
-  - Mode (Online, Offline, Mixed)
+  - Role (Project Manager, Data Analyst, Digital Marketing Manager, etc.) - Dropdown
+  - Meeting Type (Monthly Review, Online Review, etc.) - Now Dropdown
+  - Frequency (1 per month, Weekly, etc.) - Now Dropdown
+  - Mode (Online, Offline, Mixed) - Dropdown
 - PM can now review team commitments before accepting projects
 - **Routes:** `/kickoff-requests` (updated), `/sales-funnel/agreements` (updated)
 
