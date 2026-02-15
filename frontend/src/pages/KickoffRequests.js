@@ -47,7 +47,7 @@ const KickoffRequests = () => {
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch(`${API}/api/kickoff-requests`, {
+      const response = await fetch(`${API}/kickoff-requests`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
@@ -125,7 +125,7 @@ const KickoffRequests = () => {
         expected_start_date: formData.expected_start_date ? new Date(formData.expected_start_date).toISOString() : null
       };
 
-      const response = await fetch(`${API}/api/kickoff-requests`, {
+      const response = await fetch(`${API}/kickoff-requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ const KickoffRequests = () => {
 
   const handleAccept = async (requestId) => {
     try {
-      const response = await fetch(`${API}/api/kickoff-requests/${requestId}/accept`, {
+      const response = await fetch(`${API}/kickoff-requests/${requestId}/accept`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
@@ -173,7 +173,7 @@ const KickoffRequests = () => {
 
   const handleReject = async (requestId) => {
     try {
-      const response = await fetch(`${API}/api/kickoff-requests/${requestId}/reject`, {
+      const response = await fetch(`${API}/kickoff-requests/${requestId}/reject`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
