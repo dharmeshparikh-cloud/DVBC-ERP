@@ -6151,12 +6151,39 @@ async def get_leave_requests(current_user: User = Depends(get_current_user)):
 
 @api_router.get("/leave-requests/all")
 async def get_all_leave_requests(current_user: User = Depends(get_current_user)):
-    """Get all leave requests (HR/Admin only)"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.HR_EXECUTIVE]:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    """Get all leave requests. HR/Admin see all. Reporting managers see their reportees'."""
+    if current_user.role in [UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.HR_EXECUTIVE]:
+        requests = await db.leave_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+        return requests
     
-    requests = await db.leave_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
-    return requests
+    # Reporting managers see their reportees' leave requests
+    reportee_user_ids = await get_reportee_user_ids(current_user.id)
+    if reportee_user_ids:
+        requests = await db.leave_requests.find(
+            {"user_id": {"$in": reportee_user_ids}},
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(200)
+        return requests
+    
+    raise HTTPException(status_code=403, detail="Not authorized")
+
+
+@api_router.get("/leave-balance/reportees")
+async def get_reportees_leave_balance(current_user: User = Depends(get_current_user)):
+    """Get leave balance for reportees (view only for reporting managers). HR/Admin see all."""
+    if current_user.role in [UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.HR_EXECUTIVE]:
+        employees = await db.employees.find({"is_active": True}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "leave_balance": 1, "user_id": 1}).to_list(200)
+        return employees
+    
+    reportee_ids = await get_all_reportee_ids(current_user.id)
+    if not reportee_ids:
+        return []
+    
+    employees = await db.employees.find(
+        {"id": {"$in": reportee_ids}, "is_active": True},
+        {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "leave_balance": 1, "user_id": 1}
+    ).to_list(200)
+    return employees
 
 # ==================== EMPLOYEES MODULE ====================
 
