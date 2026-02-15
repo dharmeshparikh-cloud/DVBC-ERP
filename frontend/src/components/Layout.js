@@ -1,15 +1,14 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { Button } from './ui/button';
 import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
-  User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronRight,
-  GitBranch, CalendarDays, Wallet, Clock, Layers, Map, Star
+  User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronDown,
+  GitBranch, CalendarDays, Wallet, Clock, Map, Star
 } from 'lucide-react';
 
-// Role groups per domain
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
 const SALES_ROLES_NAV = ['admin', 'executive', 'account_manager', 'manager'];
 const CONSULTING_ROLES_NAV = [
@@ -30,12 +29,17 @@ const Layout = () => {
   const showAdmin = ADMIN_ROLES.includes(role);
   const isConsultant = role === 'consultant';
 
+  // Track which sections are expanded - all open by default
+  const [expanded, setExpanded] = useState({
+    workspace: true, hr: true, sales: true, consulting: true, admin: true
+  });
+
+  const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+
   const isActive = (href) => {
     if (href === '/') return location.pathname === '/';
-    // Handle query params in href
     const [path] = href.split('?');
     if (location.pathname.startsWith(path) && path !== '/') {
-      // If href has query params, also check those
       if (href.includes('?')) {
         return location.pathname.startsWith(path) && location.search.includes(href.split('?')[1]);
       }
@@ -44,35 +48,34 @@ const Layout = () => {
     return false;
   };
 
-  const NavLink = ({ item, indent = false, flowStep = false }) => {
+  const NavLink = ({ item }) => {
     const Icon = item.icon;
     const active = isActive(item.href);
     return (
       <Link
         to={item.href}
         data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-        className={`flex items-center gap-3 py-2 rounded-sm text-sm transition-colors ${indent ? 'pl-6 pr-3' : 'px-3'} ${
+        className={`flex items-center gap-2.5 px-3 py-1.5 rounded-sm text-[13px] transition-colors ${
           active ? 'bg-zinc-100 text-zinc-950 font-medium' : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
         }`}
       >
-        {flowStep && (
-          <div className="flex items-center">
-            <ChevronRight className="w-3 h-3 text-zinc-300 -ml-1 mr-0.5" strokeWidth={2} />
-          </div>
-        )}
-        <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+        <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
         <span className="truncate">{item.name}</span>
       </Link>
     );
   };
 
-  const SectionHeader = ({ label }) => (
-    <div className="px-3 mb-1.5 mt-5 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+  const SectionHeader = ({ label, sectionKey }) => (
+    <button
+      onClick={() => toggle(sectionKey)}
+      className="flex items-center justify-between w-full px-3 mb-0.5 mt-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 hover:text-zinc-600 transition-colors"
+      data-testid={`section-${sectionKey}`}
+    >
       {label}
-    </div>
+      <ChevronDown className={`w-3 h-3 transition-transform ${expanded[sectionKey] ? '' : '-rotate-90'}`} />
+    </button>
   );
 
-  // Sales Flow branch items (Lead → Pricing → Quotation → Agreement)
   const salesFlowItems = [
     { name: 'Leads', href: '/leads', icon: Users },
     { name: 'Pricing Plans', href: '/sales-funnel/pricing-plans', icon: DollarSign },
@@ -89,7 +92,7 @@ const Layout = () => {
   const hrItems = [
     { name: 'Employees', href: '/employees', icon: UsersRound },
     { name: 'Org Chart', href: '/org-chart', icon: GitBranch },
-    { name: 'Leave Management', href: '/leave-management', icon: CalendarDays },
+    { name: 'Leave Mgmt', href: '/leave-management', icon: CalendarDays },
     { name: 'Attendance', href: '/attendance', icon: Clock },
     { name: 'Payroll', href: '/payroll', icon: Wallet },
     { name: 'Expenses', href: '/expenses', icon: Receipt },
@@ -100,16 +103,16 @@ const Layout = () => {
     ? [
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
-        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck },
+        { name: 'Meetings', href: '/consulting-meetings', icon: CalendarCheck },
       ]
     : [
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
-        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: CalendarCheck },
+        { name: 'Meetings', href: '/consulting-meetings', icon: CalendarCheck },
         { name: 'Performance', href: '/consultant-performance', icon: Star },
         { name: 'Consultants', href: '/consultants', icon: UserCog },
         { name: 'Handover Alerts', href: '/handover-alerts', icon: AlertTriangle },
-        { name: 'Consulting Reports', href: '/reports?category=operations', icon: BarChart3 },
+        { name: 'Reports', href: '/reports?category=operations', icon: BarChart3 },
       ];
 
   const adminItems = [
@@ -119,97 +122,90 @@ const Layout = () => {
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
   ];
 
+  const workspaceItems = [
+    { name: 'My Attendance', href: '/my-attendance', icon: CalendarDays },
+    { name: 'My Leaves', href: '/my-leaves', icon: Calendar },
+    { name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet },
+    { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
+  ];
+
   return (
     <div className="flex min-h-screen bg-white">
-      <aside className="w-64 border-r border-zinc-200 bg-white flex-shrink-0 h-screen sticky top-0" data-testid="sidebar">
+      <aside className="w-60 border-r border-zinc-200 bg-white flex-shrink-0 h-screen sticky top-0" data-testid="sidebar">
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-zinc-200 flex items-center justify-center">
+          <div className="px-5 py-4 border-b border-zinc-200 flex items-center gap-3">
             <img
               src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png"
-              alt="Logo" className="h-12 w-auto"
+              alt="Logo" className="h-9 w-auto"
             />
+            <div>
+              <div className="text-sm font-bold text-zinc-900 leading-none">DVBC - NETRA</div>
+            </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-2 overflow-y-auto" data-testid="nav-container">
-            {/* Dashboard - always visible */}
+          {/* Scrollable Navigation */}
+          <nav className="flex-1 px-2 py-1.5 overflow-y-auto scrollbar-thin" data-testid="nav-container">
             <NavLink item={{ name: isConsultant ? 'My Dashboard' : 'Dashboard', href: '/', icon: LayoutDashboard }} />
 
-            {/* ─── MY WORKSPACE ─── (visible to ALL users) */}
-            <SectionHeader label="My Workspace" />
-            <NavLink item={{ name: 'My Attendance', href: '/my-attendance', icon: CalendarDays }} />
-            <NavLink item={{ name: 'My Leaves', href: '/my-leaves', icon: Calendar }} />
-            <NavLink item={{ name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet }} />
-            <NavLink item={{ name: 'My Expenses', href: '/my-expenses', icon: Receipt }} />
+            {/* MY WORKSPACE */}
+            <SectionHeader label="My Workspace" sectionKey="workspace" />
+            {expanded.workspace && workspaceItems.map(item => <NavLink key={item.name} item={item} />)}
 
-            {/* ─── HR ─── */}
+            {/* HR */}
             {showHR && (
               <>
-                <SectionHeader label="HR" />
-                {hrItems.map(item => <NavLink key={item.name} item={item} />)}
+                <SectionHeader label="HR" sectionKey="hr" />
+                {expanded.hr && hrItems.map(item => <NavLink key={item.name} item={item} />)}
               </>
             )}
 
-            {/* ─── SALES ─── */}
+            {/* SALES */}
             {showSales && (
               <>
-                <SectionHeader label="Sales" />
-                {/* Sales Flow Branch */}
-                <div className="relative ml-3 pl-3 border-l-2 border-zinc-200 space-y-0.5" data-testid="sales-flow-branch">
-                  <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-zinc-300" />
-                  {salesFlowItems.map((item, idx) => (
-                    <div key={item.name} className="relative">
-                      {idx > 0 && (
-                        <div className="absolute -left-[17px] top-1/2 w-3 h-px bg-zinc-200" />
-                      )}
-                      <NavLink item={item} flowStep={idx > 0} />
-                    </div>
-                  ))}
-                  <div className="absolute -left-[5px] bottom-0 w-2 h-2 rounded-full bg-zinc-300" />
-                </div>
-                {/* Other Sales Items */}
-                <div className="mt-1 space-y-0.5">
-                  {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
-                </div>
+                <SectionHeader label="Sales" sectionKey="sales" />
+                {expanded.sales && (
+                  <>
+                    {salesFlowItems.map(item => <NavLink key={item.name} item={item} />)}
+                    <div className="my-0.5 mx-3 border-t border-zinc-100" />
+                    {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
+                  </>
+                )}
               </>
             )}
 
-            {/* ─── CONSULTING ─── */}
+            {/* CONSULTING */}
             {showConsulting && (
               <>
-                <SectionHeader label="Consulting" />
-                {consultingItems.map(item => <NavLink key={item.name} item={item} />)}
+                <SectionHeader label="Consulting" sectionKey="consulting" />
+                {expanded.consulting && consultingItems.map(item => <NavLink key={item.name} item={item} />)}
               </>
             )}
 
-            {/* ─── ADMIN ─── */}
+            {/* ADMIN */}
             {showAdmin && (
               <>
-                <SectionHeader label="Admin" />
-                {adminItems.map(item => <NavLink key={item.name} item={item} />)}
+                <SectionHeader label="Admin" sectionKey="admin" />
+                {expanded.admin && adminItems.map(item => <NavLink key={item.name} item={item} />)}
               </>
             )}
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t border-zinc-200">
-            <div className="mb-3">
-              <Link to="/profile" className="block hover:bg-zinc-50 rounded-sm p-1 -m-1">
-                <div className="text-sm text-zinc-950">{user?.full_name}</div>
-                <div className="text-xs text-zinc-500 capitalize">{user?.role?.replace(/_/g, ' ')}</div>
-              </Link>
-            </div>
-            <div className="space-y-1">
-              <Link to="/profile"
-                className="flex items-center w-full px-3 py-2 text-sm rounded-sm text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100">
-                <User className="w-4 h-4 mr-2" strokeWidth={1.5} /> My Profile
-              </Link>
-              <Button onClick={logout} data-testid="logout-button" variant="ghost"
-                className="w-full justify-start text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-sm">
-                <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} /> Sign Out
-              </Button>
-            </div>
+          <div className="px-3 py-3 border-t border-zinc-200">
+            <Link to="/profile" className="flex items-center gap-2 hover:bg-zinc-50 rounded-sm px-2 py-1.5 -mx-1">
+              <div className="w-7 h-7 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-medium text-zinc-700">
+                {user?.full_name?.charAt(0) || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-zinc-900 truncate">{user?.full_name}</div>
+                <div className="text-[10px] text-zinc-500 capitalize truncate">{user?.role?.replace(/_/g, ' ')}</div>
+              </div>
+            </Link>
+            <Button onClick={logout} data-testid="logout-button" variant="ghost" size="sm"
+              className="w-full justify-start text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-sm mt-1 h-8 text-xs">
+              <LogOut className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} /> Sign Out
+            </Button>
           </div>
         </div>
       </aside>
