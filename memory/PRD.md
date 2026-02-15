@@ -3,8 +3,10 @@
 ## Original Problem Statement
 A comprehensive business management application for a 50-person consulting organization covering HR, Marketing, Sales, Finance, and Consulting project workflows.
 
+## Application Name: DVBC - NETRA
+
 ## Core Requirements
-- **Authentication**: Email-based login with customizable roles
+- **Authentication**: Dual login — Google OAuth (domain-restricted to @dvconsulting.co.in) + Email/Password (admin-created accounts)
 - **Sales Workflow**: Lead → Pricing Plan → **SOW** → Quotation → Agreement (with SOW) → Approval → Project → Kick-off
 - **SOW Management**: Sales creates SOW after Pricing Plan, with version tracking and freeze after kick-off
 - **Agreement Structure**: Party Info, NDA, NCA, Renewal, Conveyance, SOW, Project Details, Team, Pricing, Payment Terms, Signature
@@ -23,506 +25,100 @@ A comprehensive business management application for a 50-person consulting organ
 6. **Principal Consultant**: Freeze SOW, lead kick-off meetings
 
 ### Custom Roles (Can be deleted/modified)
-7. **Lean Consultant**: Junior consultant role
-8. **Lead Consultant**: Lead consultant with team oversight
-9. **Senior Consultant**: Senior consultant with advanced permissions
-10. **HR Executive**: HR team member
-11. **HR Manager**: HR team manager with user management
-12. **Account Manager**: Handles client accounts and sales
-13. **Subject Matter Expert**: Domain expert for consulting
+7-13: Lean Consultant, Lead Consultant, Senior Consultant, HR Executive, HR Manager, Account Manager, Subject Matter Expert
 
-## Role-Based SOW Access Control
-- **Sales Team** (create/edit SOW): Admin, Executive, Account Manager
-- **Consulting Team** (view/update status): Consultant, Lean Consultant, Lead Consultant, Senior Consultant, Principal Consultant, Subject Matter Expert
-- **PM/Audit Team** (approve/authorize): Admin, Project Manager, Manager
-
-## Approval Workflow Based on Reporting Manager Hierarchy (Feb 14, 2026) ✅ NEW
-- **Reporting Manager Integration**: Each employee can have a reporting manager assigned
-- **Multi-Level Approval Chain**:
-  1. First goes to direct reporting manager
-  2. For client-facing items: escalates to second-level manager
-  3. HR approval required for leave requests and expenses
-  4. Admin approval required for agreements/quotations
-  5. Fallback to role-based if no reporting manager assigned
-- **Approval Types**: SOW Items, Agreements, Quotations, Leave Requests, Expenses, Client Communications
-- **Notifications**: Specific reporting manager notified (not all managers)
+## Authentication System (Feb 15, 2026)
+- **Dual Login**: Email/Password (primary, all users) + Google OAuth (secondary, @dvconsulting.co.in only)
+- **Domain Restriction**: Google login restricted to dvconsulting.co.in Google Workspace accounts
+- **Pre-Registered Only**: Google email must match existing employee record in DB
+- **Admin Password Fallback**: Admin can always login via email/password
+- **OTP Password Reset**: Admin-only, 6-digit OTP with 10-min expiry
+- **Change Password**: Logged-in users can change their password
+- **Security Audit Log**: All auth events logged (login success/failure, OTP, password changes) with IP, user agent, timestamps
+- **Admin Audit Report**: Filterable table with Export CSV
 
 ## Implemented Features
 
-### Approval Workflow Engine (Feb 14, 2026) ✅ NEW
-- **Approvals Center**: Central hub for all approval requests
-- **Approval Chain**: Visual display of approval levels with status
-- **Stats Dashboard**: Pending, Approved, Rejected counts
-- **Three Tabs**:
-  1. Pending My Action - items waiting for current user's approval
-  2. My Requests - items user has submitted for approval
-  3. All Approvals - admin/manager view of all requests
-- **Action Dialog**: Approve/Reject with comments
-- **APIs**:
-  - `GET /api/approvals/pending` - Approvals awaiting user action
-  - `GET /api/approvals/my-requests` - User's submitted requests
-  - `GET /api/approvals/all` - All approvals (admin/manager)
-  - `POST /api/approvals/{id}/action` - Approve or reject
-  - `GET /api/approvals/preview-chain` - Preview approval chain
-- **Leave Request System**:
-  - `POST /api/leave-requests` - Submit leave request
-  - Auto-routes to Reporting Manager → HR Manager
-  - Updates leave balance on approval
+### Authentication & Security (Feb 15, 2026) ✅
+- Google OAuth via Emergent Auth with domain restriction
+- Email/Password login for all users
+- Admin OTP password reset
+- Security Audit Log with search, filter, export
+- All auth events tracked with IP address
 
-### Role & Permissions Management Module (Feb 14, 2026) ✅
-- **User Management Page**: Integrated Users and Roles tabs
-- **Users Tab**:
-  - List all users with name, email, department, role, status
-  - Admin can change user roles via dropdown
-  - Add User dialog for creating new users
-  - Search and filter by role
-- **Roles Tab**:
-  - Display all 13 roles as cards
-  - System badge for protected roles
-  - User count per role
-  - Create Role dialog (custom roles only)
-  - Permissions button opens configuration dialog
-  - Delete button (custom roles only)
-- **Permissions Dialog**:
-  - Configure module access per role
-  - 10 modules: Leads, Pricing Plans, SOW, Quotations, Agreements, Projects, Tasks, Consultants, Users, Reports
-  - Toggle actions: Create, Read, Update, Delete, + special actions (Freeze, Approve, Authorize Client, etc.)
-  - Save permissions to database
-- **APIs**:
-  - `GET /api/roles` - List all roles
-  - `POST /api/roles` - Create custom role
-  - `GET /api/roles/{role_id}` - Get role with permissions
-  - `PATCH /api/roles/{role_id}` - Update role/permissions
-  - `DELETE /api/roles/{role_id}` - Delete custom role
-  - `GET /api/users-with-roles` - Users with role info
-  - `PATCH /api/users/{user_id}/role` - Change user role
-  - `GET /api/permission-modules` - Available modules/actions
-  - `GET /api/roles/categories/sow` - SOW access categories
+### Approval Workflow Engine ✅
+- Approvals Center with pending/my-requests/all tabs
+- Multi-level approval chain based on reporting manager hierarchy
+- Leave Request System auto-routed to manager → HR
 
-### SOW Role-Based Segregation (Feb 14, 2026) ✅ NEW
-- **Sales Team Features**: Add New Row button, Edit/Delete buttons, Submit for Approval
-- **Consulting Team Features**: Status dropdown (can update progress), View documents
-- **PM Team Features**: Approve/Reject buttons for pending items, Approve All button
-- Dynamic UI based on user role category
+### Role & Permissions Management ✅
+- 13 customizable roles with RBAC
+- User Management page with role assignment
 
-### Reports & Analytics Module (Feb 14, 2026) ✅ NEW
-- **Purpose**: Generate and download analytical reports with Excel and PDF export
-- **19 Core Reports** across 4 categories:
-  - **Sales (8)**: Lead Summary, Lead Conversion Funnel, Lead Source Analysis, Client Overview, Client Industry Breakdown, Sales Pipeline Status, Quotation Analysis, Agreement Status
-  - **Finance (3)**: Client Revenue Analysis, Expense Summary, Expense Category Analysis
-  - **HR (3)**: Employee Directory, Department Analysis, Leave Utilization
-  - **Operations (5)**: SOW Status, Project Summary, Consultant Allocation, Approval Turnaround, Pending Approvals
-- **Export Formats**: Excel (.xlsx) and PDF
-- **Role-Based Access**:
-  - Admin: All 19 reports
-  - Manager: All 19 reports
-  - HR Manager: HR + Finance reports
-  - Project Manager: Operations + Client reports
-  - Executive/Account Manager: Sales reports
-- **Quick Stats Dashboard**: Leads, Clients, Employees, Projects, Revenue, Pending Approvals, Expenses
-- **Features**:
-  - Search and category filter
-  - Preview dialog with data table
-  - Direct download buttons
-- **APIs**:
-  - `GET /api/reports` - List available reports for user role
-  - `GET /api/reports/{id}/preview` - Preview report data
-  - `POST /api/reports/generate` - Download Excel or PDF
-  - `GET /api/reports/categories` - List report categories
-  - `GET /api/reports/stats` - Quick stats (admin/manager)
-- **Navigation**: Management → Reports
+### Sales Workflow ✅
+- Lead management with scoring
+- Pricing Plan Builder
+- SOW Builder with version history
+- Quotations with approval workflow
+- Agreements with templates
+- Manager Approvals
 
-### Agreement & SOW Document Export (Feb 14, 2026) ✅ NEW
-- **Purpose**: Generate and download professional Agreement and SOW documents in Word and PDF formats
-- **Agreement Document Export**:
-  - Generates professional consulting agreement with all sections
-  - Sections: Party Information, Agreement Between Parties, Confidentiality, NDA, NCA, Renewal Terms, Conveyance, SOW Table, Project Details, Team Engagement, Pricing Plan, Payment Terms, Signatures
-  - Includes company branding (D&V Business Consulting)
-  - Auto-populates client information from lead data
-  - SOW items displayed in table format with category, title, description, deliverables, timeline
-  - Team deployment table with consultant types, counts, meetings, hours, rates
-  - Pricing summary with subtotal, discount, GST, grand total in INR (₹)
-  - Signature section with signature lines for both parties
-- **SOW Document Export**:
-  - Generates standalone Scope of Work document
-  - Includes client name, status, version number
-  - Items table: #, Category, Title, Description, Consultant, Timeline
-  - Summary section: Total items, Approved, Completed counts
-- **Export Formats**:
-  - PDF: Professional PDF document with tables and formatting
-  - Word (.docx): Editable Word document with table styles
-- **APIs**:
-  - `GET /api/agreements/{id}/download?format=pdf|docx` - Download agreement document
-  - `GET /api/sow/{id}/download?format=pdf|docx` - Download SOW document
-- **UI Components**:
-  - Agreements Page: PDF and Word download buttons per agreement card
-  - SOW Builder Page: PDF and Word download buttons in header
-- **Technology**: python-docx for Word generation, ReportLab for PDF generation
+### HR Module ✅
+- Employee Management
+- Org Chart (visual hierarchy)
+- Leave Management with approval
+- Attendance tracking (manual/Excel)
+- Payroll with salary components
+- Expense Management with approval
 
-### Meetings & MOM - Split into Sales & Consulting (Feb 14, 2026) ✅ REFACTORED
-- **Purpose**: Separated meetings into two distinct workflows based on business type
-- **Sales Meetings** (Route: `/sales-meetings`):
-  - Lightweight form: Title, Date, Mode, Duration, Lead (optional), Notes
-  - Sales MOM: Agenda, Discussion Points, Decisions (no action items)
-  - Accessible by: Admin, Executive, Account Manager
-  - Navigation: Under "Sales Funnel" section
-- **Consulting Meetings** (Route: `/consulting-meetings`):
-  - Detailed form: Title, Date, Mode, Duration, Project (required), Client, SOW, Delivered status
-  - Consulting MOM: Full Agenda, Discussion Points, Decisions, Action Items with assignment/priority/due date
-  - Action Items: Assign to team, create follow-up tasks, notify manager
-  - Send MOM to Client (email queued, MOCKED)
-  - Commitment Tracking tab: Project-level committed vs actual meetings with variance & completion %
-  - Accessible by: Admin, Project Manager, Consultant roles, Manager (view only)
-  - Navigation: Main nav section
-- **Role-Based Access**:
-  - Sales roles (admin, executive, account_manager) → CRUD on Sales Meetings
-  - Consulting roles (admin, project_manager, consultant, etc.) → CRUD on Consulting Meetings
-  - Manager → View only (no create/edit)
-  - HR Manager → No CRUD access (403)
-- **APIs**:
-  - `POST /api/meetings` - Create meeting (type: 'sales' or 'consulting')
-  - `GET /api/meetings?meeting_type=sales|consulting` - Filter by type
-  - `GET /api/consulting-meetings/tracking` - Committed vs actual per project
-  - `GET /api/meetings/{id}` - Get meeting with full MOM
-  - `PATCH /api/meetings/{id}/mom` - Update MOM data
-  - `POST /api/meetings/{id}/action-items` - Add action item (consulting)
-  - `PATCH /api/meetings/{id}/action-items/{id}` - Update action item status
-  - `POST /api/meetings/{id}/send-mom` - Send MOM to client
+### My Workspace (Self-Service) ✅
+- My Attendance, My Leaves, My Salary Slips, My Expenses
 
-### Org Chart - Visual Hierarchy Tree (Feb 14, 2026) ✅ NEW
-- **Purpose**: Separate dedicated page showing reporting manager hierarchy as visual tree
-- **Features**: Expandable/collapsible tree nodes, department color coding, stats (total, departments, managers)
-- **Route**: `/org-chart`
-- **API**: `GET /api/employees/org-chart/hierarchy`
+### Meetings & MOM ✅
+- Sales Meetings and Consulting Meetings (separate modules)
+- Consulting MOMs linked to SOWs with commitment tracking
 
-### Leave Management (Feb 14, 2026) ✅ NEW
-- **Purpose**: Dedicated page for leave requests with approval flow
-- **Approval Flow**: Employee → Reporting Manager → HR Manager (final records)
-- **Features**: Apply leave form (type, dates, reason), My Requests tab, All Requests tab (HR only)
+### Consulting ✅
+- Project Roadmap (Table/Kanban views)
+- Consultant Performance reviews
 
-### Project Roadmap (Feb 14, 2026) ✅ NEW
-- **Purpose**: Monthly phased project plans linked to SOW, shared with clients
-- **Features**: Table view + Kanban view (4 columns), inline status updates, submit to client
-- **Phases**: Monthly breakdown with items (title, assigned to, due date, status)
-- **Status flow**: Draft → Active → Submitted to Client → Completed
-- **Route**: `/project-roadmap`
-- **APIs**: `POST/GET /api/roadmaps`, `PATCH /api/roadmaps/{id}`, `POST /api/roadmaps/{id}/submit-to-client`, `PATCH /api/roadmaps/{id}/items/{item_id}/status`
+### Reports & Documents ✅
+- Comprehensive reporting with Excel/PDF download
+- Feature Index Word document generation
 
-### Consultant Performance (Feb 14, 2026) ✅ NEW
-- **Purpose**: Configurable performance metrics, consultant rating, performance tracking
-- **Metrics Config**: Created by Principal Consultant, MUST be approved by Admin before populating to users
-  - Default: SOW Timely Delivery (20%), Roadmap Achievement (20%), Records Timeliness (15%), SOW Quality Score (25%), Meeting Adherence (20%)
-  - Fully customizable per project with weighted scoring
-- **Performance Scoring**: RM/PM rates consultants monthly (0-100 per metric), weighted overall score calculated
-- **3 Tabs**: Metrics Config (with approve/reject for admin), Scores (filterable), Summary (per-consultant avg)
-- **Route**: `/consultant-performance`
-- **APIs**: `POST/GET /api/performance-metrics`, `POST /api/performance-metrics/{id}/approve|reject`, `POST/GET /api/performance-scores`, `GET /api/performance-scores/summary`
+## Upcoming Tasks (P1)
+- RACI Matrix for SOW
+- Drag-and-Drop Gantt Chart
 
-
-- **Route**: `/leave-management`
-- **APIs**: `POST /api/leave-requests`, `GET /api/leave-requests`, `GET /api/leave-requests/all`
-
-### Attendance (Feb 14, 2026) ✅ NEW
-- **Purpose**: Track employee attendance with manual entry and CSV bulk upload
-- **Features**: Monthly view, summary per employee (present/absent/half_day/wfh/on_leave), daily records tab, CSV bulk upload
-- **Route**: `/attendance`
-- **APIs**: `POST /api/attendance`, `POST /api/attendance/bulk`, `GET /api/attendance`, `GET /api/attendance/summary`
-
-### Payroll (Feb 14, 2026) ✅ NEW
-- **Purpose**: Manage salary components, generate and view salary slips
-- **Salary Components**: Basic (40%), HRA (20%), Special Allowance (20%), Conveyance (₹1,600), Medical (₹1,250) | Deductions: PF (12%), PT (₹200), ESI (0.75%)
-- **Features**: Generate slips (individual or bulk), view slip detail (earnings, deductions, net pay, bank details, attendance), salary components config
-- **Route**: `/payroll`
-- **APIs**: `GET /api/payroll/salary-components`, `POST /api/payroll/salary-components`, `GET /api/payroll/salary-slips`, `POST /api/payroll/generate-slip`, `POST /api/payroll/generate-bulk`
-
-
-- **Purpose**: Manage client information and relationships for sales team
-- **Client Data Model**:
-  - Company: Name, Industry, Website
-  - Location: City, State, Country, Region, Full Address
-  - Business: Business Start Date, Sales Person (who closed deal)
-  - Links: Lead ID, Agreement ID
-- **Contacts (SPOCs)**:
-  - Name, Designation, Email, Phone
-  - Primary contact flag
-  - Multiple contacts per client
-- **Revenue History**:
-  - Year, Quarter (optional)
-  - Amount in INR
-  - Notes per record
-  - Auto-calculated total revenue
-- **Stats Dashboard**: Total Clients, Industries count, Total Revenue
-- **Access Control**: Admin, Project Manager, Account Manager, Executive, Manager can manage
-- **APIs**:
-  - `GET/POST /api/clients` - List and create clients
-  - `GET/PATCH/DELETE /api/clients/{id}` - Client CRUD
-  - `POST /api/clients/{id}/contacts` - Add contact (SPOC)
-  - `POST /api/clients/{id}/revenue` - Add revenue record
-  - `GET /api/clients/stats/summary` - Statistics
-  - `GET /api/clients/industries/list` - Industry list
-- **Navigation**: Sales Funnel → Clients
-
-### Expense Request System (Feb 14, 2026) ✅ NEW
-- **Purpose**: Submit and track expense reimbursements with HR approval
-- **Expense Data Model**:
-  - Employee: Auto-populated from logged-in user's employee record
-  - Type: Client/Project related OR Office Expense
-  - Link: Optional client and project association
-  - Line Items: Multiple expense items per request
-- **Line Item Fields**:
-  - Category: Travel, Local Conveyance, Food, Accommodation, Office Supplies, Communication, Client Entertainment, Other
-  - Description, Amount, Date
-  - Receipt upload (planned)
-- **Workflow**:
-  - Draft → Pending (submit) → Approved → Reimbursed
-  - Rejection tracking with reason
-- **Approval Integration**:
-  - Submits through reporting manager chain
-  - HR approval required for all expenses
-  - Shows in Approvals Center
-- **Stats Dashboard**: Pending count, Approved count, Reimbursed count, Pending Amount
-- **Access Control**:
-  - All employees can create their own expenses
-  - HR/Admin can mark as reimbursed
-  - Managers can view team expenses
-- **APIs**:
-  - `GET/POST /api/expenses` - List and create expenses
-  - `GET/PATCH /api/expenses/{id}` - Expense CRUD
-  - `POST /api/expenses/{id}/submit` - Submit for approval
-  - `POST /api/expenses/{id}/mark-reimbursed` - Mark reimbursed (HR/Admin)
-  - `GET /api/expenses/categories/list` - Expense categories
-  - `GET /api/expenses/stats/summary` - Statistics
-- **Navigation**: Management → Expenses
-
-### Employees Module (Feb 14, 2026) ✅ NEW
-- **Employee Directory**: Searchable list with filters by department
-- **Employee Data Model**:
-  - Basic: Name, Email, Phone, Personal Email, Department, Designation, Joining Date
-  - HR Details: Employee ID (EMP001), Reporting Manager, Employment Type (Full-time/Contract/Intern/Part-time)
-  - Financial: Salary, Bank Details (Account, IFSC, Bank Name, Branch)
-  - Leave Balance: Casual (12), Sick (6), Earned (15) with usage tracking
-  - Documents: ID proof, Offer Letter, Resume, Contract with upload/download
-- **User-Employee Linking**: 
-  - Employees can optionally be linked to system user accounts
-  - Not all employees need system access (HR-only records)
-  - Sync from Users auto-creates employee records for existing users
-- **Stats Dashboard**: Total Employees, With/Without System Access, Departments count
-- **Org Chart**: Hierarchical view based on reporting manager relationships
-- **Access Control**: Admin + HR Manager can manage; HR Executive view only
-- **APIs**:
-  - `GET/POST /api/employees` - List and create employees
-  - `GET/PATCH/DELETE /api/employees/{id}` - Employee CRUD
-  - `POST /api/employees/sync-from-users` - Bulk create from users
-  - `POST /api/employees/{id}/link-user` - Link to user account
-  - `POST /api/employees/{id}/unlink-user` - Remove user link
-  - `GET /api/employees/org-chart/hierarchy` - Org chart data
-  - `GET /api/employees/stats/summary` - Statistics
-  - `GET /api/employees/departments/list` - Department list
-
-### Authentication & Roles ✅
-- JWT-based email/password authentication
-- 13 customizable user roles
-- Consultant-specific dashboard and navigation
-
-### SOW (Scope of Work) - Sales Flow ✅
-- **New Sales Workflow**: Lead → Pricing Plan → SOW → Quotation → Agreement
-- **SOW Categories**: Sales, HR, Operations, Training, Analytics, Digital Marketing
-- **SOW Items**: Title, Description, Deliverables list, Timeline (weeks)
-- **Version Tracking**:
-  - Every add/edit creates a new version
-  - Full snapshot stored at each version
-  - View any historical version
-  - Changes highlighted with before/after values
-- **SOW Builder UI**: List view table, Add/Edit dialogs, Version History
-- **SOW Enhancements (Feb 14, 2026) ✅**:
-  - List view displaying all SOW items in table format
-  - Inline status dropdown for each item (Draft, Pending Review, Approved, Rejected, In Progress, Completed)
-  - Manager approval workflow with approve/reject buttons
-  - Document upload functionality (SOW-level and per-item)
-  - Attached documents section with download capability
-  - Overall status tracking (Draft, Pending Approval, Partially Approved, Approved, Complete)
-  - Stats cards showing item counts by status
-- **SOW Inline Editing & Roadmap (Feb 14, 2026) ✅**:
-  - Spreadsheet-style inline editing - add rows directly in table
-  - Single consultant assignment per SOW item
-  - Backend support team assignment (optional per line) with role selection
-  - Start week field for scheduling items
-  - Roadmap view - Monthly breakdown of SOW items
-  - Gantt chart view - Timeline visualization with horizontal bars
-  - Bulk item deletion with version tracking
-- **SOW Documents Per Item (Feb 14, 2026) ✅**:
-  - Removed separate "Attached Documents" section at page top
-  - Documents now attached per SOW line item (in Docs column)
-  - Documents dialog shows per-item attachments with upload/download
-  - Auto-email notification to manager and client when item marked as Completed
-  - Notifications stored in database (email sending is MOCKED - queue stored but not sent)
-
-### User Profile & Rights Configuration (Phase 4) ✅
-- **User Profile Page**: View/edit name, email, phone, department, designation, bio
-- **Role Badge**: Visual indicator of user role
-- **My Permissions**: View role-based permissions per module
-- **Account Info**: User ID, Status, Member Since
-- **Admin Rights Management**: Configure permissions per role (to be enhanced for HR module)
-
-### Agreement with SOW (Phase 4) ✅
-- **Agreement Sections**: 
-  - Party Information
-  - Agreement Between D&V Business Consulting
-  - Confidentiality
-  - NDA (Non-Disclosure Agreement)
-  - NCA (Non-Compete Agreement)
-  - Renewal Terms
-  - Conveyance
-  - SOW (tabular format)
-  - Project Details (start date, duration)
-  - Team Engagement
-  - Pricing Plan
-  - Payment Terms & Conditions
-  - Signatures
-- **Export**: Full agreement data for PDF/Word generation
-- **SOW Table**: Category, Title, Description, Deliverables, Timeline
-
-### Kick-off Meeting & SOW Freeze (Phase 3) ✅
-- **Kick-off Meeting Scheduling**: By Principal Consultant after agreement approval
-- **Meeting Details**: Date, Time, Mode, Location/Link, Attendees, Agenda
-- **SOW Freeze**: When kick-off scheduled, SOW becomes frozen
-- **Admin Override**: Only Admin can edit frozen SOW
-- **Notifications**: Sales team notified when kick-off scheduled
-
-### Task Management System (Phase 2) ✅
-- **Task Creation**: Title, Description, Category (7 types), Status (6 types), Priority, Assignee, Dates, Hours
-- **Task List View**: Status counts, inline status change, badges, due date urgency
-- **Timeline/Gantt View**: Visual timeline, color-coded by status
-- **Task CRUD APIs**: Full CRUD with delegate and reorder
-
-### Handover Alerts (Phase 2) ✅
-- **15-day deadline tracking** from agreement approval
-- **Color-coded urgency levels**:
-  - Overdue (red): Past 15 days
-  - Critical (orange): 0-3 days remaining
-  - Warning (yellow): 4-7 days remaining
-  - On Track (green): 8+ days remaining
-- **Status indicators**:
-  - Project Created (checkmark)
-  - Consultants Assigned (count)
-- **Action buttons**:
-  - Create Project (if not created)
-  - Assign Consultants (if project exists)
-  - View Tasks
-
-### Consultant Management Module (Phase 1) ✅
-- **Consultant user role** with separate login and dashboard
-- **Consultant List View** (Admin/Manager) with:
-  - Name, email, department
-  - Project count and capacity (bandwidth)
-  - Meetings completed/committed
-  - Total project value
-  - Visual bandwidth indicator
-- **Consultant Creation** (Admin only)
-- **Consultant Dashboard** showing:
-  - Active projects, meetings stats
-  - Capacity utilization
-  - Assigned projects list
-- **Bandwidth limits**:
-  - Mixed (online + offline): 8 projects
-  - Online only: 12 projects
-  - Offline only: 6 projects
-
-### Project Assignment System ✅
-- Assign consultants to projects
-- Change consultant (before project start)
-- Admin can change start date
-- Unassign consultants
-- Track meetings per assignment
-- **NEW**: Tasks button on project cards → Task Management
-- **NEW**: Assign Consultant button → Consultant assignment dialog
-
-### Lead Management ✅
-- Create, view, edit leads
-- Automated lead scoring (based on job title, contact info, engagement)
-- Lead status tracking (new, contacted, qualified, proposal, agreement, closed, lost)
-- High-priority leads display on dashboard
-
-### Sales Funnel (Complete) ✅
-1. **Pricing Plans**: Create plans with consultant allocation, duration, discounts
-2. **Quotations**: Generate from pricing plans, finalize for agreement creation
-3. **Agreements**: Create from quotations, submit for approval
-4. **Manager Approvals**: View pending approvals, approve/reject agreements
-
-### Navigation ✅ RESTRUCTURED (Feb 14, 2026)
-- Domain-segmented sidebar with 5 sections: MY WORKSPACE, HR, SALES, CONSULTING, ADMIN
-- **MY WORKSPACE Section** (visible to: ALL users):
-  - My Attendance, My Leaves, My Salary Slips, My Expenses
-- **HR Section** (visible to: Admin, HR Manager, HR Executive, Manager):
-  - Employees, Org Chart, Leave Management, Attendance, Payroll, Expenses, HR Reports
-- **SALES Section** (visible to: Admin, Executive, Account Manager, Manager):
-  - Branch flow: Leads → Pricing Plans → Quotations → Agreements (visual connector)
-  - Clients, Sales Meetings, Sales Reports
-- **CONSULTING Section** (visible to: Admin, PM, Consultant roles, Manager):
-  - Projects, Consulting Meetings, Consultants, Handover Alerts, Consulting Reports
-- **ADMIN Section** (visible to: Admin, Manager):
-  - User Management, Approvals Center, Email Templates
-- Reports auto-filter by domain via URL params (?category=hr/sales/operations)
-- Sticky sidebar with scrollable nav, role-based visibility
-
-### My Workspace - Self-Service (Feb 14, 2026) ✅ NEW
-- **Purpose**: Self-service features for ALL system users
-- **My Attendance** (`/my-attendance`): View own attendance records with month picker, summary stats
-- **My Leaves** (`/my-leaves`): Leave balance (casual/sick/earned with progress bars), apply leave, track request status
-- **My Salary Slips** (`/my-salary-slips`): All historical monthly salary statements with detail view
-- **My Expenses** (`/my-expenses`): Submit new expenses, track claim status (draft/pending/approved/reimbursed)
-- **APIs**: `/api/my/attendance`, `/api/my/leave-balance`, `/api/my/salary-slips`, `/api/my/expenses`
-
-### Payroll Enhancement - Expense Reimbursement (Feb 14, 2026) ✅ NEW
-- **Approved expenses auto-included in payroll** as "Conveyance Reimbursement" earning
-- During salary slip generation, approved/reimbursed expenses for the employee in the payroll month are fetched
-- Total expense amount added as a line item in earnings section
-- Visible in both HR Payroll and employee's My Salary Slips
-
-### UI/UX ✅
-- Black and white theme
-- Company logo in sidebar (without text)
-- Responsive design
-- Data displayed in Indian Rupees (₹)
-- Clickable dashboard stat cards with navigation
-- "Start Sales Flow" button on lead cards
-
-### Pending/Future Features
-
-### P0 (Critical)
-- ✅ COMPLETED: Client Master Module (Feb 14, 2026)
-- ✅ COMPLETED: Expense Request System (Feb 14, 2026)
-
-### P1 (High Priority)
-- ✅ COMPLETED: Agreement Export to Word/PDF (Feb 14, 2026)
-- ✅ COMPLETED: Meeting Form with MOM - Refactored to Sales & Consulting (Feb 14, 2026)
-- ✅ COMPLETED: SOW Linkages with Consultant Performance & Project Roadmap (Feb 14, 2026)
-- Drag-and-drop task reordering in Gantt view (react-gantt-timeline library)
-- SOW Monthly Roadmap & RACI Matrix conversion
-
-### P2 (Medium Priority)
-- Quarterly Activity Reports
+## Future Tasks (P2)
+- Real Email Integration (SMTP)
+- Rocket Reach Integration
+- Detailed Time Tracking
 - Project Stage Tracking
-- Rocket Reach integration for lead enrichment
-- Email sending for agreements (requires SMTP credentials)
-- Detailed Time Tracking module
+- Quarterly Activity Reports
 
-### P3 (Low Priority/Backlog)
-- HR Workflow Module
+## Backlog (P3)
 - Marketing Flow Module
-- Finance & Accounts Module
+- Finance & Accounts Flow Module
+- Salary Slip PDF Download
+- Server.py refactoring into modular routers
 
-## Technical Stack
+## Tech Stack
 - **Frontend**: React, Tailwind CSS, Shadcn/UI
 - **Backend**: FastAPI, Pydantic, Motor (async MongoDB)
 - **Database**: MongoDB
-- **Authentication**: JWT with customizable role-based permissions
+- **Authentication**: JWT + Google OAuth (Emergent Auth)
+- **Document Generation**: python-docx
+
+## Key API Endpoints
+- `/api/auth/login` - Email/password login
+- `/api/auth/google` - Google OAuth login
+- `/api/auth/admin/request-otp` - Generate OTP for admin
+- `/api/auth/admin/reset-password` - Reset password with OTP
+- `/api/auth/change-password` - Change password (logged in)
+- `/api/security-audit-logs` - Security audit logs (admin only)
 
 ## Test Credentials
 - Admin: admin@company.com / admin123
 - Manager: manager@company.com / manager123
 - Executive: executive@company.com / executive123
-
-## Known Limitations
-- Email sending is MOCKED - requires SMTP credentials for production use
-- Rocket Reach integration not yet implemented
