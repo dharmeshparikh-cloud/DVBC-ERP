@@ -3834,6 +3834,67 @@ async def get_agreement_pending_approvals(current_user: User = Depends(get_curre
     
     return result
 
+
+# ============== Agreement E-Signature Endpoint ==============
+
+class AgreementSignatureData(BaseModel):
+    signer_name: str
+    signer_designation: Optional[str] = None
+    signer_email: EmailStr
+    signature_date: Optional[str] = None
+    signature_image: Optional[str] = None  # Base64 encoded signature canvas data
+    signed_at: Optional[str] = None
+
+
+@api_router.post("/agreements/{agreement_id}/sign")
+async def sign_agreement(
+    agreement_id: str,
+    signature_data: AgreementSignatureData,
+    current_user: User = Depends(get_current_user)
+):
+    """E-Sign an agreement with canvas-based signature"""
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    if agreement.get('status') == 'signed':
+        raise HTTPException(status_code=400, detail="Agreement is already signed")
+    
+    now = datetime.now(timezone.utc)
+    
+    client_signature = {
+        "signer_name": signature_data.signer_name,
+        "signer_designation": signature_data.signer_designation,
+        "signer_email": signature_data.signer_email,
+        "signature_date": signature_data.signature_date or now.strftime('%Y-%m-%d'),
+        "signature_image": signature_data.signature_image,  # Canvas signature data
+        "signed_at": now.isoformat(),
+        "signed_by_user_id": current_user.id if current_user else None
+    }
+    
+    await db.agreements.update_one(
+        {"id": agreement_id},
+        {"$set": {
+            "status": "signed",
+            "client_signature": client_signature,
+            "signed_date": now.isoformat(),
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    # Update lead status to closed
+    if agreement.get('lead_id'):
+        await db.leads.update_one(
+            {"id": agreement['lead_id']},
+            {"$set": {
+                "status": "closed",
+                "updated_at": now.isoformat()
+            }}
+        )
+    
+    return {"message": "Agreement signed successfully", "signed_at": now.isoformat()}
+
+
 @api_router.post("/leads/bulk-upload")
 async def bulk_upload_leads(
     leads_data: List[LeadCreate],
