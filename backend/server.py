@@ -7742,13 +7742,20 @@ async def get_salary_slips(employee_id: Optional[str] = None, month: Optional[st
 
 @api_router.post("/payroll/generate-slip")
 async def generate_salary_slip(data: dict, current_user: User = Depends(get_current_user)):
-    """Generate salary slip for an employee for a month"""
+    """Generate salary slip for an employee. Admin/HR only. Cannot modify own payroll if non-admin."""
     if current_user.role not in ["admin", "hr_manager"]:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can generate salary slips")
     employee_id = data.get("employee_id")
     month = data.get("month")  # YYYY-MM
     if not employee_id or not month:
         raise HTTPException(status_code=400, detail="employee_id and month required")
+    
+    # RULE: Non-admin managers cannot generate their own salary slip
+    if current_user.role != "admin":
+        own_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
+        if own_emp and own_emp['id'] == employee_id:
+            raise HTTPException(status_code=403, detail="You cannot generate your own salary slip. Only admin can modify your payroll.")
+    
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
