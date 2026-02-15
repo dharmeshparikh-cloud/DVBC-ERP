@@ -8620,6 +8620,26 @@ async def download_feature_index():
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
 
+@api_router.get("/downloads/api-documentation")
+async def download_api_documentation():
+    """Download the API Documentation HTML"""
+    file_path = os.path.join(ROOT_DIR, "docs", "api-documentation.html")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="API documentation not found")
+    return FileResponse(file_path, filename="DV_Business_Consulting_API_Documentation.html",
+        media_type="text/html")
+
+
+@api_router.get("/downloads/postman-collection")
+async def download_postman_collection():
+    """Download the Postman Collection JSON"""
+    file_path = os.path.join(ROOT_DIR, "docs", "DV_Business_Consulting_API.postman_collection.json")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Postman collection not found")
+    return FileResponse(file_path, filename="DV_Business_Consulting_API.postman_collection.json",
+        media_type="application/json")
+
+
 app.include_router(api_router)
 
 app.add_middleware(
