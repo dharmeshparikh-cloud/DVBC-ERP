@@ -1760,6 +1760,196 @@ async def get_kickoff_request(
     return request
 
 
+@api_router.get("/kickoff-requests/{request_id}/details")
+async def get_kickoff_request_details(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get detailed kickoff request with SOW and meeting commitments from the parent Agreement"""
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    # Get the agreement details
+    agreement = None
+    sow = None
+    pricing_plan = None
+    lead = None
+    meetings = []
+    
+    if kickoff.get('agreement_id'):
+        agreement = await db.agreements.find_one({"id": kickoff['agreement_id']}, {"_id": 0})
+        
+        if agreement:
+            # Get the SOW linked to this agreement
+            if agreement.get('sow_id'):
+                sow = await db.sow.find_one({"id": agreement['sow_id']}, {"_id": 0})
+            
+            # Get pricing plan
+            if agreement.get('pricing_plan_id'):
+                pricing_plan = await db.pricing_plans.find_one({"id": agreement['pricing_plan_id']}, {"_id": 0})
+            
+            # Get the lead info
+            if agreement.get('lead_id'):
+                lead = await db.leads.find_one({"id": agreement['lead_id']}, {"_id": 0})
+    
+    # Get any sales meetings related to this lead
+    if kickoff.get('lead_id'):
+        meetings = await db.meetings.find(
+            {"lead_id": kickoff['lead_id'], "type": "sales"},
+            {"_id": 0}
+        ).sort("meeting_date", -1).to_list(50)
+    
+    return {
+        "kickoff_request": kickoff,
+        "agreement": agreement,
+        "sow": sow,
+        "pricing_plan": pricing_plan,
+        "lead": lead,
+        "meetings": meetings
+    }
+
+
+class KickoffRequestUpdate(BaseModel):
+    expected_start_date: Optional[datetime] = None
+    notes: Optional[str] = None
+    assigned_pm_id: Optional[str] = None
+    assigned_pm_name: Optional[str] = None
+
+
+@api_router.put("/kickoff-requests/{request_id}")
+async def update_kickoff_request(
+    request_id: str,
+    update_data: KickoffRequestUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update kickoff request - PM can edit kickoff date before accepting"""
+    if current_user.role not in ['admin', 'project_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Not authorized to update kickoff requests")
+    
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    if kickoff['status'] not in ['pending', 'returned']:
+        raise HTTPException(status_code=400, detail="Can only update pending or returned requests")
+    
+    update_fields = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if update_data.expected_start_date:
+        update_fields['expected_start_date'] = update_data.expected_start_date.isoformat()
+    if update_data.notes is not None:
+        update_fields['notes'] = update_data.notes
+    if update_data.assigned_pm_id:
+        update_fields['assigned_pm_id'] = update_data.assigned_pm_id
+        update_fields['assigned_pm_name'] = update_data.assigned_pm_name
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": update_fields}
+    )
+    
+    # Return updated kickoff
+    updated = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    return updated
+
+
+class KickoffReturnRequest(BaseModel):
+    reason: str
+    return_notes: Optional[str] = None
+
+
+@api_router.post("/kickoff-requests/{request_id}/return")
+async def return_kickoff_request(
+    request_id: str,
+    return_data: KickoffReturnRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Return a kickoff request back to the sales person with feedback"""
+    if current_user.role not in ['admin', 'project_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    if kickoff['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Can only return pending requests")
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "returned",
+            "return_reason": return_data.reason,
+            "return_notes": return_data.return_notes,
+            "returned_by": current_user.id,
+            "returned_by_name": current_user.full_name,
+            "returned_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify the requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": kickoff['requested_by'],
+        "type": "kickoff_returned",
+        "title": "Kickoff Request Returned",
+        "message": f"Your kickoff request for '{kickoff['project_name']}' has been returned by {current_user.full_name}. Reason: {return_data.reason}",
+        "reference_id": request_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Kickoff request returned to sender"}
+
+
+@api_router.post("/kickoff-requests/{request_id}/resubmit")
+async def resubmit_kickoff_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Resubmit a returned kickoff request (Sales side)"""
+    if current_user.role not in ['admin', 'executive', 'account_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    if kickoff['status'] != 'returned':
+        raise HTTPException(status_code=400, detail="Can only resubmit returned requests")
+    
+    # Verify the requester owns this request (unless admin)
+    if current_user.role not in ['admin', 'manager'] and kickoff['requested_by'] != current_user.id:
+        raise HTTPException(status_code=403, detail="Can only resubmit your own requests")
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "pending",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify the PM
+    if kickoff.get('assigned_pm_id'):
+        notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": kickoff['assigned_pm_id'],
+            "type": "kickoff_resubmitted",
+            "title": "Kickoff Request Resubmitted",
+            "message": f"Kickoff request for '{kickoff['project_name']}' has been resubmitted by {current_user.full_name}",
+            "reference_id": request_id,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+    
+    return {"message": "Kickoff request resubmitted"}
+
+
 @api_router.post("/kickoff-requests/{request_id}/accept")
 async def accept_kickoff_request(
     request_id: str,
