@@ -417,7 +417,7 @@ const SalesScopeSelection = () => {
         <Button
           onClick={handleSubmit}
           disabled={submitting || (selectedScopes.size + customScopes.length === 0)}
-          className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+          className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
           data-testid="submit-scopes-btn"
         >
           {submitting ? (
@@ -427,8 +427,8 @@ const SalesScopeSelection = () => {
             </>
           ) : (
             <>
-              <Send className="w-4 h-4 mr-2" />
-              Create SOW & Proceed to Proforma Invoice ({selectedScopes.size + customScopes.length} scopes)
+              <ArrowRight className="w-4 h-4 mr-2" />
+              Save & Continue to Proforma Invoice ({selectedScopes.size + customScopes.length} scopes)
             </>
           )}
         </Button>
