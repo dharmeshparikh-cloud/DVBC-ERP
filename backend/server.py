@@ -41,6 +41,8 @@ from reports import (
 )
 from document_generator import AgreementDocumentGenerator, SOWDocumentGenerator
 from routers import masters as masters_router
+from routers import sow_masters as sow_masters_router
+from routers import enhanced_sow as enhanced_sow_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -49,8 +51,10 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Initialize masters router with database
+# Initialize routers with database
 masters_router.set_db(db)
+sow_masters_router.set_db(db)
+enhanced_sow_router.set_db(db)
 
 app = FastAPI(title="Consulting Workflow Management API")
 api_router = APIRouter(prefix="/api")
