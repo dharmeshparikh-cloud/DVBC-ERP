@@ -1,5 +1,14 @@
 # DVBC - NETRA Changelog
 
+## Feb 15, 2026 — SOW-Task Linkage + Client Communication
+- Tasks linked to SOW items via sow_id/sow_item_id fields
+- Gantt chart groups tasks by SOW item when linked
+- SOW progress endpoint calculates item-wise completion from linked tasks
+- Reporting manager auto-notified on task status changes (delayed/cancelled → admin alert)
+- Client communication: auto-progress reports + manual updates + full audit log
+- New endpoints: client-communications CRUD, sow progress, send-progress-report
+- Email sending MOCKED (ready for SMTP integration)
+
 ## Feb 15, 2026 — Drag-and-Drop Gantt Chart
 - Interactive Gantt chart in Consulting domain with draggable bars
 - Resize from edges to change task duration
