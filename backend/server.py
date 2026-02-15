@@ -1457,6 +1457,419 @@ async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
         "active_projects": active_projects
     }
 
+
+# ============== Domain-Specific Dashboard Stats ==============
+
+@api_router.get("/stats/sales-dashboard")
+async def get_sales_dashboard_stats(current_user: User = Depends(get_current_user)):
+    """Sales-specific dashboard stats - pipeline, conversions, revenue"""
+    # Get user's leads or all if admin
+    lead_query = {}
+    if current_user.role not in ['admin', 'manager']:
+        lead_query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+    
+    # Lead pipeline stats
+    total_leads = await db.leads.count_documents(lead_query)
+    new_leads = await db.leads.count_documents({**lead_query, "status": "new"})
+    contacted_leads = await db.leads.count_documents({**lead_query, "status": "contacted"})
+    qualified_leads = await db.leads.count_documents({**lead_query, "status": "qualified"})
+    proposal_leads = await db.leads.count_documents({**lead_query, "status": "proposal"})
+    closed_leads = await db.leads.count_documents({**lead_query, "status": "closed"})
+    
+    # My Clients (sales person specific)
+    my_clients = await db.clients.count_documents({"sales_person_id": current_user.id, "is_active": True})
+    total_clients = await db.clients.count_documents({"is_active": True})
+    
+    # Quotations and Agreements
+    quot_query = {} if current_user.role in ['admin', 'manager'] else {"created_by": current_user.id}
+    pending_quotations = await db.quotations.count_documents({**quot_query, "status": "pending"})
+    pending_agreements = await db.agreements.count_documents({**quot_query, "status": "pending_approval"})
+    approved_agreements = await db.agreements.count_documents({**quot_query, "status": "approved"})
+    
+    # Kickoff requests sent
+    kickoff_query = {} if current_user.role in ['admin', 'manager'] else {"requested_by": current_user.id}
+    pending_kickoffs = await db.kickoff_requests.count_documents({**kickoff_query, "status": "pending"})
+    
+    # Revenue from closed deals (this month)
+    from datetime import timedelta
+    month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    # Calculate total revenue from clients
+    pipeline = [
+        {"$match": {"sales_person_id": current_user.id} if current_user.role not in ['admin', 'manager'] else {}},
+        {"$unwind": {"path": "$revenue_history", "preserveNullAndEmptyArrays": False}},
+        {"$group": {"_id": None, "total": {"$sum": "$revenue_history.amount"}}}
+    ]
+    revenue_result = await db.clients.aggregate(pipeline).to_list(1)
+    total_revenue = revenue_result[0]['total'] if revenue_result else 0
+    
+    return {
+        "pipeline": {
+            "total": total_leads,
+            "new": new_leads,
+            "contacted": contacted_leads,
+            "qualified": qualified_leads,
+            "proposal": proposal_leads,
+            "closed": closed_leads
+        },
+        "clients": {
+            "my_clients": my_clients,
+            "total_clients": total_clients
+        },
+        "quotations": {
+            "pending": pending_quotations
+        },
+        "agreements": {
+            "pending": pending_agreements,
+            "approved": approved_agreements
+        },
+        "kickoffs": {
+            "pending": pending_kickoffs
+        },
+        "revenue": {
+            "total": total_revenue
+        },
+        "conversion_rate": round((closed_leads / total_leads * 100) if total_leads > 0 else 0, 1)
+    }
+
+
+@api_router.get("/stats/consulting-dashboard")
+async def get_consulting_dashboard_stats(current_user: User = Depends(get_current_user)):
+    """Consulting-specific dashboard stats - delivery, efficiency, workload"""
+    is_pm = current_user.role in ['admin', 'project_manager', 'manager']
+    
+    # Projects stats
+    if is_pm:
+        active_projects = await db.projects.count_documents({"status": "active"})
+        completed_projects = await db.projects.count_documents({"status": "completed"})
+        on_hold_projects = await db.projects.count_documents({"status": "on_hold"})
+    else:
+        # For consultants - only their assigned projects
+        active_projects = await db.consultant_assignments.count_documents({
+            "consultant_id": current_user.id, "is_active": True
+        })
+        completed_projects = 0  # Will be calculated from assignments
+        on_hold_projects = 0
+    
+    # Meetings stats
+    meeting_pipeline = [
+        {"$match": {"type": "consulting", "is_delivered": True}},
+        {"$group": {"_id": None, "total": {"$sum": 1}}}
+    ]
+    delivered_meetings = await db.meetings.aggregate(meeting_pipeline).to_list(1)
+    total_delivered = delivered_meetings[0]['total'] if delivered_meetings else 0
+    
+    # Pending meetings
+    pending_meetings = await db.meetings.count_documents({"type": "consulting", "is_delivered": False})
+    
+    # Total committed from projects
+    commit_pipeline = [
+        {"$match": {"status": "active"}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_meetings_committed"}}}
+    ]
+    committed_result = await db.projects.aggregate(commit_pipeline).to_list(1)
+    total_committed = committed_result[0]['total'] if committed_result else 0
+    
+    # Efficiency score (meetings delivered / committed)
+    efficiency = round((total_delivered / total_committed * 100) if total_committed > 0 else 0, 1)
+    
+    # Incoming kickoff requests (for PM)
+    incoming_kickoffs = 0
+    if is_pm:
+        incoming_kickoffs = await db.kickoff_requests.count_documents({"status": "pending"})
+    
+    # Consultant workload
+    consultants_pipeline = [
+        {"$match": {"is_active": True}},
+        {"$group": {"_id": "$consultant_id", "projects": {"$sum": 1}}}
+    ]
+    workload = await db.consultant_assignments.aggregate(consultants_pipeline).to_list(100)
+    
+    # Average workload
+    avg_workload = round(sum([w['projects'] for w in workload]) / len(workload), 1) if workload else 0
+    
+    # Handover alerts (projects at risk)
+    at_risk_projects = await db.projects.count_documents({
+        "status": "active",
+        "$expr": {"$lt": ["$total_meetings_delivered", {"$multiply": ["$total_meetings_committed", 0.3]}]}
+    })
+    
+    return {
+        "projects": {
+            "active": active_projects,
+            "completed": completed_projects,
+            "on_hold": on_hold_projects,
+            "at_risk": at_risk_projects
+        },
+        "meetings": {
+            "delivered": total_delivered,
+            "pending": pending_meetings,
+            "committed": total_committed
+        },
+        "efficiency_score": efficiency,
+        "incoming_kickoffs": incoming_kickoffs,
+        "consultant_workload": {
+            "average": avg_workload,
+            "distribution": workload[:10]  # Top 10
+        }
+    }
+
+
+@api_router.get("/stats/hr-dashboard")
+async def get_hr_dashboard_stats(current_user: User = Depends(get_current_user)):
+    """HR-specific dashboard stats - employees, attendance, leaves, payroll"""
+    if current_user.role not in ['admin', 'hr_manager', 'hr_executive', 'manager']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Employee stats
+    total_employees = await db.employees.count_documents({"is_active": True})
+    new_this_month = await db.employees.count_documents({
+        "is_active": True,
+        "date_of_joining": {"$gte": datetime.now(timezone.utc).replace(day=1).isoformat()}
+    })
+    
+    # Department breakdown
+    dept_pipeline = [
+        {"$match": {"is_active": True}},
+        {"$group": {"_id": "$department", "count": {"$sum": 1}}}
+    ]
+    by_department = await db.employees.aggregate(dept_pipeline).to_list(20)
+    
+    # Today's attendance
+    today = datetime.now(timezone.utc).date().isoformat()
+    present_today = await db.attendance.count_documents({"date": today, "status": "present"})
+    absent_today = await db.attendance.count_documents({"date": today, "status": "absent"})
+    wfh_today = await db.attendance.count_documents({"date": today, "status": "wfh"})
+    
+    # Pending leave requests
+    pending_leaves = await db.leave_requests.count_documents({"status": "pending"})
+    
+    # Pending expense approvals
+    pending_expenses = await db.expenses.count_documents({"status": "pending"})
+    
+    # Payroll status (current month)
+    current_month = datetime.now(timezone.utc).month
+    current_year = datetime.now(timezone.utc).year
+    payroll_processed = await db.salary_slips.count_documents({
+        "month": current_month, "year": current_year
+    })
+    
+    return {
+        "employees": {
+            "total": total_employees,
+            "new_this_month": new_this_month,
+            "by_department": {item['_id'] or 'Unassigned': item['count'] for item in by_department}
+        },
+        "attendance": {
+            "present_today": present_today,
+            "absent_today": absent_today,
+            "wfh_today": wfh_today,
+            "attendance_rate": round((present_today / total_employees * 100) if total_employees > 0 else 0, 1)
+        },
+        "leaves": {
+            "pending_requests": pending_leaves
+        },
+        "expenses": {
+            "pending_approvals": pending_expenses
+        },
+        "payroll": {
+            "processed_this_month": payroll_processed,
+            "pending": total_employees - payroll_processed
+        }
+    }
+
+
+# ============== Kickoff Request Endpoints ==============
+
+@api_router.post("/kickoff-requests")
+async def create_kickoff_request(
+    request: KickoffRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a kickoff request to hand off to consulting team"""
+    if current_user.role not in ['admin', 'executive', 'account_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Not authorized to create kickoff requests")
+    
+    kickoff = KickoffRequest(
+        **request.model_dump(),
+        requested_by=current_user.id,
+        requested_by_name=current_user.full_name
+    )
+    
+    doc = kickoff.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc.get('expected_start_date'):
+        doc['expected_start_date'] = doc['expected_start_date'].isoformat()
+    
+    await db.kickoff_requests.insert_one(doc)
+    
+    # Create notification for assigned PM
+    if request.assigned_pm_id:
+        notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": request.assigned_pm_id,
+            "type": "kickoff_request",
+            "title": "New Kickoff Request",
+            "message": f"New project kickoff request: {request.project_name} from {current_user.full_name}",
+            "reference_id": kickoff.id,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+    
+    return {"message": "Kickoff request created", "id": kickoff.id}
+
+
+@api_router.get("/kickoff-requests")
+async def get_kickoff_requests(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get kickoff requests - for PM to see incoming, for sales to see their requests"""
+    query = {}
+    
+    # Filter by status
+    if status:
+        query['status'] = status
+    
+    # Access control
+    if current_user.role in ['project_manager']:
+        # PM sees requests assigned to them or unassigned
+        query['$or'] = [
+            {"assigned_pm_id": current_user.id},
+            {"assigned_pm_id": None}
+        ]
+    elif current_user.role not in ['admin', 'manager']:
+        # Sales team sees their own requests
+        query['requested_by'] = current_user.id
+    
+    requests = await db.kickoff_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return requests
+
+
+@api_router.get("/kickoff-requests/{request_id}")
+async def get_kickoff_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific kickoff request"""
+    request = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    return request
+
+
+@api_router.post("/kickoff-requests/{request_id}/accept")
+async def accept_kickoff_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Accept a kickoff request and create a project"""
+    if current_user.role not in ['admin', 'project_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    if kickoff['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Request already processed")
+    
+    # Create project from kickoff request
+    project = Project(
+        name=kickoff['project_name'],
+        client_name=kickoff['client_name'],
+        lead_id=kickoff.get('lead_id'),
+        agreement_id=kickoff['agreement_id'],
+        project_type=kickoff.get('project_type', 'mixed'),
+        start_date=datetime.fromisoformat(kickoff['expected_start_date']) if kickoff.get('expected_start_date') else datetime.now(timezone.utc),
+        total_meetings_committed=kickoff.get('total_meetings', 0),
+        project_value=kickoff.get('project_value'),
+        notes=kickoff.get('notes'),
+        created_by=current_user.id
+    )
+    
+    project_doc = project.model_dump()
+    project_doc['created_at'] = project_doc['created_at'].isoformat()
+    project_doc['updated_at'] = project_doc['updated_at'].isoformat()
+    project_doc['start_date'] = project_doc['start_date'].isoformat()
+    if project_doc.get('end_date'):
+        project_doc['end_date'] = project_doc['end_date'].isoformat()
+    
+    await db.projects.insert_one(project_doc)
+    
+    # Update kickoff request
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "converted",
+            "project_id": project.id,
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify the requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": kickoff['requested_by'],
+        "type": "kickoff_accepted",
+        "title": "Kickoff Request Accepted",
+        "message": f"Project '{kickoff['project_name']}' has been created by {current_user.full_name}",
+        "reference_id": project.id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Kickoff accepted, project created", "project_id": project.id}
+
+
+@api_router.post("/kickoff-requests/{request_id}/reject")
+async def reject_kickoff_request(
+    request_id: str,
+    reason: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a kickoff request"""
+    if current_user.role not in ['admin', 'project_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "notes": reason or kickoff.get('notes', ''),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Kickoff request rejected"}
+
+
+# ============== My Clients Endpoint (Sales Person Specific) ==============
+
+@api_router.get("/my-clients")
+async def get_my_clients(current_user: User = Depends(get_current_user)):
+    """Get clients belonging to the current sales person"""
+    clients = await db.clients.find(
+        {"sales_person_id": current_user.id, "is_active": True},
+        {"_id": 0}
+    ).to_list(500)
+    
+    for client in clients:
+        if isinstance(client.get('created_at'), str):
+            client['created_at'] = datetime.fromisoformat(client['created_at'])
+        if isinstance(client.get('updated_at'), str):
+            client['updated_at'] = datetime.fromisoformat(client['updated_at'])
+    
+    return clients
+
 @api_router.post("/email-templates", response_model=EmailTemplate)
 async def create_email_template(template_create: EmailTemplateCreate, current_user: User = Depends(get_current_user)):
     if current_user.role == UserRole.MANAGER:
