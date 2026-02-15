@@ -41,6 +41,69 @@ def can_add_scopes(role: str) -> bool:
     return role in CAN_ADD_SCOPES_ROLES
 
 
+# ============== List SOWs ==============
+
+@router.get("/list")
+async def list_enhanced_sows(role: str = "all"):
+    """List all enhanced SOWs - filtered by role access"""
+    query = {}
+    
+    # For consulting, only show handed-over SOWs
+    if role == "consulting":
+        query["sales_handover_complete"] = True
+    
+    sows = await db.enhanced_sow.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return sows
+
+
+# ============== Manager Approval ==============
+
+@router.post("/{sow_id}/request-manager-approval")
+async def request_manager_approval(
+    sow_id: str,
+    approval_data: dict,
+    current_user_id: str = None,
+    current_user_name: str = "Unknown"
+):
+    """Request approval from reporting manager for specific scopes"""
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Create approval request
+    approval_request = {
+        "id": str(uuid.uuid4()),
+        "type": "manager_approval",
+        "scope_ids": approval_data.get("scope_ids", []),
+        "notes": approval_data.get("notes", ""),
+        "requested_by": current_user_id,
+        "requested_by_name": current_user_name,
+        "requested_at": now.isoformat(),
+        "status": "pending"
+    }
+    
+    # Add to approval requests
+    approval_requests = sow.get("approval_requests", [])
+    approval_requests.append(approval_request)
+    
+    await db.enhanced_sow.update_one(
+        {"id": sow_id},
+        {"$set": {
+            "approval_requests": approval_requests,
+            "updated_at": now.isoformat()
+        }}
+    )
+    
+    # TODO: Send email notification to manager
+    
+    return {
+        "message": "Approval request sent to manager",
+        "request_id": approval_request["id"]
+    }
+
+
 # ============== Sales Team Endpoints ==============
 
 @router.post("/{pricing_plan_id}/sales-selection")
