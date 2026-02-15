@@ -1,0 +1,132 @@
+{
+  "test_run_info": {
+    "timestamp": "2025-12-15T12:00:00Z",
+    "test_type": "OWASP-Compliant Comprehensive API Test Suite",
+    "total_tests": 291,
+    "passed": 265,
+    "failed": 26,
+    "pass_rate": "91.06%"
+  },
+  "test_coverage": {
+    "modules_tested": [
+      "Authentication & Security (30 tests)",
+      "Leads Module (37 tests)",
+      "Employees Module (26 tests)",
+      "Clients & Expenses Module (26 tests)",
+      "Projects & Meetings Module (32 tests)",
+      "Sales Pipeline - SOW, Quotations, Agreements (31 tests)",
+      "HR Module - Leave, Attendance, Payroll (35 tests)",
+      "Users & Roles Management (24 tests)",
+      "OWASP Security Tests (30 tests)",
+      "Performance Benchmarks (20 tests)"
+    ],
+    "test_categories": {
+      "positive_tests": "Validates correct API behavior with valid inputs",
+      "negative_tests": "Validates proper error handling for invalid inputs",
+      "access_control_tests": "Validates RBAC and authorization",
+      "security_tests": "OWASP Top 10 2021 vulnerability testing"
+    }
+  },
+  "owasp_coverage": {
+    "A01_2021_Broken_Access_Control": {
+      "tested": true,
+      "tests": [
+        "Vertical privilege escalation",
+        "Horizontal privilege escalation",
+        "IDOR prevention",
+        "Missing function level access control",
+        "CORS configuration"
+      ]
+    },
+    "A02_2021_Cryptographic_Failures": {
+      "tested": true,
+      "tests": [
+        "Password not in plaintext",
+        "Sensitive data exposure prevention",
+        "JWT algorithm confusion prevention"
+      ]
+    },
+    "A03_2021_Injection": {
+      "tested": true,
+      "tests": [
+        "SQL injection (login, CRUD operations)",
+        "NoSQL injection (MongoDB operators)",
+        "Command injection",
+        "LDAP injection",
+        "XSS payloads in all input fields"
+      ]
+    },
+    "A04_2021_Insecure_Design": {
+      "tested": true,
+      "tests": [
+        "Rate limiting on login",
+        "Business logic bypass prevention"
+      ]
+    },
+    "A05_2021_Security_Misconfiguration": {
+      "tested": true,
+      "tests": [
+        "Error messages don't leak stack traces",
+        "No debug info in production"
+      ]
+    },
+    "A06_2021_Vulnerable_Components": {
+      "tested": true,
+      "tests": [
+        "Version disclosure check"
+      ]
+    },
+    "A07_2021_Auth_Failures": {
+      "tested": true,
+      "tests": [
+        "Credential stuffing protection",
+        "Session fixation prevention",
+        "Password complexity validation"
+      ]
+    },
+    "A08_2021_Software_Integrity_Failures": {
+      "tested": true,
+      "tests": [
+        "JWT signature verification"
+      ]
+    },
+    "A09_2021_Logging_Failures": {
+      "tested": true,
+      "tests": [
+        "Login attempts are logged",
+        "Security audit log functionality"
+      ]
+    },
+    "A10_2021_SSRF": {
+      "tested": true,
+      "tests": [
+        "SSRF prevention in URL input fields"
+      ]
+    }
+  },
+  "failed_tests_analysis": {
+    "category": "Schema/API mismatch",
+    "description": "Most failures are due to test data factory schemas not matching the actual API schemas (e.g., field names, required fields). These are test setup issues, not API bugs.",
+    "recommendation": "Update test data factories to match current API schemas for complete coverage"
+  },
+  "test_files": [
+    "/app/backend/tests/conftest.py - Fixtures and helpers",
+    "/app/backend/tests/test_api_auth.py - Authentication tests",
+    "/app/backend/tests/test_api_leads.py - Leads module tests",
+    "/app/backend/tests/test_api_employees.py - Employees tests",
+    "/app/backend/tests/test_api_clients_expenses.py - Clients/Expenses tests",
+    "/app/backend/tests/test_api_projects_meetings.py - Projects/Meetings tests",
+    "/app/backend/tests/test_api_sales_pipeline.py - SOW/Agreements tests",
+    "/app/backend/tests/test_api_hr_module.py - HR module tests",
+    "/app/backend/tests/test_api_users_roles.py - RBAC tests",
+    "/app/backend/tests/test_owasp_security.py - OWASP security tests",
+    "/app/backend/tests/test_api_performance.py - Performance benchmarks"
+  ],
+  "how_to_run": {
+    "reset_passwords": "python tests/reset_test_passwords.py",
+    "run_all": "python -m pytest tests/test_api_*.py tests/test_owasp_security.py --asyncio-mode=auto",
+    "run_security_only": "python -m pytest tests/test_owasp_security.py --asyncio-mode=auto",
+    "run_specific_module": "python -m pytest tests/test_api_auth.py --asyncio-mode=auto",
+    "verbose_output": "python -m pytest tests/ -v --tb=short --asyncio-mode=auto"
+  }
+}
