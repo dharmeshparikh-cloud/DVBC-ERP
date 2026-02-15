@@ -779,12 +779,20 @@ const ProformaInvoice = () => {
           
           {/* Printable Invoice Content - Modern Layout */}
           <div ref={invoiceRef} className="bg-white">
-            {/* Header with gradient accent */}
-            <div className="bg-gradient-to-r from-zinc-900 to-zinc-700 text-white p-6 rounded-t-sm">
+            {/* Header with gradient accent and Logo */}
+            <div className="logo-container bg-gradient-to-r from-zinc-900 to-zinc-700 text-white p-6 rounded-t-sm">
               <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-3xl font-bold tracking-tight">D&V®</h1>
-                  <p className="text-zinc-300 text-sm mt-1">Business Consulting</p>
+                <div className="flex items-center gap-4">
+                  {/* Company Logo/Icon */}
+                  <div className="w-16 h-16 bg-white rounded-sm flex items-center justify-center shadow-lg">
+                    <span className="text-3xl font-black text-zinc-900 tracking-tighter">D&V</span>
+                  </div>
+                  <div>
+                    <h1 className="logo-text text-3xl font-bold tracking-tight">
+                      D&V<span className="logo-registered text-sm align-super">®</span>
+                    </h1>
+                    <p className="text-zinc-300 text-sm mt-1">Business Consulting</p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-sm">
