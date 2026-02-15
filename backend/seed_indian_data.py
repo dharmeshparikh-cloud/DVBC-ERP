@@ -675,13 +675,14 @@ async def seed_clients(db):
         ]
         
         # Add 1-2 more contacts
+        clean_client = ''.join(c for c in lead['company'].lower() if c.isalnum())[:10]
         for _ in range(random.randint(1, 2)):
             gender = random.choice(["male", "female"])
             fn, ln = generate_indian_name(gender)
             contacts.append({
                 "name": f"{fn} {ln}",
                 "designation": random.choice(["HR Manager", "Finance Head", "Admin Manager", "CEO Office"]),
-                "email": f"{fn.lower()}.{ln.lower()}@{lead['company'].lower().replace(' ', '')[:8]}.com",
+                "email": f"{fn.lower()}.{ln.lower()}@{clean_client}.com",
                 "phone": generate_indian_phone(),
                 "is_primary": False
             })
