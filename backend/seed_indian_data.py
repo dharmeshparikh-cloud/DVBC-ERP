@@ -241,10 +241,15 @@ def generate_ifsc_code(bank_name):
 
 def generate_email(first_name, last_name, domain):
     """Generate email address"""
+    # Clean domain - remove special characters
+    clean_domain = ''.join(c for c in domain if c.isalnum() or c == '.')
+    if not clean_domain.endswith('.com'):
+        clean_domain = clean_domain + '.com'
+    
     formats = [
-        f"{first_name.lower()}.{last_name.lower()}@{domain}",
-        f"{first_name.lower()}{last_name.lower()[0]}@{domain}",
-        f"{first_name.lower()[0]}{last_name.lower()}@{domain}",
+        f"{first_name.lower()}.{last_name.lower()}@{clean_domain}",
+        f"{first_name.lower()}{last_name.lower()[0]}@{clean_domain}",
+        f"{first_name.lower()[0]}{last_name.lower()}@{clean_domain}",
     ]
     return random.choice(formats)
 
