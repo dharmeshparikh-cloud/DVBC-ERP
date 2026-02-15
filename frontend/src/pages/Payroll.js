@@ -443,8 +443,10 @@ const Payroll = () => {
                         className="w-full h-7 px-1.5 text-[11px] rounded border border-zinc-200 bg-white" disabled={!isHR} placeholder="—" />
                     </td>
                     <td className="px-1 py-1">
-                      <input type="number" value={inp.advance || 0} onChange={e => updateInput(inp.employee_id, 'advance', parseFloat(e.target.value) || 0)}
-                        className="w-full h-7 px-1.5 text-right text-[11px] rounded border border-amber-200 bg-amber-50/30 focus:ring-1 focus:ring-amber-300"
+                      <input type="number" value={inp.advance ?? ''} onChange={e => updateInput(inp.employee_id, 'advance', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                        className={`w-full h-7 px-1.5 text-right text-[11px] rounded border focus:ring-1 focus:ring-amber-300 ${
+                          (inp.advance === '' || inp.advance === null || inp.advance === undefined) ? 'border-red-400 bg-red-50/50' : 'border-amber-200 bg-amber-50/30'
+                        }`}
                         disabled={!isHR} />
                     </td>
                     <td className="px-1 py-1">
@@ -452,8 +454,10 @@ const Payroll = () => {
                         className="w-full h-7 px-1.5 text-[11px] rounded border border-zinc-200 bg-white" disabled={!isHR} placeholder="—" />
                     </td>
                     <td className="px-1 py-1">
-                      <input type="number" value={inp.penalty || 0} onChange={e => updateInput(inp.employee_id, 'penalty', parseFloat(e.target.value) || 0)}
-                        className="w-full h-7 px-1.5 text-right text-[11px] rounded border border-red-200 bg-red-50/30 focus:ring-1 focus:ring-red-300"
+                      <input type="number" value={inp.penalty ?? ''} onChange={e => updateInput(inp.employee_id, 'penalty', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                        className={`w-full h-7 px-1.5 text-right text-[11px] rounded border focus:ring-1 focus:ring-red-300 ${
+                          (inp.penalty === '' || inp.penalty === null || inp.penalty === undefined) ? 'border-red-400 bg-red-50/50' : 'border-red-200 bg-red-50/30'
+                        }`}
                         disabled={!isHR} />
                     </td>
                     <td className="px-1 py-1">
