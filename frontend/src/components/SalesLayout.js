@@ -153,7 +153,9 @@ const SalesLayout = () => {
           <NotificationBell />
         </div>
         <div className="flex-1 p-8">
-          <Outlet />
+          <SalesNavigationProvider>
+            <Outlet />
+          </SalesNavigationProvider>
         </div>
       </main>
     </div>
