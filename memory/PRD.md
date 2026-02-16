@@ -1,152 +1,145 @@
-# DVBC - NETRA Business Management Platform
+# DVBC Business Management ERP - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive business management application for a consulting organization with:
-- End-to-end sales workflow
-- Consulting workflow with project management
-- HR & payroll modules
-- Multi-level role-based permissions
+Build a business management application for a consulting firm with complete HR, Sales, and Consulting workflows, including:
+- Dedicated portals for Sales and HR teams
+- Role-based access control with granular permissions
+- End-to-end sales flow: Lead → Meetings → MOM → Hot → Pricing Plan → SOW → Proforma → Agreement → Kickoff → Project
+- HR module with employee onboarding, attendance, leave, payroll management
+- Consulting team workload visibility for HR (operational data only)
 
-## User Personas
-1. **Admin** - Full system access
-2. **Sales Executive** - Manage leads, meetings, quotations
-3. **Sales Manager** - Team oversight, target setting, reviews
-4. **Principal Consultant** - Approve targets, see all data
-5. **HR Manager** - Employee management, leaves, payroll
-6. **Consultant** - Project delivery, timesheets
+## Core Modules
 
-## Core Requirements
+### 1. Sales Module (Complete)
+- **Sales Portal**: `/sales/login` - Dedicated interface for sales team
+- **Lead Management**: Full CRUD, status tracking, temperature indicators
+- **Meetings & MOM**: Meeting scheduling, minutes of meeting recording
+- **Pricing Plans**: Custom pricing builder
+- **SOW**: Statement of Work generation with line items
+- **Proforma/Quotations**: Invoice generation
+- **Agreements**: Contract management with e-signatures
+- **Kickoff Requests**: Project handoff to consulting
 
-### Sales Flow (Complete)
-1. Leads captured
-2. Meeting scheduling (multiple per lead, colleague accompaniment)
-3. MOM (Minutes of Meeting) generation
-4. Meeting status update → Hot/Warm/Cold scoring
-5. Hot leads → Pricing Plan
-6. SOW Picking/Building
-7. Proforma Invoice
-8. Agreement (client approval)
-9. Kickoff Schedule
-10. Hand-off to Consulting team
-11. Auto-closure on kickoff acceptance
+### 2. HR Module (Complete - Dec 2025)
+- **HR Portal**: `/hr/login` - Dedicated interface for HR team
+- **Employee Management**: Full CRUD, onboarding wizard
+- **Onboarding Flow**: 5-step wizard (Personal → Employment → Documents → Bank → Review)
+- **Bank Details**: Proof required, admin approval for post-onboarding changes
+- **Team Workload**: HR Manager can view consultant utilization (read-only, no financials)
+- **Staffing Requests**: View project staffing needs from kickoff approvals
+- **Role Restrictions**: HR Executive has no consulting data access
 
-### Dashboard Metrics (Implemented Feb 2026)
-- Total Meetings
-- Lead to Meeting ratio
-- Total Closures
-- Lead to Closure ratio
-- Total Deal Value
-- Meeting Targets vs Achievement
-- Month over Month performance
-- Pie charts (Temperature, Status, Sources)
-- Line/Area charts (trends)
-- Team Leaderboard
+### 3. Consulting Module (Partial)
+- **Projects**: Project management with team assignment
+- **Tasks**: Task tracking and Gantt charts
+- **Consultant Dashboard**: Personal project view
 
-### Permission Structure (Implemented Feb 2026)
-- Reporting structure based (whoever has reportees sees team data)
-- Admin, HR Manager, Principal Consultant see all departments
-- Executive sees only own data
-- Manager sets team targets (with Principal Consultant approval)
+### 4. Admin Module
+- **Admin Dashboard**: Bento grid layout with KPI cards
+- **Permission Manager**: Role-based access control
+- **Presentation Mode**: LockableCard component for data hiding/locking
 
-### Sales Team Performance (Implemented Feb 2026)
-- Monthly targets: Meeting count, Conversions, Deal value
-- Review frequency: Monthly (on or before 5th)
-- Review parameters: Meeting Quality, Conversion Rate, Response Time, MOM Quality, Target Achievement
-- Parameters configurable by admin
+## Architecture
 
-## What's Been Implemented
+### Frontend (React)
+```
+/app/frontend/src/
+├── App.js                    # Main router with Sales/HR portal routes
+├── components/
+│   ├── Layout.js             # Main ERP layout
+│   ├── SalesLayout.js        # Sales portal layout
+│   ├── HRLayout.js           # HR portal layout (NEW)
+│   └── LockableCard.js       # Presentation mode component
+├── pages/
+│   ├── HRLogin.js            # HR portal login (NEW)
+│   ├── HRPortalDashboard.js  # HR dashboard (NEW)
+│   ├── HRTeamWorkload.js     # Consultant workload view (NEW)
+│   ├── HRStaffingRequests.js # Staffing requests (NEW)
+│   ├── HROnboarding.js       # 5-step onboarding wizard (NEW)
+│   └── ... (other pages)
+└── contexts/
+    └── ThemeContext.js       # Dark/light theme
+```
 
-### Phase 1 - Consulting Flow (Completed Feb 2026)
-- My Projects dashboard
-- Team Assignment after kickoff
-- SOW Change Requests with approval
+### Backend (FastAPI)
+```
+/app/backend/server.py
+- Authentication & Authorization
+- User/Employee/Consultant Management
+- Sales Flow APIs
+- HR APIs (Bank details approval workflow)
+- Project & Task Management
+- Permission System
+```
 
-### Phase 2 - Consulting Flow (Completed Feb 2026)
-- Payment Reminders page
-- Linked to pricing plan from agreements
+### Database (MongoDB)
+- Collections: users, employees, leads, meetings, pricing_plans, sow, agreements, projects, tasks, notifications, approval_requests
 
-### Phase 3 - Sales Enhancement (Completed Feb 2026)
-- Enhanced Sales Dashboard with all metrics
-- Sales Portal with dedicated login
-- Team Performance management
-- Target setting and approval workflow
-- Performance review system
-- Employee workspace in Sales Portal
-- Auto-closure on kickoff acceptance
+## Permission Matrix
 
-### Phase 4 - Admin Dashboard & Theming (Completed Feb 2026)
-- **Bento Grid Admin Dashboard**: Modern asymmetric layout for admin users
-  - Revenue overview card
-  - Active leads, conversion rate KPIs
-  - Project health pie chart
-  - Team attendance metrics
-  - Utilization stats
-  - Performance trend line chart
-  - Quick action buttons
-- **Global Dark/Light Theme Toggle**: System-wide theme switching
-  - ThemeContext provider for state management
-  - CSS variables for light/dark modes
-  - Theme persistence via localStorage
-  - Toggle button in header (Sun/Moon icons)
-  - Works across Main ERP and Sales Portal
-  - All dashboards updated with theme support
+| Feature | Admin | HR Manager | HR Executive | Sales |
+|---------|-------|------------|--------------|-------|
+| Projects (create) | ✅ | ❌ | ❌ | ❌ |
+| Projects (read) | ✅ | ✅ (no financials) | ❌ | ❌ |
+| Consultants (view workload) | ✅ | ✅ | ❌ | ❌ |
+| Consulting Meetings | ✅ | ✅ (summary only) | ❌ | ❌ |
+| Employees (bank details) | ✅ | with_proof | ❌ | ❌ |
+| Leads/SOW/Agreements | ✅ | ❌ | ❌ | ✅ |
 
-## Technical Architecture
+## Completed Features (Dec 2025)
 
-### Backend
-- FastAPI with async MongoDB (Motor)
-- JWT authentication
-- Reporting structure via `reporting_manager_id` field
-- Collections: users, leads, meetings, agreements, pricing_plans, sales_targets, performance_reviews
+### Session 1-5 (Previous)
+- [x] Sales Portal with dedicated login
+- [x] Full sales flow: Lead → Kickoff
+- [x] Admin Dashboard with bento grid
+- [x] Dark/Light theme toggle
+- [x] Presentation Mode (LockableCard)
+- [x] Meeting History in Kickoff Details
+- [x] HR Auto-Notification on Project Creation
 
-### Frontend
-- React with React Router
-- Tailwind CSS + Shadcn/UI
-- Recharts for visualizations
-- Dual portal architecture (Main ERP + Sales Portal)
-- **ThemeContext** for global dark/light mode
+### Session 6 (Current - Dec 16, 2025)
+- [x] HR Portal (`/hr/login`) with dedicated layout
+- [x] HR Portal Dashboard with stats and staffing requests
+- [x] Team Workload page (HR Manager only, read-only)
+- [x] Staffing Requests page from kickoff approvals
+- [x] 5-step Onboarding Wizard
+- [x] Bank Details with proof requirement
+- [x] Bank Details Change Approval workflow
+- [x] HR Executive role restriction (no consulting access)
+- [x] API fixes: Consultants endpoint for HR Manager
 
-### Key Files Added/Modified (Phase 4)
-- `/app/frontend/src/contexts/ThemeContext.js` - Theme state management
-- `/app/frontend/src/pages/AdminDashboard.js` - Bento grid admin dashboard
-- `/app/frontend/src/components/Layout.js` - Main layout with theme toggle
-- `/app/frontend/src/components/SalesLayout.js` - Sales portal with theme toggle
-- `/app/frontend/src/pages/SalesDashboardEnhanced.js` - Updated with theme support
-- `/app/frontend/src/index.css` - Dark mode CSS variables
+## Test Credentials
 
-### Key API Endpoints
-- `GET /stats/sales-dashboard-enhanced` - Full dashboard metrics with view_mode
-- `POST/GET /sales-targets` - Target management
-- `PATCH /sales-targets/:id/approve` - Principal Consultant approval
-- `POST/GET /performance-reviews` - Review management
-- `GET /my-team` - Get reportees with stats
-- `PATCH /users/:id/reporting-manager` - Set reporting structure
+| Portal | Email | Password | Role |
+|--------|-------|----------|------|
+| Main ERP | admin@company.com | admin123 | Admin |
+| HR Portal | hr_manager@company.com | hr123 | HR Manager |
+| HR Portal | lakshmi.pillai83@dvconsulting.co.in | hr123 | HR Executive |
+| Sales Portal | sales@consulting.com | sales123 | Sales |
 
-## Prioritized Backlog
+## Backlog / Future Tasks
 
-### P0 (Next)
-- **Frontend Permission Enforcement** - Hide/disable UI elements based on role permissions
-- Hot status enforcement (block non-Hot from pricing)
-- Configure review parameters via admin panel
-- Set up reporting structure for demo
+### P1 - High Priority
+- [ ] Frontend permission enforcement (dynamic UI based on roles)
+- [ ] Complete meeting management logic for sales flow
+- [ ] Lead status enforcement (must be "Hot" for pricing)
 
-### P1
-- Real email integration (SMTP)
-- P&L Variance tracking
-- Gantt chart visualization
-- Fix Leads list view missing columns bug
+### P2 - Medium Priority
+- [ ] Business Flow Diagram (HR → Sales → Consulting visualization)
+- [ ] Apply LockableCard to Sales Dashboard
+- [ ] Rich drill-down views for Admin Dashboard
 
-### P2 (Tech Debt)
-- Refactor server.py into routers
-- Refactor large frontend components
-- Finance module
+### P3 - Low Priority / Tech Debt
+- [ ] Refactor `server.py` into separate route files
+- [ ] Fix incomplete columns in Leads list view
+- [ ] Real SMTP integration for emails
 
-## Credentials
-- Sales Portal: `sales@consulting.com` / `sales123`
-- Main ERP Admin: `admin@company.com` / `admin123`
-- Main ERP Manager: `manager@company.com` / `manager123`
+### Future
+- [ ] Finance Module & Project P&L Dashboards
+- [ ] Consulting Phase 3 (Gantt charts, roadmaps)
+- [ ] Skill matrix and capacity planning
+- [ ] Training/certification tracking
 
-## URLs
-- Sales Portal: `/sales/login`
-- Main ERP: `/login`
-- Admin Dashboard: `/admin-dashboard`
+## Known Issues
+- Email sending is MOCKED
+- Some test data created with TEST_ prefixes
