@@ -25,17 +25,27 @@ A comprehensive business management application for D&V Business Consulting, a 5
   - Consultant registration
 - **Database Cleanup**: Removed XSS payloads from `users` and `kickoff_requests` collections
 
+#### 3. Centralized Sanitization Utility ✅
+- Created `/app/frontend/src/utils/sanitize.js` with reusable functions:
+  - `sanitizeDisplayText()` - Remove HTML tags, decode entities
+  - `sanitizeForUrl()` - URL-safe encoding
+  - `truncateText()` - Truncate with ellipsis
+  - `sanitizeAndTruncate()` - Combined sanitization and truncation
+- Refactored components to import from centralized utility
+
 **Files Modified:**
+- `/app/frontend/src/utils/sanitize.js` - NEW centralized utility
 - `/app/frontend/src/pages/sales-funnel/SalesSOWList.js` - ViewToggle + List view
-- `/app/frontend/src/pages/KickoffRequests.js` - ViewToggle + sanitization
+- `/app/frontend/src/pages/KickoffRequests.js` - ViewToggle + sanitization import
 - `/app/frontend/src/pages/Employees.js` - ViewToggle + Card view
-- `/app/frontend/src/components/Layout.js` - sanitizeDisplayText
-- `/app/frontend/src/pages/Dashboard.js` - sanitizeDisplayText
+- `/app/frontend/src/components/Layout.js` - sanitization import
+- `/app/frontend/src/pages/Dashboard.js` - sanitization import
 - `/app/backend/server.py` - sanitize_text function
 
 **Testing Status:** 100% PASSED
 - ViewToggle works on all pages
 - XSS vulnerability fully resolved
+- Centralized utility working correctly
 - Test report: `/app/test_reports/iteration_31.json`
 
 ---
