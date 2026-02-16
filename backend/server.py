@@ -10471,13 +10471,13 @@ async def bulk_upload_attendance(records: List[dict], current_user: User = Depen
         if existing:
             await db.attendance.update_one(
                 {"employee_id": emp_id, "date": date_str},
-                {"$set": {"status": rec.get("status", "present"), "remarks": rec.get("remarks", ""), "updated_by": current_user.id, "updated_at": datetime.now(timezone.utc).isoformat()}}
+                {"$set": {"status": rec.get("status", "present"), "work_location": rec.get("work_location", "in_office"), "remarks": rec.get("remarks", ""), "updated_by": current_user.id, "updated_at": datetime.now(timezone.utc).isoformat()}}
             )
             updated += 1
         else:
             await db.attendance.insert_one({
                 "id": str(uuid.uuid4()), "employee_id": emp_id, "date": date_str,
-                "status": rec.get("status", "present"), "remarks": rec.get("remarks", ""),
+                "status": rec.get("status", "present"), "work_location": rec.get("work_location", "in_office"), "remarks": rec.get("remarks", ""),
                 "created_by": current_user.id, "created_at": datetime.now(timezone.utc).isoformat()
             })
             created += 1
