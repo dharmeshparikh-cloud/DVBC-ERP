@@ -59,9 +59,11 @@ const LockableCard = ({
   };
 
   if (!isVisible) {
+    // Extract grid classes but override background colors
+    const gridClasses = className.match(/col-span-\d+|row-span-\d+/g)?.join(' ') || '';
     return (
       <div 
-        className={`${className} flex items-center justify-center border-2 border-dashed border-zinc-300 bg-zinc-100 rounded-lg cursor-pointer hover:bg-zinc-200 transition-colors`}
+        className={`${gridClasses} flex items-center justify-center border-2 border-dashed border-zinc-300 bg-zinc-100 rounded-lg cursor-pointer hover:bg-zinc-200 transition-colors`}
         onClick={() => setIsVisible(true)}
       >
         <div className="text-center p-4">
