@@ -567,7 +567,7 @@ const KickoffRequests = () => {
                           </div>
                         </div>
                         <p className="text-xs text-zinc-500 mt-2">
-                          Requested by: {request.requested_by_name || 'Unknown'} • 
+                          Requested by: {sanitizeDisplayText(request.requested_by_name) || 'Unknown'} • 
                           {new Date(request.created_at).toLocaleDateString()}
                         </p>
                       </div>
