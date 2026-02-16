@@ -112,6 +112,9 @@ const Layout = () => {
     { name: 'Attendance', href: '/attendance', icon: Clock },
     { name: 'Payroll', href: '/payroll', icon: Wallet },
     { name: 'Expenses', href: '/expenses', icon: Receipt },
+    { name: 'Team Workload', href: '/team-workload', icon: Briefcase },
+    { name: 'Staffing Requests', href: '/staffing-requests', icon: AlertTriangle },
+    { name: 'Performance', href: '/performance-dashboard', icon: TrendingUp },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3 },
   ];
 
