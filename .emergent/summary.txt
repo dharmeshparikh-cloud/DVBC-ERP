@@ -15,81 +15,81 @@ The user's initial request was to build a business management application for a 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application (React/FastAPI/MongoDB). The initial sales and consulting (Phase 1 & 2) workflows are complete. A major new feature, a dedicated **Sales Portal**, has been built at . This portal has its own themed UI and is protected by role-based access, ensuring only sales personnel can use it.
-
-A new, **Enhanced Sales Dashboard** with rich data visualizations (charts, KPIs, trends) has been implemented and is now the standard view for sales users in both the main ERP and the Sales Portal.
-
-A powerful, UI-driven **Admin Permission Manager** has been created, allowing admins to control role permissions at a granular, feature-by-feature level. The backend has been updated significantly to support these new features, including new data models for performance tracking and new API endpoints.
+A full-stack application (React/FastAPI/MongoDB). A dedicated Sales Portal and an Admin Permission Manager are complete. A new Bento Grid style Admin Dashboard has been implemented. A global dark/light theme toggle, with persistence via , has been added to the entire application (both the main ERP and Sales Portal). A Presentation Mode feature has been developed via a reusable  component, which has been applied to all cards on the new Admin Dashboard. This feature allows for locking data, hiding cards, and expanding them to a fullscreen drill-down view.
 
 **Last working item**:
--   **Last item agent was working:** The user requested UI layout samples for a unified, multi-department admin dashboard. The agent had proposed two options (Tabbed View vs. Consolidated Scrollable View) and was about to generate visual mockups for the user to review.
+-   **Last item agent was working:** The user requested a high-level analysis of the end-to-end business flow, asking to clarify the linkage between HR (GER PEOPLE), Sales (WORK PEOPLE ON), and Consulting (ENCASH PEOPLE TO). The user then requested a visual diagram to illustrate this flow, identify missing steps, and find potential data duplication issues. The agent was about to create a new component to render this diagram when the session ended. The user's last instruction was to resume from that point.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N/A
--   **Which testing method agent to use?** N/A (The next step is to generate UI previews, not test functionality).
+-   **Which testing method agent to use?** N/A (The next step is to create a UI component for the diagram, which can be visually verified with the screenshot tool).
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Unified Admin Dashboard Implementation (P0 - Current Focus)**
--   **Issue 2: Monolithic  file (P2 - Tech Debt)**
--   **Issue 3: Monolithic Frontend Components (P2 - Tech Debt)**
--   **Issue 4: Incomplete columns in Leads list view (P3 - Minor UI Bug)**
+-   **Issue 1: Implement Business Flow Diagram (P0 - Current Focus)**
+-   **Issue 2: Implement Rich Drill-Down Views for Admin Dashboard (P1)**
+-   **Issue 3: Apply Presentation Controls to Sales Dashboard (P2)**
+-   **Issue 4: Monolithic  file (P3 - Tech Debt)**
+-   **Issue 5: Incomplete columns in Leads list view (P3 - Minor UI Bug)**
 
 **Issues Detail:**
--   **Issue 1: Unified Admin Dashboard Implementation**
-    -   **Attempted fixes:** The agent has proposed two layout options to the user for the admin dashboard. The user has requested visual mockups before making a decision.
+-   **Issue 1: Implement Business Flow Diagram**
+    -   **Attempted fixes:** The agent acknowledged the user's request and was about to create a component for the diagram.
     -   **Next debug checklist:**
-        1.  Create frontend UI code/previews for a Tabbed View dashboard layout.
-        2.  Create frontend UI code/previews for a Consolidated Scrollable View dashboard layout.
-        3.  Present these mockups to the user for a decision.
-    -   **Why fix this issue and what will be achieved with the fix?** To provide administrators with a single, powerful command center to monitor key metrics across all business departments (Sales, HR, Consulting, etc.).
+        1.  Create a new React component to render a flow diagram.
+        2.  Visually map the process: HR (onboarding people) -> Sales (assigning people to projects) -> Consulting (delivering projects).
+        3.  Use this diagram to highlight gaps (e.g., no formal project assignment screen) and risks (e.g., data duplication).
+        4.  Present the diagram to the user for review.
+    -   **Why fix this issue and what will be achieved with the fix?** To provide the user with a clear overview of their implemented business process, identify critical missing features, and define the next development steps.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** User decision on the preferred layout.
--   **Issue 2: Monolithic  file**
-    -   **Status:** NOT STARTED (De-prioritized by user).
-    -   **Why fix this issue and what will be achieved with the fix?** To improve backend maintainability and scalability.
--   **Issue 3: Monolithic Frontend Components**
-    -   **Status:** NOT STARTED (De-prioritized by user).
-    -   **Why fix this issue and what will be achieved with the fix?** To improve frontend code readability and reusability.
--   **Issue 4: Incomplete columns in Leads list view**
+    -   **Blocked on other issue:** None.
+-   **Issue 2: Implement Rich Drill-Down Views for Admin Dashboard**
+    -   **Attempted fixes:** The agent created  and . The structure is in place, but the detailed content for each expanded card view is not yet built.
+    -   **Next debug checklist:**
+        1.  Populate  with detailed components (charts, tables) for each dashboard metric (Revenue, Leads, Conversion, etc.).
+        2.  Ensure the 's fullscreen mode correctly passes props and renders the appropriate drill-down component.
+    -   **Why fix this issue and what will be achieved with the fix?** To complete the dashboard feature, allowing users to expand any metric to see a detailed breakdown, as requested.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** Blocked by the Business Flow Diagram task, which the user prioritized.
+-   **Issue 3: Apply Presentation Controls to Sales Dashboard**
+    -   **Attempted fixes:** None. This was missed after the user requested to apply every module of ERP.
+    -   **Next debug checklist:**
+        1.  Edit .
+        2.  Import the  component.
+        3.  Replace the standard  components with  for all metrics on the sales dashboard.
+    -   **Why fix this issue and what will be achieved with the fix?** To provide a consistent user experience and fulfill the user's request to have presentation controls available on all dashboards.
     -   **Status:** NOT STARTED
-    -   **Why fix this issue and what will be achieved with the fix?** To restore full data visibility on the Leads list view.
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   **Task 1: Create UI Mockups for Admin Dashboard (P0)**
-    -   **Where to resume:** The agent needs to generate the frontend code to visually represent the two proposed dashboard layouts (Tabbed and Consolidated).
-    -   **What will be achieved with this?** The user will be able to choose their preferred layout for the unified admin dashboard.
+-   **Task 1: Create Business Flow Diagram (P0)**
+    -   **Where to resume:** Create a new frontend component to visually render the HR -> Sales -> Consulting workflow.
+    -   **What will be achieved with this?** A clear visual aid for the user to understand their application's current process flow and identify gaps.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** N/A
+    -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks (P0):**
-    -   **Implement Chosen Admin Dashboard:** Build the selected dashboard layout with clickable elements for detailed reports.
-    -   **Frontend Permission Enforcement:** Update the frontend UI to dynamically hide or disable features, buttons, and navigation links based on the permissions configured in the new Admin Permission Manager.
 -   **Upcoming Tasks (P1):**
-    -   **Complete Sales Flow Gaps:** Implement missing logic for meeting management (accompanying colleagues), mandatory MOM tracking, and enforcing the Hot lead status requirement before creating a pricing plan.
-    -   **Consulting Flow - Phase 3:** Begin work on the next phase of the consulting module, including project roadmap creation, Gantt chart views, and performance tracking.
+    -   **Frontend Permission Enforcement:** Update the frontend UI to dynamically hide or disable features based on the permissions configured in the Admin Permission Manager.
+    -   **Complete Sales Flow Gaps:** Implement missing logic for meeting management and enforcing lead status requirements (likely to be informed by the new flow diagram).
 -   **Future Tasks (P2 - Backlog):**
     -   Refactor  and large frontend components.
     -   Integrate a real SMTP service for emails.
     -   Build out the full Finance Module and Project P&L Dashboards.
+    -   Consulting Flow - Phase 3 (Project roadmaps, Gantt charts).
 
 **Completed work in this session**
--   **Login Bug Fix (DONE):** Resolved an  in  that was crashing the backend.
--   **Sales Portal Creation (DONE):**
-    -   Created a new, isolated Sales Portal with a dedicated login () and a distinct orange theme.
-    -   Implemented role-based access, restricting login to sales roles only.
--   **Enhanced Sales Module (DONE):**
-    -   Created a dedicated sales user () for the portal.
-    -   Built , a new dashboard with KPI scorecards, pipeline visuals, pie charts, and performance trends.
-    -   Updated the backend with new models (, ) and API endpoints to power the dashboard.
-    -   Modified the kickoff approval process to automatically close the associated lead.
-    -   Added a My Workspace section to the Sales Portal sidebar.
--   **Advanced Permission Manager (DONE):**
-    -   Built , a new UI for admins to manage all role permissions at a granular feature level.
--   **Dashboard Unification (DONE):** Fixed the inconsistency between the main ERP and Sales Portal; both now use the same enhanced sales dashboard for relevant users.
+-   **Bento Grid Admin Dashboard (DONE):** Built a new admin dashboard with a modern bento grid layout, replacing the previous placeholder.
+-   **Global Dark/Light Theme Toggle (DONE):** Implemented a theme provider and toggle switch that works across the entire application (Main ERP and Sales Portal) and persists the user's choice.
+-   **Logo Visibility Fix (DONE):** Corrected an issue where the logo text was invisible in dark mode by applying a CSS invert filter.
+-   **Presentation Mode Controls (DONE):** Created a  component with controls to lock data, hide cards, and expand to a fullscreen view. This was applied to all cards on the new Admin Dashboard.
+-   **UI Style Updates (DONE):** Changed the hidden card placeholder style first to light grey and then to a modern gradient, per user requests.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Incomplete columns in Leads list view.**
@@ -107,64 +107,63 @@ A powerful, UI-driven **Admin Permission Manager** has been created, allowing ad
 
 
 **Key Technical Concepts**
--   **Role-Based Access Control (RBAC):** Implemented on both backend (API endpoints) and frontend (routing) to create the isolated Sales Portal.
--   **Component Reusability:** The  component is reused in both the main app and the sales portal.
--   **Data Visualization:** Use of the  library for pie, area, and line charts in the enhanced dashboard.
--   **Complex UI State Management:** Extensive use of React hooks (, ) to manage the state of the interactive  component.
+-   **Role-Based Access Control (RBAC)**
+-   **Component Reusability & Composition:** (, )
+-   **Data Visualization:** ( library)
+-   **React Context API:** Used for global theme management ().
+-   **CSS Variables & :** For theme persistence and dynamic styling.
 
 **key DB schema**
--   **users**: , , , , , .
--   **permissions**: , .
--   **leads**: , , , , , .
--   **sales_targets**: (new) , , , .
--   **performance_reviews**: (new) , , , , , .
+-   No changes made in this session.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   **/app/frontend/src/pages/sales/SalesDashboardEnhanced.js**: The new, feature-rich sales dashboard.
--   **/app/frontend/src/pages/admin/PermissionManager.js**: The UI for the new permissions system.
--   **/app/frontend/src/layouts/SalesLayout.js**: The layout wrapper for the sales portal, containing the limited sidebar.
--   **/app/frontend/src/App.js**: Heavily modified to include new routes for the sales portal () and the permission manager.
--   **/app/backend/server.py**: Heavily modified with new models and API endpoints for sales performance, team management, and the enhanced dashboard.
+-   **/app/frontend/src/pages/admin/AdminDashboard.js**: The new bento grid dashboard.
+-   **/app/frontend/src/components/LockableCard.js**: The reusable component for presentation mode controls.
+-   **/app/frontend/src/context/ThemeContext.js**: The global theme provider.
+-   **/app/frontend/src/layouts/Layout.js**: Main app layout, updated with theme toggle.
+-   **/app/frontend/src/layouts/SalesLayout.js**: Sales portal layout, updated with theme toggle.
+-   **/app/frontend/src/App.js**: Main app entry point, wrapped with the theme provider.
+-   **/app/frontend/src/pages/admin/AdminDashboardDrilldown.js**: Stub file for expanded card views.
 
 **Areas that need refactoring**:
--   **CRITICAL (DE-PRIORITIZED):**  remains monolithic.
--   **CRITICAL (DE-PRIORITIZED):**  and .
+-    remains monolithic.
+-   Large frontend components like  and .
 
 **key api endpoints**
--   : (New) Dedicated login endpoint for the Sales Portal with role validation.
--   : (New) Provides all data for the new sales dashboard.
--   : (New) Fetches performance data for a manager's team.
--   : (Enhanced) Used by the Permission Manager to save updated permissions.
--   : (Modified) Now automatically marks the associated lead as Closed.
+-   No new backend endpoints were created in this session.
 
 **Critical Info for New Agent**
--   Your immediate task is to respond to the user's request for UI mockups of the unified admin dashboard. You need to create two visual previews: one for a Tabbed View and one for a Consolidated Scrollable View.
--   A new, full-featured Sales Portal exists at . It is a *view* on the main ERP's data, not a separate application. Data is shared.
--   A comprehensive permission system UI has been built (), but a key upcoming task is to enforce these permissions on the frontend (i.e., actually hiding buttons/features based on the settings).
--   Do not work on tech debt (refactoring ) as it remains a low priority for the user.
+-   The user has shifted focus from feature implementation to a high-level business process analysis. Your immediate task (P0) is to create the visual flow diagram requested by the user. The last instruction was **Start where you left**.
+-   The Rich Drill-Down feature for the admin dashboard is paused but is the next logical feature to complete (P1) once the diagram task is done.
+-   The user requested presentation controls on every module of ERP. You still need to apply the  component to the  page to fulfill this.
+-   Do not work on refactoring tech debt () as it remains a low priority.
 
 **documents and test reports created in this job**
--   None in this session.
+-   None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asks for clarification on how manager vs. executive roles work.
-2.  **User:** Asks a follow-up about a user with an executive role but a manager designation.
-3.  **User:** Asks for a consolidated MCQ-style answer to all their permission questions.
-4.  **User:** Confirms the plan to build the enhanced sales module, including all charts and performance management.
-5.  **User:** Yes do it with good ui (approving the creation of the Permission Manager).
-6.  **User:** Asks why the main ERP and Sales Portal have different dashboards.
-7.  **User:** In main ERP , There should be all departments dashboards with performance metric , includes right below after another , is is there or any other option you suggest for admin ?
-8.  **User:** Can you share layout samples only for front end ui against each shggestions (PENDING)
-9.  **Agent:** Proposed two layout options for the admin dashboard. (PENDING user review of mockups)
-10. **User:** (No new messages, awaiting mockups).
+1.  **Start where you left** (PENDING) - The current directive.
+2.  
+3.  
+4.   - Confirmation to proceed with creating the flow diagram.
+5.   - The pivot to business process analysis.
+6.   - Specification for the card expansion feature.
+7.   - Inquiry about the expand feature.
+8.   - Approval to apply presentation controls app-wide.
+9.   - Request to add the hide card feature.
+10.  - Initial request for the presentation controls.
 
 **Project Health Check:**
 -   **Broken:** None.
 -   **Mocked:** Email sending functionality.
--   **Needs Rework:** Frontend UI elements need to be wired to the new permission system to enforce access control.  and other large components are known tech debt.
+-   **Needs Rework:**
+    -   Frontend UI elements need to be wired to the permission system.
+    -   The  needs to be updated to use the new  component.
+    -   The rich drill-down views for the Admin Dashboard need to be built out.
+    -    and other large components are known tech debt.
 
 **3rd Party Integrations**
 -   Emergent-managed Google Auth
@@ -177,7 +176,7 @@ A powerful, UI-driven **Admin Permission Manager** has been created, allowing ad
 -   **Testing agent used after significant changes:** NO (Agent self-tested with screenshots).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
--   **Known regressions:** The  list view bug (incomplete columns) from the previous fork is still present.
+-   **Known regressions:** The  list view has incomplete columns.
 
 **Credentials to test flow:**
 -   **Main App (Admin Full Access):**
@@ -186,10 +185,7 @@ A powerful, UI-driven **Admin Permission Manager** has been created, allowing ad
 -   **Sales Portal (Sales User):**
     -   Email: 
     -   Password: 
--   **Main App (Executive Role):**
-    -   Email: 
-    -   Password: 
 
 **What agent forgot to execute**
--   The UI bug on the  page (incomplete columns in list view) was carried over and not addressed in this session.
--   A full, end-to-end test of the new sales workflow (from lead creation to kickoff/closure) was not performed after the new dashboard and backend logic were implemented.</analysis>
+-   The agent did not apply the  component to the Sales Dashboard, even though the user requested the feature be applied to every module of ERP.
+-   The pre-existing UI bug on the  page (incomplete columns) remains unaddressed.</analysis>

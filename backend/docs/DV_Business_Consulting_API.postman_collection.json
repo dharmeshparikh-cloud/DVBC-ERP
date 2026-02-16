@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://admin-dashboard-hub-4.preview.emergentagent.com",
+      "value": "https://sales-flow-viz.preview.emergentagent.com",
       "type": "string"
     },
     {
