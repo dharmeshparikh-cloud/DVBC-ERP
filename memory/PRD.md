@@ -37,9 +37,47 @@ A comprehensive business management application for D&V Business Consulting, a 5
 - Project is created with project_id
 - PM can assign team members before project goes live
 
+---
+
+### Consulting Flow Phase 2 Complete ✅
+
+#### 5. SOW Change Requests Page Created
+- Consultants can request changes to SOW (add scope, modify scope, add task)
+- PM/RM approval workflow
+- Optional client approval step
+- Status tracking: Pending → RM Approved → (Client Approved) → Applied
+- Notification system for approvers
+- File: `/app/frontend/src/pages/consulting/SOWChangeRequests.js`
+- Route: `/consulting/sow-changes`
+
+#### 6. Payment Reminders Page Created
+- Shows upcoming payment installments per project (no values displayed)
+- Stats: Total Upcoming, Overdue, Due Soon (7 days), Upcoming (30 days)
+- Filter by status (click stat cards)
+- Card view: Calendar date, installment number, project/client info, days until due
+- List view: Table format
+- Backend calculates payment dates based on project start date and payment frequency
+- File: `/app/frontend/src/pages/consulting/PaymentReminders.js`
+- Route: `/consulting/payments`
+
+#### 7. Backend Endpoints Added
+- `POST /sow-change-requests` - Create change request
+- `GET /sow-change-requests` - List requests (role-filtered)
+- `GET /sow-change-requests/pending` - Pending approvals for PM
+- `POST /sow-change-requests/{id}/approve` - Approve request
+- `POST /sow-change-requests/{id}/reject` - Reject request
+- `GET /payment-reminders` - Get all upcoming payments
+- `GET /payment-reminders/project/{id}` - Project payment schedule
+
+**Testing Status:** PENDING (Ready for testing agent)
+
+---
+
 **New Routes Added:**
 - `/consulting/my-projects` - Redesigned My Projects page
 - `/consulting/assign-team/:projectId` - Team assignment page
+- `/consulting/sow-changes` - SOW change requests
+- `/consulting/payments` - Payment reminders
 
 **Testing Status:** 100% PASSED (iteration_32.json)
 
