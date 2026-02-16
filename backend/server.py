@@ -6,6 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import re
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional, Dict, Any
@@ -43,6 +44,19 @@ from document_generator import AgreementDocumentGenerator, SOWDocumentGenerator
 from routers import masters as masters_router
 from routers import sow_masters as sow_masters_router
 from routers import enhanced_sow as enhanced_sow_router
+
+# Helper function to sanitize user input (prevent XSS)
+def sanitize_text(text: str) -> str:
+    """Remove HTML tags and dangerous characters from text."""
+    if not text or not isinstance(text, str):
+        return text
+    # Remove HTML tags
+    clean = re.sub(r'<[^>]*>', '', text)
+    # Remove script-related keywords
+    clean = re.sub(r'javascript:', '', clean, flags=re.IGNORECASE)
+    clean = re.sub(r'onerror\s*=', '', clean, flags=re.IGNORECASE)
+    clean = re.sub(r'onclick\s*=', '', clean, flags=re.IGNORECASE)
+    return clean.strip()
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
