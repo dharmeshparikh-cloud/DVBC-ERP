@@ -7,6 +7,10 @@ import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 import { Link } from 'react-router-dom';
 import LockableCard from '../components/LockableCard';
+import { 
+  RevenueExpanded, LeadsExpanded, MeetingsExpanded, 
+  ProjectsExpanded, AttendanceExpanded 
+} from '../components/ExpandedCardViews';
 import {
   TrendingUp, TrendingDown, Users, FileText, DollarSign, Target,
   Briefcase, Clock, CheckCircle, AlertCircle, Calendar, Award,
