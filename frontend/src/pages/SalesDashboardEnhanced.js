@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext, API } from '../App';
+import { useTheme } from '../contexts/ThemeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -20,6 +21,8 @@ const COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4'
 
 const SalesDashboardEnhanced = () => {
   const { user } = useContext(AuthContext);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const location = useLocation();
   const isSalesPortal = location.pathname.startsWith('/sales');
   
