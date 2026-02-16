@@ -12,6 +12,12 @@ import SalesDashboard from './SalesDashboard';
 import ConsultingDashboard from './ConsultingDashboard';
 import HRDashboard from './HRDashboard';
 
+// Helper function to sanitize display text (strip HTML tags)
+const sanitizeDisplayText = (text) => {
+  if (!text || typeof text !== 'string') return text;
+  return text.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, '');
+};
+
 // Helper to determine user's primary domain
 const getUserDomain = (user) => {
   if (!user) return 'general';
