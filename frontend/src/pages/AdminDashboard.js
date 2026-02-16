@@ -217,9 +217,11 @@ const AdminDashboard = () => {
 
         {/* Project Health Pie */}
         <LockableCard 
-          className={`col-span-4 row-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          className={`col-span-4 row-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-slate-50 border-zinc-200'}`}
           cardId="project-health"
           isDark={isDark}
+          title="Project Health"
+          expandedContent={<ProjectsExpanded data={stats} isDark={isDark} />}
         >
           <CardHeader className="pb-2">
             <CardTitle className={`text-sm font-medium flex items-center gap-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
