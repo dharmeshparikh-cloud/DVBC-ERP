@@ -3660,30 +3660,51 @@ async def apply_sow_changes(request_id: str):
 
 @api_router.get("/payment-reminders")
 async def get_payment_reminders(current_user: User = Depends(get_current_user)):
-    """Get upcoming payment reminders for all projects"""
+    """Get upcoming payment reminders for all projects based on their pricing plans"""
     
-    # Get all active projects with payment schedules
+    # Get all active projects
     projects = await db.projects.find(
         {"status": {"$in": ["active", "in_progress", None]}},
         {"_id": 0}
     ).to_list(100)
     
-    # Get enhanced SOWs for payment info
+    # Get agreements, pricing plans, and enhanced SOWs
+    agreements = await db.agreements.find({}, {"_id": 0}).to_list(200)
+    pricing_plans = await db.pricing_plans.find({}, {"_id": 0}).to_list(200)
     enhanced_sows = await db.enhanced_sow.find({}, {"_id": 0}).to_list(200)
+    leads = await db.leads.find({}, {"_id": 0}).to_list(500)
     
     reminders = []
     
     for project in projects:
-        # Find related SOW
-        sow = next((s for s in enhanced_sows if s.get('project_id') == project.get('id') or 
-                    s.get('agreement_id') == project.get('agreement_id')), None)
+        # Find related agreement
+        agreement = next((a for a in agreements if a.get('id') == project.get('agreement_id')), None)
         
-        if not sow:
-            continue
+        # Find pricing plan from agreement or directly from project
+        pricing_plan = None
+        if agreement and agreement.get('pricing_plan_id'):
+            pricing_plan = next((p for p in pricing_plans if p.get('id') == agreement.get('pricing_plan_id')), None)
+        elif project.get('pricing_plan_id'):
+            pricing_plan = next((p for p in pricing_plans if p.get('id') == project.get('pricing_plan_id')), None)
         
-        payment_frequency = sow.get('payment_frequency', 'monthly')
-        project_tenure = sow.get('project_tenure_months', 12)
-        start_date_str = project.get('start_date') or sow.get('created_at')
+        # Find SOW for additional info
+        sow = next((s for s in enhanced_sows if 
+                    s.get('project_id') == project.get('id') or 
+                    s.get('agreement_id') == project.get('agreement_id') or
+                    s.get('pricing_plan_id') == (pricing_plan.get('id') if pricing_plan else None)), None)
+        
+        # Get payment frequency and tenure from pricing plan first, then fallback to SOW
+        if pricing_plan:
+            payment_frequency = pricing_plan.get('payment_frequency') or pricing_plan.get('payment_terms', {}).get('frequency', 'monthly')
+            project_tenure = pricing_plan.get('tenure_months') or pricing_plan.get('project_duration_months', 12)
+        elif sow:
+            payment_frequency = sow.get('payment_frequency', 'monthly')
+            project_tenure = sow.get('project_tenure_months', 12)
+        else:
+            payment_frequency = 'monthly'
+            project_tenure = 12
+        
+        start_date_str = project.get('start_date') or (agreement.get('signed_at') if agreement else None) or (sow.get('created_at') if sow else None)
         
         if not start_date_str:
             continue
@@ -3712,7 +3733,8 @@ async def get_payment_reminders(current_user: User = Depends(get_current_user)):
             interval_months = 1
         
         # Generate payment dates
-        for i in range(1, project_tenure // interval_months + 2):
+        total_installments = max(1, project_tenure // interval_months)
+        for i in range(1, total_installments + 1):
             payment_month = start_date.month + (interval_months * i) - 1
             payment_year = start_date.year + (payment_month // 12)
             payment_month = (payment_month % 12) + 1
@@ -3722,15 +3744,39 @@ async def get_payment_reminders(current_user: User = Depends(get_current_user)):
                 
                 # Only include upcoming payments (next 90 days)
                 days_until = (payment_date - current_date).days
-                if 0 <= days_until <= 90:
+                if -30 <= days_until <= 90:  # Include slightly overdue payments too
                     payment_dates.append({
                         "due_date": payment_date.isoformat(),
                         "installment_number": i,
+                        "total_installments": total_installments,
                         "days_until_due": days_until,
                         "is_overdue": days_until < 0
                     })
             except (ValueError, OverflowError):
                 continue
+        
+        if payment_dates:
+            # Get lead/client info
+            lead_id = project.get('lead_id') or (agreement.get('lead_id') if agreement else None)
+            lead = next((l for l in leads if l.get('id') == lead_id), None)
+            
+            reminders.append({
+                "project_id": project.get('id'),
+                "project_name": project.get('name'),
+                "agreement_id": agreement.get('id') if agreement else None,
+                "pricing_plan_id": pricing_plan.get('id') if pricing_plan else None,
+                "client_name": project.get('client_name') or (f"{lead['first_name']} {lead['last_name']}" if lead else "Unknown"),
+                "company": lead.get('company') if lead else None,
+                "payment_frequency": payment_frequency,
+                "project_tenure_months": project_tenure,
+                "total_installments": total_installments,
+                "upcoming_payments": payment_dates
+            })
+    
+    # Sort by nearest due date
+    reminders.sort(key=lambda x: x['upcoming_payments'][0]['days_until_due'] if x['upcoming_payments'] else 999)
+    
+    return reminders
         
         if payment_dates:
             # Get client info
