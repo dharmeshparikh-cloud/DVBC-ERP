@@ -123,6 +123,14 @@ Build a business management application for a consulting firm with complete HR, 
   - [x] Location selection only shows for Present/Half Day status
   - [x] Backend attendance API updated to store work_location field
   - [x] `/api/attendance/analytics` endpoint for comprehensive attendance metrics
+- [x] **Self Check-In with GPS Location Capture**
+  - [x] "Check In Now" button on My Attendance page
+  - [x] GPS location capture using browser geolocation API
+  - [x] Reverse geocoding for address display via OpenStreetMap
+  - [x] Work location selection (In Office/On-Site/WFH)
+  - [x] Duplicate check-in prevention (once per day)
+  - [x] `POST /api/my/check-in` endpoint stores geo_location data
+  - [x] Location column in My Attendance table
 
 ## Test Credentials
 
