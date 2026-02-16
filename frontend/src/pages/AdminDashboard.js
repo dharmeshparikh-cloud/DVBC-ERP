@@ -424,7 +424,7 @@ const AdminDashboard = () => {
               <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>On Leave Today</p>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
       </div>
 
       {/* Quick Actions */}
