@@ -553,6 +553,12 @@ async def register(user_create: UserCreate):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     user_dict = user_create.model_dump(exclude={"password"})
+    # Sanitize user input to prevent XSS
+    if 'full_name' in user_dict:
+        user_dict['full_name'] = sanitize_text(user_dict['full_name'])
+    if 'department' in user_dict and user_dict['department']:
+        user_dict['department'] = sanitize_text(user_dict['department'])
+    
     user = User(**user_dict)
     
     doc = user.model_dump()
