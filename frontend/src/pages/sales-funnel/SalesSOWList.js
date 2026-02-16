@@ -32,6 +32,7 @@ const SalesSOWList = () => {
   const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('card');
 
   useEffect(() => {
     fetchData();
@@ -180,19 +181,22 @@ const SalesSOWList = () => {
             data-testid="sow-search-input"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-zinc-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
-            data-testid="status-filter"
-          >
-            <option value="all">All Status</option>
-            <option value="draft">Draft</option>
-            <option value="handed_over">Handed Over</option>
-            <option value="in_progress">In Progress</option>
-          </select>
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-zinc-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
+              data-testid="status-filter"
+            >
+              <option value="all">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="handed_over">Handed Over</option>
+              <option value="in_progress">In Progress</option>
+            </select>
+          </div>
         </div>
       </div>
 
