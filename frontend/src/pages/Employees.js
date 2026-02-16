@@ -418,131 +418,229 @@ const Employees = () => {
       {activeView === 'directory' && (
         <>
           {/* Search and Filters */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search employees..."
-                className="pl-10 rounded-sm"
-              />
+          <div className="flex items-center justify-between mb-6 gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search employees..."
+                  className="pl-10 rounded-sm"
+                />
+              </div>
+              <select
+                value={filterDepartment}
+                onChange={(e) => setFilterDepartment(e.target.value)}
+                className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
+              >
+                <option value="">All Departments</option>
+                {departments.map(dept => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
             </div>
-            <select
-              value={filterDepartment}
-              onChange={(e) => setFilterDepartment(e.target.value)}
-              className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
-            >
-              <option value="">All Departments</option>
-              {departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
+            <ViewToggle viewMode={viewMode} onChange={setViewMode} />
           </div>
 
-          {/* Employees Table */}
-          <Card className="border-zinc-200 shadow-none rounded-sm">
-            <CardContent className="p-0">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    <th className="px-4 py-3 text-left">Employee</th>
-                    <th className="px-4 py-3 text-left">ID</th>
-                    <th className="px-4 py-3 text-left">Department</th>
-                    <th className="px-4 py-3 text-left">Designation</th>
-                    <th className="px-4 py-3 text-left">Type</th>
-                    <th className="px-4 py-3 text-left">System Access</th>
-                    {canManage && <th className="px-4 py-3 text-left">Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEmployees.map(emp => (
-                    <tr key={emp.id} className="border-b border-zinc-100 hover:bg-zinc-50" data-testid={`employee-row-${emp.id}`}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-medium text-zinc-600">
-                            {emp.first_name?.charAt(0)?.toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="font-medium text-zinc-900">{emp.first_name} {emp.last_name}</span>
-                            <div className="text-xs text-zinc-500">{emp.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">{emp.employee_id}</td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">{emp.department || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">{emp.designation || '-'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 text-xs rounded ${
-                          emp.employment_type === 'full_time' ? 'bg-blue-100 text-blue-700' :
-                          emp.employment_type === 'contract' ? 'bg-amber-100 text-amber-700' :
-                          emp.employment_type === 'intern' ? 'bg-purple-100 text-purple-700' :
-                          'bg-zinc-100 text-zinc-700'
-                        }`}>
-                          {emp.employment_type?.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {emp.user_id ? (
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded">{emp.role || 'Linked'}</span>
-                            {canManage && (
-                              <Button
-                                onClick={() => handleUnlinkUser(emp.id)}
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-zinc-400 hover:text-red-500"
-                                title="Unlink user"
-                              >
-                                <Unlink className="w-3 h-3" />
-                              </Button>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-zinc-400">No access</span>
-                            {canManage && (
-                              <Button
-                                onClick={() => { setSelectedEmployee(emp); setLinkUserDialog(true); }}
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-zinc-400 hover:text-blue-500"
-                                title="Link to user"
-                              >
-                                <Link2 className="w-3 h-3" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      {canManage && (
+          {/* Employees Display */}
+          {viewMode === 'list' ? (
+            /* List View (Table) */
+            <Card className="border-zinc-200 shadow-none rounded-sm">
+              <CardContent className="p-0">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      <th className="px-4 py-3 text-left">Employee</th>
+                      <th className="px-4 py-3 text-left">ID</th>
+                      <th className="px-4 py-3 text-left">Department</th>
+                      <th className="px-4 py-3 text-left">Designation</th>
+                      <th className="px-4 py-3 text-left">Type</th>
+                      <th className="px-4 py-3 text-left">System Access</th>
+                      {canManage && <th className="px-4 py-3 text-left">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredEmployees.map(emp => (
+                      <tr key={emp.id} className="border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer" onClick={() => openViewDialog(emp)} data-testid={`employee-row-${emp.id}`}>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1">
-                            <Button onClick={() => openViewDialog(emp)} variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <Eye className="w-4 h-4 text-zinc-500" />
-                            </Button>
-                            <Button onClick={() => openEditDialog(emp)} variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <Edit2 className="w-4 h-4 text-zinc-500" />
-                            </Button>
-                            {isAdmin && (
-                              <Button onClick={() => handleDeleteEmployee(emp.id)} variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Trash2 className="w-4 h-4 text-red-500" />
-                              </Button>
-                            )}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-medium text-zinc-600">
+                              {emp.first_name?.charAt(0)?.toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-medium text-zinc-900">{emp.first_name} {emp.last_name}</span>
+                              <div className="text-xs text-zinc-500">{emp.email}</div>
+                            </div>
                           </div>
                         </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredEmployees.length === 0 && (
-                <div className="text-center py-12 text-zinc-400">
+                        <td className="px-4 py-3 text-sm text-zinc-600">{emp.employee_id}</td>
+                        <td className="px-4 py-3 text-sm text-zinc-600">{emp.department || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-zinc-600">{emp.designation || '-'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            emp.employment_type === 'full_time' ? 'bg-blue-100 text-blue-700' :
+                            emp.employment_type === 'contract' ? 'bg-amber-100 text-amber-700' :
+                            emp.employment_type === 'intern' ? 'bg-purple-100 text-purple-700' :
+                            'bg-zinc-100 text-zinc-700'
+                          }`}>
+                            {emp.employment_type?.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          {emp.user_id ? (
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded">{emp.role || 'Linked'}</span>
+                              {canManage && (
+                                <Button
+                                  onClick={() => handleUnlinkUser(emp.id)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-zinc-400 hover:text-red-500"
+                                  title="Unlink user"
+                                >
+                                  <Unlink className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-zinc-400">No access</span>
+                              {canManage && (
+                                <Button
+                                  onClick={() => { setSelectedEmployee(emp); setLinkUserDialog(true); }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-zinc-400 hover:text-blue-500"
+                                  title="Link to user"
+                                >
+                                  <Link2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        {canManage && (
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <Button onClick={() => openViewDialog(emp)} variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Eye className="w-4 h-4 text-zinc-500" />
+                              </Button>
+                              <Button onClick={() => openEditDialog(emp)} variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Edit2 className="w-4 h-4 text-zinc-500" />
+                              </Button>
+                              {isAdmin && (
+                                <Button onClick={() => handleDeleteEmployee(emp.id)} variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredEmployees.length === 0 && (
+                  <div className="text-center py-12 text-zinc-400">
+                    {employees.length === 0 ? 'No employees yet. Click "Sync from Users" or "Add Employee" to get started.' : 'No employees match your search.'}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            /* Card View */
+            filteredEmployees.length === 0 ? (
+              <Card className="border-zinc-200 shadow-none rounded-sm">
+                <CardContent className="text-center py-12 text-zinc-400">
                   {employees.length === 0 ? 'No employees yet. Click "Sync from Users" or "Add Employee" to get started.' : 'No employees match your search.'}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredEmployees.map(emp => (
+                  <Card 
+                    key={emp.id} 
+                    className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
+                    onClick={() => openViewDialog(emp)}
+                    data-testid={`employee-card-${emp.id}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-zinc-200 flex items-center justify-center text-lg font-medium text-zinc-600 flex-shrink-0">
+                          {emp.first_name?.charAt(0)?.toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="font-medium text-zinc-900 truncate">{emp.first_name} {emp.last_name}</h3>
+                            <span className={`px-2 py-0.5 text-xs rounded flex-shrink-0 ${
+                              emp.employment_type === 'full_time' ? 'bg-blue-100 text-blue-700' :
+                              emp.employment_type === 'contract' ? 'bg-amber-100 text-amber-700' :
+                              emp.employment_type === 'intern' ? 'bg-purple-100 text-purple-700' :
+                              'bg-zinc-100 text-zinc-700'
+                            }`}>
+                              {emp.employment_type?.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-zinc-600 mb-2">{emp.designation || 'No designation'}</p>
+                          <div className="space-y-1 text-sm text-zinc-500">
+                            {emp.department && (
+                              <div className="flex items-center gap-2">
+                                <Building2 className="w-3.5 h-3.5" />
+                                <span className="truncate">{emp.department}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-3.5 h-3.5" />
+                              <span className="truncate">{emp.email}</span>
+                            </div>
+                            {emp.phone && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>{emp.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-100">
+                            <span className="text-xs text-zinc-400">{emp.employee_id}</span>
+                            {emp.user_id ? (
+                              <span className="px-2 py-0.5 text-xs bg-emerald-100 text-emerald-700 rounded">{emp.role || 'System Access'}</span>
+                            ) : (
+                              <span className="text-xs text-zinc-400">No access</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {canManage && (
+                        <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-zinc-100" onClick={(e) => e.stopPropagation()}>
+                          <Button onClick={() => openViewDialog(emp)} variant="ghost" size="sm" className="h-8 px-2">
+                            <Eye className="w-4 h-4 text-zinc-500" />
+                          </Button>
+                          <Button onClick={() => openEditDialog(emp)} variant="ghost" size="sm" className="h-8 px-2">
+                            <Edit2 className="w-4 h-4 text-zinc-500" />
+                          </Button>
+                          {emp.user_id ? (
+                            <Button onClick={() => handleUnlinkUser(emp.id)} variant="ghost" size="sm" className="h-8 px-2" title="Unlink user">
+                              <Unlink className="w-4 h-4 text-zinc-500" />
+                            </Button>
+                          ) : (
+                            <Button onClick={() => { setSelectedEmployee(emp); setLinkUserDialog(true); }} variant="ghost" size="sm" className="h-8 px-2" title="Link user">
+                              <Link2 className="w-4 h-4 text-zinc-500" />
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <Button onClick={() => handleDeleteEmployee(emp.id)} variant="ghost" size="sm" className="h-8 px-2">
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )
+          )}
         </>
       )}
 
