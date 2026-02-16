@@ -63,7 +63,13 @@ import AdminDashboardMockups from './pages/admin/AdminDashboardMockups';
 import FlowDiagram from './pages/FlowDiagram';
 import Layout from './components/Layout';
 import SalesLayout from './components/SalesLayout';
+import HRLayout from './components/HRLayout';
 import SalesLogin from './pages/SalesLogin';
+import HRLogin from './pages/HRLogin';
+import HRPortalDashboard from './pages/HRPortalDashboard';
+import HRTeamWorkload from './pages/HRTeamWorkload';
+import HRStaffingRequests from './pages/HRStaffingRequests';
+import HROnboarding from './pages/HROnboarding';
 import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
