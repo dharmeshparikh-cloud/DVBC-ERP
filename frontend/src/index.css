@@ -39,6 +39,40 @@ code {
         --input: 240 5.9% 90%;
         --ring: 240 5.9% 10%;
         --radius: 0.2rem;
+        
+        /* Custom theme variables */
+        --sidebar-bg: 255 255 255;
+        --sidebar-border: 240 5.9% 90%;
+        --page-bg: 240 5% 96%;
+        --header-bg: 255 255 255;
+    }
+
+    .dark {
+        --background: 240 10% 4%;
+        --foreground: 0 0% 95%;
+        --card: 240 10% 8%;
+        --card-foreground: 0 0% 95%;
+        --popover: 240 10% 8%;
+        --popover-foreground: 0 0% 95%;
+        --primary: 0 0% 98%;
+        --primary-foreground: 240 5.9% 10%;
+        --secondary: 240 5% 16%;
+        --secondary-foreground: 0 0% 95%;
+        --muted: 240 5% 16%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 240 5% 16%;
+        --accent-foreground: 0 0% 95%;
+        --destructive: 0 62.8% 50%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 5% 20%;
+        --input: 240 5% 20%;
+        --ring: 240 5% 80%;
+        
+        /* Custom theme variables - dark */
+        --sidebar-bg: 240 10% 6%;
+        --sidebar-border: 240 5% 15%;
+        --page-bg: 240 10% 4%;
+        --header-bg: 240 10% 6%;
     }
 }
 
@@ -47,7 +81,7 @@ code {
         @apply border-border;
     }
     body {
-        @apply bg-white text-zinc-950;
+        @apply bg-background text-foreground transition-colors duration-200;
     }
 }
 
