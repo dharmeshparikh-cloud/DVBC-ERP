@@ -154,15 +154,7 @@ const LockableCard = ({
 
   return (
     <>
-      {/* Fullscreen backdrop */}
-      {isFullscreen && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
-          onClick={handleFullscreenToggle}
-        />
-      )}
-      
-      <Card className={`${fullscreenClasses} relative group transition-all duration-200 ${
+      <Card className={`${className} relative group transition-all duration-200 ${
         isLocked ? 'ring-2 ring-orange-500/50' : ''
       }`}>
         {/* Lock indicator badge */}
@@ -279,8 +271,8 @@ const LockableCard = ({
                     : 'hover:bg-zinc-100 text-zinc-700'
                 }`}
               >
-                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                <Maximize2 className="w-4 h-4" />
+                Expand Details
               </button>
             </div>
 
