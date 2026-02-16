@@ -91,6 +91,30 @@ function AppRouter({ user, login, logout, loading }) {
   return (
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+      
+      {/* Sales Portal Routes */}
+      <Route path="/sales/login" element={!user ? <SalesLogin /> : <Navigate to="/sales" />} />
+      <Route
+        path="/sales"
+        element={user ? <SalesLayout /> : <Navigate to="/sales/login" />}
+      >
+        <Route index element={<SalesDashboard />} />
+        <Route path="leads" element={<Leads />} />
+        <Route path="pricing-plans" element={<PricingPlanBuilder />} />
+        <Route path="sow/:pricingPlanId" element={<SOWBuilder />} />
+        <Route path="scope-selection/:pricingPlanId" element={<SalesScopeSelection />} />
+        <Route path="sow-review/:pricingPlanId" element={<ConsultingScopeView />} />
+        <Route path="sow-list" element={<SalesSOWList />} />
+        <Route path="quotations" element={<ProformaInvoice />} />
+        <Route path="agreements" element={<Agreements />} />
+        <Route path="agreement/:agreementId" element={<AgreementView />} />
+        <Route path="kickoff-requests" element={<KickoffRequests />} />
+        <Route path="clients" element={<Clients />} />
+        <Route path="meetings" element={<SalesMeetings />} />
+        <Route path="reports" element={<Reports />} />
+      </Route>
+      
+      {/* Main App Routes */}
       <Route
         path="/"
         element={user ? <Layout /> : <Navigate to="/login" />}
