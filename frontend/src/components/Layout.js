@@ -24,8 +24,10 @@ const ADMIN_ROLES = ['admin', 'manager'];
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const role = user?.role;
+  const isDark = theme === 'dark';
 
   const showHR = HR_ROLES.includes(role);
   const showSales = SALES_ROLES_NAV.includes(role);
