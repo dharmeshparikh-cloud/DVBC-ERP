@@ -64,7 +64,7 @@ const Attendance = () => {
       await axios.post(`${API}/attendance`, formData);
       toast.success('Attendance recorded');
       setDialogOpen(false);
-      setFormData({ employee_id: '', date: '', status: 'present', remarks: '' });
+      setFormData({ employee_id: '', date: '', status: 'present', work_location: 'in_office', remarks: '' });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record attendance');
