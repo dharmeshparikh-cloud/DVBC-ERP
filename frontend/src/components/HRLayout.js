@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '../App';
 import NotificationBell from './NotificationBell';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { 
   LayoutDashboard, Users, UsersRound, GitBranch, CalendarDays, 
   Clock, Wallet, Receipt, BarChart3, FileText, ChevronDown, ChevronRight,
