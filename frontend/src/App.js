@@ -107,7 +107,7 @@ function AppRouter({ user, login, logout, loading }) {
             : <Navigate to="/sales/login" />
         }
       >
-        <Route index element={<SalesDashboard />} />
+        <Route index element={<SalesDashboardEnhanced />} />
         <Route path="leads" element={<Leads />} />
         <Route path="pricing-plans" element={<PricingPlanBuilder />} />
         <Route path="sow/:pricingPlanId" element={<SOWBuilder />} />
@@ -121,6 +121,11 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="clients" element={<Clients />} />
         <Route path="meetings" element={<SalesMeetings />} />
         <Route path="reports" element={<Reports />} />
+        {/* Employee Workspace */}
+        <Route path="my-attendance" element={<MyAttendance />} />
+        <Route path="my-leaves" element={<MyLeaves />} />
+        <Route path="my-salary" element={<MySalarySlips />} />
+        <Route path="my-expenses" element={<MyExpenses />} />
       </Route>
       
       {/* Main App Routes */}
