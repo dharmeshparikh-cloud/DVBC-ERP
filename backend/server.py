@@ -10407,6 +10407,10 @@ async def create_attendance(data: dict, current_user: User = Depends(get_current
     employee_id = data.get("employee_id")
     date_str = data.get("date")
     att_status = data.get("status", "present")
+    # Work location: in_office, onsite, wfh (work from home)
+    work_location = data.get("work_location", "in_office")
+    client_location = data.get("client_location")  # For onsite - which client
+    
     if not employee_id or not date_str:
         raise HTTPException(status_code=400, detail="employee_id and date required")
     
@@ -10423,12 +10427,22 @@ async def create_attendance(data: dict, current_user: User = Depends(get_current
     if existing:
         await db.attendance.update_one(
             {"employee_id": employee_id, "date": date_str},
-            {"$set": {"status": att_status, "remarks": data.get("remarks", ""), "updated_by": current_user.id, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            {"$set": {
+                "status": att_status, 
+                "work_location": work_location,
+                "client_location": client_location,
+                "remarks": data.get("remarks", ""), 
+                "updated_by": current_user.id, 
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
         )
         return {"message": "Attendance updated"}
     record = {
         "id": str(uuid.uuid4()), "employee_id": employee_id, "date": date_str,
-        "status": att_status, "remarks": data.get("remarks", ""),
+        "status": att_status, 
+        "work_location": work_location,
+        "client_location": client_location,
+        "remarks": data.get("remarks", ""),
         "created_by": current_user.id, "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.attendance.insert_one(record)
