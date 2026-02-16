@@ -625,13 +625,17 @@ const SalesDashboardEnhanced = () => {
                 </Button>
               </Link>
               <Link to={isSalesPortal ? "/sales/quotations" : "/sales-funnel/quotations"}>
-                <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-1 hover:bg-purple-50 hover:border-purple-200">
+                <Button variant="outline" className={`w-full h-16 flex flex-col items-center justify-center gap-1 ${
+                  isDark ? 'border-zinc-600 hover:bg-purple-500/10 hover:border-purple-500/30' : 'hover:bg-purple-50 hover:border-purple-200'
+                }`}>
                   <FileText className="w-5 h-5 text-purple-500" />
                   <span className="text-xs">Quotation</span>
                 </Button>
               </Link>
               <Link to={isSalesPortal ? "/sales/kickoff-requests" : "/kickoff-requests"}>
-                <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-1 hover:bg-green-50 hover:border-green-200">
+                <Button variant="outline" className={`w-full h-16 flex flex-col items-center justify-center gap-1 ${
+                  isDark ? 'border-zinc-600 hover:bg-green-500/10 hover:border-green-500/30' : 'hover:bg-green-50 hover:border-green-200'
+                }`}>
                   <Send className="w-5 h-5 text-green-500" />
                   <span className="text-xs">Send Kickoff</span>
                 </Button>
@@ -643,17 +647,19 @@ const SalesDashboardEnhanced = () => {
 
       {/* Pending Kickoffs Alert */}
       {stats?.kickoffs_pending > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className={`${isDark ? 'border-orange-500/30 bg-orange-500/10' : 'border-orange-200 bg-orange-50'}`}>
           <CardContent className="py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-orange-600" />
-                <span className="text-sm text-orange-800">
+                <Clock className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
+                <span className={`text-sm ${isDark ? 'text-orange-300' : 'text-orange-800'}`}>
                   <strong>{stats.kickoffs_pending}</strong> kickoff requests pending PM acceptance
                 </span>
               </div>
               <Link to={isSalesPortal ? "/sales/kickoff-requests" : "/kickoff-requests"}>
-                <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
+                <Button size="sm" variant="outline" className={`${
+                  isDark ? 'border-orange-500/30 text-orange-400 hover:bg-orange-500/20' : 'border-orange-300 text-orange-700 hover:bg-orange-100'
+                }`}>
                   View All
                 </Button>
               </Link>
