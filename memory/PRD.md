@@ -129,8 +129,8 @@ Build a business management application for a consulting firm with complete HR, 
 | Portal | Email | Password | Role |
 |--------|-------|----------|------|
 | Main ERP | admin@company.com | admin123 | Admin |
-| HR Portal | hr_manager@company.com | hr123 | HR Manager |
-| HR Portal | lakshmi.pillai83@dvconsulting.co.in | hr123 | HR Executive |
+| HR Portal | hr.manager@company.com | hr123 | HR Manager |
+| HR Portal | hr.executive@company.com | hr123 | HR Executive |
 | Sales Portal | sales@consulting.com | sales123 | Sales |
 
 ## Backlog / Future Tasks
