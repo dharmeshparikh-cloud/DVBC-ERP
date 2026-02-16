@@ -977,6 +977,69 @@ async def delete_lead(lead_id: str, current_user: User = Depends(get_current_use
         raise HTTPException(status_code=404, detail="Lead not found")
     return {"message": "Lead deleted successfully"}
 
+@api_router.get("/leads/{lead_id}/pricing-eligibility")
+async def check_pricing_eligibility(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Check if a lead is eligible for pricing plan creation"""
+    # Get lead data
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Get meetings for this lead
+    meetings = await db.meetings.find(
+        {"lead_id": lead_id, "type": "sales"},
+        {"_id": 0}
+    ).to_list(100)
+    
+    total_meetings = len(meetings)
+    meetings_with_mom = sum(1 for m in meetings if m.get('mom_generated', False))
+    pending_mom = total_meetings - meetings_with_mom
+    
+    # Temperature check (Hot = score >= 80)
+    lead_score = lead.get('lead_score', 0)
+    is_hot = lead_score >= 80
+    is_warm = 50 <= lead_score < 80
+    is_cold = lead_score < 50
+    
+    temperature = 'hot' if is_hot else ('warm' if is_warm else 'cold')
+    
+    # Eligibility rules:
+    # 1. Must have at least one meeting
+    # 2. All meetings must have MOM (mandatory)
+    # 3. Lead should be Hot (warning if not, but can override)
+    
+    has_meetings = total_meetings > 0
+    all_mom_complete = pending_mom == 0
+    
+    # Block if no meetings or MOM pending
+    can_proceed = has_meetings and all_mom_complete
+    
+    # Warning if not Hot (but can override)
+    needs_warning = not is_hot and can_proceed
+    
+    return {
+        "lead_id": lead_id,
+        "lead_name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+        "company": lead.get('company', ''),
+        "lead_score": lead_score,
+        "temperature": temperature,
+        "is_hot": is_hot,
+        "total_meetings": total_meetings,
+        "meetings_with_mom": meetings_with_mom,
+        "pending_mom": pending_mom,
+        "has_meetings": has_meetings,
+        "all_mom_complete": all_mom_complete,
+        "can_proceed": can_proceed,
+        "needs_warning": needs_warning,
+        "blockers": [
+            {"type": "no_meetings", "message": "No meetings scheduled for this lead", "action": "Schedule a meeting first"} if not has_meetings else None,
+            {"type": "pending_mom", "message": f"{pending_mom} meeting(s) without MOM recorded", "action": "Record MOM for all meetings"} if pending_mom > 0 else None,
+        ],
+        "warnings": [
+            {"type": "not_hot", "message": f"Lead is {temperature.upper()} (score: {lead_score})", "recommendation": "Hot leads have higher conversion rates"} if needs_warning else None,
+        ]
+    }
+
 @api_router.post("/projects", response_model=Project)
 async def create_project(project_create: ProjectCreate, current_user: User = Depends(get_current_user)):
     if current_user.role == UserRole.MANAGER:
