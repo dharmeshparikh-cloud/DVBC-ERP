@@ -524,7 +524,7 @@ const KickoffRequests = () => {
                         {request.expected_start_date ? new Date(request.expected_start_date).toLocaleDateString() : 'TBD'}
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-600">{request.meeting_frequency || 'Monthly'}</td>
-                      <td className="px-4 py-3 text-sm text-zinc-600">{request.requested_by_name || 'Unknown'}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{sanitizeDisplayText(request.requested_by_name) || 'Unknown'}</td>
                       <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <Button variant="outline" size="sm" onClick={() => handleViewDetails(request)} className="h-8" data-testid={`view-details-btn-${request.id}`}>
