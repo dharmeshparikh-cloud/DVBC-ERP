@@ -14,8 +14,10 @@ import {
 
 const SalesLayout = () => {
   const { user, logout } = useContext(AuthContext);
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const isDark = theme === 'dark';
 
   const [expanded, setExpanded] = useState({
     funnel: true, other: true, workspace: true
