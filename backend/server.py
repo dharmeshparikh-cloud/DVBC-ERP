@@ -155,7 +155,74 @@ class User(BaseModel):
     full_name: str
     role: str
     department: Optional[str] = None
+    reporting_manager_id: Optional[str] = None
+    designation: Optional[str] = None
     is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Roles that can see all department data
+ALL_DATA_ACCESS_ROLES = ["admin", "hr_manager", "principal_consultant"]
+
+# Sales Performance Models
+class SalesTarget(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    month: int  # 1-12
+    year: int
+    meeting_target: int = 0
+    conversion_target: int = 0
+    deal_value_target: float = 0.0
+    set_by: str  # reporting manager id
+    approved_by: Optional[str] = None  # principal consultant id
+    approval_status: str = "pending"  # pending, approved, rejected
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[datetime] = None
+
+class SalesTargetCreate(BaseModel):
+    user_id: str
+    month: int
+    year: int
+    meeting_target: int = 0
+    conversion_target: int = 0
+    deal_value_target: float = 0.0
+
+class PerformanceReview(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    reviewer_id: str
+    month: int
+    year: int
+    meeting_quality_score: Optional[float] = None  # 1-5
+    conversion_rate_score: Optional[float] = None  # 1-5
+    response_time_score: Optional[float] = None  # 1-5
+    mom_quality_score: Optional[float] = None  # 1-5
+    target_achievement_score: Optional[float] = None  # 1-5
+    overall_score: Optional[float] = None
+    comments: Optional[str] = None
+    review_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    status: str = "draft"  # draft, submitted, acknowledged
+
+class PerformanceReviewCreate(BaseModel):
+    user_id: str
+    month: int
+    year: int
+    meeting_quality_score: Optional[float] = None
+    conversion_rate_score: Optional[float] = None
+    response_time_score: Optional[float] = None
+    mom_quality_score: Optional[float] = None
+    target_achievement_score: Optional[float] = None
+    comments: Optional[str] = None
+
+class ReviewParameter(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    weight: float = 1.0  # Weight for overall score calculation
+    is_active: bool = True
+    created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserCreate(BaseModel):
