@@ -175,7 +175,11 @@ const AdminDashboard = () => {
         </LockableCard>
 
         {/* Sales Quick Stats */}
-        <Card className="col-span-2 bg-orange-500 text-white border-orange-600">
+        <LockableCard 
+          className="col-span-2 bg-orange-500 text-white border-orange-600"
+          cardId="active-leads"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <BarChart3 className="w-8 h-8 opacity-80" />
             <div>
@@ -183,10 +187,14 @@ const AdminDashboard = () => {
               <p className="text-orange-100 text-sm">Active Leads</p>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Conversion Rate */}
-        <Card className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}>
+        <LockableCard 
+          className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          cardId="conversion-rate"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <Target className={`w-6 h-6 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             <div>
@@ -196,10 +204,14 @@ const AdminDashboard = () => {
               <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Conversion Rate</p>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Project Health Pie */}
-        <Card className={`col-span-4 row-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}>
+        <LockableCard 
+          className={`col-span-4 row-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          cardId="project-health"
+          isDark={isDark}
+        >
           <CardHeader className="pb-2">
             <CardTitle className={`text-sm font-medium flex items-center gap-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
               <Briefcase className="w-4 h-4" />
@@ -241,10 +253,14 @@ const AdminDashboard = () => {
               View All Projects <ChevronRight className="w-4 h-4" />
             </Link>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Meetings Today */}
-        <Card className="col-span-2 bg-blue-600 text-white border-blue-700">
+        <LockableCard 
+          className="col-span-2 bg-blue-600 text-white border-blue-700"
+          cardId="meetings-today"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <Calendar className="w-6 h-6 opacity-80" />
             <div>
@@ -252,10 +268,14 @@ const AdminDashboard = () => {
               <p className="text-blue-100 text-sm">Meetings Today</p>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Pending Approvals */}
-        <Card className="col-span-2 bg-amber-500 text-white border-amber-600">
+        <LockableCard 
+          className="col-span-2 bg-amber-500 text-white border-amber-600"
+          cardId="pending-approvals"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <AlertCircle className="w-6 h-6 opacity-80" />
             <div>
@@ -263,10 +283,14 @@ const AdminDashboard = () => {
               <p className="text-amber-100 text-sm">Pending Actions</p>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Team Present */}
-        <Card className={`col-span-3 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}>
+        <LockableCard 
+          className={`col-span-3 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          cardId="team-present"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full">
             <div className="flex items-center justify-between h-full">
               <div>
