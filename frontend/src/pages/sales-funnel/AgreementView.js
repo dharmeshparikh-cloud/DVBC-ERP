@@ -938,6 +938,131 @@ const AgreementView = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* PM Selection Dialog for Kickoff */}
+      <Dialog open={pmSelectionDialogOpen} onOpenChange={setPmSelectionDialogOpen}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-zinc-950 flex items-center gap-2">
+              <Rocket className="w-5 h-5 text-emerald-600" />
+              Create Kickoff Request
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              Agreement signed! Now assign a consultant as Project Manager to kickoff the project.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Success Banner */}
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-sm flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-600" />
+              <div>
+                <p className="text-sm font-medium text-emerald-800">Agreement Signed Successfully!</p>
+                <p className="text-xs text-emerald-600">{agreement?.agreement_number}</p>
+              </div>
+            </div>
+
+            {/* Project Summary */}
+            <div className="p-3 bg-zinc-50 rounded-sm space-y-2">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-zinc-500">Client:</span>
+                  <span className="ml-2 font-medium">{lead?.company}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Duration:</span>
+                  <span className="ml-2 font-medium">{agreement?.project_tenure_months || pricingPlan?.project_duration_months || 12} months</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Frequency:</span>
+                  <span className="ml-2 font-medium">{agreement?.meeting_frequency || 'Monthly'}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500">Team Size:</span>
+                  <span className="ml-2 font-medium">{agreement?.team_deployment?.length || pricingPlan?.team_deployment?.length || 0} members</span>
+                </div>
+              </div>
+            </div>
+
+            {/* PM Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                <UserCheck className="w-4 h-4" />
+                Select Consultant as Project Manager *
+              </Label>
+              <Select value={selectedPmId} onValueChange={setSelectedPmId}>
+                <SelectTrigger className="rounded-sm" data-testid="pm-select">
+                  <SelectValue placeholder="Select a consultant" />
+                </SelectTrigger>
+                <SelectContent>
+                  {consultants.length === 0 ? (
+                    <SelectItem value="no-consultants" disabled>No consultants available</SelectItem>
+                  ) : (
+                    consultants.map((consultant) => (
+                      <SelectItem 
+                        key={consultant.id || consultant.user_id} 
+                        value={consultant.user_id || consultant.id}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            {consultant.first_name} {consultant.last_name}
+                          </span>
+                          <span className="text-zinc-400">•</span>
+                          <span className="text-xs text-zinc-500">
+                            {consultant.designation || 'Consultant'}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-zinc-500">
+                The selected consultant will be assigned as the Project Manager for this engagement.
+              </p>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Notes (Optional)</Label>
+              <textarea
+                value={kickoffNotes}
+                onChange={(e) => setKickoffNotes(e.target.value)}
+                placeholder="Add any special instructions or notes for the consulting team..."
+                rows={3}
+                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                data-testid="kickoff-notes-input"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPmSelectionDialogOpen(false);
+                navigate('/sales-funnel/agreements');
+              }}
+              className="rounded-sm"
+            >
+              Skip for Now
+            </Button>
+            <Button
+              onClick={handleCreateKickoffRequest}
+              disabled={!selectedPmId || creatingKickoff}
+              className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm"
+              data-testid="create-kickoff-btn"
+            >
+              {creatingKickoff ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Rocket className="w-4 h-4 mr-2" />
+              )}
+              Create Kickoff Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
