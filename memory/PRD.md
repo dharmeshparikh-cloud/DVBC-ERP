@@ -137,14 +137,19 @@ Build a comprehensive business management application for a consulting organizat
 - Dual portal architecture (Main ERP + Sales Portal)
 - **ThemeContext** for global dark/light mode
 
-### Key Files Added/Modified (Phase 4 & 5)
+### Key Files Added/Modified (Phase 4, 5 & 6)
 - `/app/frontend/src/contexts/ThemeContext.js` - Theme state management
+- `/app/frontend/src/contexts/PermissionContext.js` - Frontend permission system
 - `/app/frontend/src/pages/AdminDashboard.js` - Bento grid admin dashboard
 - `/app/frontend/src/pages/FlowDiagram.js` - Interactive workflow visualization
+- `/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - MOM check & hot lead warning dialogs
+- `/app/frontend/src/components/SalesExpandedViews.js` - Sales dashboard drill-down views
 - `/app/frontend/src/components/Layout.js` - Main layout with theme toggle + workflow nav
 - `/app/frontend/src/components/SalesLayout.js` - Sales portal with theme toggle
 - `/app/frontend/src/pages/SalesDashboardEnhanced.js` - Updated with theme support
+- `/app/frontend/src/pages/Leads.js` - Permission-based Add Lead button
 - `/app/frontend/src/index.css` - Dark mode CSS variables
+- `/app/backend/server.py` - New endpoint: GET /api/leads/{lead_id}/pricing-eligibility
 
 ### Key API Endpoints
 - `GET /stats/sales-dashboard-enhanced` - Full dashboard metrics with view_mode
