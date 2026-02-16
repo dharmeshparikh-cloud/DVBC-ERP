@@ -84,16 +84,21 @@ function AppRouter({ user, login, logout, loading }) {
     );
   }
 
+  // Sales roles check for portal access
+  const SALES_ROLES = ['executive', 'account_manager', 'manager'];
+  const isSalesUser = user && SALES_ROLES.includes(user.role);
+
   const getDefaultDashboard = () => {
     if (user?.role === 'consultant') {
       return <ConsultantDashboard />;
     }
+    // Sales users get the enhanced sales dashboard
+    if (isSalesUser) {
+      return <SalesDashboardEnhanced />;
+    }
+    // Admin and others get the general dashboard
     return <Dashboard />;
   };
-
-  // Sales roles check for portal access
-  const SALES_ROLES = ['executive', 'account_manager', 'manager'];
-  const isSalesUser = user && SALES_ROLES.includes(user.role);
 
   return (
     <Routes>
