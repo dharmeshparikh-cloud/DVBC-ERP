@@ -62,7 +62,13 @@ const Layout = () => {
         to={item.href}
         data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
         className={`flex items-center gap-2.5 px-3 py-1.5 rounded-sm text-[13px] transition-colors ${
-          active ? 'bg-zinc-100 text-zinc-950 font-medium' : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
+          active 
+            ? isDark 
+              ? 'bg-zinc-800 text-zinc-100 font-medium' 
+              : 'bg-zinc-100 text-zinc-950 font-medium' 
+            : isDark 
+              ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50' 
+              : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50'
         }`}
       >
         <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
@@ -74,7 +80,9 @@ const Layout = () => {
   const SectionHeader = ({ label, sectionKey }) => (
     <button
       onClick={() => toggle(sectionKey)}
-      className="flex items-center justify-between w-full px-3 mb-0.5 mt-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 hover:text-zinc-600 transition-colors"
+      className={`flex items-center justify-between w-full px-3 mb-0.5 mt-3 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+        isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-400 hover:text-zinc-600'
+      }`}
       data-testid={`section-${sectionKey}`}
     >
       {label}
