@@ -33,6 +33,8 @@ import ConsultingSOWList from './pages/consulting/ConsultingSOWList';
 import ConsultingProjectTasks from './pages/consulting/ConsultingProjectTasks';
 import MyProjects from './pages/consulting/MyProjects';
 import AssignTeam from './pages/consulting/AssignTeam';
+import SOWChangeRequests from './pages/consulting/SOWChangeRequests';
+import PaymentReminders from './pages/consulting/PaymentReminders';
 import Consultants from './pages/Consultants';
 import ConsultantDashboard from './pages/ConsultantDashboard';
 import ProjectTasks from './pages/ProjectTasks';
