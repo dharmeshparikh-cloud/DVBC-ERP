@@ -465,7 +465,7 @@ const KickoffRequests = () => {
                               <p className="text-sm text-orange-700 mt-1">{request.return_notes}</p>
                             )}
                             <p className="text-xs text-orange-600 mt-1">
-                              Returned by: {request.returned_by_name || 'PM'} on {new Date(request.returned_at).toLocaleDateString()}
+                              Returned by: {sanitizeDisplayText(request.returned_by_name) || 'PM'} on {new Date(request.returned_at).toLocaleDateString()}
                             </p>
                           </div>
                         )}
