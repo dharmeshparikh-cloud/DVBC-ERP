@@ -107,6 +107,7 @@ const Layout = () => {
     ? [
         { name: 'My Projects', href: '/consulting/my-projects', icon: Briefcase },
         { name: 'SOW Changes', href: '/consulting/sow-changes', icon: FileText },
+        { name: 'Payment Schedule', href: '/consulting/payments', icon: DollarSign },
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Project Roadmap', href: '/project-roadmap', icon: Map },
         { name: 'Gantt Chart', href: '/gantt-chart', icon: GanttChartSquare },
