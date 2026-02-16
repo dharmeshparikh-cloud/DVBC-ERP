@@ -24,6 +24,7 @@ const KickoffRequests = () => {
   const [agreements, setAgreements] = useState([]);
   const [projectManagers, setProjectManagers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('card');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
