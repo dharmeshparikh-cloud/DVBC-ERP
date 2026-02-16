@@ -283,24 +283,24 @@ const SalesDashboardEnhanced = () => {
             <div className="flex justify-center gap-4 mt-2">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className="text-xs text-zinc-600">Hot ({temperature.hot || 0})</span>
+                <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Hot ({temperature.hot || 0})</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                <span className="text-xs text-zinc-600">Warm ({temperature.warm || 0})</span>
+                <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Warm ({temperature.warm || 0})</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="text-xs text-zinc-600">Cold ({temperature.cold || 0})</span>
+                <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Cold ({temperature.cold || 0})</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Lead Status Distribution */}
-        <Card className="border-zinc-200">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
               <PieChart className="w-4 h-4" />
               Status Distribution
             </CardTitle>
@@ -327,7 +327,7 @@ const SalesDashboardEnhanced = () => {
                     layout="horizontal" 
                     verticalAlign="bottom" 
                     align="center"
-                    wrapperStyle={{ fontSize: '10px' }}
+                    wrapperStyle={{ fontSize: '10px', color: isDark ? '#a1a1aa' : '#52525b' }}
                   />
                 </RechartsPie>
               </ResponsiveContainer>
@@ -336,9 +336,9 @@ const SalesDashboardEnhanced = () => {
         </Card>
 
         {/* Lead Sources */}
-        <Card className="border-zinc-200">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
               <BarChart3 className="w-4 h-4" />
               Lead Sources
             </CardTitle>
@@ -365,7 +365,7 @@ const SalesDashboardEnhanced = () => {
                     layout="horizontal" 
                     verticalAlign="bottom" 
                     align="center"
-                    wrapperStyle={{ fontSize: '10px' }}
+                    wrapperStyle={{ fontSize: '10px', color: isDark ? '#a1a1aa' : '#52525b' }}
                   />
                 </RechartsPie>
               </ResponsiveContainer>
@@ -375,9 +375,9 @@ const SalesDashboardEnhanced = () => {
       </div>
 
       {/* Targets vs Achievement */}
-      <Card className="border-zinc-200">
+      <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
+          <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
             <Target className="w-4 h-4" />
             Targets vs Achievement (This Month)
           </CardTitle>
@@ -387,16 +387,16 @@ const SalesDashboardEnhanced = () => {
             {/* Meeting Target */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-zinc-600">Meetings</span>
-                <span className="text-sm font-medium">
+                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Meetings</span>
+                <span className={`text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
                   {targets.meeting_actual || 0} / {targets.meeting_target || 0}
                 </span>
               </div>
               <Progress 
                 value={targets.meeting_achievement || 0} 
-                className="h-3 bg-zinc-100"
+                className={`h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
               />
-              <p className="text-xs text-zinc-500 text-right">
+              <p className={`text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
                 {targets.meeting_achievement || 0}% achieved
               </p>
             </div>
