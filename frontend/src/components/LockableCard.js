@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Card, CardContent } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { 
   Lock, Unlock, RefreshCw, Eye, EyeOff, Maximize2, Minimize2,
-  ChevronDown, ChevronUp, Settings2
+  ChevronDown, ChevronUp, Settings2, X
 } from 'lucide-react';
 
 /**
@@ -13,12 +13,13 @@ import {
  * - Expandable control panel
  * - Auto-refresh toggle
  * - Visibility toggle
- * - Fullscreen toggle
+ * - Fullscreen toggle with rich drill-down content
  */
 const LockableCard = ({ 
   children, 
   className = '', 
   title,
+  expandedContent,
   onRefresh,
   refreshInterval = null,
   isDark = false,
