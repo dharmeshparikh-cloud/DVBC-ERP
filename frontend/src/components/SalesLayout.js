@@ -127,6 +127,14 @@ const SalesLayout = () => {
                 {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
               </div>
             )}
+
+            {/* My Workspace */}
+            <SectionHeader label="My Workspace" sectionKey="workspace" />
+            {expanded.workspace && (
+              <div className="space-y-0.5">
+                {workspaceItems.map(item => <NavLink key={item.name} item={item} />)}
+              </div>
+            )}
           </nav>
 
           {/* User section */}
