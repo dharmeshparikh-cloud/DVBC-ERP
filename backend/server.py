@@ -5421,8 +5421,10 @@ async def create_consultant(user_create: UserCreate, current_user: User = Depend
 @api_router.get("/consultants")
 async def get_consultants(current_user: User = Depends(get_current_user)):
     """Get all consultants with their project stats"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(status_code=403, detail="Only admins and managers can view consultant list")
+    # Allow admin, managers, and HR managers (read-only for workload view)
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.HR_MANAGER]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Only admins, managers, and HR managers can view consultant list")
     
     # Get all consultant users
     consultants = await db.users.find(
