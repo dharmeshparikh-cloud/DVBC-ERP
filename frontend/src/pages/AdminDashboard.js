@@ -301,9 +301,11 @@ const AdminDashboard = () => {
 
         {/* Team Present */}
         <LockableCard 
-          className={`col-span-3 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          className={`col-span-3 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-emerald-50 border-zinc-200'}`}
           cardId="team-present"
           isDark={isDark}
+          title="Team Attendance"
+          expandedContent={<AttendanceExpanded data={stats} isDark={isDark} />}
         >
           <CardContent className="pt-4 h-full">
             <div className="flex items-center justify-between h-full">
