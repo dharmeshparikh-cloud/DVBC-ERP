@@ -360,12 +360,15 @@ const KickoffRequests = () => {
                 : 'Receive and accept incoming projects'}
           </p>
         </div>
-        {isSalesRole && (
-          <Button onClick={() => setShowCreateDialog(true)} data-testid="create-kickoff-btn">
-            <Plus className="w-4 h-4 mr-2" />
-            New Kickoff Request
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+          {isSalesRole && (
+            <Button onClick={() => setShowCreateDialog(true)} data-testid="create-kickoff-btn">
+              <Plus className="w-4 h-4 mr-2" />
+              New Kickoff Request
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Returned Requests (for Sales) */}
