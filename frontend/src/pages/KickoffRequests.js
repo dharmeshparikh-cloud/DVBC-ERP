@@ -600,10 +600,57 @@ const KickoffRequests = () => {
               No processed requests yet
             </CardContent>
           </Card>
+        ) : viewMode === 'list' ? (
+          <div className="border border-zinc-200 rounded-sm overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Project</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Client</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Created</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Accepted</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {processedRequests.map((request) => (
+                  <tr 
+                    key={request.id} 
+                    className="hover:bg-zinc-50 cursor-pointer transition-colors"
+                    onClick={() => handleViewDetails(request)}
+                    data-testid={`processed-request-row-${request.id}`}
+                  >
+                    <td className="px-4 py-3 font-medium text-zinc-900">{request.project_name}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">{request.client_name}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">{new Date(request.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-sm text-green-600">
+                      {request.accepted_at ? new Date(request.accepted_at).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleViewDetails(request)} className="h-8">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        {request.status === 'converted' && request.project_id && (
+                          <Button variant="outline" size="sm" asChild className="h-8">
+                            <a href={`/projects`}>
+                              View Project <ArrowRight className="w-4 h-4 ml-1" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="grid gap-4">
             {processedRequests.map((request) => (
-              <Card key={request.id} className="border-zinc-200" data-testid={`processed-request-${request.id}`}>
+              <Card key={request.id} className="border-zinc-200 cursor-pointer hover:border-zinc-300 transition-colors" onClick={() => handleViewDetails(request)} data-testid={`processed-request-${request.id}`}>
                 <CardContent className="py-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -620,12 +667,8 @@ const KickoffRequests = () => {
                         )}
                       </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleViewDetails(request)}
-                      >
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" onClick={() => handleViewDetails(request)}>
                         <Eye className="w-4 h-4" />
                       </Button>
                       {request.status === 'converted' && request.project_id && (
