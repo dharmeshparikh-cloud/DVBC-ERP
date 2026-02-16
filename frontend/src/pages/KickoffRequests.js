@@ -16,6 +16,7 @@ import {
   RotateCcw, CalendarCheck, MessageSquare, ChevronRight, AlertCircle,
   Briefcase, UserCheck
 } from 'lucide-react';
+import ViewToggle from '../components/ViewToggle';
 
 const KickoffRequests = () => {
   const { user } = useContext(AuthContext);

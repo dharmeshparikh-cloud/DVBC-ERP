@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import ViewToggle from '../../components/ViewToggle';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-zinc-100 text-zinc-700', icon: FileText },

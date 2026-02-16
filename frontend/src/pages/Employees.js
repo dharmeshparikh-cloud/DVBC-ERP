@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { 
   Users, Plus, Search, Building2, UserCheck, UserX, Edit2, Eye, 
   FileText, Download, Trash2, Link2, Unlink,
-  RefreshCw, BarChart3
+  RefreshCw, BarChart3, Mail, Phone, Briefcase
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ViewToggle from '../components/ViewToggle';
 
 const EMPLOYMENT_TYPES = [
   { value: 'full_time', label: 'Full Time' },
