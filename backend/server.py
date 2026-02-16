@@ -3777,24 +3777,6 @@ async def get_payment_reminders(current_user: User = Depends(get_current_user)):
     reminders.sort(key=lambda x: x['upcoming_payments'][0]['days_until_due'] if x['upcoming_payments'] else 999)
     
     return reminders
-        
-        if payment_dates:
-            # Get client info
-            lead = await db.leads.find_one({"id": project.get('lead_id')}, {"_id": 0})
-            
-            reminders.append({
-                "project_id": project.get('id'),
-                "project_name": project.get('name'),
-                "client_name": project.get('client_name') or (f"{lead['first_name']} {lead['last_name']}" if lead else "Unknown"),
-                "company": lead.get('company') if lead else None,
-                "payment_frequency": payment_frequency,
-                "upcoming_payments": payment_dates
-            })
-    
-    # Sort by nearest due date
-    reminders.sort(key=lambda x: x['upcoming_payments'][0]['due_date'] if x['upcoming_payments'] else '9999')
-    
-    return reminders
 
 @api_router.get("/payment-reminders/project/{project_id}")
 async def get_project_payment_schedule(
