@@ -847,8 +847,11 @@ const KickoffRequests = () => {
             </div>
           ) : detailData ? (
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="w-full justify-start">
+              <TabsList className="w-full justify-start flex-wrap">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="history">
+                  Meeting History {detailData?.total_meetings_held > 0 && `(${detailData.total_meetings_held})`}
+                </TabsTrigger>
                 <TabsTrigger value="team">Team Deployment</TabsTrigger>
                 <TabsTrigger value="sow">Scope of Work</TabsTrigger>
                 <TabsTrigger value="agreement">Agreement</TabsTrigger>
