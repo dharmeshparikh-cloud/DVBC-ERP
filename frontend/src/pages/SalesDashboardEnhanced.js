@@ -404,16 +404,16 @@ const SalesDashboardEnhanced = () => {
             {/* Conversion Target */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-zinc-600">Conversions</span>
-                <span className="text-sm font-medium">
+                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Conversions</span>
+                <span className={`text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
                   {targets.conversion_actual || 0} / {targets.conversion_target || 0}
                 </span>
               </div>
               <Progress 
                 value={targets.conversion_target > 0 ? (targets.conversion_actual / targets.conversion_target * 100) : 0} 
-                className="h-3 bg-zinc-100"
+                className={`h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
               />
-              <p className="text-xs text-zinc-500 text-right">
+              <p className={`text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
                 {targets.conversion_target > 0 ? Math.round(targets.conversion_actual / targets.conversion_target * 100) : 0}% achieved
               </p>
             </div>
@@ -421,16 +421,16 @@ const SalesDashboardEnhanced = () => {
             {/* Value Target */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-zinc-600">Deal Value</span>
-                <span className="text-sm font-medium">
+                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Deal Value</span>
+                <span className={`text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
                   {formatCurrency(targets.value_actual || 0)} / {formatCurrency(targets.value_target || 0)}
                 </span>
               </div>
               <Progress 
                 value={targets.value_target > 0 ? (targets.value_actual / targets.value_target * 100) : 0} 
-                className="h-3 bg-zinc-100"
+                className={`h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
               />
-              <p className="text-xs text-zinc-500 text-right">
+              <p className={`text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
                 {targets.value_target > 0 ? Math.round(targets.value_actual / targets.value_target * 100) : 0}% achieved
               </p>
             </div>
@@ -440,9 +440,9 @@ const SalesDashboardEnhanced = () => {
 
       {/* Month over Month Performance */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="border-zinc-200">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
               <TrendingUp className="w-4 h-4" />
               Monthly Performance Trend
             </CardTitle>
@@ -451,17 +451,17 @@ const SalesDashboardEnhanced = () => {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={momData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#3f3f46' : '#e5e7eb'} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#52525b' }} />
+                  <YAxis tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#52525b' }} />
+                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#18181b' : '#fff', border: isDark ? '1px solid #3f3f46' : '1px solid #e5e7eb' }} />
                   <Legend wrapperStyle={{ fontSize: '11px' }} />
                   <Area 
                     type="monotone" 
                     dataKey="leads" 
                     stackId="1"
                     stroke="#f97316" 
-                    fill="#fed7aa" 
+                    fill={isDark ? '#f9731640' : '#fed7aa'}
                     name="Leads"
                   />
                   <Area 
@@ -469,7 +469,7 @@ const SalesDashboardEnhanced = () => {
                     dataKey="meetings" 
                     stackId="2"
                     stroke="#3b82f6" 
-                    fill="#bfdbfe" 
+                    fill={isDark ? '#3b82f640' : '#bfdbfe'}
                     name="Meetings"
                   />
                   <Area 
@@ -477,7 +477,7 @@ const SalesDashboardEnhanced = () => {
                     dataKey="closures" 
                     stackId="3"
                     stroke="#10b981" 
-                    fill="#a7f3d0" 
+                    fill={isDark ? '#10b98140' : '#a7f3d0'} 
                     name="Closures"
                   />
                 </AreaChart>
