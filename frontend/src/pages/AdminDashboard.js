@@ -182,9 +182,11 @@ const AdminDashboard = () => {
 
         {/* Sales Quick Stats */}
         <LockableCard 
-          className="col-span-2 bg-orange-500 text-white border-orange-600"
+          className="col-span-2 bg-gradient-to-br from-orange-500 to-amber-600 text-white border-orange-600"
           cardId="active-leads"
           isDark={isDark}
+          title="Active Leads"
+          expandedContent={<LeadsExpanded data={stats} isDark={isDark} />}
         >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <BarChart3 className="w-8 h-8 opacity-80" />
