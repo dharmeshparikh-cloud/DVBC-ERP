@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="12" skipped="0" tests="25" time="9.766" timestamp="2026-02-16T20:36:41.834052+00:00" hostname="agent-env-31f6df13-4d71-4bbc-b827-2c28d4c1e633"><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_01_create_lead" time="1.900" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_02_get_lead" time="0.197" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_03_update_lead_status_to_qualified" time="0.320" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_04_list_leads" time="0.651" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_05_create_project_for_meeting" time="0.327" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_06_create_sales_meeting" time="0.333" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_07_add_mom_to_meeting" time="0.297" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_08_get_meeting_with_mom" time="0.424" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_09_create_pricing_plan" time="0.598"><failure message="AssertionError: Create pricing plan failed: {&quot;detail&quot;:[{&quot;type&quot;:&quot;missing&quot;,&quot;loc&quot;:[&quot;body&quot;,&quot;project_duration_type&quot;],&quot;msg&quot;:&quot;Field required&quot;,&quot;input&quot;:{&quot;lead_id&quot;:&quot;24cd8eef-cedc-4800-9018-25d5f4ca5179&quot;,&quot;name&quot;:&quot;TEST_E2E Pricing Plan 203647&quot;,&quot;total_investment&quot;:1200000,&quot;project_duration_months&quot;:12,&quot;payment_schedule&quot;:&quot;monthly&quot;,&quot;discount_percentage&quot;:5,&quot;team_deployment&quot;:[{&quot;role&quot;:&quot;Lead Consultant&quot;,&quot;tenure_type_code&quot;:&quot;monthly&quot;,&quot;meeting_type&quot;:&quot;Monthly Review&quot;,&quot;mode&quot;:&quot;Online&quot;,&quot;count&quot;:1,&quot;rate_per_meeting&quot;:25000,&quot;meetings&quot;:12},{&quot;role&quot;:&quot;Senior Consultant&quot;,&quot;tenure_type_code&quot;:&quot;weekly&quot;,&quot;meeting_type&quot;:&quot;Weekly Review&quot;,&quot;mode&quot;:&quot;Mixed&quot;,&quot;count&quot;:1,&quot;rate_per_meeting&quot;:12500,&quot;meetings&quot;:48}],&quot;notes&quot;:&quot;E2E test pricing plan&quot;},&quot;url&quot;:&quot;https://errors.pydantic.dev/2.12/v/missing&quot;}]}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">backend/tests/test_sales_flow_e2e.py:265: in test_09_create_pricing_plan
+    assert response.status_code == 200, f"Create pricing plan failed: {response.text}"
+E   AssertionError: Create pricing plan failed: {"detail":[{"type":"missing","loc":["body","project_duration_type"],"msg":"Field required","input":{"lead_id":"24cd8eef-cedc-4800-9018-25d5f4ca5179","name":"TEST_E2E Pricing Plan 203647","total_investment":1200000,"project_duration_months":12,"payment_schedule":"monthly","discount_percentage":5,"team_deployment":[{"role":"Lead Consultant","tenure_type_code":"monthly","meeting_type":"Monthly Review","mode":"Online","count":1,"rate_per_meeting":25000,"meetings":12},{"role":"Senior Consultant","tenure_type_code":"weekly","meeting_type":"Weekly Review","mode":"Mixed","count":1,"rate_per_meeting":12500,"meetings":48}],"notes":"E2E test pricing plan"},"url":"https://errors.pydantic.dev/2.12/v/missing"}]}
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422]&gt;.status_code</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_10_get_pricing_plans" time="0.500"><failure message="AssertionError: Test pricing plan not found&#10;assert 0 &gt; 0&#10; +  where 0 = len([])">backend/tests/test_sales_flow_e2e.py:284: in test_10_get_pricing_plans
+    assert len(test_plans) &gt; 0, "Test pricing plan not found"
+E   AssertionError: Test pricing plan not found
+E   assert 0 &gt; 0
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_11_create_sow" time="0.001"><failure message="AssertionError: No pricing plan ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_pricing_plan_id">backend/tests/test_sales_flow_e2e.py:291: in test_11_create_sow
+    assert TestSalesFlowE2E.test_pricing_plan_id, "No pricing plan ID"
+E   AssertionError: No pricing plan ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_pricing_plan_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_12_get_sow" time="0.001"><failure message="AssertionError: No SOW ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_sow_id">backend/tests/test_sales_flow_e2e.py:319: in test_12_get_sow
+    assert TestSalesFlowE2E.test_sow_id, "No SOW ID"
+E   AssertionError: No SOW ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_sow_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_13_add_sow_item" time="0.001"><failure message="AssertionError: No SOW ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_sow_id">backend/tests/test_sales_flow_e2e.py:333: in test_13_add_sow_item
+    assert TestSalesFlowE2E.test_sow_id, "No SOW ID"
+E   AssertionError: No SOW ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_sow_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_14_create_quotation" time="0.001"><failure message="AssertionError: No pricing plan ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_pricing_plan_id">backend/tests/test_sales_flow_e2e.py:360: in test_14_create_quotation
+    assert TestSalesFlowE2E.test_pricing_plan_id, "No pricing plan ID"
+E   AssertionError: No pricing plan ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_pricing_plan_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_15_finalize_quotation" time="0.001"><failure message="AssertionError: No quotation ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_quotation_id">backend/tests/test_sales_flow_e2e.py:383: in test_15_finalize_quotation
+    assert TestSalesFlowE2E.test_quotation_id, "No quotation ID"
+E   AssertionError: No quotation ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_quotation_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_16_create_agreement" time="0.001"><failure message="AssertionError: No quotation ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_quotation_id">backend/tests/test_sales_flow_e2e.py:399: in test_16_create_agreement
+    assert TestSalesFlowE2E.test_quotation_id, "No quotation ID"
+E   AssertionError: No quotation ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_quotation_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_17_approve_agreement" time="0.001"><failure message="AssertionError: No agreement ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_agreement_id">backend/tests/test_sales_flow_e2e.py:438: in test_17_approve_agreement
+    assert TestSalesFlowE2E.test_agreement_id, "No agreement ID"
+E   AssertionError: No agreement ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_agreement_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_18_get_agreements_list" time="0.299" /><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_19_create_kickoff_request" time="0.001"><failure message="AssertionError: No agreement ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_agreement_id">backend/tests/test_sales_flow_e2e.py:463: in test_19_create_kickoff_request
+    assert TestSalesFlowE2E.test_agreement_id, "No agreement ID"
+E   AssertionError: No agreement ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_agreement_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_20_get_kickoff_requests" time="0.316"><failure message="AssertionError: Test kickoff not found&#10;assert 0 &gt; 0&#10; +  where 0 = len([])">backend/tests/test_sales_flow_e2e.py:499: in test_20_get_kickoff_requests
+    assert len(test_kickoffs) &gt; 0, "Test kickoff not found"
+E   AssertionError: Test kickoff not found
+E   assert 0 &gt; 0
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_21_get_kickoff_details" time="0.001"><failure message="AssertionError: No kickoff ID&#10;assert None&#10; +  where None = TestSalesFlowE2E.test_kickoff_id">backend/tests/test_sales_flow_e2e.py:504: in test_21_get_kickoff_details
+    assert TestSalesFlowE2E.test_kickoff_id, "No kickoff ID"
+E   AssertionError: No kickoff ID
+E   assert None
+E    +  where None = TestSalesFlowE2E.test_kickoff_id</failure></testcase><testcase classname="tests.test_sales_flow_e2e.TestSalesFlowE2E" name="test_99_cleanup" time="0.002" /><testcase classname="tests.test_sales_flow_e2e.TestMeetingsAPI" name="test_list_meetings" time="1.160" /><testcase classname="tests.test_sales_flow_e2e.TestMeetingsAPI" name="test_list_sales_meetings" time="0.255" /><testcase classname="tests.test_sales_flow_e2e.TestAgreementSignature" name="test_pending_approvals" time="1.051" /></testsuite></testsuites>
