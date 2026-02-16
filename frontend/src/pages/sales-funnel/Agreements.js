@@ -575,9 +575,9 @@ const Agreements = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
                     <Button
-                      onClick={() => navigate(`/sales-funnel/agreement/${agreement.id}`)}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/sales-funnel/agreement/${agreement.id}`); }}
                       size="sm"
                       variant="outline"
                       className="rounded-sm border-zinc-300 hover:bg-zinc-100"
@@ -587,7 +587,7 @@ const Agreements = () => {
                       View
                     </Button>
                     <Button
-                      onClick={() => handleDownload(agreement.id, 'pdf')}
+                      onClick={(e) => { e.stopPropagation(); handleDownload(agreement.id, 'pdf'); }}
                       size="sm"
                       variant="outline"
                       disabled={downloading[`${agreement.id}-pdf`]}
@@ -598,7 +598,7 @@ const Agreements = () => {
                       {downloading[`${agreement.id}-pdf`] ? 'Downloading...' : 'PDF'}
                     </Button>
                     <Button
-                      onClick={() => handleDownload(agreement.id, 'docx')}
+                      onClick={(e) => { e.stopPropagation(); handleDownload(agreement.id, 'docx'); }}
                       size="sm"
                       variant="outline"
                       disabled={downloading[`${agreement.id}-docx`]}
@@ -611,7 +611,7 @@ const Agreements = () => {
                     
                     {agreement.status === 'approved' && canEdit && (
                       <Button
-                        onClick={() => openEmailDialog(agreement)}
+                        onClick={(e) => { e.stopPropagation(); openEmailDialog(agreement); }}
                         size="sm"
                         className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
                       >
