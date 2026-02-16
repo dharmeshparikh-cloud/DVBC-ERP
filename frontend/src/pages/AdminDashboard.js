@@ -285,9 +285,10 @@ const AdminDashboard = () => {
 
         {/* Pending Approvals */}
         <LockableCard 
-          className="col-span-2 bg-amber-500 text-white border-amber-600"
+          className="col-span-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white border-amber-600"
           cardId="pending-approvals"
           isDark={isDark}
+          title="Pending Actions"
         >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <AlertCircle className="w-6 h-6 opacity-80" />
