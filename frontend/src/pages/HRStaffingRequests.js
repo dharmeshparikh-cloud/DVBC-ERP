@@ -89,13 +89,13 @@ const HRStaffingRequests = () => {
     );
   }
 
-  if (user?.role !== 'hr_manager') {
+  if (!hasAccess) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Access Denied</h2>
-          <p className="text-zinc-500 mt-2">This page is only accessible to HR Managers</p>
+          <p className="text-zinc-500 mt-2">This page is only accessible to Admin and HR Managers</p>
         </div>
       </div>
     );
