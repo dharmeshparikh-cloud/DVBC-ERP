@@ -1,409 +1,545 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import ReactFlow, { 
+  Controls, 
+  Background, 
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  MarkerType,
+  Handle,
+  Position
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
 import { 
-  Users, Briefcase, DollarSign, ArrowRight, ArrowDown, AlertTriangle,
-  CheckCircle, XCircle, Link2, Unlink, Building2, Target, FileText,
-  Calendar, Clock, TrendingUp, UserPlus, UserMinus, Award, BookOpen,
-  CreditCard, Receipt, PieChart, Settings, Bell, ChevronRight
+  Users, Briefcase, DollarSign, AlertTriangle, CheckCircle, XCircle,
+  Target, FileText, Calendar, Clock, TrendingUp, UserPlus, UserMinus, 
+  Award, BookOpen, CreditCard, Receipt, PieChart, Eye, EyeOff, Info,
+  Maximize2, ZoomIn, ZoomOut
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
-const FlowDiagram = () => {
-  const [activeModule, setActiveModule] = useState(null);
-  const [showMissing, setShowMissing] = useState(true);
-
-  // HR Module Flow
-  const hrFlow = [
-    { id: 'recruitment', name: 'Recruitment', status: 'missing', icon: UserPlus, 
-      desc: 'Job posting, Applications, Interviews' },
-    { id: 'onboarding', name: 'Onboarding', status: 'missing', icon: BookOpen,
-      desc: 'Documents, IT setup, Training' },
-    { id: 'employee', name: 'Employee Master', status: 'exists', icon: Users,
-      desc: 'Profile, Department, Designation' },
-    { id: 'attendance', name: 'Attendance', status: 'exists', icon: Clock,
-      desc: 'Check-in/out, WFH tracking' },
-    { id: 'leave', name: 'Leave Mgmt', status: 'exists', icon: Calendar,
-      desc: 'Apply, Approve, Balance' },
-    { id: 'payroll', name: 'Payroll', status: 'exists', icon: CreditCard,
-      desc: 'Salary, Deductions, Disbursement' },
-    { id: 'skills', name: 'Skill Matrix', status: 'missing', icon: Award,
-      desc: 'Competencies, Certifications' },
-    { id: 'exit', name: 'Exit Process', status: 'missing', icon: UserMinus,
-      desc: 'Resignation, Clearance, F&F' },
-  ];
-
-  // Sales Module Flow
-  const salesFlow = [
-    { id: 'lead', name: 'Lead Capture', status: 'exists', icon: UserPlus,
-      desc: 'Source, Contact, Company' },
-    { id: 'meeting', name: 'Meetings', status: 'exists', icon: Calendar,
-      desc: 'Schedule, Attendees, Location' },
-    { id: 'mom', name: 'MOM', status: 'exists', icon: FileText,
-      desc: 'Minutes, Action items' },
-    { id: 'qualify', name: 'Qualification', status: 'exists', icon: Target,
-      desc: 'Hot/Warm/Cold scoring' },
-    { id: 'pricing', name: 'Pricing Plan', status: 'exists', icon: DollarSign,
-      desc: 'Services, Rates, Duration' },
-    { id: 'sow', name: 'SOW', status: 'exists', icon: FileText,
-      desc: 'Scope, Deliverables, Terms' },
-    { id: 'proforma', name: 'Proforma', status: 'exists', icon: Receipt,
-      desc: 'Invoice preview' },
-    { id: 'agreement', name: 'Agreement', status: 'exists', icon: FileText,
-      desc: 'Contract, Signatures' },
-    { id: 'kickoff', name: 'Kickoff', status: 'exists', icon: TrendingUp,
-      desc: 'Handoff to Consulting' },
-    { id: 'forecast', name: 'Forecasting', status: 'missing', icon: PieChart,
-      desc: 'Pipeline value prediction' },
-    { id: 'commission', name: 'Commission', status: 'missing', icon: DollarSign,
-      desc: 'Sales incentive calc' },
-  ];
-
-  // Consulting Module Flow
-  const consultingFlow = [
-    { id: 'project', name: 'Project Setup', status: 'exists', icon: Briefcase,
-      desc: 'From kickoff approval' },
-    { id: 'team', name: 'Team Allocation', status: 'exists', icon: Users,
-      desc: 'Assign consultants' },
-    { id: 'timesheet', name: 'Timesheets', status: 'missing', icon: Clock,
-      desc: 'Effort logging, Approval' },
-    { id: 'milestone', name: 'Milestones', status: 'missing', icon: Target,
-      desc: 'Deliverables, Deadlines' },
-    { id: 'sowchange', name: 'SOW Changes', status: 'exists', icon: FileText,
-      desc: 'Scope modifications' },
-    { id: 'delivery', name: 'Delivery', status: 'partial', icon: CheckCircle,
-      desc: 'Sign-off, Acceptance' },
-    { id: 'pnl', name: 'Project P&L', status: 'missing', icon: PieChart,
-      desc: 'Revenue vs Cost' },
-    { id: 'invoice', name: 'Invoicing', status: 'missing', icon: Receipt,
-      desc: 'Generate from milestones' },
-    { id: 'payment', name: 'Payment Track', status: 'exists', icon: CreditCard,
-      desc: 'Reminders, Collection' },
-    { id: 'nps', name: 'Client NPS', status: 'missing', icon: Award,
-      desc: 'Satisfaction score' },
-  ];
-
-  // Cross-module linkages
-  const linkages = [
-    { from: 'HR', to: 'Sales', name: 'Bench → Capacity', status: 'missing',
-      desc: 'Check available salespeople before lead assignment' },
-    { from: 'HR', to: 'Consulting', name: 'Skills → Staffing', status: 'missing',
-      desc: 'Match consultant skills to project needs' },
-    { from: 'Sales', to: 'HR', name: 'Deal → Hiring', status: 'missing',
-      desc: 'Trigger hiring for large deals' },
-    { from: 'Sales', to: 'Consulting', name: 'Context Transfer', status: 'partial',
-      desc: 'Pass SOW, expectations, client history' },
-    { from: 'Consulting', to: 'HR', name: 'Utilization Update', status: 'missing',
-      desc: 'Update employee utilization %' },
-    { from: 'Consulting', to: 'Finance', name: 'Work → Invoice', status: 'missing',
-      desc: 'Auto-generate invoices from delivered milestones' },
-    { from: 'Finance', to: 'HR', name: 'Revenue → Payroll', status: 'missing',
-      desc: 'Performance bonus, Commission payout' },
-    { from: 'All', to: 'All', name: 'Unified Notifications', status: 'missing',
-      desc: 'Single notification system across modules' },
-  ];
-
-  // Duplicates
-  const duplicates = [
-    { area: 'User Data', modules: ['HR Employees', 'Users Table'], 
-      issue: 'Separate tables, potential sync issues' },
-    { area: 'Approval Workflow', modules: ['Leave', 'SOW Change', 'Kickoff'], 
-      issue: 'Different approval logic in each module' },
-    { area: 'Client Data', modules: ['Leads', 'Clients', 'Agreements'], 
-      issue: 'Client info scattered across collections' },
-    { area: 'Notifications', modules: ['Email', 'In-app', 'Reminders'], 
-      issue: 'No unified notification center' },
-  ];
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'exists': return 'bg-green-500';
-      case 'partial': return 'bg-amber-500';
-      case 'missing': return 'bg-red-500';
-      default: return 'bg-gray-500';
+// Custom Node Components
+const ModuleNode = ({ data }) => {
+  const getBgGradient = () => {
+    switch(data.module) {
+      case 'hr': return 'from-emerald-500 to-emerald-600';
+      case 'sales': return 'from-orange-500 to-orange-600';
+      case 'consulting': return 'from-blue-500 to-blue-600';
+      case 'finance': return 'from-purple-500 to-purple-600';
+      default: return 'from-zinc-500 to-zinc-600';
     }
   };
 
-  const getStatusBg = (status) => {
-    switch(status) {
-      case 'exists': return 'bg-green-50 border-green-200';
-      case 'partial': return 'bg-amber-50 border-amber-200';
-      case 'missing': return 'bg-red-50 border-red-200';
-      default: return 'bg-gray-50 border-gray-200';
-    }
-  };
-
-  const FlowStep = ({ step, index, total }) => {
-    if (!showMissing && step.status === 'missing') return null;
-    const Icon = step.icon;
-    return (
-      <div className="flex items-center">
-        <div className={`relative p-3 rounded-lg border-2 ${getStatusBg(step.status)} 
-          hover:shadow-md transition-shadow cursor-pointer min-w-[140px]`}>
-          <div className={`absolute -top-2 -right-2 w-4 h-4 rounded-full ${getStatusColor(step.status)}`} />
-          <div className="flex items-center gap-2 mb-1">
-            <Icon className="w-4 h-4 text-zinc-600" />
-            <span className="font-medium text-sm text-zinc-800">{step.name}</span>
-          </div>
-          <p className="text-xs text-zinc-500">{step.desc}</p>
-        </div>
-        {index < total - 1 && (
-          <ArrowRight className="w-5 h-5 mx-1 text-zinc-300 flex-shrink-0" />
-        )}
-      </div>
-    );
-  };
+  const Icon = data.icon;
 
   return (
-    <div className="p-6 space-y-8 bg-zinc-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className={`bg-gradient-to-r ${getBgGradient()} rounded-xl shadow-lg p-4 min-w-[180px] text-white`}>
+      <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-white" />
+      <div className="flex items-center gap-3">
+        {Icon && <Icon className="w-8 h-8" />}
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900">ERP Flow Analysis</h1>
-          <p className="text-zinc-500">End-to-end business process mapping</p>
+          <div className="font-bold text-lg">{data.label}</div>
+          <div className="text-xs opacity-80">{data.subtitle}</div>
         </div>
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={showMissing} 
-              onChange={(e) => setShowMissing(e.target.checked)}
-              className="w-4 h-4 rounded"
-            />
-            <span className="text-sm text-zinc-600">Show Missing Items</span>
-          </label>
+      </div>
+      {data.stats && (
+        <div className="mt-2 pt-2 border-t border-white/20 text-sm">
+          {data.stats}
+        </div>
+      )}
+      <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-white" />
+    </div>
+  );
+};
+
+const ProcessNode = ({ data }) => {
+  const getStatusStyle = () => {
+    switch(data.status) {
+      case 'exists': return {
+        border: 'border-green-400',
+        bg: 'bg-green-50 dark:bg-green-900/30',
+        dot: 'bg-green-500'
+      };
+      case 'partial': return {
+        border: 'border-amber-400',
+        bg: 'bg-amber-50 dark:bg-amber-900/30',
+        dot: 'bg-amber-500'
+      };
+      case 'missing': return {
+        border: 'border-red-400',
+        bg: 'bg-red-50 dark:bg-red-900/30',
+        dot: 'bg-red-500'
+      };
+      default: return {
+        border: 'border-zinc-300',
+        bg: 'bg-zinc-50 dark:bg-zinc-800',
+        dot: 'bg-zinc-400'
+      };
+    }
+  };
+
+  const style = getStatusStyle();
+  const Icon = data.icon;
+
+  return (
+    <div className={`relative ${style.bg} ${style.border} border-2 rounded-lg p-3 min-w-[130px] max-w-[160px] shadow-md 
+      hover:shadow-lg transition-all cursor-pointer group`}>
+      <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-zinc-400" />
+      <div className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full ${style.dot} border-2 border-white shadow`} />
+      <div className="flex items-center gap-2 mb-1">
+        {Icon && <Icon className="w-4 h-4 text-zinc-600 dark:text-zinc-300" />}
+        <span className="font-semibold text-sm text-zinc-800 dark:text-zinc-100">{data.label}</span>
+      </div>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight">{data.description}</p>
+      <Handle type="source" position={Position.Right} className="w-2 h-2 !bg-zinc-400" />
+    </div>
+  );
+};
+
+const LinkageNode = ({ data }) => {
+  const getStyle = () => {
+    switch(data.status) {
+      case 'exists': return 'bg-green-100 border-green-400 text-green-800';
+      case 'partial': return 'bg-amber-100 border-amber-400 text-amber-800';
+      case 'missing': return 'bg-red-100 border-red-400 text-red-800';
+      default: return 'bg-zinc-100 border-zinc-400 text-zinc-800';
+    }
+  };
+
+  const StatusIcon = data.status === 'exists' ? CheckCircle : 
+                     data.status === 'partial' ? AlertTriangle : XCircle;
+
+  return (
+    <div className={`${getStyle()} border-2 border-dashed rounded-full px-4 py-2 shadow-sm 
+      flex items-center gap-2 text-sm font-medium`}>
+      <Handle type="target" position={Position.Top} className="w-2 h-2 opacity-0" />
+      <StatusIcon className="w-4 h-4" />
+      <span>{data.label}</span>
+      <Handle type="source" position={Position.Bottom} className="w-2 h-2 opacity-0" />
+    </div>
+  );
+};
+
+const nodeTypes = {
+  moduleNode: ModuleNode,
+  processNode: ProcessNode,
+  linkageNode: LinkageNode,
+};
+
+const FlowDiagram = () => {
+  const { theme } = useTheme();
+  const [showMissing, setShowMissing] = useState(true);
+  const [selectedNode, setSelectedNode] = useState(null);
+
+  // Initial nodes
+  const initialNodes = useMemo(() => [
+    // HR Module Header
+    { id: 'hr-header', type: 'moduleNode', position: { x: 50, y: 0 }, 
+      data: { label: 'HR Module', subtitle: 'GET PEOPLE', module: 'hr', icon: Users, stats: '4/8 Complete' }
+    },
+    // HR Process Nodes
+    { id: 'hr-1', type: 'processNode', position: { x: 50, y: 100 }, 
+      data: { label: 'Recruitment', status: 'missing', icon: UserPlus, description: 'Job posting, Applications' }
+    },
+    { id: 'hr-2', type: 'processNode', position: { x: 220, y: 100 }, 
+      data: { label: 'Onboarding', status: 'missing', icon: BookOpen, description: 'Documents, Training' }
+    },
+    { id: 'hr-3', type: 'processNode', position: { x: 390, y: 100 }, 
+      data: { label: 'Employee Master', status: 'exists', icon: Users, description: 'Profile, Department' }
+    },
+    { id: 'hr-4', type: 'processNode', position: { x: 560, y: 100 }, 
+      data: { label: 'Attendance', status: 'exists', icon: Clock, description: 'Check-in/out, WFH' }
+    },
+    { id: 'hr-5', type: 'processNode', position: { x: 730, y: 100 }, 
+      data: { label: 'Leave Mgmt', status: 'exists', icon: Calendar, description: 'Apply, Approve, Balance' }
+    },
+    { id: 'hr-6', type: 'processNode', position: { x: 900, y: 100 }, 
+      data: { label: 'Payroll', status: 'exists', icon: CreditCard, description: 'Salary, Deductions' }
+    },
+    { id: 'hr-7', type: 'processNode', position: { x: 1070, y: 100 }, 
+      data: { label: 'Skill Matrix', status: 'missing', icon: Award, description: 'Competencies, Certs' }
+    },
+    { id: 'hr-8', type: 'processNode', position: { x: 1240, y: 100 }, 
+      data: { label: 'Exit Process', status: 'missing', icon: UserMinus, description: 'Resignation, F&F' }
+    },
+
+    // Linkage: HR to Sales
+    { id: 'link-hr-sales', type: 'linkageNode', position: { x: 550, y: 220 },
+      data: { label: 'Bench Availability Check', status: 'missing' }
+    },
+
+    // Sales Module Header
+    { id: 'sales-header', type: 'moduleNode', position: { x: 50, y: 320 }, 
+      data: { label: 'Sales Module', subtitle: 'WORK PEOPLE ON', module: 'sales', icon: Target, stats: '9/11 Complete' }
+    },
+    // Sales Process Nodes
+    { id: 'sales-1', type: 'processNode', position: { x: 50, y: 420 }, 
+      data: { label: 'Lead Capture', status: 'exists', icon: UserPlus, description: 'Source, Contact, Company' }
+    },
+    { id: 'sales-2', type: 'processNode', position: { x: 200, y: 420 }, 
+      data: { label: 'Meetings', status: 'exists', icon: Calendar, description: 'Schedule, Attendees' }
+    },
+    { id: 'sales-3', type: 'processNode', position: { x: 350, y: 420 }, 
+      data: { label: 'MOM', status: 'exists', icon: FileText, description: 'Minutes, Action items' }
+    },
+    { id: 'sales-4', type: 'processNode', position: { x: 500, y: 420 }, 
+      data: { label: 'Qualification', status: 'exists', icon: Target, description: 'Hot/Warm/Cold scoring' }
+    },
+    { id: 'sales-5', type: 'processNode', position: { x: 650, y: 420 }, 
+      data: { label: 'Pricing Plan', status: 'exists', icon: DollarSign, description: 'Services, Rates' }
+    },
+    { id: 'sales-6', type: 'processNode', position: { x: 800, y: 420 }, 
+      data: { label: 'SOW', status: 'exists', icon: FileText, description: 'Scope, Deliverables' }
+    },
+    { id: 'sales-7', type: 'processNode', position: { x: 950, y: 420 }, 
+      data: { label: 'Proforma', status: 'exists', icon: Receipt, description: 'Invoice preview' }
+    },
+    { id: 'sales-8', type: 'processNode', position: { x: 1100, y: 420 }, 
+      data: { label: 'Agreement', status: 'exists', icon: FileText, description: 'Contract, Signatures' }
+    },
+    { id: 'sales-9', type: 'processNode', position: { x: 1250, y: 420 }, 
+      data: { label: 'Kickoff', status: 'exists', icon: TrendingUp, description: 'Handoff to Consulting' }
+    },
+    { id: 'sales-10', type: 'processNode', position: { x: 650, y: 520 }, 
+      data: { label: 'Forecasting', status: 'missing', icon: PieChart, description: 'Pipeline prediction' }
+    },
+    { id: 'sales-11', type: 'processNode', position: { x: 800, y: 520 }, 
+      data: { label: 'Commission', status: 'missing', icon: DollarSign, description: 'Sales incentive calc' }
+    },
+
+    // Linkage: Sales to Consulting
+    { id: 'link-sales-consulting', type: 'linkageNode', position: { x: 550, y: 620 },
+      data: { label: 'Context Transfer & Kickoff', status: 'partial' }
+    },
+
+    // Consulting Module Header
+    { id: 'consulting-header', type: 'moduleNode', position: { x: 50, y: 720 }, 
+      data: { label: 'Consulting Module', subtitle: 'ENCASH PEOPLE TO', module: 'consulting', icon: Briefcase, stats: '4/10 Complete' }
+    },
+    // Consulting Process Nodes
+    { id: 'cons-1', type: 'processNode', position: { x: 50, y: 820 }, 
+      data: { label: 'Project Setup', status: 'exists', icon: Briefcase, description: 'From kickoff approval' }
+    },
+    { id: 'cons-2', type: 'processNode', position: { x: 200, y: 820 }, 
+      data: { label: 'Team Allocation', status: 'exists', icon: Users, description: 'Assign consultants' }
+    },
+    { id: 'cons-3', type: 'processNode', position: { x: 350, y: 820 }, 
+      data: { label: 'Timesheets', status: 'missing', icon: Clock, description: 'Effort logging, Approval' }
+    },
+    { id: 'cons-4', type: 'processNode', position: { x: 500, y: 820 }, 
+      data: { label: 'Milestones', status: 'missing', icon: Target, description: 'Deliverables, Deadlines' }
+    },
+    { id: 'cons-5', type: 'processNode', position: { x: 650, y: 820 }, 
+      data: { label: 'SOW Changes', status: 'exists', icon: FileText, description: 'Scope modifications' }
+    },
+    { id: 'cons-6', type: 'processNode', position: { x: 800, y: 820 }, 
+      data: { label: 'Delivery', status: 'partial', icon: CheckCircle, description: 'Sign-off, Acceptance' }
+    },
+    { id: 'cons-7', type: 'processNode', position: { x: 950, y: 820 }, 
+      data: { label: 'Project P&L', status: 'missing', icon: PieChart, description: 'Revenue vs Cost' }
+    },
+    { id: 'cons-8', type: 'processNode', position: { x: 1100, y: 820 }, 
+      data: { label: 'Invoicing', status: 'missing', icon: Receipt, description: 'Generate from milestones' }
+    },
+    { id: 'cons-9', type: 'processNode', position: { x: 1250, y: 820 }, 
+      data: { label: 'Payment Track', status: 'exists', icon: CreditCard, description: 'Reminders, Collection' }
+    },
+    { id: 'cons-10', type: 'processNode', position: { x: 950, y: 920 }, 
+      data: { label: 'Client NPS', status: 'missing', icon: Award, description: 'Satisfaction score' }
+    },
+
+    // Linkage: Consulting to Finance
+    { id: 'link-consulting-finance', type: 'linkageNode', position: { x: 550, y: 1020 },
+      data: { label: 'Invoice & Utilization Update', status: 'missing' }
+    },
+
+    // Finance Module (Future)
+    { id: 'finance-header', type: 'moduleNode', position: { x: 550, y: 1120 }, 
+      data: { label: 'Finance Module', subtitle: 'TRACK MONEY', module: 'finance', icon: DollarSign, stats: 'Not Started' }
+    },
+  ], []);
+
+  // Initial edges
+  const initialEdges = useMemo(() => [
+    // HR flow connections
+    { id: 'e-hr-1-2', source: 'hr-1', target: 'hr-2', animated: false, style: { stroke: '#10b981' } },
+    { id: 'e-hr-2-3', source: 'hr-2', target: 'hr-3', animated: false, style: { stroke: '#10b981' } },
+    { id: 'e-hr-3-4', source: 'hr-3', target: 'hr-4', animated: true, style: { stroke: '#10b981' } },
+    { id: 'e-hr-4-5', source: 'hr-4', target: 'hr-5', animated: true, style: { stroke: '#10b981' } },
+    { id: 'e-hr-5-6', source: 'hr-5', target: 'hr-6', animated: true, style: { stroke: '#10b981' } },
+    { id: 'e-hr-6-7', source: 'hr-6', target: 'hr-7', animated: false, style: { stroke: '#ef4444' } },
+    { id: 'e-hr-7-8', source: 'hr-7', target: 'hr-8', animated: false, style: { stroke: '#ef4444' } },
+    
+    // HR Header to first process
+    { id: 'e-hr-header', source: 'hr-header', target: 'hr-1', type: 'smoothstep', style: { stroke: '#10b981', strokeDasharray: '5,5' } },
+
+    // HR to Sales linkage
+    { id: 'e-hr-sales-link', source: 'hr-6', target: 'link-hr-sales', type: 'smoothstep', 
+      style: { stroke: '#ef4444', strokeDasharray: '5,5' }, animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#ef4444' }
+    },
+    { id: 'e-link-sales', source: 'link-hr-sales', target: 'sales-header', type: 'smoothstep',
+      style: { stroke: '#ef4444', strokeDasharray: '5,5' }, animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#ef4444' }
+    },
+
+    // Sales Header to first process
+    { id: 'e-sales-header', source: 'sales-header', target: 'sales-1', type: 'smoothstep', style: { stroke: '#f97316', strokeDasharray: '5,5' } },
+
+    // Sales flow connections
+    { id: 'e-s-1-2', source: 'sales-1', target: 'sales-2', animated: true, style: { stroke: '#f97316' } },
+    { id: 'e-s-2-3', source: 'sales-2', target: 'sales-3', animated: true, style: { stroke: '#f97316' } },
+    { id: 'e-s-3-4', source: 'sales-3', target: 'sales-4', animated: true, style: { stroke: '#f97316' } },
+    { id: 'e-s-4-5', source: 'sales-4', target: 'sales-5', animated: true, style: { stroke: '#f97316' } },
+    { id: 'e-s-5-6', source: 'sales-5', target: 'sales-6', animated: true, style: { stroke: '#f97316' } },
+    { id: 'e-s-6-7', source: 'sales-6', target: 'sales-7', animated: true, style: { stroke: '#f97316' } },
+    { id: 'e-s-7-8', source: 'sales-7', target: 'sales-8', animated: true, style: { stroke: '#f97316' } },
+    { id: 'e-s-8-9', source: 'sales-8', target: 'sales-9', animated: true, style: { stroke: '#f97316' } },
+    // Missing features branch
+    { id: 'e-s-5-10', source: 'sales-5', target: 'sales-10', type: 'smoothstep', style: { stroke: '#ef4444', strokeDasharray: '5,5' } },
+    { id: 'e-s-10-11', source: 'sales-10', target: 'sales-11', style: { stroke: '#ef4444', strokeDasharray: '5,5' } },
+
+    // Sales to Consulting linkage
+    { id: 'e-sales-cons-link', source: 'sales-9', target: 'link-sales-consulting', type: 'smoothstep',
+      style: { stroke: '#f59e0b', strokeDasharray: '5,5' }, animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#f59e0b' }
+    },
+    { id: 'e-link-cons', source: 'link-sales-consulting', target: 'consulting-header', type: 'smoothstep',
+      style: { stroke: '#f59e0b', strokeDasharray: '5,5' }, animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#f59e0b' }
+    },
+
+    // Consulting Header to first process
+    { id: 'e-cons-header', source: 'consulting-header', target: 'cons-1', type: 'smoothstep', style: { stroke: '#3b82f6', strokeDasharray: '5,5' } },
+
+    // Consulting flow connections
+    { id: 'e-c-1-2', source: 'cons-1', target: 'cons-2', animated: true, style: { stroke: '#3b82f6' } },
+    { id: 'e-c-2-3', source: 'cons-2', target: 'cons-3', style: { stroke: '#ef4444', strokeDasharray: '5,5' } },
+    { id: 'e-c-3-4', source: 'cons-3', target: 'cons-4', style: { stroke: '#ef4444', strokeDasharray: '5,5' } },
+    { id: 'e-c-4-5', source: 'cons-4', target: 'cons-5', animated: true, style: { stroke: '#3b82f6' } },
+    { id: 'e-c-5-6', source: 'cons-5', target: 'cons-6', animated: true, style: { stroke: '#f59e0b' } },
+    { id: 'e-c-6-7', source: 'cons-6', target: 'cons-7', style: { stroke: '#ef4444', strokeDasharray: '5,5' } },
+    { id: 'e-c-7-8', source: 'cons-7', target: 'cons-8', style: { stroke: '#ef4444', strokeDasharray: '5,5' } },
+    { id: 'e-c-8-9', source: 'cons-8', target: 'cons-9', animated: true, style: { stroke: '#3b82f6' } },
+    { id: 'e-c-6-10', source: 'cons-6', target: 'cons-10', type: 'smoothstep', style: { stroke: '#ef4444', strokeDasharray: '5,5' } },
+
+    // Consulting to Finance linkage
+    { id: 'e-cons-fin-link', source: 'cons-9', target: 'link-consulting-finance', type: 'smoothstep',
+      style: { stroke: '#ef4444', strokeDasharray: '5,5' }, animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#ef4444' }
+    },
+    { id: 'e-link-fin', source: 'link-consulting-finance', target: 'finance-header', type: 'smoothstep',
+      style: { stroke: '#ef4444', strokeDasharray: '5,5' }, animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#ef4444' }
+    },
+  ], []);
+
+  // Filter nodes based on showMissing state
+  const filteredNodes = useMemo(() => {
+    if (showMissing) return initialNodes;
+    return initialNodes.filter(node => 
+      node.type === 'moduleNode' || 
+      node.type === 'linkageNode' ||
+      (node.data.status && node.data.status !== 'missing')
+    );
+  }, [showMissing, initialNodes]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(filteredNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Update nodes when filter changes
+  React.useEffect(() => {
+    setNodes(filteredNodes);
+  }, [filteredNodes, setNodes]);
+
+  const onNodeClick = useCallback((event, node) => {
+    setSelectedNode(node);
+  }, []);
+
+  // Stats calculation
+  const stats = useMemo(() => {
+    const processNodes = initialNodes.filter(n => n.type === 'processNode');
+    return {
+      total: processNodes.length,
+      exists: processNodes.filter(n => n.data.status === 'exists').length,
+      partial: processNodes.filter(n => n.data.status === 'partial').length,
+      missing: processNodes.filter(n => n.data.status === 'missing').length,
+    };
+  }, [initialNodes]);
+
+  return (
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header */}
+      <div className="border-b bg-card px-6 py-4 flex items-center justify-between shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Business Flow Analysis</h1>
+          <p className="text-muted-foreground text-sm">Interactive end-to-end process visualization</p>
+        </div>
+        <div className="flex items-center gap-6">
+          {/* Stats badges */}
           <div className="flex items-center gap-3 text-sm">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span>Exists</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+              <CheckCircle className="w-4 h-4" />
+              <span className="font-medium">{stats.exists} Complete</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-amber-500" />
-              <span>Partial</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="w-4 h-4" />
+              <span className="font-medium">{stats.partial} Partial</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span>Missing</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+              <XCircle className="w-4 h-4" />
+              <span className="font-medium">{stats.missing} Missing</span>
             </div>
           </div>
+
+          {/* Toggle */}
+          <Button
+            variant={showMissing ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowMissing(!showMissing)}
+            className="gap-2"
+          >
+            {showMissing ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            {showMissing ? 'Showing All' : 'Hiding Missing'}
+          </Button>
         </div>
       </div>
 
-      {/* Main Flow Diagram */}
-      <div className="grid grid-cols-1 gap-6">
-        
-        {/* HR Module */}
-        <Card className="border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500 rounded-lg">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <span className="text-emerald-700">HR Module</span>
-                <p className="text-sm font-normal text-emerald-600">GET PEOPLE</p>
-              </div>
-              <Badge className="ml-auto bg-emerald-100 text-emerald-700">
-                {hrFlow.filter(s => s.status === 'exists').length}/{hrFlow.length} Complete
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
-              {hrFlow.map((step, i) => (
-                <FlowStep key={step.id} step={step} index={i} total={hrFlow.length} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Flow Diagram */}
+      <div className="flex-1 relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          minZoom={0.3}
+          maxZoom={1.5}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.6 }}
+          className="bg-zinc-50 dark:bg-zinc-900"
+        >
+          <Background 
+            color={theme === 'dark' ? '#374151' : '#d4d4d8'} 
+            gap={20} 
+            size={1}
+          />
+          <Controls 
+            className="bg-card border shadow-lg rounded-lg"
+            showInteractive={false}
+          />
+          <MiniMap 
+            nodeColor={(node) => {
+              if (node.type === 'moduleNode') {
+                switch(node.data.module) {
+                  case 'hr': return '#10b981';
+                  case 'sales': return '#f97316';
+                  case 'consulting': return '#3b82f6';
+                  case 'finance': return '#8b5cf6';
+                  default: return '#71717a';
+                }
+              }
+              if (node.data.status === 'exists') return '#22c55e';
+              if (node.data.status === 'partial') return '#f59e0b';
+              if (node.data.status === 'missing') return '#ef4444';
+              return '#71717a';
+            }}
+            className="bg-card border shadow-lg rounded-lg"
+            maskColor={theme === 'dark' ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)'}
+          />
+        </ReactFlow>
 
-        {/* Connection: HR to Sales */}
-        <div className="flex items-center justify-center gap-4 py-2">
-          <div className="flex-1 h-px bg-gradient-to-r from-emerald-300 to-orange-300" />
-          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow border">
-            <Unlink className="w-4 h-4 text-red-500" />
-            <span className="text-sm text-zinc-600">Bench Availability Check</span>
-            <Badge variant="destructive" className="text-xs">Missing</Badge>
+        {/* Legend */}
+        <div className="absolute bottom-4 left-4 bg-card border rounded-lg shadow-lg p-4 text-sm">
+          <h4 className="font-semibold mb-3 text-foreground">Legend</h4>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-1 bg-green-500 rounded" />
+              <span className="text-muted-foreground">Implemented Flow</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-1 bg-green-500 rounded animate-pulse" />
+              <span className="text-muted-foreground">Active/Working</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-1 bg-red-500 rounded" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #ef4444 0, #ef4444 4px, transparent 4px, transparent 8px)' }} />
+              <span className="text-muted-foreground">Missing/Gap</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-1 bg-amber-500 rounded" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #f59e0b 0, #f59e0b 4px, transparent 4px, transparent 8px)' }} />
+              <span className="text-muted-foreground">Partial Implementation</span>
+            </div>
           </div>
-          <div className="flex-1 h-px bg-gradient-to-r from-orange-300 to-emerald-300" />
         </div>
 
-        {/* Sales Module */}
-        <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500 rounded-lg">
-                <Target className="w-6 h-6 text-white" />
+        {/* Selected Node Detail */}
+        {selectedNode && selectedNode.type === 'processNode' && (
+          <div className="absolute top-4 right-4 w-72 bg-card border rounded-lg shadow-lg overflow-hidden">
+            <div className={`p-3 ${
+              selectedNode.data.status === 'exists' ? 'bg-green-500' :
+              selectedNode.data.status === 'partial' ? 'bg-amber-500' : 'bg-red-500'
+            } text-white`}>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">{selectedNode.data.label}</span>
+                <Badge variant="secondary" className="bg-white/20 text-white">
+                  {selectedNode.data.status}
+                </Badge>
               </div>
-              <div>
-                <span className="text-orange-700">Sales Module</span>
-                <p className="text-sm font-normal text-orange-600">WORK PEOPLE ON</p>
-              </div>
-              <Badge className="ml-auto bg-orange-100 text-orange-700">
-                {salesFlow.filter(s => s.status === 'exists').length}/{salesFlow.length} Complete
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
-              {salesFlow.map((step, i) => (
-                <FlowStep key={step.id} step={step} index={i} total={salesFlow.length} />
-              ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Connection: Sales to Consulting */}
-        <div className="flex items-center justify-center gap-4 py-2">
-          <div className="flex-1 h-px bg-gradient-to-r from-orange-300 to-blue-300" />
-          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow border">
-            <Link2 className="w-4 h-4 text-amber-500" />
-            <span className="text-sm text-zinc-600">Kickoff Handoff</span>
-            <Badge className="text-xs bg-amber-100 text-amber-700">Partial</Badge>
-          </div>
-          <div className="flex-1 h-px bg-gradient-to-r from-blue-300 to-orange-300" />
-        </div>
-
-        {/* Consulting Module */}
-        <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <Briefcase className="w-6 h-6 text-white" />
+            <div className="p-4">
+              <p className="text-sm text-muted-foreground mb-3">{selectedNode.data.description}</p>
+              <div className="text-xs text-muted-foreground">
+                <Info className="w-3 h-3 inline mr-1" />
+                Click and drag nodes to rearrange. Use scroll to zoom.
               </div>
-              <div>
-                <span className="text-blue-700">Consulting Module</span>
-                <p className="text-sm font-normal text-blue-600">ENCASH PEOPLE TO</p>
-              </div>
-              <Badge className="ml-auto bg-blue-100 text-blue-700">
-                {consultingFlow.filter(s => s.status === 'exists').length}/{consultingFlow.length} Complete
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
-              {consultingFlow.map((step, i) => (
-                <FlowStep key={step.id} step={step} index={i} total={consultingFlow.length} />
-              ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Connection: Consulting to Finance/HR */}
-        <div className="flex items-center justify-center gap-4 py-2">
-          <div className="flex-1 h-px bg-gradient-to-r from-blue-300 to-purple-300" />
-          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow border">
-            <Unlink className="w-4 h-4 text-red-500" />
-            <span className="text-sm text-zinc-600">Invoice Generation & Utilization Update</span>
-            <Badge variant="destructive" className="text-xs">Missing</Badge>
-          </div>
-          <div className="flex-1 h-px bg-gradient-to-r from-purple-300 to-emerald-300" />
-        </div>
-      </div>
-
-      {/* Cross-Module Linkages */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Link2 className="w-5 h-5" />
-            Cross-Module Linkages
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            {linkages.map((link, i) => (
-              <div 
-                key={i}
-                className={`p-4 rounded-lg border-2 ${
-                  link.status === 'missing' ? 'border-red-200 bg-red-50' :
-                  link.status === 'partial' ? 'border-amber-200 bg-amber-50' :
-                  'border-green-200 bg-green-50'
-                }`}
+            <div className="border-t p-3">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full"
+                onClick={() => setSelectedNode(null)}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{link.from}</Badge>
-                    <ArrowRight className="w-4 h-4 text-zinc-400" />
-                    <Badge variant="outline">{link.to}</Badge>
-                  </div>
-                  {link.status === 'missing' ? (
-                    <XCircle className="w-5 h-5 text-red-500" />
-                  ) : link.status === 'partial' ? (
-                    <AlertTriangle className="w-5 h-5 text-amber-500" />
-                  ) : (
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                  )}
-                </div>
-                <p className="font-medium text-zinc-800">{link.name}</p>
-                <p className="text-sm text-zinc-500">{link.desc}</p>
-              </div>
-            ))}
+                Close
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
-      {/* Duplicates */}
-      <Card className="border-amber-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-amber-700">
-            <AlertTriangle className="w-5 h-5" />
-            Potential Duplicates & Data Silos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            {duplicates.map((dup, i) => (
-              <div key={i} className="p-4 rounded-lg bg-amber-50 border border-amber-200">
-                <p className="font-medium text-amber-800 mb-2">{dup.area}</p>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {dup.modules.map((mod, j) => (
-                    <Badge key={j} variant="outline" className="bg-white">{mod}</Badge>
-                  ))}
-                </div>
-                <p className="text-sm text-amber-600">{dup.issue}</p>
-              </div>
-            ))}
+      {/* Bottom Stats Bar */}
+      <div className="border-t bg-card px-6 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-emerald-500" />
+            <span className="text-muted-foreground">HR Module</span>
+            <span className="font-medium text-foreground">4/8</span>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
-          <CardContent className="pt-6">
-            <p className="text-green-100 text-sm">Implemented</p>
-            <p className="text-4xl font-bold">
-              {[...hrFlow, ...salesFlow, ...consultingFlow].filter(s => s.status === 'exists').length}
-            </p>
-            <p className="text-green-200 text-sm">features working</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-500 to-orange-600 text-white">
-          <CardContent className="pt-6">
-            <p className="text-amber-100 text-sm">Partial</p>
-            <p className="text-4xl font-bold">
-              {[...hrFlow, ...salesFlow, ...consultingFlow].filter(s => s.status === 'partial').length}
-            </p>
-            <p className="text-amber-200 text-sm">need completion</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-red-500 to-rose-600 text-white">
-          <CardContent className="pt-6">
-            <p className="text-red-100 text-sm">Missing</p>
-            <p className="text-4xl font-bold">
-              {[...hrFlow, ...salesFlow, ...consultingFlow].filter(s => s.status === 'missing').length}
-            </p>
-            <p className="text-red-200 text-sm">to be built</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white">
-          <CardContent className="pt-6">
-            <p className="text-purple-100 text-sm">Linkages</p>
-            <p className="text-4xl font-bold">
-              {linkages.filter(l => l.status === 'missing').length}/{linkages.length}
-            </p>
-            <p className="text-purple-200 text-sm">disconnected</p>
-          </CardContent>
-        </Card>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-orange-500" />
+            <span className="text-muted-foreground">Sales Module</span>
+            <span className="font-medium text-foreground">9/11</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-blue-500" />
+            <span className="text-muted-foreground">Consulting Module</span>
+            <span className="font-medium text-foreground">4/10</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-purple-500" />
+            <span className="text-muted-foreground">Finance Module</span>
+            <span className="font-medium text-foreground">0/0</span>
+          </div>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{stats.total}</span> total processes • 
+          <span className="font-medium text-green-600 dark:text-green-400 ml-1">{Math.round((stats.exists / stats.total) * 100)}%</span> complete
+        </div>
       </div>
     </div>
   );
