@@ -3332,6 +3332,498 @@ async def get_sow_pending_approval(current_user: User = Depends(get_current_user
     
     return result
 
+
+# ==================== SOW CHANGE REQUESTS ====================
+
+class SOWChangeRequestCreate(BaseModel):
+    sow_id: str
+    change_type: str  # 'add_scope', 'modify_scope', 'remove_scope', 'update_task', 'add_task'
+    scope_id: Optional[str] = None
+    task_id: Optional[str] = None
+    title: str
+    description: str
+    proposed_changes: Dict[str, Any]  # The actual changes to apply
+    requires_client_approval: bool = False
+
+class SOWChangeRequest(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sow_id: str
+    change_type: str
+    scope_id: Optional[str] = None
+    task_id: Optional[str] = None
+    title: str
+    description: str
+    proposed_changes: Dict[str, Any]
+    requires_client_approval: bool = False
+    status: str = 'pending'  # pending, rm_approved, rm_rejected, client_approved, client_rejected, applied
+    requested_by: str
+    requested_by_name: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    rm_approval: Optional[Dict[str, Any]] = None
+    client_approval: Optional[Dict[str, Any]] = None
+    applied_at: Optional[str] = None
+
+@api_router.post("/sow-change-requests")
+async def create_sow_change_request(
+    request: SOWChangeRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a SOW change request (Consultant workflow)"""
+    # Verify SOW exists
+    sow = await db.enhanced_sow.find_one({"id": request.sow_id}, {"_id": 0})
+    if not sow:
+        # Try regular sow collection
+        sow = await db.sow.find_one({"id": request.sow_id}, {"_id": 0})
+    
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    change_request = SOWChangeRequest(
+        sow_id=request.sow_id,
+        change_type=request.change_type,
+        scope_id=request.scope_id,
+        task_id=request.task_id,
+        title=sanitize_text(request.title),
+        description=sanitize_text(request.description),
+        proposed_changes=request.proposed_changes,
+        requires_client_approval=request.requires_client_approval,
+        requested_by=current_user.id,
+        requested_by_name=sanitize_text(current_user.full_name)
+    )
+    
+    doc = change_request.model_dump()
+    await db.sow_change_requests.insert_one(doc)
+    
+    # Create notification for RM/PM
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": None,  # Will be sent to PM/RM
+        "type": "sow_change_request",
+        "title": "SOW Change Request",
+        "message": f"{current_user.full_name} requested a change: {request.title}",
+        "reference_id": change_request.id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Find PMs/Managers to notify
+    pms = await db.users.find(
+        {"role": {"$in": ["project_manager", "manager", "admin"]}},
+        {"_id": 0, "id": 1}
+    ).to_list(10)
+    
+    for pm in pms:
+        notif = {**notification, "id": str(uuid.uuid4()), "user_id": pm['id']}
+        await db.notifications.insert_one(notif)
+    
+    return {"message": "Change request created", "id": change_request.id, "status": "pending"}
+
+@api_router.get("/sow-change-requests")
+async def get_sow_change_requests(
+    sow_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get SOW change requests"""
+    query = {}
+    
+    if sow_id:
+        query["sow_id"] = sow_id
+    if status:
+        query["status"] = status
+    
+    # Consultants see only their requests, PM/Admin see all
+    if current_user.role not in ['admin', 'manager', 'project_manager']:
+        query["requested_by"] = current_user.id
+    
+    requests = await db.sow_change_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return requests
+
+@api_router.get("/sow-change-requests/pending")
+async def get_pending_change_requests(current_user: User = Depends(get_current_user)):
+    """Get pending SOW change requests for approval (PM/RM view)"""
+    if current_user.role not in ['admin', 'manager', 'project_manager']:
+        raise HTTPException(status_code=403, detail="Not authorized to view pending requests")
+    
+    requests = await db.sow_change_requests.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich with SOW info
+    result = []
+    for req in requests:
+        sow = await db.enhanced_sow.find_one({"id": req['sow_id']}, {"_id": 0, "id": 1, "lead_id": 1})
+        if not sow:
+            sow = await db.sow.find_one({"id": req['sow_id']}, {"_id": 0, "id": 1, "lead_id": 1})
+        
+        lead = None
+        if sow and sow.get('lead_id'):
+            lead = await db.leads.find_one({"id": sow['lead_id']}, {"_id": 0, "company": 1, "first_name": 1, "last_name": 1})
+        
+        result.append({
+            **req,
+            "client_name": f"{lead['first_name']} {lead['last_name']}" if lead else "Unknown",
+            "company": lead.get('company') if lead else None
+        })
+    
+    return result
+
+@api_router.post("/sow-change-requests/{request_id}/approve")
+async def approve_sow_change_request(
+    request_id: str,
+    approval_type: str,  # 'rm' or 'client'
+    comments: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a SOW change request"""
+    change_req = await db.sow_change_requests.find_one({"id": request_id}, {"_id": 0})
+    if not change_req:
+        raise HTTPException(status_code=404, detail="Change request not found")
+    
+    if approval_type == 'rm':
+        if current_user.role not in ['admin', 'manager', 'project_manager']:
+            raise HTTPException(status_code=403, detail="Not authorized to approve")
+        
+        rm_approval = {
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "comments": comments
+        }
+        
+        new_status = 'rm_approved'
+        if change_req.get('requires_client_approval'):
+            new_status = 'pending_client'
+        
+        await db.sow_change_requests.update_one(
+            {"id": request_id},
+            {"$set": {"status": new_status, "rm_approval": rm_approval}}
+        )
+        
+        # If no client approval needed, apply changes
+        if not change_req.get('requires_client_approval'):
+            await apply_sow_changes(request_id)
+        
+        return {"message": "Approved by RM", "status": new_status}
+    
+    elif approval_type == 'client':
+        # Client approval (can be done by admin on behalf of client)
+        client_approval = {
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "comments": comments,
+            "on_behalf_of_client": True
+        }
+        
+        await db.sow_change_requests.update_one(
+            {"id": request_id},
+            {"$set": {"status": "client_approved", "client_approval": client_approval}}
+        )
+        
+        # Apply changes after client approval
+        await apply_sow_changes(request_id)
+        
+        return {"message": "Approved by client", "status": "client_approved"}
+
+@api_router.post("/sow-change-requests/{request_id}/reject")
+async def reject_sow_change_request(
+    request_id: str,
+    rejection_reason: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a SOW change request"""
+    if current_user.role not in ['admin', 'manager', 'project_manager']:
+        raise HTTPException(status_code=403, detail="Not authorized to reject")
+    
+    change_req = await db.sow_change_requests.find_one({"id": request_id}, {"_id": 0})
+    if not change_req:
+        raise HTTPException(status_code=404, detail="Change request not found")
+    
+    await db.sow_change_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rm_approval": {
+                "rejected_by": current_user.id,
+                "rejected_by_name": current_user.full_name,
+                "rejected_at": datetime.now(timezone.utc).isoformat(),
+                "reason": rejection_reason
+            }
+        }}
+    )
+    
+    # Notify requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": change_req['requested_by'],
+        "type": "sow_change_rejected",
+        "title": "SOW Change Request Rejected",
+        "message": f"Your change request '{change_req['title']}' was rejected: {rejection_reason}",
+        "reference_id": request_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Change request rejected", "status": "rejected"}
+
+async def apply_sow_changes(request_id: str):
+    """Apply approved changes to the SOW"""
+    change_req = await db.sow_change_requests.find_one({"id": request_id}, {"_id": 0})
+    if not change_req:
+        return
+    
+    sow_collection = db.enhanced_sow
+    sow = await sow_collection.find_one({"id": change_req['sow_id']}, {"_id": 0})
+    if not sow:
+        sow_collection = db.sow
+        sow = await sow_collection.find_one({"id": change_req['sow_id']}, {"_id": 0})
+    
+    if not sow:
+        return
+    
+    changes = change_req.get('proposed_changes', {})
+    change_type = change_req.get('change_type')
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if change_type == 'add_scope':
+        scopes = sow.get('scopes', [])
+        new_scope = changes.get('new_scope', {})
+        new_scope['id'] = str(uuid.uuid4())
+        new_scope['created_at'] = datetime.now(timezone.utc).isoformat()
+        new_scope['status'] = 'not_started'
+        scopes.append(new_scope)
+        update_data['scopes'] = scopes
+        
+        # Also add to master data if it's a new scope type
+        if new_scope.get('add_to_master'):
+            master_scope = {
+                "id": str(uuid.uuid4()),
+                "name": new_scope.get('name'),
+                "description": new_scope.get('description'),
+                "category": new_scope.get('category', 'Custom'),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "source": "consultant_request"
+            }
+            await db.master_scopes.insert_one(master_scope)
+    
+    elif change_type == 'modify_scope':
+        scopes = sow.get('scopes', [])
+        scope_id = change_req.get('scope_id')
+        for scope in scopes:
+            if scope.get('id') == scope_id:
+                scope.update(changes.get('updates', {}))
+                scope['updated_at'] = datetime.now(timezone.utc).isoformat()
+                break
+        update_data['scopes'] = scopes
+    
+    elif change_type == 'add_task':
+        scopes = sow.get('scopes', [])
+        scope_id = change_req.get('scope_id')
+        for scope in scopes:
+            if scope.get('id') == scope_id:
+                tasks = scope.get('tasks', [])
+                new_task = changes.get('new_task', {})
+                new_task['id'] = str(uuid.uuid4())
+                new_task['created_at'] = datetime.now(timezone.utc).isoformat()
+                new_task['status'] = 'pending'
+                tasks.append(new_task)
+                scope['tasks'] = tasks
+                break
+        update_data['scopes'] = scopes
+    
+    await sow_collection.update_one({"id": change_req['sow_id']}, {"$set": update_data})
+    
+    # Mark change request as applied
+    await db.sow_change_requests.update_one(
+        {"id": request_id},
+        {"$set": {"status": "applied", "applied_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Notify requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": change_req['requested_by'],
+        "type": "sow_change_applied",
+        "title": "SOW Changes Applied",
+        "message": f"Your change request '{change_req['title']}' has been approved and applied",
+        "reference_id": request_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+
+# ==================== PAYMENT REMINDERS ====================
+
+@api_router.get("/payment-reminders")
+async def get_payment_reminders(current_user: User = Depends(get_current_user)):
+    """Get upcoming payment reminders for all projects"""
+    
+    # Get all active projects with payment schedules
+    projects = await db.projects.find(
+        {"status": {"$in": ["active", "in_progress", None]}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get enhanced SOWs for payment info
+    enhanced_sows = await db.enhanced_sow.find({}, {"_id": 0}).to_list(200)
+    
+    reminders = []
+    
+    for project in projects:
+        # Find related SOW
+        sow = next((s for s in enhanced_sows if s.get('project_id') == project.get('id') or 
+                    s.get('agreement_id') == project.get('agreement_id')), None)
+        
+        if not sow:
+            continue
+        
+        payment_frequency = sow.get('payment_frequency', 'monthly')
+        project_tenure = sow.get('project_tenure_months', 12)
+        start_date_str = project.get('start_date') or sow.get('created_at')
+        
+        if not start_date_str:
+            continue
+        
+        try:
+            if isinstance(start_date_str, str):
+                start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+            else:
+                start_date = start_date_str
+        except:
+            continue
+        
+        # Calculate payment dates based on frequency
+        payment_dates = []
+        current_date = datetime.now(timezone.utc)
+        
+        if payment_frequency == 'monthly':
+            interval_months = 1
+        elif payment_frequency == 'quarterly':
+            interval_months = 3
+        elif payment_frequency == 'bi-annual':
+            interval_months = 6
+        elif payment_frequency == 'yearly':
+            interval_months = 12
+        else:
+            interval_months = 1
+        
+        # Generate payment dates
+        for i in range(1, project_tenure // interval_months + 2):
+            payment_month = start_date.month + (interval_months * i) - 1
+            payment_year = start_date.year + (payment_month // 12)
+            payment_month = (payment_month % 12) + 1
+            
+            try:
+                payment_date = datetime(payment_year, payment_month, min(start_date.day, 28), tzinfo=timezone.utc)
+                
+                # Only include upcoming payments (next 90 days)
+                days_until = (payment_date - current_date).days
+                if 0 <= days_until <= 90:
+                    payment_dates.append({
+                        "due_date": payment_date.isoformat(),
+                        "installment_number": i,
+                        "days_until_due": days_until,
+                        "is_overdue": days_until < 0
+                    })
+            except:
+                continue
+        
+        if payment_dates:
+            # Get client info
+            lead = await db.leads.find_one({"id": project.get('lead_id')}, {"_id": 0})
+            
+            reminders.append({
+                "project_id": project.get('id'),
+                "project_name": project.get('name'),
+                "client_name": project.get('client_name') or (f"{lead['first_name']} {lead['last_name']}" if lead else "Unknown"),
+                "company": lead.get('company') if lead else None,
+                "payment_frequency": payment_frequency,
+                "upcoming_payments": payment_dates
+            })
+    
+    # Sort by nearest due date
+    reminders.sort(key=lambda x: x['upcoming_payments'][0]['due_date'] if x['upcoming_payments'] else '9999')
+    
+    return reminders
+
+@api_router.get("/payment-reminders/project/{project_id}")
+async def get_project_payment_schedule(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get payment schedule for a specific project"""
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Find related SOW
+    sow = await db.enhanced_sow.find_one(
+        {"$or": [{"project_id": project_id}, {"agreement_id": project.get('agreement_id')}]},
+        {"_id": 0}
+    )
+    
+    if not sow:
+        sow = await db.sow.find_one(
+            {"agreement_id": project.get('agreement_id')},
+            {"_id": 0}
+        )
+    
+    payment_frequency = sow.get('payment_frequency', 'monthly') if sow else 'monthly'
+    project_tenure = sow.get('project_tenure_months', 12) if sow else 12
+    start_date_str = project.get('start_date')
+    
+    schedule = []
+    
+    if start_date_str:
+        try:
+            start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+            current_date = datetime.now(timezone.utc)
+            
+            if payment_frequency == 'monthly':
+                interval_months = 1
+            elif payment_frequency == 'quarterly':
+                interval_months = 3
+            elif payment_frequency == 'bi-annual':
+                interval_months = 6
+            elif payment_frequency == 'yearly':
+                interval_months = 12
+            else:
+                interval_months = 1
+            
+            for i in range(1, project_tenure // interval_months + 2):
+                payment_month = start_date.month + (interval_months * i) - 1
+                payment_year = start_date.year + (payment_month // 12)
+                payment_month = (payment_month % 12) + 1
+                
+                try:
+                    payment_date = datetime(payment_year, payment_month, min(start_date.day, 28), tzinfo=timezone.utc)
+                    days_until = (payment_date - current_date).days
+                    
+                    schedule.append({
+                        "installment_number": i,
+                        "due_date": payment_date.isoformat(),
+                        "days_until_due": days_until,
+                        "status": "overdue" if days_until < 0 else ("due_soon" if days_until <= 7 else ("upcoming" if days_until <= 30 else "scheduled"))
+                    })
+                except:
+                    continue
+        except:
+            pass
+    
+    return {
+        "project_id": project_id,
+        "project_name": project.get('name'),
+        "payment_frequency": payment_frequency,
+        "project_tenure_months": project_tenure,
+        "schedule": schedule
+    }
+
+
+
 @api_router.post("/quotations", response_model=Quotation)
 async def create_quotation(quotation_create: QuotationCreate, current_user: User = Depends(get_current_user)):
     if current_user.role == UserRole.MANAGER:
