@@ -202,100 +202,182 @@ const SalesSOWList = () => {
 
       {/* SOW List */}
       {filteredSOWs.length > 0 ? (
-        <div className="space-y-3">
-          {filteredSOWs.map(sow => {
-            const lead = getLeadInfo(sow);
-            const plan = getPlanInfo(sow);
-            const status = getSOWStatus(sow);
-            const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
-            
-            return (
-              <Card 
-                key={sow.id} 
-                className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
-                data-testid={`sow-card-${sow.id}`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="w-10 h-10 rounded-sm bg-zinc-100 flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-zinc-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-zinc-900">
-                            {lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Client'}
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-sm ${statusConfig.color}`}>
-                            {statusConfig.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-zinc-500">
-                          {lead?.company && (
-                            <span className="flex items-center gap-1">
-                              <Building2 className="w-3.5 h-3.5" />
-                              {lead.company}
-                            </span>
+        viewMode === 'list' ? (
+          /* List View */
+          <div className="border border-zinc-200 rounded-sm overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-zinc-50 border-b border-zinc-200">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Client</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Company</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Scopes</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Created</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {filteredSOWs.map(sow => {
+                  const lead = getLeadInfo(sow);
+                  const status = getSOWStatus(sow);
+                  const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
+                  
+                  return (
+                    <tr 
+                      key={sow.id} 
+                      className="hover:bg-zinc-50 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/sales-funnel/sow-review/${sow.pricing_plan_id}`)}
+                      data-testid={`sow-row-${sow.id}`}
+                    >
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-zinc-900">
+                          {lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Client'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{lead?.company || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{sow.scopes?.length || 0} scopes</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">
+                        {sow.created_at ? format(new Date(sow.created_at), 'MMM d, yyyy') : 'N/A'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-sm ${statusConfig.color}`}>
+                          {statusConfig.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            onClick={() => navigate(`/sales-funnel/scope-selection/${sow.pricing_plan_id}`)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-8"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            onClick={() => navigate(`/sales-funnel/sow-review/${sow.pricing_plan_id}`)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-8"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {status === 'draft' && (
+                            <Button
+                              onClick={() => handleCompleteHandover(sow.id)}
+                              variant="outline"
+                              size="sm"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50 h-8"
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
                           )}
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5" />
-                            {sow.scopes?.length || 0} scopes
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {sow.created_at ? format(new Date(sow.created_at), 'MMM d, yyyy') : 'N/A'}
-                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Card View */
+          <div className="space-y-3">
+            {filteredSOWs.map(sow => {
+              const lead = getLeadInfo(sow);
+              const plan = getPlanInfo(sow);
+              const status = getSOWStatus(sow);
+              const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
+              
+              return (
+                <Card 
+                  key={sow.id} 
+                  className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/sales-funnel/sow-review/${sow.pricing_plan_id}`)}
+                  data-testid={`sow-card-${sow.id}`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-10 h-10 rounded-sm bg-zinc-100 flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-zinc-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-zinc-900">
+                              {lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Client'}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-sm ${statusConfig.color}`}>
+                              {statusConfig.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-zinc-500">
+                            {lead?.company && (
+                              <span className="flex items-center gap-1">
+                                <Building2 className="w-3.5 h-3.5" />
+                                {lead.company}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3.5 h-3.5" />
+                              {sow.scopes?.length || 0} scopes
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {sow.created_at ? format(new Date(sow.created_at), 'MMM d, yyyy') : 'N/A'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => navigate(`/sales-funnel/scope-selection/${sow.pricing_plan_id}`)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-zinc-600 hover:text-zinc-900"
-                        data-testid={`edit-sow-${sow.id}`}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        onClick={() => navigate(`/sales-funnel/sow-review/${sow.pricing_plan_id}`)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-zinc-600 hover:text-zinc-900"
-                        data-testid={`view-sow-${sow.id}`}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      {status === 'draft' && (
+                      
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
-                          onClick={() => handleCompleteHandover(sow.id)}
-                          variant="outline"
+                          onClick={() => navigate(`/sales-funnel/scope-selection/${sow.pricing_plan_id}`)}
+                          variant="ghost"
                           size="sm"
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                          data-testid={`handover-sow-${sow.id}`}
+                          className="text-zinc-600 hover:text-zinc-900"
+                          data-testid={`edit-sow-${sow.id}`}
                         >
-                          <Send className="w-4 h-4 mr-1" />
-                          Handover
+                          <Edit2 className="w-4 h-4" />
                         </Button>
-                      )}
-                      <Button
-                        onClick={() => navigate(`/sales-funnel/quotations?sow_id=${sow.id}`)}
-                        size="sm"
-                        className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                        data-testid={`quotation-sow-${sow.id}`}
-                      >
-                        Quotation
-                        <ArrowRight className="w-4 h-4 ml-1" />
-                      </Button>
+                        <Button
+                          onClick={() => navigate(`/sales-funnel/sow-review/${sow.pricing_plan_id}`)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-zinc-600 hover:text-zinc-900"
+                          data-testid={`view-sow-${sow.id}`}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        {status === 'draft' && (
+                          <Button
+                            onClick={() => handleCompleteHandover(sow.id)}
+                            variant="outline"
+                            size="sm"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            data-testid={`handover-sow-${sow.id}`}
+                          >
+                            <Send className="w-4 h-4 mr-1" />
+                            Handover
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => navigate(`/sales-funnel/quotations?sow_id=${sow.id}`)}
+                          size="sm"
+                          className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                          data-testid={`quotation-sow-${sow.id}`}
+                        >
+                          Quotation
+                          <ArrowRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )
       ) : (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="flex flex-col items-center justify-center py-16">
