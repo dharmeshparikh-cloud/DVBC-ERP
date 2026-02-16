@@ -2646,6 +2646,16 @@ async def accept_kickoff_request(
         }}
     )
     
+    # AUTO-CLOSURE: Mark the lead as "closed" when kickoff is accepted
+    if kickoff.get('lead_id'):
+        await db.leads.update_one(
+            {"id": kickoff['lead_id']},
+            {"$set": {
+                "status": "closed",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
     # Notify the requester
     notification = {
         "id": str(uuid.uuid4()),
