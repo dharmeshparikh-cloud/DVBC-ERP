@@ -63,6 +63,7 @@ import AdminDashboardMockups from './pages/admin/AdminDashboardMockups';
 import Layout from './components/Layout';
 import SalesLayout from './components/SalesLayout';
 import SalesLogin from './pages/SalesLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
