@@ -159,3 +159,6 @@ Build a business management application for a consulting firm with complete HR, 
 ## Known Issues
 - Email sending is MOCKED
 - Some test data created with TEST_ prefixes
+- Legacy attendance records don't have work_location field (only new records will have it)
+- Some performance metrics are simulated (consultant utilization, client ratings, sales data)
+- Console warnings about chart dimensions (-1 width/height) - cosmetic, doesn't affect rendering
