@@ -121,17 +121,19 @@ const Leads = () => {
           </h1>
           <p className="text-zinc-500">Manage your sales pipeline</p>
         </div>
-        {canEdit && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                data-testid="add-lead-button"
-                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-              >
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                Add Lead
-              </Button>
-            </DialogTrigger>
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+          {canEdit && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  data-testid="add-lead-button"
+                  className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                >
+                  <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                  Add Lead
+                </Button>
+              </DialogTrigger>
             <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
