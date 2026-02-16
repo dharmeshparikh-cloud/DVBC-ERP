@@ -8,7 +8,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://team-scope-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://admin-dashboard-hub-4.preview.emergentagent.com')
 
 class TestHRFeatures:
     """Tests for new HR features: OrgChart, Leave, Attendance, Payroll"""
