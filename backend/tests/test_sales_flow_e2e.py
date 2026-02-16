@@ -230,11 +230,12 @@ class TestSalesFlowE2E:
         
         payload = {
             "lead_id": TestSalesFlowE2E.test_lead_id,
-            "name": f"TEST_E2E Pricing Plan {datetime.now().strftime('%H%M%S')}",
+            "project_duration_type": "yearly",  # Required field
             "total_investment": 1200000,  # 12 lakhs
             "project_duration_months": 12,
             "payment_schedule": "monthly",
             "discount_percentage": 5,
+            "consultants": [],  # Required field
             "team_deployment": [
                 {
                     "role": "Lead Consultant",
@@ -254,8 +255,7 @@ class TestSalesFlowE2E:
                     "rate_per_meeting": 12500,
                     "meetings": 48
                 }
-            ],
-            "notes": "E2E test pricing plan"
+            ]
         }
         
         response = requests.post(f"{BASE_URL}/api/pricing-plans",
