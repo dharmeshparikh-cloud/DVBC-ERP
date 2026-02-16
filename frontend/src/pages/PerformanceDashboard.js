@@ -10,16 +10,18 @@ import {
   TrendingUp, TrendingDown, Users, Target, Award, Clock, 
   Briefcase, CheckCircle, Star, Calendar, BarChart3, 
   ArrowUpRight, ArrowDownRight, Minus, Activity, Zap,
-  Trophy, Medal, Crown, Flame
+  Trophy, Medal, Crown, Flame, Building2, MapPin, Home,
+  CalendarDays, UserCheck, AlertCircle
 } from 'lucide-react';
 import { 
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  RadialBarChart, RadialBar
+  RadialBarChart, RadialBar, ComposedChart
 } from 'recharts';
 import { toast } from 'sonner';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+const LOCATION_COLORS = { in_office: '#3b82f6', onsite: '#10b981', wfh: '#f59e0b' };
 
 const PerformanceDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -33,10 +35,33 @@ const PerformanceDashboard = () => {
     trends: [],
     leaderboard: []
   });
+  const [attendanceData, setAttendanceData] = useState(null);
+
+  // Check if user is HR (should not see financial data)
+  const isHRRole = ['hr_manager', 'hr_executive'].includes(user?.role);
+  const canSeeFinancials = !isHRRole;
 
   useEffect(() => {
     fetchPerformanceData();
+    fetchAttendanceAnalytics();
   }, [timeRange, selectedDepartment]);
+
+  const fetchAttendanceAnalytics = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const months = timeRange === 'week' ? 1 : timeRange === 'month' ? 1 : timeRange === 'quarter' ? 3 : 6;
+      const response = await fetch(
+        `${API}/attendance/analytics?months=${months}&department=${selectedDepartment}`,
+        { headers: { 'Authorization': `Bearer ${token}` }}
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch attendance analytics:', error);
+    }
+  };
 
   const fetchPerformanceData = async () => {
     try {
@@ -51,17 +76,29 @@ const PerformanceDashboard = () => {
       const projectsRes = await fetch(`${API}/projects`, { headers });
       const projects = projectsRes.ok ? await projectsRes.json() : [];
 
-      // Fetch users for sales team
-      const usersRes = await fetch(`${API}/users`, { headers });
-      const users = usersRes.ok ? await usersRes.json() : [];
+      // Fetch users for sales team (only if can see financials)
+      let salesPerformance = [];
+      if (canSeeFinancials) {
+        const usersRes = await fetch(`${API}/users`, { headers });
+        const users = usersRes.ok ? await usersRes.json() : [];
+        const salesUsers = users.filter(u => ['executive', 'account_manager'].includes(u.role));
+        
+        salesPerformance = salesUsers.map(s => ({
+          id: s.id,
+          name: s.full_name,
+          email: s.email,
+          role: s.role,
+          leadsConverted: Math.floor(Math.random() * 15) + 5,
+          revenue: Math.floor(Math.random() * 5000000) + 1000000,
+          meetingsHeld: Math.floor(Math.random() * 30) + 10,
+          conversionRate: Math.floor(Math.random() * 30) + 20,
+          avgDealSize: Math.floor(Math.random() * 500000) + 200000,
+          target: 5000000,
+          achieved: Math.floor(Math.random() * 5000000) + 2000000,
+          trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable'
+        }));
+      }
 
-      // Fetch leads for sales metrics
-      const leadsRes = await fetch(`${API}/leads`, { headers });
-      const leads = leadsRes.ok ? await leadsRes.json() : [];
-
-      // Calculate performance metrics
-      const salesUsers = users.filter(u => ['executive', 'account_manager'].includes(u.role));
-      
       // Build consultant performance data
       const consultantPerformance = consultants.map(c => ({
         id: c.id,
@@ -74,22 +111,9 @@ const PerformanceDashboard = () => {
         clientRating: (Math.random() * 2 + 3).toFixed(1),
         tasksCompleted: Math.floor(Math.random() * 50) + 10,
         onTimeDelivery: Math.floor(Math.random() * 30) + 70,
-        trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable'
-      }));
-
-      // Build sales performance data
-      const salesPerformance = salesUsers.map(s => ({
-        id: s.id,
-        name: s.full_name,
-        email: s.email,
-        role: s.role,
-        leadsConverted: Math.floor(Math.random() * 15) + 5,
-        revenue: Math.floor(Math.random() * 5000000) + 1000000,
-        meetingsHeld: Math.floor(Math.random() * 30) + 10,
-        conversionRate: Math.floor(Math.random() * 30) + 20,
-        avgDealSize: Math.floor(Math.random() * 500000) + 200000,
-        target: 5000000,
-        achieved: Math.floor(Math.random() * 5000000) + 2000000,
+        inOfficeDays: Math.floor(Math.random() * 15) + 5,
+        onsiteDays: Math.floor(Math.random() * 10) + 2,
+        wfhDays: Math.floor(Math.random() * 5) + 1,
         trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable'
       }));
 
@@ -100,7 +124,8 @@ const PerformanceDashboard = () => {
         utilization: Math.floor(Math.random() * 30) + 60,
         delivery: Math.floor(Math.random() * 20) + 75,
         satisfaction: Math.floor(Math.random() * 15) + 80,
-        revenue: Math.floor(Math.random() * 3000000) + 2000000
+        attendance: Math.floor(Math.random() * 10) + 85,
+        ...(canSeeFinancials ? { revenue: Math.floor(Math.random() * 3000000) + 2000000 } : {})
       }));
 
       // Calculate summary
@@ -112,20 +137,28 @@ const PerformanceDashboard = () => {
         avgClientRating: consultantPerformance.length > 0
           ? (consultantPerformance.reduce((sum, c) => sum + parseFloat(c.clientRating), 0) / consultantPerformance.length).toFixed(1)
           : 0,
-        totalRevenue: salesPerformance.reduce((sum, s) => sum + s.achieved, 0),
-        avgConversionRate: salesPerformance.length > 0
-          ? Math.round(salesPerformance.reduce((sum, s) => sum + s.conversionRate, 0) / salesPerformance.length)
-          : 0,
         activeProjects: projects.filter(p => p.status === 'active').length,
         totalConsultants: consultants.length,
-        totalSalesTeam: salesUsers.length
+        totalSalesTeam: salesPerformance.length
       };
 
-      // Leaderboard - top performers
-      const leaderboard = [
-        ...consultantPerformance.map(c => ({ ...c, type: 'consultant', score: c.utilization + c.onTimeDelivery + (parseFloat(c.clientRating) * 10) })),
-        ...salesPerformance.map(s => ({ ...s, type: 'sales', score: s.conversionRate + (s.achieved / s.target * 100) }))
-      ].sort((a, b) => b.score - a.score).slice(0, 10);
+      // Only add financial metrics if allowed
+      if (canSeeFinancials) {
+        summary.totalRevenue = salesPerformance.reduce((sum, s) => sum + s.achieved, 0);
+        summary.avgConversionRate = salesPerformance.length > 0
+          ? Math.round(salesPerformance.reduce((sum, s) => sum + s.conversionRate, 0) / salesPerformance.length)
+          : 0;
+      }
+
+      // Leaderboard - top performers (exclude financial metrics for HR)
+      const leaderboard = consultantPerformance
+        .map(c => ({ 
+          ...c, 
+          type: 'consultant', 
+          score: c.utilization + c.onTimeDelivery + (parseFloat(c.clientRating) * 10) 
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
 
       setPerformanceData({
         summary,
@@ -171,6 +204,16 @@ const PerformanceDashboard = () => {
 
   const { summary, consultants, sales, trends, leaderboard } = performanceData;
 
+  // Work location data for pie chart
+  const workLocationData = attendanceData?.work_location ? [
+    { name: 'In Office', value: attendanceData.work_location.in_office, color: LOCATION_COLORS.in_office },
+    { name: 'Onsite', value: attendanceData.work_location.onsite, color: LOCATION_COLORS.onsite },
+    { name: 'WFH', value: attendanceData.work_location.wfh, color: LOCATION_COLORS.wfh }
+  ] : [];
+
+  // Leave type distribution
+  const leaveTypeData = attendanceData?.leave_types || [];
+
   return (
     <div className="space-y-6" data-testid="performance-dashboard">
       {/* Header */}
@@ -180,7 +223,7 @@ const PerformanceDashboard = () => {
             Performance Dashboard
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Real-time team performance metrics and analytics
+            {isHRRole ? 'Team performance & attendance analytics' : 'Real-time team performance metrics and analytics'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -201,15 +244,39 @@ const PerformanceDashboard = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Teams</SelectItem>
-              <SelectItem value="consulting">Consulting</SelectItem>
-              <SelectItem value="sales">Sales</SelectItem>
+              <SelectItem value="Consulting">Consulting</SelectItem>
+              <SelectItem value="Sales">Sales</SelectItem>
+              <SelectItem value="HR">HR</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className={`grid ${canSeeFinancials ? 'grid-cols-4' : 'grid-cols-4'} gap-4`}>
+        {/* Attendance Rate Card */}
+        <Card className="relative overflow-hidden border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-zinc-900">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -mr-10 -mt-10" />
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Attendance Rate</p>
+                <p className="text-3xl font-bold text-blue-600 mt-1">
+                  {attendanceData?.summary?.attendance_rate || 0}%
+                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  <UserCheck className="w-3 h-3 text-blue-500" />
+                  <span className="text-xs text-blue-600">{attendanceData?.summary?.present || 0} present</span>
+                </div>
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <CalendarDays className="w-7 h-7 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Utilization Card */}
         <Card className="relative overflow-hidden border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-zinc-900">
           <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full -mr-10 -mt-10" />
           <CardContent className="pt-6">
@@ -229,71 +296,234 @@ const PerformanceDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-zinc-900">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -mr-10 -mt-10" />
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Client Satisfaction</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{summary.avgClientRating}/5</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                  <span className="text-xs text-blue-600">Excellent</span>
-                </div>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <Award className="w-7 h-7 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-zinc-900">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full -mr-10 -mt-10" />
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Projects Delivered</p>
-                <p className="text-3xl font-bold text-purple-600 mt-1">{summary.totalProjectsDelivered}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <CheckCircle className="w-3 h-3 text-purple-500" />
-                  <span className="text-xs text-purple-600">{summary.activeProjects} active</span>
-                </div>
-              </div>
-              <div className="w-14 h-14 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <Briefcase className="w-7 h-7 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+        {/* Client Satisfaction */}
         <Card className="relative overflow-hidden border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/20 dark:to-zinc-900">
           <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full -mr-10 -mt-10" />
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Revenue Generated</p>
-                <p className="text-3xl font-bold text-amber-600 mt-1">{formatCurrency(summary.totalRevenue)}</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Client Satisfaction</p>
+                <p className="text-3xl font-bold text-amber-600 mt-1">{summary.avgClientRating}/5</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-amber-500" />
-                  <span className="text-xs text-amber-600">{summary.avgConversionRate}% conversion</span>
+                  <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                  <span className="text-xs text-amber-600">Excellent</span>
                 </div>
               </div>
               <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <Zap className="w-7 h-7 text-amber-600" />
+                <Award className="w-7 h-7 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Projects or In-Office Days based on role */}
+        <Card className="relative overflow-hidden border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-zinc-900">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full -mr-10 -mt-10" />
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  {isHRRole ? 'In-Office Days' : 'Projects Delivered'}
+                </p>
+                <p className="text-3xl font-bold text-purple-600 mt-1">
+                  {isHRRole ? (attendanceData?.work_location?.in_office || 0) : summary.totalProjectsDelivered}
+                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  {isHRRole ? (
+                    <>
+                      <Building2 className="w-3 h-3 text-purple-500" />
+                      <span className="text-xs text-purple-600">{attendanceData?.work_location?.in_office_pct || 0}% of work days</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-3 h-3 text-purple-500" />
+                      <span className="text-xs text-purple-600">{summary.activeProjects} active</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                {isHRRole ? <Building2 className="w-7 h-7 text-purple-600" /> : <Briefcase className="w-7 h-7 text-purple-600" />}
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Work Location & Attendance Analytics Row */}
+      <div className="grid grid-cols-3 gap-6">
+        {/* Work Location Distribution - Pie Chart */}
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Work Location Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {workLocationData.length > 0 && workLocationData.some(d => d.value > 0) ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={workLocationData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {workLocationData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-zinc-500">
+                  <MapPin className="w-12 h-12 mb-2 text-zinc-300" />
+                  <p>No location data available</p>
+                </div>
+              )}
+            </div>
+            {/* Legend */}
+            <div className="flex justify-center gap-6 mt-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">In Office</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">Onsite</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">WFH</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Leave Patterns by Day - Bar Chart */}
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Leave Patterns by Day
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={attendanceData?.leave_patterns || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="day" stroke="#9ca3af" fontSize={12} />
+                  <YAxis stroke="#9ca3af" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#ef4444" radius={[4, 4, 0, 0]} name="Leave/Absent" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-xs text-zinc-500 text-center mt-2">
+              Higher bars indicate days with more leaves/absences
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Department Attendance - Bar Chart */}
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Department Attendance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={attendanceData?.department_stats || []} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis type="number" domain={[0, 100]} stroke="#9ca3af" fontSize={12} />
+                  <YAxis type="category" dataKey="department" stroke="#9ca3af" fontSize={11} width={80} />
+                  <Tooltip 
+                    formatter={(value) => `${value}%`}
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="attendance_rate" fill="#10b981" radius={[0, 4, 4, 0]} name="Attendance %" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Attendance Trends Chart */}
+      <Card className="border-zinc-200 dark:border-zinc-800">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            Attendance & Location Trends
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={attendanceData?.trends || []}>
+                <defs>
+                  <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} />
+                <YAxis stroke="#9ca3af" fontSize={12} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                  }}
+                />
+                <Legend />
+                <Area 
+                  type="monotone" 
+                  dataKey="attendance_rate" 
+                  stroke="#3b82f6" 
+                  fillOpacity={1} 
+                  fill="url(#colorAttendance)"
+                  name="Attendance Rate %"
+                />
+                <Bar dataKey="in_office" stackId="location" fill="#3b82f6" name="In Office" />
+                <Bar dataKey="onsite" stackId="location" fill="#10b981" name="Onsite" />
+                <Bar dataKey="wfh" stackId="location" fill="#f59e0b" name="WFH" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Performance Trends and Leaderboard */}
       <div className="grid grid-cols-3 gap-6">
         {/* Performance Trends Chart */}
         <Card className="col-span-2 border-zinc-200 dark:border-zinc-800">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
+              <TrendingUp className="w-5 h-5" />
               Performance Trends
             </CardTitle>
           </CardHeader>
@@ -406,10 +636,12 @@ const PerformanceDashboard = () => {
             <Users className="w-4 h-4" />
             Consulting Team ({consultants.length})
           </TabsTrigger>
-          <TabsTrigger value="sales" className="flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            Sales Team ({sales.length})
-          </TabsTrigger>
+          {canSeeFinancials && (
+            <TabsTrigger value="sales" className="flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Sales Team ({sales.length})
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Consulting Team Tab */}
@@ -422,8 +654,9 @@ const PerformanceDashboard = () => {
                     <tr className="border-b border-zinc-200 dark:border-zinc-700">
                       <th className="text-left py-3 px-4 text-sm font-medium text-zinc-500">Consultant</th>
                       <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Utilization</th>
-                      <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Projects</th>
-                      <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Meetings</th>
+                      <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">In-Office</th>
+                      <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Onsite</th>
+                      <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">WFH</th>
                       <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Rating</th>
                       <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">On-Time %</th>
                       <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Trend</th>
@@ -454,12 +687,22 @@ const PerformanceDashboard = () => {
                           </div>
                         </td>
                         <td className="py-4 px-4 text-center">
-                          <Badge variant="outline" className="font-medium">
-                            {c.projectsDelivered}
-                          </Badge>
+                          <div className="flex items-center justify-center gap-1">
+                            <Building2 className="w-3 h-3 text-blue-500" />
+                            <span className="text-zinc-700 dark:text-zinc-300">{c.inOfficeDays}d</span>
+                          </div>
                         </td>
-                        <td className="py-4 px-4 text-center text-zinc-600 dark:text-zinc-400">
-                          {c.meetingsAttended}
+                        <td className="py-4 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <MapPin className="w-3 h-3 text-emerald-500" />
+                            <span className="text-zinc-700 dark:text-zinc-300">{c.onsiteDays}d</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Home className="w-3 h-3 text-amber-500" />
+                            <span className="text-zinc-700 dark:text-zinc-300">{c.wfhDays}d</span>
+                          </div>
                         </td>
                         <td className="py-4 px-4 text-center">
                           <div className="flex items-center justify-center gap-1">
@@ -486,157 +729,124 @@ const PerformanceDashboard = () => {
           </Card>
         </TabsContent>
 
-        {/* Sales Team Tab */}
-        <TabsContent value="sales">
-          <Card className="border-zinc-200 dark:border-zinc-800">
-            <CardContent className="pt-6">
-              {sales.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-zinc-500">Sales Person</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Target vs Achieved</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Leads Converted</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Meetings</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Conversion %</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Avg Deal</th>
-                        <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Trend</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sales.map((s) => {
-                        const achievement = Math.round((s.achieved / s.target) * 100);
-                        return (
-                          <tr key={s.id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                            <td className="py-4 px-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium">
-                                  {s.name?.charAt(0)}
+        {/* Sales Team Tab - Only if can see financials */}
+        {canSeeFinancials && (
+          <TabsContent value="sales">
+            <Card className="border-zinc-200 dark:border-zinc-800">
+              <CardContent className="pt-6">
+                {sales.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-zinc-500">Sales Person</th>
+                          <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Target vs Achieved</th>
+                          <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Leads Converted</th>
+                          <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Meetings</th>
+                          <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Conversion %</th>
+                          <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Avg Deal</th>
+                          <th className="text-center py-3 px-4 text-sm font-medium text-zinc-500">Trend</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sales.map((s) => {
+                          const achievement = Math.round((s.achieved / s.target) * 100);
+                          return (
+                            <tr key={s.id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium">
+                                    {s.name?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-zinc-900 dark:text-zinc-100">{s.name}</p>
+                                    <p className="text-xs text-zinc-500 capitalize">{s.role?.replace('_', ' ')}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-medium text-zinc-900 dark:text-zinc-100">{s.name}</p>
-                                  <p className="text-xs text-zinc-500 capitalize">{s.role?.replace('_', ' ')}</p>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex flex-col items-center gap-1">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-zinc-500">{formatCurrency(s.target)}</span>
+                                    <span className="text-zinc-400">/</span>
+                                    <span className={`font-bold ${achievement >= 100 ? 'text-emerald-600' : achievement >= 75 ? 'text-blue-600' : 'text-amber-600'}`}>
+                                      {formatCurrency(s.achieved)}
+                                    </span>
+                                  </div>
+                                  <Progress value={Math.min(achievement, 100)} className="w-24 h-1.5" />
+                                  <span className="text-xs text-zinc-500">{achievement}%</span>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="flex flex-col items-center gap-1">
-                                <div className="flex items-center gap-2 text-sm">
-                                  <span className="text-zinc-500">{formatCurrency(s.target)}</span>
-                                  <span className="text-zinc-400">/</span>
-                                  <span className={`font-bold ${achievement >= 100 ? 'text-emerald-600' : achievement >= 75 ? 'text-blue-600' : 'text-amber-600'}`}>
-                                    {formatCurrency(s.achieved)}
-                                  </span>
-                                </div>
-                                <Progress value={Math.min(achievement, 100)} className="w-24 h-1.5" />
-                                <span className="text-xs text-zinc-500">{achievement}%</span>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4 text-center">
-                              <Badge className="bg-emerald-100 text-emerald-700">
-                                {s.leadsConverted}
-                              </Badge>
-                            </td>
-                            <td className="py-4 px-4 text-center text-zinc-600 dark:text-zinc-400">
-                              {s.meetingsHeld}
-                            </td>
-                            <td className="py-4 px-4 text-center">
-                              <span className={`font-bold ${
-                                s.conversionRate >= 40 ? 'text-emerald-600' :
-                                s.conversionRate >= 25 ? 'text-blue-600' :
-                                'text-amber-600'
-                              }`}>{s.conversionRate}%</span>
-                            </td>
-                            <td className="py-4 px-4 text-center font-medium text-zinc-700 dark:text-zinc-300">
-                              {formatCurrency(s.avgDealSize)}
-                            </td>
-                            <td className="py-4 px-4 text-center">
-                              {getTrendIcon(s.trend)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-zinc-500">
-                  <Target className="w-12 h-12 mx-auto mb-4 text-zinc-300" />
-                  <p className="text-lg font-medium">No sales team data</p>
-                  <p className="text-sm">Sales performance metrics will appear here</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                <Badge className="bg-emerald-100 text-emerald-700">
+                                  {s.leadsConverted}
+                                </Badge>
+                              </td>
+                              <td className="py-4 px-4 text-center text-zinc-600 dark:text-zinc-400">
+                                {s.meetingsHeld}
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                <span className={`font-bold ${
+                                  s.conversionRate >= 40 ? 'text-emerald-600' :
+                                  s.conversionRate >= 25 ? 'text-blue-600' :
+                                  'text-amber-600'
+                                }`}>{s.conversionRate}%</span>
+                              </td>
+                              <td className="py-4 px-4 text-center font-medium text-zinc-700 dark:text-zinc-300">
+                                {formatCurrency(s.avgDealSize)}
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                {getTrendIcon(s.trend)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-zinc-500">
+                    <Target className="w-12 h-12 mx-auto mb-4 text-zinc-300" />
+                    <p className="text-lg font-medium">No sales team data</p>
+                    <p className="text-sm">Sales performance metrics will appear here</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
-      {/* Department Comparison */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* Leave Types Distribution */}
+      {leaveTypeData.length > 0 && (
         <Card className="border-zinc-200 dark:border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-base">Revenue by Month</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CalendarDays className="w-5 h-5" />
+              Leave Type Distribution
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={trends}>
+                <BarChart data={leaveTypeData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" stroke="#9ca3af" fontSize={12} />
-                  <YAxis stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `₹${v/100000}L`} />
+                  <XAxis dataKey="type" stroke="#9ca3af" fontSize={12} />
+                  <YAxis stroke="#9ca3af" fontSize={12} />
                   <Tooltip 
-                    formatter={(value) => formatCurrency(value)}
                     contentStyle={{ 
                       backgroundColor: '#fff', 
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px'
                     }}
                   />
-                  <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="days" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Days" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="border-zinc-200 dark:border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-base">Team Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Consulting', value: summary.totalConsultants, color: '#3b82f6' },
-                      { name: 'Sales', value: summary.totalSalesTeam, color: '#10b981' },
-                      { name: 'Other', value: 5, color: '#f59e0b' }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {[
-                      { name: 'Consulting', value: summary.totalConsultants, color: '#3b82f6' },
-                      { name: 'Sales', value: summary.totalSalesTeam, color: '#10b981' },
-                      { name: 'Other', value: 5, color: '#f59e0b' }
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 };
