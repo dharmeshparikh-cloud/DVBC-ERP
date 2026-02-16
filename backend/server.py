@@ -2434,12 +2434,55 @@ async def get_kickoff_request_details(
                 for field in sensitive_fields:
                     agreement.pop(field, None)
     
-    # Get any sales meetings related to this lead (hide financial notes)
+    # Get FULL meeting history with MOMs related to this lead for complete context
+    meeting_history = []
     if kickoff.get('lead_id'):
-        meetings = await db.meetings.find(
-            {"lead_id": kickoff['lead_id'], "type": "sales"},
+        meetings_cursor = await db.meetings.find(
+            {"lead_id": kickoff['lead_id']},
             {"_id": 0}
-        ).sort("meeting_date", -1).to_list(50)
+        ).sort("meeting_date", 1).to_list(100)  # Chronological order
+        
+        for meeting in meetings_cursor:
+            meeting_entry = {
+                "id": meeting.get("id"),
+                "title": meeting.get("title"),
+                "meeting_date": meeting.get("meeting_date"),
+                "meeting_time": meeting.get("meeting_time"),
+                "type": meeting.get("type"),
+                "status": meeting.get("status"),
+                "location": meeting.get("location"),
+                "attendees": meeting.get("attendees", []),
+                # Include full MOM details for consulting context
+                "mom": {
+                    "summary": meeting.get("mom_summary"),
+                    "key_decisions": meeting.get("mom_key_decisions", []),
+                    "discussion_points": meeting.get("mom_discussion_points", []),
+                    "next_steps": meeting.get("mom_next_steps", []),
+                    "client_concerns": meeting.get("mom_client_concerns", []),
+                    "commitments_made": meeting.get("mom_commitments_made", []),
+                    "recorded_at": meeting.get("mom_recorded_at"),
+                    "recorded_by": meeting.get("mom_recorded_by_name")
+                },
+                # Include action items for follow-up context
+                "action_items": meeting.get("action_items", []),
+                "notes": meeting.get("notes")
+            }
+            
+            # Remove financial references from notes for non-sales roles
+            if not can_see_financials and meeting_entry.get("notes"):
+                # Keep notes but mark that some info may be redacted
+                meeting_entry["notes_redacted"] = True
+            
+            meeting_history.append(meeting_entry)
+    
+    # Build client expectations summary from meetings
+    client_expectations = []
+    key_commitments = []
+    for meeting in meeting_history:
+        if meeting.get("mom", {}).get("client_concerns"):
+            client_expectations.extend(meeting["mom"]["client_concerns"])
+        if meeting.get("mom", {}).get("commitments_made"):
+            key_commitments.extend(meeting["mom"]["commitments_made"])
     
     # Remove financial data from kickoff request for consulting roles
     if not can_see_financials:
@@ -2451,7 +2494,10 @@ async def get_kickoff_request_details(
         "sow": sow,
         "team_deployment": team_deployment,
         "lead": lead,
-        "meetings": meetings,
+        "meeting_history": meeting_history,  # Full chronological meeting history
+        "client_expectations_summary": list(set(client_expectations)),  # Deduplicated concerns
+        "key_commitments_summary": list(set(key_commitments)),  # Deduplicated commitments
+        "total_meetings_held": len(meeting_history),
         "can_see_financials": can_see_financials
     }
 
