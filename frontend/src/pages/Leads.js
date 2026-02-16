@@ -280,7 +280,8 @@ const Leads = () => {
               </form>
             </DialogContent>
           </Dialog>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="mb-6">
@@ -323,7 +324,76 @@ const Leads = () => {
             )}
           </CardContent>
         </Card>
+      ) : viewMode === 'list' ? (
+        /* List View */
+        <div className="border border-zinc-200 rounded-sm overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-zinc-50 border-b border-zinc-200">
+              <tr>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Name</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Company</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Email</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Score</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {leads.map((lead) => {
+                const scoreBadge = getScoreBadge(lead.lead_score || 0);
+                return (
+                  <tr 
+                    key={lead.id} 
+                    className="hover:bg-zinc-50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
+                    data-testid={`lead-row-${lead.id}`}
+                  >
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-zinc-900">{lead.first_name} {lead.last_name}</span>
+                      {lead.job_title && <p className="text-xs text-zinc-500">{lead.job_title}</p>}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">{lead.company}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">{lead.email}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-sm ${scoreBadge.color} ${scoreBadge.text}`}>
+                        {lead.lead_score || 0} - {scoreBadge.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusStyle(lead.status)}`}>
+                        {lead.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
+                          size="sm"
+                          variant="outline"
+                          className="rounded-sm h-8"
+                        >
+                          <TrendingUp className="w-3 h-3" />
+                        </Button>
+                        {lead.linkedin_url && (
+                          <Button
+                            onClick={() => window.open(lead.linkedin_url, '_blank')}
+                            size="sm"
+                            variant="outline"
+                            className="rounded-sm h-8"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
+        /* Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {leads.map((lead) => {
             const scoreBadge = getScoreBadge(lead.lead_score || 0);
@@ -332,7 +402,8 @@ const Leads = () => {
               <Card
                 key={lead.id}
                 data-testid={`lead-card-${lead.id}`}
-                className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
+                className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
+                onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
