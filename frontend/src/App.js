@@ -60,6 +60,7 @@ import HRDashboard from './pages/HRDashboard';
 import AdminMasters from './pages/AdminMasters';
 import PermissionManager from './pages/PermissionManager';
 import AdminDashboardMockups from './pages/admin/AdminDashboardMockups';
+import FlowDiagram from './pages/FlowDiagram';
 import Layout from './components/Layout';
 import SalesLayout from './components/SalesLayout';
 import SalesLogin from './pages/SalesLogin';
