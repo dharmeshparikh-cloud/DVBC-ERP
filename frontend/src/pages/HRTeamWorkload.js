@@ -20,10 +20,12 @@ const HRTeamWorkload = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
+  // Allow Admin and HR Manager access
+  const hasAccess = ['admin', 'hr_manager'].includes(user?.role);
+
   useEffect(() => {
-    // Only HR Manager can access this page
-    if (user?.role !== 'hr_manager') {
-      toast.error('Access denied. This page is for HR Managers only.');
+    if (!hasAccess) {
+      toast.error('Access denied. This page is for Admin and HR Managers only.');
       return;
     }
     fetchTeamData();
