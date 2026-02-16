@@ -11,6 +11,9 @@ import { Mail, Lock, TrendingUp, Users, FileText, DollarSign } from 'lucide-reac
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png";
 
+// Sales-related roles that can access the Sales Portal
+const SALES_ROLES = ['executive', 'account_manager', 'manager'];
+
 const SalesLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,9 +23,13 @@ const SalesLogin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If already logged in, redirect to sales dashboard
-    if (user) {
+    // If already logged in with a sales role, redirect to sales dashboard
+    if (user && SALES_ROLES.includes(user.role)) {
       navigate('/sales');
+    } else if (user) {
+      // Logged in but not a sales role - redirect to main app
+      toast.error('Access denied. Sales Portal is for sales team only.');
+      navigate('/');
     }
   }, [user, navigate]);
 
@@ -38,7 +45,16 @@ const SalesLogin = () => {
     setLoading(true);
     try {
       const response = await axios.post(`${API}/auth/login`, { email, password });
-      login(response.data.access_token, response.data.user);
+      const userData = response.data.user;
+      
+      // Check if user has a sales role
+      if (!SALES_ROLES.includes(userData.role)) {
+        toast.error('Access denied. Sales Portal is for sales team only.');
+        setLoading(false);
+        return;
+      }
+      
+      login(response.data.access_token, userData);
       toast.success('Welcome to Sales Portal!');
       navigate('/sales');
     } catch (error) {
