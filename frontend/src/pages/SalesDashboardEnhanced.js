@@ -104,16 +104,18 @@ const SalesDashboardEnhanced = () => {
       {/* Header with View Toggle */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Sales Dashboard</h1>
-          <p className="text-sm text-zinc-500">Track your pipeline, conversions and revenue</p>
+          <h1 className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>Sales Dashboard</h1>
+          <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Track your pipeline, conversions and revenue</p>
         </div>
         <div className="flex items-center gap-3">
           {stats?.has_team && (
-            <div className="flex bg-zinc-100 rounded-lg p-1">
+            <div className={`flex rounded-lg p-1 ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
               <button
                 onClick={() => setViewMode('own')}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                  viewMode === 'own' ? 'bg-white shadow text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'
+                  viewMode === 'own' 
+                    ? isDark ? 'bg-zinc-700 shadow text-zinc-100' : 'bg-white shadow text-zinc-900'
+                    : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
                 My Data
@@ -121,14 +123,16 @@ const SalesDashboardEnhanced = () => {
               <button
                 onClick={() => setViewMode('team')}
                 className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                  viewMode === 'team' ? 'bg-white shadow text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'
+                  viewMode === 'team' 
+                    ? isDark ? 'bg-zinc-700 shadow text-zinc-100' : 'bg-white shadow text-zinc-900'
+                    : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900'
                 }`}
               >
                 Team Data
               </button>
             </div>
           )}
-          <Badge className="bg-orange-100 text-orange-700 text-sm px-3 py-1">
+          <Badge className={`text-sm px-3 py-1 ${isDark ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700'}`}>
             {ratios.lead_to_closure || 0}% Conversion
           </Badge>
         </div>
@@ -136,69 +140,69 @@ const SalesDashboardEnhanced = () => {
 
       {/* KPI Scorecards Row */}
       <div className="grid grid-cols-6 gap-4">
-        <Card className="border-zinc-200 bg-gradient-to-br from-orange-50 to-white">
+        <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-orange-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-orange-50 to-white'}`}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wide">Total Leads</p>
-                <p className="text-2xl font-bold text-zinc-900">{pipeline.total || 0}</p>
+                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Leads</p>
+                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{pipeline.total || 0}</p>
               </div>
               <Users className="w-8 h-8 text-orange-500 opacity-80" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 bg-gradient-to-br from-blue-50 to-white">
+        <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-blue-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-blue-50 to-white'}`}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wide">Total Meetings</p>
-                <p className="text-2xl font-bold text-zinc-900">{meetings.total || 0}</p>
+                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Meetings</p>
+                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{meetings.total || 0}</p>
               </div>
               <Calendar className="w-8 h-8 text-blue-500 opacity-80" />
             </div>
-            <p className="text-xs text-zinc-400 mt-1">{meetings.this_month || 0} this month</p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{meetings.this_month || 0} this month</p>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 bg-gradient-to-br from-green-50 to-white">
+        <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-green-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-green-50 to-white'}`}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wide">Total Closures</p>
-                <p className="text-2xl font-bold text-zinc-900">{closures.total || 0}</p>
+                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Closures</p>
+                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{closures.total || 0}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500 opacity-80" />
             </div>
-            <p className="text-xs text-zinc-400 mt-1">{closures.this_month || 0} this month</p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{closures.this_month || 0} this month</p>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 bg-gradient-to-br from-purple-50 to-white">
+        <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-purple-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-purple-50 to-white'}`}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wide">Deal Value</p>
-                <p className="text-2xl font-bold text-zinc-900">{formatCurrency(stats?.deal_value?.total || 0)}</p>
+                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Deal Value</p>
+                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{formatCurrency(stats?.deal_value?.total || 0)}</p>
               </div>
               <DollarSign className="w-8 h-8 text-purple-500 opacity-80" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 bg-gradient-to-br from-cyan-50 to-white">
+        <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-cyan-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-cyan-50 to-white'}`}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wide">Lead→Meeting</p>
-                <p className="text-2xl font-bold text-zinc-900">{ratios.lead_to_meeting || 0}%</p>
+                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Lead→Meeting</p>
+                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{ratios.lead_to_meeting || 0}%</p>
               </div>
               <TrendingUp className="w-8 h-8 text-cyan-500 opacity-80" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 bg-gradient-to-br from-rose-50 to-white">
+        <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-rose-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-rose-50 to-white'}`}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
