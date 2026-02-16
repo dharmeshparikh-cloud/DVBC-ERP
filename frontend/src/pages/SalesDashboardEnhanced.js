@@ -486,9 +486,9 @@ const SalesDashboardEnhanced = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
               <BarChart3 className="w-4 h-4" />
               Conversion Rate Trend
             </CardTitle>
@@ -497,10 +497,13 @@ const SalesDashboardEnhanced = () => {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={momData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} unit="%" />
-                  <Tooltip formatter={(value) => `${value}%`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#3f3f46' : '#e5e7eb'} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#52525b' }} />
+                  <YAxis tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#52525b' }} unit="%" />
+                  <Tooltip 
+                    formatter={(value) => `${value}%`} 
+                    contentStyle={{ backgroundColor: isDark ? '#18181b' : '#fff', border: isDark ? '1px solid #3f3f46' : '1px solid #e5e7eb' }}
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="conversion_rate" 
@@ -520,9 +523,9 @@ const SalesDashboardEnhanced = () => {
       <div className="grid grid-cols-3 gap-4">
         {/* Leaderboard */}
         {viewMode !== 'own' && leaderboard.length > 0 && (
-          <Card className="border-zinc-200">
+          <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
+              <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
                 <Award className="w-4 h-4" />
                 Team Leaderboard
               </CardTitle>
@@ -530,19 +533,19 @@ const SalesDashboardEnhanced = () => {
             <CardContent>
               <div className="space-y-2">
                 {leaderboard.slice(0, 5).map((member, idx) => (
-                  <div key={member.user_id} className="flex items-center justify-between py-2 border-b border-zinc-100 last:border-0">
+                  <div key={member.user_id} className={`flex items-center justify-between py-2 border-b last:border-0 ${isDark ? 'border-zinc-700' : 'border-zinc-100'}`}>
                     <div className="flex items-center gap-2">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                         idx === 0 ? 'bg-yellow-100 text-yellow-700' :
                         idx === 1 ? 'bg-gray-100 text-gray-700' :
                         idx === 2 ? 'bg-orange-100 text-orange-700' :
-                        'bg-zinc-50 text-zinc-600'
+                        isDark ? 'bg-zinc-700 text-zinc-300' : 'bg-zinc-50 text-zinc-600'
                       }`}>
                         {idx + 1}
                       </span>
-                      <span className="text-sm text-zinc-700">{member.name}</span>
+                      <span className={`text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{member.name}</span>
                     </div>
-                    <Badge variant="secondary" className="bg-green-50 text-green-700">
+                    <Badge variant="secondary" className={`${isDark ? 'bg-green-900/30 text-green-400' : 'bg-green-50 text-green-700'}`}>
                       {member.closures} closures
                     </Badge>
                   </div>
