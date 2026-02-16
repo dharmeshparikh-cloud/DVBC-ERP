@@ -39,6 +39,7 @@ const Employees = () => {
   const [departments, setDepartments] = useState([]);
   const [stats, setStats] = useState(null);
   const [activeView, setActiveView] = useState('directory'); // directory, orgchart
+  const [viewMode, setViewMode] = useState('list'); // list, card (for directory tab)
   const [orgChart, setOrgChart] = useState([]);
 
   // Dialogs
