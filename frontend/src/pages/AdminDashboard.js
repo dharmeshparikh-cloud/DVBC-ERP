@@ -352,9 +352,10 @@ const AdminDashboard = () => {
 
         {/* Performance Trend Chart */}
         <LockableCard 
-          className={`col-span-6 row-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          className={`col-span-6 row-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-blue-50 border-zinc-200'}`}
           cardId="performance-trend"
           isDark={isDark}
+          title="Performance Trend"
         >
           <CardHeader className="pb-2">
             <CardTitle className={`text-sm font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
