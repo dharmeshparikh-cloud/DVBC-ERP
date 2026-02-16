@@ -166,3 +166,4 @@ Build a comprehensive business management application for a consulting organizat
 - Sales Portal: `/sales/login`
 - Main ERP: `/login`
 - Admin Dashboard: `/admin-dashboard`
+- Workflow Analysis: `/workflow-analysis`
