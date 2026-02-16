@@ -413,9 +413,10 @@ const AdminDashboard = () => {
 
         {/* Closed Deals */}
         <LockableCard 
-          className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          className={`col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-green-50 border-zinc-200'}`}
           cardId="closed-deals"
           isDark={isDark}
+          title="Closed This Month"
         >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <CheckCircle className="w-6 h-6 text-green-500" />
