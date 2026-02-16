@@ -393,16 +393,19 @@ const Agreements = () => {
             </h1>
             <p className="text-zinc-500">Create and manage client agreements</p>
           </div>
-          {canEdit && (
-            <Button
-              onClick={() => setDialogOpen(true)}
-              data-testid="create-agreement-btn"
-              className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-            >
-              <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-              Create Agreement
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+            {canEdit && (
+              <Button
+                onClick={() => setDialogOpen(true)}
+                data-testid="create-agreement-btn"
+                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+              >
+                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                Create Agreement
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -428,7 +431,72 @@ const Agreements = () => {
             )}
           </CardContent>
         </Card>
+      ) : viewMode === 'list' ? (
+        /* List View */
+        <div className="border border-zinc-200 rounded-sm overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-zinc-50 border-b border-zinc-200">
+              <tr>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Agreement #</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Client</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Type</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Tenure</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {agreements.map((agreement) => {
+                const statusInfo = getStatusBadge(agreement.status);
+                const StatusIcon = statusInfo.icon;
+                return (
+                  <tr 
+                    key={agreement.id} 
+                    className="hover:bg-zinc-50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/sales-funnel/agreement/${agreement.id}`)}
+                    data-testid={`agreement-row-${agreement.id}`}
+                  >
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-zinc-900">{agreement.agreement_number}</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">{getLeadName(agreement.lead_id)}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-600 capitalize">{agreement.agreement_type}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-600">{agreement.project_tenure_months || 12} months</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-sm inline-flex items-center gap-1 ${statusInfo.bg}`}>
+                        <StatusIcon className="w-3 h-3" strokeWidth={1.5} />
+                        {agreement.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          onClick={() => navigate(`/sales-funnel/agreement/${agreement.id}`)}
+                          size="sm"
+                          variant="outline"
+                          className="rounded-sm h-8"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          onClick={() => handleDownload(agreement.id, 'pdf')}
+                          size="sm"
+                          variant="outline"
+                          disabled={downloading[`${agreement.id}-pdf`]}
+                          className="rounded-sm h-8"
+                        >
+                          <Download className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
+        /* Card View */
         <div className="space-y-4">
           {agreements.map((agreement) => {
             const statusInfo = getStatusBadge(agreement.status);
@@ -437,7 +505,8 @@ const Agreements = () => {
               <Card
                 key={agreement.id}
                 data-testid={`agreement-card-${agreement.id}`}
-                className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
+                className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
+                onClick={() => navigate(`/sales-funnel/agreement/${agreement.id}`)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
