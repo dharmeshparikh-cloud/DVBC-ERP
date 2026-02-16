@@ -74,6 +74,23 @@ Build a comprehensive business management application for a consulting organizat
 - Employee workspace in Sales Portal
 - Auto-closure on kickoff acceptance
 
+### Phase 4 - Admin Dashboard & Theming (Completed Feb 2026)
+- **Bento Grid Admin Dashboard**: Modern asymmetric layout for admin users
+  - Revenue overview card
+  - Active leads, conversion rate KPIs
+  - Project health pie chart
+  - Team attendance metrics
+  - Utilization stats
+  - Performance trend line chart
+  - Quick action buttons
+- **Global Dark/Light Theme Toggle**: System-wide theme switching
+  - ThemeContext provider for state management
+  - CSS variables for light/dark modes
+  - Theme persistence via localStorage
+  - Toggle button in header (Sun/Moon icons)
+  - Works across Main ERP and Sales Portal
+  - All dashboards updated with theme support
+
 ## Technical Architecture
 
 ### Backend
@@ -87,6 +104,15 @@ Build a comprehensive business management application for a consulting organizat
 - Tailwind CSS + Shadcn/UI
 - Recharts for visualizations
 - Dual portal architecture (Main ERP + Sales Portal)
+- **ThemeContext** for global dark/light mode
+
+### Key Files Added/Modified (Phase 4)
+- `/app/frontend/src/contexts/ThemeContext.js` - Theme state management
+- `/app/frontend/src/pages/AdminDashboard.js` - Bento grid admin dashboard
+- `/app/frontend/src/components/Layout.js` - Main layout with theme toggle
+- `/app/frontend/src/components/SalesLayout.js` - Sales portal with theme toggle
+- `/app/frontend/src/pages/SalesDashboardEnhanced.js` - Updated with theme support
+- `/app/frontend/src/index.css` - Dark mode CSS variables
 
 ### Key API Endpoints
 - `GET /stats/sales-dashboard-enhanced` - Full dashboard metrics with view_mode
@@ -99,6 +125,7 @@ Build a comprehensive business management application for a consulting organizat
 ## Prioritized Backlog
 
 ### P0 (Next)
+- **Frontend Permission Enforcement** - Hide/disable UI elements based on role permissions
 - Hot status enforcement (block non-Hot from pricing)
 - Configure review parameters via admin panel
 - Set up reporting structure for demo
@@ -107,6 +134,7 @@ Build a comprehensive business management application for a consulting organizat
 - Real email integration (SMTP)
 - P&L Variance tracking
 - Gantt chart visualization
+- Fix Leads list view missing columns bug
 
 ### P2 (Tech Debt)
 - Refactor server.py into routers
@@ -121,3 +149,4 @@ Build a comprehensive business management application for a consulting organizat
 ## URLs
 - Sales Portal: `/sales/login`
 - Main ERP: `/login`
+- Admin Dashboard: `/admin-dashboard`
