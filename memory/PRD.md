@@ -106,6 +106,22 @@ Build a comprehensive business management application for a consulting organizat
   - Summary stats in header/footer
   - Added to Admin navigation sidebar
 
+### Phase 6 - Sales Flow Enforcement & Permission System (Completed Feb 2026)
+- **MOM Mandatory Check**: Blocks pricing plan creation if lead has meetings without MOM
+  - New API: `GET /api/leads/{lead_id}/pricing-eligibility`
+  - Returns blockers (no_meetings, pending_mom) and warnings (not_hot)
+  - PricingPlanBuilder shows blocker dialog with "Go to Meetings" action
+- **Hot Lead Warning**: Shows warning dialog for non-hot leads before pricing
+  - Temperature classification (Hot ≥80, Warm 50-79, Cold <50)
+  - Conversion stats displayed (Hot 45%, Warm 22%, Cold 8%)
+  - "Proceed Anyway" button allows override
+- **Frontend Permission System**: PermissionContext for granular UI control
+  - `PermissionProvider` wraps the app
+  - `usePermissions` hook provides hasPermission, canAccessModule, etc.
+  - `PermissionGate` component for conditional rendering
+  - Role-based default permissions with backend override
+  - Applied to Leads page "Add Lead" button
+
 ## Technical Architecture
 
 ### Backend
