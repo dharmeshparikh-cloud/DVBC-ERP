@@ -71,6 +71,9 @@ const PaymentReminders = () => {
       client_name: project.client_name,
       company: project.company,
       payment_frequency: project.payment_frequency,
+      agreement_id: project.agreement_id,
+      pricing_plan_id: project.pricing_plan_id,
+      total_installments: project.total_installments || payment.total_installments,
       status: getPaymentStatus(payment.days_until_due)
     }))
   ).filter(payment => {
