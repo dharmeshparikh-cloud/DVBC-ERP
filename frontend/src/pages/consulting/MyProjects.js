@@ -183,6 +183,7 @@ const MyProjects = () => {
         currentStage={3} 
         completedStages={[1, 2]}
         showFullNav={true}
+        onBack={() => navigate('/kickoff-requests')}
       />
 
       {/* Header */}
