@@ -122,6 +122,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="clients" element={<Clients />} />
         <Route path="meetings" element={<SalesMeetings />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="team-performance" element={<SalesTeamPerformance />} />
         {/* Employee Workspace */}
         <Route path="my-attendance" element={<MyAttendance />} />
         <Route path="my-leaves" element={<MyLeaves />} />
