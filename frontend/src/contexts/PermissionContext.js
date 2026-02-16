@@ -27,7 +27,7 @@ export const PermissionProvider = ({ children, user }) => {
 
   const fetchPermissions = async () => {
     try {
-      const response = await fetch(`${API}/permissions/my-permissions`, {
+      const response = await fetch(`${API}/users/me/permissions`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
