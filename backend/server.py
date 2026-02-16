@@ -7618,6 +7618,25 @@ async def get_all_employees(
     
     return employees
 
+@api_router.get("/employees/consultants")
+async def get_employees_with_consultant_designation(
+    current_user: User = Depends(get_current_user)
+):
+    """Get employees with designation containing 'Consultant' - for PM selection in kickoff flow"""
+    # Query for employees with designation containing 'Consultant' (case-insensitive)
+    query = {
+        "is_active": True,
+        "designation": {"$regex": "consultant", "$options": "i"}
+    }
+    
+    employees = await db.employees.find(
+        query,
+        {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "designation": 1, 
+         "department": 1, "email": 1, "user_id": 1}
+    ).to_list(500)
+    
+    return employees
+
 @api_router.post("/employees")
 async def create_employee(
     employee_create: EmployeeCreate,
