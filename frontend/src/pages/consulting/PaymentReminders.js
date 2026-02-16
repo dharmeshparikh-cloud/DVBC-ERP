@@ -309,6 +309,11 @@ const PaymentReminders = () => {
                             <Clock className="w-3.5 h-3.5" />
                             {getDaysText(payment.days_until_due)}
                           </span>
+                          {payment.total_installments && (
+                            <span className="text-zinc-400">
+                              ({payment.installment_number} of {payment.total_installments})
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
