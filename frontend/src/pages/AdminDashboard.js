@@ -139,15 +139,20 @@ const AdminDashboard = () => {
       {/* Bento Grid */}
       <div className="grid grid-cols-12 gap-4 auto-rows-[140px]">
         
-        {/* Large Revenue Card */}
-        <Card className={`col-span-4 row-span-2 overflow-hidden relative ${
-          isDark 
-            ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' 
-            : 'bg-gradient-to-br from-zinc-900 to-zinc-800 border-zinc-700'
-        } text-white`}>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl"></div>
+        {/* Large Revenue Card - With Lock Controls */}
+        <LockableCard 
+          className={`col-span-4 row-span-2 overflow-hidden relative ${
+            isDark 
+              ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' 
+              : 'bg-gradient-to-br from-zinc-900 to-zinc-800 border-zinc-700'
+          } text-white`}
+          cardId="total-revenue"
+          isDark={isDark}
+          lockedValues={{ revenue: stats.finance?.revenue }}
+        >
           <CardContent className="pt-6 h-full flex flex-col justify-between relative z-10">
-            <div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl"></div>
+            <div className="relative">
               <p className="text-zinc-400 text-sm">Total Revenue (YTD)</p>
               <p className="text-5xl font-bold mt-2">
                 {formatCurrency(stats.finance?.revenue || 45000000).replace('₹', '')}
@@ -156,18 +161,18 @@ const AdminDashboard = () => {
                 </span>
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 relative">
               <div className="flex items-center gap-1 text-green-400">
                 <TrendingUp className="w-5 h-5" />
                 <span className="font-medium">+23.5%</span>
               </div>
               <span className="text-zinc-500 text-sm">vs last year</span>
             </div>
-            <Link to="/reports?category=finance" className="text-orange-400 text-sm flex items-center gap-1 hover:underline">
+            <Link to="/reports?category=finance" className="text-orange-400 text-sm flex items-center gap-1 hover:underline relative">
               View Financial Reports <ChevronRight className="w-4 h-4" />
             </Link>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Sales Quick Stats */}
         <Card className="col-span-2 bg-orange-500 text-white border-orange-600">
