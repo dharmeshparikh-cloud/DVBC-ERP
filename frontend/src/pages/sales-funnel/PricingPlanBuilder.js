@@ -640,6 +640,140 @@ const PricingPlanBuilder = () => {
 
   return (
     <div className="max-w-6xl mx-auto" data-testid="pricing-plan-builder">
+      {/* Blocker Dialog - MOM not complete or no meetings */}
+      <Dialog open={showBlockerDialog} onOpenChange={setShowBlockerDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="w-5 h-5" />
+              Cannot Create Pricing Plan
+            </DialogTitle>
+            <DialogDescription>
+              The following requirements must be met before creating a pricing plan for this lead.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {eligibility?.blockers?.filter(Boolean).map((blocker, idx) => (
+              <div key={idx} className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-red-800">{blocker.message}</p>
+                  <p className="text-sm text-red-600 mt-1">{blocker.action}</p>
+                </div>
+              </div>
+            ))}
+            
+            {eligibility && (
+              <div className="p-3 bg-zinc-50 rounded-lg">
+                <p className="text-sm text-zinc-600">
+                  <strong>Lead:</strong> {eligibility.lead_name} ({eligibility.company})
+                </p>
+                <p className="text-sm text-zinc-600">
+                  <strong>Meetings:</strong> {eligibility.total_meetings} total, {eligibility.meetings_with_mom} with MOM
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={() => navigate('/leads')} 
+              variant="outline"
+              className="w-full"
+            >
+              Back to Leads
+            </Button>
+            {eligibility?.pending_mom > 0 && (
+              <Button 
+                onClick={() => navigate(`/sales-meetings?lead_id=${leadId}`)} 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Go to Meetings
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warning Dialog - Lead not Hot */}
+      <Dialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              Lead Temperature Warning
+            </DialogTitle>
+            <DialogDescription>
+              This lead is not marked as "Hot". You can still proceed, but please review.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {eligibility && (
+              <>
+                <div className="flex items-center justify-between p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-3">
+                    {eligibility.temperature === 'warm' ? (
+                      <Thermometer className="w-8 h-8 text-orange-500" />
+                    ) : (
+                      <Thermometer className="w-8 h-8 text-blue-500" />
+                    )}
+                    <div>
+                      <p className="font-semibold text-zinc-800 capitalize">{eligibility.temperature} Lead</p>
+                      <p className="text-sm text-zinc-600">Score: {eligibility.lead_score}/100</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-zinc-500">vs Hot Lead</p>
+                    <p className="text-sm font-medium text-zinc-700">≥80 score required</p>
+                  </div>
+                </div>
+                
+                {eligibility.warnings?.filter(Boolean).map((warning, idx) => (
+                  <div key={idx} className="p-3 bg-amber-50 rounded-lg">
+                    <p className="text-sm text-amber-700">{warning.recommendation}</p>
+                  </div>
+                ))}
+                
+                <div className="p-3 bg-zinc-50 rounded-lg">
+                  <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Conversion Statistics</p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-lg font-bold text-red-600">45%</p>
+                      <p className="text-xs text-zinc-500">Hot</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-orange-600">22%</p>
+                      <p className="text-xs text-zinc-500">Warm</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-blue-600">8%</p>
+                      <p className="text-xs text-zinc-500">Cold</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button 
+              onClick={() => navigate('/leads')} 
+              variant="outline"
+              className="flex-1"
+            >
+              Go Back
+            </Button>
+            <Button 
+              onClick={() => {
+                setWarningAcknowledged(true);
+                setShowWarningDialog(false);
+              }}
+              className="flex-1 bg-amber-600 hover:bg-amber-700"
+            >
+              Proceed Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="mb-6">
         <Button
           onClick={() => navigate('/leads')}
