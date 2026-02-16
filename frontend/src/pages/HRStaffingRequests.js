@@ -17,9 +17,12 @@ const HRStaffingRequests = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
 
+  // Allow Admin and HR Manager access
+  const hasAccess = ['admin', 'hr_manager'].includes(user?.role);
+
   useEffect(() => {
-    if (user?.role !== 'hr_manager') {
-      toast.error('Access denied. This page is for HR Managers only.');
+    if (!hasAccess) {
+      toast.error('Access denied. This page is for Admin and HR Managers only.');
       return;
     }
     fetchStaffingRequests();
