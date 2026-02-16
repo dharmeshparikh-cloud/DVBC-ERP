@@ -953,6 +953,229 @@ const KickoffRequests = () => {
                 )}
               </TabsContent>
 
+              {/* Meeting History Tab - Full context for Consulting */}
+              <TabsContent value="history" className="space-y-4">
+                {/* Client Expectations Summary */}
+                {(detailData?.client_expectations_summary?.length > 0 || detailData?.key_commitments_summary?.length > 0) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {detailData.client_expectations_summary?.length > 0 && (
+                      <Card className="border-amber-200 bg-amber-50/50">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2 text-amber-800">
+                            <AlertCircle className="w-4 h-4" />
+                            Client Concerns & Expectations
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-1.5">
+                            {detailData.client_expectations_summary.map((concern, i) => (
+                              <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
+                                <span className="text-amber-500 mt-1">•</span>
+                                {concern}
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+                    {detailData.key_commitments_summary?.length > 0 && (
+                      <Card className="border-green-200 bg-green-50/50">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2 text-green-800">
+                            <CheckCircle className="w-4 h-4" />
+                            Key Commitments Made
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="space-y-1.5">
+                            {detailData.key_commitments_summary.map((commitment, i) => (
+                              <li key={i} className="text-sm text-green-900 flex items-start gap-2">
+                                <span className="text-green-500 mt-1">•</span>
+                                {commitment}
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
+
+                {/* Full Meeting History */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5" />
+                      Complete Meeting History ({detailData?.total_meetings_held || 0} meetings)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {detailData?.meeting_history?.length > 0 ? (
+                      <div className="space-y-4">
+                        {detailData.meeting_history.map((meeting, index) => (
+                          <div key={meeting.id || index} className="border rounded-lg p-4 hover:bg-zinc-50 transition-colors">
+                            {/* Meeting Header */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-medium text-sm">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <h4 className="font-medium">{meeting.title || `Meeting ${index + 1}`}</h4>
+                                  <p className="text-xs text-zinc-500">
+                                    {meeting.meeting_date ? new Date(meeting.meeting_date).toLocaleDateString('en-US', { 
+                                      weekday: 'short', 
+                                      year: 'numeric', 
+                                      month: 'short', 
+                                      day: 'numeric' 
+                                    }) : 'Date not set'}
+                                    {meeting.meeting_time && ` at ${meeting.meeting_time}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="capitalize">{meeting.type || 'sales'}</Badge>
+                                <Badge className={
+                                  meeting.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                  meeting.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-zinc-100 text-zinc-800'
+                                }>
+                                  {meeting.status || 'pending'}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            {/* MOM Details */}
+                            {meeting.mom?.summary && (
+                              <div className="mt-3 space-y-3 pl-11">
+                                <div className="bg-zinc-50 rounded-md p-3">
+                                  <Label className="text-xs text-zinc-500 font-medium">Meeting Summary</Label>
+                                  <p className="text-sm mt-1">{meeting.mom.summary}</p>
+                                </div>
+
+                                {meeting.mom.key_decisions?.length > 0 && (
+                                  <div>
+                                    <Label className="text-xs text-zinc-500 font-medium">Key Decisions</Label>
+                                    <ul className="mt-1 space-y-1">
+                                      {meeting.mom.key_decisions.map((decision, i) => (
+                                        <li key={i} className="text-sm flex items-start gap-2">
+                                          <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
+                                          {decision}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {meeting.mom.discussion_points?.length > 0 && (
+                                  <div>
+                                    <Label className="text-xs text-zinc-500 font-medium">Discussion Points</Label>
+                                    <ul className="mt-1 space-y-1">
+                                      {meeting.mom.discussion_points.map((point, i) => (
+                                        <li key={i} className="text-sm flex items-start gap-2">
+                                          <span className="text-zinc-400">•</span>
+                                          {point}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {meeting.mom.client_concerns?.length > 0 && (
+                                  <div className="bg-amber-50 rounded-md p-2">
+                                    <Label className="text-xs text-amber-700 font-medium">Client Concerns Raised</Label>
+                                    <ul className="mt-1 space-y-1">
+                                      {meeting.mom.client_concerns.map((concern, i) => (
+                                        <li key={i} className="text-sm text-amber-900 flex items-start gap-2">
+                                          <AlertCircle className="w-3 h-3 text-amber-500 mt-1 flex-shrink-0" />
+                                          {concern}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {meeting.mom.commitments_made?.length > 0 && (
+                                  <div className="bg-green-50 rounded-md p-2">
+                                    <Label className="text-xs text-green-700 font-medium">Commitments Made</Label>
+                                    <ul className="mt-1 space-y-1">
+                                      {meeting.mom.commitments_made.map((commitment, i) => (
+                                        <li key={i} className="text-sm text-green-900 flex items-start gap-2">
+                                          <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
+                                          {commitment}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {meeting.mom.next_steps?.length > 0 && (
+                                  <div>
+                                    <Label className="text-xs text-zinc-500 font-medium">Next Steps</Label>
+                                    <ul className="mt-1 space-y-1">
+                                      {meeting.mom.next_steps.map((step, i) => (
+                                        <li key={i} className="text-sm flex items-start gap-2">
+                                          <ArrowRight className="w-3 h-3 text-blue-500 mt-1 flex-shrink-0" />
+                                          {step}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {meeting.mom.recorded_by && (
+                                  <p className="text-xs text-zinc-400 mt-2">
+                                    MOM recorded by {meeting.mom.recorded_by}
+                                    {meeting.mom.recorded_at && ` on ${new Date(meeting.mom.recorded_at).toLocaleDateString()}`}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Action Items */}
+                            {meeting.action_items?.length > 0 && (
+                              <div className="mt-3 pl-11">
+                                <Label className="text-xs text-zinc-500 font-medium">Action Items</Label>
+                                <div className="mt-1 space-y-1">
+                                  {meeting.action_items.map((item, i) => (
+                                    <div key={i} className="flex items-center gap-2 text-sm">
+                                      <div className={`w-2 h-2 rounded-full ${
+                                        item.status === 'completed' ? 'bg-green-500' :
+                                        item.status === 'in_progress' ? 'bg-blue-500' :
+                                        'bg-zinc-300'
+                                      }`} />
+                                      <span className={item.status === 'completed' ? 'line-through text-zinc-400' : ''}>
+                                        {item.title || item.description}
+                                      </span>
+                                      {item.assigned_to_name && (
+                                        <span className="text-xs text-zinc-400">({item.assigned_to_name})</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* No MOM recorded message */}
+                            {!meeting.mom?.summary && (
+                              <div className="mt-2 pl-11 text-sm text-zinc-400 italic">
+                                No MOM recorded for this meeting
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-zinc-500">
+                        <MessageSquare className="w-8 h-8 mx-auto mb-2 text-zinc-300" />
+                        <p>No meeting history available</p>
+                        <p className="text-sm">Meetings with the client will appear here</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               {/* Team Deployment Tab */}
               <TabsContent value="team" className="space-y-4">
                 <Card>
