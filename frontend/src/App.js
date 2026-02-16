@@ -243,6 +243,10 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="admin-dashboard-mockups" element={<AdminDashboardMockups />} />
         <Route path="admin-dashboard" element={<AdminDashboard />} />
         <Route path="flow-diagram" element={<FlowDiagram />} />
+        {/* HR Features accessible to Admin in Main ERP */}
+        <Route path="team-workload" element={<HRTeamWorkload />} />
+        <Route path="staffing-requests" element={<HRStaffingRequests />} />
+        <Route path="performance-dashboard" element={<PerformanceDashboard />} />
       </Route>
     </Routes>
   );
