@@ -61,14 +61,12 @@ const LockableCard = ({
   if (!isVisible) {
     return (
       <div 
-        className={`${className} flex items-center justify-center border-2 border-dashed ${
-          isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-300 bg-zinc-100/50'
-        } rounded-lg cursor-pointer`}
+        className={`${className} flex items-center justify-center border-2 border-dashed border-zinc-300 bg-zinc-100 rounded-lg cursor-pointer hover:bg-zinc-200 transition-colors`}
         onClick={() => setIsVisible(true)}
       >
         <div className="text-center p-4">
-          <EyeOff className={`w-6 h-6 mx-auto mb-2 ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`} />
-          <p className={`text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>Click to show</p>
+          <EyeOff className="w-6 h-6 mx-auto mb-2 text-zinc-500" />
+          <p className="text-xs text-zinc-600 font-medium">Click to show</p>
         </div>
       </div>
     );
