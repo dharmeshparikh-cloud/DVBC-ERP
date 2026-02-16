@@ -116,7 +116,7 @@ const Leads = () => {
     return { color: 'bg-zinc-400', label: 'Cold', text: 'text-white' };
   };
 
-  const canEdit = user?.role !== 'manager';
+  const canEdit = hasPermission('leads', 'create');
 
   return (
     <div data-testid="leads-page">
