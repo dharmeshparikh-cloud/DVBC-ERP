@@ -79,6 +79,7 @@ const SalesLayout = () => {
     { name: 'My Clients', href: '/sales/clients', icon: Building2 },
     { name: 'Sales Meetings', href: '/sales/meetings', icon: Calendar },
     { name: 'Sales Reports', href: '/sales/reports', icon: BarChart3 },
+    { name: 'Team Performance', href: '/sales/team-performance', icon: Award },
   ];
 
   const workspaceItems = [
