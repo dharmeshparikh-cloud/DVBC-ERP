@@ -5,7 +5,42 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ---
 
-## Latest Update (February 16, 2026)
+## Latest Update (February 16, 2026 - Session 2)
+
+### Navigation Flow Fixes & Card/List View Toggle ✅
+
+**Issues Fixed from Video Recording Analysis:**
+
+#### 1. "Proceed to Agreement" Flow Fixed
+- Auto-opens Create Agreement dialog when coming from Proforma Invoice
+- Quotation is pre-selected automatically
+- Team Deployment is inherited from Pricing Plan
+- Project Tenure and Meeting Frequency are pre-populated
+
+#### 2. ViewToggle Component Created
+- Reusable component: `/app/frontend/src/components/ViewToggle.js`
+- Card | List toggle pattern for all list pages
+- Applied to: Leads, Proforma Invoice, Agreements pages
+
+#### 3. List View Added to Pages
+- **Leads**: Table with Name, Company, Email, Score, Status, Actions columns
+- **Agreements**: Table with Agreement #, Client, Type, Tenure, Status, Actions
+- **Proforma Invoice**: Table with Invoice #, Client, Meetings, Grand Total, Status, Actions
+
+#### 4. Clickable Cards & Rows
+- Cards now navigate directly to detail/flow pages on click
+- List rows are also clickable for navigation
+- Action buttons have stopPropagation to prevent double navigation
+
+**Files Modified:**
+- `/app/frontend/src/components/ViewToggle.js` - NEW reusable component
+- `/app/frontend/src/pages/Leads.js` - ViewToggle + List view
+- `/app/frontend/src/pages/sales-funnel/Agreements.js` - ViewToggle + List view + auto-open dialog
+- `/app/frontend/src/pages/sales-funnel/ProformaInvoice.js` - ViewToggle + List view
+
+---
+
+## Previous Update (February 16, 2026 - Session 1)
 
 ### P0 FEATURE COMPLETED: End-to-End Sales Workflow - Agreement to Kickoff ✅
 
