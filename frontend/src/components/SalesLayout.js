@@ -114,7 +114,8 @@ const SalesLayout = () => {
             <div className="flex items-center gap-3">
               <img
                 src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png"
-                alt="Logo" className="h-10 w-auto"
+                alt="Logo" 
+                className={`h-10 w-auto ${isDark ? 'brightness-0 invert' : ''}`}
               />
               <div>
                 <div className={`text-base font-bold leading-tight ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>DVBC</div>
