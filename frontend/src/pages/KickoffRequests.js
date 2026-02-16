@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -20,6 +21,7 @@ import ViewToggle from '../components/ViewToggle';
 import { sanitizeDisplayText } from '../utils/sanitize';
 
 const KickoffRequests = () => {
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [requests, setRequests] = useState([]);
   const [agreements, setAgreements] = useState([]);
