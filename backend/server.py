@@ -632,7 +632,7 @@ async def google_auth(auth_req: GoogleAuthRequest, request: Request):
     # 4. Update google profile info if available
     update_fields = {"last_login": datetime.now(timezone.utc).isoformat(), "auth_method": "google"}
     if google_name and not user_data.get("full_name"):
-        update_fields["full_name"] = google_name
+        update_fields["full_name"] = sanitize_text(google_name)
     if session_data.get("picture"):
         update_fields["google_picture"] = session_data["picture"]
     await db.users.update_one({"email": google_email}, {"$set": update_fields})
