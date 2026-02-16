@@ -504,9 +504,9 @@ const Leads = () => {
                   
                   {/* Start Sales Flow Button */}
                   {canEdit && lead.status !== 'closed' && lead.status !== 'lost' && (
-                    <div className="pt-3 mt-3 border-t border-zinc-200">
+                    <div className="pt-3 mt-3 border-t border-zinc-200" onClick={(e) => e.stopPropagation()}>
                       <button
-                        onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`); }}
                         className="w-full px-3 py-2 text-xs font-medium bg-zinc-950 text-white rounded-sm hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
                         data-testid={`start-sales-flow-${lead.id}`}
                       >
