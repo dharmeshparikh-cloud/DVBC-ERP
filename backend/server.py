@@ -2404,7 +2404,6 @@ async def get_kickoff_request_details(
     agreement = None
     sow = None
     lead = None
-    meetings = []
     team_deployment = []
     
     if kickoff.get('agreement_id'):
