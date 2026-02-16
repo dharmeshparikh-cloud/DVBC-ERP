@@ -167,7 +167,8 @@ const Layout = () => {
           <div className={`px-5 py-4 border-b flex items-center gap-3 ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
             <img
               src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png"
-              alt="Logo" className="h-9 w-auto"
+              alt="Logo" 
+              className={`h-9 w-auto ${isDark ? 'brightness-0 invert' : ''}`}
             />
             <div>
               <div className={`text-sm font-bold leading-none ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>DVBC - NETRA</div>
