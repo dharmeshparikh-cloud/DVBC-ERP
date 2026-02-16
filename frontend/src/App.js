@@ -150,6 +150,37 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="my-expenses" element={<MyExpenses />} />
       </Route>
       
+      {/* HR Portal Routes - restricted to HR roles */}
+      <Route path="/hr/login" element={<HRLogin />} />
+      <Route
+        path="/hr"
+        element={
+          user 
+            ? (['hr_manager', 'hr_executive'].includes(user.role) ? <HRLayout /> : <Navigate to="/" />) 
+            : <Navigate to="/hr/login" />
+        }
+      >
+        <Route index element={<HRPortalDashboard />} />
+        <Route path="employees" element={<Employees />} />
+        <Route path="onboarding" element={<HROnboarding />} />
+        <Route path="org-chart" element={<OrgChart />} />
+        <Route path="leave-management" element={<LeaveManagement />} />
+        <Route path="attendance" element={<Attendance />} />
+        <Route path="payroll" element={<Payroll />} />
+        <Route path="expenses" element={<Expenses />} />
+        <Route path="approvals" element={<ApprovalsCenter />} />
+        {/* HR Manager Only - Team View */}
+        <Route path="team-workload" element={<HRTeamWorkload />} />
+        <Route path="staffing-requests" element={<HRStaffingRequests />} />
+        {/* Self Service */}
+        <Route path="my-attendance" element={<MyAttendance />} />
+        <Route path="my-leaves" element={<MyLeaves />} />
+        <Route path="my-salary" element={<MySalarySlips />} />
+        <Route path="my-expenses" element={<MyExpenses />} />
+        {/* Reports */}
+        <Route path="reports" element={<Reports />} />
+      </Route>
+      
       {/* Main App Routes */}
       <Route
         path="/"
