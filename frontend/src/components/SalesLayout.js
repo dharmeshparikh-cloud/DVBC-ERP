@@ -99,20 +99,26 @@ const SalesLayout = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-zinc-50">
+    <div className={`flex min-h-screen transition-colors duration-200 ${isDark ? 'bg-zinc-950' : 'bg-zinc-50'}`}>
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-zinc-200 flex-shrink-0 h-screen sticky top-0 shadow-sm" data-testid="sales-sidebar">
+      <aside className={`w-64 border-r flex-shrink-0 h-screen sticky top-0 shadow-sm transition-colors duration-200 ${
+        isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'
+      }`} data-testid="sales-sidebar">
         <div className="flex flex-col h-full">
           {/* Logo Header */}
-          <div className="px-5 py-5 border-b border-zinc-200 bg-gradient-to-r from-orange-50 to-white">
+          <div className={`px-5 py-5 border-b ${
+            isDark 
+              ? 'border-zinc-800 bg-gradient-to-r from-orange-500/10 to-zinc-900' 
+              : 'border-zinc-200 bg-gradient-to-r from-orange-50 to-white'
+          }`}>
             <div className="flex items-center gap-3">
               <img
                 src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png"
                 alt="Logo" className="h-10 w-auto"
               />
               <div>
-                <div className="text-base font-bold text-zinc-900 leading-tight">DVBC</div>
-                <div className="text-[10px] font-semibold text-orange-600 uppercase tracking-wider">Sales Portal</div>
+                <div className={`text-base font-bold leading-tight ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>DVBC</div>
+                <div className="text-[10px] font-semibold text-orange-500 uppercase tracking-wider">Sales Portal</div>
               </div>
             </div>
           </div>
@@ -148,21 +154,31 @@ const SalesLayout = () => {
           </nav>
 
           {/* User section */}
-          <div className="px-4 py-4 border-t border-zinc-200 bg-zinc-50">
+          <div className={`px-4 py-4 border-t ${isDark ? 'border-zinc-800 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-sm font-semibold text-orange-700">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${
+                isDark ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700'
+              }`}>
                 {sanitizeDisplayText(user?.full_name)?.charAt(0) || 'U'}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-zinc-900 truncate">{sanitizeDisplayText(user?.full_name)}</div>
-                <div className="text-xs text-zinc-500 capitalize truncate">{user?.role?.replace(/_/g, ' ')}</div>
+                <div className={`text-sm font-medium truncate ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                  {sanitizeDisplayText(user?.full_name)}
+                </div>
+                <div className={`text-xs capitalize truncate ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
+                  {user?.role?.replace(/_/g, ' ')}
+                </div>
               </div>
             </div>
             <Button 
               onClick={handleLogout} 
               data-testid="sales-logout-button" 
               variant="outline"
-              className="w-full justify-center text-zinc-600 hover:text-zinc-900 hover:bg-white border-zinc-300 h-9 text-sm"
+              className={`w-full justify-center h-9 text-sm ${
+                isDark 
+                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 border-zinc-700' 
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-white border-zinc-300'
+              }`}
             >
               <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} /> Sign Out
             </Button>
@@ -172,13 +188,30 @@ const SalesLayout = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col">
-        <div className="flex items-center justify-between px-8 py-4 border-b border-zinc-200 bg-white sticky top-0 z-10 shadow-sm">
-          <div className="text-sm text-zinc-500">
+        <div className={`flex items-center justify-between px-8 py-4 border-b sticky top-0 z-10 shadow-sm transition-colors duration-200 ${
+          isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-white'
+        }`}>
+          <div className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
             Sales Management System
           </div>
-          <NotificationBell />
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              data-testid="sales-theme-toggle"
+              className={`p-2 rounded-lg transition-all duration-200 ${
+                isDark 
+                  ? 'bg-zinc-800 hover:bg-zinc-700 text-amber-400' 
+                  : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
+              }`}
+              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <NotificationBell />
+          </div>
         </div>
-        <div className="flex-1 p-8">
+        <div className={`flex-1 p-8 transition-colors duration-200 ${isDark ? 'bg-zinc-950' : 'bg-zinc-50'}`}>
           <SalesNavigationProvider>
             <Outlet />
           </SalesNavigationProvider>
