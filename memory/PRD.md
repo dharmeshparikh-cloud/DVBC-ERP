@@ -97,7 +97,7 @@ Build a business management application for a consulting firm with complete HR, 
 - [x] Meeting History in Kickoff Details
 - [x] HR Auto-Notification on Project Creation
 
-### Session 6 (Current - Dec 16, 2025)
+### Session 6 (Dec 16, 2025)
 - [x] HR Portal (`/hr/login`) with dedicated layout
 - [x] HR Portal Dashboard with stats and staffing requests
 - [x] Team Workload page (HR Manager only, read-only)
@@ -107,6 +107,22 @@ Build a business management application for a consulting firm with complete HR, 
 - [x] Bank Details Change Approval workflow
 - [x] HR Executive role restriction (no consulting access)
 - [x] API fixes: Consultants endpoint for HR Manager
+
+### Session 7 (Current - Feb 16, 2026)
+- [x] **Performance Dashboard Enhancements**
+  - [x] Added Performance Dashboard to HR Portal sidebar (Team View section)
+  - [x] Attendance Rate KPI card with present count
+  - [x] Work Location Distribution pie chart (In Office, On-Site, WFH)
+  - [x] Leave Patterns by Day bar chart (Mon-Sun)
+  - [x] Department Attendance horizontal bar chart
+  - [x] Attendance & Location Trends combined chart
+  - [x] Financial data hidden for HR roles (Sales Team tab not visible)
+- [x] **Attendance Work Location Tracking**
+  - [x] Updated Attendance page with Work Location column in Daily Records
+  - [x] Mark Attendance dialog with location selection buttons (In Office/On-Site/WFH)
+  - [x] Location selection only shows for Present/Half Day status
+  - [x] Backend attendance API updated to store work_location field
+  - [x] `/api/attendance/analytics` endpoint for comprehensive attendance metrics
 
 ## Test Credentials
 
