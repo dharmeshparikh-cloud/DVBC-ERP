@@ -310,10 +310,14 @@ const AdminDashboard = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Utilization */}
-        <Card className="col-span-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-700">
+        <LockableCard 
+          className="col-span-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-700"
+          cardId="team-utilization"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-purple-200 text-sm">Team Utilization</span>
@@ -327,10 +331,14 @@ const AdminDashboard = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Performance Trend Chart */}
-        <Card className={`col-span-6 row-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}>
+        <LockableCard 
+          className={`col-span-6 row-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          cardId="performance-trend"
+          isDark={isDark}
+        >
           <CardHeader className="pb-2">
             <CardTitle className={`text-sm font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
               Performance Trend (6 Months)
@@ -365,10 +373,14 @@ const AdminDashboard = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Hot Leads */}
-        <Card className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}>
+        <LockableCard 
+          className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          cardId="hot-leads"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <Flame className="w-6 h-6 text-red-500" />
             <div>
@@ -378,10 +390,14 @@ const AdminDashboard = () => {
               <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Hot Leads</p>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* Closed Deals */}
-        <Card className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}>
+        <LockableCard 
+          className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          cardId="closed-deals"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <CheckCircle className="w-6 h-6 text-green-500" />
             <div>
@@ -391,10 +407,14 @@ const AdminDashboard = () => {
               <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Closed This Month</p>
             </div>
           </CardContent>
-        </Card>
+        </LockableCard>
 
         {/* On Leave */}
-        <Card className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}>
+        <LockableCard 
+          className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          cardId="on-leave"
+          isDark={isDark}
+        >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <Users className={`w-6 h-6 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
             <div>
