@@ -268,9 +268,11 @@ const AdminDashboard = () => {
 
         {/* Meetings Today */}
         <LockableCard 
-          className="col-span-2 bg-blue-600 text-white border-blue-700"
+          className="col-span-2 bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-blue-700"
           cardId="meetings-today"
           isDark={isDark}
+          title="Meetings Today"
+          expandedContent={<MeetingsExpanded data={stats} isDark={isDark} />}
         >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <Calendar className="w-6 h-6 opacity-80" />
