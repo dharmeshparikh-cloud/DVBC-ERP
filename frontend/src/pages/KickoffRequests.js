@@ -906,7 +906,7 @@ const KickoffRequests = () => {
                     </div>
                     <div>
                       <Label className="text-zinc-500 text-xs">Requested By</Label>
-                      <p className="font-medium">{detailData.kickoff_request?.requested_by_name}</p>
+                      <p className="font-medium">{sanitizeDisplayText(detailData.kickoff_request?.requested_by_name)}</p>
                     </div>
                     <div>
                       <Label className="text-zinc-500 text-xs">Request Date</Label>
