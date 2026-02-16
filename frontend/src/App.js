@@ -58,6 +58,7 @@ import ConsultingDashboard from './pages/ConsultingDashboard';
 import HRDashboard from './pages/HRDashboard';
 import AdminMasters from './pages/AdminMasters';
 import PermissionManager from './pages/PermissionManager';
+import AdminDashboardMockups from './pages/admin/AdminDashboardMockups';
 import Layout from './components/Layout';
 import SalesLayout from './components/SalesLayout';
 import SalesLogin from './pages/SalesLogin';
