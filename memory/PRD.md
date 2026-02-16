@@ -121,10 +121,11 @@ Build a comprehensive business management application for a consulting organizat
 - Dual portal architecture (Main ERP + Sales Portal)
 - **ThemeContext** for global dark/light mode
 
-### Key Files Added/Modified (Phase 4)
+### Key Files Added/Modified (Phase 4 & 5)
 - `/app/frontend/src/contexts/ThemeContext.js` - Theme state management
 - `/app/frontend/src/pages/AdminDashboard.js` - Bento grid admin dashboard
-- `/app/frontend/src/components/Layout.js` - Main layout with theme toggle
+- `/app/frontend/src/pages/FlowDiagram.js` - Interactive workflow visualization
+- `/app/frontend/src/components/Layout.js` - Main layout with theme toggle + workflow nav
 - `/app/frontend/src/components/SalesLayout.js` - Sales portal with theme toggle
 - `/app/frontend/src/pages/SalesDashboardEnhanced.js` - Updated with theme support
 - `/app/frontend/src/index.css` - Dark mode CSS variables
