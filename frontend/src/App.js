@@ -124,6 +124,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="consulting/my-projects" element={<MyProjects />} />
         <Route path="consulting/assign-team/:projectId" element={<AssignTeam />} />
         <Route path="consulting/project-tasks/:sowId" element={<ConsultingProjectTasks />} />
+        <Route path="consulting/sow-changes" element={<SOWChangeRequests />} />
+        <Route path="consulting/payments" element={<PaymentReminders />} />
         <Route path="consultants" element={<Consultants />} />
         <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
         <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
