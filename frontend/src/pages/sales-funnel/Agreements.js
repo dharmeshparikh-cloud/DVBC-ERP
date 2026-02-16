@@ -92,6 +92,7 @@ const Agreements = () => {
   });
   const [downloading, setDownloading] = useState({});
   const [inheritedFromPlan, setInheritedFromPlan] = useState(false);
+  const [viewMode, setViewMode] = useState('card');
   
   const [formData, setFormData] = useState({
     quotation_id: quotationId || '',
