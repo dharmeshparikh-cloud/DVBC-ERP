@@ -490,69 +490,101 @@ const KickoffRequests = () => {
             <Inbox className="w-5 h-5" />
             Pending Requests ({pendingRequests.length})
           </h2>
-          <div className="grid gap-4">
-            {pendingRequests.map((request) => (
-              <Card key={request.id} className="border-amber-200 bg-amber-50/50" data-testid={`pending-request-${request.id}`}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-zinc-900">{request.project_name}</h3>
-                        {getStatusBadge(request.status)}
+          {viewMode === 'list' ? (
+            <div className="border border-amber-200 rounded-sm overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-amber-50 border-b border-amber-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-amber-700 uppercase tracking-wide">Project</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-amber-700 uppercase tracking-wide">Client</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-amber-700 uppercase tracking-wide">Start Date</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-amber-700 uppercase tracking-wide">Frequency</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-amber-700 uppercase tracking-wide">Requested By</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-amber-700 uppercase tracking-wide">Status</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-amber-700 uppercase tracking-wide">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-100">
+                  {pendingRequests.map((request) => (
+                    <tr 
+                      key={request.id} 
+                      className="hover:bg-amber-50/50 cursor-pointer transition-colors"
+                      onClick={() => handleViewDetails(request)}
+                      data-testid={`pending-request-row-${request.id}`}
+                    >
+                      <td className="px-4 py-3 font-medium text-zinc-900">{request.project_name}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{request.client_name}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">
+                        {request.expected_start_date ? new Date(request.expected_start_date).toLocaleDateString() : 'TBD'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{request.meeting_frequency || 'Monthly'}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{request.requested_by_name || 'Unknown'}</td>
+                      <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(request)} className="h-8" data-testid={`view-details-btn-${request.id}`}>
+                          <Eye className="w-4 h-4 mr-1" />
+                          {isPMRole ? 'Review' : 'View'}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {pendingRequests.map((request) => (
+                <Card key={request.id} className="border-amber-200 bg-amber-50/50 cursor-pointer hover:border-amber-300 transition-colors" onClick={() => handleViewDetails(request)} data-testid={`pending-request-${request.id}`}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-zinc-900">{request.project_name}</h3>
+                          {getStatusBadge(request.status)}
+                        </div>
+                        <div className="grid grid-cols-4 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-zinc-400" />
+                            <span>{request.client_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-zinc-400" />
+                            <span>{request.expected_start_date ? new Date(request.expected_start_date).toLocaleDateString() : 'TBD'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-zinc-400" />
+                            <span>{request.meeting_frequency || 'Monthly'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-zinc-400" />
+                            <span>{request.project_tenure_months || 12} months</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-2">
+                          Requested by: {request.requested_by_name || 'Unknown'} • 
+                          {new Date(request.created_at).toLocaleDateString()}
+                        </p>
                       </div>
-                      <div className="grid grid-cols-4 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-zinc-400" />
-                          <span>{request.client_name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-zinc-400" />
-                          <span>{request.expected_start_date ? new Date(request.expected_start_date).toLocaleDateString() : 'TBD'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-zinc-400" />
-                          <span>{request.meeting_frequency || 'Monthly'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Briefcase className="w-4 h-4 text-zinc-400" />
-                          <span>{request.project_tenure_months || 12} months</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-zinc-500 mt-2">
-                        Requested by: {request.requested_by_name || 'Unknown'} • 
-                        {new Date(request.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      {isPMRole && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleViewDetails(request)}
-                            data-testid={`view-details-btn-${request.id}`}
-                          >
+                      <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+                        {isPMRole && (
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(request)} data-testid={`view-details-btn-${request.id}`}>
                             <Eye className="w-4 h-4 mr-1" />
                             Review
                           </Button>
-                        </>
-                      )}
-                      {!isPMRole && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleViewDetails(request)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View
-                        </Button>
-                      )}
+                        )}
+                        {!isPMRole && (
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(request)}>
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
