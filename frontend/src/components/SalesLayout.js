@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
+import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './ui/button';
 import NotificationBell from './NotificationBell';
 import { sanitizeDisplayText } from '../utils/sanitize';
@@ -8,7 +9,7 @@ import { SalesNavigationProvider } from '../context/SalesNavigationContext';
 import {
   LayoutDashboard, Users, LogOut, DollarSign, FileText, FileCheck, 
   Building2, Calendar, BarChart3, ChevronDown, Send, Clock,
-  Umbrella, Receipt, CreditCard, Award
+  Umbrella, Receipt, CreditCard, Award, Sun, Moon
 } from 'lucide-react';
 
 const SalesLayout = () => {
