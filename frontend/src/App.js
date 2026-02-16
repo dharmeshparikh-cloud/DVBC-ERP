@@ -52,6 +52,7 @@ import SecurityAuditLog from './pages/SecurityAuditLog';
 import GanttChart from './pages/GanttChart';
 import Downloads from './pages/Downloads';
 import SalesDashboard from './pages/SalesDashboard';
+import SalesDashboardEnhanced from './pages/SalesDashboardEnhanced';
 import ConsultingDashboard from './pages/ConsultingDashboard';
 import HRDashboard from './pages/HRDashboard';
 import AdminMasters from './pages/AdminMasters';
