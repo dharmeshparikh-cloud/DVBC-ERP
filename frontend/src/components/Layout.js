@@ -3,19 +3,13 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { Button } from './ui/button';
 import NotificationBell from './NotificationBell';
+import { sanitizeDisplayText } from '../utils/sanitize';
 import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
   User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronDown,
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings
 } from 'lucide-react';
-
-// Helper function to sanitize display text (strip HTML tags)
-const sanitizeDisplayText = (text) => {
-  if (!text || typeof text !== 'string') return text;
-  // Remove HTML tags and decode HTML entities
-  return text.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, '');
-};
 
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
 const SALES_ROLES_NAV = ['admin', 'executive', 'account_manager', 'manager'];

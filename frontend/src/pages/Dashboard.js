@@ -6,17 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, ClipboardCheck, ArrowRight, Shield, AlertTriangle, CheckCircle, XCircle, Building2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { sanitizeDisplayText } from '../utils/sanitize';
 
 // Import domain-specific dashboards
 import SalesDashboard from './SalesDashboard';
 import ConsultingDashboard from './ConsultingDashboard';
 import HRDashboard from './HRDashboard';
-
-// Helper function to sanitize display text (strip HTML tags)
-const sanitizeDisplayText = (text) => {
-  if (!text || typeof text !== 'string') return text;
-  return text.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, '');
-};
 
 // Helper to determine user's primary domain
 const getUserDomain = (user) => {
