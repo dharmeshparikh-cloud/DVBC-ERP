@@ -99,7 +99,11 @@ function AppRouter({ user, login, logout, loading }) {
     if (isSalesUser) {
       return <SalesDashboardEnhanced />;
     }
-    // Admin and others get the general dashboard
+    // Admin gets the unified admin dashboard
+    if (user?.role === 'admin') {
+      return <AdminDashboard />;
+    }
+    // Others get the general dashboard
     return <Dashboard />;
   };
 
