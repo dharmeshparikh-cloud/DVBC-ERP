@@ -52,6 +52,13 @@ const AgreementView = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
 
+  // PM Selection for Kickoff
+  const [pmSelectionDialogOpen, setPmSelectionDialogOpen] = useState(false);
+  const [consultants, setConsultants] = useState([]);
+  const [selectedPmId, setSelectedPmId] = useState('');
+  const [kickoffNotes, setKickoffNotes] = useState('');
+  const [creatingKickoff, setCreatingKickoff] = useState(false);
+
   useEffect(() => {
     if (agreementId) {
       fetchAgreementData();
