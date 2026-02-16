@@ -330,9 +330,10 @@ const AdminDashboard = () => {
 
         {/* Utilization */}
         <LockableCard 
-          className="col-span-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-700"
+          className="col-span-3 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white border-purple-700"
           cardId="team-utilization"
           isDark={isDark}
+          title="Team Utilization"
         >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <div className="flex items-center justify-between">
