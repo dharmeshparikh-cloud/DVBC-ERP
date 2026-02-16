@@ -199,9 +199,10 @@ const AdminDashboard = () => {
 
         {/* Conversion Rate */}
         <LockableCard 
-          className={`col-span-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'}`}
+          className={`col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-zinc-50 border-zinc-200'}`}
           cardId="conversion-rate"
           isDark={isDark}
+          title="Conversion Rate"
         >
           <CardContent className="pt-4 h-full flex flex-col justify-between">
             <Target className={`w-6 h-6 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
