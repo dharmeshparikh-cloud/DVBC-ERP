@@ -556,9 +556,9 @@ const SalesDashboardEnhanced = () => {
         )}
 
         {/* MOM Completion */}
-        <Card className="border-zinc-200">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
               <FileText className="w-4 h-4" />
               MOM Completion
             </CardTitle>
@@ -568,7 +568,7 @@ const SalesDashboardEnhanced = () => {
               <div className="relative inline-flex items-center justify-center">
                 <svg className="w-24 h-24">
                   <circle
-                    className="text-zinc-100"
+                    className={isDark ? 'text-zinc-700' : 'text-zinc-100'}
                     strokeWidth="8"
                     stroke="currentColor"
                     fill="transparent"
@@ -590,11 +590,11 @@ const SalesDashboardEnhanced = () => {
                     transform="rotate(-90 48 48)"
                   />
                 </svg>
-                <span className="absolute text-xl font-bold text-zinc-900">
+                <span className={`absolute text-xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                   {meetings.mom_completion_rate || 0}%
                 </span>
               </div>
-              <p className="text-sm text-zinc-500 mt-2">
+              <p className={`text-sm mt-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                 {meetings.with_mom || 0} of {meetings.total || 0} meetings
               </p>
             </div>
@@ -602,20 +602,24 @@ const SalesDashboardEnhanced = () => {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="border-zinc-200">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Quick Actions</CardTitle>
+            <CardTitle className={`text-sm ${isDark ? 'text-zinc-100' : ''}`}>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2">
               <Link to={isSalesPortal ? "/sales/leads" : "/leads"}>
-                <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-1 hover:bg-orange-50 hover:border-orange-200">
+                <Button variant="outline" className={`w-full h-16 flex flex-col items-center justify-center gap-1 ${
+                  isDark ? 'border-zinc-600 hover:bg-orange-500/10 hover:border-orange-500/30' : 'hover:bg-orange-50 hover:border-orange-200'
+                }`}>
                   <Users className="w-5 h-5 text-orange-500" />
                   <span className="text-xs">New Lead</span>
                 </Button>
               </Link>
               <Link to={isSalesPortal ? "/sales/meetings" : "/sales-meetings"}>
-                <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-1 hover:bg-blue-50 hover:border-blue-200">
+                <Button variant="outline" className={`w-full h-16 flex flex-col items-center justify-center gap-1 ${
+                  isDark ? 'border-zinc-600 hover:bg-blue-500/10 hover:border-blue-500/30' : 'hover:bg-blue-50 hover:border-blue-200'
+                }`}>
                   <Calendar className="w-5 h-5 text-blue-500" />
                   <span className="text-xs">Schedule Meeting</span>
                 </Button>
