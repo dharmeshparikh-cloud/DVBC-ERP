@@ -166,6 +166,32 @@ const Attendance = () => {
                       </select>
                     </div>
                   </div>
+                  {/* Work Location - only show when status is present or half_day */}
+                  {['present', 'half_day'].includes(formData.status) && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-zinc-950">Work Location</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {WORK_LOCATIONS.map(loc => (
+                          <button
+                            key={loc.value}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, work_location: loc.value })}
+                            className={`flex flex-col items-center gap-1 p-3 rounded-md border transition-all ${
+                              formData.work_location === loc.value 
+                                ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200' 
+                                : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+                            }`}
+                            data-testid={`att-location-${loc.value}`}
+                          >
+                            {loc.value === 'in_office' && <Building2 className="w-5 h-5 text-blue-600" />}
+                            {loc.value === 'onsite' && <MapPin className="w-5 h-5 text-emerald-600" />}
+                            {loc.value === 'wfh' && <Home className="w-5 h-5 text-amber-600" />}
+                            <span className="text-xs font-medium text-zinc-700">{loc.label.split(' ')[0]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Remarks</Label>
                     <Input value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
