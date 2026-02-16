@@ -44,6 +44,13 @@ const PricingPlanBuilder = () => {
   const [loading, setLoading] = useState(false);
   const [mastersLoading, setMastersLoading] = useState(true);
   
+  // Eligibility check state
+  const [eligibility, setEligibility] = useState(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [showBlockerDialog, setShowBlockerDialog] = useState(false);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [warningAcknowledged, setWarningAcknowledged] = useState(false);
+  
   // Masters data from Admin
   const [tenureTypes, setTenureTypes] = useState([]);
   const [consultantRoles, setConsultantRoles] = useState([]);
@@ -108,6 +115,7 @@ const PricingPlanBuilder = () => {
     fetchMasters();
     if (leadId) {
       fetchLead();
+      checkEligibility();
     }
     // Set default start date to today
     setPaymentPlan(prev => ({
@@ -115,6 +123,32 @@ const PricingPlanBuilder = () => {
       start_date: new Date().toISOString().split('T')[0]
     }));
   }, [leadId]);
+
+  // Check eligibility and show dialogs if needed
+  const checkEligibility = async () => {
+    if (!leadId) return;
+    
+    setEligibilityLoading(true);
+    try {
+      const response = await axios.get(`${API}/leads/${leadId}/pricing-eligibility`);
+      const data = response.data;
+      setEligibility(data);
+      
+      // Show blocker dialog if can't proceed
+      if (!data.can_proceed) {
+        setShowBlockerDialog(true);
+      }
+      // Show warning dialog if not hot (but can proceed)
+      else if (data.needs_warning && !warningAcknowledged) {
+        setShowWarningDialog(true);
+      }
+    } catch (error) {
+      console.error('Failed to check eligibility:', error);
+      // Don't block on error, just log it
+    } finally {
+      setEligibilityLoading(false);
+    }
+  };
 
   // Recalculate allocations when total investment or team changes
   useEffect(() => {
