@@ -34,7 +34,7 @@ const Attendance = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
-  const [formData, setFormData] = useState({ employee_id: '', date: '', status: 'present', remarks: '' });
+  const [formData, setFormData] = useState({ employee_id: '', date: '', status: 'present', work_location: 'in_office', remarks: '' });
   const [uploadText, setUploadText] = useState('');
 
   const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
