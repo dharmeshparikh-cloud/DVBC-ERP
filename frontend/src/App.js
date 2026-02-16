@@ -31,6 +31,7 @@ import AgreementView from './pages/sales-funnel/AgreementView';
 import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
 import ConsultingSOWList from './pages/consulting/ConsultingSOWList';
 import ConsultingProjectTasks from './pages/consulting/ConsultingProjectTasks';
+import MyProjects from './pages/consulting/MyProjects';
 import Consultants from './pages/Consultants';
 import ConsultantDashboard from './pages/ConsultantDashboard';
 import ProjectTasks from './pages/ProjectTasks';
