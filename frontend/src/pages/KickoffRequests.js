@@ -18,6 +18,12 @@ import {
 } from 'lucide-react';
 import ViewToggle from '../components/ViewToggle';
 
+// Helper function to sanitize display text (strip HTML tags)
+const sanitizeDisplayText = (text) => {
+  if (!text || typeof text !== 'string') return text;
+  return text.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, '');
+};
+
 const KickoffRequests = () => {
   const { user } = useContext(AuthContext);
   const [requests, setRequests] = useState([]);
