@@ -88,15 +88,23 @@ function AppRouter({ user, login, logout, loading }) {
     return <Dashboard />;
   };
 
+  // Sales roles check for portal access
+  const SALES_ROLES = ['executive', 'account_manager', 'manager'];
+  const isSalesUser = user && SALES_ROLES.includes(user.role);
+
   return (
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       
-      {/* Sales Portal Routes */}
-      <Route path="/sales/login" element={!user ? <SalesLogin /> : <Navigate to="/sales" />} />
+      {/* Sales Portal Routes - restricted to sales roles */}
+      <Route path="/sales/login" element={<SalesLogin />} />
       <Route
         path="/sales"
-        element={user ? <SalesLayout /> : <Navigate to="/sales/login" />}
+        element={
+          user 
+            ? (isSalesUser ? <SalesLayout /> : <Navigate to="/" />) 
+            : <Navigate to="/sales/login" />
+        }
       >
         <Route index element={<SalesDashboard />} />
         <Route path="leads" element={<Leads />} />
