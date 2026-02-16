@@ -7,7 +7,8 @@ import { sanitizeDisplayText } from '../utils/sanitize';
 import { SalesNavigationProvider } from '../context/SalesNavigationContext';
 import {
   LayoutDashboard, Users, LogOut, DollarSign, FileText, FileCheck, 
-  Building2, Calendar, BarChart3, ChevronDown, Send
+  Building2, Calendar, BarChart3, ChevronDown, Send, Clock,
+  Umbrella, Receipt, CreditCard
 } from 'lucide-react';
 
 const SalesLayout = () => {
