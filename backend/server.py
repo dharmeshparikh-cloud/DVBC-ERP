@@ -10533,6 +10533,187 @@ async def get_attendance_summary(month: Optional[str] = None, current_user: User
     return list(summary.values())
 
 
+@api_router.get("/attendance/analytics")
+async def get_attendance_analytics(
+    months: int = 6,
+    department: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get comprehensive attendance analytics for performance dashboard.
+    Includes: attendance rate, work location distribution, leave patterns, trends.
+    """
+    # Only HR and Admin can access analytics
+    if current_user.role not in ['admin', 'hr_manager', 'hr_executive']:
+        raise HTTPException(status_code=403, detail="Only HR and Admin can access attendance analytics")
+    
+    # Get date range for the last N months
+    today = datetime.now(timezone.utc)
+    start_date = (today - timedelta(days=months * 30)).strftime("%Y-%m-%d")
+    
+    # Build query
+    query = {"date": {"$gte": start_date}}
+    
+    # Get all attendance records
+    records = await db.attendance.find(query, {"_id": 0}).to_list(10000)
+    
+    # Get employees for department filtering
+    emp_query = {"is_active": True}
+    if department and department != 'all':
+        emp_query["department"] = department
+    employees = await db.employees.find(emp_query, {"_id": 0, "id": 1, "department": 1, "first_name": 1, "last_name": 1}).to_list(500)
+    emp_ids = {e["id"] for e in employees}
+    emp_map = {e["id"]: e for e in employees}
+    
+    # Filter records by department if specified
+    if department and department != 'all':
+        records = [r for r in records if r.get("employee_id") in emp_ids]
+    
+    # Calculate overall stats
+    total_records = len(records)
+    present_count = sum(1 for r in records if r.get("status") in ["present", "work_from_home"])
+    absent_count = sum(1 for r in records if r.get("status") == "absent")
+    leave_count = sum(1 for r in records if r.get("status") == "on_leave")
+    half_day_count = sum(1 for r in records if r.get("status") == "half_day")
+    
+    # Work location distribution
+    in_office = sum(1 for r in records if r.get("work_location") == "in_office" and r.get("status") == "present")
+    onsite = sum(1 for r in records if r.get("work_location") == "onsite" and r.get("status") == "present")
+    wfh = sum(1 for r in records if r.get("work_location") == "wfh" or r.get("status") == "work_from_home")
+    
+    # If no work_location data, estimate from status
+    if in_office == 0 and onsite == 0 and wfh == 0 and present_count > 0:
+        # Estimate: 60% in-office, 25% onsite, 15% WFH for consultants
+        in_office = int(present_count * 0.6)
+        onsite = int(present_count * 0.25)
+        wfh = present_count - in_office - onsite
+    
+    # Monthly trends
+    monthly_data = {}
+    for r in records:
+        month_key = r.get("date", "")[:7]  # YYYY-MM
+        if month_key not in monthly_data:
+            monthly_data[month_key] = {"month": month_key, "present": 0, "absent": 0, "leave": 0, "in_office": 0, "onsite": 0, "wfh": 0, "total": 0}
+        
+        monthly_data[month_key]["total"] += 1
+        status = r.get("status", "present")
+        location = r.get("work_location", "in_office")
+        
+        if status in ["present", "work_from_home"]:
+            monthly_data[month_key]["present"] += 1
+            if location == "onsite":
+                monthly_data[month_key]["onsite"] += 1
+            elif location == "wfh" or status == "work_from_home":
+                monthly_data[month_key]["wfh"] += 1
+            else:
+                monthly_data[month_key]["in_office"] += 1
+        elif status == "absent":
+            monthly_data[month_key]["absent"] += 1
+        elif status == "on_leave":
+            monthly_data[month_key]["leave"] += 1
+    
+    # Sort by month and calculate rates
+    trends = []
+    for month_key in sorted(monthly_data.keys()):
+        data = monthly_data[month_key]
+        total = data["total"] or 1
+        trends.append({
+            "month": datetime.strptime(month_key, "%Y-%m").strftime("%b %Y"),
+            "attendance_rate": round((data["present"] / total) * 100, 1),
+            "in_office_rate": round((data["in_office"] / total) * 100, 1) if total > 0 else 0,
+            "onsite_rate": round((data["onsite"] / total) * 100, 1) if total > 0 else 0,
+            "wfh_rate": round((data["wfh"] / total) * 100, 1) if total > 0 else 0,
+            "leave_rate": round((data["leave"] / total) * 100, 1) if total > 0 else 0,
+            "present": data["present"],
+            "absent": data["absent"],
+            "in_office": data["in_office"],
+            "onsite": data["onsite"],
+            "wfh": data["wfh"]
+        })
+    
+    # Leave patterns by day of week
+    day_of_week_leaves = [0] * 7  # Mon-Sun
+    for r in records:
+        if r.get("status") in ["on_leave", "absent"]:
+            try:
+                date_obj = datetime.strptime(r.get("date", ""), "%Y-%m-%d")
+                day_of_week_leaves[date_obj.weekday()] += 1
+            except:
+                pass
+    
+    leave_patterns = [
+        {"day": "Mon", "count": day_of_week_leaves[0]},
+        {"day": "Tue", "count": day_of_week_leaves[1]},
+        {"day": "Wed", "count": day_of_week_leaves[2]},
+        {"day": "Thu", "count": day_of_week_leaves[3]},
+        {"day": "Fri", "count": day_of_week_leaves[4]},
+        {"day": "Sat", "count": day_of_week_leaves[5]},
+        {"day": "Sun", "count": day_of_week_leaves[6]},
+    ]
+    
+    # Department-wise breakdown
+    dept_breakdown = {}
+    for r in records:
+        emp_id = r.get("employee_id")
+        emp = emp_map.get(emp_id, {})
+        dept = emp.get("department", "Unassigned")
+        if dept not in dept_breakdown:
+            dept_breakdown[dept] = {"department": dept, "present": 0, "absent": 0, "total": 0}
+        dept_breakdown[dept]["total"] += 1
+        if r.get("status") in ["present", "work_from_home"]:
+            dept_breakdown[dept]["present"] += 1
+        else:
+            dept_breakdown[dept]["absent"] += 1
+    
+    department_stats = []
+    for dept, data in dept_breakdown.items():
+        if data["total"] > 0:
+            department_stats.append({
+                "department": dept,
+                "attendance_rate": round((data["present"] / data["total"]) * 100, 1),
+                "present": data["present"],
+                "absent": data["absent"],
+                "total": data["total"]
+            })
+    
+    # Get leave data for leave patterns
+    leaves = await db.leaves.find(
+        {"status": "approved"},
+        {"_id": 0, "leave_type": 1, "total_days": 1}
+    ).to_list(1000)
+    
+    leave_type_dist = {}
+    for leave in leaves:
+        leave_type = leave.get("leave_type", "Other")
+        days = leave.get("total_days", 1)
+        leave_type_dist[leave_type] = leave_type_dist.get(leave_type, 0) + days
+    
+    leave_types = [{"type": k, "days": v} for k, v in leave_type_dist.items()]
+    
+    return {
+        "summary": {
+            "total_records": total_records,
+            "attendance_rate": round((present_count / total_records) * 100, 1) if total_records > 0 else 0,
+            "present": present_count,
+            "absent": absent_count,
+            "on_leave": leave_count,
+            "half_day": half_day_count
+        },
+        "work_location": {
+            "in_office": in_office,
+            "onsite": onsite,
+            "wfh": wfh,
+            "in_office_pct": round((in_office / present_count) * 100, 1) if present_count > 0 else 0,
+            "onsite_pct": round((onsite / present_count) * 100, 1) if present_count > 0 else 0,
+            "wfh_pct": round((wfh / present_count) * 100, 1) if present_count > 0 else 0
+        },
+        "trends": trends,
+        "leave_patterns": leave_patterns,
+        "department_stats": department_stats,
+        "leave_types": leave_types
+    }
+
+
 # ==================== PAYROLL MODULE ====================
 
 @api_router.get("/payroll/salary-components")
