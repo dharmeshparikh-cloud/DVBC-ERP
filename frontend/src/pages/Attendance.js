@@ -18,6 +18,12 @@ const STATUSES = [
   { value: 'holiday', label: 'Holiday', color: 'bg-zinc-100 text-zinc-700' }
 ];
 
+const WORK_LOCATIONS = [
+  { value: 'in_office', label: 'In Office', icon: '🏢', color: 'bg-blue-100 text-blue-700' },
+  { value: 'onsite', label: 'On-Site (Client Location)', icon: '📍', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'wfh', label: 'Work from Home', icon: '🏠', color: 'bg-amber-100 text-amber-700' }
+];
+
 const Attendance = () => {
   const { user } = useContext(AuthContext);
   const [employees, setEmployees] = useState([]);
