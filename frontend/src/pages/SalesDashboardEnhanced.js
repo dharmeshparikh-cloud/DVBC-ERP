@@ -206,8 +206,8 @@ const SalesDashboardEnhanced = () => {
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wide">Lead→Closure</p>
-                <p className="text-2xl font-bold text-zinc-900">{ratios.lead_to_closure || 0}%</p>
+                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Lead→Closure</p>
+                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{ratios.lead_to_closure || 0}%</p>
               </div>
               <Target className="w-8 h-8 text-rose-500 opacity-80" />
             </div>
@@ -216,9 +216,9 @@ const SalesDashboardEnhanced = () => {
       </div>
 
       {/* Pipeline Funnel */}
-      <Card className="border-zinc-200">
+      <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+          <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
             <Target className="w-4 h-4" />
             Sales Pipeline
           </CardTitle>
@@ -226,13 +226,13 @@ const SalesDashboardEnhanced = () => {
         <CardContent>
           <div className="grid grid-cols-7 gap-2">
             {[
-              { label: 'New', count: pipeline.new, color: 'bg-gray-100 text-gray-700' },
-              { label: 'Contacted', count: pipeline.contacted, color: 'bg-blue-100 text-blue-700' },
-              { label: 'Qualified', count: pipeline.qualified, color: 'bg-indigo-100 text-indigo-700' },
-              { label: 'Proposal', count: pipeline.proposal, color: 'bg-purple-100 text-purple-700' },
-              { label: 'Agreement', count: pipeline.agreement, color: 'bg-amber-100 text-amber-700' },
-              { label: 'Closed', count: pipeline.closed, color: 'bg-green-100 text-green-700' },
-              { label: 'Total', count: pipeline.total, color: 'bg-zinc-900 text-white' },
+              { label: 'New', count: pipeline.new, color: isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700' },
+              { label: 'Contacted', count: pipeline.contacted, color: isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700' },
+              { label: 'Qualified', count: pipeline.qualified, color: isDark ? 'bg-indigo-900/50 text-indigo-300' : 'bg-indigo-100 text-indigo-700' },
+              { label: 'Proposal', count: pipeline.proposal, color: isDark ? 'bg-purple-900/50 text-purple-300' : 'bg-purple-100 text-purple-700' },
+              { label: 'Agreement', count: pipeline.agreement, color: isDark ? 'bg-amber-900/50 text-amber-300' : 'bg-amber-100 text-amber-700' },
+              { label: 'Closed', count: pipeline.closed, color: isDark ? 'bg-green-900/50 text-green-300' : 'bg-green-100 text-green-700' },
+              { label: 'Total', count: pipeline.total, color: isDark ? 'bg-zinc-600 text-white' : 'bg-zinc-900 text-white' },
             ].map((stage, i) => (
               <div key={i} className="text-center">
                 <div className={`rounded-lg py-3 px-2 ${stage.color}`}>
@@ -240,7 +240,7 @@ const SalesDashboardEnhanced = () => {
                   <p className="text-xs mt-1">{stage.label}</p>
                 </div>
                 {i < 6 && (
-                  <ArrowRight className="w-4 h-4 mx-auto mt-2 text-zinc-300" />
+                  <ArrowRight className={`w-4 h-4 mx-auto mt-2 ${isDark ? 'text-zinc-600' : 'text-zinc-300'}`} />
                 )}
               </div>
             ))}
@@ -251,9 +251,9 @@ const SalesDashboardEnhanced = () => {
       {/* Charts Row */}
       <div className="grid grid-cols-3 gap-4">
         {/* Lead Temperature Pie */}
-        <Card className="border-zinc-200">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
               <Thermometer className="w-4 h-4" />
               Lead Temperature
             </CardTitle>
