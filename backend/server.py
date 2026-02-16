@@ -1640,7 +1640,523 @@ async def get_sales_dashboard_stats(current_user: User = Depends(get_current_use
     }
 
 
-@api_router.get("/stats/consulting-dashboard")
+# Helper function to get team member IDs for a manager
+async def get_team_member_ids(manager_id: str) -> List[str]:
+    """Get all user IDs that report to this manager"""
+    team_members = await db.users.find(
+        {"reporting_manager_id": manager_id, "is_active": True},
+        {"id": 1}
+    ).to_list(1000)
+    return [m['id'] for m in team_members]
+
+
+# Helper function to check if user can see all data
+def can_see_all_data(user: User) -> bool:
+    return user.role in ALL_DATA_ACCESS_ROLES
+
+
+@api_router.get("/stats/sales-dashboard-enhanced")
+async def get_enhanced_sales_dashboard_stats(
+    view_mode: str = "own",  # own, team, all
+    current_user: User = Depends(get_current_user)
+):
+    """Enhanced Sales dashboard with comprehensive metrics"""
+    from datetime import timedelta
+    from calendar import monthrange
+    
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_month_start = (month_start - timedelta(days=1)).replace(day=1)
+    
+    # Determine query scope based on view_mode and permissions
+    user_ids = [current_user.id]
+    
+    if view_mode == "team":
+        team_ids = await get_team_member_ids(current_user.id)
+        if team_ids:
+            user_ids = team_ids + [current_user.id]
+    elif view_mode == "all" and can_see_all_data(current_user):
+        user_ids = None  # No filter
+    
+    # Build query filter
+    if user_ids:
+        lead_query = {"$or": [{"assigned_to": {"$in": user_ids}}, {"created_by": {"$in": user_ids}}]}
+        meeting_query = {"$or": [{"created_by": {"$in": user_ids}}, {"attendees": {"$in": user_ids}}]}
+    else:
+        lead_query = {}
+        meeting_query = {}
+    
+    # ===== LEAD METRICS =====
+    total_leads = await db.leads.count_documents(lead_query)
+    new_leads = await db.leads.count_documents({**lead_query, "status": "new"})
+    contacted_leads = await db.leads.count_documents({**lead_query, "status": "contacted"})
+    qualified_leads = await db.leads.count_documents({**lead_query, "status": "qualified"})
+    proposal_leads = await db.leads.count_documents({**lead_query, "status": "proposal"})
+    agreement_leads = await db.leads.count_documents({**lead_query, "status": "agreement"})
+    closed_leads = await db.leads.count_documents({**lead_query, "status": "closed"})
+    lost_leads = await db.leads.count_documents({**lead_query, "status": "lost"})
+    
+    # Lead temperature (based on score)
+    hot_leads = await db.leads.count_documents({**lead_query, "lead_score": {"$gte": 80}})
+    warm_leads = await db.leads.count_documents({**lead_query, "lead_score": {"$gte": 50, "$lt": 80}})
+    cold_leads = await db.leads.count_documents({**lead_query, "lead_score": {"$lt": 50}})
+    
+    # ===== MEETING METRICS =====
+    total_meetings = await db.meetings.count_documents({**meeting_query, "type": "sales"})
+    meetings_this_month = await db.meetings.count_documents({
+        **meeting_query, 
+        "type": "sales",
+        "meeting_date": {"$gte": month_start.isoformat()}
+    })
+    meetings_with_mom = await db.meetings.count_documents({
+        **meeting_query, 
+        "type": "sales",
+        "mom_generated": True
+    })
+    
+    # Lead to Meeting ratio
+    leads_with_meetings = await db.meetings.distinct("lead_id", {**meeting_query, "type": "sales", "lead_id": {"$ne": None}})
+    lead_to_meeting_ratio = round((len(leads_with_meetings) / total_leads * 100) if total_leads > 0 else 0, 1)
+    
+    # ===== CLOSURE METRICS =====
+    total_closures = closed_leads
+    lead_to_closure_ratio = round((closed_leads / total_leads * 100) if total_leads > 0 else 0, 1)
+    
+    # ===== DEAL VALUE =====
+    # Get from agreements
+    agreement_pipeline = [
+        {"$match": {"status": "approved"}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_value"}}}
+    ]
+    if user_ids:
+        agreement_pipeline[0]["$match"]["created_by"] = {"$in": user_ids}
+    deal_value_result = await db.agreements.aggregate(agreement_pipeline).to_list(1)
+    total_deal_value = deal_value_result[0]['total'] if deal_value_result else 0
+    
+    # ===== TARGETS VS ACHIEVEMENT =====
+    current_month = now.month
+    current_year = now.year
+    
+    targets = await db.sales_targets.find({
+        "user_id": {"$in": user_ids} if user_ids else {"$exists": True},
+        "month": current_month,
+        "year": current_year,
+        "approval_status": "approved"
+    }).to_list(100)
+    
+    total_meeting_target = sum(t.get('meeting_target', 0) for t in targets)
+    total_conversion_target = sum(t.get('conversion_target', 0) for t in targets)
+    total_value_target = sum(t.get('deal_value_target', 0) for t in targets)
+    
+    # ===== MONTH OVER MONTH =====
+    # Last 6 months performance
+    mom_data = []
+    for i in range(6):
+        month_date = now - timedelta(days=30*i)
+        m_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        m_end = (m_start + timedelta(days=32)).replace(day=1)
+        
+        month_leads = await db.leads.count_documents({
+            **lead_query,
+            "created_at": {"$gte": m_start.isoformat(), "$lt": m_end.isoformat()}
+        })
+        month_closures = await db.leads.count_documents({
+            **lead_query,
+            "status": "closed",
+            "updated_at": {"$gte": m_start.isoformat(), "$lt": m_end.isoformat()}
+        })
+        month_meetings_count = await db.meetings.count_documents({
+            **meeting_query,
+            "type": "sales",
+            "meeting_date": {"$gte": m_start.isoformat(), "$lt": m_end.isoformat()}
+        })
+        
+        mom_data.append({
+            "month": m_start.strftime("%b %Y"),
+            "leads": month_leads,
+            "closures": month_closures,
+            "meetings": month_meetings_count,
+            "conversion_rate": round((month_closures / month_leads * 100) if month_leads > 0 else 0, 1)
+        })
+    
+    mom_data.reverse()  # Oldest to newest
+    
+    # ===== LEAD SOURCE DISTRIBUTION =====
+    source_pipeline = [
+        {"$match": lead_query} if lead_query else {"$match": {}},
+        {"$group": {"_id": "$lead_source", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]
+    lead_sources = await db.leads.aggregate(source_pipeline).to_list(10)
+    
+    # ===== KICKOFF REQUESTS =====
+    kickoff_query = {"requested_by": {"$in": user_ids}} if user_ids else {}
+    pending_kickoffs = await db.kickoff_requests.count_documents({**kickoff_query, "status": "pending"})
+    
+    # ===== TEAM LEADERBOARD =====
+    leaderboard = []
+    if view_mode in ["team", "all"]:
+        team_ids_for_board = await get_team_member_ids(current_user.id) if view_mode == "team" else None
+        
+        leaderboard_pipeline = [
+            {"$match": {"status": "closed"} if not team_ids_for_board else {"status": "closed", "assigned_to": {"$in": team_ids_for_board}}},
+            {"$group": {"_id": "$assigned_to", "closures": {"$sum": 1}}},
+            {"$sort": {"closures": -1}},
+            {"$limit": 10}
+        ]
+        top_performers = await db.leads.aggregate(leaderboard_pipeline).to_list(10)
+        
+        for performer in top_performers:
+            user_doc = await db.users.find_one({"id": performer['_id']}, {"_id": 0, "full_name": 1, "email": 1})
+            if user_doc:
+                leaderboard.append({
+                    "user_id": performer['_id'],
+                    "name": user_doc.get('full_name', 'Unknown'),
+                    "closures": performer['closures']
+                })
+    
+    return {
+        "pipeline": {
+            "total": total_leads,
+            "new": new_leads,
+            "contacted": contacted_leads,
+            "qualified": qualified_leads,
+            "proposal": proposal_leads,
+            "agreement": agreement_leads,
+            "closed": closed_leads,
+            "lost": lost_leads
+        },
+        "temperature": {
+            "hot": hot_leads,
+            "warm": warm_leads,
+            "cold": cold_leads
+        },
+        "meetings": {
+            "total": total_meetings,
+            "this_month": meetings_this_month,
+            "with_mom": meetings_with_mom,
+            "mom_completion_rate": round((meetings_with_mom / total_meetings * 100) if total_meetings > 0 else 0, 1)
+        },
+        "ratios": {
+            "lead_to_meeting": lead_to_meeting_ratio,
+            "lead_to_closure": lead_to_closure_ratio
+        },
+        "closures": {
+            "total": total_closures,
+            "this_month": await db.leads.count_documents({
+                **lead_query,
+                "status": "closed",
+                "updated_at": {"$gte": month_start.isoformat()}
+            })
+        },
+        "deal_value": {
+            "total": total_deal_value,
+            "this_month": 0  # TODO: Calculate monthly
+        },
+        "targets": {
+            "meeting_target": total_meeting_target,
+            "meeting_actual": meetings_this_month,
+            "meeting_achievement": round((meetings_this_month / total_meeting_target * 100) if total_meeting_target > 0 else 0, 1),
+            "conversion_target": total_conversion_target,
+            "conversion_actual": await db.leads.count_documents({
+                **lead_query,
+                "status": "closed",
+                "updated_at": {"$gte": month_start.isoformat()}
+            }),
+            "value_target": total_value_target,
+            "value_actual": total_deal_value
+        },
+        "mom_performance": mom_data,
+        "lead_sources": [{"source": s['_id'] or "Unknown", "count": s['count']} for s in lead_sources],
+        "kickoffs_pending": pending_kickoffs,
+        "leaderboard": leaderboard,
+        "view_mode": view_mode,
+        "has_team": len(await get_team_member_ids(current_user.id)) > 0
+    }
+
+
+# ===== SALES TARGETS ENDPOINTS =====
+@api_router.post("/sales-targets")
+async def create_sales_target(
+    target: SalesTargetCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create sales target for a team member (by reporting manager)"""
+    # Verify current user is the reporting manager of target user
+    target_user = await db.users.find_one({"id": target.user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if target_user.get('reporting_manager_id') != current_user.id and current_user.role not in ALL_DATA_ACCESS_ROLES:
+        raise HTTPException(status_code=403, detail="You can only set targets for your team members")
+    
+    # Check for existing target
+    existing = await db.sales_targets.find_one({
+        "user_id": target.user_id,
+        "month": target.month,
+        "year": target.year
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Target already exists for this month")
+    
+    target_dict = target.model_dump()
+    target_dict['id'] = str(uuid.uuid4())
+    target_dict['set_by'] = current_user.id
+    target_dict['approval_status'] = "pending"
+    target_dict['created_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.sales_targets.insert_one(target_dict)
+    return {"message": "Target created successfully", "id": target_dict['id']}
+
+
+@api_router.get("/sales-targets")
+async def get_sales_targets(
+    user_id: Optional[str] = None,
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get sales targets"""
+    query = {}
+    
+    if user_id:
+        query['user_id'] = user_id
+    elif current_user.role not in ALL_DATA_ACCESS_ROLES:
+        # Show own targets or targets of team members
+        team_ids = await get_team_member_ids(current_user.id)
+        query['user_id'] = {"$in": [current_user.id] + team_ids}
+    
+    if month:
+        query['month'] = month
+    if year:
+        query['year'] = year
+    
+    targets = await db.sales_targets.find(query, {"_id": 0}).to_list(100)
+    
+    # Enrich with user names
+    for t in targets:
+        user = await db.users.find_one({"id": t['user_id']}, {"full_name": 1})
+        t['user_name'] = user.get('full_name') if user else 'Unknown'
+    
+    return targets
+
+
+@api_router.patch("/sales-targets/{target_id}/approve")
+async def approve_sales_target(
+    target_id: str,
+    action: str,  # approve or reject
+    current_user: User = Depends(get_current_user)
+):
+    """Approve/reject sales target (Principal Consultant only)"""
+    if current_user.role not in ["principal_consultant", "admin"]:
+        raise HTTPException(status_code=403, detail="Only Principal Consultants can approve targets")
+    
+    target = await db.sales_targets.find_one({"id": target_id})
+    if not target:
+        raise HTTPException(status_code=404, detail="Target not found")
+    
+    await db.sales_targets.update_one(
+        {"id": target_id},
+        {"$set": {
+            "approval_status": "approved" if action == "approve" else "rejected",
+            "approved_by": current_user.id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": f"Target {action}d successfully"}
+
+
+# ===== PERFORMANCE REVIEW ENDPOINTS =====
+@api_router.post("/performance-reviews")
+async def create_performance_review(
+    review: PerformanceReviewCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create performance review (by reporting manager)"""
+    # Verify reviewer is the reporting manager
+    target_user = await db.users.find_one({"id": review.user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if target_user.get('reporting_manager_id') != current_user.id and current_user.role not in ALL_DATA_ACCESS_ROLES:
+        raise HTTPException(status_code=403, detail="You can only review your team members")
+    
+    # Check for existing review
+    existing = await db.performance_reviews.find_one({
+        "user_id": review.user_id,
+        "month": review.month,
+        "year": review.year
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Review already exists for this month")
+    
+    review_dict = review.model_dump()
+    review_dict['id'] = str(uuid.uuid4())
+    review_dict['reviewer_id'] = current_user.id
+    review_dict['status'] = "draft"
+    review_dict['review_date'] = datetime.now(timezone.utc).isoformat()
+    
+    # Calculate overall score
+    scores = [
+        review_dict.get('meeting_quality_score'),
+        review_dict.get('conversion_rate_score'),
+        review_dict.get('response_time_score'),
+        review_dict.get('mom_quality_score'),
+        review_dict.get('target_achievement_score')
+    ]
+    valid_scores = [s for s in scores if s is not None]
+    review_dict['overall_score'] = round(sum(valid_scores) / len(valid_scores), 2) if valid_scores else None
+    
+    await db.performance_reviews.insert_one(review_dict)
+    return {"message": "Review created successfully", "id": review_dict['id']}
+
+
+@api_router.get("/performance-reviews")
+async def get_performance_reviews(
+    user_id: Optional[str] = None,
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get performance reviews"""
+    query = {}
+    
+    if user_id:
+        # Check if user can view this person's reviews
+        if user_id != current_user.id:
+            target_user = await db.users.find_one({"id": user_id})
+            if target_user and target_user.get('reporting_manager_id') != current_user.id and current_user.role not in ALL_DATA_ACCESS_ROLES:
+                raise HTTPException(status_code=403, detail="Access denied")
+        query['user_id'] = user_id
+    elif current_user.role not in ALL_DATA_ACCESS_ROLES:
+        # Show own reviews or reviews of team members
+        team_ids = await get_team_member_ids(current_user.id)
+        query['$or'] = [
+            {'user_id': current_user.id},
+            {'user_id': {"$in": team_ids}},
+            {'reviewer_id': current_user.id}
+        ]
+    
+    if month:
+        query['month'] = month
+    if year:
+        query['year'] = year
+    
+    reviews = await db.performance_reviews.find(query, {"_id": 0}).to_list(100)
+    
+    # Enrich with names
+    for r in reviews:
+        user = await db.users.find_one({"id": r['user_id']}, {"full_name": 1})
+        reviewer = await db.users.find_one({"id": r['reviewer_id']}, {"full_name": 1})
+        r['user_name'] = user.get('full_name') if user else 'Unknown'
+        r['reviewer_name'] = reviewer.get('full_name') if reviewer else 'Unknown'
+    
+    return reviews
+
+
+@api_router.patch("/performance-reviews/{review_id}/submit")
+async def submit_performance_review(
+    review_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit performance review for acknowledgment"""
+    review = await db.performance_reviews.find_one({"id": review_id})
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    if review['reviewer_id'] != current_user.id and current_user.role not in ALL_DATA_ACCESS_ROLES:
+        raise HTTPException(status_code=403, detail="Only the reviewer can submit")
+    
+    await db.performance_reviews.update_one(
+        {"id": review_id},
+        {"$set": {"status": "submitted"}}
+    )
+    
+    return {"message": "Review submitted successfully"}
+
+
+# ===== TEAM MANAGEMENT ENDPOINTS =====
+@api_router.get("/my-team")
+async def get_my_team(current_user: User = Depends(get_current_user)):
+    """Get team members reporting to current user"""
+    team = await db.users.find(
+        {"reporting_manager_id": current_user.id, "is_active": True},
+        {"_id": 0, "hashed_password": 0}
+    ).to_list(100)
+    
+    # Enrich with performance stats
+    for member in team:
+        # Get this month's stats
+        now = datetime.now(timezone.utc)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        member['stats'] = {
+            'leads_count': await db.leads.count_documents({"assigned_to": member['id']}),
+            'closures_this_month': await db.leads.count_documents({
+                "assigned_to": member['id'],
+                "status": "closed",
+                "updated_at": {"$gte": month_start.isoformat()}
+            }),
+            'meetings_this_month': await db.meetings.count_documents({
+                "created_by": member['id'],
+                "type": "sales",
+                "meeting_date": {"$gte": month_start.isoformat()}
+            })
+        }
+        
+        # Get current target
+        target = await db.sales_targets.find_one({
+            "user_id": member['id'],
+            "month": now.month,
+            "year": now.year,
+            "approval_status": "approved"
+        }, {"_id": 0})
+        member['current_target'] = target
+        
+        # Get latest review
+        review = await db.performance_reviews.find_one(
+            {"user_id": member['id']},
+            {"_id": 0},
+            sort=[("review_date", -1)]
+        )
+        member['latest_review'] = review
+    
+    return {
+        "team_count": len(team),
+        "members": team
+    }
+
+
+@api_router.patch("/users/{user_id}/reporting-manager")
+async def set_reporting_manager(
+    user_id: str,
+    manager_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Set reporting manager for a user (Admin/HR only)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR can set reporting managers")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    manager = await db.users.find_one({"id": manager_id})
+    if not manager:
+        raise HTTPException(status_code=404, detail="Manager not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"reporting_manager_id": manager_id}}
+    )
+    
+    return {"message": "Reporting manager updated successfully"}
+
+
+# ===== AUTO-CLOSURE ON KICKOFF ACCEPTANCE =====
+# (Modify existing kickoff acceptance endpoint to mark lead as closed)
 async def get_consulting_dashboard_stats(current_user: User = Depends(get_current_user)):
     """Consulting-specific dashboard stats - delivery, efficiency, workload"""
     is_pm = current_user.role in ['admin', 'project_manager', 'manager']
