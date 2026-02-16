@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
 import SalesFunnelProgress from '../../components/SalesFunnelProgress';
+import ViewToggle from '../../components/ViewToggle';
 
 const ProformaInvoice = () => {
   const { user } = useContext(AuthContext);
