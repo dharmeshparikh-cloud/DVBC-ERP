@@ -17,7 +17,7 @@ const SalesLayout = () => {
   const navigate = useNavigate();
 
   const [expanded, setExpanded] = useState({
-    funnel: true, other: true
+    funnel: true, other: true, workspace: true
   });
 
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
