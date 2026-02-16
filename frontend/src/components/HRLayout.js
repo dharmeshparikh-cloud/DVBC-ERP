@@ -100,6 +100,7 @@ const HRLayout = () => {
   const teamViewItems = [
     { name: 'Team Workload', href: '/hr/team-workload', icon: Briefcase },
     { name: 'Staffing Requests', href: '/hr/staffing-requests', icon: AlertCircle },
+    { name: 'Performance Dashboard', href: '/hr/performance-dashboard', icon: BarChart3 },
   ];
 
   // Self Service Section
