@@ -14,6 +14,7 @@ import { usePermissions, PermissionGate } from '../contexts/PermissionContext';
 
 const Leads = () => {
   const { user } = useContext(AuthContext);
+  const { hasPermission, getFeaturePermissions } = usePermissions();
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,10 @@ const Leads = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [suggestions, setSuggestions] = useState({});
   const [viewMode, setViewMode] = useState('card');
+  
+  // Get leads permissions
+  const leadsPerms = getFeaturePermissions('leads');
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
