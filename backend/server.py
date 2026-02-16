@@ -2702,7 +2702,7 @@ async def accept_kickoff_request(
             }}
         )
     
-    # Notify the requester
+    # Notify the requester (Sales)
     notification = {
         "id": str(uuid.uuid4()),
         "user_id": kickoff['requested_by'],
@@ -2715,7 +2715,71 @@ async def accept_kickoff_request(
     }
     await db.notifications.insert_one(notification)
     
-    return {"message": "Kickoff accepted, project created", "project_id": project.id}
+    # AUTO-NOTIFY HR: Alert HR team about new project requiring staffing
+    # Get team deployment requirements from agreement for HR context
+    agreement = await db.agreements.find_one({"id": kickoff['agreement_id']}, {"_id": 0})
+    team_deployment = agreement.get('team_deployment', []) if agreement else []
+    
+    # Build staffing requirements summary for HR
+    staffing_summary = []
+    total_resources_needed = 0
+    for deployment in team_deployment:
+        role = deployment.get('role', 'Consultant')
+        count = deployment.get('count', 1)
+        total_resources_needed += count
+        staffing_summary.append(f"{count}x {role}")
+    
+    staffing_text = ", ".join(staffing_summary) if staffing_summary else "TBD"
+    start_date_text = kickoff.get('expected_start_date', 'TBD')
+    if isinstance(start_date_text, str) and 'T' in start_date_text:
+        start_date_text = start_date_text.split('T')[0]  # Format date nicely
+    
+    # Find all HR users to notify
+    hr_roles = ['hr_manager', 'hr_executive']
+    hr_users = await db.users.find(
+        {"role": {"$in": hr_roles}, "is_active": True},
+        {"_id": 0, "id": 1, "full_name": 1, "role": 1}
+    ).to_list(50)
+    
+    # Create notification for each HR user
+    hr_notification_message = (
+        f"🚀 NEW PROJECT STAFFING REQUIRED\n"
+        f"Project: {kickoff['project_name']}\n"
+        f"Client: {kickoff['client_name']}\n"
+        f"Start Date: {start_date_text}\n"
+        f"Resources Needed: {total_resources_needed} ({staffing_text})\n"
+        f"Duration: {kickoff.get('project_tenure_months', 12)} months"
+    )
+    
+    for hr_user in hr_users:
+        hr_notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": hr_user['id'],
+            "type": "project_staffing_required",
+            "title": f"New Project Staffing: {kickoff['project_name']}",
+            "message": hr_notification_message,
+            "reference_id": project.id,
+            "reference_type": "project",
+            "priority": "high",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "metadata": {
+                "project_name": kickoff['project_name'],
+                "client_name": kickoff['client_name'],
+                "start_date": start_date_text,
+                "resources_needed": total_resources_needed,
+                "team_deployment": team_deployment,
+                "project_tenure_months": kickoff.get('project_tenure_months', 12)
+            }
+        }
+        await db.notifications.insert_one(hr_notification)
+    
+    return {
+        "message": "Kickoff accepted, project created", 
+        "project_id": project.id,
+        "hr_notified": len(hr_users),
+        "staffing_requirements": staffing_summary
+    }
 
 
 @api_router.post("/kickoff-requests/{request_id}/reject")
