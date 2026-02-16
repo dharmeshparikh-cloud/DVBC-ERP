@@ -998,7 +998,12 @@ async def create_project(project_create: ProjectCreate, current_user: User = Dep
 @api_router.get("/projects", response_model=List[Project])
 async def get_projects(current_user: User = Depends(get_current_user)):
     query = {}
-    if current_user.role != UserRole.ADMIN:
+    
+    # HR Manager can view all projects (for workload planning) but not create
+    if current_user.role == UserRole.HR_MANAGER:
+        # HR Manager sees all projects but financial data will be stripped
+        pass
+    elif current_user.role != UserRole.ADMIN:
         query['$or'] = [{"assigned_team": current_user.id}, {"created_by": current_user.id}]
     
     projects = await db.projects.find(query, {"_id": 0}).to_list(1000)
@@ -1012,6 +1017,14 @@ async def get_projects(current_user: User = Depends(get_current_user)):
             project['created_at'] = datetime.fromisoformat(project['created_at'])
         if isinstance(project.get('updated_at'), str):
             project['updated_at'] = datetime.fromisoformat(project['updated_at'])
+        
+        # Strip financial data for HR Manager (operational view only)
+        if current_user.role == UserRole.HR_MANAGER:
+            project.pop('budget', None)
+            project.pop('actual_cost', None)
+            project.pop('hourly_rate', None)
+            project.pop('contract_value', None)
+            project.pop('billing_details', None)
     
     return projects
 
