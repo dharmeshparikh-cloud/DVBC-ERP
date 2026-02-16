@@ -10,6 +10,13 @@ import {
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings
 } from 'lucide-react';
 
+// Helper function to sanitize display text (strip HTML tags)
+const sanitizeDisplayText = (text) => {
+  if (!text || typeof text !== 'string') return text;
+  // Remove HTML tags and decode HTML entities
+  return text.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, '');
+};
+
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
 const SALES_ROLES_NAV = ['admin', 'executive', 'account_manager', 'manager'];
 const CONSULTING_ROLES_NAV = [
