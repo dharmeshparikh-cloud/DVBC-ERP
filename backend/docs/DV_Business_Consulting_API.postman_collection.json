@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://biz-management-hub-8.preview.emergentagent.com",
+      "value": "https://deal-to-project.preview.emergentagent.com",
       "type": "string"
     },
     {
