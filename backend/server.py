@@ -9086,6 +9086,213 @@ async def unlink_employee_from_user(
     
     return {"message": "Employee unlinked from user successfully"}
 
+
+# Bank Details Change Request (Requires Admin Approval for HR)
+class BankDetailsChangeRequest(BaseModel):
+    employee_id: str
+    new_bank_details: dict
+    proof_document_id: Optional[str] = None
+    reason: str
+
+@api_router.post("/employees/{employee_id}/bank-details-change-request")
+async def request_bank_details_change(
+    employee_id: str,
+    request_data: BankDetailsChangeRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Request bank details change for an employee.
+    - HR Executive/HR Manager: Creates approval request for Admin
+    - Admin: Can update directly
+    """
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Check if employee already has bank details (post-onboarding change)
+    has_existing_bank = bool(employee.get('bank_details', {}).get('account_number'))
+    
+    # Admin can update directly
+    if current_user.role == 'admin':
+        await db.employees.update_one(
+            {"id": employee_id},
+            {"$set": {
+                "bank_details": request_data.new_bank_details,
+                "bank_details.proof_verified": True,
+                "bank_details.verified_by": current_user.id,
+                "bank_details.verified_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {"message": "Bank details updated successfully", "approval_required": False}
+    
+    # HR can only add during onboarding without approval
+    if not has_existing_bank and current_user.role in ['hr_manager', 'hr_executive']:
+        # First time adding - allowed with proof
+        if not request_data.proof_document_id:
+            raise HTTPException(status_code=400, detail="Bank proof document is required")
+        
+        await db.employees.update_one(
+            {"id": employee_id},
+            {"$set": {
+                "bank_details": {
+                    **request_data.new_bank_details,
+                    "proof_document_id": request_data.proof_document_id,
+                    "proof_verified": False,
+                    "added_by": current_user.id,
+                    "added_at": datetime.now(timezone.utc).isoformat()
+                },
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {"message": "Bank details added successfully (pending verification)", "approval_required": False}
+    
+    # Post-onboarding changes require admin approval
+    if current_user.role not in ['hr_manager', 'hr_executive']:
+        raise HTTPException(status_code=403, detail="Only HR can request bank details changes")
+    
+    # Create approval request
+    change_request = {
+        "id": str(uuid.uuid4()),
+        "type": "bank_details_change",
+        "employee_id": employee_id,
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}",
+        "old_bank_details": employee.get('bank_details', {}),
+        "new_bank_details": request_data.new_bank_details,
+        "proof_document_id": request_data.proof_document_id,
+        "reason": request_data.reason,
+        "requested_by": current_user.id,
+        "requested_by_name": current_user.full_name,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.approval_requests.insert_one(change_request)
+    
+    # Notify admins
+    admins = await db.users.find({"role": "admin", "is_active": True}, {"_id": 0, "id": 1}).to_list(20)
+    for admin in admins:
+        notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": admin['id'],
+            "type": "bank_details_change_request",
+            "title": "Bank Details Change Request",
+            "message": f"HR has requested bank details change for {employee.get('first_name', '')} {employee.get('last_name', '')}",
+            "reference_id": change_request['id'],
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+    
+    return {
+        "message": "Bank details change request submitted for admin approval",
+        "approval_required": True,
+        "request_id": change_request['id']
+    }
+
+
+@api_router.post("/approval-requests/{request_id}/approve-bank-change")
+async def approve_bank_details_change(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve bank details change request (Admin only)"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Only Admin can approve bank details changes")
+    
+    request = await db.approval_requests.find_one({"id": request_id, "type": "bank_details_change"}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    
+    if request['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Request already processed")
+    
+    # Update employee bank details
+    await db.employees.update_one(
+        {"id": request['employee_id']},
+        {"$set": {
+            "bank_details": {
+                **request['new_bank_details'],
+                "proof_document_id": request.get('proof_document_id'),
+                "proof_verified": True,
+                "verified_by": current_user.id,
+                "verified_at": datetime.now(timezone.utc).isoformat(),
+                "change_approved_at": datetime.now(timezone.utc).isoformat()
+            },
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update request status
+    await db.approval_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify HR who requested
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": request['requested_by'],
+        "type": "bank_change_approved",
+        "title": "Bank Details Change Approved",
+        "message": f"Bank details change for {request['employee_name']} has been approved",
+        "reference_id": request['employee_id'],
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Bank details change approved successfully"}
+
+
+@api_router.post("/approval-requests/{request_id}/reject-bank-change")
+async def reject_bank_details_change(
+    request_id: str,
+    reason: str = "",
+    current_user: User = Depends(get_current_user)
+):
+    """Reject bank details change request (Admin only)"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Only Admin can reject bank details changes")
+    
+    request = await db.approval_requests.find_one({"id": request_id, "type": "bank_details_change"}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    
+    if request['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Request already processed")
+    
+    # Update request status
+    await db.approval_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user.id,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "rejection_reason": reason
+        }}
+    )
+    
+    # Notify HR who requested
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": request['requested_by'],
+        "type": "bank_change_rejected",
+        "title": "Bank Details Change Rejected",
+        "message": f"Bank details change for {request['employee_name']} has been rejected. Reason: {reason or 'Not specified'}",
+        "reference_id": request['employee_id'],
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Bank details change request rejected"}
+
+
 # Document upload for employees
 EMPLOYEE_UPLOAD_DIR = "/app/uploads/employees"
 os.makedirs(EMPLOYEE_UPLOAD_DIR, exist_ok=True)
