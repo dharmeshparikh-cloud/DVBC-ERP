@@ -3809,9 +3809,9 @@ async def get_project_payment_schedule(
                         "days_until_due": days_until,
                         "status": "overdue" if days_until < 0 else ("due_soon" if days_until <= 7 else ("upcoming" if days_until <= 30 else "scheduled"))
                     })
-                except:
+                except (ValueError, OverflowError):
                     continue
-        except:
+        except (ValueError, TypeError):
             pass
     
     return {
