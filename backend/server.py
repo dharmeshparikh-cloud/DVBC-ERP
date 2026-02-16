@@ -4153,12 +4153,16 @@ async def create_consultant(user_create: UserCreate, current_user: User = Depend
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    # Sanitize user input to prevent XSS
+    sanitized_name = sanitize_text(user_create.full_name)
+    sanitized_dept = sanitize_text(user_create.department) if user_create.department else None
+    
     hashed_password = get_password_hash(user_create.password)
     user = User(
         email=user_create.email,
-        full_name=user_create.full_name,
+        full_name=sanitized_name,
         role=UserRole.CONSULTANT,
-        department=user_create.department
+        department=sanitized_dept
     )
     
     user_dict = user.model_dump()
