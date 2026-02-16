@@ -81,6 +81,13 @@ const SalesLayout = () => {
     { name: 'Sales Reports', href: '/sales/reports', icon: BarChart3 },
   ];
 
+  const workspaceItems = [
+    { name: 'My Attendance', href: '/sales/my-attendance', icon: Clock },
+    { name: 'My Leaves', href: '/sales/my-leaves', icon: Umbrella },
+    { name: 'Salary Slips', href: '/sales/my-salary', icon: CreditCard },
+    { name: 'My Expenses', href: '/sales/my-expenses', icon: Receipt },
+  ];
+
   return (
     <div className="flex min-h-screen bg-zinc-50">
       {/* Sidebar */}
