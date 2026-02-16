@@ -242,9 +242,16 @@ const KickoffRequests = () => {
       });
 
       if (response.ok) {
+        const data = await response.json();
         toast.success('Project created successfully');
         setShowDetailDialog(false);
-        fetchRequests();
+        
+        // Navigate to team assignment page
+        if (data.project_id) {
+          navigate(`/consulting/assign-team/${data.project_id}`);
+        } else {
+          fetchRequests();
+        }
       } else {
         const error = await response.json();
         toast.error(error.detail || 'Failed to accept request');
