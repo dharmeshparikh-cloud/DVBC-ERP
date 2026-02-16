@@ -64,20 +64,93 @@ const LockableCard = ({
     const gridClasses = className.match(/col-span-\d+|row-span-\d+/g)?.join(' ') || '';
     return (
       <div 
-        className={`${gridClasses} flex items-center justify-center border-2 border-dashed border-zinc-300 bg-zinc-100 rounded-lg cursor-pointer hover:bg-zinc-200 transition-colors`}
+        className={`${gridClasses} flex items-center justify-center border border-transparent rounded-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 hover:from-slate-200 hover:via-blue-100 hover:to-indigo-200 shadow-sm`}
         onClick={() => setIsVisible(true)}
       >
         <div className="text-center p-4">
-          <EyeOff className="w-6 h-6 mx-auto mb-2 text-zinc-500" />
-          <p className="text-xs text-zinc-600 font-medium">Click to show</p>
+          <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
+            <EyeOff className="w-5 h-5 text-slate-500" />
+          </div>
+          <p className="text-sm text-slate-600 font-medium">Click to show</p>
+          <p className="text-xs text-slate-400 mt-1">Card hidden</p>
         </div>
       </div>
     );
   }
 
-  const fullscreenClasses = isFullscreen 
-    ? 'fixed inset-4 z-50 col-span-12 row-span-6' 
-    : className;
+  // Fullscreen with rich drill-down content
+  if (isFullscreen) {
+    return (
+      <>
+        {/* Fullscreen backdrop */}
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+          onClick={handleFullscreenToggle}
+        />
+        
+        {/* Fullscreen card */}
+        <div className={`fixed inset-6 z-50 rounded-2xl shadow-2xl overflow-hidden ${
+          isDark ? 'bg-zinc-900' : 'bg-white'
+        }`}>
+          {/* Header */}
+          <div className={`flex items-center justify-between px-6 py-4 border-b ${
+            isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200 bg-zinc-50'
+          }`}>
+            <h2 className={`text-xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+              {title || 'Detailed View'}
+            </h2>
+            <div className="flex items-center gap-2">
+              {/* Lock toggle in fullscreen */}
+              <button
+                onClick={handleLockToggle}
+                className={`p-2 rounded-lg transition-colors ${
+                  isLocked
+                    ? 'bg-orange-500/20 text-orange-500'
+                    : isDark ? 'hover:bg-zinc-700 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-600'
+                }`}
+                title={isLocked ? 'Unlock Data' : 'Lock Data'}
+              >
+                {isLocked ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={handleFullscreenToggle}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDark ? 'hover:bg-zinc-700 text-zinc-400' : 'hover:bg-zinc-200 text-zinc-600'
+                }`}
+                title="Exit Fullscreen"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Content */}
+          <div className={`p-6 overflow-auto h-[calc(100%-70px)] ${isLocked ? 'pointer-events-none' : ''}`}>
+            {expandedContent || (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <div className={`text-6xl mb-4 ${isDark ? 'text-zinc-700' : 'text-zinc-300'}`}>📊</div>
+                  <p className={`text-lg ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                    Detailed view coming soon
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Lock indicator */}
+          {isLocked && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <div className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm rounded-full shadow-lg">
+                <Lock className="w-4 h-4" />
+                <span>Data Locked for Presentation</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
