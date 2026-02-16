@@ -290,6 +290,7 @@ const Attendance = () => {
                   <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Date</th>
                   <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Employee ID</th>
                   <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
+                  <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Work Location</th>
                   <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Remarks</th>
                 </tr>
               </thead>
@@ -302,6 +303,16 @@ const Attendance = () => {
                       <span className={`text-xs px-2 py-1 rounded-sm ${getStatusBadge(r.status)}`}>
                         {STATUSES.find(s => s.value === r.status)?.label || r.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {['present', 'half_day'].includes(r.status) ? (
+                        <span className="flex items-center justify-center gap-1 text-xs">
+                          {r.work_location === 'in_office' && <><Building2 className="w-3 h-3 text-blue-600" /><span className="text-blue-700">Office</span></>}
+                          {r.work_location === 'onsite' && <><MapPin className="w-3 h-3 text-emerald-600" /><span className="text-emerald-700">On-Site</span></>}
+                          {r.work_location === 'wfh' && <><Home className="w-3 h-3 text-amber-600" /><span className="text-amber-700">WFH</span></>}
+                          {!r.work_location && <span className="text-zinc-400">-</span>}
+                        </span>
+                      ) : <span className="text-zinc-400">-</span>}
                     </td>
                     <td className="px-4 py-3 text-zinc-600">{r.remarks || '-'}</td>
                   </tr>
