@@ -314,10 +314,13 @@ const AssignTeam = () => {
 
       {/* Add Consultant Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="add-consultant-description">
           <DialogHeader>
             <DialogTitle>Add Consultant</DialogTitle>
           </DialogHeader>
+          <p id="add-consultant-description" className="sr-only">
+            Select a consultant from the list and assign a role to add them to the project team.
+          </p>
           <div className="space-y-4 py-4">
             {/* Search */}
             <div className="relative">
