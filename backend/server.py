@@ -11086,6 +11086,87 @@ async def get_my_attendance(month: Optional[str] = None, current_user: User = De
         elif s == "on_leave": summary["on_leave"] += 1
     return {"records": records, "summary": summary, "employee": {"name": f"{emp['first_name']} {emp['last_name']}", "employee_id": emp["employee_id"], "department": emp.get("department", "")}}
 
+
+@api_router.post("/my/check-in")
+async def self_check_in(data: dict, current_user: User = Depends(get_current_user)):
+    """
+    Self check-in for employees with GPS location capture.
+    Employees can check in once per day with their work location.
+    """
+    emp = await _get_my_employee(current_user)
+    
+    # Get today's date (or use provided date)
+    date_str = data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    
+    # Check if already checked in today
+    existing = await db.attendance.find_one({"employee_id": emp["id"], "date": date_str})
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already checked in today")
+    
+    # Validate work location
+    work_location = data.get("work_location", "in_office")
+    if work_location not in ["in_office", "onsite", "wfh"]:
+        raise HTTPException(status_code=400, detail="Invalid work location")
+    
+    # Map work location to status
+    status = data.get("status", "present")
+    if work_location == "wfh" and status == "present":
+        status = "work_from_home"
+    
+    # Build attendance record with geo-location
+    record = {
+        "id": str(uuid.uuid4()),
+        "employee_id": emp["id"],
+        "date": date_str,
+        "status": status,
+        "work_location": work_location,
+        "remarks": data.get("remarks", "Self check-in"),
+        "check_in_method": "self_check_in",
+        "check_in_time": datetime.now(timezone.utc).isoformat(),
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Add geo-location if provided
+    geo_location = data.get("geo_location")
+    if geo_location:
+        record["geo_location"] = {
+            "latitude": geo_location.get("latitude"),
+            "longitude": geo_location.get("longitude"),
+            "accuracy": geo_location.get("accuracy"),
+            "address": geo_location.get("address"),
+            "captured_at": geo_location.get("captured_at", datetime.now(timezone.utc).isoformat())
+        }
+        
+        # Optional: Validate location against office coordinates
+        # This can be extended to check if employee is within certain radius of office
+        # office_coords = await db.settings.find_one({"type": "office_locations"})
+        # if office_coords and work_location == "in_office":
+        #     # Verify employee is within acceptable distance of office
+        #     pass
+    
+    await db.attendance.insert_one(record)
+    
+    # Create notification for HR about check-in (optional - can be disabled)
+    # await db.notifications.insert_one({
+    #     "id": str(uuid.uuid4()),
+    #     "user_id": "hr_notifications",  # Would need HR user lookup
+    #     "message": f"{emp['first_name']} {emp['last_name']} checked in from {work_location}",
+    #     "type": "self_check_in",
+    #     "is_read": False,
+    #     "created_at": datetime.now(timezone.utc).isoformat()
+    # })
+    
+    return {
+        "message": "Check-in successful",
+        "id": record["id"],
+        "date": date_str,
+        "status": status,
+        "work_location": work_location,
+        "check_in_time": record["check_in_time"]
+    }
+
+
 @api_router.get("/my/leave-balance")
 async def get_my_leave_balance(current_user: User = Depends(get_current_user)):
     emp = await _get_my_employee(current_user)
