@@ -7,8 +7,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign } from 'lucide-react';
+import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import ViewToggle from '../components/ViewToggle';
 
 const Leads = () => {
   const { user } = useContext(AuthContext);
@@ -18,6 +19,7 @@ const Leads = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [suggestions, setSuggestions] = useState({});
+  const [viewMode, setViewMode] = useState('card');
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
