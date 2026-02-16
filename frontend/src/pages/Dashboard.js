@@ -173,7 +173,7 @@ const Dashboard = () => {
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
           Dashboard
         </h1>
-        <p className="text-zinc-500">Welcome back, {user?.full_name}</p>
+        <p className="text-zinc-500">Welcome back, {sanitizeDisplayText(user?.full_name)}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
