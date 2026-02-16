@@ -243,12 +243,14 @@ function App() {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      <Toaster position="top-right" />
-      <BrowserRouter>
-        <AppRouter user={user} login={login} logout={logout} loading={loading} />
-      </BrowserRouter>
-    </AuthContext.Provider>
+    <ThemeProvider>
+      <AuthContext.Provider value={{ user, login, logout }}>
+        <Toaster position="top-right" />
+        <BrowserRouter>
+          <AppRouter user={user} login={login} logout={logout} loading={loading} />
+        </BrowserRouter>
+      </AuthContext.Provider>
+    </ThemeProvider>
   );
 }
 
