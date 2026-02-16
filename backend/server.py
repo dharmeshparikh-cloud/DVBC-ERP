@@ -3693,7 +3693,7 @@ async def get_payment_reminders(current_user: User = Depends(get_current_user)):
                 start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
             else:
                 start_date = start_date_str
-        except:
+        except (ValueError, TypeError):
             continue
         
         # Calculate payment dates based on frequency
@@ -3729,7 +3729,7 @@ async def get_payment_reminders(current_user: User = Depends(get_current_user)):
                         "days_until_due": days_until,
                         "is_overdue": days_until < 0
                     })
-            except:
+            except (ValueError, OverflowError):
                 continue
         
         if payment_dates:
