@@ -118,9 +118,26 @@ const Agreements = () => {
     notes: ''
   });
 
+  const [autoOpenHandled, setAutoOpenHandled] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, [leadId]);
+
+  // Auto-open dialog when coming from Proforma Invoice flow
+  useEffect(() => {
+    if (!loading && quotationId && !autoOpenHandled && quotations.length > 0) {
+      const quotation = quotations.find(q => q.id === quotationId);
+      if (quotation) {
+        const plan = pricingPlans.find(p => p.id === quotation.pricing_plan_id);
+        if (plan) {
+          autoPopulateFromPlan(plan, quotation);
+          setDialogOpen(true);
+          setAutoOpenHandled(true);
+        }
+      }
+    }
+  }, [loading, quotationId, quotations, pricingPlans, autoOpenHandled]);
 
   const fetchData = async () => {
     try {
