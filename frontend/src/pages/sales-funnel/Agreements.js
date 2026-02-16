@@ -489,6 +489,16 @@ const Agreements = () => {
 
                   <div className="flex gap-2 flex-wrap">
                     <Button
+                      onClick={() => navigate(`/sales-funnel/agreement/${agreement.id}`)}
+                      size="sm"
+                      variant="outline"
+                      className="rounded-sm border-zinc-300 hover:bg-zinc-100"
+                      data-testid={`view-agreement-${agreement.id}`}
+                    >
+                      <Eye className="w-4 h-4 mr-1" strokeWidth={1.5} />
+                      View
+                    </Button>
+                    <Button
                       onClick={() => handleDownload(agreement.id, 'pdf')}
                       size="sm"
                       variant="outline"
