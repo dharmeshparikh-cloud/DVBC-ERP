@@ -152,6 +152,8 @@ const AdminDashboard = () => {
           } text-white`}
           cardId="total-revenue"
           isDark={isDark}
+          title="Total Revenue (YTD)"
+          expandedContent={<RevenueExpanded data={stats} isDark={isDark} />}
           lockedValues={{ revenue: stats.finance?.revenue }}
         >
           <CardContent className="pt-6 h-full flex flex-col justify-between relative z-10">
