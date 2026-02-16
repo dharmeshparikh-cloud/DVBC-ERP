@@ -118,6 +118,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/agreement" element={<AgreementView />} />
         <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
         <Route path="consulting/projects" element={<ConsultingSOWList />} />
+        <Route path="consulting/my-projects" element={<MyProjects />} />
         <Route path="consulting/project-tasks/:sowId" element={<ConsultingProjectTasks />} />
         <Route path="consultants" element={<Consultants />} />
         <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
