@@ -378,72 +378,108 @@ const KickoffRequests = () => {
             <RotateCcw className="w-5 h-5" />
             Returned for Revision ({returnedRequests.length})
           </h2>
-          <div className="grid gap-4">
-            {returnedRequests.map((request) => (
-              <Card key={request.id} className="border-orange-200 bg-orange-50/50" data-testid={`returned-request-${request.id}`}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-zinc-900">{request.project_name}</h3>
-                        {getStatusBadge(request.status)}
+          {viewMode === 'list' ? (
+            <div className="border border-orange-200 rounded-sm overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-orange-50 border-b border-orange-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-orange-600 uppercase tracking-wide">Project</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-orange-600 uppercase tracking-wide">Client</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-orange-600 uppercase tracking-wide">Start Date</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-orange-600 uppercase tracking-wide">Return Reason</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-orange-600 uppercase tracking-wide">Status</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-orange-600 uppercase tracking-wide">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-orange-100">
+                  {returnedRequests.map((request) => (
+                    <tr 
+                      key={request.id} 
+                      className="hover:bg-orange-50/50 cursor-pointer transition-colors"
+                      onClick={() => handleViewDetails(request)}
+                      data-testid={`returned-request-row-${request.id}`}
+                    >
+                      <td className="px-4 py-3 font-medium text-zinc-900">{request.project_name}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">{request.client_name}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-600">
+                        {request.expected_start_date ? new Date(request.expected_start_date).toLocaleDateString() : 'TBD'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-orange-700">{request.return_reason || '-'}</td>
+                      <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(request)} className="h-8">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" onClick={() => handleResubmit(request.id)} className="bg-orange-600 hover:bg-orange-700 h-8">
+                            <Send className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {returnedRequests.map((request) => (
+                <Card key={request.id} className="border-orange-200 bg-orange-50/50 cursor-pointer hover:border-orange-300 transition-colors" onClick={() => handleViewDetails(request)} data-testid={`returned-request-${request.id}`}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-zinc-900">{request.project_name}</h3>
+                          {getStatusBadge(request.status)}
+                        </div>
+                        <div className="grid grid-cols-4 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-zinc-400" />
+                            <span>{request.client_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-zinc-400" />
+                            <span>{request.expected_start_date ? new Date(request.expected_start_date).toLocaleDateString() : 'TBD'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-zinc-400" />
+                            <span>{request.meeting_frequency || 'Monthly'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="w-4 h-4 text-zinc-400" />
+                            <span>{request.project_tenure_months || 12} months</span>
+                          </div>
+                        </div>
+                        {request.return_reason && (
+                          <div className="mt-3 p-3 bg-orange-100 rounded-md">
+                            <p className="text-sm text-orange-800">
+                              <strong>Return Reason:</strong> {request.return_reason}
+                            </p>
+                            {request.return_notes && (
+                              <p className="text-sm text-orange-700 mt-1">{request.return_notes}</p>
+                            )}
+                            <p className="text-xs text-orange-600 mt-1">
+                              Returned by: {request.returned_by_name || 'PM'} on {new Date(request.returned_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <div className="grid grid-cols-4 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-zinc-400" />
-                          <span>{request.client_name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-zinc-400" />
-                          <span>{request.expected_start_date ? new Date(request.expected_start_date).toLocaleDateString() : 'TBD'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-zinc-400" />
-                          <span>{request.meeting_frequency || 'Monthly'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Briefcase className="w-4 h-4 text-zinc-400" />
-                          <span>{request.project_tenure_months || 12} months</span>
-                        </div>
+                      <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(request)}>
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Details
+                        </Button>
+                        <Button size="sm" onClick={() => handleResubmit(request.id)} className="bg-orange-600 hover:bg-orange-700" data-testid={`resubmit-btn-${request.id}`}>
+                          <Send className="w-4 h-4 mr-1" />
+                          Resubmit
+                        </Button>
                       </div>
-                      {request.return_reason && (
-                        <div className="mt-3 p-3 bg-orange-100 rounded-md">
-                          <p className="text-sm text-orange-800">
-                            <strong>Return Reason:</strong> {request.return_reason}
-                          </p>
-                          {request.return_notes && (
-                            <p className="text-sm text-orange-700 mt-1">{request.return_notes}</p>
-                          )}
-                          <p className="text-xs text-orange-600 mt-1">
-                            Returned by: {request.returned_by_name || 'PM'} on {new Date(request.returned_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      )}
                     </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleViewDetails(request)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Details
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleResubmit(request.id)}
-                        className="bg-orange-600 hover:bg-orange-700"
-                        data-testid={`resubmit-btn-${request.id}`}
-                      >
-                        <Send className="w-4 h-4 mr-1" />
-                        Resubmit
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
