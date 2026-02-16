@@ -360,7 +360,7 @@ const Leads = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusStyle(lead.status)}`}>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(lead.status)}`}>
                         {lead.status}
                       </span>
                     </td>
