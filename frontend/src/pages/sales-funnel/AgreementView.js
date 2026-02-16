@@ -65,7 +65,18 @@ const AgreementView = () => {
     } else if (quotationId || pricingPlanId) {
       fetchDataForNewAgreement();
     }
+    // Fetch consultants for PM selection
+    fetchConsultants();
   }, [agreementId, quotationId, pricingPlanId]);
+
+  const fetchConsultants = async () => {
+    try {
+      const response = await axios.get(`${API}/employees/consultants`);
+      setConsultants(response.data);
+    } catch (error) {
+      console.error('Failed to fetch consultants:', error);
+    }
+  };
 
   const fetchAgreementData = async () => {
     try {
