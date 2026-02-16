@@ -212,10 +212,10 @@ const Layout = () => {
           <div className="px-3 py-3 border-t border-zinc-200">
             <Link to="/profile" className="flex items-center gap-2 hover:bg-zinc-50 rounded-sm px-2 py-1.5 -mx-1">
               <div className="w-7 h-7 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-medium text-zinc-700">
-                {user?.full_name?.charAt(0) || 'U'}
+                {sanitizeDisplayText(user?.full_name)?.charAt(0) || 'U'}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-zinc-900 truncate">{user?.full_name}</div>
+                <div className="text-xs font-medium text-zinc-900 truncate">{sanitizeDisplayText(user?.full_name)}</div>
                 <div className="text-[10px] text-zinc-500 capitalize truncate">{user?.role?.replace(/_/g, ' ')}</div>
               </div>
             </Link>
