@@ -5,7 +5,51 @@ A comprehensive business management application for D&V Business Consulting, a 5
 
 ---
 
-## Latest Update (February 15, 2026 - Evening)
+## Latest Update (February 16, 2026)
+
+### P0 FEATURE COMPLETED: End-to-End Sales Workflow - Agreement to Kickoff ✅
+
+**Complete sales workflow now operational:**
+```
+Lead Entry → Pricing Plan → SOW Selection → Proforma Invoice → Agreement → E-Sign → PM Selection → Kickoff Request
+```
+
+**What was implemented:**
+
+#### 1. View Button on Agreements List
+- Added "View" button to each agreement card in `/sales-funnel/agreements`
+- Navigates to `/sales-funnel/agreement/{agreementId}` for e-signature
+
+#### 2. PM Selection Dialog (After E-Signature)
+- After successful agreement signing, PM Selection dialog automatically appears
+- Dropdown shows employees with designation containing "Consultant"
+- 99 consultants available for selection
+- Optional notes field for kickoff instructions
+
+#### 3. Kickoff Request Creation
+- Creates kickoff request with all agreement data:
+  - Client name and project details
+  - Project tenure and meeting frequency
+  - Assigned PM (selected consultant)
+  - Team deployment structure from agreement
+- Automatically redirects to `/kickoff-requests` page
+
+#### 4. New Backend Endpoint
+- `GET /api/employees/consultants` - Returns employees with 'Consultant' designation
+
+**Files Modified:**
+- `/app/frontend/src/pages/sales-funnel/Agreements.js` - Added View button with Eye icon
+- `/app/frontend/src/pages/sales-funnel/AgreementView.js` - PM Selection dialog, fetchConsultants, handleCreateKickoffRequest
+- `/app/backend/server.py` - Added `/api/employees/consultants` endpoint
+
+**Testing Status:** 100% PASSED
+- Backend: 8/8 tests passed
+- Frontend: All P0 features verified
+- Test report: `/app/test_reports/iteration_30.json`
+
+---
+
+## Previous Update (February 15, 2026 - Evening)
 
 ### P0 FEATURES IMPLEMENTED: Task Approval Workflow & Agreement E-Signature ✅
 
