@@ -162,6 +162,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="my-leaves" element={<MyLeaves />} />
         <Route path="my-salary" element={<MySalarySlips />} />
         <Route path="my-expenses" element={<MyExpenses />} />
+        <Route path="my-bank-details" element={<BankDetailsChangeRequest />} />
       </Route>
       
       {/* HR Portal Routes - restricted to HR roles */}
