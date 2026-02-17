@@ -692,12 +692,12 @@ const Employees = () => {
                             <Edit2 className="w-4 h-4 text-zinc-500" />
                           </Button>
                           {emp.user_id ? (
-                            <Button onClick={() => handleUnlinkUser(emp.id)} variant="ghost" size="sm" className="h-8 px-2" title="Unlink user">
-                              <Unlink className="w-4 h-4 text-zinc-500" />
+                            <Button onClick={() => handleRevokeAccess(emp.id)} variant="ghost" size="sm" className="h-8 px-2" title="Revoke system access">
+                              <UserX className="w-4 h-4 text-orange-500" />
                             </Button>
                           ) : (
-                            <Button onClick={() => { setSelectedEmployee(emp); setLinkUserDialog(true); }} variant="ghost" size="sm" className="h-8 px-2" title="Link user">
-                              <Link2 className="w-4 h-4 text-zinc-500" />
+                            <Button onClick={() => { setSelectedEmployee(emp); setGrantAccessDialog(true); }} variant="ghost" size="sm" className="h-8 px-2 bg-emerald-50 hover:bg-emerald-100" title="Grant system access">
+                              <UserCheck className="w-4 h-4 text-emerald-600" />
                             </Button>
                           )}
                           {isAdmin && (
