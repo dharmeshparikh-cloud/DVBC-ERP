@@ -375,7 +375,7 @@ const EmployeeMobileApp = () => {
           longitude: lastTravelReimbursement.office_lon || 77.5946
         },
         end_location: {
-          name: lastTravelReimbursement.to_location || 'Client Site',
+          name: lastTravelReimbursement.client_name || lastTravelReimbursement.to_location || 'Client Site',
           address: lastTravelReimbursement.to_location || 'Client Site',
           latitude: lastTravelReimbursement.client_lat || lastTravelReimbursement.check_out_location?.latitude || 0,
           longitude: lastTravelReimbursement.client_lon || lastTravelReimbursement.check_out_location?.longitude || 0
@@ -385,10 +385,13 @@ const EmployeeMobileApp = () => {
         travel_type: 'attendance',
         attendance_id: lastAttendanceId,
         travel_date: new Date().toISOString().split('T')[0],
-        notes: `Auto-generated from attendance check-out (${travelClaimVehicle})`
+        client_id: lastTravelReimbursement.client_id,
+        client_name: lastTravelReimbursement.client_name,
+        project_id: lastTravelReimbursement.project_id,
+        notes: `Travel to ${lastTravelReimbursement.client_name || 'client site'} (${travelClaimVehicle})`
       });
       
-      toast.success(`Travel claim submitted! ₹${response.data.final_amount} for ${response.data.distance_km} km`);
+      toast.success(`Travel claim submitted! Rs ${response.data.final_amount} for ${response.data.distance_km} km`);
       setShowTravelReimbursementModal(false);
       setLastTravelReimbursement(null);
       fetchTravelClaims();
