@@ -34,12 +34,31 @@ const Attendance = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
-  const [formData, setFormData] = useState({ employee_id: '', date: '', status: 'present', work_location: 'in_office', remarks: '' });
+  const [formData, setFormData] = useState({ 
+    employee_id: '', 
+    date: new Date().toISOString().split('T')[0], 
+    status: 'present', 
+    work_location: 'in_office', 
+    remarks: '',
+    check_in_time: '',
+    check_out_time: ''
+  });
   const [uploadText, setUploadText] = useState('');
+  
+  // Advanced attendance states (like mobile app)
+  const [attendanceMode, setAttendanceMode] = useState('simple'); // 'simple' or 'advanced'
+  const [selfieData, setSelfieData] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationVerified, setLocationVerified] = useState(false);
+  const [officeLocations, setOfficeLocations] = useState([]);
+  const [cameraActive, setCameraActive] = useState(false);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
   const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
 
-  useEffect(() => { fetchData(); }, [month]);
+  useEffect(() => { fetchData(); fetchOfficeLocations(); }, [month]);
 
   const fetchData = async () => {
     try {
@@ -58,17 +77,149 @@ const Attendance = () => {
     }
   };
 
+  const fetchOfficeLocations = async () => {
+    try {
+      const res = await axios.get(`${API}/settings/office-locations`);
+      setOfficeLocations(res.data.locations || []);
+    } catch (e) {
+      // Default office location if none configured
+      setOfficeLocations([{ name: 'Main Office', latitude: 12.9716, longitude: 77.5946, radius: 500 }]);
+    }
+  };
+
+  // Camera functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: 320, height: 240 } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setCameraActive(true);
+      }
+    } catch (err) {
+      toast.error('Unable to access camera');
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    }
+    setCameraActive(false);
+  };
+
+  const captureSelfie = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+    setSelfieData(dataUrl);
+    stopCamera();
+    toast.success('Selfie captured!');
+  };
+
+  // Location functions
+  const captureLocation = () => {
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const coords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        };
+        
+        // Reverse geocode to get address
+        try {
+          const res = await axios.get(`${API}/travel/location-search?query=${coords.latitude},${coords.longitude}`);
+          if (res.data.results?.length > 0) {
+            coords.address = res.data.results[0].address;
+          }
+        } catch (e) {
+          coords.address = `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+        }
+        
+        setLocation(coords);
+        
+        // Check geo-fencing (for in_office)
+        if (formData.work_location === 'in_office' && officeLocations.length > 0) {
+          const isInRange = officeLocations.some(office => {
+            const distance = calculateDistance(coords.latitude, coords.longitude, office.latitude, office.longitude);
+            return distance <= (office.radius || 500);
+          });
+          setLocationVerified(isInRange);
+          if (!isInRange) {
+            toast.warning('You are outside office geo-fence (500m radius)');
+          } else {
+            toast.success('Location verified - within office premises');
+          }
+        } else {
+          setLocationVerified(true);
+          toast.success('Location captured');
+        }
+        
+        setLocationLoading(false);
+      },
+      (error) => {
+        toast.error('Unable to get location');
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
+
+  // Haversine formula for distance calculation
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Build payload
+    const payload = {
+      ...formData,
+      geo_location: location,
+      selfie: selfieData
+    };
+    
     try {
-      await axios.post(`${API}/attendance`, formData);
+      await axios.post(`${API}/attendance`, payload);
       toast.success('Attendance recorded');
       setDialogOpen(false);
-      setFormData({ employee_id: '', date: '', status: 'present', work_location: 'in_office', remarks: '' });
+      resetForm();
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record attendance');
     }
+  };
+
+  const resetForm = () => {
+    setFormData({ 
+      employee_id: '', 
+      date: new Date().toISOString().split('T')[0], 
+      status: 'present', 
+      work_location: 'in_office', 
+      remarks: '',
+      check_in_time: '',
+      check_out_time: ''
+    });
+    setSelfieData(null);
+    setLocation(null);
+    setLocationVerified(false);
+    setAttendanceMode('simple');
+    stopCamera();
   };
 
   const handleBulkUpload = async () => {
