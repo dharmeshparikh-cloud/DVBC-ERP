@@ -99,18 +99,19 @@ const HRDashboard = () => {
             </div>
           </div>
           {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-white" />
-              <span className="text-white font-medium">Done</span>
+            <div className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-emerald-500 rounded-lg flex-shrink-0">
+              <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <span className="text-white font-medium text-sm md:text-base">Done</span>
             </div>
           ) : attendanceStatus?.has_checked_in ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-amber-500 rounded-lg">
-              <LogIn className="w-5 h-5 text-white" />
-              <span className="text-white font-medium">Check Out</span>
+            <div className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-amber-500 rounded-lg flex-shrink-0">
+              <LogIn className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <span className="text-white font-medium text-sm md:text-base hidden sm:inline">Check Out</span>
+              <span className="text-white font-medium text-sm sm:hidden">Out</span>
             </div>
           ) : (
-            <button className="bg-white text-blue-600 hover:bg-white/90 h-11 px-6 font-semibold rounded-lg flex items-center gap-2">
-              <LogIn className="w-5 h-5" /> Check In
+            <button className="bg-white text-blue-600 hover:bg-white/90 h-9 md:h-11 px-4 md:px-6 font-semibold rounded-lg flex items-center gap-1.5 md:gap-2 text-sm md:text-base flex-shrink-0">
+              <LogIn className="w-4 h-4 md:w-5 md:h-5" /> <span className="hidden sm:inline">Check In</span><span className="sm:hidden">In</span>
             </button>
           )}
         </CardContent>
@@ -123,62 +124,62 @@ const HRDashboard = () => {
         user={user} 
       />
 
-      {/* Employee Overview */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card className="border-zinc-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500">Total Employees</p>
-                <p className="text-3xl font-bold text-zinc-900 mt-1">{employees.total || 0}</p>
+      {/* Employee Overview - 2 cols on mobile, 4 cols on desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardContent className="p-4 md:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400 truncate">Total Employees</p>
+                <p className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-0.5 md:mt-1">{employees.total || 0}</p>
                 {employees.new_this_month > 0 && (
-                  <p className="text-xs text-green-600 mt-1">+{employees.new_this_month} this month</p>
+                  <p className="text-[10px] md:text-xs text-green-600 mt-0.5 md:mt-1">+{employees.new_this_month} this month</p>
                 )}
               </div>
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500">Present Today</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">{attendance.present_today || 0}</p>
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardContent className="p-4 md:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400 truncate">Present Today</p>
+                <p className="text-2xl md:text-3xl font-bold text-green-600 mt-0.5 md:mt-1">{attendance.present_today || 0}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-zinc-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500">WFH Today</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{attendance.wfh_today || 0}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                <UserCheck className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500">Absent Today</p>
-                <p className="text-3xl font-bold text-red-600 mt-1">{attendance.absent_today || 0}</p>
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardContent className="p-4 md:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400 truncate">WFH Today</p>
+                <p className="text-2xl md:text-3xl font-bold text-blue-600 mt-0.5 md:mt-1">{attendance.wfh_today || 0}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                <UserX className="w-6 h-6 text-red-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardContent className="p-4 md:pt-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400 truncate">Absent Today</p>
+                <p className="text-2xl md:text-3xl font-bold text-red-600 mt-0.5 md:mt-1">{attendance.absent_today || 0}</p>
+              </div>
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                <UserX className="w-5 h-5 md:w-6 md:h-6 text-red-600" />
               </div>
             </div>
           </CardContent>
