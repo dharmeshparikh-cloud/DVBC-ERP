@@ -211,6 +211,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="leave-management" element={<LeaveManagement />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="payroll" element={<Payroll />} />
+        <Route path="ctc-designer" element={<CTCDesigner />} />
         <Route path="my-attendance" element={<MyAttendance />} />
         <Route path="my-leaves" element={<MyLeaves />} />
         <Route path="my-salary-slips" element={<MySalarySlips />} />
