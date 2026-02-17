@@ -40,7 +40,8 @@ const AssignTeam = () => {
   const [selectedConsultant, setSelectedConsultant] = useState(null);
   const [selectedRole, setSelectedRole] = useState('consultant');
 
-  const isPM = user?.role === 'project_manager' || user?.role === 'admin' || user?.role === 'manager';
+  // Team Assignment permission - Only Admin, Manager, Project Manager, Principal Consultant can assign
+  const canAssignTeam = ['admin', 'manager', 'project_manager', 'principal_consultant'].includes(user?.role);
 
   useEffect(() => {
     fetchData();
