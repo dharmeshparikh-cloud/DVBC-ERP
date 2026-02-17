@@ -107,6 +107,9 @@ const Dashboard = () => {
 
   // Call useEffect BEFORE any conditional returns
   useEffect(() => {
+    // Fetch attendance status for all users
+    fetchAttendanceStatus();
+    
     // Only fetch data for admin dashboard
     if (userDomain === 'admin' || userDomain === 'general') {
       fetchStats();
