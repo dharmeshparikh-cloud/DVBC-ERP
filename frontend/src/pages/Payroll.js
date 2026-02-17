@@ -444,6 +444,13 @@ const Payroll = () => {
                         className="w-full h-7 px-1.5 text-[11px] rounded border border-zinc-200 bg-white" disabled={!isHR} placeholder="—" />
                     </td>
                     <td className="px-1 py-1">
+                      <div className={`h-7 px-1.5 text-right text-[11px] rounded border flex items-center justify-end ${
+                        inp.expense_reimbursement > 0 ? 'border-blue-200 bg-blue-50/50 text-blue-700 font-medium' : 'border-zinc-200 bg-zinc-50 text-zinc-400'
+                      }`}>
+                        {inp.expense_reimbursement > 0 ? `₹${inp.expense_reimbursement.toLocaleString()}` : '—'}
+                      </div>
+                    </td>
+                    <td className="px-1 py-1">
                       <input type="number" value={inp.advance ?? ''} onChange={e => updateInput(inp.employee_id, 'advance', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
                         className={`w-full h-7 px-1.5 text-right text-[11px] rounded border focus:ring-1 focus:ring-amber-300 ${
                           (inp.advance === '' || inp.advance === null || inp.advance === undefined) ? 'border-red-400 bg-red-50/50' : 'border-amber-200 bg-amber-50/30'
