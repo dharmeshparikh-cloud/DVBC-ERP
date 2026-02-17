@@ -401,7 +401,7 @@ const WorkflowPage = () => {
         ].map(({ module, icon: Icon, stats }) => {
           const colors = MODULE_COLORS[module];
           return (
-            <Card key={module} className={`border ${colors.border} bg-white dark:bg-zinc-900`}>
+            <Card key={module} className={`border ${colors.border} !bg-white dark:!bg-zinc-900`}>
               <CardHeader className={`${colors.bg} py-3`}>
                 <div className="flex items-center gap-2">
                   <Icon className={`w-5 h-5 ${colors.text}`} />
