@@ -294,28 +294,6 @@ const Attendance = () => {
                   <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Mark Attendance</DialogTitle>
                   <DialogDescription className="text-zinc-500">Record attendance with selfie and location verification</DialogDescription>
                 </DialogHeader>
-                
-                {/* Mode Toggle */}
-                <div className="flex gap-2 p-1 bg-zinc-100 rounded-md mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setAttendanceMode('simple')}
-                    className={`flex-1 py-2 px-3 text-sm font-medium rounded transition ${
-                      attendanceMode === 'simple' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'
-                    }`}
-                  >
-                    Simple Entry
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAttendanceMode('advanced')}
-                    className={`flex-1 py-2 px-3 text-sm font-medium rounded transition ${
-                      attendanceMode === 'advanced' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'
-                    }`}
-                  >
-                    With Selfie & GPS
-                  </button>
-                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Employee Selection */}
@@ -401,8 +379,8 @@ const Attendance = () => {
                     </div>
                   )}
 
-                  {/* Advanced Mode: Selfie & Location */}
-                  {attendanceMode === 'advanced' && ['present', 'half_day'].includes(formData.status) && (
+                  {/* Selfie & Location - Always show for present/half_day */}
+                  {['present', 'half_day'].includes(formData.status) && (
                     <>
                       {/* Selfie Capture */}
                       <div className="space-y-2">
