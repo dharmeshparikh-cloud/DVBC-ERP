@@ -1358,10 +1358,9 @@ const EmployeeMobileApp = () => {
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
                 Create Expense ({expenseForm.line_items.length} items - ₹{calculateExpenseTotal().toLocaleString()})
               </button>
-              </button>
 
               <button 
-                onClick={() => setShowExpenseModal(false)}
+                onClick={() => { setShowExpenseModal(false); resetExpenseForm(); }}
                 className="w-full py-3 bg-zinc-100 text-zinc-700 rounded-2xl font-medium"
               >
                 Cancel
