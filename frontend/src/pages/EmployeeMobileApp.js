@@ -680,7 +680,7 @@ const EmployeeMobileApp = () => {
 
     return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={closeModal}>
-      <div className="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div className="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-white pt-4 pb-2 px-6 border-b border-zinc-100">
           <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
           <div className="flex items-center justify-between">
