@@ -13892,10 +13892,10 @@ async def submit_bank_change_request(
 @api_router.get("/hr/bank-change-requests")
 async def get_hr_bank_change_requests(
     status: str = None,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get bank change requests for HR review"""
-    if current_user["role"] not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     query = {}
@@ -13911,17 +13911,17 @@ async def get_hr_bank_change_requests(
 @api_router.post("/hr/bank-change-request/{employee_id}/approve")
 async def hr_approve_bank_change(
     employee_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """HR approves bank change request - moves to admin approval"""
-    if current_user["role"] not in ["hr_manager", "hr_executive"]:
+    if current_user.role not in ["hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Only HR can approve")
     
     result = db.bank_change_requests.update_one(
         {"employee_id": employee_id, "status": "pending_hr"},
         {"$set": {
             "status": "pending_admin",
-            "hr_approved_by": current_user.get("email"),
+            "hr_approved_by": current_user.email,
             "hr_approved_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
@@ -13948,10 +13948,10 @@ async def hr_approve_bank_change(
 async def hr_reject_bank_change(
     employee_id: str,
     rejection_data: dict,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """HR rejects bank change request"""
-    if current_user["role"] not in ["hr_manager", "hr_executive"]:
+    if current_user.role not in ["hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Only HR can reject")
     
     result = db.bank_change_requests.update_one(
@@ -13959,7 +13959,7 @@ async def hr_reject_bank_change(
         {"$set": {
             "status": "rejected",
             "rejection_reason": rejection_data.get("reason", "Rejected by HR"),
-            "hr_approved_by": current_user.get("email"),
+            "hr_approved_by": current_user.email,
             "hr_approved_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
@@ -13973,10 +13973,10 @@ async def hr_reject_bank_change(
 
 @api_router.get("/admin/bank-change-requests")
 async def get_admin_bank_change_requests(
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get bank change requests pending admin approval"""
-    if current_user["role"] != "admin":
+    if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     
     requests = list(db.bank_change_requests.find(
