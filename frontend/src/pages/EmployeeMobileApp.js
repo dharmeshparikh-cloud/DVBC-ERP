@@ -781,26 +781,36 @@ const EmployeeMobileApp = () => {
               <span className="text-sm font-medium text-zinc-700">Select Work Location</span>
             </div>
             
+            {!isConsultingEmployee && (
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 mb-3">
+                <p className="text-xs text-blue-700">
+                  <strong>Note:</strong> Client Site check-in is only available for Consulting/Delivery team members.
+                </p>
+              </div>
+            )}
+            
             <div className="grid grid-cols-2 gap-3">
               {[
-                { value: 'in_office', label: 'Office', icon: Building2, color: 'blue', desc: 'Company premises' },
-                { value: 'onsite', label: 'Client Site', icon: MapPin, color: 'emerald', desc: 'Client location' },
+                { value: 'in_office', label: 'Office', icon: Building2, color: 'blue', desc: 'Company premises', disabled: false },
+                { value: 'onsite', label: 'Client Site', icon: MapPin, color: 'emerald', desc: 'Client location', disabled: !isConsultingEmployee },
               ].map((loc) => (
                 <button
                   key={loc.value}
-                  onClick={() => setSelectedWorkLocation(loc.value)}
+                  onClick={() => !loc.disabled && setSelectedWorkLocation(loc.value)}
+                  disabled={loc.disabled}
                   className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition ${
+                    loc.disabled ? 'opacity-50 cursor-not-allowed border-zinc-200 bg-zinc-50' :
                     selectedWorkLocation === loc.value
                       ? `border-${loc.color}-500 bg-${loc.color}-50`
                       : 'border-zinc-200'
                   }`}
                   data-testid={`checkin-loc-${loc.value}`}
                 >
-                  <loc.icon className={`w-8 h-8 ${selectedWorkLocation === loc.value ? `text-${loc.color}-600` : 'text-zinc-400'}`} />
-                  <span className={`text-sm font-medium ${selectedWorkLocation === loc.value ? `text-${loc.color}-700` : 'text-zinc-600'}`}>
+                  <loc.icon className={`w-8 h-8 ${loc.disabled ? 'text-zinc-300' : selectedWorkLocation === loc.value ? `text-${loc.color}-600` : 'text-zinc-400'}`} />
+                  <span className={`text-sm font-medium ${loc.disabled ? 'text-zinc-400' : selectedWorkLocation === loc.value ? `text-${loc.color}-700` : 'text-zinc-600'}`}>
                     {loc.label}
                   </span>
-                  <span className="text-xs text-zinc-400">{loc.desc}</span>
+                  <span className="text-xs text-zinc-400">{loc.disabled ? 'Not available' : loc.desc}</span>
                 </button>
               ))}
             </div>
