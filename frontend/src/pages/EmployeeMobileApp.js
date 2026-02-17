@@ -284,7 +284,8 @@ const EmployeeMobileApp = () => {
     }
     setLoading(true);
     try {
-      await axios.post(`${API}/expenses`, {
+      // Create expense first
+      const expenseRes = await axios.post(`${API}/expenses`, {
         client_id: expenseForm.client_id || null,
         client_name: expenseForm.client_name || '',
         project_id: expenseForm.project_id || null,
@@ -292,10 +293,31 @@ const EmployeeMobileApp = () => {
         is_office_expense: expenseForm.is_office_expense,
         notes: expenseForm.notes,
         line_items: expenseForm.line_items.map(item => ({
-          ...item,
+          category: item.category,
+          description: item.description,
+          amount: item.amount,
           date: item.date
         }))
       });
+
+      const expenseId = expenseRes.data.expense_id;
+
+      // Upload receipts for each line item that has one
+      for (let i = 0; i < expenseForm.line_items.length; i++) {
+        const item = expenseForm.line_items[i];
+        if (item.receipt) {
+          try {
+            await axios.post(`${API}/expenses/${expenseId}/upload-receipt`, {
+              receipt: item.receipt,
+              name: `Receipt for ${item.description}`,
+              line_item_index: i
+            });
+          } catch (receiptError) {
+            console.error('Failed to upload receipt for item', i);
+          }
+        }
+      }
+
       toast.success('Expense created! Submit it for approval.');
       setShowExpenseModal(false);
       resetExpenseForm();
