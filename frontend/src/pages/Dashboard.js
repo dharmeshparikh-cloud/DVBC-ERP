@@ -45,6 +45,10 @@ const Dashboard = () => {
   const [loginActivity, setLoginActivity] = useState({ logs: [], total: 0, failedCount: 0, successCount: 0 });
   const [loading, setLoading] = useState(true);
   
+  // Quick Check-in Modal state
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState(null);
+  
   // Determine user domain
   const userDomain = getUserDomain(user);
 
