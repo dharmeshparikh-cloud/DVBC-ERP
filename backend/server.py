@@ -10616,30 +10616,45 @@ async def calculate_travel_distance(
     }
 
 
+
+# Google Maps API Key
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+
 @api_router.get("/travel/location-search")
 async def search_locations(
     query: str,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
     current_user: User = Depends(get_current_user)
 ):
     """
-    Search for locations using OpenStreetMap Nominatim API.
+    Search for locations using Google Places Autocomplete API.
     Used by sales team to find client meeting locations.
     """
-    if not query or len(query) < 3:
-        raise HTTPException(status_code=400, detail="Query must be at least 3 characters")
+    if not query or len(query) < 2:
+        raise HTTPException(status_code=400, detail="Query must be at least 2 characters")
+    
+    if not GOOGLE_MAPS_API_KEY:
+        raise HTTPException(status_code=500, detail="Google Maps API key not configured")
     
     try:
         async with httpx.AsyncClient() as client:
+            # Use Google Places Autocomplete API
+            params = {
+                "input": query,
+                "key": GOOGLE_MAPS_API_KEY,
+                "components": "country:in",  # Restrict to India
+                "language": "en"
+            }
+            
+            # Add location bias if provided
+            if lat and lng:
+                params["location"] = f"{lat},{lng}"
+                params["radius"] = 50000  # 50km radius bias
+            
             response = await client.get(
-                "https://nominatim.openstreetmap.org/search",
-                params={
-                    "q": query,
-                    "format": "json",
-                    "limit": 5,
-                    "countrycodes": "in",  # Restrict to India
-                    "addressdetails": 1
-                },
-                headers={"User-Agent": "DVBC-ERP/1.0"},
+                "https://maps.googleapis.com/maps/api/place/autocomplete/json",
+                params=params,
                 timeout=10.0
             )
             
@@ -10647,22 +10662,78 @@ async def search_locations(
                 return {"results": [], "error": "Location service unavailable"}
             
             data = response.json()
+            
+            if data.get("status") not in ["OK", "ZERO_RESULTS"]:
+                return {"results": [], "error": data.get("error_message", "API error")}
+            
             results = []
             
-            for item in data:
+            for prediction in data.get("predictions", []):
+                # Get place details for coordinates
+                place_id = prediction.get("place_id")
+                structured_formatting = prediction.get("structured_formatting", {})
+                
                 results.append({
-                    "name": item.get("display_name", "").split(",")[0],
-                    "address": item.get("display_name", ""),
-                    "latitude": float(item.get("lat", 0)),
-                    "longitude": float(item.get("lon", 0)),
-                    "type": item.get("type", ""),
-                    "osm_id": item.get("osm_id")
+                    "place_id": place_id,
+                    "name": structured_formatting.get("main_text", prediction.get("description", "").split(",")[0]),
+                    "address": prediction.get("description", ""),
+                    "secondary_text": structured_formatting.get("secondary_text", ""),
+                    "types": prediction.get("types", [])
                 })
             
             return {"results": results}
             
     except Exception as e:
         return {"results": [], "error": str(e)}
+
+
+@api_router.get("/travel/place-details/{place_id}")
+async def get_place_details(
+    place_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get detailed place information including coordinates from Google Places API.
+    """
+    if not GOOGLE_MAPS_API_KEY:
+        raise HTTPException(status_code=500, detail="Google Maps API key not configured")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://maps.googleapis.com/maps/api/place/details/json",
+                params={
+                    "place_id": place_id,
+                    "key": GOOGLE_MAPS_API_KEY,
+                    "fields": "name,formatted_address,geometry,place_id"
+                },
+                timeout=10.0
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=500, detail="Failed to get place details")
+            
+            data = response.json()
+            
+            if data.get("status") != "OK":
+                raise HTTPException(status_code=404, detail="Place not found")
+            
+            result = data.get("result", {})
+            geometry = result.get("geometry", {})
+            location = geometry.get("location", {})
+            
+            return {
+                "place_id": result.get("place_id"),
+                "name": result.get("name", ""),
+                "address": result.get("formatted_address", ""),
+                "latitude": location.get("lat", 0),
+                "longitude": location.get("lng", 0)
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.post("/travel/reimbursement")
