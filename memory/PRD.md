@@ -131,6 +131,30 @@ Build a business management application for a consulting firm with complete HR, 
   - [x] Duplicate check-in prevention (once per day)
   - [x] `POST /api/my/check-in` endpoint stores geo_location data
   - [x] Location column in My Attendance table
+- [x] **Enhanced Mobile Employee App with Geofencing**
+  - [x] Mobile-optimized employee app at `/mobile`
+  - [x] Mandatory selfie capture for check-in (stored as base64)
+  - [x] Mandatory GPS location with address display
+  - [x] Geofencing validation (500m radius using Haversine formula)
+  - [x] WFH removed - only Office and Client Site options
+  - [x] Consulting/Delivery employees can check in from office OR assigned client sites
+  - [x] Non-consulting employees can ONLY check in from office
+  - [x] Unknown location check-ins require justification
+  - [x] Auto-approval for known locations, HR approval for unknown
+  - [x] Check-out functionality with work hours calculation
+  - [x] Admin/HR can disable employee mobile app access
+- [x] **HR Attendance Approvals**
+  - [x] `/hr/attendance-approvals` page to review pending check-ins
+  - [x] View selfie, location, justification for each pending record
+  - [x] Approve/Reject with HR remarks
+  - [x] Employee notifications on approval status
+- [x] **Office Locations Settings (Admin)**
+  - [x] `/office-locations` page to configure geofencing locations
+  - [x] Add/Edit/Delete office coordinates
+  - [x] 3 offices pre-configured: Bangalore HQ, Mumbai, Delhi
+- [x] **Client Geo-Coordinates**
+  - [x] `PUT /api/clients/{id}/geo-coordinates` endpoint
+  - [x] All existing clients updated with geo_coordinates
 
 ## Test Credentials
 
