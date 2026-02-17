@@ -331,8 +331,10 @@ const EmployeeMobileApp = () => {
           ) : (
             <button 
               onClick={openCheckIn}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-white/20 rounded-xl hover:bg-white/30 transition"
+              onTouchEnd={(e) => { e.preventDefault(); openCheckIn(); }}
+              className="w-full flex items-center justify-center gap-2 py-4 bg-white/20 rounded-xl hover:bg-white/30 active:bg-white/40 transition cursor-pointer touch-manipulation"
               data-testid="mobile-checkin-btn"
+              style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
             >
               <Camera className="w-5 h-5" />
               <span className="font-medium">Check In with Selfie</span>
