@@ -189,6 +189,55 @@ const Dashboard = () => {
         <p className="text-zinc-500">Welcome back, {sanitizeDisplayText(user?.full_name)}</p>
       </div>
 
+      {/* Quick Attendance Card */}
+      <Card 
+        className="mb-8 border-black/10 shadow-lg rounded-xl overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+        onClick={() => setShowQuickCheckIn(true)}
+        data-testid="quick-attendance-card"
+      >
+        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-black to-zinc-800">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center">
+              <Clock className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Quick Attendance</h3>
+              <p className="text-white/60 text-sm">
+                {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out 
+                  ? 'Completed for today' 
+                  : attendanceStatus?.has_checked_in 
+                    ? `Checked in at ${attendanceStatus?.check_in_time?.split('T')[1]?.slice(0,5) || '-'}` 
+                    : 'Tap to check in'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-white" />
+                <span className="text-white font-medium">Done</span>
+              </div>
+            ) : attendanceStatus?.has_checked_in ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-amber-500 rounded-lg">
+                <LogIn className="w-5 h-5 text-white" />
+                <span className="text-white font-medium">Check Out</span>
+              </div>
+            ) : (
+              <Button className="bg-white text-black hover:bg-white/90 h-12 px-6 font-semibold">
+                <LogIn className="w-5 h-5 mr-2" /> Check In
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Quick Check-in Modal */}
+      <QuickCheckInModal 
+        isOpen={showQuickCheckIn} 
+        onClose={() => { setShowQuickCheckIn(false); fetchAttendanceStatus(); }} 
+        user={user} 
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {statCards.map((stat) => {
           const Icon = stat.icon;
