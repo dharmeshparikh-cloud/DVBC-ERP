@@ -11103,6 +11103,8 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 async def validate_checkin_location(emp: dict, geo_location: dict, work_location: str) -> dict:
     """
     Validate check-in location against approved locations.
+    - Consulting/Delivery employees: Can check in from office OR assigned client locations
+    - Other employees (HR, Admin, Sales, etc.): Can ONLY check in from office
     Returns: {is_valid: bool, matched_location: str|None, all_approved_locations: list}
     """
     GEOFENCE_RADIUS = 500  # 500 meters
@@ -11114,8 +11116,13 @@ async def validate_checkin_location(emp: dict, geo_location: dict, work_location
         return {"is_valid": False, "matched_location": None, "reason": "Location not captured"}
     
     approved_locations = []
+    dept = emp.get("department", "").lower()
+    role = emp.get("designation", "").lower()
     
-    # Get office locations
+    # Determine if employee can check in from client sites
+    can_use_client_sites = dept in ["consulting", "delivery"] or "consultant" in role
+    
+    # Get office locations (available to everyone)
     office_settings = await db.settings.find_one({"type": "office_locations"})
     if office_settings and office_settings.get("locations"):
         for loc in office_settings["locations"]:
@@ -11127,9 +11134,8 @@ async def validate_checkin_location(emp: dict, geo_location: dict, work_location
                 "address": loc.get("address")
             })
     
-    # For consulting department employees, also get their assigned client locations
-    dept = emp.get("department", "").lower()
-    if dept in ["consulting", "delivery"]:
+    # For consulting/delivery employees, also get their assigned client locations
+    if can_use_client_sites:
         # Get projects assigned to this employee
         projects = await db.projects.find({
             "$or": [
@@ -11148,6 +11154,9 @@ async def validate_checkin_location(emp: dict, geo_location: dict, work_location
                         "name": client.get("company_name", "Client"),
                         "type": "client",
                         "latitude": client["geo_coordinates"].get("latitude"),
+                        "longitude": client["geo_coordinates"].get("longitude"),
+                        "address": client.get("address")
+                    })
                         "longitude": client["geo_coordinates"].get("longitude"),
                         "address": client.get("address")
                     })
