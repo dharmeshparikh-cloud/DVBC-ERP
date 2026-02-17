@@ -275,20 +275,11 @@ const HRLayout = () => {
                 data-testid="hr-logout-button"
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start mt-1 h-8 text-xs text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
+                className="w-full justify-start mt-1 h-10 md:h-8 text-sm md:text-xs text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
               >
-                <LogOut className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} /> Sign Out
+                <LogOut className="w-4 h-4 md:w-3.5 md:h-3.5 mr-2" strokeWidth={1.5} /> Sign Out
               </Button>
             </>
-          ) : (
-            <div className="flex justify-center">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
-                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                  {user?.full_name?.charAt(0) || 'H'}
-                </span>
-              </div>
-            </div>
-          )}
           <ChangePasswordDialog 
             open={showChangePassword} 
             onOpenChange={setShowChangePassword} 
@@ -297,29 +288,32 @@ const HRLayout = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
         {/* Header */}
-        <header className="bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2"
-            >
-              {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-            </Button>
+        <header className="bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile menu button */}
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen(true)}
+                className="p-2"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+            )}
             <div>
-              <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              <h1 className="text-base md:text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 HR Portal
               </h1>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-[10px] md:text-xs text-zinc-500 dark:text-zinc-400 hidden md:block">
                 People Operations Management
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             {/* Theme Toggle */}
             <Button
               variant="ghost"
