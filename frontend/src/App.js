@@ -74,6 +74,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import PerformanceDashboard from './pages/PerformanceDashboard';
 import EmployeeMobileApp from './pages/EmployeeMobileApp';
 import HRAttendanceApprovals from './pages/hr/HRAttendanceApprovals';
+import OfficeLocationsSettings from './pages/OfficeLocationsSettings';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
