@@ -12331,12 +12331,50 @@ async def self_check_out(data: dict, current_user: User = Depends(get_current_us
         except:
             pass
     
+    # Calculate travel reimbursement if applicable (On-Site check-in)
+    travel_reimbursement = None
+    check_in_location = existing.get("geo_location", {})
+    work_location = existing.get("work_location", "")
+    
+    if work_location == "onsite" and check_in_location.get("latitude") and geo_location and geo_location.get("latitude"):
+        # Get home/office location for calculation
+        office_settings = await db.settings.find_one({"type": "office_locations"})
+        home_lat, home_lon = None, None
+        
+        # Use first office as default home point
+        if office_settings and office_settings.get("locations"):
+            first_office = office_settings["locations"][0]
+            home_lat = first_office.get("latitude")
+            home_lon = first_office.get("longitude")
+        
+        if home_lat and home_lon:
+            # Distance from office to client site (one way)
+            distance_km = calculate_distance_km(
+                home_lat, home_lon,
+                check_in_location["latitude"], check_in_location["longitude"]
+            )
+            # Round trip
+            total_distance = distance_km * 2
+            rate = TRAVEL_RATES.get("car", 7.0)
+            calculated_amount = round(total_distance * rate, 2)
+            
+            travel_reimbursement = {
+                "distance_km": round(total_distance, 2),
+                "rate_per_km": rate,
+                "calculated_amount": calculated_amount,
+                "vehicle_type": "car",
+                "is_round_trip": True,
+                "from_location": "Office",
+                "to_location": check_in_location.get("address", "Client Site")[:50] if check_in_location.get("address") else "Client Site"
+            }
+    
     await db.attendance.update_one(
         {"id": existing["id"]},
         {"$set": {
             "check_out_time": check_out_time,
             "check_out_location": geo_location,
             "work_hours": work_hours,
+            "travel_reimbursement": travel_reimbursement,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
@@ -12345,7 +12383,8 @@ async def self_check_out(data: dict, current_user: User = Depends(get_current_us
         "message": "Check-out successful",
         "id": existing["id"],
         "check_out_time": check_out_time,
-        "work_hours": work_hours
+        "work_hours": work_hours,
+        "travel_reimbursement": travel_reimbursement
     }
 
 
