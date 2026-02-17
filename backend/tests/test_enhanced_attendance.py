@@ -281,7 +281,7 @@ class TestUnknownLocationCreatesPendingApproval:
     
     def test_unknown_location_with_justification_creates_pending(self, consultant_token, cleanup_attendance):
         """Verify check-in with justification creates pending approval"""
-        test_date = (datetime.now() + timedelta(days=202)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+12)).strftime("%Y-%m-%d")
         
         response = requests.post(
             f"{BASE_URL}/api/my/check-in",
