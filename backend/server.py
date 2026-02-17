@@ -11190,20 +11190,39 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     - Requires selfie capture
     - Auto-approves if location matches, else sends to HR for approval
     - WFH is NOT allowed
+    - Consulting employees can check in from office OR assigned client sites
+    - Non-consulting employees (HR, Admin, Sales) can ONLY check in from office
     """
     emp = await _get_my_employee(current_user)
+    
+    # Check if employee mobile app access is disabled
+    if emp.get("mobile_app_disabled"):
+        raise HTTPException(status_code=403, detail="Mobile app access is disabled for your account. Please contact HR.")
     
     date_str = data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     
     # Check if already checked in today
     existing = await db.attendance.find_one({"employee_id": emp["id"], "date": date_str})
     if existing:
+        if existing.get("check_out_time"):
+            raise HTTPException(status_code=400, detail="You have already completed check-in and check-out today")
         raise HTTPException(status_code=400, detail="You have already checked in today")
     
     # Validate work location - WFH NOT allowed
     work_location = data.get("work_location", "in_office")
     if work_location not in ["in_office", "onsite"]:
         raise HTTPException(status_code=400, detail="Invalid work location. Only 'In Office' or 'On-Site' allowed.")
+    
+    # Non-consulting employees cannot select "onsite"
+    dept = emp.get("department", "").lower()
+    role = emp.get("designation", "").lower()
+    is_consulting = dept in ["consulting", "delivery"] or "consultant" in role
+    
+    if work_location == "onsite" and not is_consulting:
+        raise HTTPException(
+            status_code=400, 
+            detail="On-Site check-in is only available for Consulting/Delivery team members. Please select 'Office'."
+        )
     
     # Mandatory selfie
     selfie_data = data.get("selfie")
