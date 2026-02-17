@@ -225,6 +225,47 @@ class ReviewParameter(BaseModel):
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class CTCComponent(BaseModel):
+    """Individual CTC component with calculation method"""
+    key: str
+    name: str
+    calc_type: str  # "percentage_of_ctc", "percentage_of_basic", "fixed", "balance"
+    value: float = 0  # percentage or fixed amount
+    annual: float = 0
+    monthly: float = 0
+    is_taxable: bool = True
+    is_optional: bool = False
+    vesting_months: Optional[int] = None  # For retention bonus
+
+class CTCStructureRequest(BaseModel):
+    """CTC Structure design request from HR"""
+    employee_id: str
+    annual_ctc: float
+    effective_month: str  # YYYY-MM format
+    components: dict  # Component key -> CTCComponent dict
+    retention_bonus: Optional[float] = 0  # Optional retention bonus
+    retention_vesting_months: int = 12  # Default 1 year
+    remarks: Optional[str] = None
+
+class CTCStructure(BaseModel):
+    """Employee CTC Structure with approval workflow"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    annual_ctc: float
+    effective_month: str  # YYYY-MM - payroll month from which this applies
+    components: dict  # Full breakdown
+    retention_bonus: float = 0
+    retention_vesting_months: int = 12
+    status: str = "pending"  # pending, approved, rejected, active, superseded
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    remarks: Optional[str] = None
+    version: int = 1
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
