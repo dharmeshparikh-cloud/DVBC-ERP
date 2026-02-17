@@ -12369,31 +12369,39 @@ def calculate_ctc_breakdown(annual_ctc: float, retention_bonus: float = 0, reten
         {"key": "gratuity", "name": "Gratuity", "calc_type": "percentage_of_basic", "value": 4.81, "enabled": True, "is_earning": False, "is_deferred": True, "is_taxable": False},
     ]
     return calculate_ctc_breakdown_dynamic(annual_ctc, default_config, retention_bonus, retention_vesting_months)
+
+
+@api_router.get("/ctc/component-master")
+async def get_ctc_component_master_api(current_user: User = Depends(get_current_user)):
+    """Get CTC component master configuration"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can access CTC components")
     
-    # Add retention bonus if provided
-    if retention_bonus > 0:
-        components["retention_bonus"] = {
-            "key": "retention_bonus", "name": "Retention Bonus", "calc_type": "fixed",
-            "value": retention_bonus, "annual": retention_bonus, "monthly": 0,  # Paid as lump sum after vesting
-            "is_taxable": True, "is_optional": True, "vesting_months": retention_vesting_months,
-            "note": f"Payable after {retention_vesting_months} months of service completion"
-        }
+    components = await get_ctc_component_master()
+    return {"components": components}
+
+
+@api_router.post("/ctc/component-master")
+async def update_ctc_component_master(data: dict, current_user: User = Depends(get_current_user)):
+    """Update CTC component master configuration (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can update CTC component master")
     
-    return {
-        "components": components,
-        "summary": {
-            "annual_ctc": annual_ctc,
-            "gross_monthly": round(gross_monthly, 2),
-            "basic_annual": basic_annual,
-            "total_deferred_annual": round(pf_annual + gratuity_annual + retention_bonus, 2),
-            "in_hand_approx_monthly": round(gross_monthly - (pf_monthly * 2), 2)  # Approx after PF deduction
-        }
-    }
+    components = data.get("components", [])
+    if not components:
+        raise HTTPException(status_code=400, detail="Components list is required")
+    
+    await db.ctc_config.update_one(
+        {"type": "component_master"},
+        {"$set": {"type": "component_master", "components": components, "updated_at": datetime.now(timezone.utc).isoformat(), "updated_by": current_user.id}},
+        upsert=True
+    )
+    return {"message": "CTC component master updated"}
 
 
 @api_router.post("/ctc/calculate-preview")
 async def preview_ctc_breakdown(data: dict, current_user: User = Depends(get_current_user)):
-    """Preview CTC breakdown without saving (for HR to review before submission)"""
+    """Preview CTC breakdown with configurable components"""
     if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Only HR can access CTC calculations")
     
@@ -12404,7 +12412,19 @@ async def preview_ctc_breakdown(data: dict, current_user: User = Depends(get_cur
     retention_bonus = data.get("retention_bonus", 0)
     retention_vesting_months = data.get("retention_vesting_months", 12)
     
-    breakdown = calculate_ctc_breakdown(annual_ctc, retention_bonus, retention_vesting_months)
+    # Check if custom component config is provided
+    component_config = data.get("component_config")
+    if component_config:
+        breakdown = calculate_ctc_breakdown_dynamic(annual_ctc, component_config, retention_bonus, retention_vesting_months)
+    else:
+        # Use master config with defaults
+        master_components = await get_ctc_component_master()
+        # Apply default enabled status
+        for comp in master_components:
+            if "enabled" not in comp:
+                comp["enabled"] = comp.get("enabled_by_default", True)
+        breakdown = calculate_ctc_breakdown_dynamic(annual_ctc, master_components, retention_bonus, retention_vesting_months)
+    
     return breakdown
 
 
