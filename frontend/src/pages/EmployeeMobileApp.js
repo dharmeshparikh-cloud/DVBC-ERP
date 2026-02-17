@@ -1326,6 +1326,29 @@ const EmployeeMobileApp = () => {
                         className="w-full p-2 rounded-lg border border-zinc-200 text-sm"
                       />
                     </div>
+                    <div className="flex-1">
+                      <label className="text-xs font-medium text-zinc-600 block mb-1">Receipt</label>
+                      <label className="flex items-center justify-center gap-1 p-2 rounded-lg border border-dashed border-zinc-300 text-xs text-zinc-500 cursor-pointer hover:bg-zinc-50">
+                        <Camera className="w-4 h-4" />
+                        {lineItemForm.receipt ? 'Added' : 'Add'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setLineItemForm({...lineItemForm, receipt: reader.result});
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                     <button
                       type="button"
                       onClick={addLineItem}
