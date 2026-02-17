@@ -212,6 +212,36 @@ const Employees = () => {
     }
   };
 
+  const handleGrantAccess = async () => {
+    if (!selectedEmployee) return;
+
+    try {
+      const res = await axios.post(`${API}/employees/${selectedEmployee.id}/grant-access`, {
+        employee_id: selectedEmployee.id,
+        role: accessFormData.role,
+        password: accessFormData.password
+      });
+      toast.success(`System access granted! Email: ${res.data.email}, Password: ${res.data.temporary_password}`);
+      setGrantAccessDialog(false);
+      setAccessFormData({ role: 'consultant', password: 'Welcome@123' });
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to grant access');
+    }
+  };
+
+  const handleRevokeAccess = async (employeeId) => {
+    if (!window.confirm('Revoke system access for this employee? They will no longer be able to login.')) return;
+
+    try {
+      await axios.delete(`${API}/employees/${employeeId}/revoke-access`);
+      toast.success('System access revoked');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to revoke access');
+    }
+  };
+
   const handleUnlinkUser = async (employeeId) => {
     if (!window.confirm('Remove system access link for this employee?')) return;
 
