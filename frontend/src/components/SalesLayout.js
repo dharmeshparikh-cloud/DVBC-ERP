@@ -123,6 +123,7 @@ const SalesLayout = () => {
     { name: 'My Leaves', href: '/sales/my-leaves', icon: Umbrella },
     { name: 'Salary Slips', href: '/sales/my-salary', icon: CreditCard },
     { name: 'My Expenses', href: '/sales/my-expenses', icon: Receipt },
+    { name: 'My Bank Details', href: '/sales/my-bank-details', icon: Building2 },
   ];
 
   // Mobile bottom nav items
