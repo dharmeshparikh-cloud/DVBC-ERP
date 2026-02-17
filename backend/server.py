@@ -13989,10 +13989,10 @@ async def get_admin_bank_change_requests(
 @api_router.post("/admin/bank-change-request/{employee_id}/approve")
 async def admin_approve_bank_change(
     employee_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Admin final approval - updates employee bank details"""
-    if current_user["role"] != "admin":
+    if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     
     request = db.bank_change_requests.find_one({
@@ -14017,7 +14017,7 @@ async def admin_approve_bank_change(
         {"employee_id": employee_id, "status": "pending_admin"},
         {"$set": {
             "status": "approved",
-            "admin_approved_by": current_user.get("email"),
+            "admin_approved_by": current_user.email,
             "admin_approved_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
@@ -14030,10 +14030,10 @@ async def admin_approve_bank_change(
 async def admin_reject_bank_change(
     employee_id: str,
     rejection_data: dict,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Admin rejects bank change request"""
-    if current_user["role"] != "admin":
+    if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     
     result = db.bank_change_requests.update_one(
@@ -14041,7 +14041,7 @@ async def admin_reject_bank_change(
         {"$set": {
             "status": "rejected",
             "rejection_reason": rejection_data.get("reason", "Rejected by Admin"),
-            "admin_approved_by": current_user.get("email"),
+            "admin_approved_by": current_user.email,
             "admin_approved_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
