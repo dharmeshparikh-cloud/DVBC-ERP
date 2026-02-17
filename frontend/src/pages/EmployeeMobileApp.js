@@ -85,6 +85,11 @@ const EmployeeMobileApp = () => {
 
   // Check if user is Sales team (can enter manual travel claims)
   const isSalesTeam = ['admin', 'executive', 'account_manager', 'manager'].includes(user?.role);
+  
+  // Client selection for On-Site check-in
+  const [assignedClients, setAssignedClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [loadingClients, setLoadingClients] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
