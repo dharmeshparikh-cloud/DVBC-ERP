@@ -1335,10 +1335,10 @@ const EmployeeMobileApp = () => {
               <span className="text-sm font-medium text-zinc-700">Select Work Location</span>
             </div>
             
-            {!isConsultingEmployee && (
+            {!isConsultingEmployee && !isSalesTeam && (
               <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 mb-3">
                 <p className="text-xs text-blue-700">
-                  <strong>Note:</strong> Client Site check-in is only available for Consulting/Delivery team members.
+                  <strong>Note:</strong> Client Site check-in is only available for Consulting/Delivery/Sales team members.
                 </p>
               </div>
             )}
@@ -1346,11 +1346,16 @@ const EmployeeMobileApp = () => {
             <div className="grid grid-cols-2 gap-3">
               {[
                 { value: 'in_office', label: 'Office', icon: Building2, color: 'blue', desc: 'Company premises', disabled: false },
-                { value: 'onsite', label: 'Client Site', icon: MapPin, color: 'emerald', desc: 'Client location', disabled: !isConsultingEmployee },
+                { value: 'onsite', label: 'Client Site', icon: MapPin, color: 'emerald', desc: 'Client location', disabled: !(isConsultingEmployee || isSalesTeam) },
               ].map((loc) => (
                 <button
                   key={loc.value}
-                  onClick={() => !loc.disabled && setSelectedWorkLocation(loc.value)}
+                  onClick={() => { 
+                    if (!loc.disabled) {
+                      setSelectedWorkLocation(loc.value);
+                      setSelectedClient(null);
+                    }
+                  }}
                   disabled={loc.disabled}
                   className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition ${
                     loc.disabled ? 'opacity-50 cursor-not-allowed border-zinc-200 bg-zinc-50' :
@@ -1369,6 +1374,66 @@ const EmployeeMobileApp = () => {
               ))}
             </div>
           </div>
+          
+          {/* Step 4: Client Selection (for On-Site) */}
+          {selectedWorkLocation === 'onsite' && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selectedClient ? 'bg-emerald-500 text-white' : 'bg-zinc-200 text-zinc-600'}`}>
+                  {selectedClient ? '✓' : '4'}
+                </div>
+                <span className="text-sm font-medium text-zinc-700">Select Client</span>
+              </div>
+              
+              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+                {loadingClients ? (
+                  <div className="flex items-center gap-2 justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                    <span className="text-sm text-zinc-500">Loading clients...</span>
+                  </div>
+                ) : assignedClients.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {assignedClients.map((client) => (
+                      <button
+                        key={client.id}
+                        onClick={() => setSelectedClient(client)}
+                        className={`w-full text-left p-3 rounded-xl border-2 transition ${
+                          selectedClient?.id === client.id 
+                            ? 'border-emerald-500 bg-emerald-50' 
+                            : 'border-zinc-200 hover:border-zinc-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Briefcase className={`w-5 h-5 ${selectedClient?.id === client.id ? 'text-emerald-600' : 'text-zinc-400'}`} />
+                          <div>
+                            <p className={`font-medium text-sm ${selectedClient?.id === client.id ? 'text-emerald-700' : 'text-zinc-700'}`}>
+                              {client.client_name}
+                            </p>
+                            {client.project_name && (
+                              <p className="text-xs text-zinc-500">{client.project_name}</p>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Briefcase className="w-8 h-8 mx-auto mb-2 text-zinc-300" />
+                    <p className="text-sm text-zinc-500">No assigned clients found</p>
+                    <p className="text-xs text-zinc-400 mt-1">Contact your manager to assign projects</p>
+                  </div>
+                )}
+                
+                {selectedClient && (
+                  <div className="mt-3 p-2 bg-emerald-100 rounded-lg flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    <span className="text-sm text-emerald-700 font-medium">{selectedClient.client_name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Justification (if location not verified) */}
           {showJustification && (
