@@ -136,7 +136,7 @@ const HRLogin = () => {
                     placeholder="hr@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 border-black/20 bg-white focus:ring-black focus:border-black"
+                    className="pl-10 border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-black focus:border-black"
                     required
                     data-testid="hr-email-input"
                   />
@@ -153,7 +153,7 @@ const HRLogin = () => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 border-black/20 bg-white focus:ring-black focus:border-black"
+                    className="pl-10 border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-black focus:border-black"
                     required
                     data-testid="hr-password-input"
                   />
