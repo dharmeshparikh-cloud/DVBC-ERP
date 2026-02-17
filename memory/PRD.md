@@ -310,6 +310,30 @@ A comprehensive travel reimbursement feature for employees:
   - [x] Admin can approve (activates CTC, updates employee salary) or reject (requires reason)
   - [x] Notifications sent to Admin on submission, HR on approval/rejection
   - [x] CTC history tracking with version control
+- [x] **Configurable CTC Components (Feb 17, 2026 Enhancement)**
+  - [x] Toggle switches to enable/disable components per employee
+  - [x] 13 configurable components with editable values:
+    - Basic Salary (40% of CTC) - REQUIRED
+    - HRA (50% of Basic) - Enabled by default
+    - DA (10% of Basic) - DISABLED by default
+    - Conveyance Allowance (₹1600/month) - Enabled by default
+    - Medical Allowance (₹1250/month) - Enabled by default
+    - Special Allowance (auto-calculated balance) - REQUIRED
+    - PF Employer (12% of Basic) - DISABLED by default
+    - PF Employee Deduction (12% of Basic) - DISABLED by default
+    - ESIC Employer (3.25% of Gross) - DISABLED by default
+    - ESIC Employee Deduction (0.75% of Gross) - DISABLED by default
+    - Gratuity (4.81% of Basic) - DISABLED by default
+    - Retention Bonus (fixed annual) - Optional
+    - Professional Tax (₹200/month) - DISABLED by default
+  - [x] Component master API: `GET/POST /api/ctc/component-master`
+  - [x] Dynamic calculation with `calculate_ctc_breakdown_dynamic()`
+  - [x] Deductions (PF Employee, ESIC, PT) subtract from gross in preview
+  - [x] Preview shows In-Hand = Gross - Deductions
+- [x] **Payroll Integration**
+  - [x] Salary slip generation checks for active CTC structure
+  - [x] If approved CTC exists, uses its component breakdown for earnings
+  - [x] Falls back to global payroll_config if no CTC structure
 - [x] **Backend APIs**
   - [x] `POST /api/ctc/calculate-preview` - Preview CTC breakdown
   - [x] `POST /api/ctc/design` - Submit CTC for approval
@@ -320,6 +344,8 @@ A comprehensive travel reimbursement feature for employees:
   - [x] `GET /api/ctc/employee/{id}` - Get employee CTC
   - [x] `GET /api/ctc/employee/{id}/history` - CTC change history
   - [x] `DELETE /api/ctc/{id}/cancel` - Cancel pending request
+  - [x] `GET /api/ctc/component-master` - Get available components
+  - [x] `POST /api/ctc/component-master` - Admin update component master
 - [x] **Navigation Updates**
   - [x] "CTC Designer" link added to HR section in main ERP sidebar
   - [x] "CTC Designer" link added to HR Portal Operations section
