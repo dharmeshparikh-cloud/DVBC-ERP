@@ -307,7 +307,10 @@ const EmployeeMobileApp = () => {
     setJustification('');
     setShowJustification(false);
     setSelectedWorkLocation('in_office');
+    setSelectedClient(null);
     captureLocation();
+    // Fetch clients for potential On-Site selection
+    fetchAssignedClients();
   };
 
   // Travel reimbursement state
