@@ -267,12 +267,12 @@ const WorkflowPage = () => {
       </div>
 
       {/* Animation Control */}
-      <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
+      <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-900 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-4">
-          <Info className="w-5 h-5 text-zinc-400" />
+          <Info className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
           <div>
             <p className="font-medium text-zinc-700 dark:text-zinc-300">Click on any step to navigate to that module</p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Or play the animation to see the complete flow</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-500">Or play the animation to see the complete flow</p>
           </div>
         </div>
         <Button 
