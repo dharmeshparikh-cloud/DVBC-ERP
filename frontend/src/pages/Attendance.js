@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Upload, CheckCircle, XCircle, Clock, CalendarDays, Building2, MapPin, Home, Camera, Navigation, Loader2, LogIn, LogOut, AlertCircle } from 'lucide-react';
+import { Plus, Upload, CheckCircle, XCircle, Clock, CalendarDays, Building2, MapPin, Home, Camera, Navigation, Loader2, LogIn, LogOut, AlertCircle, Car, Bike, RotateCcw, Send, X, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STATUSES = [
@@ -19,9 +19,9 @@ const STATUSES = [
 ];
 
 const WORK_LOCATIONS = [
-  { value: 'in_office', label: 'In Office', icon: '🏢', color: 'bg-blue-100 text-blue-700' },
-  { value: 'onsite', label: 'On-Site (Client Location)', icon: '📍', color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'wfh', label: 'Work from Home', icon: '🏠', color: 'bg-amber-100 text-amber-700' }
+  { value: 'in_office', label: 'In', icon: Building2, color: 'blue' },
+  { value: 'onsite', label: 'On-Site', icon: MapPin, color: 'emerald' },
+  { value: 'wfh', label: 'Work', icon: Home, color: 'amber' }
 ];
 
 const Attendance = () => {
@@ -41,7 +41,11 @@ const Attendance = () => {
     work_location: 'in_office', 
     remarks: '',
     check_in_time: '',
-    check_out_time: ''
+    check_out_time: '',
+    client_id: '',
+    client_name: '',
+    project_id: '',
+    project_name: ''
   });
   const [uploadText, setUploadText] = useState('');
   
@@ -52,12 +56,32 @@ const Attendance = () => {
   const [locationVerified, setLocationVerified] = useState(false);
   const [officeLocations, setOfficeLocations] = useState([]);
   const [cameraActive, setCameraActive] = useState(false);
+  const [stream, setStream] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  
+  // Client/Project selection for On-Site
+  const [assignedClients, setAssignedClients] = useState([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  
+  // Travel Reimbursement Modal
+  const [showTravelModal, setShowTravelModal] = useState(false);
+  const [travelData, setTravelData] = useState(null);
+  const [travelVehicle, setTravelVehicle] = useState('car');
+  const [submittingTravel, setSubmittingTravel] = useState(false);
 
   const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
 
   useEffect(() => { fetchData(); fetchOfficeLocations(); }, [month]);
+  
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
 
   const fetchData = async () => {
     try {
@@ -81,45 +105,98 @@ const Attendance = () => {
       const res = await axios.get(`${API}/settings/office-locations`);
       setOfficeLocations(res.data.locations || []);
     } catch (e) {
-      // Default office location if none configured
       setOfficeLocations([{ name: 'Main Office', latitude: 12.9716, longitude: 77.5946, radius: 500 }]);
     }
   };
-
-  // Camera functions
-  const startCamera = async () => {
+  
+  // Fetch assigned clients when On-Site is selected
+  const fetchAssignedClients = async () => {
+    setLoadingClients(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user', width: 320, height: 240 } 
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setCameraActive(true);
+      const res = await axios.get(`${API}/my/assigned-clients`);
+      setAssignedClients(res.data.clients || []);
+    } catch (e) {
+      // Fallback: fetch all clients
+      try {
+        const clientsRes = await axios.get(`${API}/clients`);
+        setAssignedClients(clientsRes.data.map(c => ({
+          id: c.id,
+          client_name: c.company_name,
+          project_name: null
+        })));
+      } catch (e2) {
+        setAssignedClients([]);
       }
-    } catch (err) {
-      toast.error('Unable to access camera');
+    } finally {
+      setLoadingClients(false);
     }
   };
 
-  const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+  // Camera functions - Fixed implementation
+  const startCamera = useCallback(async () => {
+    try {
+      // First stop any existing stream
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
+      });
+      
+      setStream(mediaStream);
+      setCameraActive(true);
+      
+      // Wait for next render cycle then attach stream
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          videoRef.current.play().catch(e => console.log('Video play error:', e));
+        }
+      }, 100);
+      
+    } catch (err) {
+      console.error('Camera error:', err);
+      toast.error('Unable to access camera. Please grant camera permission.');
+    }
+  }, [stream]);
+
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setCameraActive(false);
-  };
+  }, [stream]);
 
-  const captureSelfie = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    const canvas = canvasRef.current;
+  const captureSelfie = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) {
+      toast.error('Camera not ready');
+      return;
+    }
+    
     const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    // Ensure video has dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      toast.error('Camera not ready. Please wait.');
+      return;
+    }
+    
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
     setSelfieData(dataUrl);
     stopCamera();
     toast.success('Selfie captured!');
-  };
+  }, [stopCamera]);
 
   // Location functions
   const captureLocation = () => {
@@ -164,7 +241,7 @@ const Attendance = () => {
         setLocationLoading(false);
       },
       (error) => {
-        toast.error('Unable to get location');
+        toast.error('Unable to get location. Please enable GPS.');
         setLocationLoading(false);
       },
       { enableHighAccuracy: true, timeout: 15000 }
@@ -185,6 +262,12 @@ const Attendance = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate client selection for onsite
+    if (formData.work_location === 'onsite' && !formData.client_name) {
+      toast.error('Please select a client for On-Site attendance');
+      return;
+    }
     
     // Build payload
     const payload = {
@@ -212,12 +295,84 @@ const Attendance = () => {
       work_location: 'in_office', 
       remarks: '',
       check_in_time: '',
-      check_out_time: ''
+      check_out_time: '',
+      client_id: '',
+      client_name: '',
+      project_id: '',
+      project_name: ''
     });
     setSelfieData(null);
     setLocation(null);
     setLocationVerified(false);
     stopCamera();
+  };
+  
+  // Handle work location change - fetch clients if onsite
+  const handleWorkLocationChange = (value) => {
+    setFormData({ ...formData, work_location: value, client_id: '', client_name: '', project_id: '', project_name: '' });
+    setLocation(null);
+    setLocationVerified(false);
+    
+    if (value === 'onsite') {
+      fetchAssignedClients();
+    }
+  };
+  
+  // Handle client selection
+  const handleClientSelect = (clientId) => {
+    const client = assignedClients.find(c => c.id === clientId);
+    if (client) {
+      setFormData({
+        ...formData,
+        client_id: client.id,
+        client_name: client.client_name,
+        project_id: client.project_id || '',
+        project_name: client.project_name || ''
+      });
+    }
+  };
+  
+  // Submit Travel Reimbursement
+  const handleSubmitTravelClaim = async () => {
+    if (!travelData) return;
+    
+    setSubmittingTravel(true);
+    try {
+      const rate = travelVehicle === 'car' ? 7 : 3;
+      const amount = Math.round(travelData.distance_km * rate);
+      
+      await axios.post(`${API}/travel/reimbursement`, {
+        start_location: {
+          name: travelData.from_location,
+          address: travelData.from_location,
+          latitude: travelData.office_lat,
+          longitude: travelData.office_lon
+        },
+        end_location: {
+          name: travelData.to_location,
+          address: travelData.to_location,
+          latitude: travelData.client_lat,
+          longitude: travelData.client_lon
+        },
+        vehicle_type: travelVehicle,
+        is_round_trip: true,
+        travel_type: 'attendance',
+        attendance_id: travelData.attendance_id,
+        travel_date: new Date().toISOString().split('T')[0],
+        client_id: travelData.client_id,
+        client_name: travelData.client_name,
+        project_id: travelData.project_id,
+        notes: `Travel to client site: ${travelData.client_name || travelData.to_location}`
+      });
+      
+      toast.success(`Travel claim submitted! Amount: Rs ${amount}`);
+      setShowTravelModal(false);
+      setTravelData(null);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to submit travel claim');
+    } finally {
+      setSubmittingTravel(false);
+    }
   };
 
   const handleBulkUpload = async () => {
@@ -281,7 +436,7 @@ const Attendance = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { resetForm(); stopCamera(); } }}>
               <DialogTrigger asChild>
                 <Button className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none" data-testid="add-attendance-btn">
                   <Plus className="w-4 h-4 mr-2" /> Mark Attendance
@@ -325,25 +480,76 @@ const Attendance = () => {
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-zinc-950">Work Location</Label>
                       <div className="grid grid-cols-3 gap-2">
-                        {WORK_LOCATIONS.map(loc => (
-                          <button
-                            key={loc.value}
-                            type="button"
-                            onClick={() => { setFormData({ ...formData, work_location: loc.value }); setLocation(null); setLocationVerified(false); }}
-                            className={`flex flex-col items-center gap-1 p-3 rounded-md border transition-all ${
-                              formData.work_location === loc.value 
-                                ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200' 
-                                : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
-                            }`}
-                            data-testid={`att-location-${loc.value}`}
-                          >
-                            {loc.value === 'in_office' && <Building2 className="w-5 h-5 text-blue-600" />}
-                            {loc.value === 'onsite' && <MapPin className="w-5 h-5 text-emerald-600" />}
-                            {loc.value === 'wfh' && <Home className="w-5 h-5 text-amber-600" />}
-                            <span className="text-xs font-medium text-zinc-700">{loc.label.split(' ')[0]}</span>
-                          </button>
-                        ))}
+                        {WORK_LOCATIONS.map(loc => {
+                          const Icon = loc.icon;
+                          const isSelected = formData.work_location === loc.value;
+                          return (
+                            <button
+                              key={loc.value}
+                              type="button"
+                              onClick={() => handleWorkLocationChange(loc.value)}
+                              className={`flex flex-col items-center gap-1 p-3 rounded-md border transition-all ${
+                                isSelected
+                                  ? `border-${loc.color}-500 bg-${loc.color}-50 ring-2 ring-${loc.color}-200` 
+                                  : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+                              }`}
+                              data-testid={`att-location-${loc.value}`}
+                            >
+                              <Icon className={`w-5 h-5 ${isSelected ? `text-${loc.color}-600` : 'text-zinc-500'}`} />
+                              <span className="text-xs font-medium text-zinc-700">{loc.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
+                    </div>
+                  )}
+                  
+                  {/* Client Selection for On-Site */}
+                  {formData.work_location === 'onsite' && ['present', 'half_day'].includes(formData.status) && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-emerald-600" /> Select Client
+                      </Label>
+                      {loadingClients ? (
+                        <div className="flex items-center gap-2 p-3 bg-zinc-50 rounded-md">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm text-zinc-500">Loading clients...</span>
+                        </div>
+                      ) : assignedClients.length > 0 ? (
+                        <select 
+                          value={formData.client_id} 
+                          onChange={(e) => handleClientSelect(e.target.value)}
+                          required
+                          className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
+                          data-testid="att-client-select"
+                        >
+                          <option value="">Select client</option>
+                          {assignedClients.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.client_name} {c.project_name ? `(${c.project_name})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                          <p className="text-sm text-amber-700">No assigned clients found. Enter manually:</p>
+                          <Input 
+                            value={formData.client_name}
+                            onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                            placeholder="Enter client name"
+                            className="mt-2 rounded-sm border-zinc-200"
+                          />
+                        </div>
+                      )}
+                      {formData.client_name && (
+                        <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-md">
+                          <p className="text-sm text-emerald-700 flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            Selected: <strong>{formData.client_name}</strong>
+                            {formData.project_name && <span className="text-emerald-600">({formData.project_name})</span>}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -399,7 +605,7 @@ const Attendance = () => {
                   {/* Selfie & Location - Always show for present/half_day */}
                   {['present', 'half_day'].includes(formData.status) && (
                     <>
-                      {/* Selfie Capture */}
+                      {/* Selfie Capture - FIXED IMPLEMENTATION */}
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
                           <Camera className="w-4 h-4" /> Selfie Verification
@@ -411,9 +617,9 @@ const Attendance = () => {
                               <button
                                 type="button"
                                 onClick={() => { setSelfieData(null); startCamera(); }}
-                                className="absolute top-2 right-2 px-2 py-1 bg-zinc-900/70 text-white text-xs rounded"
+                                className="absolute top-2 right-2 px-2 py-1 bg-zinc-900/70 text-white text-xs rounded flex items-center gap-1"
                               >
-                                Retake
+                                <RotateCcw className="w-3 h-3" /> Retake
                               </button>
                               <div className="absolute bottom-2 left-2 px-2 py-1 bg-emerald-500 text-white text-xs rounded flex items-center gap-1">
                                 <CheckCircle className="w-3 h-3" /> Captured
@@ -421,18 +627,26 @@ const Attendance = () => {
                             </div>
                           ) : cameraActive ? (
                             <div className="space-y-2">
-                              <video ref={videoRef} autoPlay playsInline muted className="w-full h-40 object-cover rounded-md bg-black" />
+                              <div className="relative rounded-md overflow-hidden bg-black aspect-video">
+                                <video 
+                                  ref={videoRef} 
+                                  autoPlay 
+                                  playsInline 
+                                  muted 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
                               <div className="flex gap-2">
                                 <Button type="button" onClick={captureSelfie} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">
                                   <Camera className="w-4 h-4 mr-2" /> Capture
                                 </Button>
                                 <Button type="button" onClick={stopCamera} variant="outline" className="flex-1">
-                                  Cancel
+                                  <X className="w-4 h-4 mr-2" /> Cancel
                                 </Button>
                               </div>
                             </div>
                           ) : (
-                            <Button type="button" onClick={startCamera} variant="outline" className="w-full">
+                            <Button type="button" onClick={startCamera} variant="outline" className="w-full" data-testid="start-camera-btn">
                               <Camera className="w-4 h-4 mr-2" /> Start Camera
                             </Button>
                           )}
@@ -463,7 +677,7 @@ const Attendance = () => {
                               </div>
                               <p className="text-xs text-zinc-600 truncate">{location.address}</p>
                               <p className="text-[10px] text-zinc-400">
-                                {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)} (±{location.accuracy?.toFixed(0)}m)
+                                {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)} ({location.accuracy?.toFixed(0)}m)
                               </p>
                               <Button type="button" onClick={captureLocation} variant="outline" size="sm" className="w-full text-xs">
                                 <Navigation className="w-3 h-3 mr-1" /> Recapture Location
@@ -476,6 +690,7 @@ const Attendance = () => {
                               variant="outline" 
                               className="w-full"
                               disabled={locationLoading}
+                              data-testid="capture-location-btn"
                             >
                               {locationLoading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Getting Location...</>
@@ -590,6 +805,7 @@ const Attendance = () => {
                   <th className="text-left px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Employee</th>
                   <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
                   <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Location</th>
+                  <th className="text-left px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Client</th>
                   <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-emerald-600 font-medium">Check-In</th>
                   <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-red-600 font-medium">Check-Out</th>
                   <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Hours</th>
@@ -619,16 +835,23 @@ const Attendance = () => {
                         </span>
                       ) : <span className="text-zinc-400">-</span>}
                     </td>
+                    <td className="px-3 py-2">
+                      {r.client_name ? (
+                        <span className="text-xs text-emerald-700 font-medium">{r.client_name}</span>
+                      ) : (
+                        <span className="text-zinc-400 text-xs">-</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-center">
                       {r.check_in_time ? (
-                        <span className="text-xs text-emerald-700 font-medium">{r.check_in_time}</span>
+                        <span className="text-xs text-emerald-700 font-medium">{r.check_in_time.split('T')[1]?.slice(0,5) || r.check_in_time}</span>
                       ) : (
                         <span className="text-zinc-400 text-xs">-</span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
                       {r.check_out_time ? (
-                        <span className="text-xs text-red-600 font-medium">{r.check_out_time}</span>
+                        <span className="text-xs text-red-600 font-medium">{r.check_out_time.split('T')[1]?.slice(0,5) || r.check_out_time}</span>
                       ) : (
                         <span className="text-zinc-400 text-xs">-</span>
                       )}
@@ -655,6 +878,101 @@ const Attendance = () => {
             </table>
           </div>
         )
+      )}
+      
+      {/* Travel Reimbursement Modal */}
+      {showTravelModal && travelData && (
+        <Dialog open={showTravelModal} onOpenChange={setShowTravelModal}>
+          <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-zinc-950 flex items-center gap-2">
+                <Car className="w-5 h-5 text-teal-600" /> Travel Reimbursement
+              </DialogTitle>
+              <DialogDescription className="text-zinc-500">
+                Claim travel expense for your client visit
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Trip Summary */}
+              <div className="p-4 bg-teal-50 border border-teal-200 rounded-md">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-teal-700">Distance (Round Trip)</span>
+                  <span className="font-bold text-teal-900">{travelData.distance_km} km</span>
+                </div>
+                <div className="text-xs text-teal-600">
+                  <p><strong>From:</strong> {travelData.from_location}</p>
+                  <p><strong>To:</strong> {travelData.client_name || travelData.to_location}</p>
+                </div>
+              </div>
+              
+              {/* Vehicle Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Select Vehicle</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTravelVehicle('car')}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                      travelVehicle === 'car' ? 'border-blue-500 bg-blue-50' : 'border-zinc-200'
+                    }`}
+                  >
+                    <Car className={`w-6 h-6 ${travelVehicle === 'car' ? 'text-blue-600' : 'text-zinc-400'}`} />
+                    <div className="text-left">
+                      <p className="font-medium text-zinc-900">Car</p>
+                      <p className="text-xs text-zinc-500">Rs 7/km</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTravelVehicle('two_wheeler')}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                      travelVehicle === 'two_wheeler' ? 'border-emerald-500 bg-emerald-50' : 'border-zinc-200'
+                    }`}
+                  >
+                    <Bike className={`w-6 h-6 ${travelVehicle === 'two_wheeler' ? 'text-emerald-600' : 'text-zinc-400'}`} />
+                    <div className="text-left">
+                      <p className="font-medium text-zinc-900">Two Wheeler</p>
+                      <p className="text-xs text-zinc-500">Rs 3/km</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Amount Preview */}
+              <div className="p-4 bg-zinc-100 rounded-md">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-zinc-600">Estimated Amount</span>
+                  <span className="text-2xl font-bold text-zinc-900">
+                    Rs {Math.round(travelData.distance_km * (travelVehicle === 'car' ? 7 : 3))}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => { setShowTravelModal(false); setTravelData(null); }}
+                  className="flex-1"
+                >
+                  Skip
+                </Button>
+                <Button 
+                  onClick={handleSubmitTravelClaim}
+                  disabled={submittingTravel}
+                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  {submittingTravel ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
+                  ) : (
+                    <><Send className="w-4 h-4 mr-2" /> Submit Claim</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
