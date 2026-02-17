@@ -76,20 +76,20 @@ const HRDashboard = () => {
         </Badge>
       </div>
 
-      {/* Quick Attendance Card */}
+      {/* Quick Attendance Card - Light Blue to Dark Blue Gradient */}
       <Card 
-        className="cursor-pointer transition-all hover:shadow-lg bg-gradient-to-r from-black to-zinc-800 border-0"
+        className="cursor-pointer transition-all hover:shadow-lg bg-gradient-to-r from-sky-400 via-blue-500 to-blue-700 border-blue-500"
         onClick={() => setShowQuickCheckIn(true)}
         data-testid="hr-quick-attendance-card"
       >
         <CardContent className="flex items-center justify-between p-5">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
               <Clock className="w-6 h-6 text-white" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">Quick Attendance</h3>
-              <p className="text-white/60 text-sm">
+              <p className="text-white/70 text-sm">
                 {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out 
                   ? 'Completed for today' 
                   : attendanceStatus?.has_checked_in 
@@ -109,7 +109,7 @@ const HRDashboard = () => {
               <span className="text-white font-medium">Check Out</span>
             </div>
           ) : (
-            <button className="bg-white text-black hover:bg-white/90 h-11 px-6 font-semibold rounded-lg flex items-center gap-2">
+            <button className="bg-white text-blue-600 hover:bg-white/90 h-11 px-6 font-semibold rounded-lg flex items-center gap-2">
               <LogIn className="w-5 h-5" /> Check In
             </button>
           )}
