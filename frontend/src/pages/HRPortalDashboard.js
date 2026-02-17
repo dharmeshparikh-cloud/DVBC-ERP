@@ -296,7 +296,7 @@ const HRPortalDashboard = () => {
         </Card>
       </div>
 
-      {/* Quick Actions - 2x3 on mobile, 5 on desktop */}
+      {/* Quick Actions - Consistent across all screen sizes */}
       <Card className="border-zinc-200 dark:border-zinc-800">
         <CardHeader className="px-4 md:px-6 py-3 md:py-4">
           <CardTitle className="text-sm md:text-base">Quick Actions</CardTitle>
@@ -318,20 +318,20 @@ const HRPortalDashboard = () => {
             <Link to="/hr/attendance">
               <Button variant="outline" className="w-full h-16 md:h-20 flex-col gap-1 md:gap-2 p-2">
                 <Clock className="w-4 h-4 md:w-5 md:h-5" />
-                <span className="text-xs">Attendance</span>
+                <span className="text-[10px] md:text-xs text-center leading-tight">Attendance</span>
               </Button>
             </Link>
             <Link to="/hr/payroll">
-              <Button variant="outline" className="w-full h-20 flex-col gap-2">
-                <Wallet className="w-5 h-5" />
-                <span className="text-xs">Run Payroll</span>
+              <Button variant="outline" className="w-full h-16 md:h-20 flex-col gap-1 md:gap-2 p-2">
+                <Wallet className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-[10px] md:text-xs text-center leading-tight">Run Payroll</span>
               </Button>
             </Link>
             {isHRManager && (
               <Link to="/hr/team-workload">
-                <Button variant="outline" className="w-full h-20 flex-col gap-2">
-                  <Briefcase className="w-5 h-5" />
-                  <span className="text-xs">Team Workload</span>
+                <Button variant="outline" className="w-full h-16 md:h-20 flex-col gap-1 md:gap-2 p-2">
+                  <Briefcase className="w-4 h-4 md:w-5 md:h-5" />
+                  <span className="text-[10px] md:text-xs text-center leading-tight">Team Workload</span>
                 </Button>
               </Link>
             )}
