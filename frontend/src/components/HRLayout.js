@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '../App';
 import NotificationBell from './NotificationBell';
@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, UsersRound, GitBranch, CalendarDays, 
   Clock, Wallet, Receipt, BarChart3, FileText, ChevronDown, ChevronRight,
   LogOut, Menu, X, Sun, Moon, UserPlus, ClipboardCheck, Briefcase,
-  AlertCircle, Bell, Key
+  AlertCircle, Bell, Key, Home, Calendar, UserCircle
 } from 'lucide-react';
 import { Button } from './ui/button';
 import ChangePasswordDialog from './ChangePasswordDialog';
@@ -18,18 +18,41 @@ const HRLayout = () => {
   const { user, logout } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [expanded, setExpanded] = useState({
     employees: true,
     operations: true,
-    teamView: user?.role === 'hr_manager', // Only HR Manager sees this
+    teamView: user?.role === 'hr_manager',
     selfService: true
   });
   const [showChangePassword, setShowChangePassword] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
 
   const isHRManager = user?.role === 'hr_manager';
   const isHRExecutive = user?.role === 'hr_executive';
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setSidebarOpen(true);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Close sidebar on navigation (mobile)
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   const handleLogout = () => {
     logout();
