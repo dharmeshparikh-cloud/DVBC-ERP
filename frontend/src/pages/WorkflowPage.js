@@ -16,7 +16,7 @@ const WORKFLOWS = {
   sales_to_delivery: {
     id: 'sales_to_delivery',
     title: 'Lead to Delivery',
-    subtitle: 'Complete Sales Cycle',
+    subtitle: 'Sales → Consulting Handover',
     color: 'orange',
     icon: TrendingUp,
     steps: [
@@ -24,8 +24,9 @@ const WORKFLOWS = {
       { id: 'qualify', title: 'Qualification', description: 'Lead scoring & qualification', icon: CheckCircle, link: '/leads', module: 'Sales' },
       { id: 'proposal', title: 'Proposal', description: 'SOW & pricing shared', icon: FileText, link: '/proposals', module: 'Sales' },
       { id: 'agreement', title: 'Agreement', description: 'Contract signed', icon: ClipboardList, link: '/agreements', module: 'Sales' },
-      { id: 'kickoff', title: 'Project Kickoff', description: 'Handover to consulting', icon: Zap, link: '/kickoff-requests', module: 'Consulting' },
-      { id: 'assign', title: 'Team Assignment', description: 'Consultants assigned', icon: Users, link: '/consultants', module: 'HR' },
+      { id: 'kickoff', title: 'Kickoff Request', description: 'Sales hands over to Consulting', icon: Zap, link: '/kickoff-requests', module: 'Sales' },
+      { id: 'kickoff_accept', title: 'Kickoff Accepted', description: 'Consulting accepts project', icon: CheckCircle, link: '/kickoff-requests', module: 'Consulting' },
+      { id: 'assign', title: 'Team Assignment', description: 'PM/Admin assigns consultants', icon: Users, link: '/projects', module: 'Consulting' },
       { id: 'delivery', title: 'Meeting Delivery', description: 'Services delivered', icon: Calendar, link: '/meetings', module: 'Consulting' },
       { id: 'closure', title: 'Project Closure', description: 'Project completed', icon: Award, link: '/projects', module: 'Consulting' },
     ]
