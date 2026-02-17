@@ -412,7 +412,7 @@ class TestCheckOut:
     
     def test_checkout_records_time_and_hours(self, consultant_token, cleanup_attendance):
         """Verify check-out records time and calculates work hours"""
-        test_date = (datetime.now() + timedelta(days=205)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+15)).strftime("%Y-%m-%d")
         
         # First check in
         checkin_response = requests.post(
