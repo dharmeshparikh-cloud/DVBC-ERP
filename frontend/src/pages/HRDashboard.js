@@ -187,52 +187,52 @@ const HRDashboard = () => {
       </div>
 
       {/* Department Breakdown */}
-      <Card className="border-zinc-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <Card className="border-zinc-200 dark:border-zinc-800">
+        <CardHeader className="pb-2 px-4 md:px-6">
+          <CardTitle className="text-sm md:text-base flex items-center gap-2">
             <Users className="w-4 h-4" />
             Employees by Department
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-5 gap-4">
+        <CardContent className="px-4 md:px-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
             {Object.entries(employees.by_department || {}).map(([dept, count]) => (
-              <div key={dept} className="text-center p-4 bg-zinc-50 rounded-lg">
-                <p className="text-2xl font-bold text-zinc-900">{count}</p>
-                <p className="text-xs text-zinc-500 mt-1 truncate">{dept}</p>
+              <div key={dept} className="text-center p-3 md:p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                <p className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-100">{count}</p>
+                <p className="text-[10px] md:text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 md:mt-1 truncate">{dept}</p>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Pending Actions */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Pending Actions - Stack on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         {/* Pending Leaves */}
-        <Card className="border-zinc-200">
-          <CardHeader className="pb-2">
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardHeader className="pb-2 px-4 md:px-6">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-sm md:text-base flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Leave Requests
               </CardTitle>
-              <Link to="/leave-management" className="text-sm text-blue-600 hover:underline">
+              <Link to="/leave-management" className="text-xs md:text-sm text-blue-600 hover:underline">
                 View All
               </Link>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 bg-amber-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-amber-600" />
+          <CardContent className="px-4 md:px-6">
+            <div className="flex items-center justify-between p-3 md:p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
                 </div>
-                <div>
-                  <p className="font-medium text-amber-800">Pending Approval</p>
-                  <p className="text-sm text-amber-600">Requires your attention</p>
+                <div className="min-w-0">
+                  <p className="font-medium text-amber-800 dark:text-amber-300 text-sm md:text-base">Pending Approval</p>
+                  <p className="text-xs md:text-sm text-amber-600 dark:text-amber-400 truncate">Requires your attention</p>
                 </div>
               </div>
-              <Badge className="bg-amber-600 text-white text-lg px-4">
+              <Badge className="bg-amber-600 text-white text-base md:text-lg px-3 md:px-4 flex-shrink-0">
                 {leaves.pending_requests || 0}
               </Badge>
             </div>
@@ -240,23 +240,23 @@ const HRDashboard = () => {
         </Card>
 
         {/* Pending Expenses */}
-        <Card className="border-zinc-200">
-          <CardHeader className="pb-2">
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardHeader className="pb-2 px-4 md:px-6">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-sm md:text-base flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 Expense Approvals
               </CardTitle>
-              <Link to="/approvals" className="text-sm text-blue-600 hover:underline">
+              <Link to="/approvals" className="text-xs md:text-sm text-blue-600 hover:underline">
                 View All
               </Link>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-purple-600" />
+          <CardContent className="px-4 md:px-6">
+            <div className="flex items-center justify-between p-3 md:p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                 </div>
                 <div>
                   <p className="font-medium text-purple-800">Pending Expenses</p>
