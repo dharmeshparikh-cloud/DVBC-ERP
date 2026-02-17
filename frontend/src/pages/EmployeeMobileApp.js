@@ -41,12 +41,22 @@ const EmployeeMobileApp = () => {
   // Expense form states
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [expenseForm, setExpenseForm] = useState({
+    is_office_expense: true,
+    client_id: '',
+    client_name: '',
+    project_id: '',
+    project_name: '',
+    notes: '',
+    line_items: []
+  });
+  const [lineItemForm, setLineItemForm] = useState({
+    category: 'local_conveyance',
     description: '',
     amount: '',
-    category: 'travel',
-    expense_date: new Date().toISOString().split('T')[0],
-    remarks: ''
+    date: new Date().toISOString().split('T')[0]
   });
+  const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
 
   // Leave form states
   const [showLeaveModal, setShowLeaveModal] = useState(false);
