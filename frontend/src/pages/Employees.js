@@ -488,6 +488,14 @@ const Employees = () => {
                             {emp.employment_type?.replace('_', ' ')}
                           </span>
                         </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <Smartphone className={`w-3.5 h-3.5 ${emp.mobile_app_disabled ? 'text-red-400' : 'text-emerald-500'}`} />
+                            <span className={`text-xs ${emp.mobile_app_disabled ? 'text-red-600' : 'text-emerald-600'}`}>
+                              {emp.mobile_app_disabled ? 'Disabled' : 'Enabled'}
+                            </span>
+                          </div>
+                        </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           {emp.user_id ? (
                             <div className="flex items-center gap-2">
