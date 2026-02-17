@@ -10294,6 +10294,79 @@ async def mark_expense_reimbursed(
     }
 
 
+@api_router.post("/expenses/{expense_id}/upload-receipt")
+async def upload_expense_receipt(
+    expense_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload receipt/attachment for an expense (base64 image)"""
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # Check permission - only creator or HR/Admin can upload
+    if expense.get('created_by') != current_user.id and current_user.role not in ['admin', 'hr_manager']:
+        raise HTTPException(status_code=403, detail="Not authorized to upload receipts for this expense")
+    
+    receipt_data = data.get('receipt')
+    receipt_name = data.get('name', f'receipt_{datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")}')
+    line_item_index = data.get('line_item_index')  # Optional: attach to specific line item
+    
+    if not receipt_data:
+        raise HTTPException(status_code=400, detail="No receipt data provided")
+    
+    receipt_doc = {
+        "id": str(uuid.uuid4()),
+        "name": receipt_name,
+        "data": receipt_data,  # Base64 encoded image
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "uploaded_by": current_user.id,
+        "line_item_index": line_item_index
+    }
+    
+    # Get existing receipts or create new list
+    existing_receipts = expense.get('receipts', [])
+    existing_receipts.append(receipt_doc)
+    
+    await db.expenses.update_one(
+        {"id": expense_id},
+        {"$set": {
+            "receipts": existing_receipts,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Receipt uploaded successfully", "receipt_id": receipt_doc['id']}
+
+
+@api_router.delete("/expenses/{expense_id}/receipts/{receipt_id}")
+async def delete_expense_receipt(
+    expense_id: str,
+    receipt_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a receipt from an expense"""
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # Check permission
+    if expense.get('created_by') != current_user.id and current_user.role not in ['admin', 'hr_manager']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Remove receipt
+    receipts = expense.get('receipts', [])
+    receipts = [r for r in receipts if r.get('id') != receipt_id]
+    
+    await db.expenses.update_one(
+        {"id": expense_id},
+        {"$set": {"receipts": receipts, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Receipt deleted"}
+
+
 @api_router.post("/expenses/{expense_id}/approve")
 async def approve_expense(
     expense_id: str,
