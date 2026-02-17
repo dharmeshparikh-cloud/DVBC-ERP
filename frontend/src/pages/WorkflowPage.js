@@ -401,11 +401,11 @@ const WorkflowPage = () => {
         ].map(({ module, icon: Icon, stats }) => {
           const colors = MODULE_COLORS[module];
           return (
-            <Card key={module} className={`border ${colors.border} dark:bg-zinc-900`}>
+            <Card key={module} className={`border ${colors.border} bg-white dark:bg-zinc-900`}>
               <CardHeader className={`${colors.bg} py-3`}>
                 <div className="flex items-center gap-2">
                   <Icon className={`w-5 h-5 ${colors.text}`} />
-                  <CardTitle className={`text-lg ${colors.text}`}>{module} Module</CardTitle>
+                  <CardTitle className={`text-lg font-bold ${colors.text}`}>{module} Module</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
@@ -413,12 +413,12 @@ const WorkflowPage = () => {
                   <Link 
                     key={stat.label} 
                     to={stat.link}
-                    className="flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-800 p-2 rounded-lg transition-colors group"
+                    className="flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 p-2 rounded-lg transition-colors group"
                   >
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">{stat.label}</span>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-zinc-900 dark:text-zinc-100">{stat.value}</span>
-                      <ChevronRight className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <ChevronRight className="w-4 h-4 text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </Link>
                 ))}
