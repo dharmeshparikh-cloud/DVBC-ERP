@@ -11157,9 +11157,6 @@ async def validate_checkin_location(emp: dict, geo_location: dict, work_location
                         "longitude": client["geo_coordinates"].get("longitude"),
                         "address": client.get("address")
                     })
-                        "longitude": client["geo_coordinates"].get("longitude"),
-                        "address": client.get("address")
-                    })
     
     # Check if current location matches any approved location
     for loc in approved_locations:
