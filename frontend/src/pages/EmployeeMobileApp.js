@@ -324,31 +324,25 @@ const EmployeeMobileApp = () => {
     
     setSubmittingTravelClaim(true);
     try {
-      // Recalculate with selected vehicle type
-      const rate = travelClaimVehicle === 'car' ? 7 : 3;
-      const baseDistance = lastTravelReimbursement.distance_km / (lastTravelReimbursement.is_round_trip ? 2 : 1);
-      const totalDistance = baseDistance * 2; // Always round trip from office to client and back
-      const calculatedAmount = Math.round(totalDistance * rate * 100) / 100;
-      
       const response = await axios.post(`${API}/travel/reimbursement`, {
         start_location: {
           name: lastTravelReimbursement.from_location || 'Office',
           address: lastTravelReimbursement.from_location || 'Office',
-          latitude: 0, // Office location
-          longitude: 0
+          latitude: lastTravelReimbursement.office_lat || 12.9716,
+          longitude: lastTravelReimbursement.office_lon || 77.5946
         },
         end_location: {
           name: lastTravelReimbursement.to_location || 'Client Site',
           address: lastTravelReimbursement.to_location || 'Client Site',
-          latitude: lastTravelReimbursement.check_out_location?.latitude || 0,
-          longitude: lastTravelReimbursement.check_out_location?.longitude || 0
+          latitude: lastTravelReimbursement.client_lat || lastTravelReimbursement.check_out_location?.latitude || 0,
+          longitude: lastTravelReimbursement.client_lon || lastTravelReimbursement.check_out_location?.longitude || 0
         },
         vehicle_type: travelClaimVehicle,
         is_round_trip: true,
         travel_type: 'attendance',
         attendance_id: lastAttendanceId,
         travel_date: new Date().toISOString().split('T')[0],
-        notes: `Auto-generated from attendance check-out`
+        notes: `Auto-generated from attendance check-out (${travelClaimVehicle})`
       });
       
       toast.success(`Travel claim submitted! ₹${response.data.final_amount} for ${response.data.distance_km} km`);
