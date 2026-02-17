@@ -492,9 +492,9 @@ const EmployeeMobileApp = () => {
     }
   };
 
-  // Handle location search (OpenStreetMap/Nominatim)
+  // Handle location search (Google Places API)
   const searchLocations = async (query) => {
-    if (!query || query.length < 3) {
+    if (!query || query.length < 2) {
       setLocationSearchResults([]);
       return;
     }
@@ -513,21 +513,49 @@ const EmployeeMobileApp = () => {
   // Debounced location search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (locationSearchQuery.length >= 3) {
+      if (locationSearchQuery.length >= 2) {
         searchLocations(locationSearchQuery);
       }
-    }, 500);
+    }, 300); // Faster debounce for Google API
     return () => clearTimeout(timer);
   }, [locationSearchQuery]);
 
-  // Select location from search results
-  const selectLocation = (loc) => {
-    const locationData = {
-      name: loc.name,
-      address: loc.address,
-      latitude: loc.latitude,
-      longitude: loc.longitude
-    };
+  // Select location from search results - fetch full details from Google
+  const selectLocation = async (loc) => {
+    // If we have a place_id, fetch full details including coordinates
+    if (loc.place_id) {
+      try {
+        setSearchingLocations(true);
+        const response = await axios.get(`${API}/travel/place-details/${loc.place_id}`);
+        const details = response.data;
+        
+        const locationData = {
+          name: details.name || loc.name,
+          address: details.address || loc.address,
+          latitude: details.latitude,
+          longitude: details.longitude,
+          place_id: details.place_id
+        };
+        
+        if (selectingFor === 'start') {
+          setTravelForm({ ...travelForm, start_location: locationData });
+        } else if (selectingFor === 'end') {
+          setTravelForm({ ...travelForm, end_location: locationData });
+        }
+      } catch (error) {
+        console.error('Failed to get place details:', error);
+        toast.error('Failed to get location details');
+      } finally {
+        setSearchingLocations(false);
+      }
+    } else {
+      // Fallback for locations without place_id
+      const locationData = {
+        name: loc.name,
+        address: loc.address,
+        latitude: loc.latitude || 0,
+        longitude: loc.longitude || 0
+      };
     
     if (selectingFor === 'start') {
       setTravelForm({ ...travelForm, start_location: locationData });
