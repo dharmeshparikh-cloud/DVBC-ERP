@@ -2,19 +2,35 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Briefcase, Calendar, TrendingUp, Clock, CheckCircle, Target, Users } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Briefcase, Calendar, TrendingUp, Clock, CheckCircle, Target, Users, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../utils/currency';
+import QuickCheckInModal from '../components/QuickCheckInModal';
 
 const ConsultantDashboard = () => {
   const { user } = useContext(AuthContext);
   const [stats, setStats] = useState(null);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Quick Check-in state
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
   useEffect(() => {
     fetchData();
+    fetchAttendanceStatus();
   }, []);
+
+  const fetchAttendanceStatus = async () => {
+    try {
+      const res = await axios.get(`${API}/my/check-status`);
+      setAttendanceStatus(res.data);
+    } catch (err) {
+      console.error('Failed to fetch attendance status');
+    }
+  };
 
   const fetchData = async () => {
     try {

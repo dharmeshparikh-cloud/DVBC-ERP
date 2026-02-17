@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -8,7 +9,7 @@ import { Progress } from '../components/ui/progress';
 import { 
   TrendingUp, Users, FileText, CheckCircle, Clock, Flame,
   DollarSign, Target, ArrowRight, Send, Building2, BarChart3,
-  Calendar, Award, TrendingDown, Thermometer, PieChart
+  Calendar, Award, TrendingDown, Thermometer, PieChart, LogIn
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -16,6 +17,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line, Area, AreaChart
 } from 'recharts';
+import QuickCheckInModal from '../components/QuickCheckInModal';
 
 const COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4', '#f59e0b', '#ec4899'];
 
@@ -29,10 +31,24 @@ const SalesDashboardEnhanced = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('own');
+  
+  // Quick Check-in state
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
   useEffect(() => {
     fetchStats();
+    fetchAttendanceStatus();
   }, [viewMode]);
+
+  const fetchAttendanceStatus = async () => {
+    try {
+      const res = await axios.get(`${API}/my/check-status`);
+      setAttendanceStatus(res.data);
+    } catch (err) {
+      console.error('Failed to fetch attendance status');
+    }
+  };
 
   const fetchStats = async () => {
     try {
