@@ -216,14 +216,16 @@ A comprehensive travel reimbursement feature for employees:
 - **Mobile App Integration**: Dedicated Travel tab for Sales team in `/mobile`
 - **ERP Management**: HR/Admin can approve/reject/convert travel claims
 - **Payroll Integration**: Approved claims can be converted to expenses
+- **Auto-Prompt on Check-out**: Consultants checking out from client sites are automatically prompted to claim travel reimbursement with pre-filled locations and vehicle selection
 
 **Components:**
 - `/mobile` - Travel tab with claim submission (location search, vehicle type, round trip toggle)
+- `/mobile` - Auto travel claim modal after client site check-out
 - `/travel-reimbursement` - ERP page for HR/Admin to manage claims
 - Backend APIs: `/api/travel/*` endpoints for CRUD operations
 
 **Scenarios Supported:**
-1. **Consultants**: Auto-calculate from attendance check-in/out locations
+1. **Consultants**: Auto-calculate from attendance check-in/out locations (prompted on check-out)
 2. **Sales Team**: Manual entry with location search for client meetings
 
 ## Backlog / Future Tasks
