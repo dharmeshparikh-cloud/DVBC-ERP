@@ -501,12 +501,23 @@ const Employees = () => {
                             {emp.employment_type?.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1.5">
                             <Smartphone className={`w-3.5 h-3.5 ${emp.mobile_app_disabled ? 'text-red-400' : 'text-emerald-500'}`} />
                             <span className={`text-xs ${emp.mobile_app_disabled ? 'text-red-600' : 'text-emerald-600'}`}>
                               {emp.mobile_app_disabled ? 'Disabled' : 'Enabled'}
                             </span>
+                            {canManage && (
+                              <Button
+                                onClick={() => handleToggleMobileAccess(emp.id, emp.mobile_app_disabled)}
+                                variant="ghost"
+                                size="sm"
+                                className={`h-5 px-1.5 text-[10px] ml-1 ${emp.mobile_app_disabled ? 'text-emerald-600 hover:bg-emerald-50' : 'text-red-600 hover:bg-red-50'}`}
+                                title={emp.mobile_app_disabled ? 'Enable mobile access' : 'Disable mobile access'}
+                              >
+                                {emp.mobile_app_disabled ? 'Enable' : 'Disable'}
+                              </Button>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
