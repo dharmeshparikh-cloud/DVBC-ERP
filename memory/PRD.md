@@ -275,6 +275,16 @@ A comprehensive travel reimbursement feature for employees:
   - [x] Added to Admin and HR navigation panels
   - [x] Includes tutorials for: Add Employee, Grant Access, Mark Attendance, Apply Leave
   - [x] Interactive progress tracking with "Mark Done" buttons
+- [x] **Change Password Feature (Feb 17, 2026)**
+  - [x] `ChangePasswordDialog` component with form validation
+  - [x] Password strength indicator (5 levels: Very Weak to Strong)
+  - [x] Password match validation and requirements display
+  - [x] Integrated into Main ERP Layout (Layout.js)
+  - [x] Integrated into HR Portal Layout (HRLayout.js)
+  - [x] Integrated into Sales Portal Layout (SalesLayout.js)
+  - [x] Backend API: `POST /api/auth/change-password`
+  - [x] Security audit logging on password changes
+  - [x] Full test coverage: 7 backend tests, UI verification across all portals
 
 ## Test Accounts (Fresh Database)
 
