@@ -218,7 +218,7 @@ class TestAutoApprovalWithinGeofence:
     
     def test_checkin_at_office_auto_approved(self, consultant_token, cleanup_attendance):
         """Verify check-in within 500m of office is auto-approved"""
-        test_date = (datetime.now() + timedelta(days=200)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+10)).strftime("%Y-%m-%d")
         
         response = requests.post(
             f"{BASE_URL}/api/my/check-in",
