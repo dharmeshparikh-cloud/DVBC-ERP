@@ -8964,6 +8964,89 @@ async def create_employee(
     
     return {"message": "Employee created successfully", "employee_id": employee.id, "emp_id": employee.employee_id}
 
+# Model for granting system access
+class GrantSystemAccessRequest(BaseModel):
+    employee_id: str
+    role: str
+    password: str = "Welcome@123"  # Default password
+
+@api_router.post("/employees/{employee_id}/grant-access")
+async def grant_system_access(
+    employee_id: str,
+    access_request: GrantSystemAccessRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Grant system login access to an employee (Admin/HR Manager only)"""
+    if current_user.role not in ['admin', 'hr_manager']:
+        raise HTTPException(status_code=403, detail="Only Admin or HR Manager can grant system access")
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": employee['email']}, {"_id": 0})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User account already exists for this email")
+    
+    # Create user account
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "email": employee['email'],
+        "hashed_password": get_password_hash(access_request.password),
+        "role": access_request.role,
+        "full_name": f"{employee['first_name']} {employee['last_name']}",
+        "department": employee.get('department', ''),
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc),
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    # Update employee with user_id and role
+    await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {"user_id": user_id, "role": access_request.role, "has_system_access": True}}
+    )
+    
+    return {
+        "message": "System access granted successfully",
+        "email": employee['email'],
+        "temporary_password": access_request.password,
+        "role": access_request.role
+    }
+
+@api_router.delete("/employees/{employee_id}/revoke-access")
+async def revoke_system_access(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Revoke system login access from an employee (Admin only)"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Only Admin can revoke system access")
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    user_id = employee.get('user_id')
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Employee does not have system access")
+    
+    # Delete user account
+    await db.users.delete_one({"id": user_id})
+    
+    # Update employee
+    await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {"user_id": None, "role": None, "has_system_access": False}}
+    )
+    
+    return {"message": "System access revoked successfully"}
+
 @api_router.get("/employees/{employee_id}")
 async def get_employee(
     employee_id: str,
