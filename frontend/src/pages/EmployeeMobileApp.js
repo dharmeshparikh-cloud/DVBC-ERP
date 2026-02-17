@@ -868,6 +868,15 @@ const EmployeeMobileApp = () => {
               Complete all steps to check in
             </p>
           )}
+
+          {/* Cancel Button */}
+          <button 
+            onClick={closeModal}
+            className="w-full py-3 bg-zinc-100 text-zinc-700 rounded-2xl font-medium mt-2"
+            data-testid="cancel-checkin-btn"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
