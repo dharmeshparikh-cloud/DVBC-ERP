@@ -688,7 +688,7 @@ const EmployeeMobileApp = () => {
               <h2 className="text-xl font-bold text-zinc-900">Check In</h2>
               <p className="text-sm text-zinc-500">Selfie + Location required</p>
             </div>
-            <button onClick={() => { setShowCheckInModal(false); stopCamera(); }} className="p-2">
+            <button onClick={closeModal} className="p-2" data-testid="close-checkin-modal">
               <X className="w-6 h-6 text-zinc-400" />
             </button>
           </div>
