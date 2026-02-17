@@ -354,7 +354,10 @@ const EmployeeMobileApp = () => {
           <button 
             key={i}
             onClick={() => setActiveTab(item.tab)}
-            className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl shadow-sm border border-zinc-100"
+            onTouchEnd={(e) => { e.preventDefault(); setActiveTab(item.tab); }}
+            className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl shadow-sm border border-zinc-100 active:scale-95 transition touch-manipulation cursor-pointer"
+            style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+            data-testid={`quick-action-${item.tab}`}
           >
             <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center`}>
               <item.icon className="w-6 h-6" />
