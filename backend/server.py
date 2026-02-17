@@ -12439,12 +12439,26 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
-    # Calculate breakdown
-    breakdown = calculate_ctc_breakdown(
-        request.annual_ctc, 
-        request.retention_bonus or 0, 
-        request.retention_vesting_months or 12
-    )
+    # Calculate breakdown with custom or default config
+    if request.component_config:
+        breakdown = calculate_ctc_breakdown_dynamic(
+            request.annual_ctc, 
+            request.component_config,
+            request.retention_bonus or 0, 
+            request.retention_vesting_months or 12
+        )
+    else:
+        # Use master config
+        master_components = await get_ctc_component_master()
+        for comp in master_components:
+            if "enabled" not in comp:
+                comp["enabled"] = comp.get("enabled_by_default", True)
+        breakdown = calculate_ctc_breakdown_dynamic(
+            request.annual_ctc, 
+            master_components,
+            request.retention_bonus or 0, 
+            request.retention_vesting_months or 12
+        )
     
     # Check for existing pending request
     existing_pending = await db.ctc_structures.find_one({
@@ -12472,6 +12486,7 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
         "annual_ctc": request.annual_ctc,
         "effective_month": request.effective_month,
         "components": breakdown["components"],
+        "component_config": request.component_config,  # Store the config used
         "summary": breakdown["summary"],
         "retention_bonus": request.retention_bonus or 0,
         "retention_vesting_months": request.retention_vesting_months or 12,
