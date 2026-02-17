@@ -11376,6 +11376,143 @@ async def approve_reject_attendance(
     return {"message": f"Attendance {new_status}", "attendance_id": attendance_id}
 
 
+@api_router.post("/my/check-out")
+async def self_check_out(data: dict, current_user: User = Depends(get_current_user)):
+    """
+    Self check-out for employees with GPS location verification.
+    Must have checked in first. Records check-out time and location.
+    """
+    emp = await _get_my_employee(current_user)
+    
+    # Check if employee mobile app access is disabled
+    if emp.get("mobile_app_disabled"):
+        raise HTTPException(status_code=403, detail="Mobile app access is disabled for your account.")
+    
+    date_str = data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    
+    # Find today's check-in
+    existing = await db.attendance.find_one({"employee_id": emp["id"], "date": date_str})
+    if not existing:
+        raise HTTPException(status_code=400, detail="You must check in first before checking out")
+    
+    if existing.get("check_out_time"):
+        raise HTTPException(status_code=400, detail="You have already checked out today")
+    
+    # Geo-location for check-out
+    geo_location = data.get("geo_location")
+    
+    # Calculate work hours
+    check_in_time = existing.get("check_in_time")
+    check_out_time = datetime.now(timezone.utc).isoformat()
+    
+    work_hours = None
+    if check_in_time:
+        try:
+            check_in_dt = datetime.fromisoformat(check_in_time.replace('Z', '+00:00'))
+            check_out_dt = datetime.now(timezone.utc)
+            duration = check_out_dt - check_in_dt
+            work_hours = round(duration.total_seconds() / 3600, 2)
+        except:
+            pass
+    
+    await db.attendance.update_one(
+        {"id": existing["id"]},
+        {"$set": {
+            "check_out_time": check_out_time,
+            "check_out_location": geo_location,
+            "work_hours": work_hours,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": "Check-out successful",
+        "id": existing["id"],
+        "check_out_time": check_out_time,
+        "work_hours": work_hours
+    }
+
+
+@api_router.get("/my/check-status")
+async def get_check_in_status(current_user: User = Depends(get_current_user)):
+    """Get current day's check-in/check-out status"""
+    emp = await _get_my_employee(current_user)
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    record = await db.attendance.find_one(
+        {"employee_id": emp["id"], "date": today},
+        {"_id": 0, "selfie": 0}  # Exclude large selfie data
+    )
+    
+    return {
+        "date": today,
+        "is_checked_in": record is not None,
+        "is_checked_out": record.get("check_out_time") is not None if record else False,
+        "record": record
+    }
+
+
+@api_router.put("/hr/employee/{employee_id}/mobile-access")
+async def toggle_employee_mobile_access(
+    employee_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Enable or disable employee mobile app access (Admin/HR Manager only)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
+    
+    disabled = data.get("disabled", False)
+    reason = data.get("reason", "")
+    
+    result = await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {
+            "mobile_app_disabled": disabled,
+            "mobile_app_disabled_reason": reason,
+            "mobile_app_disabled_by": current_user.id,
+            "mobile_app_disabled_at": datetime.now(timezone.utc).isoformat() if disabled else None
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Create notification
+    emp = await db.employees.find_one({"id": employee_id})
+    if emp:
+        user = await db.users.find_one({"email": emp.get("email")})
+        if user:
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": user["id"],
+                "message": f"Your mobile app access has been {'disabled' if disabled else 'enabled'}" + (f": {reason}" if reason and disabled else ""),
+                "type": "mobile_access_changed",
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    return {
+        "message": f"Mobile app access {'disabled' if disabled else 'enabled'} for employee",
+        "employee_id": employee_id
+    }
+
+
+@api_router.get("/hr/employees-mobile-access")
+async def get_employees_mobile_access(current_user: User = Depends(get_current_user)):
+    """Get list of employees with their mobile app access status"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
+    
+    employees = await db.employees.find(
+        {},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, 
+         "department": 1, "mobile_app_disabled": 1, "mobile_app_disabled_reason": 1}
+    ).to_list(500)
+    
+    return {"employees": employees}
+
+
 @api_router.get("/settings/office-locations")
 async def get_office_locations(current_user: User = Depends(get_current_user)):
     """Get configured office locations"""
