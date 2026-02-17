@@ -205,112 +205,115 @@ const SalesDashboardEnhanced = () => {
         user={user} 
       />
 
-      {/* KPI Scorecards Row */}
-      <div className="grid grid-cols-6 gap-4">
+      {/* KPI Scorecards Row - Mobile Responsive */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-4">
         <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-orange-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-orange-50 to-white'}`}>
-          <CardContent className="pt-4 pb-3">
+          <CardContent className="pt-3 md:pt-4 pb-2 md:pb-3 px-3 md:px-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Leads</p>
-                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{pipeline.total || 0}</p>
+              <div className="min-w-0 flex-1">
+                <p className={`text-[10px] md:text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Leads</p>
+                <p className={`text-xl md:text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{pipeline.total || 0}</p>
               </div>
-              <Users className="w-8 h-8 text-orange-500 opacity-80" />
+              <Users className="w-6 h-6 md:w-8 md:h-8 text-orange-500 opacity-80 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
         <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-blue-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-blue-50 to-white'}`}>
-          <CardContent className="pt-4 pb-3">
+          <CardContent className="pt-3 md:pt-4 pb-2 md:pb-3 px-3 md:px-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Meetings</p>
-                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{meetings.total || 0}</p>
+              <div className="min-w-0 flex-1">
+                <p className={`text-[10px] md:text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Meetings</p>
+                <p className={`text-xl md:text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{meetings.total || 0}</p>
               </div>
-              <Calendar className="w-8 h-8 text-blue-500 opacity-80" />
+              <Calendar className="w-6 h-6 md:w-8 md:h-8 text-blue-500 opacity-80 flex-shrink-0" />
             </div>
-            <p className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{meetings.this_month || 0} this month</p>
+            <p className={`text-[10px] md:text-xs mt-0.5 md:mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{meetings.this_month || 0} this month</p>
           </CardContent>
         </Card>
 
         <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-green-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-green-50 to-white'}`}>
-          <CardContent className="pt-4 pb-3">
+          <CardContent className="pt-3 md:pt-4 pb-2 md:pb-3 px-3 md:px-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Closures</p>
-                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{closures.total || 0}</p>
+              <div className="min-w-0 flex-1">
+                <p className={`text-[10px] md:text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Closures</p>
+                <p className={`text-xl md:text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{closures.total || 0}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-500 opacity-80" />
+              <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-green-500 opacity-80 flex-shrink-0" />
             </div>
-            <p className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{closures.this_month || 0} this month</p>
+            <p className={`text-[10px] md:text-xs mt-0.5 md:mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{closures.this_month || 0} this month</p>
           </CardContent>
         </Card>
 
         <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-purple-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-purple-50 to-white'}`}>
-          <CardContent className="pt-4 pb-3">
+          <CardContent className="pt-3 md:pt-4 pb-2 md:pb-3 px-3 md:px-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Deal Value</p>
-                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{formatCurrency(stats?.deal_value?.total || 0)}</p>
+              <div className="min-w-0 flex-1">
+                <p className={`text-[10px] md:text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Deal Value</p>
+                <p className={`text-lg md:text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{formatCurrency(stats?.deal_value?.total || 0)}</p>
               </div>
-              <DollarSign className="w-8 h-8 text-purple-500 opacity-80" />
+              <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-purple-500 opacity-80 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
         <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-cyan-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-cyan-50 to-white'}`}>
-          <CardContent className="pt-4 pb-3">
+          <CardContent className="pt-3 md:pt-4 pb-2 md:pb-3 px-3 md:px-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Lead→Meeting</p>
-                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{ratios.lead_to_meeting || 0}%</p>
+              <div className="min-w-0 flex-1">
+                <p className={`text-[10px] md:text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Lead→Meet</p>
+                <p className={`text-xl md:text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{ratios.lead_to_meeting || 0}%</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-cyan-500 opacity-80" />
+              <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-cyan-500 opacity-80 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
         <Card className={`${isDark ? 'border-zinc-700 bg-gradient-to-br from-rose-500/20 to-zinc-800' : 'border-zinc-200 bg-gradient-to-br from-rose-50 to-white'}`}>
-          <CardContent className="pt-4 pb-3">
+          <CardContent className="pt-3 md:pt-4 pb-2 md:pb-3 px-3 md:px-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Lead→Closure</p>
-                <p className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{ratios.lead_to_closure || 0}%</p>
+              <div className="min-w-0 flex-1">
+                <p className={`text-[10px] md:text-xs uppercase tracking-wide ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Lead→Close</p>
+                <p className={`text-xl md:text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{ratios.lead_to_closure || 0}%</p>
               </div>
-              <Target className="w-8 h-8 text-rose-500 opacity-80" />
+              <Target className="w-6 h-6 md:w-8 md:h-8 text-rose-500 opacity-80 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Pipeline Funnel */}
+      {/* Pipeline Funnel - Mobile Responsive */}
       <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-        <CardHeader className="pb-2">
-          <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-            <Target className="w-4 h-4" />
+        <CardHeader className="pb-2 px-3 md:px-6">
+          <CardTitle className={`text-sm md:text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+            <Target className="w-3 h-3 md:w-4 md:h-4" />
             Sales Pipeline
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-2">
+        <CardContent className="px-3 md:px-6">
+          <div className="grid grid-cols-4 md:grid-cols-7 gap-1 md:gap-2">
             {[
               { label: 'New', count: pipeline.new, color: isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700' },
               { label: 'Contacted', count: pipeline.contacted, color: isDark ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-700' },
               { label: 'Qualified', count: pipeline.qualified, color: isDark ? 'bg-indigo-900/50 text-indigo-300' : 'bg-indigo-100 text-indigo-700' },
               { label: 'Proposal', count: pipeline.proposal, color: isDark ? 'bg-purple-900/50 text-purple-300' : 'bg-purple-100 text-purple-700' },
-              { label: 'Agreement', count: pipeline.agreement, color: isDark ? 'bg-amber-900/50 text-amber-300' : 'bg-amber-100 text-amber-700' },
-              { label: 'Closed', count: pipeline.closed, color: isDark ? 'bg-green-900/50 text-green-300' : 'bg-green-100 text-green-700' },
-              { label: 'Total', count: pipeline.total, color: isDark ? 'bg-zinc-600 text-white' : 'bg-zinc-900 text-white' },
+              { label: 'Agreement', count: pipeline.agreement, color: isDark ? 'bg-amber-900/50 text-amber-300' : 'bg-amber-100 text-amber-700', hideMobile: true },
+              { label: 'Closed', count: pipeline.closed, color: isDark ? 'bg-green-900/50 text-green-300' : 'bg-green-100 text-green-700', hideMobile: true },
+              { label: 'Total', count: pipeline.total, color: isDark ? 'bg-zinc-600 text-white' : 'bg-zinc-900 text-white', hideMobile: true },
             ].map((stage, i) => (
-              <div key={i} className="text-center">
-                <div className={`rounded-lg py-3 px-2 ${stage.color}`}>
-                  <p className="text-2xl font-bold">{stage.count || 0}</p>
-                  <p className="text-xs mt-1">{stage.label}</p>
+              <div key={i} className={`text-center ${stage.hideMobile ? 'hidden md:block' : ''}`}>
+                <div className={`rounded-lg py-2 md:py-3 px-1 md:px-2 ${stage.color}`}>
+                  <p className="text-lg md:text-2xl font-bold">{stage.count || 0}</p>
+                  <p className="text-[9px] md:text-xs mt-0.5 md:mt-1 truncate">{stage.label}</p>
                 </div>
-                {i < 6 && (
-                  <ArrowRight className={`w-4 h-4 mx-auto mt-2 ${isDark ? 'text-zinc-600' : 'text-zinc-300'}`} />
-                )}
               </div>
             ))}
+          </div>
+          {/* Mobile-only summary */}
+          <div className="flex justify-between mt-2 md:hidden text-xs">
+            <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>Agreement: {pipeline.agreement || 0}</span>
+            <span className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>Closed: {pipeline.closed || 0}</span>
+            <span className={`font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>Total: {pipeline.total || 0}</span>
           </div>
         </CardContent>
       </Card>
