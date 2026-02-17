@@ -443,17 +443,17 @@ const WorkflowPage = () => {
             ].map((integration, idx) => (
               <div 
                 key={idx}
-                className={`p-4 rounded-xl bg-${integration.color}-50 border border-${integration.color}-200`}
+                className={`p-4 rounded-xl bg-${integration.color}-50 dark:bg-${integration.color}-900/20 border border-${integration.color}-200 dark:border-${integration.color}-800`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   {React.createElement(integration.icon, { 
-                    className: `w-5 h-5 text-${integration.color}-600` 
+                    className: `w-5 h-5 text-${integration.color}-600 dark:text-${integration.color}-400` 
                   })}
-                  <span className={`font-semibold text-${integration.color}-700`}>
+                  <span className={`font-semibold text-${integration.color}-700 dark:text-${integration.color}-300`}>
                     {integration.from} → {integration.to}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-600">{integration.description}</p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">{integration.description}</p>
               </div>
             ))}
           </div>
