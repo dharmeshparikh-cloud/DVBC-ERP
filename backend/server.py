@@ -12278,16 +12278,28 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     if work_location not in ["in_office", "onsite"]:
         raise HTTPException(status_code=400, detail="Invalid work location. Only 'In Office' or 'On-Site' allowed.")
     
-    # Non-consulting employees cannot select "onsite"
+    # Non-consulting employees cannot select "onsite" - BUT Sales can also visit clients
     dept = emp.get("department", "").lower()
     role = emp.get("designation", "").lower()
+    user_role = current_user.role.lower() if current_user.role else ""
     is_consulting = dept in ["consulting", "delivery"] or "consultant" in role
+    is_sales = user_role in ["admin", "executive", "account_manager", "manager"] or dept in ["sales", "business development"]
     
-    if work_location == "onsite" and not is_consulting:
+    # Both consulting and sales teams can do onsite visits
+    if work_location == "onsite" and not (is_consulting or is_sales):
         raise HTTPException(
             status_code=400, 
-            detail="On-Site check-in is only available for Consulting/Delivery team members. Please select 'Office'."
+            detail="On-Site check-in is only available for Consulting/Delivery or Sales team members. Please select 'Office'."
         )
+    
+    # For onsite, client selection is mandatory
+    client_id = data.get("client_id")
+    client_name = data.get("client_name")
+    project_id = data.get("project_id")
+    project_name = data.get("project_name")
+    
+    if work_location == "onsite" and not client_name:
+        raise HTTPException(status_code=400, detail="Please select a client for On-Site check-in")
     
     # Mandatory selfie
     selfie_data = data.get("selfie")
