@@ -375,6 +375,30 @@ const Expenses = () => {
                           Submit
                         </Button>
                       )}
+                      {expense.status === 'pending' && isHROrAdmin && (
+                        <>
+                          <Button 
+                            onClick={() => handleApproveExpense(expense.id)} 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 px-2 text-emerald-600 hover:bg-emerald-50"
+                            data-testid={`approve-expense-${expense.id}`}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button 
+                            onClick={() => handleRejectExpense(expense.id)} 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 px-2 text-red-600 hover:bg-red-50"
+                            data-testid={`reject-expense-${expense.id}`}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
                       {expense.status === 'approved' && isHROrAdmin && (
                         <Button 
                           onClick={() => handleMarkReimbursed(expense.id)} 
