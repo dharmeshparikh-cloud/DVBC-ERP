@@ -14,7 +14,7 @@ const TravelReimbursement = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, approved, rejected
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(''); // Empty to show all by default
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchClaims = async () => {
