@@ -443,6 +443,131 @@ const EmployeeMobileApp = () => {
     }
   };
 
+  // Handle location search (OpenStreetMap/Nominatim)
+  const searchLocations = async (query) => {
+    if (!query || query.length < 3) {
+      setLocationSearchResults([]);
+      return;
+    }
+    setSearchingLocations(true);
+    try {
+      const response = await axios.get(`${API}/travel/location-search?query=${encodeURIComponent(query)}`);
+      setLocationSearchResults(response.data.results || []);
+    } catch (error) {
+      console.error('Location search failed:', error);
+      setLocationSearchResults([]);
+    } finally {
+      setSearchingLocations(false);
+    }
+  };
+
+  // Debounced location search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (locationSearchQuery.length >= 3) {
+        searchLocations(locationSearchQuery);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [locationSearchQuery]);
+
+  // Select location from search results
+  const selectLocation = (loc) => {
+    const locationData = {
+      name: loc.name,
+      address: loc.address,
+      latitude: loc.latitude,
+      longitude: loc.longitude
+    };
+    
+    if (selectingFor === 'start') {
+      setTravelForm({ ...travelForm, start_location: locationData });
+    } else if (selectingFor === 'end') {
+      setTravelForm({ ...travelForm, end_location: locationData });
+    }
+    
+    setLocationSearchQuery('');
+    setLocationSearchResults([]);
+    setSelectingFor(null);
+  };
+
+  // Calculate travel distance and submit claim
+  const handleSubmitTravelClaim = async () => {
+    if (!travelForm.start_location || !travelForm.end_location) {
+      toast.error('Please select both start and end locations');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/travel/reimbursement`, {
+        start_location: travelForm.start_location,
+        end_location: travelForm.end_location,
+        vehicle_type: travelForm.vehicle_type,
+        is_round_trip: travelForm.is_round_trip,
+        travel_date: new Date().toISOString().split('T')[0],
+        travel_type: 'manual',
+        notes: travelForm.notes
+      });
+      
+      toast.success(`Travel claim submitted! Distance: ${response.data.distance_km} km, Amount: ₹${response.data.final_amount}`);
+      setShowTravelModal(false);
+      setTravelForm({
+        start_location: null,
+        end_location: null,
+        vehicle_type: 'car',
+        is_round_trip: true,
+        notes: ''
+      });
+      fetchTravelClaims();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to submit travel claim');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch travel claims
+  const fetchTravelClaims = async () => {
+    try {
+      const response = await axios.get(`${API}/my/travel-reimbursements?month=${new Date().toISOString().slice(0, 7)}`);
+      setTravelClaims(response.data.records || []);
+    } catch (error) {
+      console.error('Failed to fetch travel claims');
+    }
+  };
+
+  // Use current GPS as start location
+  const useCurrentLocationAsStart = () => {
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const coords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        };
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`
+          );
+          const data = await response.json();
+          coords.name = data.display_name?.split(',')[0] || 'Current Location';
+          coords.address = data.display_name || 'Current Location';
+        } catch (e) {
+          coords.name = 'Current Location';
+          coords.address = 'Current Location';
+        }
+        setTravelForm({ ...travelForm, start_location: coords });
+        setLocationLoading(false);
+      },
+      (error) => {
+        toast.error('Unable to get location');
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
+
   const greeting = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return 'Good Morning';
