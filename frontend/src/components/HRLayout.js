@@ -194,21 +194,41 @@ const HRLayout = () => {
         {/* User Section */}
         <div className="p-3 border-t border-zinc-200 dark:border-zinc-800">
           {sidebarOpen ? (
-            <div className="flex items-center gap-2 px-2 py-1.5">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
-                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                  {user?.full_name?.charAt(0) || 'H'}
-                </span>
+            <>
+              <div className="flex items-center gap-2 px-2 py-1.5">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                    {user?.full_name?.charAt(0) || 'H'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                    {user?.full_name}
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 capitalize">
+                    {user?.role?.replace('_', ' ')}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                  {user?.full_name}
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 capitalize">
-                  {user?.role?.replace('_', ' ')}
-                </p>
-              </div>
-            </div>
+              <Button
+                onClick={() => setShowChangePassword(true)}
+                data-testid="hr-change-password-button"
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start mt-1 h-8 text-xs text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
+              >
+                <Key className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} /> Change Password
+              </Button>
+              <Button
+                onClick={handleLogout}
+                data-testid="hr-logout-button"
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start mt-1 h-8 text-xs text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
+              >
+                <LogOut className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} /> Sign Out
+              </Button>
+            </>
           ) : (
             <div className="flex justify-center">
               <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
@@ -218,6 +238,10 @@ const HRLayout = () => {
               </div>
             </div>
           )}
+          <ChangePasswordDialog 
+            open={showChangePassword} 
+            onOpenChange={setShowChangePassword} 
+          />
         </div>
       </aside>
 
