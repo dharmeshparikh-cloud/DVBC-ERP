@@ -217,7 +217,6 @@ const Attendance = () => {
     setSelfieData(null);
     setLocation(null);
     setLocationVerified(false);
-    setAttendanceMode('simple');
     stopCamera();
   };
 
