@@ -21,8 +21,10 @@ const EmployeeMobileApp = () => {
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showCheckOutModal, setShowCheckOutModal] = useState(false);
   const [selectedWorkLocation, setSelectedWorkLocation] = useState('in_office');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isConsultingEmployee, setIsConsultingEmployee] = useState(false);
   
   // Selfie capture states
   const [selfieData, setSelfieData] = useState(null);
