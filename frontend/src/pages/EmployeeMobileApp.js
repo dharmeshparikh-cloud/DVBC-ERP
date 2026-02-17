@@ -68,6 +68,24 @@ const EmployeeMobileApp = () => {
     reason: ''
   });
 
+  // Travel claim states (for Sales team)
+  const [showTravelModal, setShowTravelModal] = useState(false);
+  const [travelClaims, setTravelClaims] = useState([]);
+  const [travelForm, setTravelForm] = useState({
+    start_location: null,
+    end_location: null,
+    vehicle_type: 'car',
+    is_round_trip: true,
+    notes: ''
+  });
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [locationSearchResults, setLocationSearchResults] = useState([]);
+  const [searchingLocations, setSearchingLocations] = useState(false);
+  const [selectingFor, setSelectingFor] = useState(null); // 'start' or 'end'
+
+  // Check if user is Sales team (can enter manual travel claims)
+  const isSalesTeam = ['admin', 'executive', 'account_manager', 'manager'].includes(user?.role);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
