@@ -556,11 +556,12 @@ const EmployeeMobileApp = () => {
         latitude: loc.latitude || 0,
         longitude: loc.longitude || 0
       };
-    
-    if (selectingFor === 'start') {
-      setTravelForm({ ...travelForm, start_location: locationData });
-    } else if (selectingFor === 'end') {
-      setTravelForm({ ...travelForm, end_location: locationData });
+      
+      if (selectingFor === 'start') {
+        setTravelForm({ ...travelForm, start_location: locationData });
+      } else if (selectingFor === 'end') {
+        setTravelForm({ ...travelForm, end_location: locationData });
+      }
     }
     
     setLocationSearchQuery('');
