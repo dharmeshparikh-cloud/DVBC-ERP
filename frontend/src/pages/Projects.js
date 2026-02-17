@@ -252,7 +252,7 @@ const Projects = () => {
             <Card
               key={project.id}
               data-testid={`project-card-${project.id}`}
-              className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
+              className="border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 shadow-none rounded-sm hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -280,7 +280,7 @@ const Projects = () => {
                       <Calendar className="w-3 h-3" strokeWidth={1.5} />
                       Start Date
                     </div>
-                    <div className="text-sm font-medium text-zinc-950 data-text">
+                    <div className="text-sm font-medium text-zinc-950 dark:text-zinc-100 data-text">
                       {format(new Date(project.start_date), 'MMM dd, yyyy')}
                     </div>
                   </div>
@@ -290,19 +290,19 @@ const Projects = () => {
                         <IndianRupee className="w-3 h-3" strokeWidth={1.5} />
                         Budget
                       </div>
-                      <div className="text-sm font-medium text-zinc-950 data-text">
+                      <div className="text-sm font-medium text-zinc-950 dark:text-zinc-100 data-text">
                         ₹{project.budget.toLocaleString('en-IN')}
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-200">
+                <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-700">
                   <div>
                     <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">
                       Committed
                     </div>
-                    <div className="text-lg font-semibold text-zinc-950 data-text">
+                    <div className="text-lg font-semibold text-zinc-950 dark:text-zinc-100 data-text">
                       {project.total_meetings_committed}
                     </div>
                   </div>
@@ -316,7 +316,7 @@ const Projects = () => {
                   </div>
                   <div>
                     <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Visits</div>
-                    <div className="text-lg font-semibold text-zinc-950 data-text">
+                    <div className="text-lg font-semibold text-zinc-950 dark:text-zinc-100 data-text">
                       {project.number_of_visits}
                     </div>
                   </div>
