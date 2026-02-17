@@ -260,7 +260,7 @@ const Projects = () => {
                     <CardTitle className="text-lg font-semibold text-zinc-950 dark:text-zinc-100">
                       {project.name}
                     </CardTitle>
-                    <div className="text-sm text-zinc-500 mt-1">{project.client_name}</div>
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{project.client_name}</div>
                   </div>
                   <span
                     className={`px-2 py-1 text-xs font-medium rounded-sm ${
@@ -323,14 +323,14 @@ const Projects = () => {
                 </div>
 
                 {project.notes && (
-                  <div className="pt-3 border-t border-zinc-200">
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Notes</div>
-                    <div className="text-sm text-zinc-600">{project.notes}</div>
+                  <div className="pt-3 border-t border-zinc-200 dark:border-zinc-700">
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">Notes</div>
+                    <div className="text-sm text-zinc-600 dark:text-zinc-300">{project.notes}</div>
                   </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="pt-4 border-t border-zinc-200 flex flex-wrap gap-2">
+                <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-2">
                   <Button
                     onClick={() => navigate(`/projects/${project.id}/kickoff`)}
                     size="sm"
