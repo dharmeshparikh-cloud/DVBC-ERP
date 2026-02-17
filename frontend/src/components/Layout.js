@@ -148,6 +148,7 @@ const Layout = () => {
 
   const adminItems = [
     { name: 'ERP Workflow', href: '/workflow', icon: GitBranch },
+    { name: 'Onboarding Tutorials', href: '/tutorials', icon: BookOpen },
     { name: 'User Management', href: '/user-management', icon: Shield },
     { name: 'Permission Manager', href: '/permission-manager', icon: UserCog },
     { name: 'Admin Masters', href: '/admin-masters', icon: Settings },
