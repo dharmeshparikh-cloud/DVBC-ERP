@@ -325,12 +325,12 @@ const HRDashboard = () => {
           { label: 'Payroll', href: '/payroll', icon: DollarSign, color: 'bg-emerald-600' },
         ].map((action, i) => (
           <Link key={i} to={action.href}>
-            <Card className="border-zinc-200 hover:border-zinc-300 transition-colors cursor-pointer">
-              <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center`}>
-                  <action.icon className="w-5 h-5 text-white" />
+            <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer">
+              <CardContent className="p-3 md:pt-4 md:pb-4 flex items-center gap-2 md:gap-3">
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg ${action.color} flex items-center justify-center flex-shrink-0`}>
+                  <action.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 </div>
-                <span className="font-medium text-zinc-700">{action.label}</span>
+                <span className="font-medium text-zinc-700 dark:text-zinc-300 text-sm md:text-base truncate">{action.label}</span>
               </CardContent>
             </Card>
           </Link>
