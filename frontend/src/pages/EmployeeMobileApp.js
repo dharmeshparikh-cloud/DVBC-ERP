@@ -1176,78 +1176,188 @@ const EmployeeMobileApp = () => {
             </div>
             
             <div className="p-6 space-y-4">
-              <div>
-                <label className="text-sm font-medium text-zinc-700 block mb-2">Description *</label>
-                <input
-                  type="text"
-                  value={expenseForm.description}
-                  onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})}
-                  placeholder="e.g., Cab fare to client site"
-                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  data-testid="expense-description"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-zinc-700 block mb-2">Amount (₹) *</label>
-                <input
-                  type="number"
-                  value={expenseForm.amount}
-                  onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})}
-                  placeholder="0.00"
-                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  data-testid="expense-amount"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-zinc-700 block mb-2">Category</label>
-                <select
-                  value={expenseForm.category}
-                  onChange={(e) => setExpenseForm({...expenseForm, category: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  data-testid="expense-category"
+              {/* Expense Type Selection */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setExpenseForm({ ...expenseForm, is_office_expense: true, client_id: '', client_name: '', project_id: '', project_name: '' })}
+                  className={`p-3 rounded-xl border-2 text-sm font-medium transition ${
+                    expenseForm.is_office_expense 
+                      ? 'border-amber-500 bg-amber-50 text-amber-700' 
+                      : 'border-zinc-200 text-zinc-600'
+                  }`}
                 >
-                  <option value="travel">Travel</option>
-                  <option value="food">Food & Meals</option>
-                  <option value="accommodation">Accommodation</option>
-                  <option value="communication">Communication</option>
-                  <option value="office_supplies">Office Supplies</option>
-                  <option value="other">Other</option>
-                </select>
+                  Office Expense
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpenseForm({ ...expenseForm, is_office_expense: false })}
+                  className={`p-3 rounded-xl border-2 text-sm font-medium transition ${
+                    !expenseForm.is_office_expense 
+                      ? 'border-amber-500 bg-amber-50 text-amber-700' 
+                      : 'border-zinc-200 text-zinc-600'
+                  }`}
+                >
+                  Client/Project
+                </button>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-zinc-700 block mb-2">Date</label>
-                <input
-                  type="date"
-                  value={expenseForm.expense_date}
-                  onChange={(e) => setExpenseForm({...expenseForm, expense_date: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  data-testid="expense-date"
-                />
+              {/* Client/Project Selection (if not office expense) */}
+              {!expenseForm.is_office_expense && (
+                <div className="space-y-3 p-3 bg-zinc-50 rounded-xl">
+                  <div>
+                    <label className="text-sm font-medium text-zinc-700 block mb-2">Client</label>
+                    <select
+                      value={expenseForm.client_id}
+                      onChange={(e) => {
+                        const client = clients.find(c => c.id === e.target.value);
+                        setExpenseForm({
+                          ...expenseForm,
+                          client_id: e.target.value,
+                          client_name: client?.name || ''
+                        });
+                      }}
+                      className="w-full p-3 rounded-xl border border-zinc-200 text-sm bg-white"
+                    >
+                      <option value="">Select Client</option>
+                      {clients.map(client => (
+                        <option key={client.id} value={client.id}>{client.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-zinc-700 block mb-2">Project</label>
+                    <select
+                      value={expenseForm.project_id}
+                      onChange={(e) => {
+                        const project = projects.find(p => p.id === e.target.value);
+                        setExpenseForm({
+                          ...expenseForm,
+                          project_id: e.target.value,
+                          project_name: project?.name || ''
+                        });
+                      }}
+                      className="w-full p-3 rounded-xl border border-zinc-200 text-sm bg-white"
+                    >
+                      <option value="">Select Project</option>
+                      {projects.filter(p => !expenseForm.client_id || p.client_id === expenseForm.client_id).map(project => (
+                        <option key={project.id} value={project.id}>{project.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Line Items Section */}
+              <div className="border-t border-zinc-200 pt-4">
+                <h3 className="text-sm font-semibold text-zinc-800 mb-3">Expense Items</h3>
+                
+                {/* Existing Items */}
+                {expenseForm.line_items.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {expenseForm.line_items.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
+                        <div>
+                          <p className="text-sm font-medium text-zinc-800">{item.description}</p>
+                          <p className="text-xs text-zinc-500">{item.category} • {item.date}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-amber-600">₹{item.amount}</span>
+                          <button onClick={() => removeLineItem(index)} className="p-1 text-red-500">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-right text-sm font-semibold text-zinc-800">
+                      Total: ₹{calculateExpenseTotal().toLocaleString()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add New Item Form */}
+                <div className="space-y-3 p-3 bg-zinc-50 rounded-xl">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-zinc-600 block mb-1">Category</label>
+                      <select
+                        value={lineItemForm.category}
+                        onChange={(e) => setLineItemForm({...lineItemForm, category: e.target.value})}
+                        className="w-full p-2 rounded-lg border border-zinc-200 text-sm bg-white"
+                      >
+                        <option value="local_conveyance">Local Conveyance</option>
+                        <option value="travel">Travel</option>
+                        <option value="food">Food & Meals</option>
+                        <option value="accommodation">Accommodation</option>
+                        <option value="communication">Communication</option>
+                        <option value="office_supplies">Office Supplies</option>
+                        <option value="client_entertainment">Client Entertainment</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-zinc-600 block mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={lineItemForm.date}
+                        onChange={(e) => setLineItemForm({...lineItemForm, date: e.target.value})}
+                        className="w-full p-2 rounded-lg border border-zinc-200 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-zinc-600 block mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={lineItemForm.description}
+                      onChange={(e) => setLineItemForm({...lineItemForm, description: e.target.value})}
+                      placeholder="e.g., Cab fare to client site"
+                      className="w-full p-2 rounded-lg border border-zinc-200 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs font-medium text-zinc-600 block mb-1">Amount (₹)</label>
+                      <input
+                        type="number"
+                        value={lineItemForm.amount}
+                        onChange={(e) => setLineItemForm({...lineItemForm, amount: e.target.value})}
+                        placeholder="0"
+                        className="w-full p-2 rounded-lg border border-zinc-200 text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addLineItem}
+                      className="self-end px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
+              {/* Notes */}
               <div>
-                <label className="text-sm font-medium text-zinc-700 block mb-2">Remarks (optional)</label>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Notes (optional)</label>
                 <textarea
-                  value={expenseForm.remarks}
-                  onChange={(e) => setExpenseForm({...expenseForm, remarks: e.target.value})}
+                  value={expenseForm.notes}
+                  onChange={(e) => setExpenseForm({...expenseForm, notes: e.target.value})}
                   placeholder="Additional details..."
                   rows={2}
-                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  data-testid="expense-remarks"
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm resize-none"
                 />
               </div>
 
               <button 
                 onClick={handleSubmitExpense}
-                disabled={loading || !expenseForm.description || !expenseForm.amount}
+                disabled={loading || expenseForm.line_items.length === 0}
                 className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
                 data-testid="submit-expense-btn"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
-                Submit Expense
+                Create Expense ({expenseForm.line_items.length} items - ₹{calculateExpenseTotal().toLocaleString()})
+              </button>
               </button>
 
               <button 
