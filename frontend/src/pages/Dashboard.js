@@ -195,14 +195,14 @@ const Dashboard = () => {
         onClick={() => setShowQuickCheckIn(true)}
         data-testid="quick-attendance-card"
       >
-        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-black to-zinc-800">
+        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-sky-400 via-blue-500 to-blue-700 rounded-xl">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center">
+            <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
               <Clock className="w-7 h-7 text-white" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">Quick Attendance</h3>
-              <p className="text-white/60 text-sm">
+              <p className="text-white/70 text-sm">
                 {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out 
                   ? 'Completed for today' 
                   : attendanceStatus?.has_checked_in 
@@ -223,7 +223,7 @@ const Dashboard = () => {
                 <span className="text-white font-medium">Check Out</span>
               </div>
             ) : (
-              <Button className="bg-white text-black hover:bg-white/90 h-12 px-6 font-semibold">
+              <Button className="bg-white text-blue-600 hover:bg-white/90 h-12 px-6 font-semibold">
                 <LogIn className="w-5 h-5 mr-2" /> Check In
               </Button>
             )}
