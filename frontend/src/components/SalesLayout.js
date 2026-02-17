@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
@@ -9,7 +9,7 @@ import { SalesNavigationProvider } from '../context/SalesNavigationContext';
 import {
   LayoutDashboard, Users, LogOut, DollarSign, FileText, FileCheck, 
   Building2, Calendar, BarChart3, ChevronDown, Send, Clock,
-  Umbrella, Receipt, CreditCard, Award, Sun, Moon, Key
+  Umbrella, Receipt, CreditCard, Award, Sun, Moon, Key, Menu, X, Home, UserCircle
 } from 'lucide-react';
 import ChangePasswordDialog from './ChangePasswordDialog';
 
@@ -24,6 +24,31 @@ const SalesLayout = () => {
     funnel: true, other: true, workspace: true
   });
   const [showChangePassword, setShowChangePassword] = useState(false);
+  
+  // Mobile state
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setSidebarOpen(false);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Close sidebar on navigation (mobile)
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
