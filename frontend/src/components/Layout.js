@@ -41,6 +41,9 @@ const Layout = () => {
     workspace: true, hr: true, sales: true, consulting: true, admin: true
   });
 
+  // Change Password Dialog state
+  const [showChangePassword, setShowChangePassword] = useState(false);
+
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
   const isActive = (href) => {
