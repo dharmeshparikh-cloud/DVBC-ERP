@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext, API } from '../App';
 import axios from 'axios';
 import { 
@@ -6,7 +6,7 @@ import {
   Home, Building2, Navigation, Loader2, AlertCircle, ChevronRight,
   Plus, Camera, FileText, TrendingUp, User, Bell, Settings,
   Coffee, Sun, Moon, Briefcase, IndianRupee, CalendarDays,
-  CheckCircle2, XCircle, Timer, Wallet
+  CheckCircle2, XCircle, Timer, Wallet, X, RotateCcw, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,8 +23,19 @@ const EmployeeMobileApp = () => {
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [selectedWorkLocation, setSelectedWorkLocation] = useState('in_office');
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Selfie capture states
+  const [selfieData, setSelfieData] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  
+  // Justification for unknown location
+  const [showJustification, setShowJustification] = useState(false);
+  const [justification, setJustification] = useState('');
+  const [locationValidation, setLocationValidation] = useState(null);
 
-  // Update time every second
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -33,6 +44,14 @@ const EmployeeMobileApp = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -47,7 +66,6 @@ const EmployeeMobileApp = () => {
       setLeaveBalance(leaveRes.data);
       setExpenses(expRes.data?.expenses || []);
       
-      // Check if already checked in today
       const today = new Date().toISOString().split('T')[0];
       const todayRecord = attRes.data?.records?.find(r => r.date === today);
       setCheckInStatus(todayRecord);
@@ -81,36 +99,117 @@ const EmployeeMobileApp = () => {
         toast.error('Unable to get location. Please enable GPS.');
         setLocationLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000 }
     );
   };
 
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: 640, height: 480 } 
+      });
+      setStream(mediaStream);
+      setShowCamera(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      }, 100);
+    } catch (error) {
+      toast.error('Unable to access camera. Please grant permission.');
+    }
+  };
+
+  const captureSelfie = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      setSelfieData(dataUrl);
+      stopCamera();
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const retakeSelfie = () => {
+    setSelfieData(null);
+    startCamera();
+  };
+
   const handleCheckIn = async () => {
+    if (!selfieData) {
+      toast.error('Please capture your selfie first');
+      return;
+    }
     if (!location) {
-      captureLocation();
+      toast.error('Please wait for location to be captured');
       return;
     }
     
     setLoading(true);
     try {
-      await axios.post(`${API}/my/check-in`, {
+      const payload = {
         work_location: selectedWorkLocation,
-        remarks: 'Mobile app check-in',
+        remarks: 'Mobile app check-in with selfie',
+        selfie: selfieData,
         geo_location: {
           latitude: location.latitude,
           longitude: location.longitude,
           accuracy: location.accuracy,
           address: location.address
         }
-      });
-      toast.success('Check-in successful!');
+      };
+      
+      if (justification) {
+        payload.justification = justification;
+      }
+      
+      const response = await axios.post(`${API}/my/check-in`, payload);
+      
+      if (response.data.approval_status === 'approved') {
+        toast.success(`Check-in successful! Location: ${response.data.matched_location || 'Verified'}`);
+      } else {
+        toast.info('Check-in submitted for HR approval');
+      }
+      
       setShowCheckInModal(false);
+      setSelfieData(null);
+      setJustification('');
+      setShowJustification(false);
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Check-in failed');
+      const detail = error.response?.data?.detail || 'Check-in failed';
+      if (detail.includes('not within 500m') || detail.includes('justification')) {
+        setShowJustification(true);
+        setLocationValidation({ is_valid: false, reason: detail });
+        toast.error('Location not verified. Please provide justification.');
+      } else {
+        toast.error(detail);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const openCheckIn = () => {
+    setShowCheckInModal(true);
+    setLocation(null);
+    setSelfieData(null);
+    setJustification('');
+    setShowJustification(false);
+    setSelectedWorkLocation('in_office');
+    captureLocation();
   };
 
   const greeting = () => {
@@ -130,7 +229,7 @@ const EmployeeMobileApp = () => {
 
   // Home Tab
   const HomeTab = () => (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-24">
       {/* Header Card with Time */}
       <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-3xl p-6 text-white shadow-xl">
         <div className="flex items-center justify-between mb-4">
@@ -153,26 +252,40 @@ const EmployeeMobileApp = () => {
           {checkInStatus ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5" />
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  checkInStatus.approval_status === 'approved' ? 'bg-emerald-500' :
+                  checkInStatus.approval_status === 'pending_approval' ? 'bg-amber-500' : 'bg-red-500'
+                }`}>
+                  {checkInStatus.approval_status === 'approved' ? <CheckCircle className="w-5 h-5" /> :
+                   checkInStatus.approval_status === 'pending_approval' ? <Clock className="w-5 h-5" /> :
+                   <XCircle className="w-5 h-5" />}
                 </div>
                 <div>
-                  <p className="font-medium">Checked In</p>
+                  <p className="font-medium">
+                    {checkInStatus.approval_status === 'approved' ? 'Checked In' :
+                     checkInStatus.approval_status === 'pending_approval' ? 'Pending Approval' : 'Rejected'}
+                  </p>
                   <p className="text-xs text-blue-200">
-                    {checkInStatus.work_location === 'in_office' ? 'Office' : 
-                     checkInStatus.work_location === 'onsite' ? 'On-Site' : 'WFH'}
+                    {checkInStatus.work_location === 'in_office' ? 'Office' : 'On-Site'}
                   </p>
                 </div>
               </div>
-              <span className="text-xs bg-emerald-500/30 px-3 py-1 rounded-full">Active</span>
+              <span className={`text-xs px-3 py-1 rounded-full ${
+                checkInStatus.approval_status === 'approved' ? 'bg-emerald-500/30' :
+                checkInStatus.approval_status === 'pending_approval' ? 'bg-amber-500/30' : 'bg-red-500/30'
+              }`}>
+                {checkInStatus.approval_status === 'approved' ? 'Active' :
+                 checkInStatus.approval_status === 'pending_approval' ? 'Pending' : 'Rejected'}
+              </span>
             </div>
           ) : (
             <button 
-              onClick={() => { setShowCheckInModal(true); captureLocation(); }}
-              className="w-full flex items-center justify-center gap-2 py-2 bg-white/20 rounded-xl hover:bg-white/30 transition"
+              onClick={openCheckIn}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-white/20 rounded-xl hover:bg-white/30 transition"
+              data-testid="mobile-checkin-btn"
             >
-              <LogIn className="w-5 h-5" />
-              <span className="font-medium">Tap to Check In</span>
+              <Camera className="w-5 h-5" />
+              <span className="font-medium">Check In with Selfie</span>
             </button>
           )}
         </div>
@@ -207,9 +320,9 @@ const EmployeeMobileApp = () => {
             <p className="text-2xl font-bold text-emerald-600">{attendanceData?.summary?.present || 0}</p>
             <p className="text-xs text-zinc-500">Present</p>
           </div>
-          <div className="text-center p-3 bg-amber-50 rounded-xl">
-            <p className="text-2xl font-bold text-amber-600">{attendanceData?.summary?.wfh || 0}</p>
-            <p className="text-xs text-zinc-500">WFH</p>
+          <div className="text-center p-3 bg-blue-50 rounded-xl">
+            <p className="text-2xl font-bold text-blue-600">{(attendanceData?.records || []).filter(r => r.work_location === 'onsite').length}</p>
+            <p className="text-xs text-zinc-500">On-Site</p>
           </div>
           <div className="text-center p-3 bg-purple-50 rounded-xl">
             <p className="text-2xl font-bold text-purple-600">{attendanceData?.summary?.on_leave || 0}</p>
@@ -258,26 +371,26 @@ const EmployeeMobileApp = () => {
           {(attendanceData?.records || []).slice(0, 3).map((record, i) => (
             <div key={i} className="flex items-center gap-3 p-2 bg-zinc-50 rounded-xl">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                record.status === 'present' ? 'bg-emerald-100 text-emerald-600' :
-                record.status === 'work_from_home' ? 'bg-blue-100 text-blue-600' :
-                'bg-purple-100 text-purple-600'
+                record.approval_status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
+                record.approval_status === 'pending_approval' ? 'bg-amber-100 text-amber-600' :
+                record.approval_status === 'rejected' ? 'bg-red-100 text-red-600' :
+                'bg-blue-100 text-blue-600'
               }`}>
-                {record.status === 'present' ? <CheckCircle2 className="w-5 h-5" /> :
-                 record.status === 'work_from_home' ? <Home className="w-5 h-5" /> :
-                 <Calendar className="w-5 h-5" />}
+                {record.approval_status === 'approved' ? <CheckCircle2 className="w-5 h-5" /> :
+                 record.approval_status === 'pending_approval' ? <Clock className="w-5 h-5" /> :
+                 record.approval_status === 'rejected' ? <XCircle className="w-5 h-5" /> :
+                 <CheckCircle2 className="w-5 h-5" />}
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-zinc-900">
-                  {record.status === 'present' ? 'Present' :
-                   record.status === 'work_from_home' ? 'Work from Home' :
-                   record.status === 'on_leave' ? 'On Leave' : record.status}
+                  {record.work_location === 'in_office' ? 'Office' : 'On-Site'}
+                  {record.approval_status === 'pending_approval' && ' (Pending)'}
                 </p>
                 <p className="text-xs text-zinc-500">{record.date}</p>
               </div>
-              {record.work_location && (
-                <span className="text-xs px-2 py-1 bg-zinc-200 rounded-full text-zinc-600">
-                  {record.work_location === 'in_office' ? 'Office' :
-                   record.work_location === 'onsite' ? 'On-Site' : 'WFH'}
+              {record.location_validation?.matched_location && (
+                <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">
+                  {record.location_validation.matched_location.split(' ')[0]}
                 </span>
               )}
             </div>
@@ -289,7 +402,7 @@ const EmployeeMobileApp = () => {
 
   // Attendance Tab
   const AttendanceTab = () => (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-24">
       {/* Check-in Card */}
       <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl">
         <div className="text-center">
@@ -298,9 +411,17 @@ const EmployeeMobileApp = () => {
           
           {checkInStatus ? (
             <div className="bg-white/10 rounded-2xl p-4 backdrop-blur">
-              <div className="flex items-center justify-center gap-2 text-emerald-300 mb-2">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">You're Checked In</span>
+              <div className={`flex items-center justify-center gap-2 mb-2 ${
+                checkInStatus.approval_status === 'approved' ? 'text-emerald-300' :
+                checkInStatus.approval_status === 'pending_approval' ? 'text-amber-300' : 'text-red-300'
+              }`}>
+                {checkInStatus.approval_status === 'approved' ? <CheckCircle className="w-5 h-5" /> :
+                 checkInStatus.approval_status === 'pending_approval' ? <Clock className="w-5 h-5" /> :
+                 <XCircle className="w-5 h-5" />}
+                <span className="font-medium">
+                  {checkInStatus.approval_status === 'approved' ? "You're Checked In" :
+                   checkInStatus.approval_status === 'pending_approval' ? "Pending HR Approval" : "Check-in Rejected"}
+                </span>
               </div>
               <p className="text-sm text-indigo-200">
                 {checkInStatus.check_in_time ? 
@@ -313,14 +434,19 @@ const EmployeeMobileApp = () => {
                   {checkInStatus.geo_location.address.split(',').slice(0, 2).join(',')}
                 </p>
               )}
+              {checkInStatus.location_validation?.matched_location && (
+                <p className="text-xs text-emerald-300 mt-1">
+                  Verified: {checkInStatus.location_validation.matched_location}
+                </p>
+              )}
             </div>
           ) : (
             <button 
-              onClick={() => { setShowCheckInModal(true); captureLocation(); }}
+              onClick={openCheckIn}
               className="w-full py-4 bg-white text-indigo-700 rounded-2xl font-semibold text-lg shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2"
             >
-              <LogIn className="w-6 h-6" />
-              Check In Now
+              <Camera className="w-6 h-6" />
+              Check In with Selfie
             </button>
           )}
         </div>
@@ -329,9 +455,9 @@ const EmployeeMobileApp = () => {
       {/* Monthly Stats */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: 'Present', value: attendanceData?.summary?.present || 0, icon: CheckCircle2, color: 'emerald' },
-          { label: 'WFH', value: attendanceData?.summary?.wfh || 0, icon: Home, color: 'blue' },
-          { label: 'Half Day', value: attendanceData?.summary?.half_day || 0, icon: Timer, color: 'amber' },
+          { label: 'Office', value: (attendanceData?.records || []).filter(r => r.work_location === 'in_office' && r.approval_status === 'approved').length, icon: Building2, color: 'emerald' },
+          { label: 'On-Site', value: (attendanceData?.records || []).filter(r => r.work_location === 'onsite' && r.approval_status === 'approved').length, icon: MapPin, color: 'blue' },
+          { label: 'Pending', value: (attendanceData?.records || []).filter(r => r.approval_status === 'pending_approval').length, icon: Clock, color: 'amber' },
           { label: 'Leave', value: attendanceData?.summary?.on_leave || 0, icon: Calendar, color: 'purple' },
         ].map((item, i) => (
           <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100">
@@ -353,27 +479,27 @@ const EmployeeMobileApp = () => {
           {(attendanceData?.records || []).slice(0, 10).map((record, i) => (
             <div key={i} className="flex items-center gap-3 p-4">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                record.status === 'present' ? 'bg-emerald-100 text-emerald-600' :
-                record.status === 'work_from_home' ? 'bg-blue-100 text-blue-600' :
-                record.status === 'absent' ? 'bg-red-100 text-red-600' :
-                'bg-purple-100 text-purple-600'
+                record.approval_status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
+                record.approval_status === 'pending_approval' ? 'bg-amber-100 text-amber-600' :
+                record.approval_status === 'rejected' ? 'bg-red-100 text-red-600' :
+                'bg-blue-100 text-blue-600'
               }`}>
-                {record.status === 'present' && <CheckCircle2 className="w-5 h-5" />}
-                {record.status === 'work_from_home' && <Home className="w-5 h-5" />}
-                {record.status === 'absent' && <XCircle className="w-5 h-5" />}
-                {record.status === 'on_leave' && <Calendar className="w-5 h-5" />}
-                {record.status === 'half_day' && <Timer className="w-5 h-5" />}
+                {record.approval_status === 'approved' && <CheckCircle2 className="w-5 h-5" />}
+                {record.approval_status === 'pending_approval' && <Clock className="w-5 h-5" />}
+                {record.approval_status === 'rejected' && <XCircle className="w-5 h-5" />}
+                {!record.approval_status && <CheckCircle2 className="w-5 h-5" />}
               </div>
               <div className="flex-1">
                 <p className="font-medium text-zinc-900">{record.date}</p>
-                <p className="text-xs text-zinc-500 capitalize">{record.status?.replace('_', ' ')}</p>
+                <p className="text-xs text-zinc-500">
+                  {record.work_location === 'in_office' ? 'Office' : 'On-Site'}
+                  {record.approval_status === 'pending_approval' && ' - Pending'}
+                  {record.approval_status === 'rejected' && ' - Rejected'}
+                </p>
               </div>
-              {record.work_location && (
-                <div className="flex items-center gap-1 text-xs text-zinc-500">
-                  {record.work_location === 'in_office' && <Building2 className="w-3 h-3" />}
-                  {record.work_location === 'onsite' && <MapPin className="w-3 h-3" />}
-                  {record.work_location === 'wfh' && <Home className="w-3 h-3" />}
-                  <span>{record.work_location === 'in_office' ? 'Office' : record.work_location === 'onsite' ? 'Site' : 'WFH'}</span>
+              {record.selfie && (
+                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-zinc-200">
+                  <img src={record.selfie} alt="selfie" className="w-full h-full object-cover" />
                 </div>
               )}
             </div>
@@ -385,8 +511,7 @@ const EmployeeMobileApp = () => {
 
   // Leave Tab
   const LeaveTab = () => (
-    <div className="space-y-4 pb-20">
-      {/* Leave Balance Cards */}
+    <div className="space-y-4 pb-24">
       <div className="grid grid-cols-3 gap-3">
         {leaveBalance && [
           { type: 'Casual', data: leaveBalance.casual, color: 'blue', icon: Coffee },
@@ -401,13 +526,11 @@ const EmployeeMobileApp = () => {
         ))}
       </div>
 
-      {/* Apply Leave Button */}
       <button className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2">
         <Plus className="w-5 h-5" />
         Apply for Leave
       </button>
 
-      {/* Leave Requests */}
       <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
         <div className="p-4 border-b border-zinc-100">
           <h3 className="font-semibold text-zinc-900">Recent Requests</h3>
@@ -422,8 +545,7 @@ const EmployeeMobileApp = () => {
 
   // Expense Tab
   const ExpenseTab = () => (
-    <div className="space-y-4 pb-20">
-      {/* Expense Summary */}
+    <div className="space-y-4 pb-24">
       <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl p-6 text-white shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -448,13 +570,11 @@ const EmployeeMobileApp = () => {
         </div>
       </div>
 
-      {/* Add Expense Button */}
       <button className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2">
         <Camera className="w-5 h-5" />
         Add New Expense
       </button>
 
-      {/* Expense List */}
       <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
         <div className="p-4 border-b border-zinc-100">
           <h3 className="font-semibold text-zinc-900">Recent Expenses</h3>
@@ -497,87 +617,187 @@ const EmployeeMobileApp = () => {
     </div>
   );
 
-  // Check-in Modal
+  // Check-in Modal with Selfie
   const CheckInModal = () => (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="w-full bg-white rounded-t-3xl p-6 animate-slide-up">
-        <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-6" />
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end">
+      <div className="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slide-up">
+        <div className="sticky top-0 bg-white pt-4 pb-2 px-6 border-b border-zinc-100">
+          <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-zinc-900">Check In</h2>
+              <p className="text-sm text-zinc-500">Selfie + Location required</p>
+            </div>
+            <button onClick={() => { setShowCheckInModal(false); stopCamera(); }} className="p-2">
+              <X className="w-6 h-6 text-zinc-400" />
+            </button>
+          </div>
+        </div>
         
-        <h2 className="text-xl font-bold text-zinc-900 mb-2">Check In</h2>
-        <p className="text-sm text-zinc-500 mb-6">Confirm your work location to check in</p>
-
-        {/* Location Status */}
-        <div className="p-4 rounded-2xl bg-zinc-50 mb-6">
-          {locationLoading ? (
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-              <span className="text-sm text-zinc-600">Getting your location...</span>
-            </div>
-          ) : location ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-emerald-600">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">Location Captured</span>
+        <div className="p-6 space-y-5">
+          {/* Step 1: Selfie Capture */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${selfieData ? 'bg-emerald-500 text-white' : 'bg-zinc-200 text-zinc-600'}`}>
+                {selfieData ? '✓' : '1'}
               </div>
-              {location.address && (
-                <p className="text-xs text-zinc-500 leading-relaxed">{location.address}</p>
-              )}
-              <p className="text-xs text-zinc-400">
-                {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)} (±{Math.round(location.accuracy)}m)
-              </p>
+              <span className="text-sm font-medium text-zinc-700">Capture Selfie</span>
             </div>
-          ) : (
-            <button 
-              onClick={captureLocation}
-              className="flex items-center gap-2 text-blue-600"
-            >
-              <Navigation className="w-5 h-5" />
-              <span className="font-medium">Tap to get location</span>
-            </button>
+            
+            <div className="relative rounded-2xl overflow-hidden bg-zinc-900 aspect-[4/3]">
+              {showCamera ? (
+                <>
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <canvas ref={canvasRef} className="hidden" />
+                  <button 
+                    onClick={captureSelfie}
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-white border-4 border-zinc-300 flex items-center justify-center shadow-lg"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-blue-600" />
+                  </button>
+                </>
+              ) : selfieData ? (
+                <>
+                  <img src={selfieData} alt="Selfie" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={retakeSelfie}
+                    className="absolute bottom-4 right-4 px-4 py-2 bg-white/90 rounded-xl flex items-center gap-2 text-sm font-medium"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Retake
+                  </button>
+                  <div className="absolute top-4 left-4 px-3 py-1 bg-emerald-500 text-white rounded-full text-xs font-medium flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    Captured
+                  </div>
+                </>
+              ) : (
+                <button 
+                  onClick={startCamera}
+                  className="w-full h-full flex flex-col items-center justify-center text-white"
+                >
+                  <Camera className="w-12 h-12 mb-2 opacity-50" />
+                  <span className="text-sm opacity-70">Tap to open camera</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Step 2: Location */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${location ? 'bg-emerald-500 text-white' : 'bg-zinc-200 text-zinc-600'}`}>
+                {location ? '✓' : '2'}
+              </div>
+              <span className="text-sm font-medium text-zinc-700">Verify Location</span>
+            </div>
+            
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              {locationLoading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  <span className="text-sm text-zinc-600">Getting your location...</span>
+                </div>
+              ) : location ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="font-medium">Location Captured</span>
+                  </div>
+                  {location.address && (
+                    <p className="text-xs text-zinc-600 leading-relaxed">{location.address}</p>
+                  )}
+                  <p className="text-xs text-zinc-400">
+                    {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)} (±{Math.round(location.accuracy)}m)
+                  </p>
+                  <button onClick={captureLocation} className="text-xs text-blue-600 flex items-center gap-1 mt-2">
+                    <Navigation className="w-3 h-3" />
+                    Refresh location
+                  </button>
+                </div>
+              ) : (
+                <button onClick={captureLocation} className="flex items-center gap-2 text-blue-600">
+                  <Navigation className="w-5 h-5" />
+                  <span className="font-medium">Tap to get location</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Step 3: Work Location */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 rounded-full bg-zinc-200 text-zinc-600 flex items-center justify-center text-xs font-bold">3</div>
+              <span className="text-sm font-medium text-zinc-700">Select Work Location</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: 'in_office', label: 'Office', icon: Building2, color: 'blue', desc: 'Company premises' },
+                { value: 'onsite', label: 'Client Site', icon: MapPin, color: 'emerald', desc: 'Client location' },
+              ].map((loc) => (
+                <button
+                  key={loc.value}
+                  onClick={() => setSelectedWorkLocation(loc.value)}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition ${
+                    selectedWorkLocation === loc.value
+                      ? `border-${loc.color}-500 bg-${loc.color}-50`
+                      : 'border-zinc-200'
+                  }`}
+                  data-testid={`checkin-loc-${loc.value}`}
+                >
+                  <loc.icon className={`w-8 h-8 ${selectedWorkLocation === loc.value ? `text-${loc.color}-600` : 'text-zinc-400'}`} />
+                  <span className={`text-sm font-medium ${selectedWorkLocation === loc.value ? `text-${loc.color}-700` : 'text-zinc-600'}`}>
+                    {loc.label}
+                  </span>
+                  <span className="text-xs text-zinc-400">{loc.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Justification (if location not verified) */}
+          {showJustification && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
+              <div className="flex items-start gap-2 mb-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-800">Location Not Verified</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    You're not within 500m of any approved location. Please provide justification for HR approval.
+                  </p>
+                </div>
+              </div>
+              <textarea
+                value={justification}
+                onChange={(e) => setJustification(e.target.value)}
+                placeholder="Explain why you're checking in from this location..."
+                className="w-full p-3 rounded-xl border border-amber-200 bg-white text-sm resize-none"
+                rows={3}
+                data-testid="justification-input"
+              />
+            </div>
           )}
-        </div>
 
-        {/* Work Location Selection */}
-        <p className="text-sm font-medium text-zinc-700 mb-3">Where are you working from?</p>
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { value: 'in_office', label: 'Office', icon: Building2, color: 'blue' },
-            { value: 'onsite', label: 'On-Site', icon: MapPin, color: 'emerald' },
-            { value: 'wfh', label: 'Home', icon: Home, color: 'amber' },
-          ].map((loc) => (
-            <button
-              key={loc.value}
-              onClick={() => setSelectedWorkLocation(loc.value)}
-              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition ${
-                selectedWorkLocation === loc.value
-                  ? `border-${loc.color}-500 bg-${loc.color}-50`
-                  : 'border-zinc-200'
-              }`}
-            >
-              <loc.icon className={`w-8 h-8 ${selectedWorkLocation === loc.value ? `text-${loc.color}-600` : 'text-zinc-400'}`} />
-              <span className={`text-sm font-medium ${selectedWorkLocation === loc.value ? `text-${loc.color}-700` : 'text-zinc-600'}`}>
-                {loc.label}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          <button 
-            onClick={() => setShowCheckInModal(false)}
-            className="flex-1 py-4 bg-zinc-100 text-zinc-700 rounded-2xl font-semibold"
-          >
-            Cancel
-          </button>
+          {/* Submit Button */}
           <button 
             onClick={handleCheckIn}
-            disabled={!location || loading}
-            className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+            disabled={!selfieData || !location || loading || (showJustification && !justification)}
+            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+            data-testid="confirm-checkin-btn"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-            Check In
+            {loading ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
+            ) : (
+              <><Send className="w-5 h-5" /> {showJustification ? 'Submit for Approval' : 'Check In'}</>
+            )}
           </button>
+          
+          {!selfieData && !location && (
+            <p className="text-xs text-center text-zinc-500">
+              Complete all steps to check in
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -635,6 +855,7 @@ const EmployeeMobileApp = () => {
             className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition ${
               activeTab === tab.id ? 'text-blue-600 bg-blue-50' : 'text-zinc-400'
             }`}
+            data-testid={`nav-${tab.id}`}
           >
             <tab.icon className="w-6 h-6" />
             <span className="text-xs font-medium">{tab.label}</span>
