@@ -273,6 +273,9 @@ const EmployeeMobileApp = () => {
   // Travel reimbursement state
   const [showTravelReimbursementModal, setShowTravelReimbursementModal] = useState(false);
   const [lastTravelReimbursement, setLastTravelReimbursement] = useState(null);
+  const [lastAttendanceId, setLastAttendanceId] = useState(null);
+  const [travelClaimVehicle, setTravelClaimVehicle] = useState('car');
+  const [submittingTravelClaim, setSubmittingTravelClaim] = useState(false);
   
   const handleCheckOut = async () => {
     setLoading(true);
@@ -290,9 +293,16 @@ const EmployeeMobileApp = () => {
       
       const response = await axios.post(`${API}/my/check-out`, { geo_location });
       
+      // Store attendance ID for travel claim
+      setLastAttendanceId(response.data.id);
+      
       // Check if travel reimbursement was calculated
       if (response.data.travel_reimbursement) {
-        setLastTravelReimbursement(response.data.travel_reimbursement);
+        setLastTravelReimbursement({
+          ...response.data.travel_reimbursement,
+          check_out_location: geo_location
+        });
+        setTravelClaimVehicle('car'); // Reset to default
         setShowTravelReimbursementModal(true);
         toast.success(`Check-out successful! Work hours: ${response.data.work_hours?.toFixed(1) || '-'} hrs`);
       } else {
@@ -307,6 +317,51 @@ const EmployeeMobileApp = () => {
       setLoading(false);
     }
   };
+
+  // Submit travel claim from check-out modal
+  const handleSubmitAutoTravelClaim = async () => {
+    if (!lastTravelReimbursement) return;
+    
+    setSubmittingTravelClaim(true);
+    try {
+      // Recalculate with selected vehicle type
+      const rate = travelClaimVehicle === 'car' ? 7 : 3;
+      const baseDistance = lastTravelReimbursement.distance_km / (lastTravelReimbursement.is_round_trip ? 2 : 1);
+      const totalDistance = baseDistance * 2; // Always round trip from office to client and back
+      const calculatedAmount = Math.round(totalDistance * rate * 100) / 100;
+      
+      const response = await axios.post(`${API}/travel/reimbursement`, {
+        start_location: {
+          name: lastTravelReimbursement.from_location || 'Office',
+          address: lastTravelReimbursement.from_location || 'Office',
+          latitude: 0, // Office location
+          longitude: 0
+        },
+        end_location: {
+          name: lastTravelReimbursement.to_location || 'Client Site',
+          address: lastTravelReimbursement.to_location || 'Client Site',
+          latitude: lastTravelReimbursement.check_out_location?.latitude || 0,
+          longitude: lastTravelReimbursement.check_out_location?.longitude || 0
+        },
+        vehicle_type: travelClaimVehicle,
+        is_round_trip: true,
+        travel_type: 'attendance',
+        attendance_id: lastAttendanceId,
+        travel_date: new Date().toISOString().split('T')[0],
+        notes: `Auto-generated from attendance check-out`
+      });
+      
+      toast.success(`Travel claim submitted! ₹${response.data.final_amount} for ${response.data.distance_km} km`);
+      setShowTravelReimbursementModal(false);
+      setLastTravelReimbursement(null);
+      fetchTravelClaims();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to submit travel claim');
+    } finally {
+      setSubmittingTravelClaim(false);
+    }
+  };
+
 
   // Handle Expense Submission
   const handleSubmitExpense = async () => {
