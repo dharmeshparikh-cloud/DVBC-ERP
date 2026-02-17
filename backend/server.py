@@ -12179,6 +12179,74 @@ async def validate_checkin_location(emp: dict, geo_location: dict, work_location
     }
 
 
+@api_router.get("/my/assigned-clients")
+async def get_my_assigned_clients(current_user: User = Depends(get_current_user)):
+    """
+    Get list of clients from projects assigned to the current employee.
+    Used for On-Site attendance check-in to select which client they're visiting.
+    """
+    emp = await _get_my_employee(current_user)
+    
+    # Find all active projects where this employee is assigned
+    projects = await db.projects.find(
+        {
+            "$or": [
+                {"assigned_consultants": emp["id"]},
+                {"assigned_team": current_user.id},
+                {"assigned_consultants": current_user.id}
+            ],
+            "status": {"$in": ["active", "in_progress", "ongoing"]}
+        },
+        {"_id": 0, "id": 1, "name": 1, "client_name": 1, "lead_id": 1}
+    ).to_list(100)
+    
+    # Build unique client list from projects
+    clients = []
+    seen_clients = set()
+    
+    for project in projects:
+        client_name = project.get("client_name", "")
+        if client_name and client_name not in seen_clients:
+            seen_clients.add(client_name)
+            
+            # Try to get client location if available
+            lead_id = project.get("lead_id")
+            client_location = None
+            if lead_id:
+                lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "city": 1, "state": 1, "street": 1})
+                if lead:
+                    addr_parts = [lead.get("street"), lead.get("city"), lead.get("state")]
+                    client_location = ", ".join([p for p in addr_parts if p])
+            
+            clients.append({
+                "id": project.get("id"),
+                "project_id": project.get("id"),
+                "project_name": project.get("name"),
+                "client_name": client_name,
+                "client_location": client_location
+            })
+    
+    # Also fetch from clients collection if linked
+    direct_clients = await db.clients.find(
+        {"is_active": True},
+        {"_id": 0, "id": 1, "company_name": 1, "billing_address": 1}
+    ).to_list(50)
+    
+    for client in direct_clients:
+        company = client.get("company_name", "")
+        if company and company not in seen_clients:
+            seen_clients.add(company)
+            clients.append({
+                "id": client.get("id"),
+                "project_id": None,
+                "project_name": None,
+                "client_name": company,
+                "client_location": client.get("billing_address", {}).get("city") if isinstance(client.get("billing_address"), dict) else None
+            })
+    
+    return {"clients": clients, "count": len(clients)}
+
+
 @api_router.post("/my/check-in")
 async def self_check_in(data: dict, current_user: User = Depends(get_current_user)):
     """
