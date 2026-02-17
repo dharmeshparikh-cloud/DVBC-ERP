@@ -457,3 +457,36 @@ px-3 md:px-6          /* Horizontal padding */
 - Bottom navigation bar (4 items max)
 - pb-16 md:pb-0 on main content to avoid bottom nav overlap
 ```
+
+
+### Session 11 (continued) - PWA, Bank Details Change, New Workflows
+- [x] **PWA Install Prompt with Branding**
+  - [x] Created `/public/manifest.json` with DVBC branding (name, icons, theme_color: #f97316)
+  - [x] Created `/public/service-worker.js` with caching strategy
+  - [x] Created `PWAInstallPrompt.js` component with branded UI
+  - [x] Shows install prompt after 3 seconds with "Works offline", "Quick access", "Faster load times" benefits
+  - [x] 24-hour dismissal cooldown stored in localStorage
+  - [x] Updated `index.html` with manifest link and apple-mobile-web-app meta tags
+
+- [x] **Bank Details Change Approval Workflow**
+  - [x] Created `BankDetailsChangeRequest.js` page for employees
+  - [x] Added routes: `/my-bank-details`, `/hr/my-bank-details`, `/sales/my-bank-details`
+  - [x] Added navigation links in Layout.js, HRLayout.js, SalesLayout.js
+  - [x] Backend APIs:
+    - `GET /api/my/profile` - Get employee profile with bank details
+    - `GET /api/my/bank-change-requests` - List user's requests
+    - `POST /api/my/bank-change-request` - Submit new request with proof
+    - `GET /api/hr/bank-change-requests` - List pending HR requests
+    - `POST /api/hr/bank-change-request/{id}/approve|reject` - HR actions
+    - `GET /api/admin/bank-change-requests` - List pending admin requests
+    - `POST /api/admin/bank-change-request/{id}/approve|reject` - Admin actions
+  - [x] Flow: Employee submits → pending_hr → HR approves → pending_admin → Admin approves → bank_details updated
+
+- [x] **Medium-Priority ERP Workflows (WorkflowPage.js)**
+  - [x] **Client Onboarding** (8 steps): Agreement Signed → Client Creation → SPOC Setup → Access Setup → Kickoff Meeting → Team Introduction → Document Handover → Onboarding Complete
+  - [x] **SOW/Change Request** (8 steps): Change Identified → Impact Analysis → CR Draft → Pricing Update → Client Approval → Agreement Amendment → Team Update → Execute Change
+  - [x] **Bank Details Change** (7 steps): Employee Request → HR Review → HR Approval → Admin Review → Admin Approval → System Update → Employee Notified
+
+## Database Schema Updates (Session 11)
+- **bank_change_requests**: `{employee_id, employee_name, employee_code, current_bank_details, new_bank_details, proof_document, proof_filename, reason, status, hr_approved_by, hr_approved_at, admin_approved_by, admin_approved_at, rejection_reason, created_at, updated_at}`
+  - Status values: `pending_hr`, `pending_admin`, `approved`, `rejected`
