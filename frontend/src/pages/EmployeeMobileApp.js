@@ -251,6 +251,10 @@ const EmployeeMobileApp = () => {
     captureLocation();
   };
 
+  // Travel reimbursement state
+  const [showTravelReimbursementModal, setShowTravelReimbursementModal] = useState(false);
+  const [lastTravelReimbursement, setLastTravelReimbursement] = useState(null);
+  
   const handleCheckOut = async () => {
     setLoading(true);
     try {
@@ -266,7 +270,16 @@ const EmployeeMobileApp = () => {
       };
       
       const response = await axios.post(`${API}/my/check-out`, { geo_location });
-      toast.success(`Check-out successful! Work hours: ${response.data.work_hours?.toFixed(1) || '-'} hrs`);
+      
+      // Check if travel reimbursement was calculated
+      if (response.data.travel_reimbursement) {
+        setLastTravelReimbursement(response.data.travel_reimbursement);
+        setShowTravelReimbursementModal(true);
+        toast.success(`Check-out successful! Work hours: ${response.data.work_hours?.toFixed(1) || '-'} hrs`);
+      } else {
+        toast.success(`Check-out successful! Work hours: ${response.data.work_hours?.toFixed(1) || '-'} hrs`);
+      }
+      
       setShowCheckOutModal(false);
       fetchData();
     } catch (error) {
