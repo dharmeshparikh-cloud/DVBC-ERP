@@ -25,6 +25,7 @@ const HRLayout = () => {
     teamView: user?.role === 'hr_manager', // Only HR Manager sees this
     selfService: true
   });
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   const isHRManager = user?.role === 'hr_manager';
