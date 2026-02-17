@@ -11163,6 +11163,8 @@ async def get_payroll_inputs(month: str, current_user: User = Depends(get_curren
             "working_days": existing.get("working_days", 30),
             "incentive": existing.get("incentive", 0),
             "incentive_reason": existing.get("incentive_reason", ""),
+            "expense_reimbursement": existing.get("expense_reimbursement", 0),
+            "expense_ids": existing.get("expense_ids", []),
             "advance": existing.get("advance", 0),
             "advance_reason": existing.get("advance_reason", ""),
             "penalty": existing.get("penalty", 0),
