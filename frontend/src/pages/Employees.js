@@ -409,6 +409,7 @@ const Employees = () => {
         
         {canManage && (
           <div className="flex items-center gap-2">
+            <MobileAppWidget compact />
             <Button 
               onClick={handleSyncFromUsers}
               variant="outline"
