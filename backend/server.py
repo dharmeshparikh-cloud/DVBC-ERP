@@ -13904,7 +13904,7 @@ async def get_hr_bank_change_requests(
     else:
         query["status"] = "pending_hr"
     
-    requests = list(db.bank_change_requests.find(query, {"_id": 0}).sort("created_at", -1))
+    requests = await db.bank_change_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(length=50)
     return requests
 
 
@@ -13917,7 +13917,7 @@ async def hr_approve_bank_change(
     if current_user.role not in ["hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Only HR can approve")
     
-    result = db.bank_change_requests.update_one(
+    result = await db.bank_change_requests.update_one(
         {"employee_id": employee_id, "status": "pending_hr"},
         {"$set": {
             "status": "pending_admin",
@@ -13931,8 +13931,8 @@ async def hr_approve_bank_change(
         raise HTTPException(status_code=404, detail="Request not found or already processed")
     
     # Notify admin
-    req = db.bank_change_requests.find_one({"employee_id": employee_id})
-    db.notifications.insert_one({
+    req = await db.bank_change_requests.find_one({"employee_id": employee_id})
+    await db.notifications.insert_one({
         "type": "bank_change_admin_review",
         "message": f"Bank change request pending admin approval: {req.get('employee_name', '')}",
         "link": "/approvals",
@@ -13954,7 +13954,7 @@ async def hr_reject_bank_change(
     if current_user.role not in ["hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Only HR can reject")
     
-    result = db.bank_change_requests.update_one(
+    result = await db.bank_change_requests.update_one(
         {"employee_id": employee_id, "status": "pending_hr"},
         {"$set": {
             "status": "rejected",
@@ -13979,10 +13979,10 @@ async def get_admin_bank_change_requests(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     
-    requests = list(db.bank_change_requests.find(
+    requests = await db.bank_change_requests.find(
         {"status": "pending_admin"},
         {"_id": 0}
-    ).sort("created_at", -1))
+    ).sort("created_at", -1).to_list(length=50)
     return requests
 
 
