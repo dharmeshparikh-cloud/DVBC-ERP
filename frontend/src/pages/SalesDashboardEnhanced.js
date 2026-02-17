@@ -318,26 +318,26 @@ const SalesDashboardEnhanced = () => {
         </CardContent>
       </Card>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Charts Row - Mobile Responsive */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
         {/* Lead Temperature Pie */}
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <Thermometer className="w-4 h-4" />
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className={`text-xs md:text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <Thermometer className="w-3 h-3 md:w-4 md:h-4" />
               Lead Temperature
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-48">
+          <CardContent className="px-3 md:px-6">
+            <div className="h-36 md:h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPie>
                   <Pie
                     data={tempPieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
+                    innerRadius={30}
+                    outerRadius={50}
                     paddingAngle={2}
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
@@ -350,18 +350,18 @@ const SalesDashboardEnhanced = () => {
                 </RechartsPie>
               </ResponsiveContainer>
             </div>
-            <div className="flex justify-center gap-4 mt-2">
+            <div className="flex justify-center gap-2 md:gap-4 mt-2 flex-wrap">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Hot ({temperature.hot || 0})</span>
+                <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500"></div>
+                <span className={`text-[10px] md:text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Hot ({temperature.hot || 0})</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Warm ({temperature.warm || 0})</span>
+                <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-orange-500"></div>
+                <span className={`text-[10px] md:text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Warm ({temperature.warm || 0})</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Cold ({temperature.cold || 0})</span>
+                <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-blue-500"></div>
+                <span className={`text-[10px] md:text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Cold ({temperature.cold || 0})</span>
               </div>
             </div>
           </CardContent>
@@ -369,22 +369,22 @@ const SalesDashboardEnhanced = () => {
 
         {/* Lead Status Distribution */}
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <PieChart className="w-4 h-4" />
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className={`text-xs md:text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <PieChart className="w-3 h-3 md:w-4 md:h-4" />
               Status Distribution
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-48">
+          <CardContent className="px-3 md:px-6">
+            <div className="h-36 md:h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPie>
                   <Pie
                     data={statusPieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
+                    innerRadius={30}
+                    outerRadius={50}
                     paddingAngle={2}
                     dataKey="value"
                   >
@@ -407,22 +407,22 @@ const SalesDashboardEnhanced = () => {
 
         {/* Lead Sources */}
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <BarChart3 className="w-4 h-4" />
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className={`text-xs md:text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <BarChart3 className="w-3 h-3 md:w-4 md:h-4" />
               Lead Sources
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-48">
+          <CardContent className="px-3 md:px-6">
+            <div className="h-36 md:h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPie>
                   <Pie
                     data={sourcePieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
+                    innerRadius={30}
+                    outerRadius={50}
                     paddingAngle={2}
                     dataKey="value"
                   >
@@ -446,61 +446,61 @@ const SalesDashboardEnhanced = () => {
 
       {/* Targets vs Achievement */}
       <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-        <CardHeader className="pb-2">
-          <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-            <Target className="w-4 h-4" />
+        <CardHeader className="pb-2 px-3 md:px-6">
+          <CardTitle className={`text-xs md:text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+            <Target className="w-3 h-3 md:w-4 md:h-4" />
             Targets vs Achievement (This Month)
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-6">
+        <CardContent className="px-3 md:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             {/* Meeting Target */}
-            <div className="space-y-2">
+            <div className="space-y-1 md:space-y-2">
               <div className="flex justify-between items-center">
-                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Meetings</span>
-                <span className={`text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
+                <span className={`text-xs md:text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Meetings</span>
+                <span className={`text-xs md:text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
                   {targets.meeting_actual || 0} / {targets.meeting_target || 0}
                 </span>
               </div>
               <Progress 
                 value={targets.meeting_achievement || 0} 
-                className={`h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
+                className={`h-2 md:h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
               />
-              <p className={`text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
+              <p className={`text-[10px] md:text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
                 {targets.meeting_achievement || 0}% achieved
               </p>
             </div>
 
             {/* Conversion Target */}
-            <div className="space-y-2">
+            <div className="space-y-1 md:space-y-2">
               <div className="flex justify-between items-center">
-                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Conversions</span>
-                <span className={`text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
+                <span className={`text-xs md:text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Conversions</span>
+                <span className={`text-xs md:text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
                   {targets.conversion_actual || 0} / {targets.conversion_target || 0}
                 </span>
               </div>
               <Progress 
                 value={targets.conversion_target > 0 ? (targets.conversion_actual / targets.conversion_target * 100) : 0} 
-                className={`h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
+                className={`h-2 md:h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
               />
-              <p className={`text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
+              <p className={`text-[10px] md:text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
                 {targets.conversion_target > 0 ? Math.round(targets.conversion_actual / targets.conversion_target * 100) : 0}% achieved
               </p>
             </div>
 
             {/* Value Target */}
-            <div className="space-y-2">
+            <div className="space-y-1 md:space-y-2">
               <div className="flex justify-between items-center">
-                <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Deal Value</span>
-                <span className={`text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
+                <span className={`text-xs md:text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>Deal Value</span>
+                <span className={`text-xs md:text-sm font-medium ${isDark ? 'text-zinc-200' : ''}`}>
                   {formatCurrency(targets.value_actual || 0)} / {formatCurrency(targets.value_target || 0)}
                 </span>
               </div>
               <Progress 
                 value={targets.value_target > 0 ? (targets.value_actual / targets.value_target * 100) : 0} 
-                className={`h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
+                className={`h-2 md:h-3 ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}
               />
-              <p className={`text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
+              <p className={`text-[10px] md:text-xs text-right ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
                 {targets.value_target > 0 ? Math.round(targets.value_actual / targets.value_target * 100) : 0}% achieved
               </p>
             </div>
@@ -509,23 +509,23 @@ const SalesDashboardEnhanced = () => {
       </Card>
 
       {/* Month over Month Performance */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <TrendingUp className="w-4 h-4" />
-              Monthly Performance Trend
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className={`text-xs md:text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />
+              Monthly Performance
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="px-3 md:px-6">
+            <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={momData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#3f3f46' : '#e5e7eb'} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#52525b' }} />
-                  <YAxis tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#52525b' }} />
-                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#18181b' : '#fff', border: isDark ? '1px solid #3f3f46' : '1px solid #e5e7eb' }} />
-                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#52525b' }} />
+                  <YAxis tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#52525b' }} />
+                  <Tooltip contentStyle={{ backgroundColor: isDark ? '#18181b' : '#fff', border: isDark ? '1px solid #3f3f46' : '1px solid #e5e7eb', fontSize: '11px' }} />
+                  <Legend wrapperStyle={{ fontSize: '10px' }} />
                   <Area 
                     type="monotone" 
                     dataKey="leads" 
@@ -557,29 +557,29 @@ const SalesDashboardEnhanced = () => {
         </Card>
 
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className={`text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <BarChart3 className="w-4 h-4" />
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className={`text-xs md:text-sm flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <BarChart3 className="w-3 h-3 md:w-4 md:h-4" />
               Conversion Rate Trend
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="px-3 md:px-6">
+            <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={momData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#3f3f46' : '#e5e7eb'} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#52525b' }} />
-                  <YAxis tick={{ fontSize: 11, fill: isDark ? '#a1a1aa' : '#52525b' }} unit="%" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#52525b' }} />
+                  <YAxis tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#52525b' }} unit="%" />
                   <Tooltip 
                     formatter={(value) => `${value}%`} 
-                    contentStyle={{ backgroundColor: isDark ? '#18181b' : '#fff', border: isDark ? '1px solid #3f3f46' : '1px solid #e5e7eb' }}
+                    contentStyle={{ backgroundColor: isDark ? '#18181b' : '#fff', border: isDark ? '1px solid #3f3f46' : '1px solid #e5e7eb', fontSize: '11px' }}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="conversion_rate" 
                     stroke="#8b5cf6" 
                     strokeWidth={2}
-                    dot={{ r: 4 }}
+                    dot={{ r: 3 }}
                     name="Conversion Rate"
                   />
                 </LineChart>
@@ -589,8 +589,8 @@ const SalesDashboardEnhanced = () => {
         </Card>
       </div>
 
-      {/* Team Leaderboard & Quick Actions */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Team Leaderboard & Quick Actions - Mobile Responsive */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
         {/* Leaderboard */}
         {viewMode !== 'own' && leaderboard.length > 0 && (
           <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
