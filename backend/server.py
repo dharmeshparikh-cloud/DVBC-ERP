@@ -10226,6 +10226,99 @@ async def mark_expense_reimbursed(
     
     return {"message": "Expense marked as reimbursed"}
 
+
+@api_router.post("/expenses/{expense_id}/approve")
+async def approve_expense(
+    expense_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a pending expense (HR/Admin only)"""
+    if current_user.role not in ['admin', 'hr_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can approve expenses")
+    
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if expense['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Expense is not in pending status")
+    
+    await db.expenses.update_one(
+        {"id": expense_id},
+        {"$set": {
+            "status": "approved",
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.name,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify employee
+    if expense.get('created_by'):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": expense['created_by'],
+            "type": "expense_approved",
+            "title": "Expense Approved",
+            "message": f"Your expense of ₹{expense['total_amount']:,.2f} has been approved.",
+            "reference_type": "expense",
+            "reference_id": expense_id,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {"message": "Expense approved successfully"}
+
+
+@api_router.post("/expenses/{expense_id}/reject")
+async def reject_expense(
+    expense_id: str,
+    data: dict = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a pending expense (HR/Admin only)"""
+    if current_user.role not in ['admin', 'hr_manager', 'manager']:
+        raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can reject expenses")
+    
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    if expense['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Expense is not in pending status")
+    
+    reason = data.get('reason', 'Rejected by approver') if data else 'Rejected by approver'
+    
+    await db.expenses.update_one(
+        {"id": expense_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "rejected_by": current_user.id,
+            "rejected_by_name": current_user.name,
+            "rejection_reason": reason,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify employee
+    if expense.get('created_by'):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": expense['created_by'],
+            "type": "expense_rejected",
+            "title": "Expense Rejected",
+            "message": f"Your expense of ₹{expense['total_amount']:,.2f} has been rejected. Reason: {reason}",
+            "reference_type": "expense",
+            "reference_id": expense_id,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {"message": "Expense rejected"}
+
+
 @api_router.get("/expenses/categories/list")
 async def get_expense_categories():
     """Get list of expense categories"""
