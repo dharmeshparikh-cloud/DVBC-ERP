@@ -10389,7 +10389,7 @@ async def approve_expense(
             "status": "approved",
             "approved_at": datetime.now(timezone.utc).isoformat(),
             "approved_by": current_user.id,
-            "approved_by_name": current_user.name,
+            "approved_by_name": current_user.email,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
