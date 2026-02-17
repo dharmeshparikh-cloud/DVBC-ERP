@@ -5575,9 +5575,11 @@ async def assign_consultant_to_project(
     assignment: ConsultantAssignmentCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Assign a consultant to a project"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(status_code=403, detail="Only admins and managers can assign consultants")
+    """Assign a consultant to a project - Only PM, Principal Consultant, and Admin can assign"""
+    # Team Assignment is a Consulting function - HR cannot assign consultants
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.PROJECT_MANAGER, UserRole.PRINCIPAL_CONSULTANT]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Only Admin, Project Manager, or Principal Consultant can assign consultants")
     
     # Verify project exists
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
