@@ -48,7 +48,14 @@ const Employees = () => {
   const [viewDialog, setViewDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [linkUserDialog, setLinkUserDialog] = useState(false);
+  const [grantAccessDialog, setGrantAccessDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  
+  // Grant access form
+  const [accessFormData, setAccessFormData] = useState({
+    role: 'consultant',
+    password: 'Welcome@123'
+  });
 
   // Form data
   const [formData, setFormData] = useState({
