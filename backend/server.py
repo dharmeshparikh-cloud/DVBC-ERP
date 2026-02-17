@@ -12378,14 +12378,18 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
     # Notify all admins
     admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1, "full_name": 1}).to_list(50)
     for admin in admins:
-        await create_notification(
-            user_id=admin["id"],
-            notif_type="ctc_approval_request",
-            title="CTC Structure Approval Required",
-            message=f"{current_user.full_name} has submitted CTC structure for {employee.get('first_name')} {employee.get('last_name')} (₹{request.annual_ctc:,.0f}/year). Please review and approve.",
-            reference_type="ctc_structure",
-            reference_id=ctc_structure["id"]
-        )
+        notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": admin["id"],
+            "type": "ctc_approval_request",
+            "title": "CTC Structure Approval Required",
+            "message": f"{current_user.full_name} has submitted CTC structure for {employee.get('first_name')} {employee.get('last_name')} (₹{request.annual_ctc:,.0f}/year). Please review and approve.",
+            "reference_type": "ctc_structure",
+            "reference_id": ctc_structure["id"],
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
     
     return {
         "message": "CTC structure submitted for admin approval",
