@@ -251,14 +251,33 @@ A comprehensive travel reimbursement feature for employees:
 - [ ] Skill matrix and capacity planning
 - [ ] Training/certification tracking
 
-### Session 9 (Feb 17, 2026) - ERP Workflow Page Enhancement
+### Session 9 (Feb 17, 2026) - ERP Workflow & Permissions Update
 - [x] **High-Priority Workflow Diagrams Added**
   - [x] Leave Management Flow (7 steps): Leave Request → Balance Check → Manager Approval → HR Approval → Balance Update → Calendar Sync → Notification
   - [x] Expense Reimbursement Flow (7 steps): Expense Entry → Receipt Upload → Submit Claim → Manager Review → Finance/Admin Approval → Process Payment → Reimbursement
   - [x] Invoice to Collection Flow (8 steps): Invoice Generated → Review & Approve → Send to Client → Payment Follow-up → Payment Received → Reconciliation → Receipt Issued → Invoice Closed
-  - [x] Added missing Lucide icons: CalendarDays, Calculator, Shield, RefreshCw, Bell, Upload, Send, FileCheck
-  - [x] Extended gradient color palette: teal, rose, amber
-  - [x] All workflows clickable with animated flow visualization
+- [x] **Lead to Delivery Workflow Corrections**
+  - [x] Fixed subtitle to "Sales → Consulting Handover"
+  - [x] Sales flow correctly ends at "Kickoff Request" (handover point)
+  - [x] Added "Kickoff Accepted" step (Consulting accepts project)
+  - [x] Team Assignment now correctly tagged as Consulting module (not HR)
+  - [x] Meeting Delivery & Project Closure remain Consulting-only
+- [x] **Team Assignment Permission Update (Database & API)**
+  - [x] Only Admin, Manager, Project Manager, and Principal Consultant can assign/unassign/change consultants
+  - [x] HR roles (hr_manager, hr_executive) CANNOT assign consultants
+  - [x] Updated backend APIs: `/projects/{id}/assign-consultant`, `/projects/{id}/unassign-consultant`, `/projects/{id}/change-consultant`
+  - [x] Updated frontend AssignTeam.js permission check
+
+## Permission Matrix (Updated)
+
+| Feature | Admin | Manager | Project Manager | Principal Consultant | HR Manager | HR Executive | Sales |
+|---------|-------|---------|-----------------|---------------------|------------|--------------|-------|
+| Assign Consultants | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Unassign Consultants | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Change Consultants | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| View Team Workload | ✅ | ✅ | ✅ | ✅ | ✅ (read-only) | ❌ | ❌ |
+| Create Kickoff Request | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Accept Kickoff Request | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 **Workflow Page Summary:**
 - Total 7 workflows now available at `/workflow`
