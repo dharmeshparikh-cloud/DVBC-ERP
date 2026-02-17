@@ -286,15 +286,15 @@ const WorkflowPage = () => {
       </div>
 
       {/* Workflow Steps */}
-      <Card className="border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900">
+      <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <CardHeader className="border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {React.createElement(currentWorkflow.icon, { 
-                className: `w-6 h-6 text-${currentWorkflow.color}-600 dark:text-${currentWorkflow.color}-400` 
+                className: 'w-6 h-6 text-current'
               })}
               <div>
-                <CardTitle className="text-xl dark:text-zinc-100">{currentWorkflow.title}</CardTitle>
+                <CardTitle className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{currentWorkflow.title}</CardTitle>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">{currentWorkflow.subtitle}</p>
               </div>
             </div>
