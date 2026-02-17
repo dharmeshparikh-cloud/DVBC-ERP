@@ -979,6 +979,67 @@ const Employees = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Grant System Access Dialog */}
+      <Dialog open={grantAccessDialog} onOpenChange={setGrantAccessDialog}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Grant System Access</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-600">
+              Create login credentials for <strong>{selectedEmployee?.first_name} {selectedEmployee?.last_name}</strong>
+            </p>
+            
+            <div className="p-3 bg-zinc-50 rounded-sm border border-zinc-200">
+              <p className="text-sm"><span className="text-zinc-500">Email:</span> <strong>{selectedEmployee?.email}</strong></p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-black">Role *</Label>
+              <select
+                value={accessFormData.role}
+                onChange={(e) => setAccessFormData({ ...accessFormData, role: e.target.value })}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm text-black"
+              >
+                <option value="consultant">Consultant</option>
+                <option value="senior_consultant">Senior Consultant</option>
+                <option value="lead_consultant">Lead Consultant</option>
+                <option value="principal_consultant">Principal Consultant</option>
+                <option value="project_manager">Project Manager</option>
+                <option value="hr_executive">HR Executive</option>
+                <option value="hr_manager">HR Manager</option>
+                <option value="account_manager">Account Manager</option>
+                <option value="executive">Sales Executive</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-black">Temporary Password *</Label>
+              <Input
+                type="text"
+                value={accessFormData.password}
+                onChange={(e) => setAccessFormData({ ...accessFormData, password: e.target.value })}
+                placeholder="Welcome@123"
+                className="rounded-sm text-black"
+              />
+              <p className="text-xs text-zinc-500">Employee should change this password after first login.</p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" onClick={() => setGrantAccessDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleGrantAccess} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                <UserCheck className="w-4 h-4 mr-2" />
+                Grant Access
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
