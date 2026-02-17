@@ -257,7 +257,7 @@ const Projects = () => {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg font-semibold text-zinc-950">
+                    <CardTitle className="text-lg font-semibold text-zinc-950 dark:text-zinc-100">
                       {project.name}
                     </CardTitle>
                     <div className="text-sm text-zinc-500 mt-1">{project.client_name}</div>
