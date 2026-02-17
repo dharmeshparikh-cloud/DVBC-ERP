@@ -64,6 +64,15 @@ const Dashboard = () => {
     }
   };
 
+  const fetchAttendanceStatus = async () => {
+    try {
+      const res = await axios.get(`${API}/my/check-status`);
+      setAttendanceStatus(res.data);
+    } catch (err) {
+      console.error('Failed to fetch attendance status');
+    }
+  };
+
   const fetchStats = async () => {
     try {
       const response = await axios.get(`${API}/stats/dashboard`);
