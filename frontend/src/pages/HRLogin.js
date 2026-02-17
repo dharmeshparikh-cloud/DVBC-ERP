@@ -72,17 +72,17 @@ const HRLogin = () => {
   ];
 
   return (
-    <div className="min-h-screen flex bg-zinc-50" data-testid="hr-login-page">
+    <div className="min-h-screen flex bg-white" data-testid="hr-login-page">
       {/* Left Panel - Features */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-12 flex-col justify-between">
+      <div className="hidden lg:flex lg:w-1/2 bg-black p-12 flex-col justify-between">
         <div>
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
               <Users className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">DVBC HR Portal</h1>
-              <p className="text-emerald-100 text-sm">People Operations Hub</p>
+              <p className="text-white/60 text-sm">People Operations Hub</p>
             </div>
           </div>
 
@@ -90,53 +90,53 @@ const HRLogin = () => {
             <h2 className="text-3xl font-bold text-white leading-tight">
               Empower your<br />workforce management
             </h2>
-            <p className="text-emerald-100 text-lg max-w-md">
+            <p className="text-white/60 text-lg max-w-md">
               Complete HR toolkit - from onboarding to payroll, streamline all people operations in one place.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mt-12">
             {features.map((feature, idx) => (
-              <div key={idx} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                <feature.icon className="w-8 h-8 text-white mb-2" />
+              <div key={idx} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                <feature.icon className="w-8 h-8 text-white/80 mb-2" />
                 <h3 className="text-white font-semibold">{feature.label}</h3>
-                <p className="text-emerald-100 text-sm">{feature.desc}</p>
+                <p className="text-white/50 text-sm">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="text-emerald-100 text-sm">
+        <div className="text-white/40 text-sm">
           © {new Date().getFullYear()} DVBC Consulting. All rights reserved.
         </div>
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <Card className="w-full max-w-md border-0 shadow-xl">
-          <CardContent className="p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
+        <Card className="w-full max-w-md border border-black/10 shadow-lg rounded-2xl">
+          <CardContent className="p-8 bg-white">
             <div className="text-center mb-8">
               <img 
                 src={LOGO_URL} 
                 alt="DVBC Logo" 
                 className="h-16 mx-auto mb-4 object-contain"
               />
-              <h2 className="text-2xl font-bold text-zinc-900">HR Portal Login</h2>
-              <p className="text-zinc-500 mt-1">Access your HR dashboard</p>
+              <h2 className="text-2xl font-bold text-black">HR Portal Login</h2>
+              <p className="text-black/50 mt-1">Access your HR dashboard</p>
             </div>
 
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-black">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="hr@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 border-black/20 bg-white focus:ring-black focus:border-black"
                     required
                     data-testid="hr-email-input"
                   />
@@ -144,16 +144,16 @@ const HRLogin = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-black">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
                   <Input
                     id="password"
                     type="password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 border-black/20 bg-white focus:ring-black focus:border-black"
                     required
                     data-testid="hr-password-input"
                   />
@@ -162,7 +162,7 @@ const HRLogin = () => {
 
               <Button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                className="w-full bg-black hover:bg-black/90 text-white"
                 disabled={loading}
                 data-testid="hr-login-submit"
               >
@@ -171,9 +171,9 @@ const HRLogin = () => {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-black/50">
                 Not an HR team member?{' '}
-                <a href="/login" className="text-emerald-600 hover:underline">
+                <a href="/login" className="text-black font-medium hover:underline">
                   Go to main login
                 </a>
               </p>
