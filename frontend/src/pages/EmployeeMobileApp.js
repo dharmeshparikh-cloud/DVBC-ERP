@@ -6,7 +6,8 @@ import {
   Home, Building2, Navigation, Loader2, AlertCircle, ChevronRight,
   Plus, Camera, FileText, TrendingUp, User, Bell, Settings,
   Coffee, Sun, Moon, Briefcase, IndianRupee, CalendarDays,
-  CheckCircle2, XCircle, Timer, Wallet, X, RotateCcw, Send
+  CheckCircle2, XCircle, Timer, Wallet, X, RotateCcw, Send,
+  Car, Bike, Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 
