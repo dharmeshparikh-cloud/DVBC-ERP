@@ -12564,14 +12564,18 @@ async def reject_ctc_structure(ctc_id: str, data: dict, current_user: User = Dep
     )
     
     # Notify HR who created the request
-    await create_notification(
-        user_id=ctc_structure["created_by"],
-        notif_type="ctc_rejected",
-        title="CTC Structure Rejected",
-        message=f"CTC structure for {ctc_structure['employee_name']} has been rejected by {current_user.full_name}. Reason: {rejection_reason}",
-        reference_type="ctc_structure",
-        reference_id=ctc_id
-    )
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": ctc_structure["created_by"],
+        "type": "ctc_rejected",
+        "title": "CTC Structure Rejected",
+        "message": f"CTC structure for {ctc_structure['employee_name']} has been rejected by {current_user.full_name}. Reason: {rejection_reason}",
+        "reference_type": "ctc_structure",
+        "reference_id": ctc_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
     
     return {"message": "CTC structure rejected", "reason": rejection_reason}
 
