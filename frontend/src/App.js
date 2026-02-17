@@ -260,6 +260,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="office-locations" element={<OfficeLocationsSettings />} />
         <Route path="flow-diagram" element={<FlowDiagram />} />
         <Route path="workflow" element={<WorkflowPage />} />
+        <Route path="tutorials" element={<OnboardingTutorial />} />
         {/* HR Features accessible to Admin in Main ERP */}
         <Route path="team-workload" element={<HRTeamWorkload />} />
         <Route path="staffing-requests" element={<HRStaffingRequests />} />
