@@ -1097,6 +1097,216 @@ const EmployeeMobileApp = () => {
         </div>
       )}
 
+      {/* Add Expense Modal */}
+      {showExpenseModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setShowExpenseModal(false)}>
+          <div className="w-full bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white pt-4 pb-2 px-6 border-b border-zinc-100">
+              <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-zinc-900">Add Expense</h2>
+                  <p className="text-sm text-zinc-500">Submit a new expense claim</p>
+                </div>
+                <button onClick={() => setShowExpenseModal(false)} className="p-2">
+                  <X className="w-6 h-6 text-zinc-400" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Description *</label>
+                <input
+                  type="text"
+                  value={expenseForm.description}
+                  onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})}
+                  placeholder="e.g., Cab fare to client site"
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  data-testid="expense-description"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Amount (₹) *</label>
+                <input
+                  type="number"
+                  value={expenseForm.amount}
+                  onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})}
+                  placeholder="0.00"
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  data-testid="expense-amount"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Category</label>
+                <select
+                  value={expenseForm.category}
+                  onChange={(e) => setExpenseForm({...expenseForm, category: e.target.value})}
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  data-testid="expense-category"
+                >
+                  <option value="travel">Travel</option>
+                  <option value="food">Food & Meals</option>
+                  <option value="accommodation">Accommodation</option>
+                  <option value="communication">Communication</option>
+                  <option value="office_supplies">Office Supplies</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Date</label>
+                <input
+                  type="date"
+                  value={expenseForm.expense_date}
+                  onChange={(e) => setExpenseForm({...expenseForm, expense_date: e.target.value})}
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  data-testid="expense-date"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Remarks (optional)</label>
+                <textarea
+                  value={expenseForm.remarks}
+                  onChange={(e) => setExpenseForm({...expenseForm, remarks: e.target.value})}
+                  placeholder="Additional details..."
+                  rows={2}
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm resize-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  data-testid="expense-remarks"
+                />
+              </div>
+
+              <button 
+                onClick={handleSubmitExpense}
+                disabled={loading || !expenseForm.description || !expenseForm.amount}
+                className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="submit-expense-btn"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
+                Submit Expense
+              </button>
+
+              <button 
+                onClick={() => setShowExpenseModal(false)}
+                className="w-full py-3 bg-zinc-100 text-zinc-700 rounded-2xl font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apply Leave Modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setShowLeaveModal(false)}>
+          <div className="w-full bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white pt-4 pb-2 px-6 border-b border-zinc-100">
+              <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-zinc-900">Apply for Leave</h2>
+                  <p className="text-sm text-zinc-500">Submit a leave request</p>
+                </div>
+                <button onClick={() => setShowLeaveModal(false)} className="p-2">
+                  <X className="w-6 h-6 text-zinc-400" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Leave Balance Summary */}
+              {leaveBalance && (
+                <div className="grid grid-cols-3 gap-2 p-3 bg-zinc-50 rounded-xl">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-blue-600">{leaveBalance.casual?.available || 0}</p>
+                    <p className="text-xs text-zinc-500">Casual</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-red-600">{leaveBalance.sick?.available || 0}</p>
+                    <p className="text-xs text-zinc-500">Sick</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-emerald-600">{leaveBalance.earned?.available || 0}</p>
+                    <p className="text-xs text-zinc-500">Earned</p>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Leave Type *</label>
+                <select
+                  value={leaveForm.leave_type}
+                  onChange={(e) => setLeaveForm({...leaveForm, leave_type: e.target.value})}
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  data-testid="leave-type"
+                >
+                  <option value="casual">Casual Leave</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="earned">Earned Leave</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-zinc-700 block mb-2">From Date *</label>
+                  <input
+                    type="date"
+                    value={leaveForm.start_date}
+                    onChange={(e) => setLeaveForm({...leaveForm, start_date: e.target.value})}
+                    className="w-full p-3 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    data-testid="leave-start-date"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-zinc-700 block mb-2">To Date *</label>
+                  <input
+                    type="date"
+                    value={leaveForm.end_date}
+                    onChange={(e) => setLeaveForm({...leaveForm, end_date: e.target.value})}
+                    min={leaveForm.start_date}
+                    className="w-full p-3 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    data-testid="leave-end-date"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Reason *</label>
+                <textarea
+                  value={leaveForm.reason}
+                  onChange={(e) => setLeaveForm({...leaveForm, reason: e.target.value})}
+                  placeholder="Please provide a reason for your leave..."
+                  rows={3}
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  data-testid="leave-reason"
+                />
+              </div>
+
+              <button 
+                onClick={handleSubmitLeave}
+                disabled={loading || !leaveForm.reason}
+                className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="submit-leave-btn"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Calendar className="w-5 h-5" />}
+                Submit Leave Request
+              </button>
+
+              <button 
+                onClick={() => setShowLeaveModal(false)}
+                className="w-full py-3 bg-zinc-100 text-zinc-700 rounded-2xl font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes slide-up {
           from { transform: translateY(100%); }
