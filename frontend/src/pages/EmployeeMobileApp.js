@@ -262,6 +262,69 @@ const EmployeeMobileApp = () => {
     }
   };
 
+  // Handle Expense Submission
+  const handleSubmitExpense = async () => {
+    if (!expenseForm.description || !expenseForm.amount) {
+      toast.error('Please fill in description and amount');
+      return;
+    }
+    setLoading(true);
+    try {
+      await axios.post(`${API}/expenses`, {
+        description: expenseForm.description,
+        total_amount: parseFloat(expenseForm.amount),
+        category: expenseForm.category,
+        expense_date: expenseForm.expense_date,
+        remarks: expenseForm.remarks,
+        status: 'pending'
+      });
+      toast.success('Expense submitted successfully!');
+      setShowExpenseModal(false);
+      setExpenseForm({
+        description: '',
+        amount: '',
+        category: 'travel',
+        expense_date: new Date().toISOString().split('T')[0],
+        remarks: ''
+      });
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to submit expense');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Leave Application
+  const handleSubmitLeave = async () => {
+    if (!leaveForm.reason) {
+      toast.error('Please provide a reason for leave');
+      return;
+    }
+    setLoading(true);
+    try {
+      await axios.post(`${API}/my/leaves`, {
+        leave_type: leaveForm.leave_type,
+        start_date: leaveForm.start_date,
+        end_date: leaveForm.end_date,
+        reason: leaveForm.reason
+      });
+      toast.success('Leave application submitted!');
+      setShowLeaveModal(false);
+      setLeaveForm({
+        leave_type: 'casual',
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date().toISOString().split('T')[0],
+        reason: ''
+      });
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to apply for leave');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const greeting = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return 'Good Morning';
