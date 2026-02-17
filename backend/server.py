@@ -12187,6 +12187,442 @@ async def generate_bulk_salary_slips(data: dict, current_user: User = Depends(ge
     return {"message": f"Generated {generated} salary slips for {month}", "count": generated}
 
 
+# ==================== CTC STRUCTURE & APPROVAL ====================
+
+def calculate_ctc_breakdown(annual_ctc: float, retention_bonus: float = 0, retention_vesting_months: int = 12) -> dict:
+    """
+    Calculate standard Indian CTC breakdown.
+    Components: Basic (40%), HRA (50% of Basic), DA (10% of Basic), 
+    Conveyance, Medical, Special Allowance (balance), PF (12% of Basic), Gratuity (4.81% of Basic)
+    Optional: Retention Bonus (paid after vesting period)
+    """
+    # Standard percentages
+    basic_pct = 40  # 40% of CTC
+    hra_pct = 50    # 50% of Basic
+    da_pct = 10     # 10% of Basic
+    pf_pct = 12     # 12% of Basic (employer contribution)
+    gratuity_pct = 4.81  # 4.81% of Basic
+    
+    # Fixed allowances (annual)
+    conveyance_annual = 19200  # ₹1600/month
+    medical_annual = 15000     # ₹1250/month
+    
+    # Calculate Basic
+    basic_annual = round(annual_ctc * basic_pct / 100, 2)
+    basic_monthly = round(basic_annual / 12, 2)
+    
+    # Calculate HRA (50% of Basic)
+    hra_annual = round(basic_annual * hra_pct / 100, 2)
+    hra_monthly = round(hra_annual / 12, 2)
+    
+    # Calculate DA (10% of Basic)
+    da_annual = round(basic_annual * da_pct / 100, 2)
+    da_monthly = round(da_annual / 12, 2)
+    
+    # Fixed allowances
+    conveyance_monthly = round(conveyance_annual / 12, 2)
+    medical_monthly = round(medical_annual / 12, 2)
+    
+    # PF Employer Contribution (12% of Basic)
+    pf_annual = round(basic_annual * pf_pct / 100, 2)
+    pf_monthly = round(pf_annual / 12, 2)
+    
+    # Gratuity (4.81% of Basic)
+    gratuity_annual = round(basic_annual * gratuity_pct / 100, 2)
+    gratuity_monthly = round(gratuity_annual / 12, 2)
+    
+    # Calculate Special Allowance as balance
+    allocated = basic_annual + hra_annual + da_annual + conveyance_annual + medical_annual + pf_annual + gratuity_annual + retention_bonus
+    special_allowance_annual = round(annual_ctc - allocated, 2)
+    special_allowance_monthly = round(special_allowance_annual / 12, 2)
+    
+    # If special allowance goes negative, adjust
+    if special_allowance_annual < 0:
+        special_allowance_annual = 0
+        special_allowance_monthly = 0
+    
+    # Monthly in-hand (excluding PF, Gratuity, Retention Bonus)
+    gross_monthly = basic_monthly + hra_monthly + da_monthly + conveyance_monthly + medical_monthly + special_allowance_monthly
+    
+    components = {
+        "basic": {
+            "key": "basic", "name": "Basic Salary", "calc_type": "percentage_of_ctc",
+            "value": basic_pct, "annual": basic_annual, "monthly": basic_monthly, "is_taxable": True
+        },
+        "hra": {
+            "key": "hra", "name": "House Rent Allowance", "calc_type": "percentage_of_basic",
+            "value": hra_pct, "annual": hra_annual, "monthly": hra_monthly, "is_taxable": True
+        },
+        "da": {
+            "key": "da", "name": "Dearness Allowance", "calc_type": "percentage_of_basic",
+            "value": da_pct, "annual": da_annual, "monthly": da_monthly, "is_taxable": True
+        },
+        "conveyance": {
+            "key": "conveyance", "name": "Conveyance Allowance", "calc_type": "fixed",
+            "value": conveyance_annual, "annual": conveyance_annual, "monthly": conveyance_monthly, "is_taxable": False
+        },
+        "medical": {
+            "key": "medical", "name": "Medical Allowance", "calc_type": "fixed",
+            "value": medical_annual, "annual": medical_annual, "monthly": medical_monthly, "is_taxable": False
+        },
+        "special_allowance": {
+            "key": "special_allowance", "name": "Special Allowance", "calc_type": "balance",
+            "value": 0, "annual": special_allowance_annual, "monthly": special_allowance_monthly, "is_taxable": True
+        },
+        "pf_employer": {
+            "key": "pf_employer", "name": "PF (Employer Contribution)", "calc_type": "percentage_of_basic",
+            "value": pf_pct, "annual": pf_annual, "monthly": pf_monthly, "is_taxable": False, "is_deferred": True
+        },
+        "gratuity": {
+            "key": "gratuity", "name": "Gratuity", "calc_type": "percentage_of_basic",
+            "value": gratuity_pct, "annual": gratuity_annual, "monthly": gratuity_monthly, "is_taxable": False, "is_deferred": True
+        }
+    }
+    
+    # Add retention bonus if provided
+    if retention_bonus > 0:
+        components["retention_bonus"] = {
+            "key": "retention_bonus", "name": "Retention Bonus", "calc_type": "fixed",
+            "value": retention_bonus, "annual": retention_bonus, "monthly": 0,  # Paid as lump sum after vesting
+            "is_taxable": True, "is_optional": True, "vesting_months": retention_vesting_months,
+            "note": f"Payable after {retention_vesting_months} months of service completion"
+        }
+    
+    return {
+        "components": components,
+        "summary": {
+            "annual_ctc": annual_ctc,
+            "gross_monthly": round(gross_monthly, 2),
+            "basic_annual": basic_annual,
+            "total_deferred_annual": round(pf_annual + gratuity_annual + retention_bonus, 2),
+            "in_hand_approx_monthly": round(gross_monthly - (pf_monthly * 2), 2)  # Approx after PF deduction
+        }
+    }
+
+
+@api_router.post("/ctc/calculate-preview")
+async def preview_ctc_breakdown(data: dict, current_user: User = Depends(get_current_user)):
+    """Preview CTC breakdown without saving (for HR to review before submission)"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can access CTC calculations")
+    
+    annual_ctc = data.get("annual_ctc", 0)
+    if annual_ctc <= 0:
+        raise HTTPException(status_code=400, detail="Annual CTC must be greater than 0")
+    
+    retention_bonus = data.get("retention_bonus", 0)
+    retention_vesting_months = data.get("retention_vesting_months", 12)
+    
+    breakdown = calculate_ctc_breakdown(annual_ctc, retention_bonus, retention_vesting_months)
+    return breakdown
+
+
+@api_router.post("/ctc/design")
+async def design_ctc_structure(request: CTCStructureRequest, current_user: User = Depends(get_current_user)):
+    """HR designs/submits CTC structure for an employee - requires Admin approval"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can design CTC structures")
+    
+    # Validate employee exists
+    employee = await db.employees.find_one({"id": request.employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Calculate breakdown
+    breakdown = calculate_ctc_breakdown(
+        request.annual_ctc, 
+        request.retention_bonus or 0, 
+        request.retention_vesting_months or 12
+    )
+    
+    # Check for existing pending request
+    existing_pending = await db.ctc_structures.find_one({
+        "employee_id": request.employee_id,
+        "status": "pending"
+    })
+    if existing_pending:
+        raise HTTPException(status_code=400, detail="There is already a pending CTC request for this employee. Please wait for approval or cancel it first.")
+    
+    # Get version number
+    latest = await db.ctc_structures.find_one(
+        {"employee_id": request.employee_id},
+        sort=[("version", -1)]
+    )
+    version = (latest.get("version", 0) + 1) if latest else 1
+    
+    # Create CTC structure request
+    ctc_structure = {
+        "id": str(uuid.uuid4()),
+        "employee_id": request.employee_id,
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}",
+        "employee_code": employee.get("employee_id", ""),
+        "department": employee.get("department", ""),
+        "designation": employee.get("designation", ""),
+        "annual_ctc": request.annual_ctc,
+        "effective_month": request.effective_month,
+        "components": breakdown["components"],
+        "summary": breakdown["summary"],
+        "retention_bonus": request.retention_bonus or 0,
+        "retention_vesting_months": request.retention_vesting_months or 12,
+        "status": "pending",
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "remarks": request.remarks,
+        "version": version,
+        "previous_ctc": employee.get("salary", 0)
+    }
+    
+    await db.ctc_structures.insert_one(ctc_structure)
+    
+    # Notify all admins
+    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1, "full_name": 1}).to_list(50)
+    for admin in admins:
+        await create_notification(
+            user_id=admin["id"],
+            notif_type="ctc_approval_request",
+            title="CTC Structure Approval Required",
+            message=f"{current_user.full_name} has submitted CTC structure for {employee.get('first_name')} {employee.get('last_name')} (₹{request.annual_ctc:,.0f}/year). Please review and approve.",
+            reference_type="ctc_structure",
+            reference_id=ctc_structure["id"]
+        )
+    
+    return {
+        "message": "CTC structure submitted for admin approval",
+        "ctc_structure_id": ctc_structure["id"],
+        "status": "pending"
+    }
+
+
+@api_router.get("/ctc/pending-approvals")
+async def get_pending_ctc_approvals(current_user: User = Depends(get_current_user)):
+    """Get all pending CTC structure approvals (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can view pending CTC approvals")
+    
+    pending = await db.ctc_structures.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return pending
+
+
+@api_router.get("/ctc/all")
+async def get_all_ctc_structures(
+    status: Optional[str] = None,
+    employee_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all CTC structures with optional filters (Admin/HR)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view CTC structures")
+    
+    query = {}
+    if status:
+        query["status"] = status
+    if employee_id:
+        query["employee_id"] = employee_id
+    
+    structures = await db.ctc_structures.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return structures
+
+
+@api_router.get("/ctc/employee/{employee_id}")
+async def get_employee_ctc(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Get active CTC structure for an employee"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        # Employees can only view their own
+        if current_user.id != employee_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get active CTC structure
+    active_ctc = await db.ctc_structures.find_one(
+        {"employee_id": employee_id, "status": "active"},
+        {"_id": 0}
+    )
+    
+    # Get pending if any
+    pending_ctc = await db.ctc_structures.find_one(
+        {"employee_id": employee_id, "status": "pending"},
+        {"_id": 0}
+    )
+    
+    return {
+        "active": active_ctc,
+        "pending": pending_ctc
+    }
+
+
+@api_router.get("/ctc/employee/{employee_id}/history")
+async def get_employee_ctc_history(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Get CTC change history for an employee"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view CTC history")
+    
+    history = await db.ctc_structures.find(
+        {"employee_id": employee_id},
+        {"_id": 0}
+    ).sort("version", -1).to_list(50)
+    
+    return history
+
+
+@api_router.post("/ctc/{ctc_id}/approve")
+async def approve_ctc_structure(ctc_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Admin approves CTC structure - makes it active from effective month"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can approve CTC structures")
+    
+    ctc_structure = await db.ctc_structures.find_one({"id": ctc_id}, {"_id": 0})
+    if not ctc_structure:
+        raise HTTPException(status_code=404, detail="CTC structure not found")
+    
+    if ctc_structure["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"CTC structure is already {ctc_structure['status']}")
+    
+    # Mark any existing active CTC as superseded
+    await db.ctc_structures.update_many(
+        {"employee_id": ctc_structure["employee_id"], "status": "active"},
+        {"$set": {"status": "superseded", "superseded_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Update CTC structure to active
+    await db.ctc_structures.update_one(
+        {"id": ctc_id},
+        {"$set": {
+            "status": "active",
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "admin_remarks": data.get("remarks", "")
+        }}
+    )
+    
+    # Update employee's salary field with new CTC (monthly gross for payroll)
+    gross_monthly = ctc_structure["summary"]["gross_monthly"]
+    await db.employees.update_one(
+        {"id": ctc_structure["employee_id"]},
+        {"$set": {
+            "salary": gross_monthly,
+            "annual_ctc": ctc_structure["annual_ctc"],
+            "ctc_effective_from": ctc_structure["effective_month"],
+            "ctc_structure_id": ctc_id
+        }}
+    )
+    
+    # Notify HR who created the request
+    await create_notification(
+        user_id=ctc_structure["created_by"],
+        notif_type="ctc_approved",
+        title="CTC Structure Approved",
+        message=f"CTC structure for {ctc_structure['employee_name']} (₹{ctc_structure['annual_ctc']:,.0f}/year) has been approved by {current_user.full_name}. Effective from {ctc_structure['effective_month']} payroll.",
+        reference_type="ctc_structure",
+        reference_id=ctc_id
+    )
+    
+    return {
+        "message": "CTC structure approved and activated",
+        "effective_from": ctc_structure["effective_month"]
+    }
+
+
+@api_router.post("/ctc/{ctc_id}/reject")
+async def reject_ctc_structure(ctc_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Admin rejects CTC structure"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can reject CTC structures")
+    
+    ctc_structure = await db.ctc_structures.find_one({"id": ctc_id}, {"_id": 0})
+    if not ctc_structure:
+        raise HTTPException(status_code=404, detail="CTC structure not found")
+    
+    if ctc_structure["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"CTC structure is already {ctc_structure['status']}")
+    
+    rejection_reason = data.get("reason", "")
+    if not rejection_reason:
+        raise HTTPException(status_code=400, detail="Rejection reason is required")
+    
+    await db.ctc_structures.update_one(
+        {"id": ctc_id},
+        {"$set": {
+            "status": "rejected",
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "rejection_reason": rejection_reason
+        }}
+    )
+    
+    # Notify HR who created the request
+    await create_notification(
+        user_id=ctc_structure["created_by"],
+        notif_type="ctc_rejected",
+        title="CTC Structure Rejected",
+        message=f"CTC structure for {ctc_structure['employee_name']} has been rejected by {current_user.full_name}. Reason: {rejection_reason}",
+        reference_type="ctc_structure",
+        reference_id=ctc_id
+    )
+    
+    return {"message": "CTC structure rejected", "reason": rejection_reason}
+
+
+@api_router.delete("/ctc/{ctc_id}/cancel")
+async def cancel_ctc_request(ctc_id: str, current_user: User = Depends(get_current_user)):
+    """HR cancels their own pending CTC request"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can cancel CTC requests")
+    
+    ctc_structure = await db.ctc_structures.find_one({"id": ctc_id}, {"_id": 0})
+    if not ctc_structure:
+        raise HTTPException(status_code=404, detail="CTC structure not found")
+    
+    if ctc_structure["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Can only cancel pending requests")
+    
+    # Only creator or admin can cancel
+    if current_user.role != "admin" and ctc_structure["created_by"] != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only cancel your own requests")
+    
+    await db.ctc_structures.update_one(
+        {"id": ctc_id},
+        {"$set": {
+            "status": "cancelled",
+            "cancelled_by": current_user.id,
+            "cancelled_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "CTC request cancelled"}
+
+
+@api_router.get("/ctc/stats")
+async def get_ctc_stats(current_user: User = Depends(get_current_user)):
+    """Get CTC approval statistics (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can view CTC stats")
+    
+    pending_count = await db.ctc_structures.count_documents({"status": "pending"})
+    approved_count = await db.ctc_structures.count_documents({"status": "approved"})
+    rejected_count = await db.ctc_structures.count_documents({"status": "rejected"})
+    active_count = await db.ctc_structures.count_documents({"status": "active"})
+    
+    # Recent approvals
+    recent = await db.ctc_structures.find(
+        {"status": {"$in": ["active", "rejected"]}},
+        {"_id": 0, "id": 1, "employee_name": 1, "annual_ctc": 1, "status": 1, "approved_at": 1}
+    ).sort("approved_at", -1).limit(5).to_list(5)
+    
+    return {
+        "pending": pending_count,
+        "approved": approved_count,
+        "rejected": rejected_count,
+        "active": active_count,
+        "recent_actions": recent
+    }
+
+
 # ==================== SELF-SERVICE (MY WORKSPACE) ====================
 
 async def _get_my_employee(current_user):
