@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, ClipboardCheck, ArrowRight, Shield, AlertTriangle, CheckCircle, XCircle, Building2, Calendar } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, ClipboardCheck, ArrowRight, Shield, AlertTriangle, CheckCircle, XCircle, Building2, Calendar, Clock, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { sanitizeDisplayText } from '../utils/sanitize';
+import QuickCheckInModal from '../components/QuickCheckInModal';
 
 // Import domain-specific dashboards
 import SalesDashboard from './SalesDashboard';
