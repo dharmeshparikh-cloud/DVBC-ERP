@@ -520,48 +520,20 @@ const EmployeeMobileApp = () => {
     return () => clearTimeout(timer);
   }, [locationSearchQuery]);
 
-  // Select location from search results - fetch full details from Google
+  // Select location from search results - coordinates are already included from Google Geocoding
   const selectLocation = async (loc) => {
-    // If we have a place_id, fetch full details including coordinates
-    if (loc.place_id) {
-      try {
-        setSearchingLocations(true);
-        const response = await axios.get(`${API}/travel/place-details/${loc.place_id}`);
-        const details = response.data;
-        
-        const locationData = {
-          name: details.name || loc.name,
-          address: details.address || loc.address,
-          latitude: details.latitude,
-          longitude: details.longitude,
-          place_id: details.place_id
-        };
-        
-        if (selectingFor === 'start') {
-          setTravelForm({ ...travelForm, start_location: locationData });
-        } else if (selectingFor === 'end') {
-          setTravelForm({ ...travelForm, end_location: locationData });
-        }
-      } catch (error) {
-        console.error('Failed to get place details:', error);
-        toast.error('Failed to get location details');
-      } finally {
-        setSearchingLocations(false);
-      }
-    } else {
-      // Fallback for locations without place_id
-      const locationData = {
-        name: loc.name,
-        address: loc.address,
-        latitude: loc.latitude || 0,
-        longitude: loc.longitude || 0
-      };
-      
-      if (selectingFor === 'start') {
-        setTravelForm({ ...travelForm, start_location: locationData });
-      } else if (selectingFor === 'end') {
-        setTravelForm({ ...travelForm, end_location: locationData });
-      }
+    const locationData = {
+      name: loc.name,
+      address: loc.address,
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      place_id: loc.place_id
+    };
+    
+    if (selectingFor === 'start') {
+      setTravelForm({ ...travelForm, start_location: locationData });
+    } else if (selectingFor === 'end') {
+      setTravelForm({ ...travelForm, end_location: locationData });
     }
     
     setLocationSearchQuery('');
