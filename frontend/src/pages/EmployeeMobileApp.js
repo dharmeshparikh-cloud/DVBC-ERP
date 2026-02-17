@@ -1196,6 +1196,76 @@ const EmployeeMobileApp = () => {
         </div>
       )}
 
+      {/* Travel Reimbursement Modal - shows after check-out if applicable */}
+      {showTravelReimbursementModal && lastTravelReimbursement && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowTravelReimbursementModal(false)}>
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <Navigation className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h2 className="text-xl font-bold text-zinc-900">Travel Reimbursement</h2>
+              <p className="text-sm text-zinc-500 mt-1">You're eligible for travel claim!</p>
+            </div>
+            
+            <div className="space-y-3 mb-6">
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-emerald-600">₹{lastTravelReimbursement.calculated_amount?.toLocaleString()}</p>
+                  <p className="text-xs text-emerald-700 mt-1">Estimated Reimbursement</p>
+                </div>
+              </div>
+              
+              <div className="p-3 rounded-xl bg-zinc-50 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-500">Distance</span>
+                  <span className="font-medium">{lastTravelReimbursement.distance_km} km</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-500">Rate</span>
+                  <span className="font-medium">₹{lastTravelReimbursement.rate_per_km}/km ({lastTravelReimbursement.vehicle_type})</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-500">Trip Type</span>
+                  <span className="font-medium">{lastTravelReimbursement.is_round_trip ? 'Round Trip' : 'One Way'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-500">From</span>
+                  <span className="font-medium text-right flex-1 ml-2 truncate">{lastTravelReimbursement.from_location}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-500">To</span>
+                  <span className="font-medium text-right flex-1 ml-2 truncate">{lastTravelReimbursement.to_location}</span>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-xs text-center text-zinc-500 mb-4">
+              Claim this reimbursement through the Expense section
+            </p>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowTravelReimbursementModal(false)}
+                className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-2xl font-semibold"
+              >
+                Close
+              </button>
+              <button 
+                onClick={() => {
+                  setShowTravelReimbursementModal(false);
+                  setActiveTab('expense');
+                }}
+                className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2"
+              >
+                <Receipt className="w-5 h-5" />
+                Claim Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Expense Modal */}
       {showExpenseModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setShowExpenseModal(false)}>
