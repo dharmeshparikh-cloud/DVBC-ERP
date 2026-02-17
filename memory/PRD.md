@@ -251,9 +251,28 @@ A comprehensive travel reimbursement feature for employees:
 - [ ] Skill matrix and capacity planning
 - [ ] Training/certification tracking
 
+### Session 9 (Feb 17, 2026) - ERP Workflow Page Enhancement
+- [x] **High-Priority Workflow Diagrams Added**
+  - [x] Leave Management Flow (7 steps): Leave Request → Balance Check → Manager Approval → HR Approval → Balance Update → Calendar Sync → Notification
+  - [x] Expense Reimbursement Flow (7 steps): Expense Entry → Receipt Upload → Submit Claim → Manager Review → Finance/Admin Approval → Process Payment → Reimbursement
+  - [x] Invoice to Collection Flow (8 steps): Invoice Generated → Review & Approve → Send to Client → Payment Follow-up → Payment Received → Reconciliation → Receipt Issued → Invoice Closed
+  - [x] Added missing Lucide icons: CalendarDays, Calculator, Shield, RefreshCw, Bell, Upload, Send, FileCheck
+  - [x] Extended gradient color palette: teal, rose, amber
+  - [x] All workflows clickable with animated flow visualization
+
+**Workflow Page Summary:**
+- Total 7 workflows now available at `/workflow`
+- Each workflow has interactive step-by-step diagram with Play Animation feature
+- Module badges (Sales, HR, Consulting, Finance) indicate which department handles each step
+- System Integrations section shows automated connections between modules
+
 ## Known Issues
 - Email sending is MOCKED
 - Some test data created with TEST_ prefixes
 - Legacy attendance records don't have work_location field (only new records will have it)
 - Some performance metrics are simulated (consultant utilization, client ratings, sales data)
 - Console warnings about chart dimensions (-1 width/height) - cosmetic, doesn't affect rendering
+- PWA install notification with branding not implemented
+- Leads list view has incomplete columns
+- `LockableCard` not applied to Sales Dashboard
+- `server.py` is monolithic and needs refactoring
