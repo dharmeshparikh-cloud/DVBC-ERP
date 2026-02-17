@@ -12058,28 +12058,67 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     gross_salary = employee.get("salary", 0) or 0
     if gross_salary <= 0:
         raise HTTPException(status_code=400, detail="Employee salary not configured")
-    # Get components
-    config = await db.payroll_config.find_one({"type": "salary_components"}, {"_id": 0})
-    if not config:
-        raise HTTPException(status_code=400, detail="Salary components not configured")
+    
+    # Check if employee has an approved CTC structure effective for this month
+    active_ctc = await db.ctc_structures.find_one({
+        "employee_id": employee_id,
+        "status": "active",
+        "effective_month": {"$lte": month}
+    }, {"_id": 0}, sort=[("effective_month", -1)])
+    
     earnings = []
     total_earnings = 0
-    for comp in config.get("earnings", []):
-        if comp.get("percentage"):
-            amount = round(gross_salary * comp["percentage"] / 100, 2)
-        else:
-            amount = comp.get("fixed", 0)
-        earnings.append({"name": comp["name"], "key": comp["key"], "amount": amount})
-        total_earnings += amount
     deductions = []
     total_deductions = 0
-    for comp in config.get("deductions", []):
-        if comp.get("percentage"):
-            amount = round(gross_salary * comp["percentage"] / 100, 2)
-        else:
-            amount = comp.get("fixed", 0)
-        deductions.append({"name": comp["name"], "key": comp["key"], "amount": amount})
-        total_deductions += amount
+    
+    if active_ctc and active_ctc.get("components"):
+        # Use employee's approved CTC structure
+        for key, comp in active_ctc["components"].items():
+            if not comp.get("enabled", True):
+                continue
+            monthly_amount = comp.get("monthly", 0)
+            if monthly_amount <= 0:
+                continue
+            
+            if comp.get("is_earning", True) and not comp.get("is_deferred"):
+                earnings.append({
+                    "name": comp.get("name", key), 
+                    "key": key, 
+                    "amount": round(monthly_amount, 2)
+                })
+                total_earnings += monthly_amount
+            elif comp.get("is_deduction"):
+                deductions.append({
+                    "name": comp.get("name", key), 
+                    "key": key, 
+                    "amount": round(monthly_amount, 2)
+                })
+                total_deductions += monthly_amount
+        
+        # Update gross_salary from CTC summary
+        gross_salary = active_ctc.get("summary", {}).get("gross_monthly", gross_salary)
+    else:
+        # Fall back to global salary components
+        config = await db.payroll_config.find_one({"type": "salary_components"}, {"_id": 0})
+        if not config:
+            raise HTTPException(status_code=400, detail="Salary components not configured")
+        
+        for comp in config.get("earnings", []):
+            if comp.get("percentage"):
+                amount = round(gross_salary * comp["percentage"] / 100, 2)
+            else:
+                amount = comp.get("fixed", 0)
+            earnings.append({"name": comp["name"], "key": comp["key"], "amount": amount})
+            total_earnings += amount
+        
+        for comp in config.get("deductions", []):
+            if comp.get("percentage"):
+                amount = round(gross_salary * comp["percentage"] / 100, 2)
+            else:
+                amount = comp.get("fixed", 0)
+            deductions.append({"name": comp["name"], "key": comp["key"], "amount": amount})
+            total_deductions += amount
+    
     # Get attendance for the month
     att_records = await db.attendance.find({"employee_id": employee_id, "date": {"$regex": f"^{month}"}}, {"_id": 0}).to_list(50)
     present_days = sum(1 for r in att_records if r.get("status") in ["present", "work_from_home"])
