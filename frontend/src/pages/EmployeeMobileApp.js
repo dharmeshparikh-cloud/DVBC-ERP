@@ -138,6 +138,26 @@ const EmployeeMobileApp = () => {
       setLoading(false);
     }
   };
+  
+  // Fetch assigned clients for On-Site check-in
+  const fetchAssignedClients = async () => {
+    setLoadingClients(true);
+    try {
+      const res = await axios.get(`${API}/my/assigned-clients`);
+      setAssignedClients(res.data.clients || []);
+    } catch (e) {
+      // Fallback: use projects as client source
+      const projectClients = projects.map(p => ({
+        id: p.id,
+        client_name: p.client_name,
+        project_id: p.id,
+        project_name: p.name
+      })).filter(c => c.client_name);
+      setAssignedClients(projectClients);
+    } finally {
+      setLoadingClients(false);
+    }
+  };
 
   const captureLocation = () => {
     setLocationLoading(true);
