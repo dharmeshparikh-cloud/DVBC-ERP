@@ -134,11 +134,31 @@ const WORKFLOWS = {
 };
 
 const MODULE_COLORS = {
-  Sales: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
-  HR: { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300' },
-  Consulting: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
-  Finance: { bg: 'bg-violet-100', text: 'text-violet-700', border: 'border-violet-300' },
-  Admin: { bg: 'bg-zinc-100', text: 'text-zinc-700', border: 'border-zinc-300' },
+  Sales: { 
+    bg: 'bg-orange-100 dark:bg-orange-900/30', 
+    text: 'text-orange-700 dark:text-orange-400', 
+    border: 'border-orange-300 dark:border-orange-700' 
+  },
+  HR: { 
+    bg: 'bg-emerald-100 dark:bg-emerald-900/30', 
+    text: 'text-emerald-700 dark:text-emerald-400', 
+    border: 'border-emerald-300 dark:border-emerald-700' 
+  },
+  Consulting: { 
+    bg: 'bg-blue-100 dark:bg-blue-900/30', 
+    text: 'text-blue-700 dark:text-blue-400', 
+    border: 'border-blue-300 dark:border-blue-700' 
+  },
+  Finance: { 
+    bg: 'bg-violet-100 dark:bg-violet-900/30', 
+    text: 'text-violet-700 dark:text-violet-400', 
+    border: 'border-violet-300 dark:border-violet-700' 
+  },
+  Admin: { 
+    bg: 'bg-zinc-100 dark:bg-zinc-800', 
+    text: 'text-zinc-700 dark:text-zinc-300', 
+    border: 'border-zinc-300 dark:border-zinc-600' 
+  },
 };
 
 const GRADIENT_COLORS = {
