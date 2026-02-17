@@ -3,57 +3,63 @@ The user is building a comprehensive business management ERP. The scope includes
 
 Recent user requests focused on unifying and improving the attendance and travel reimbursement workflow. The user wants a single, seamless process for On-Site work: employees must select a client during check-in, and upon check-out, they should be automatically redirected to an expense reimbursement page. This unified workflow must be mirrored across the ERP and the mobile app.
 
-Additionally, the user has requested several UI/UX enhancements:
+Additionally, the user has requested several UI/UX enhancements and new features:
 1.  A Quick Check-in full-size popup modal accessible from all employee dashboards.
-2.  Specific color theme updates: a clean white/black theme for all login pages and specific gradient themes (green-to-yellow, blue-to-dark-blue) for dashboard cards.
-3.  A visual, interactive ERP Workflow page to diagram the interconnectivity of all modules. The user has specified three high-priority flows (Leave Management, Expense Reimbursement, Invoice to Collection) to be added to this page.
+2.  Specific color theme updates: a clean white/black theme for all login pages and specific gradient themes for dashboard cards. A full dark mode implementation was also requested.
+3.  A visual, interactive ERP Workflow page to diagram the interconnectivity of all modules, with specific flows requested by the user.
+4.  Corrected business logic for the Lead to Delivery workflow, ensuring proper role permissions for team assignment.
+5.  A self-service method for Admins/HR to create new employee login credentials.
+6.  An Onboarding Tutorial section to guide new users.
+7.  A feature for users to change their own password after the first login.
 
 **PRODUCT REQUIREMENTS (based on user clarifications):**
-*   **Unified On-Site Workflow:** At check-in for On-Site work, the user must select a client from a list of their assigned projects. At check-out, the system should automatically prompt for travel reimbursement submission. This flow must be consistent across the mobile app and the main ERP.
-*   **Quick Attendance Modal:** A full-size popup on the main dashboard for quick check-in, available to all employees.
-*   **UI Theme Standardization:** All login pages must use a light theme (white background, black text/buttons). Dashboard cards should have specific color gradients.
-*   **Interactive Workflow Diagram:** A dedicated page () that visually represents the connections between different business modules (Sales, HR, Consulting, Finance). It should include diagrams for all major processes, starting with the three high-priority flows requested by the user.
+*   **Unified On-Site Workflow:** At check-in for On-Site work, the user must select a client. At check-out, prompt for travel reimbursement.
+*   **Quick Attendance Modal:** A full-size popup on the main dashboard for quick check-in.
+*   **UI Theme Standardization:** All login pages must use a light theme (white background, black text/buttons). The application must have a fully functional dark mode with high contrast and consistent styling.
+*   **Interactive Workflow Diagram:** A dedicated page () that visually represents business module connections.
+*   **Role-Based Permissions:** The ability to assign consultants to projects should be restricted to , , , and  roles, excluding HR.
+*   **User Provisioning:** An admin/HR-facing feature to grant system access (create login credentials) to existing employee records.
+*   **User Self-Service:** An onboarding tutorial page and a feature for users to change their password.
+*   **Clean Test Environment:** The user requested a fresh database with a clean set of test users for each role.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application (React/FastAPI/MongoDB) featuring a main ERP, HR Portal, Sales Portal, and a mobile PWA.
-
-The following has been completed in this session:
-*   **Unified Attendance Workflow:** Implemented the client selection dropdown for On-Site attendance in both the ERP and mobile app. The backend was updated to associate client info with attendance records and to trigger a travel reimbursement prompt on check-out.
-*   **Camera Fix:** The camera functionality in the ERP's attendance modal was fixed to provide clear feedback if permissions are denied.
-*   **UI/UX Enhancements:**
-    *   All login pages (, , ) were updated to a clean white and black theme.
-    *   The **Quick Attendance** feature was created as a full-size modal and added as a widget to all employee dashboards (Admin, Consulting, HR, Sales).
-    *   Dashboard cards were updated with new gradients as requested (Revenue: green-to-yellow; Quick Attendance: light-blue-to-dark-blue).
-*   **Interactive ERP Workflow Page:** A new page was created at  with a dynamic diagram. It currently displays four workflows (Lead to Delivery, Attendance to Payroll, HR Operations, Revenue to Reports).
+A full-stack application (React/FastAPI/MongoDB) with an ERP, HR Portal, and Sales Portal. The latest session implemented several key features:
+*   **ERP Workflow Page:** The page at  now includes diagrams for all high-priority flows (Leave Management, Expense Reimbursement, Invoice to Collection) and the corrected Lead to Delivery flow.
+*   **Dark Mode:** A comprehensive dark mode theme has been implemented across the app, specifically fixing the workflow page's UI.
+*   **User Provisioning:** Admins and HR Managers can now create new employees and then use a Grant System Access feature to create login credentials for them.
+*   **Onboarding Tutorials:** A new page at  has been created and added to the HR and Admin navigation. It contains step-by-step guides for key tasks like adding employees.
+*   **Fresh Test Environment:** The database has been cleared and populated with a new set of test users for every role.
+*   **Bug Fixes:** The login page input text color (white on white) has been fixed.
 
 **Last working item**:
--   **Last item agent was working:** Adding three new high-priority workflows (Leave Management, Expense Reimbursement, Invoice to Collection) to the interactive ERP Workflow page. The agent had acknowledged the user's request and was preparing to implement the changes.
+-   **Last item agent was working:** Implementing a Change Password feature. The user requested this so that new employees can change the temporary password they are assigned. The agent created a new component  and was in the process of integrating it into the main layout's user dropdown menu.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** Frontend testing agent or screenshot tool to verify the new diagrams are correctly added and displayed on the  page.
+-   **Which testing method agent to use?** Frontend testing agent to verify the change password modal appears and functions correctly. A manual test with  will be needed to confirm the backend API call is successful.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Implement High-Priority Workflows:** The user requested three new workflow diagrams to be added to the . This is the immediate next step.
+-   **Issue 1 (P0): Complete 'Change Password' Feature:** The UI component is created, but it needs to be integrated into the main layout and wired to the existing backend endpoint.
 -   **Issue 2 (P1): No PWA install notification with branding:** A recurring UI/UX bug where the PWA does not prompt users to install it with custom branding.
 -   **Issue 3 (P1): Incomplete columns in Leads list view:** A recurring UI bug where the leads table is missing necessary data columns.
 -   **Issue 4 (P2): Apply  presentation controls to Sales Dashboard:** A UI consistency task to standardize dashboard components.
 -   **Issue 5 (P3): Monolithic  file:** Critical technical debt that needs to be addressed by refactoring the backend into a modular structure.
 
 **Issues Detail:**
--   **Issue 1: Implement High-Priority Workflows**
-    -   **Attempted fixes:** None yet. The task was just assigned by the user.
+-   **Issue 1: Complete 'Change Password' Feature**
+    -   **Attempted fixes:** A new component file  was created.
     -   **Next debug checklist:**
-        1.  Edit .
-        2.  Add data for Leave Management, Expense Reimbursement, and Invoice to Collection flows to the component's state or a configuration object.
-        3.  Render new workflow cards for each.
-        4.  Implement the corresponding interactive diagrams.
-    -   **Why fix this issue and what will be achieved with the fix?** To fulfill the user's request for a more comprehensive business process overview on the workflow page.
+        1.  Modify .
+        2.  Add state to manage the visibility of a Change Password modal.
+        3.  Add a Change Password item to the user dropdown menu in the header.
+        4.  Add the  component within a modal dialog, triggered by the menu item.
+        5.  Test the full flow: open modal, enter passwords, submit, and verify success/error messages.
+    -   **Why fix this issue and what will be achieved with the fix?** To provide a critical security feature allowing users to change the temporary password assigned to them upon account creation.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
 -   **Issue 2: No PWA install notification with branding**
@@ -89,29 +95,30 @@ The following has been completed in this session:
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Add High-Priority Flows to ERP Workflow Page**
-    -   **Where to resume:** Modify  to include the three new flows requested by the user.
-    -   **What will be achieved with this?** The ERP workflow visualization will be more complete and aligned with the user's business needs.
+-   **Task 1: Implement 'Change Password' UI and Logic**
+    -   **Where to resume:** . The next step is to add the Change Password button to the user dropdown menu and wire it up to a modal containing the  component.
+    -   **What will be achieved with this?** Users will be able to change their password from within the application.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks (P1):**
     -   Add medium-priority workflows to the ERP Workflow page (Client Onboarding, SOW/Change Request, Performance Cycle).
     -   Build the frontend UI for HR to submit bank detail changes with proof and for Admins to approve/reject them.
+    -   Create video tutorials for the Onboarding section, as requested by the user.
 -   **Future Tasks (P2 - Backlog):**
     -   Add low-priority workflows (Recruitment, Asset Management).
     -   Build out the full **Finance Module** and **Project P&L Dashboards**.
     -   Integrate a real SMTP service for emails.
 
 **Completed work in this session**
--   **Unified Attendance & Reimbursement Workflow (DONE)**
--   **ERP Attendance Modal Camera Fix (DONE)**
--   **Login Page UI Theme Update (White/Black) (DONE)**
--   **Dashboard Quick Attendance Modal & Widget (DONE)**
--   **Dashboard Card Gradient Theme Update (DONE)**
--   **Interactive ERP Workflow Page (v1 - 4 flows) (DONE)**
+-   **ERP Workflow Page Enhancements (DONE):** Added 3 new high-priority flows and corrected the logic/permissions for the Lead to Delivery flow.
+-   **Dark Mode Implementation (DONE):** Fixed styling on the workflow page to support a full dark mode theme, including updating CSS variables for better consistency.
+-   **User Provisioning Feature (DONE):** Implemented a complete flow for admins/HR to create an employee record and then separately grant system access with a temporary password.
+-   **Onboarding Tutorials Page (DONE):** Created a new page with step-by-step guides and added it to the Admin and HR navigation panels.
+-   **Fresh Test Environment (DONE):** Cleared the database and created a clean set of test users for all roles.
+-   **Login Page UI Fix (DONE):** Corrected an issue where input field text was white on a white background.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: PWA Install Notification and Branding** (Recurring)
@@ -120,23 +127,21 @@ The following has been completed in this session:
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** The monolithic  file.
--   **Recurrence count:** 4+
+-   **Recurrence count:** 5+
 -   **Status:** NOT STARTED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Unified Workflow Logic:** Synchronizing user flows across different parts of the app (ERP, Mobile) by updating both frontend components and backend APIs to handle a single, cohesive process.
--   **Dynamic UI Rendering:** Using component state () to conditionally render UI elements, such as showing the Select Client dropdown only when On-Site is chosen.
--   **Component Reusability:** Creating a new  component and embedding it across six different dashboard components to provide a consistent feature for all user roles.
--   **CSS-in-JS Theming:** Applying global UI theme changes by modifying TailwindCSS utility classes directly in React components (e.g., ).
--   **Interactive Data Visualization:** Building a dynamic page () with clickable nodes, animated flows, and live stats to represent complex business processes.
+-   **Two-Step User Provisioning:** Separating employee record creation from user credential creation. An employee record can exist without system access.
+-   **Role-Based Access Control (RBAC):** Updated backend API decorators () and frontend logic to enforce that only specific roles (Admin, PM, Principal Consultant) can assign team members, correctly reflecting the business workflow.
+-   **Dynamic UI Theming (Dark Mode):** Fixed dark mode by modifying CSS variables () in  and using explicit dark mode utility classes (, ) to ensure consistent styling.
+-   **Interactive Onboarding:** Created a dedicated tutorial page using Accordion components to provide self-service guides for users.
 
 **key DB schema**
--   **attendance:** Updated to include , , .
--   **travel_reimbursements:** 
--   **users:** , , , 
+-   **users:** . A  is now explicitly linked to an  record.
+-   **employees:** . Can have a  field, which is null until system access is granted.
 
 **changes in tech stack**
 -   None.
@@ -147,39 +152,39 @@ The following has been completed in this session:
 -   
 -   
 -   
--   All dashboard files (e.g., )
--   All login files (e.g., )
+-   
+-   
+-   
 
 **Areas that need refactoring**:
 -   ****: Remains a monolithic file and a critical piece of technical debt. It must be broken down into a proper routing structure.
 -   ****: Is an oversized component that handles too many responsibilities. It should be decomposed into smaller, more focused components.
 
 **key api endpoints**
--   : **(NEW)** Fetches clients from projects assigned to the current user.
--   : **(MODIFIED)** Now accepts  and .
--   : **(MODIFIED)** Now returns a  flag in the response to trigger the travel claim UI.
--   : Creates a new travel reimbursement claim.
+-   : **(NEW)** Creates a user account for an existing employee and links it.
+-   : **(MODIFIED)** Permissions updated to allow , , , .
+-   : **(EXISTING)** To be used by the new Change Password feature.
 
 **Critical Info for New Agent**
--   Your immediate task is to continue the work on the ** page** by adding the three high-priority flows requested by the user.
--   The user is highly focused on visual consistency and the correct implementation of business logic. Pay close attention to UI details and workflow accuracy.
--   The refactoring of  and  remains a critical but unaddressed issue. Propose this to the user as a necessary step for long-term maintainability after completing the current high-priority tasks.
+-   Your immediate task is to complete the **'Change Password' feature**. The component file is created; you just need to integrate it into the main layout's user menu and test it.
+-   The user is focused on building out self-service capabilities and improving the new user experience (onboarding, tutorials, password management). Prioritize these tasks.
+-   After completing the password change feature, present a plan to address the other pending items, but be prepared to continue with user-experience-focused tasks if the user directs.
+-   The critical refactoring of  is becoming more urgent as more endpoints are added. Propose this again after the current user-facing tasks are complete.
 
 **documents and test reports created in this job**
--    (updated)
--    (A testing agent run was initiated, this report should exist)
+-    (updated with workflow, user provisioning, and onboarding features)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Requests the addition of missing high-priority flows to the workflow page: Leave Management, Expense Reimbursement, and Invoice to Collection. (IN PROGRESS)
-2.  **User:** Asks what flows are missing from the workflow diagram. (DONE)
-3.  **User:** Clicks on the Attendance to Payroll workflow to view its diagram. (DONE)
-4.  **User:** Asks to see what's being developed in the admin navigation panel. (DONE, ERP Workflow link added)
-5.  **User:** Asks for a visual diagram showing the interconnectivity of the entire ERP. (DONE, v1 of WorkflowPage created)
-6.  **User:** Requests color changes for dashboard cards: Revenue card to green/yellow gradient, Quick Attendance to blue gradient. (DONE)
-7.  **User:** Confirms the Quick Check-in feature should be available to all employees in HR records. (DONE)
-8.  **User:** Confirms the Quick Check-in modal should be a full-size popup. (DONE)
-9.  **User:** Suggests adding a quick check-in popup on the dashboard. (DONE)
-10. **User:** Requests the grey theme on the login page be changed to a clean white and black theme. (DONE)
+1.  **User:** Asks how a user can change their temporary password on first login. (IN PROGRESS)
+2.  **User:** Asks for a video tutorial and an Onboarding tutorial section in the navigation. (DONE)
+3.  **User:** Asks how to create a new username and password for a first employee. (DONE)
+4.  **User:** Requests a fresh, clean database and a new test environment. (DONE)
+5.  **User:** Reports that on the login page, the email/password font is white, matching the background. (DONE)
+6.  **User:** Points out UI issues on the workflow page (grey areas, contrast) and asks for a black and white theme in dark mode with specific font/cursor styles. (DONE)
+7.  **User:** Confirms the corrections to the Lead to Delivery workflow should be applied to the database and usability (permissions). (DONE)
+8.  **User:** Provides corrections for the Lead to Delivery workflow diagram, specifying role responsibilities. (DONE)
+9.  **User:** (Implicit) Finishes reviewing the new workflow diagrams.
+10. **User:** Asks to add the three high-priority workflows to the  page. (DONE)
 
 **Project Health Check:**
 -   **Broken:** The Leads list view on the sales funnel page is still missing required columns.
@@ -200,16 +205,25 @@ The following has been completed in this session:
 -   
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, invoked once for the unified workflow implementation.
+-   **Testing agent used after significant changes:** NO
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
 -   **Known regressions:** The  list view has incomplete columns.
 
 **Credentials to test flow:**
--   **Main App (Admin):**  / 
--   **HR Portal (Manager):**  / 
--   **Mobile App (Consultant):**  / 
+Database is fresh. Use these credentials for testing.
+
+**Main ERP Portal:**
+*   Admin:  / 
+*   Project Manager:  / 
+*   Principal Consultant:  / 
+
+**HR Portal:**
+*   HR Manager:  / 
+
+**Sales Portal:**
+*   Account Manager:  / 
 
 **What agent forgot to execute**
--   The PWA install notification, Leads page column fix, and  application tasks from the previous session were not addressed and remain in the backlog.
--   The critical refactoring of  was not started.</analysis>
+-   The agent did not address the recurring issues from the previous fork: the PWA install notification, the incomplete columns on the Leads page, and applying  to the Sales Dashboard. These remain in the backlog.
+-   The critical refactoring of  was discussed but not started.</analysis>

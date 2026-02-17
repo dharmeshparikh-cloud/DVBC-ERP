@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://unified-erp-demo.preview.emergentagent.com",
+      "value": "https://erp-unified-flow.preview.emergentagent.com",
       "type": "string"
     },
     {
