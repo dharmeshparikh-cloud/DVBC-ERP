@@ -52,7 +52,7 @@ const WORKFLOWS = {
     title: 'Leave Management',
     subtitle: 'Time-Off Request Flow',
     color: 'teal',
-    icon: CalendarOff,
+    icon: CalendarDays,
     steps: [
       { id: 'request', title: 'Leave Request', description: 'Employee submits request', icon: FileText, link: '/my-leaves', module: 'HR' },
       { id: 'balance_check', title: 'Balance Check', description: 'Auto-verify leave balance', icon: Calculator, link: '/leave-management', module: 'HR' },
