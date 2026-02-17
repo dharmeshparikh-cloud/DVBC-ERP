@@ -456,6 +456,7 @@ const Employees = () => {
                       <th className="px-4 py-3 text-left">Department</th>
                       <th className="px-4 py-3 text-left">Designation</th>
                       <th className="px-4 py-3 text-left">Type</th>
+                      <th className="px-4 py-3 text-left">Mobile App</th>
                       <th className="px-4 py-3 text-left">System Access</th>
                       {canManage && <th className="px-4 py-3 text-left">Actions</th>}
                     </tr>
