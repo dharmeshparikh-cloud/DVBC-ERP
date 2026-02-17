@@ -283,18 +283,42 @@ const Attendance = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
               <DialogTrigger asChild>
                 <Button className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none" data-testid="add-attendance-btn">
                   <Plus className="w-4 h-4 mr-2" /> Mark Attendance
                 </Button>
               </DialogTrigger>
-              <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+              <DialogContent className="border-zinc-200 rounded-sm max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Mark Attendance</DialogTitle>
-                  <DialogDescription className="text-zinc-500">Record attendance for an employee</DialogDescription>
+                  <DialogDescription className="text-zinc-500">Record attendance with selfie and location verification</DialogDescription>
                 </DialogHeader>
+                
+                {/* Mode Toggle */}
+                <div className="flex gap-2 p-1 bg-zinc-100 rounded-md mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setAttendanceMode('simple')}
+                    className={`flex-1 py-2 px-3 text-sm font-medium rounded transition ${
+                      attendanceMode === 'simple' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'
+                    }`}
+                  >
+                    Simple Entry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAttendanceMode('advanced')}
+                    className={`flex-1 py-2 px-3 text-sm font-medium rounded transition ${
+                      attendanceMode === 'advanced' ? 'bg-white shadow text-zinc-900' : 'text-zinc-500'
+                    }`}
+                  >
+                    With Selfie & GPS
+                  </button>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Employee Selection */}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Employee</Label>
                     <select value={formData.employee_id} onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
@@ -303,6 +327,8 @@ const Attendance = () => {
                       {employees.map(e => <option key={e.id} value={e.id}>{e.employee_id} - {e.first_name} {e.last_name}</option>)}
                     </select>
                   </div>
+                  
+                  {/* Date and Status */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-zinc-950">Date</Label>
@@ -317,6 +343,7 @@ const Attendance = () => {
                       </select>
                     </div>
                   </div>
+                  
                   {/* Work Location - only show when status is present or half_day */}
                   {['present', 'half_day'].includes(formData.status) && (
                     <div className="space-y-2">
@@ -326,7 +353,7 @@ const Attendance = () => {
                           <button
                             key={loc.value}
                             type="button"
-                            onClick={() => setFormData({ ...formData, work_location: loc.value })}
+                            onClick={() => { setFormData({ ...formData, work_location: loc.value }); setLocation(null); setLocationVerified(false); }}
                             className={`flex flex-col items-center gap-1 p-3 rounded-md border transition-all ${
                               formData.work_location === loc.value 
                                 ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200' 
@@ -343,11 +370,137 @@ const Attendance = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Check-in / Check-out Times */}
+                  {['present', 'half_day'].includes(formData.status) && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                          <LogIn className="w-4 h-4 text-emerald-600" /> Check-In Time
+                        </Label>
+                        <Input 
+                          type="time" 
+                          value={formData.check_in_time} 
+                          onChange={(e) => setFormData({ ...formData, check_in_time: e.target.value })}
+                          className="rounded-sm border-zinc-200" 
+                          data-testid="att-checkin-time" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                          <LogOut className="w-4 h-4 text-red-600" /> Check-Out Time
+                        </Label>
+                        <Input 
+                          type="time" 
+                          value={formData.check_out_time} 
+                          onChange={(e) => setFormData({ ...formData, check_out_time: e.target.value })}
+                          className="rounded-sm border-zinc-200" 
+                          data-testid="att-checkout-time" 
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Advanced Mode: Selfie & Location */}
+                  {attendanceMode === 'advanced' && ['present', 'half_day'].includes(formData.status) && (
+                    <>
+                      {/* Selfie Capture */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                          <Camera className="w-4 h-4" /> Selfie Verification
+                        </Label>
+                        <div className="border border-zinc-200 rounded-md p-3 bg-zinc-50">
+                          {selfieData ? (
+                            <div className="relative">
+                              <img src={selfieData} alt="Selfie" className="w-full h-40 object-cover rounded-md" />
+                              <button
+                                type="button"
+                                onClick={() => { setSelfieData(null); startCamera(); }}
+                                className="absolute top-2 right-2 px-2 py-1 bg-zinc-900/70 text-white text-xs rounded"
+                              >
+                                Retake
+                              </button>
+                              <div className="absolute bottom-2 left-2 px-2 py-1 bg-emerald-500 text-white text-xs rounded flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" /> Captured
+                              </div>
+                            </div>
+                          ) : cameraActive ? (
+                            <div className="space-y-2">
+                              <video ref={videoRef} autoPlay playsInline muted className="w-full h-40 object-cover rounded-md bg-black" />
+                              <div className="flex gap-2">
+                                <Button type="button" onClick={captureSelfie} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                                  <Camera className="w-4 h-4 mr-2" /> Capture
+                                </Button>
+                                <Button type="button" onClick={stopCamera} variant="outline" className="flex-1">
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button type="button" onClick={startCamera} variant="outline" className="w-full">
+                              <Camera className="w-4 h-4 mr-2" /> Start Camera
+                            </Button>
+                          )}
+                          <canvas ref={canvasRef} className="hidden" />
+                        </div>
+                      </div>
+
+                      {/* GPS Location */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                          <MapPin className="w-4 h-4" /> GPS Location
+                          {formData.work_location === 'in_office' && (
+                            <span className="text-xs text-amber-600 font-normal">(Geo-fencing: 500m radius)</span>
+                          )}
+                        </Label>
+                        <div className="border border-zinc-200 rounded-md p-3 bg-zinc-50">
+                          {location ? (
+                            <div className="space-y-2">
+                              <div className={`flex items-center gap-2 p-2 rounded ${locationVerified ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                                {locationVerified ? (
+                                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                ) : (
+                                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                                )}
+                                <span className={`text-xs font-medium ${locationVerified ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                  {locationVerified ? 'Location Verified' : 'Outside Geo-fence'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-zinc-600 truncate">{location.address}</p>
+                              <p className="text-[10px] text-zinc-400">
+                                {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)} (±{location.accuracy?.toFixed(0)}m)
+                              </p>
+                              <Button type="button" onClick={captureLocation} variant="outline" size="sm" className="w-full text-xs">
+                                <Navigation className="w-3 h-3 mr-1" /> Recapture Location
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button 
+                              type="button" 
+                              onClick={captureLocation} 
+                              variant="outline" 
+                              className="w-full"
+                              disabled={locationLoading}
+                            >
+                              {locationLoading ? (
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Getting Location...</>
+                              ) : (
+                                <><Navigation className="w-4 h-4 mr-2" /> Capture GPS Location</>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Remarks */}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Remarks</Label>
                     <Input value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                      className="rounded-sm border-zinc-200" placeholder="Optional" />
+                      className="rounded-sm border-zinc-200" placeholder="Optional notes" />
                   </div>
+                  
                   <Button type="submit" className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none" data-testid="submit-attendance">
                     Save Attendance
                   </Button>
