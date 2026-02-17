@@ -347,32 +347,51 @@ const Attendance = () => {
                     </div>
                   )}
 
-                  {/* Check-in / Check-out Times */}
+                  {/* Check-in / Check-out Times - Auto-stamped on button click */}
                   {['present', 'half_day'].includes(formData.status) && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
                           <LogIn className="w-4 h-4 text-emerald-600" /> Check-In Time
                         </Label>
-                        <Input 
-                          type="time" 
-                          value={formData.check_in_time} 
-                          onChange={(e) => setFormData({ ...formData, check_in_time: e.target.value })}
-                          className="rounded-sm border-zinc-200" 
-                          data-testid="att-checkin-time" 
-                        />
+                        {formData.check_in_time ? (
+                          <div className="flex items-center gap-2 h-10 px-3 rounded-sm border border-emerald-200 bg-emerald-50">
+                            <CheckCircle className="w-4 h-4 text-emerald-600" />
+                            <span className="text-sm font-medium text-emerald-700">{formData.check_in_time}</span>
+                          </div>
+                        ) : (
+                          <Button 
+                            type="button" 
+                            onClick={() => setFormData({ ...formData, check_in_time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }) })}
+                            variant="outline"
+                            className="w-full h-10 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                            data-testid="punch-in-btn"
+                          >
+                            <LogIn className="w-4 h-4 mr-2" /> Punch In Now
+                          </Button>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
                           <LogOut className="w-4 h-4 text-red-600" /> Check-Out Time
                         </Label>
-                        <Input 
-                          type="time" 
-                          value={formData.check_out_time} 
-                          onChange={(e) => setFormData({ ...formData, check_out_time: e.target.value })}
-                          className="rounded-sm border-zinc-200" 
-                          data-testid="att-checkout-time" 
-                        />
+                        {formData.check_out_time ? (
+                          <div className="flex items-center gap-2 h-10 px-3 rounded-sm border border-red-200 bg-red-50">
+                            <CheckCircle className="w-4 h-4 text-red-600" />
+                            <span className="text-sm font-medium text-red-700">{formData.check_out_time}</span>
+                          </div>
+                        ) : (
+                          <Button 
+                            type="button" 
+                            onClick={() => setFormData({ ...formData, check_out_time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }) })}
+                            variant="outline"
+                            className="w-full h-10 border-red-300 text-red-700 hover:bg-red-50"
+                            disabled={!formData.check_in_time}
+                            data-testid="punch-out-btn"
+                          >
+                            <LogOut className="w-4 h-4 mr-2" /> Punch Out Now
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}
