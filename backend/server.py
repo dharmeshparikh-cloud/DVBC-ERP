@@ -13876,13 +13876,14 @@ async def submit_bank_change_request(
     db.bank_change_requests.insert_one(new_request)
     
     # Create notification for HR
-    create_notification(
-        db, "bank_change_request",
-        f"Bank details change request from {new_request['employee_name']}",
-        "/hr/approvals",
-        ["hr_manager", "hr_executive"],
-        None
-    )
+    db.notifications.insert_one({
+        "type": "bank_change_request",
+        "message": f"Bank details change request from {new_request['employee_name']}",
+        "link": "/hr/approvals",
+        "for_roles": ["hr_manager", "hr_executive"],
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
     
     return {"message": "Bank details change request submitted successfully"}
 
