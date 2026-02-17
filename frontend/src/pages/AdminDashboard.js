@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -7,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 import { Link } from 'react-router-dom';
 import LockableCard from '../components/LockableCard';
+import QuickCheckInModal from '../components/QuickCheckInModal';
 import { 
   RevenueExpanded, LeadsExpanded, MeetingsExpanded, 
   ProjectsExpanded, AttendanceExpanded 
@@ -15,7 +17,7 @@ import {
   TrendingUp, TrendingDown, Users, FileText, DollarSign, Target,
   Briefcase, Clock, CheckCircle, AlertCircle, Calendar, Award,
   Building2, BarChart3, PieChart, Activity, ArrowUpRight, ArrowDownRight,
-  ChevronRight, Zap, Flame, RefreshCw
+  ChevronRight, Zap, Flame, RefreshCw, LogIn
 } from 'lucide-react';
 import {
   PieChart as RechartsPie, Pie, Cell, ResponsiveContainer,
@@ -35,10 +37,24 @@ const AdminDashboard = () => {
     finance: null
   });
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  
+  // Quick Check-in Modal state
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
   useEffect(() => {
     fetchAllStats();
+    fetchAttendanceStatus();
   }, []);
+
+  const fetchAttendanceStatus = async () => {
+    try {
+      const res = await axios.get(`${API}/my/check-status`);
+      setAttendanceStatus(res.data);
+    } catch (err) {
+      console.error('Failed to fetch attendance status');
+    }
+  };
 
   const fetchAllStats = async () => {
     setLoading(true);
