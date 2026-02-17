@@ -46,7 +46,6 @@ const Attendance = () => {
   const [uploadText, setUploadText] = useState('');
   
   // Advanced attendance states (like mobile app)
-  const [attendanceMode, setAttendanceMode] = useState('simple'); // 'simple' or 'advanced'
   const [selfieData, setSelfieData] = useState(null);
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
