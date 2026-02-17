@@ -218,6 +218,31 @@ const EmployeeMobileApp = () => {
     captureLocation();
   };
 
+  const handleCheckOut = async () => {
+    setLoading(true);
+    try {
+      // Capture location for check-out
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+      });
+      
+      const geo_location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      };
+      
+      const response = await axios.post(`${API}/my/check-out`, { geo_location });
+      toast.success(`Check-out successful! Work hours: ${response.data.work_hours?.toFixed(1) || '-'} hrs`);
+      setShowCheckOutModal(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Check-out failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const greeting = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return 'Good Morning';
