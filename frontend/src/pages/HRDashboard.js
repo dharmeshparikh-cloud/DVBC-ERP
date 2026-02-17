@@ -258,12 +258,12 @@ const HRDashboard = () => {
                 <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
                   <FileText className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                 </div>
-                <div>
-                  <p className="font-medium text-purple-800">Pending Expenses</p>
-                  <p className="text-sm text-purple-600">Awaiting approval</p>
+                <div className="min-w-0">
+                  <p className="font-medium text-purple-800 dark:text-purple-300 text-sm md:text-base">Pending Expenses</p>
+                  <p className="text-xs md:text-sm text-purple-600 dark:text-purple-400 truncate">Awaiting approval</p>
                 </div>
               </div>
-              <Badge className="bg-purple-600 text-white text-lg px-4">
+              <Badge className="bg-purple-600 text-white text-base md:text-lg px-3 md:px-4 flex-shrink-0">
                 {stats?.expenses?.pending_approvals || 0}
               </Badge>
             </div>
@@ -272,43 +272,43 @@ const HRDashboard = () => {
       </div>
 
       {/* Payroll Status */}
-      <Card className="border-zinc-200">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
+      <Card className="border-zinc-200 dark:border-zinc-800">
+        <CardHeader className="pb-2 px-4 md:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <CardTitle className="text-sm md:text-base flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              Payroll Status - {new Date().toLocaleString('default', { month: 'long' })}
+              Payroll - {new Date().toLocaleString('default', { month: 'short' })}
             </CardTitle>
-            <Link to="/payroll" className="text-sm text-blue-600 hover:underline">
+            <Link to="/payroll" className="text-xs md:text-sm text-blue-600 hover:underline">
               Manage Payroll
             </Link>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-zinc-500">Processed vs Total Employees</span>
-              <span className="font-medium">
+        <CardContent className="px-4 md:px-6">
+          <div className="space-y-3 md:space-y-4">
+            <div className="flex items-center justify-between text-xs md:text-sm">
+              <span className="text-zinc-500 dark:text-zinc-400">Processed vs Total</span>
+              <span className="font-medium text-zinc-900 dark:text-zinc-100">
                 {payroll.processed_this_month || 0} / {employees.total || 0}
               </span>
             </div>
             <Progress 
               value={employees.total > 0 ? (payroll.processed_this_month / employees.total) * 100 : 0} 
-              className="h-3"
+              className="h-2 md:h-3"
             />
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-                <div>
-                  <p className="text-xl font-bold text-green-600">{payroll.processed_this_month || 0}</p>
-                  <p className="text-xs text-zinc-500">Processed</p>
+            <div className="grid grid-cols-2 gap-2 md:gap-4 pt-1 md:pt-2">
+              <div className="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-lg md:text-xl font-bold text-green-600">{payroll.processed_this_month || 0}</p>
+                  <p className="text-[10px] md:text-xs text-zinc-500 dark:text-zinc-400">Processed</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-amber-600" />
-                <div>
-                  <p className="text-xl font-bold text-amber-600">{payroll.pending || 0}</p>
-                  <p className="text-xs text-zinc-500">Pending</p>
+              <div className="flex items-center gap-2 md:gap-3 p-2.5 md:p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-amber-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-lg md:text-xl font-bold text-amber-600">{payroll.pending || 0}</p>
+                  <p className="text-[10px] md:text-xs text-zinc-500 dark:text-zinc-400">Pending</p>
                 </div>
               </div>
             </div>
@@ -316,8 +316,8 @@ const HRDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Quick Actions - 2x2 on mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
         {[
           { label: 'Employees', href: '/employees', icon: Users, color: 'bg-blue-600' },
           { label: 'Attendance', href: '/attendance-management', icon: Calendar, color: 'bg-green-600' },
