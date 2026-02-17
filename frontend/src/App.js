@@ -77,6 +77,7 @@ import HRAttendanceApprovals from './pages/hr/HRAttendanceApprovals';
 import OfficeLocationsSettings from './pages/OfficeLocationsSettings';
 import MobileAppDownload from './pages/MobileAppDownload';
 import TravelReimbursement from './pages/TravelReimbursement';
+import WorkflowPage from './pages/WorkflowPage';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
