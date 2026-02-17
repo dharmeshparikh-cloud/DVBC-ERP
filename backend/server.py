@@ -242,7 +242,7 @@ class CTCStructureRequest(BaseModel):
     employee_id: str
     annual_ctc: float
     effective_month: str  # YYYY-MM format
-    components: dict  # Component key -> CTCComponent dict
+    components: Optional[dict] = None  # Optional - auto-calculated from CTC
     retention_bonus: Optional[float] = 0  # Optional retention bonus
     retention_vesting_months: int = 12  # Default 1 year
     remarks: Optional[str] = None
