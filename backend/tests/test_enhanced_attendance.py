@@ -143,7 +143,7 @@ class TestCheckInGPSRequired:
     
     def test_checkin_without_gps_rejected(self, consultant_token):
         """Verify check-in without GPS location is rejected"""
-        test_date = (datetime.now() + timedelta(days=101)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+1)).strftime("%Y-%m-%d")
         
         response = requests.post(
             f"{BASE_URL}/api/my/check-in",
