@@ -1461,7 +1461,7 @@ const EmployeeMobileApp = () => {
           {/* Submit Button */}
           <button 
             onClick={handleCheckIn}
-            disabled={!selfieData || !location || loading || (showJustification && !justification)}
+            disabled={!selfieData || !location || loading || (showJustification && !justification) || (selectedWorkLocation === 'onsite' && !selectedClient)}
             className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
             data-testid="confirm-checkin-btn"
           >
@@ -1472,9 +1472,9 @@ const EmployeeMobileApp = () => {
             )}
           </button>
           
-          {!selfieData && !location && (
+          {(!selfieData || !location || (selectedWorkLocation === 'onsite' && !selectedClient)) && (
             <p className="text-xs text-center text-zinc-500">
-              Complete all steps to check in
+              Complete all steps to check in {selectedWorkLocation === 'onsite' && !selectedClient ? '(Select a client)' : ''}
             </p>
           )}
 
