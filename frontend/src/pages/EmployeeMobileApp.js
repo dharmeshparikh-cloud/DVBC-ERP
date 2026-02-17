@@ -270,13 +270,12 @@ const EmployeeMobileApp = () => {
     }
     setLoading(true);
     try {
-      await axios.post(`${API}/expenses`, {
+      await axios.post(`${API}/expenses/quick`, {
         description: expenseForm.description,
         total_amount: parseFloat(expenseForm.amount),
         category: expenseForm.category,
         expense_date: expenseForm.expense_date,
-        remarks: expenseForm.remarks,
-        status: 'pending'
+        remarks: expenseForm.remarks
       });
       toast.success('Expense submitted successfully!');
       setShowExpenseModal(false);
