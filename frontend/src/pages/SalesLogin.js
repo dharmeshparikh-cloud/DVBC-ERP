@@ -143,7 +143,7 @@ const SalesLogin = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="pl-11 h-11 rounded-lg border-black/20 bg-white focus:ring-2 focus:ring-black focus:border-black"
+                    className="pl-11 h-11 rounded-lg border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-2 focus:ring-black focus:border-black"
                   />
                 </div>
               </div>
@@ -170,7 +170,7 @@ const SalesLogin = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="pl-11 h-11 rounded-lg border-black/20 bg-white focus:ring-2 focus:ring-black focus:border-black"
+                    className="pl-11 h-11 rounded-lg border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-2 focus:ring-black focus:border-black"
                   />
                 </div>
               </div>
