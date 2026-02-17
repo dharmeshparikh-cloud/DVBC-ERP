@@ -179,6 +179,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="team-workload" element={<HRTeamWorkload />} />
         <Route path="staffing-requests" element={<HRStaffingRequests />} />
         <Route path="performance-dashboard" element={<PerformanceDashboard />} />
+        <Route path="attendance-approvals" element={<HRAttendanceApprovals />} />
         {/* Self Service */}
         <Route path="my-attendance" element={<MyAttendance />} />
         <Route path="my-leaves" element={<MyLeaves />} />
