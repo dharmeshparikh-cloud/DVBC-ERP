@@ -407,6 +407,7 @@ const Payroll = () => {
                   <th className="text-center px-2 py-2 font-medium text-zinc-600 min-w-[55px]">OT Hrs</th>
                   <th className="text-right px-2 py-2 font-medium text-emerald-700 min-w-[80px]">Incentive</th>
                   <th className="text-left px-2 py-2 font-medium text-emerald-700 min-w-[100px]">Reason</th>
+                  <th className="text-right px-2 py-2 font-medium text-blue-700 min-w-[90px]">Expense Reimb.</th>
                   <th className="text-right px-2 py-2 font-medium text-amber-700 min-w-[80px]">Advance</th>
                   <th className="text-left px-2 py-2 font-medium text-amber-700 min-w-[100px]">Reason</th>
                   <th className="text-right px-2 py-2 font-medium text-red-700 min-w-[80px]">Penalty</th>
