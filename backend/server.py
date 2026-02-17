@@ -12516,14 +12516,18 @@ async def approve_ctc_structure(ctc_id: str, data: dict, current_user: User = De
     )
     
     # Notify HR who created the request
-    await create_notification(
-        user_id=ctc_structure["created_by"],
-        notif_type="ctc_approved",
-        title="CTC Structure Approved",
-        message=f"CTC structure for {ctc_structure['employee_name']} (₹{ctc_structure['annual_ctc']:,.0f}/year) has been approved by {current_user.full_name}. Effective from {ctc_structure['effective_month']} payroll.",
-        reference_type="ctc_structure",
-        reference_id=ctc_id
-    )
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": ctc_structure["created_by"],
+        "type": "ctc_approved",
+        "title": "CTC Structure Approved",
+        "message": f"CTC structure for {ctc_structure['employee_name']} (₹{ctc_structure['annual_ctc']:,.0f}/year) has been approved by {current_user.full_name}. Effective from {ctc_structure['effective_month']} payroll.",
+        "reference_type": "ctc_structure",
+        "reference_id": ctc_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
     
     return {
         "message": "CTC structure approved and activated",
