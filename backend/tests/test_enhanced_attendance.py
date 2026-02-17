@@ -376,7 +376,7 @@ class TestHRAttendanceApproval:
     
     def test_hr_can_reject_attendance(self, hr_token, consultant_token, cleanup_attendance):
         """Verify HR can reject pending attendance"""
-        test_date = (datetime.now() + timedelta(days=204)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+14)).strftime("%Y-%m-%d")
         
         checkin_response = requests.post(
             f"{BASE_URL}/api/my/check-in",
