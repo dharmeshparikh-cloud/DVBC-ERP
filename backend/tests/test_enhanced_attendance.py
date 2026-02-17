@@ -47,6 +47,10 @@ UNKNOWN_LON = 78.5000
 # Sample selfie base64
 SAMPLE_SELFIE = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
 
+# Generate unique test offset to avoid conflicts with previous runs
+import random
+TEST_DATE_OFFSET = random.randint(300, 500)
+
 
 class TestOfficeLocationsConfig:
     """Test 1: Office locations are configured"""
