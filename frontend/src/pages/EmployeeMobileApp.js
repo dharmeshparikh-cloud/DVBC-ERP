@@ -707,8 +707,14 @@ const EmployeeMobileApp = () => {
         </div>
       </div>
 
-      <button className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2">
-        <Camera className="w-5 h-5" />
+      <button 
+        onClick={() => setShowExpenseModal(true)}
+        onTouchEnd={(e) => { e.preventDefault(); setShowExpenseModal(true); }}
+        className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition touch-manipulation cursor-pointer"
+        style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+        data-testid="add-expense-btn"
+      >
+        <Plus className="w-5 h-5" />
         Add New Expense
       </button>
 
