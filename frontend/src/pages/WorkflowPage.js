@@ -46,6 +46,55 @@ const WORKFLOWS = {
       { id: 'payout', title: 'Payout', description: 'Salary disbursed', icon: CreditCard, link: '/payroll', module: 'Finance' },
     ]
   },
+  leave_management: {
+    id: 'leave_management',
+    title: 'Leave Management',
+    subtitle: 'Time-Off Request Flow',
+    color: 'teal',
+    icon: CalendarOff,
+    steps: [
+      { id: 'request', title: 'Leave Request', description: 'Employee submits request', icon: FileText, link: '/my-leaves', module: 'HR' },
+      { id: 'balance_check', title: 'Balance Check', description: 'Auto-verify leave balance', icon: Calculator, link: '/leave-management', module: 'HR' },
+      { id: 'manager_approval', title: 'Manager Approval', description: 'Reporting manager review', icon: UserCheck, link: '/leave-management', module: 'HR' },
+      { id: 'hr_approval', title: 'HR Approval', description: 'HR team verification', icon: Shield, link: '/leave-management', module: 'HR' },
+      { id: 'balance_update', title: 'Balance Update', description: 'Deduct from quota', icon: RefreshCw, link: '/leave-management', module: 'HR' },
+      { id: 'calendar_sync', title: 'Calendar Sync', description: 'Update team calendar', icon: Calendar, link: '/leave-management', module: 'HR' },
+      { id: 'notify', title: 'Notification', description: 'Team notified', icon: Bell, link: '/leave-management', module: 'HR' },
+    ]
+  },
+  expense_reimbursement: {
+    id: 'expense_reimbursement',
+    title: 'Expense Reimbursement',
+    subtitle: 'Expense Claim Flow',
+    color: 'rose',
+    icon: Receipt,
+    steps: [
+      { id: 'entry', title: 'Expense Entry', description: 'Log expense details', icon: FileText, link: '/my-expenses', module: 'HR' },
+      { id: 'receipt', title: 'Receipt Upload', description: 'Attach proof/bills', icon: Upload, link: '/my-expenses', module: 'HR' },
+      { id: 'submit', title: 'Submit Claim', description: 'Send for approval', icon: Send, link: '/expenses', module: 'HR' },
+      { id: 'manager_review', title: 'Manager Review', description: 'Reporting manager approval', icon: UserCheck, link: '/expenses', module: 'HR' },
+      { id: 'finance_approval', title: 'Finance/Admin Approval', description: 'Final verification', icon: Shield, link: '/expenses', module: 'Finance' },
+      { id: 'process', title: 'Process Payment', description: 'Add to payroll/direct', icon: Wallet, link: '/payroll', module: 'Finance' },
+      { id: 'reimburse', title: 'Reimbursement', description: 'Amount credited', icon: CreditCard, link: '/payroll', module: 'Finance' },
+    ]
+  },
+  invoice_to_collection: {
+    id: 'invoice_to_collection',
+    title: 'Invoice to Collection',
+    subtitle: 'Revenue Collection Flow',
+    color: 'amber',
+    icon: FileInvoice,
+    steps: [
+      { id: 'generate', title: 'Invoice Generated', description: 'Create from agreement', icon: FileText, link: '/invoices', module: 'Finance' },
+      { id: 'review', title: 'Review & Approve', description: 'Finance team review', icon: CheckCircle, link: '/invoices', module: 'Finance' },
+      { id: 'send', title: 'Send to Client', description: 'Email/share invoice', icon: Send, link: '/invoices', module: 'Finance' },
+      { id: 'followup', title: 'Payment Follow-up', description: 'Track & remind', icon: Bell, link: '/invoices', module: 'Finance' },
+      { id: 'receive', title: 'Payment Received', description: 'Record payment', icon: CreditCard, link: '/payments', module: 'Finance' },
+      { id: 'reconcile', title: 'Reconciliation', description: 'Match with bank', icon: RefreshCw, link: '/payments', module: 'Finance' },
+      { id: 'receipt', title: 'Receipt Issued', description: 'Acknowledge payment', icon: FileCheck, link: '/payments', module: 'Finance' },
+      { id: 'close', title: 'Invoice Closed', description: 'Mark as paid', icon: CheckCircle, link: '/invoices', module: 'Finance' },
+    ]
+  },
   hr_operations: {
     id: 'hr_operations',
     title: 'HR Operations',
