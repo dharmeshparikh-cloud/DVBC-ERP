@@ -9998,6 +9998,54 @@ async def create_expense_request(
     
     return {"message": "Expense request created", "expense_id": expense.id, "total_amount": total}
 
+
+@api_router.post("/expenses/quick")
+async def create_quick_expense(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a quick expense (mobile-friendly - single item)"""
+    # Get employee record
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=400, detail="No employee record found for this user")
+    
+    description = data.get('description', '')
+    amount = float(data.get('total_amount', data.get('amount', 0)))
+    category = data.get('category', 'other')
+    expense_date = data.get('expense_date', datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    remarks = data.get('remarks', '')
+    
+    if not description or amount <= 0:
+        raise HTTPException(status_code=400, detail="Description and valid amount are required")
+    
+    expense_id = f"EXP{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}{str(uuid.uuid4())[:4].upper()}"
+    
+    expense_doc = {
+        "id": expense_id,
+        "employee_id": employee['id'],
+        "employee_name": f"{employee['first_name']} {employee['last_name']}",
+        "description": description,
+        "category": category,
+        "expense_date": expense_date,
+        "line_items": [{
+            "description": description,
+            "category": category,
+            "amount": amount,
+            "date": expense_date
+        }],
+        "total_amount": amount,
+        "notes": remarks,
+        "status": "pending",
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.expenses.insert_one(expense_doc)
+    
+    return {"message": "Expense submitted successfully", "expense_id": expense_id, "total_amount": amount}
+
 @api_router.get("/expenses")
 async def get_expenses(
     status: Optional[str] = None,
