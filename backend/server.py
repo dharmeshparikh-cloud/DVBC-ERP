@@ -12340,19 +12340,29 @@ async def self_check_out(data: dict, current_user: User = Depends(get_current_us
         # Get home/office location for calculation
         office_settings = await db.settings.find_one({"type": "office_locations"})
         home_lat, home_lon = None, None
+        office_name = "Office"
         
         # Use first office as default home point
         if office_settings and office_settings.get("locations"):
             first_office = office_settings["locations"][0]
             home_lat = first_office.get("latitude")
             home_lon = first_office.get("longitude")
+            office_name = first_office.get("name", "Office")
         
-        if home_lat and home_lon:
-            # Distance from office to client site (one way)
-            distance_km = calculate_distance_km(
-                home_lat, home_lon,
-                check_in_location["latitude"], check_in_location["longitude"]
-            )
+        # Fallback: Use Bangalore office as default if no office configured
+        if not home_lat or not home_lon:
+            home_lat = 12.9716  # Bangalore default
+            home_lon = 77.5946
+            office_name = "Main Office"
+        
+        # Distance from office to client site (one way)
+        distance_km = calculate_distance_km(
+            home_lat, home_lon,
+            check_in_location["latitude"], check_in_location["longitude"]
+        )
+        
+        # Only show travel reimbursement if distance is meaningful (> 1 km)
+        if distance_km > 1:
             # Round trip
             total_distance = distance_km * 2
             rate = TRAVEL_RATES.get("car", 7.0)
@@ -12364,8 +12374,12 @@ async def self_check_out(data: dict, current_user: User = Depends(get_current_us
                 "calculated_amount": calculated_amount,
                 "vehicle_type": "car",
                 "is_round_trip": True,
-                "from_location": "Office",
-                "to_location": check_in_location.get("address", "Client Site")[:50] if check_in_location.get("address") else "Client Site"
+                "from_location": office_name,
+                "to_location": check_in_location.get("address", "Client Site")[:50] if check_in_location.get("address") else "Client Site",
+                "office_lat": home_lat,
+                "office_lon": home_lon,
+                "client_lat": check_in_location["latitude"],
+                "client_lon": check_in_location["longitude"]
             }
     
     await db.attendance.update_one(
