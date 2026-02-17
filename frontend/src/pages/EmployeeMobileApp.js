@@ -1011,6 +1011,14 @@ const EmployeeMobileApp = () => {
         .animate-slide-up {
           animation: slide-up 0.3s ease-out;
         }
+        /* Mobile touch optimization */
+        button, a, [role="button"] {
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+        .touch-manipulation {
+          touch-action: manipulation;
+        }
       `}</style>
     </div>
   );
