@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, UsersRound, GitBranch, CalendarDays, 
   Clock, Wallet, Receipt, BarChart3, FileText, ChevronDown, ChevronRight,
   LogOut, Menu, X, Sun, Moon, UserPlus, ClipboardCheck, Briefcase,
-  AlertCircle, Bell, Key, Home, Calendar, UserCircle
+  AlertCircle, Bell, Key, Home, Calendar, UserCircle, Building2
 } from 'lucide-react';
 import { Button } from './ui/button';
 import ChangePasswordDialog from './ChangePasswordDialog';
