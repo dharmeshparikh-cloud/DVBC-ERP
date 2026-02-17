@@ -390,3 +390,15 @@ A comprehensive travel reimbursement feature for employees:
 - Leads list view has incomplete columns
 - `LockableCard` not applied to Sales Dashboard
 - `server.py` is monolithic and needs refactoring
+
+## UI/UX Updates (Feb 17, 2026)
+- [x] **Default Theme Changed to Light**
+  - ThemeContext.js now defaults to 'light' instead of system preference
+  - New users and fresh sessions will see light theme
+- [x] **Mobile Responsive Layout**
+  - Layout.js: Sidebar hidden on mobile, accessible via hamburger menu
+  - Slide-out sidebar with backdrop overlay
+  - Bottom navigation bar with Home, Attendance, Leaves, Profile icons
+  - Touch-friendly larger tap targets (h-10 on mobile vs h-8 on desktop)
+  - HRLayout.js: Same mobile improvements applied
+  - Content area has bottom padding to avoid overlap with bottom nav
