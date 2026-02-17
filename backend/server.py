@@ -10201,9 +10201,10 @@ async def submit_expense_for_approval(
 @api_router.post("/expenses/{expense_id}/mark-reimbursed")
 async def mark_expense_reimbursed(
     expense_id: str,
+    data: dict = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Mark an approved expense as reimbursed (HR/Admin only)"""
+    """Mark an approved expense as reimbursed (HR/Admin only) and link to payroll"""
     if current_user.role not in ['admin', 'hr_manager']:
         raise HTTPException(status_code=403, detail="Only HR/Admin can mark expenses as reimbursed")
     
@@ -10214,17 +10215,83 @@ async def mark_expense_reimbursed(
     if expense['status'] != 'approved':
         raise HTTPException(status_code=400, detail="Expense must be approved before reimbursement")
     
+    # Determine reimbursement mode (direct payment or via payroll)
+    reimburse_via_payroll = data.get('via_payroll', True) if data else True
+    payroll_month = data.get('payroll_month', datetime.now(timezone.utc).strftime("%Y-%m")) if data else datetime.now(timezone.utc).strftime("%Y-%m")
+    
     await db.expenses.update_one(
         {"id": expense_id},
         {"$set": {
             "status": "reimbursed",
             "reimbursed_at": datetime.now(timezone.utc).isoformat(),
             "reimbursed_by": current_user.id,
+            "reimbursed_by_name": current_user.name,
+            "reimburse_via_payroll": reimburse_via_payroll,
+            "payroll_month": payroll_month if reimburse_via_payroll else None,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
-    return {"message": "Expense marked as reimbursed"}
+    # If reimbursing via payroll, create/update payroll input record
+    if reimburse_via_payroll:
+        employee_id = expense.get('employee_id')
+        amount = expense.get('total_amount', 0)
+        
+        # Check if there's already a payroll input for this employee/month
+        existing_input = await db.payroll_inputs.find_one({
+            "employee_id": employee_id,
+            "month": payroll_month
+        }, {"_id": 0})
+        
+        if existing_input:
+            # Add to existing expense reimbursement
+            current_reimb = existing_input.get('expense_reimbursement', 0)
+            expense_ids = existing_input.get('expense_ids', [])
+            expense_ids.append(expense_id)
+            
+            await db.payroll_inputs.update_one(
+                {"employee_id": employee_id, "month": payroll_month},
+                {"$set": {
+                    "expense_reimbursement": current_reimb + amount,
+                    "expense_ids": expense_ids,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
+            # Create new payroll input
+            await db.payroll_inputs.insert_one({
+                "id": str(uuid.uuid4()),
+                "employee_id": employee_id,
+                "month": payroll_month,
+                "expense_reimbursement": amount,
+                "expense_ids": [expense_id],
+                "leaves": 0,
+                "penalty": 0,
+                "bonus": 0,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    # Notify employee
+    if expense.get('created_by'):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": expense['created_by'],
+            "type": "expense_reimbursed",
+            "title": "Expense Reimbursed",
+            "message": f"Your expense of ₹{expense['total_amount']:,.2f} has been reimbursed" + 
+                       (f" and will be included in {payroll_month} payroll." if reimburse_via_payroll else "."),
+            "reference_type": "expense",
+            "reference_id": expense_id,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {
+        "message": "Expense marked as reimbursed",
+        "payroll_linked": reimburse_via_payroll,
+        "payroll_month": payroll_month if reimburse_via_payroll else None
+    }
 
 
 @api_router.post("/expenses/{expense_id}/approve")
