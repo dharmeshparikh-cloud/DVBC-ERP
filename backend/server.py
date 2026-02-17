@@ -13995,7 +13995,7 @@ async def admin_approve_bank_change(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     
-    request = db.bank_change_requests.find_one({
+    request = await db.bank_change_requests.find_one({
         "employee_id": employee_id,
         "status": "pending_admin"
     })
@@ -14004,7 +14004,7 @@ async def admin_approve_bank_change(
         raise HTTPException(status_code=404, detail="Request not found or already processed")
     
     # Update employee bank details
-    db.employees.update_one(
+    await db.employees.update_one(
         {"_id": ObjectId(employee_id)},
         {"$set": {
             "bank_details": request["new_bank_details"],
@@ -14013,7 +14013,7 @@ async def admin_approve_bank_change(
     )
     
     # Update request status
-    db.bank_change_requests.update_one(
+    await db.bank_change_requests.update_one(
         {"employee_id": employee_id, "status": "pending_admin"},
         {"$set": {
             "status": "approved",
@@ -14036,7 +14036,7 @@ async def admin_reject_bank_change(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
     
-    result = db.bank_change_requests.update_one(
+    result = await db.bank_change_requests.update_one(
         {"employee_id": employee_id, "status": "pending_admin"},
         {"$set": {
             "status": "rejected",
