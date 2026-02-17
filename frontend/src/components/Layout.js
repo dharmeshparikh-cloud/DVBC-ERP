@@ -117,6 +117,7 @@ const Layout = () => {
     { name: 'Leave Mgmt', href: '/leave-management', icon: CalendarDays },
     { name: 'Attendance', href: '/attendance', icon: Clock },
     { name: 'Attendance Approvals', href: '/attendance-approvals', icon: ClipboardCheck },
+    { name: 'CTC Designer', href: '/ctc-designer', icon: DollarSign },
     { name: 'Payroll', href: '/payroll', icon: Wallet },
     { name: 'Expenses', href: '/expenses', icon: Receipt },
     { name: 'Travel Reimbursement', href: '/travel-reimbursement', icon: Car },
