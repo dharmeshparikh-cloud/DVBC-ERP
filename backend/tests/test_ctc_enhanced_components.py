@@ -152,14 +152,15 @@ class TestCTCEnhancedComponents:
     
     def test_deductions_subtract_from_gross(self):
         """Test that deduction components (PF Employee, ESIC, PT) subtract from gross"""
+        # NOTE: Deduction components MUST have is_earning: False for proper calculation
         config = [
             {"key": "basic", "name": "Basic", "calc_type": "percentage_of_ctc", "value": 40, "enabled": True, "is_earning": True, "is_mandatory": True},
             {"key": "hra", "name": "HRA", "calc_type": "percentage_of_basic", "value": 50, "enabled": True, "is_earning": True},
             {"key": "conveyance", "name": "Conveyance", "calc_type": "fixed_monthly", "value": 1600, "enabled": True, "is_earning": True},
             {"key": "medical", "name": "Medical", "calc_type": "fixed_monthly", "value": 1250, "enabled": True, "is_earning": True},
             {"key": "special_allowance", "name": "Special Allowance", "calc_type": "balance", "value": 0, "enabled": True, "is_earning": True, "is_balance": True, "is_mandatory": True},
-            {"key": "pf_employee", "name": "PF Employee", "calc_type": "percentage_of_basic", "value": 12, "enabled": True, "is_deduction": True},
-            {"key": "professional_tax", "name": "Professional Tax", "calc_type": "fixed_monthly", "value": 200, "enabled": True, "is_deduction": True},
+            {"key": "pf_employee", "name": "PF Employee", "calc_type": "percentage_of_basic", "value": 12, "enabled": True, "is_earning": False, "is_deduction": True},
+            {"key": "professional_tax", "name": "Professional Tax", "calc_type": "fixed_monthly", "value": 200, "enabled": True, "is_earning": False, "is_deduction": True},
         ]
         
         response = requests.post(
