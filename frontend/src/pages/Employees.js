@@ -778,6 +778,37 @@ const Employees = () => {
                 </div>
               </div>
 
+              {/* Mobile App Access */}
+              <div className="border-t border-zinc-100 pt-4">
+                <h4 className="font-medium text-zinc-950 mb-3">Mobile App Access</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-zinc-500">Status</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Smartphone className={`w-4 h-4 ${selectedEmployee.mobile_app_disabled ? 'text-red-500' : 'text-emerald-500'}`} />
+                      <span className={`font-medium ${selectedEmployee.mobile_app_disabled ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {selectedEmployee.mobile_app_disabled ? 'Disabled' : 'Enabled'}
+                      </span>
+                    </div>
+                  </div>
+                  {selectedEmployee.mobile_app_disabled && selectedEmployee.mobile_app_disabled_reason && (
+                    <div>
+                      <Label className="text-xs text-zinc-500">Reason</Label>
+                      <p className="font-medium text-red-600">{selectedEmployee.mobile_app_disabled_reason}</p>
+                    </div>
+                  )}
+                  {selectedEmployee.work_location && (
+                    <div>
+                      <Label className="text-xs text-zinc-500">Current Work Location</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <MapPin className="w-4 h-4 text-zinc-400" />
+                        <span className="font-medium capitalize">{selectedEmployee.work_location?.replace('_', ' ') || '-'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* HR Details (if visible) */}
               {selectedEmployee.salary !== undefined && (
                 <div className="border-t border-zinc-100 pt-4">
