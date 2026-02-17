@@ -339,7 +339,8 @@ class TestCTCDesignerBackend:
             "retention_bonus": 0,
             "retention_vesting_months": 12,
             "effective_month": "2027-05",
-            "remarks": "TEST_REJECTION_REQUEST"
+            "remarks": "TEST_REJECTION_REQUEST",
+            "components": {}
         }
         
         response = requests.post(
