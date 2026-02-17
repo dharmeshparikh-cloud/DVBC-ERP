@@ -245,9 +245,8 @@ const HRLayout = () => {
 
         {/* User Section */}
         <div className="p-3 border-t border-zinc-200 dark:border-zinc-800">
-          {sidebarOpen ? (
-            <>
-              <div className="flex items-center gap-2 px-2 py-1.5">
+          <>
+            <div className="flex items-center gap-2 px-2 py-1.5">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
                   <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                     {user?.full_name?.charAt(0) || 'H'}
