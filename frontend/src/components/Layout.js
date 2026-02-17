@@ -114,6 +114,7 @@ const Layout = () => {
     { name: 'Attendance Approvals', href: '/attendance-approvals', icon: ClipboardCheck },
     { name: 'Payroll', href: '/payroll', icon: Wallet },
     { name: 'Expenses', href: '/expenses', icon: Receipt },
+    { name: 'Travel Reimbursement', href: '/travel-reimbursement', icon: Car },
     { name: 'Team Workload', href: '/team-workload', icon: Briefcase },
     { name: 'Staffing Requests', href: '/staffing-requests', icon: AlertTriangle },
     { name: 'Performance', href: '/performance-dashboard', icon: TrendingUp },
