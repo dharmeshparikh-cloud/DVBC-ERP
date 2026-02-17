@@ -93,6 +93,7 @@ const HRLayout = () => {
   const operationsItems = [
     { name: 'Leave Management', href: '/hr/leave-management', icon: CalendarDays },
     { name: 'Attendance', href: '/hr/attendance', icon: Clock },
+    { name: 'CTC Designer', href: '/hr/ctc-designer', icon: Wallet },
     { name: 'Payroll', href: '/hr/payroll', icon: Wallet },
     { name: 'Expenses', href: '/hr/expenses', icon: Receipt },
     { name: 'Approvals', href: '/hr/approvals', icon: ClipboardCheck },
