@@ -12545,11 +12545,16 @@ async def self_check_out(data: dict, current_user: User = Depends(get_current_us
                 "vehicle_type": "car",
                 "is_round_trip": True,
                 "from_location": office_name,
-                "to_location": check_in_location.get("address", "Client Site")[:50] if check_in_location.get("address") else "Client Site",
+                "to_location": existing.get("client_name") or check_in_location.get("address", "Client Site")[:50] if check_in_location.get("address") else "Client Site",
                 "office_lat": home_lat,
                 "office_lon": home_lon,
                 "client_lat": check_in_location["latitude"],
-                "client_lon": check_in_location["longitude"]
+                "client_lon": check_in_location["longitude"],
+                # Include client info from attendance
+                "client_id": existing.get("client_id"),
+                "client_name": existing.get("client_name"),
+                "project_id": existing.get("project_id"),
+                "project_name": existing.get("project_name")
             }
     
     await db.attendance.update_one(
@@ -12563,12 +12568,21 @@ async def self_check_out(data: dict, current_user: User = Depends(get_current_us
         }}
     )
     
+    # Determine if we should redirect to expense/reimbursement page
+    redirect_to_expense = travel_reimbursement is not None and travel_reimbursement.get("distance_km", 0) > 1
+    
     return {
         "message": "Check-out successful",
         "id": existing["id"],
+        "attendance_id": existing["id"],
         "check_out_time": check_out_time,
         "work_hours": work_hours,
-        "travel_reimbursement": travel_reimbursement
+        "travel_reimbursement": travel_reimbursement,
+        "redirect_to_expense": redirect_to_expense,
+        "client_id": existing.get("client_id"),
+        "client_name": existing.get("client_name"),
+        "project_id": existing.get("project_id"),
+        "project_name": existing.get("project_name")
     }
 
 
