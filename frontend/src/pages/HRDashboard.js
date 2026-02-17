@@ -64,14 +64,14 @@ const HRDashboard = () => {
   const payroll = stats?.payroll || {};
 
   return (
-    <div className="space-y-6" data-testid="hr-dashboard">
+    <div className="space-y-4 md:space-y-6" data-testid="hr-dashboard">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">HR Dashboard</h1>
-          <p className="text-sm text-zinc-500">Manage employees, attendance and payroll</p>
+          <h1 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-100">HR Dashboard</h1>
+          <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400">Manage employees, attendance and payroll</p>
         </div>
-        <Badge className="bg-emerald-100 text-emerald-700">
+        <Badge className="bg-emerald-100 text-emerald-700 w-fit">
           {attendance.attendance_rate || 0}% Attendance Today
         </Badge>
       </div>
@@ -82,14 +82,14 @@ const HRDashboard = () => {
         onClick={() => setShowQuickCheckIn(true)}
         data-testid="hr-quick-attendance-card"
       >
-        <CardContent className="flex items-center justify-between p-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-              <Clock className="w-6 h-6 text-white" />
+        <CardContent className="flex items-center justify-between p-4 md:p-5">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Clock className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">Quick Attendance</h3>
-              <p className="text-white/70 text-sm">
+            <div className="min-w-0">
+              <h3 className="text-base md:text-lg font-bold text-white">Quick Attendance</h3>
+              <p className="text-white/70 text-xs md:text-sm truncate">
                 {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out 
                   ? 'Completed for today' 
                   : attendanceStatus?.has_checked_in 
