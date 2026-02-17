@@ -181,42 +181,42 @@ const HRPortalDashboard = () => {
                 Staffing Requests
               </CardTitle>
               <Link to="/hr/staffing-requests">
-                <Button variant="ghost" size="sm">
-                  View All <ArrowRight className="w-4 h-4 ml-1" />
+                <Button variant="ghost" size="sm" className="text-xs md:text-sm">
+                  View All <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1" />
                 </Button>
               </Link>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 md:px-6">
               {staffingRequests.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2 md:space-y-3">
                   {staffingRequests.map((request, idx) => (
                     <div 
                       key={request.id || idx} 
-                      className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg"
+                      className="flex items-center justify-between gap-2 p-2.5 md:p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                          <Briefcase className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                          <Briefcase className="w-4 h-4 md:w-5 md:h-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
-                        <div>
-                          <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                        <div className="min-w-0">
+                          <p className="font-medium text-zinc-900 dark:text-zinc-100 text-sm md:text-base truncate">
                             {request.metadata?.project_name || request.title}
                           </p>
-                          <p className="text-xs text-zinc-500">
-                            {request.metadata?.resources_needed || 0} resources needed • Start: {request.metadata?.start_date || 'TBD'}
+                          <p className="text-[10px] md:text-xs text-zinc-500 truncate">
+                            {request.metadata?.resources_needed || 0} resources • {request.metadata?.start_date || 'TBD'}
                           </p>
                         </div>
                       </div>
-                      <Badge className={request.priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-700'}>
+                      <Badge className={`${request.priority === 'high' ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-700'} text-[10px] md:text-xs flex-shrink-0`}>
                         {request.priority || 'normal'}
                       </Badge>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-zinc-500">
-                  <Briefcase className="w-8 h-8 mx-auto mb-2 text-zinc-300" />
-                  <p>No pending staffing requests</p>
+                <div className="text-center py-6 md:py-8 text-zinc-500">
+                  <Briefcase className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-zinc-300" />
+                  <p className="text-sm">No pending staffing requests</p>
                 </div>
               )}
             </CardContent>
@@ -224,40 +224,40 @@ const HRPortalDashboard = () => {
         )}
 
         {/* Pending Approvals */}
-        <Card className={`${isHRManager ? '' : 'col-span-2'} border-zinc-200 dark:border-zinc-800`}>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-600" />
+        <Card className={`${isHRManager ? '' : 'md:col-span-2'} border-zinc-200 dark:border-zinc-800`}>
+          <CardHeader className="flex flex-row items-center justify-between px-4 md:px-6 py-3 md:py-4">
+            <CardTitle className="text-sm md:text-base flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
               Pending Approvals
             </CardTitle>
             <Link to="/hr/approvals">
-              <Button variant="ghost" size="sm">
-                View All <ArrowRight className="w-4 h-4 ml-1" />
+              <Button variant="ghost" size="sm" className="text-xs md:text-sm">
+                View All <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1" />
               </Button>
             </Link>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 md:px-6">
             {pendingApprovals.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {pendingApprovals.map((approval, idx) => (
                   <div 
                     key={approval.id || idx} 
-                    className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg"
+                    className="flex items-center justify-between gap-2 p-2.5 md:p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg"
                   >
-                    <div>
-                      <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                    <div className="min-w-0">
+                      <p className="font-medium text-zinc-900 dark:text-zinc-100 text-sm md:text-base truncate">
                         {approval.type?.replace('_', ' ')}
                       </p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-[10px] md:text-xs text-zinc-500 truncate">
                         {approval.requester_name || 'Unknown'}
                       </p>
                     </div>
-                    <Badge variant="outline">{approval.status}</Badge>
+                    <Badge variant="outline" className="text-[10px] md:text-xs flex-shrink-0">{approval.status}</Badge>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-zinc-500">
+              <div className="text-center py-6 md:py-8 text-zinc-500">
                 <CheckCircle className="w-8 h-8 mx-auto mb-2 text-zinc-300" />
                 <p>No pending approvals</p>
               </div>
