@@ -388,7 +388,8 @@ class TestCTCDesignerBackend:
         ctc_data = {
             "employee_id": test_employee["id"],
             "annual_ctc": 1000000,
-            "effective_month": "2027-06"
+            "effective_month": "2027-06",
+            "components": {}
         }
         
         response = requests.post(
