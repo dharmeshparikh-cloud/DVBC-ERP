@@ -116,19 +116,19 @@ const SalesDashboardEnhanced = () => {
   }));
 
   return (
-    <div className="space-y-6" data-testid="sales-dashboard-enhanced">
+    <div className="space-y-4 md:space-y-6" data-testid="sales-dashboard-enhanced">
       {/* Header with View Toggle */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className={`text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>Sales Dashboard</h1>
-          <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Track your pipeline, conversions and revenue</p>
+          <h1 className={`text-xl md:text-2xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>Sales Dashboard</h1>
+          <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Track your pipeline, conversions and revenue</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
           {stats?.has_team && (
             <div className={`flex rounded-lg p-1 ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
               <button
                 onClick={() => setViewMode('own')}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                className={`px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md transition-colors ${
                   viewMode === 'own' 
                     ? isDark ? 'bg-zinc-700 shadow text-zinc-100' : 'bg-white shadow text-zinc-900'
                     : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900'
@@ -138,7 +138,7 @@ const SalesDashboardEnhanced = () => {
               </button>
               <button
                 onClick={() => setViewMode('team')}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                className={`px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md transition-colors ${
                   viewMode === 'team' 
                     ? isDark ? 'bg-zinc-700 shadow text-zinc-100' : 'bg-white shadow text-zinc-900'
                     : isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-600 hover:text-zinc-900'
@@ -148,7 +148,7 @@ const SalesDashboardEnhanced = () => {
               </button>
             </div>
           )}
-          <Badge className={`text-sm px-3 py-1 ${isDark ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700'}`}>
+          <Badge className={`text-xs md:text-sm px-2 md:px-3 py-1 ${isDark ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700'}`}>
             {ratios.lead_to_closure || 0}% Conversion
           </Badge>
         </div>
@@ -164,14 +164,14 @@ const SalesDashboardEnhanced = () => {
         onClick={() => setShowQuickCheckIn(true)}
         data-testid="sales-quick-attendance-card"
       >
-        <CardContent className="flex items-center justify-between p-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-              <Clock className="w-6 h-6 text-white" />
+        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 md:p-5 gap-3">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Quick Attendance</h3>
-              <p className="text-white/70 text-sm">
+              <h3 className="text-base md:text-lg font-bold text-white">Quick Attendance</h3>
+              <p className="text-white/70 text-xs md:text-sm">
                 {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out 
                   ? 'Completed for today' 
                   : attendanceStatus?.has_checked_in 
@@ -181,18 +181,18 @@ const SalesDashboardEnhanced = () => {
             </div>
           </div>
           {attendanceStatus?.has_checked_in && attendanceStatus?.has_checked_out ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-white" />
-              <span className="text-white font-medium">Done</span>
+            <div className="flex items-center gap-2 px-3 md:px-4 py-2 bg-emerald-500 rounded-lg">
+              <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <span className="text-white font-medium text-sm">Done</span>
             </div>
           ) : attendanceStatus?.has_checked_in ? (
-            <div className="flex items-center gap-2 px-4 py-2 bg-amber-500 rounded-lg">
-              <LogIn className="w-5 h-5 text-white" />
-              <span className="text-white font-medium">Check Out</span>
+            <div className="flex items-center gap-2 px-3 md:px-4 py-2 bg-amber-500 rounded-lg">
+              <LogIn className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <span className="text-white font-medium text-sm">Check Out</span>
             </div>
           ) : (
-            <Button className="bg-white text-blue-600 hover:bg-white/90 h-11 px-6 font-semibold">
-              <LogIn className="w-5 h-5 mr-2" /> Check In
+            <Button className="bg-white text-blue-600 hover:bg-white/90 h-10 md:h-11 px-4 md:px-6 font-semibold text-sm w-full sm:w-auto">
+              <LogIn className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Check In
             </Button>
           )}
         </CardContent>
