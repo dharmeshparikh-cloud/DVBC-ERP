@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent } from '../components/ui/card';
 import { toast } from 'sonner';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, LayoutDashboard, Users, Briefcase, BarChart3, Shield, Settings } from 'lucide-react';
 
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 
@@ -56,108 +56,168 @@ const Login = () => {
     }
   };
 
+  const features = [
+    { icon: LayoutDashboard, label: 'Unified Dashboard', desc: 'Complete business overview' },
+    { icon: Users, label: 'HR Management', desc: 'Employee & attendance tracking' },
+    { icon: Briefcase, label: 'Project Control', desc: 'End-to-end project lifecycle' },
+    { icon: BarChart3, label: 'Analytics & Reports', desc: 'Data-driven insights' },
+  ];
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-6">
-      <Card className="w-full max-w-[440px] border-zinc-200 shadow-sm rounded-lg overflow-hidden" data-testid="login-card">
-        {/* Header with Logo */}
-        <div className="bg-white border-b border-zinc-100 px-8 pt-8 pb-6 text-center">
-          <img
-            src={LOGO_URL}
-            alt="DVBC Logo"
-            className="h-16 w-auto mx-auto mb-4"
-            data-testid="login-logo"
-          />
-          <h1 className="text-xl font-bold tracking-wide text-zinc-900" data-testid="app-name">
-            DVBC - NETRA
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1 tracking-widest uppercase">Business Management Platform</p>
-        </div>
-
-        <CardContent className="px-8 py-6 space-y-5">
-          {/* Email/Password Login */}
-          <form onSubmit={handlePasswordLogin} className="space-y-3.5" data-testid="password-login-form">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-medium text-zinc-600">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                <Input
-                  id="email"
-                  data-testid="email-input"
-                  type="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="pl-10 h-10 rounded-md border-zinc-200 bg-white focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400"
-                />
-              </div>
+    <div className="min-h-screen flex bg-zinc-50" data-testid="main-login-page">
+      {/* Left Panel - Features */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black p-12 flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/10">
+              <Shield className="w-6 h-6 text-white" />
             </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-medium text-zinc-600">Password</Label>
-                <button
-                  type="button"
-                  data-testid="forgot-password-link"
-                  onClick={() => toast.info('Please contact your administrator for password reset.')}
-                  className="text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors"
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                <Input
-                  id="password"
-                  data-testid="password-input"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="pl-10 h-10 rounded-md border-zinc-200 bg-white focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400"
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              data-testid="submit-button"
-              className="w-full bg-zinc-900 text-white hover:bg-zinc-800 rounded-md h-10 font-medium"
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-zinc-200" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-white px-3 text-zinc-400">or continue with</span>
+            <div>
+              <h1 className="text-2xl font-bold text-white">DVBC - NETRA</h1>
+              <p className="text-zinc-400 text-sm">Business Management Platform</p>
             </div>
           </div>
 
-          {/* Google Sign-In */}
-          <Button
-            type="button"
-            data-testid="google-login-btn"
-            onClick={handleGoogleLogin}
-            variant="outline"
-            className="w-full border-zinc-200 text-zinc-700 hover:bg-zinc-50 rounded-md h-10 font-medium"
-          >
-            <GoogleIcon />
-            Sign in with Google
-          </Button>
+          <div className="space-y-6">
+            <h2 className="text-3xl font-bold text-white leading-tight">
+              Your complete<br />enterprise solution
+            </h2>
+            <p className="text-zinc-400 text-lg max-w-md">
+              Manage sales, HR, projects, and operations - all from a single powerful platform designed for modern businesses.
+            </p>
+          </div>
 
-          <p className="text-center text-[11px] text-zinc-400 leading-relaxed">
-            Google login available for <span className="font-medium text-zinc-500">@dvconsulting.co.in</span> accounts.
-            <br />Other users please use email &amp; password provided by your admin.
-          </p>
-        </CardContent>
-      </Card>
+          <div className="grid grid-cols-2 gap-4 mt-12">
+            {features.map((feature, idx) => (
+              <div key={idx} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                <feature.icon className="w-8 h-8 text-zinc-300 mb-3" />
+                <h3 className="text-white font-semibold text-sm">{feature.label}</h3>
+                <p className="text-zinc-500 text-xs mt-1">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-zinc-500 text-sm">
+            © {new Date().getFullYear()} DVBC Consulting. All rights reserved.
+          </div>
+          <div className="flex gap-4 text-xs">
+            <a href="/hr/login" className="text-emerald-400 hover:text-emerald-300 transition-colors">HR Portal</a>
+            <a href="/sales/login" className="text-orange-400 hover:text-orange-300 transition-colors">Sales Portal</a>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <Card className="w-full max-w-[440px] border-zinc-200 shadow-xl rounded-2xl overflow-hidden" data-testid="login-card">
+          {/* Header with Logo */}
+          <div className="bg-white px-8 pt-10 pb-6 text-center border-b border-zinc-100">
+            <img
+              src={LOGO_URL}
+              alt="DVBC Logo"
+              className="h-16 w-auto mx-auto mb-4"
+              data-testid="login-logo"
+            />
+            <h1 className="text-xl font-bold tracking-wide text-zinc-900" data-testid="app-name">
+              DVBC - NETRA
+            </h1>
+            <p className="text-xs text-zinc-400 mt-1 tracking-widest uppercase">Business Management Platform</p>
+          </div>
+
+          <CardContent className="px-8 py-8 space-y-5 bg-zinc-50/50">
+            {/* Email/Password Login */}
+            <form onSubmit={handlePasswordLogin} className="space-y-4" data-testid="password-login-form">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-zinc-700">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <Input
+                    id="email"
+                    data-testid="email-input"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="pl-11 h-11 rounded-lg border-zinc-300 bg-white focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium text-zinc-700">Password</Label>
+                  <button
+                    type="button"
+                    data-testid="forgot-password-link"
+                    onClick={() => toast.info('Please contact your administrator for password reset.')}
+                    className="text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <Input
+                    id="password"
+                    data-testid="password-input"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pl-11 h-11 rounded-lg border-zinc-300 bg-white focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                data-testid="submit-button"
+                className="w-full bg-zinc-900 text-white hover:bg-zinc-800 rounded-lg h-11 font-medium shadow-sm"
+                disabled={loading}
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-zinc-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-zinc-50 px-3 text-zinc-400">or continue with</span>
+              </div>
+            </div>
+
+            {/* Google Sign-In */}
+            <Button
+              type="button"
+              data-testid="google-login-btn"
+              onClick={handleGoogleLogin}
+              variant="outline"
+              className="w-full border-zinc-300 text-zinc-700 hover:bg-white rounded-lg h-11 font-medium"
+            >
+              <GoogleIcon />
+              Sign in with Google
+            </Button>
+
+            <p className="text-center text-[11px] text-zinc-400 leading-relaxed">
+              Google login available for <span className="font-medium text-zinc-500">@dvconsulting.co.in</span> accounts.
+              <br />Other users please use email & password provided by your admin.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Mobile Portal Links - visible on small screens */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 flex justify-center gap-6">
+        <a href="/hr/login" className="text-sm text-emerald-600 font-medium">HR Portal</a>
+        <a href="/sales/login" className="text-sm text-orange-600 font-medium">Sales Portal</a>
+      </div>
     </div>
   );
 };
