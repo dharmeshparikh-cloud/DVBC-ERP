@@ -302,8 +302,8 @@ const EmployeeMobileApp = () => {
     }
     setLoading(true);
     try {
-      await axios.post(`${API}/my/leaves`, {
-        leave_type: leaveForm.leave_type,
+      await axios.post(`${API}/leave-requests`, {
+        leave_type: leaveForm.leave_type + '_leave',
         start_date: leaveForm.start_date,
         end_date: leaveForm.end_date,
         reason: leaveForm.reason
