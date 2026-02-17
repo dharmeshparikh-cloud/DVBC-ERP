@@ -245,16 +245,16 @@ const WorkflowPage = () => {
       </div>
 
       {/* Workflow Steps */}
-      <Card className="border-zinc-200">
-        <CardHeader className="border-b border-zinc-100">
+      <Card className="border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900">
+        <CardHeader className="border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {React.createElement(currentWorkflow.icon, { 
-                className: `w-6 h-6 text-${currentWorkflow.color}-600` 
+                className: `w-6 h-6 text-${currentWorkflow.color}-600 dark:text-${currentWorkflow.color}-400` 
               })}
               <div>
-                <CardTitle className="text-xl">{currentWorkflow.title}</CardTitle>
-                <p className="text-sm text-zinc-500">{currentWorkflow.subtitle}</p>
+                <CardTitle className="text-xl dark:text-zinc-100">{currentWorkflow.title}</CardTitle>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">{currentWorkflow.subtitle}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -293,10 +293,10 @@ const WorkflowPage = () => {
                     }`}>
                       <Icon className={`w-7 h-7 ${isAnimated ? 'text-white' : moduleColor.text}`} />
                     </div>
-                    <h4 className={`font-semibold text-sm ${isAnimated ? 'text-zinc-900' : 'text-zinc-700'}`}>
+                    <h4 className={`font-semibold text-sm ${isAnimated ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-300'}`}>
                       {step.title}
                     </h4>
-                    <p className="text-xs text-zinc-500 mt-1 max-w-[100px]">{step.description}</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-[100px]">{step.description}</p>
                     <Badge className={`mt-2 text-[10px] ${moduleColor.bg} ${moduleColor.text}`}>
                       {step.module}
                     </Badge>
@@ -307,7 +307,7 @@ const WorkflowPage = () => {
                       <ArrowRight className={`w-6 h-6 transition-all duration-300 ${
                         isAnimating && index < animatingStep 
                           ? `text-${currentWorkflow.color}-500` 
-                          : 'text-zinc-300'
+                          : 'text-zinc-300 dark:text-zinc-600'
                       }`} />
                     </div>
                   )}
