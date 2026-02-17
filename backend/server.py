@@ -10499,6 +10499,580 @@ async def get_expense_stats(
     }
 
 
+
+# ==================== TRAVEL REIMBURSEMENT SYSTEM ====================
+
+# Travel reimbursement rates (INR per km)
+TRAVEL_RATES = {
+    "car": 7.0,  # ₹7 per km for car
+    "two_wheeler": 3.0,  # ₹3 per km for two-wheeler/bike
+    "public_transport": 0,  # Actuals only
+    "cab": 0  # Actuals only
+}
+
+class TravelReimbursement(BaseModel):
+    """Travel reimbursement record linked to attendance or manual entry"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    employee_name: str
+    travel_date: str  # YYYY-MM-DD
+    
+    # Type: "attendance" (auto from check-in/out) or "manual" (sales team input)
+    travel_type: str = "manual"  # attendance, manual
+    attendance_id: Optional[str] = None  # Link to attendance record if auto
+    
+    # Locations
+    start_location: dict  # {latitude, longitude, address, name}
+    end_location: dict  # {latitude, longitude, address, name}
+    
+    # Trip details
+    is_round_trip: bool = False
+    distance_km: float = 0
+    vehicle_type: str = "car"  # car, two_wheeler, public_transport, cab
+    rate_per_km: float = 7.0
+    
+    # Amounts
+    calculated_amount: float = 0  # Auto-calculated from distance * rate
+    actual_amount: Optional[float] = None  # For receipts/actuals
+    final_amount: float = 0  # Amount to reimburse
+    
+    # For client visits
+    client_id: Optional[str] = None
+    client_name: Optional[str] = None
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    
+    # Status
+    status: str = "pending"  # pending, approved, rejected, linked_to_expense
+    expense_id: Optional[str] = None  # When converted to expense
+    
+    # Metadata
+    notes: Optional[str] = None
+    receipt: Optional[str] = None  # Base64 receipt for actuals
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+def calculate_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance in kilometers using Haversine formula"""
+    distance_meters = calculate_distance(lat1, lon1, lat2, lon2)
+    return round(distance_meters / 1000, 2)
+
+
+@api_router.get("/travel/rates")
+async def get_travel_rates(current_user: User = Depends(get_current_user)):
+    """Get current travel reimbursement rates"""
+    return {
+        "rates": TRAVEL_RATES,
+        "description": {
+            "car": "₹7 per km for personal car",
+            "two_wheeler": "₹3 per km for bike/scooter",
+            "public_transport": "Actual expense with receipt",
+            "cab": "Actual expense with receipt"
+        }
+    }
+
+
+@api_router.post("/travel/calculate-distance")
+async def calculate_travel_distance(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calculate distance between two locations.
+    Used by sales team for manual travel entries.
+    """
+    start = data.get("start_location", {})
+    end = data.get("end_location", {})
+    
+    if not start.get("latitude") or not start.get("longitude"):
+        raise HTTPException(status_code=400, detail="Start location coordinates required")
+    if not end.get("latitude") or not end.get("longitude"):
+        raise HTTPException(status_code=400, detail="End location coordinates required")
+    
+    distance = calculate_distance_km(
+        start["latitude"], start["longitude"],
+        end["latitude"], end["longitude"]
+    )
+    
+    is_round_trip = data.get("is_round_trip", False)
+    if is_round_trip:
+        distance *= 2
+    
+    vehicle_type = data.get("vehicle_type", "car")
+    rate = TRAVEL_RATES.get(vehicle_type, 0)
+    
+    calculated_amount = round(distance * rate, 2) if rate > 0 else 0
+    
+    return {
+        "distance_km": distance,
+        "is_round_trip": is_round_trip,
+        "vehicle_type": vehicle_type,
+        "rate_per_km": rate,
+        "calculated_amount": calculated_amount,
+        "requires_receipt": rate == 0
+    }
+
+
+@api_router.get("/travel/location-search")
+async def search_locations(
+    query: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Search for locations using OpenStreetMap Nominatim API.
+    Used by sales team to find client meeting locations.
+    """
+    if not query or len(query) < 3:
+        raise HTTPException(status_code=400, detail="Query must be at least 3 characters")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={
+                    "q": query,
+                    "format": "json",
+                    "limit": 5,
+                    "countrycodes": "in",  # Restrict to India
+                    "addressdetails": 1
+                },
+                headers={"User-Agent": "DVBC-ERP/1.0"},
+                timeout=10.0
+            )
+            
+            if response.status_code != 200:
+                return {"results": [], "error": "Location service unavailable"}
+            
+            data = response.json()
+            results = []
+            
+            for item in data:
+                results.append({
+                    "name": item.get("display_name", "").split(",")[0],
+                    "address": item.get("display_name", ""),
+                    "latitude": float(item.get("lat", 0)),
+                    "longitude": float(item.get("lon", 0)),
+                    "type": item.get("type", ""),
+                    "osm_id": item.get("osm_id")
+                })
+            
+            return {"results": results}
+            
+    except Exception as e:
+        return {"results": [], "error": str(e)}
+
+
+@api_router.post("/travel/reimbursement")
+async def create_travel_reimbursement(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Create a travel reimbursement request.
+    Supports both auto (from attendance) and manual entries.
+    """
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=400, detail="No employee record found")
+    
+    start_location = data.get("start_location", {})
+    end_location = data.get("end_location", {})
+    
+    if not start_location.get("latitude") or not end_location.get("latitude"):
+        raise HTTPException(status_code=400, detail="Both start and end locations are required")
+    
+    # Calculate distance
+    distance = calculate_distance_km(
+        start_location["latitude"], start_location["longitude"],
+        end_location["latitude"], end_location["longitude"]
+    )
+    
+    is_round_trip = data.get("is_round_trip", False)
+    if is_round_trip:
+        distance *= 2
+    
+    vehicle_type = data.get("vehicle_type", "car")
+    rate = TRAVEL_RATES.get(vehicle_type, 0)
+    calculated_amount = round(distance * rate, 2)
+    
+    # For actuals (cab/public transport), use the actual amount
+    actual_amount = data.get("actual_amount")
+    final_amount = actual_amount if actual_amount else calculated_amount
+    
+    travel_record = {
+        "id": str(uuid.uuid4()),
+        "employee_id": employee["id"],
+        "employee_name": f"{employee['first_name']} {employee['last_name']}",
+        "travel_date": data.get("travel_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+        "travel_type": data.get("travel_type", "manual"),
+        "attendance_id": data.get("attendance_id"),
+        "start_location": start_location,
+        "end_location": end_location,
+        "is_round_trip": is_round_trip,
+        "distance_km": distance,
+        "vehicle_type": vehicle_type,
+        "rate_per_km": rate,
+        "calculated_amount": calculated_amount,
+        "actual_amount": actual_amount,
+        "final_amount": final_amount,
+        "client_id": data.get("client_id"),
+        "client_name": data.get("client_name"),
+        "project_id": data.get("project_id"),
+        "project_name": data.get("project_name"),
+        "status": "pending",
+        "notes": data.get("notes"),
+        "receipt": data.get("receipt"),
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.travel_reimbursements.insert_one(travel_record)
+    
+    return {
+        "message": "Travel reimbursement request created",
+        "id": travel_record["id"],
+        "distance_km": distance,
+        "calculated_amount": calculated_amount,
+        "final_amount": final_amount
+    }
+
+
+@api_router.get("/travel/reimbursements")
+async def get_travel_reimbursements(
+    status: Optional[str] = None,
+    month: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get travel reimbursement requests for current user or all (HR/Admin)"""
+    query = {}
+    
+    if current_user.role not in ["admin", "hr_manager", "manager"]:
+        employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+        if employee:
+            query["employee_id"] = employee["id"]
+    
+    if status:
+        query["status"] = status
+    
+    if month:
+        query["travel_date"] = {"$regex": f"^{month}"}
+    
+    records = await db.travel_reimbursements.find(query, {"_id": 0, "receipt": 0}).sort("created_at", -1).to_list(500)
+    
+    # Calculate totals
+    total_distance = sum(r.get("distance_km", 0) for r in records)
+    total_amount = sum(r.get("final_amount", 0) for r in records)
+    pending_amount = sum(r.get("final_amount", 0) for r in records if r.get("status") == "pending")
+    
+    return {
+        "records": records,
+        "summary": {
+            "total_records": len(records),
+            "total_distance_km": round(total_distance, 2),
+            "total_amount": round(total_amount, 2),
+            "pending_amount": round(pending_amount, 2)
+        }
+    }
+
+
+@api_router.get("/travel/reimbursements/{travel_id}")
+async def get_travel_reimbursement(
+    travel_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific travel reimbursement record"""
+    record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Travel reimbursement not found")
+    
+    return record
+
+
+@api_router.post("/travel/reimbursements/{travel_id}/approve")
+async def approve_travel_reimbursement(
+    travel_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a travel reimbursement (HR/Admin only)"""
+    if current_user.role not in ["admin", "hr_manager", "manager"]:
+        raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can approve")
+    
+    record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Travel reimbursement not found")
+    
+    if record["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Only pending requests can be approved")
+    
+    await db.travel_reimbursements.update_one(
+        {"id": travel_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Travel reimbursement approved"}
+
+
+@api_router.post("/travel/reimbursements/{travel_id}/reject")
+async def reject_travel_reimbursement(
+    travel_id: str,
+    data: dict = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a travel reimbursement (HR/Admin only)"""
+    if current_user.role not in ["admin", "hr_manager", "manager"]:
+        raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can reject")
+    
+    record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Travel reimbursement not found")
+    
+    await db.travel_reimbursements.update_one(
+        {"id": travel_id},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": data.get("reason", "Rejected") if data else "Rejected",
+            "rejected_by": current_user.id,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Travel reimbursement rejected"}
+
+
+@api_router.post("/travel/reimbursements/{travel_id}/convert-to-expense")
+async def convert_travel_to_expense(
+    travel_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Convert an approved travel reimbursement to an expense for payroll integration"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only HR/Admin can convert to expense")
+    
+    record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Travel reimbursement not found")
+    
+    if record["status"] != "approved":
+        raise HTTPException(status_code=400, detail="Only approved requests can be converted")
+    
+    # Create expense entry
+    expense_id = f"TRV{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}{str(uuid.uuid4())[:4].upper()}"
+    
+    expense_doc = {
+        "id": expense_id,
+        "employee_id": record["employee_id"],
+        "employee_name": record["employee_name"],
+        "description": f"Travel Reimbursement: {record['start_location'].get('name', 'Start')} to {record['end_location'].get('name', 'End')}" + (" (Round Trip)" if record.get("is_round_trip") else ""),
+        "category": "travel_reimbursement",
+        "expense_date": record["travel_date"],
+        "line_items": [{
+            "description": f"Travel: {record['distance_km']} km @ ₹{record['rate_per_km']}/km ({record['vehicle_type']})",
+            "category": "travel_reimbursement",
+            "amount": record["final_amount"],
+            "date": record["travel_date"]
+        }],
+        "total_amount": record["final_amount"],
+        "status": "approved",  # Already approved as travel claim
+        "travel_reimbursement_id": travel_id,
+        "client_id": record.get("client_id"),
+        "client_name": record.get("client_name"),
+        "project_id": record.get("project_id"),
+        "project_name": record.get("project_name"),
+        "notes": record.get("notes"),
+        "created_by": current_user.id,
+        "approved_by": current_user.id,
+        "approved_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.expenses.insert_one(expense_doc)
+    
+    # Update travel record
+    await db.travel_reimbursements.update_one(
+        {"id": travel_id},
+        {"$set": {
+            "status": "linked_to_expense",
+            "expense_id": expense_id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": "Travel reimbursement converted to expense",
+        "expense_id": expense_id,
+        "amount": record["final_amount"]
+    }
+
+
+@api_router.get("/my/travel-reimbursements")
+async def get_my_travel_reimbursements(
+    month: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get current user's travel reimbursements"""
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not employee:
+        return {"records": [], "summary": {}}
+    
+    query = {"employee_id": employee["id"]}
+    if month:
+        query["travel_date"] = {"$regex": f"^{month}"}
+    
+    records = await db.travel_reimbursements.find(query, {"_id": 0, "receipt": 0}).sort("created_at", -1).to_list(200)
+    
+    # Calculate totals
+    total_distance = sum(r.get("distance_km", 0) for r in records)
+    total_amount = sum(r.get("final_amount", 0) for r in records)
+    pending_count = len([r for r in records if r.get("status") == "pending"])
+    approved_count = len([r for r in records if r.get("status") == "approved"])
+    
+    return {
+        "records": records,
+        "summary": {
+            "total_records": len(records),
+            "pending_count": pending_count,
+            "approved_count": approved_count,
+            "total_distance_km": round(total_distance, 2),
+            "total_amount": round(total_amount, 2)
+        }
+    }
+
+
+@api_router.post("/attendance/{attendance_id}/calculate-travel")
+async def calculate_attendance_travel(
+    attendance_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calculate travel reimbursement from attendance record (for consultants).
+    Uses check-in and check-out locations.
+    """
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=400, detail="No employee record found")
+    
+    # Get attendance record
+    attendance = await db.attendance.find_one({"id": attendance_id}, {"_id": 0})
+    if not attendance:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+    
+    # Check if this attendance belongs to the user
+    if attendance.get("employee_id") != employee["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to access this attendance")
+    
+    check_in_location = attendance.get("geo_location", {})
+    check_out_location = attendance.get("check_out_location", {})
+    
+    if not check_in_location.get("latitude") or not check_out_location.get("latitude"):
+        raise HTTPException(status_code=400, detail="Both check-in and check-out locations are required")
+    
+    # For consultants: calculate from home/office to client site
+    # Get home location (from employee profile or settings)
+    home_location = data.get("home_location", {})
+    
+    # Calculate distances
+    vehicle_type = data.get("vehicle_type", "car")
+    rate = TRAVEL_RATES.get(vehicle_type, 7.0)
+    is_round_trip = data.get("is_round_trip", True)  # Default round trip
+    
+    # Distance from start point to check-in (client site)
+    if home_location.get("latitude"):
+        distance = calculate_distance_km(
+            home_location["latitude"], home_location["longitude"],
+            check_in_location["latitude"], check_in_location["longitude"]
+        )
+    else:
+        # Use check-in to check-out distance
+        distance = calculate_distance_km(
+            check_in_location["latitude"], check_in_location["longitude"],
+            check_out_location["latitude"], check_out_location["longitude"]
+        )
+    
+    if is_round_trip:
+        distance *= 2
+    
+    calculated_amount = round(distance * rate, 2)
+    
+    return {
+        "attendance_id": attendance_id,
+        "travel_date": attendance.get("date"),
+        "check_in_location": {
+            "latitude": check_in_location.get("latitude"),
+            "longitude": check_in_location.get("longitude"),
+            "address": check_in_location.get("address")
+        },
+        "check_out_location": {
+            "latitude": check_out_location.get("latitude"),
+            "longitude": check_out_location.get("longitude"),
+            "address": check_out_location.get("address")
+        },
+        "distance_km": distance,
+        "is_round_trip": is_round_trip,
+        "vehicle_type": vehicle_type,
+        "rate_per_km": rate,
+        "calculated_amount": calculated_amount
+    }
+
+
+@api_router.get("/travel/stats")
+async def get_travel_stats(
+    month: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get travel reimbursement statistics (HR/Admin)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only HR/Admin can view stats")
+    
+    query = {}
+    if month:
+        query["travel_date"] = {"$regex": f"^{month}"}
+    
+    # Get all records
+    records = await db.travel_reimbursements.find(query, {"_id": 0}).to_list(2000)
+    
+    # Calculate stats
+    total_records = len(records)
+    pending = [r for r in records if r.get("status") == "pending"]
+    approved = [r for r in records if r.get("status") == "approved"]
+    
+    total_distance = sum(r.get("distance_km", 0) for r in records)
+    total_amount = sum(r.get("final_amount", 0) for r in records)
+    pending_amount = sum(r.get("final_amount", 0) for r in pending)
+    
+    # By vehicle type
+    by_vehicle = {}
+    for r in records:
+        vt = r.get("vehicle_type", "unknown")
+        if vt not in by_vehicle:
+            by_vehicle[vt] = {"count": 0, "distance": 0, "amount": 0}
+        by_vehicle[vt]["count"] += 1
+        by_vehicle[vt]["distance"] += r.get("distance_km", 0)
+        by_vehicle[vt]["amount"] += r.get("final_amount", 0)
+    
+    return {
+        "total_records": total_records,
+        "pending_count": len(pending),
+        "approved_count": len(approved),
+        "total_distance_km": round(total_distance, 2),
+        "total_amount": round(total_amount, 2),
+        "pending_amount": round(pending_amount, 2),
+        "by_vehicle_type": by_vehicle
+    }
+
+
+
 # ==================== REPORTS MODULE ====================
 
 class ReportRequest(BaseModel):
