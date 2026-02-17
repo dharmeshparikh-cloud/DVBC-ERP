@@ -260,6 +260,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="performance-dashboard" element={<PerformanceDashboard />} />
         <Route path="onboarding" element={<HROnboarding />} />
         <Route path="attendance-approvals" element={<HRAttendanceApprovals />} />
+        <Route path="mobile-app" element={<MobileAppDownload />} />
       </Route>
     </Routes>
   );
