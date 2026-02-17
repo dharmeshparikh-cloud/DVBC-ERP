@@ -5652,9 +5652,10 @@ async def change_consultant(
     new_consultant_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Change consultant on a project (before start date)"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(status_code=403, detail="Only admins and managers can change consultants")
+    """Change consultant on a project (before start date) - Only PM, Principal Consultant, and Admin"""
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.PROJECT_MANAGER, UserRole.PRINCIPAL_CONSULTANT]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Only Admin, Project Manager, or Principal Consultant can change consultants")
     
     # Get project
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
