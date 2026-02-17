@@ -454,7 +454,7 @@ class TestCheckOut:
     
     def test_checkout_without_checkin_rejected(self, consultant_token):
         """Verify check-out without check-in is rejected"""
-        test_date = (datetime.now() + timedelta(days=206)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+16)).strftime("%Y-%m-%d")
         
         response = requests.post(
             f"{BASE_URL}/api/my/check-out",
