@@ -108,7 +108,7 @@ Build a business management application for a consulting firm with complete HR, 
 - [x] HR Executive role restriction (no consulting access)
 - [x] API fixes: Consultants endpoint for HR Manager
 
-### Session 7 (Current - Feb 16, 2026)
+### Session 7 (Current - Feb 16-17, 2026)
 - [x] **Performance Dashboard Enhancements**
   - [x] Added Performance Dashboard to HR Portal sidebar (Team View section)
   - [x] Attendance Rate KPI card with present count
@@ -155,6 +155,30 @@ Build a business management application for a consulting firm with complete HR, 
 - [x] **Client Geo-Coordinates**
   - [x] `PUT /api/clients/{id}/geo-coordinates` endpoint
   - [x] All existing clients updated with geo_coordinates
+
+### Session 8 (Feb 17, 2026)
+- [x] **Dark Mode Fix - Projects Page**
+  - [x] Fixed hardcoded `text-zinc-950` classes with dark mode variants
+  - [x] Project cards now readable in dark mode
+  - [x] Border colors updated for dark mode compatibility
+- [x] **Modern Login Page Redesign**
+  - [x] Redesigned main ERP login (`/login`) to match HR/Sales portal aesthetics
+  - [x] Split-screen layout with feature highlights on left panel
+  - [x] Dark gradient background with feature cards (Unified Dashboard, HR Management, Project Control, Analytics)
+  - [x] Quick links to HR Portal and Sales Portal
+  - [x] Responsive design with mobile portal links
+- [x] **Onboarding Flow in Main ERP**
+  - [x] Added `/onboarding` route to main ERP (previously only in HR Portal)
+  - [x] Added "Onboarding" link in HR section of main sidebar
+  - [x] Full 5-step onboarding wizard accessible from main ERP
+- [x] **Attendance Approvals in Main ERP**
+  - [x] Added `/attendance-approvals` route to main ERP
+  - [x] Added "Attendance Approvals" link in HR section of main sidebar
+- [x] **Mobile App Access Status in Employees**
+  - [x] New "Mobile App" column showing Enabled/Disabled status with phone icon
+  - [x] Toggle button for Admin/HR to enable/disable mobile app access per employee
+  - [x] Employee detail dialog shows mobile app status with reason if disabled
+  - [x] Work location field displayed in employee details
 
 ## Test Credentials
 
