@@ -6,14 +6,32 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Switch } from '../components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { 
-  Calculator, IndianRupee, User, Building2, Calendar, Send, 
-  CheckCircle, XCircle, Clock, History, FileText, AlertCircle,
-  ChevronRight, Briefcase, PiggyBank, Heart, Car, Wallet, Gift
+  Calculator, IndianRupee, Building2, Calendar, Send, 
+  CheckCircle, XCircle, Clock, FileText, AlertCircle,
+  ChevronRight, PiggyBank, Heart, Car, Wallet, Gift, Settings,
+  Plus, Minus, Edit2, Save, ToggleLeft
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// Default component master (fallback)
+const DEFAULT_COMPONENTS = [
+  { key: "basic", name: "Basic Salary", calc_type: "percentage_of_ctc", default_value: 40, is_mandatory: true, is_earning: true, enabled_by_default: true, order: 1 },
+  { key: "hra", name: "House Rent Allowance", calc_type: "percentage_of_basic", default_value: 50, is_earning: true, enabled_by_default: true, order: 2 },
+  { key: "da", name: "Dearness Allowance", calc_type: "percentage_of_basic", default_value: 10, is_earning: true, enabled_by_default: false, order: 3 },
+  { key: "conveyance", name: "Conveyance Allowance", calc_type: "fixed_monthly", default_value: 1600, is_earning: true, is_taxable: false, enabled_by_default: true, order: 4 },
+  { key: "medical", name: "Medical Allowance", calc_type: "fixed_monthly", default_value: 1250, is_earning: true, is_taxable: false, enabled_by_default: true, order: 5 },
+  { key: "special_allowance", name: "Special Allowance", calc_type: "balance", default_value: 0, is_mandatory: true, is_earning: true, enabled_by_default: true, order: 6, is_balance: true },
+  { key: "pf_employer", name: "PF (Employer)", calc_type: "percentage_of_basic", default_value: 12, is_earning: false, is_deferred: true, enabled_by_default: false, order: 7 },
+  { key: "pf_employee", name: "PF (Employee Deduction)", calc_type: "percentage_of_basic", default_value: 12, is_earning: false, is_deduction: true, enabled_by_default: false, order: 8 },
+  { key: "esic_employer", name: "ESIC (Employer)", calc_type: "percentage_of_gross", default_value: 3.25, is_earning: false, is_deferred: true, enabled_by_default: false, order: 9 },
+  { key: "esic_employee", name: "ESIC (Employee Deduction)", calc_type: "percentage_of_gross", default_value: 0.75, is_earning: false, is_deduction: true, enabled_by_default: false, order: 10 },
+  { key: "gratuity", name: "Gratuity", calc_type: "percentage_of_basic", default_value: 4.81, is_earning: false, is_deferred: true, enabled_by_default: false, order: 11 },
+  { key: "professional_tax", name: "Professional Tax", calc_type: "fixed_monthly", default_value: 200, is_earning: false, is_deduction: true, enabled_by_default: false, order: 12 },
+];
 
 const CTCDesigner = () => {
   const { user } = useContext(AuthContext);
@@ -32,10 +50,10 @@ const CTCDesigner = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // For viewing existing CTC
-  const [viewDialog, setViewDialog] = useState(false);
-  const [viewingCTC, setViewingCTC] = useState(null);
-  const [ctcHistory, setCTCHistory] = useState([]);
+  // Component configuration
+  const [componentMaster, setComponentMaster] = useState([]);
+  const [componentConfig, setComponentConfig] = useState([]);
+  const [showComponentSettings, setShowComponentSettings] = useState(false);
 
   // Pending approvals (Admin only)
   const [pendingApprovals, setPendingApprovals] = useState([]);
@@ -49,11 +67,11 @@ const CTCDesigner = () => {
 
   useEffect(() => {
     fetchEmployees();
+    fetchComponentMaster();
     if (isAdmin) {
       fetchPendingApprovals();
       fetchStats();
     }
-    // Set default effective month to next month
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     setEffectiveMonth(nextMonth.toISOString().slice(0, 7));
@@ -65,6 +83,30 @@ const CTCDesigner = () => {
       setEmployees(res.data.filter(e => e.is_active));
     } catch (err) {
       toast.error('Failed to load employees');
+    }
+  };
+
+  const fetchComponentMaster = async () => {
+    try {
+      const res = await axios.get(`${API}/api/ctc/component-master`);
+      const components = res.data.components || DEFAULT_COMPONENTS;
+      setComponentMaster(components);
+      // Initialize component config with enabled status
+      const config = components.map(c => ({
+        ...c,
+        enabled: c.enabled_by_default !== false,
+        value: c.default_value
+      }));
+      setComponentConfig(config);
+    } catch (err) {
+      console.error('Failed to fetch component master, using defaults');
+      setComponentMaster(DEFAULT_COMPONENTS);
+      const config = DEFAULT_COMPONENTS.map(c => ({
+        ...c,
+        enabled: c.enabled_by_default !== false,
+        value: c.default_value
+      }));
+      setComponentConfig(config);
     }
   };
 
@@ -86,6 +128,23 @@ const CTCDesigner = () => {
     }
   };
 
+  const toggleComponent = (key) => {
+    const comp = componentConfig.find(c => c.key === key);
+    if (comp?.is_mandatory) {
+      toast.error(`${comp.name} is mandatory and cannot be disabled`);
+      return;
+    }
+    setComponentConfig(prev => prev.map(c => 
+      c.key === key ? { ...c, enabled: !c.enabled } : c
+    ));
+  };
+
+  const updateComponentValue = (key, value) => {
+    setComponentConfig(prev => prev.map(c => 
+      c.key === key ? { ...c, value: parseFloat(value) || 0 } : c
+    ));
+  };
+
   const handlePreview = async () => {
     if (!annualCTC || parseFloat(annualCTC) <= 0) {
       toast.error('Please enter a valid Annual CTC');
@@ -96,7 +155,8 @@ const CTCDesigner = () => {
       const res = await axios.post(`${API}/api/ctc/calculate-preview`, {
         annual_ctc: parseFloat(annualCTC),
         retention_bonus: parseFloat(retentionBonus) || 0,
-        retention_vesting_months: vestingMonths
+        retention_vesting_months: vestingMonths,
+        component_config: componentConfig
       });
       setPreview(res.data);
     } catch (err) {
@@ -128,15 +188,17 @@ const CTCDesigner = () => {
         retention_bonus: parseFloat(retentionBonus) || 0,
         retention_vesting_months: vestingMonths,
         effective_month: effectiveMonth,
+        component_config: componentConfig,
         remarks: remarks
       });
       toast.success('CTC structure submitted for Admin approval');
-      // Reset form
       setSelectedEmployee(null);
       setAnnualCTC('');
       setRetentionBonus('');
       setRemarks('');
       setPreview(null);
+      // Reset component config
+      fetchComponentMaster();
       if (isAdmin) {
         fetchPendingApprovals();
         fetchStats();
@@ -145,20 +207,6 @@ const CTCDesigner = () => {
       toast.error(err.response?.data?.detail || 'Failed to submit CTC structure');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleViewCTC = async (employeeId) => {
-    try {
-      const [ctcRes, historyRes] = await Promise.all([
-        axios.get(`${API}/api/ctc/employee/${employeeId}`),
-        axios.get(`${API}/api/ctc/employee/${employeeId}/history`)
-      ]);
-      setViewingCTC(ctcRes.data);
-      setCTCHistory(historyRes.data);
-      setViewDialog(true);
-    } catch (err) {
-      toast.error('Failed to load CTC details');
     }
   };
 
@@ -222,8 +270,24 @@ const CTCDesigner = () => {
     medical: Heart,
     special_allowance: Gift,
     pf_employer: PiggyBank,
+    pf_employee: PiggyBank,
+    esic_employer: Heart,
+    esic_employee: Heart,
     gratuity: PiggyBank,
-    retention_bonus: Gift
+    retention_bonus: Gift,
+    professional_tax: FileText
+  };
+
+  const getCalcTypeLabel = (calc_type) => {
+    switch (calc_type) {
+      case 'percentage_of_ctc': return '% of CTC';
+      case 'percentage_of_basic': return '% of Basic';
+      case 'percentage_of_gross': return '% of Gross';
+      case 'fixed_monthly': return '₹/month';
+      case 'fixed_annual': return '₹/year';
+      case 'balance': return 'Balance';
+      default: return calc_type;
+    }
   };
 
   return (
@@ -236,7 +300,7 @@ const CTCDesigner = () => {
             CTC Structure Designer
           </h1>
           <p className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-            Design and manage employee compensation structures
+            Design and manage employee compensation structures with configurable components
           </p>
         </div>
       </div>
@@ -308,7 +372,9 @@ const CTCDesigner = () => {
                 onChange={(e) => {
                   const emp = employees.find(emp => emp.id === e.target.value);
                   setSelectedEmployee(emp);
-                  if (emp?.salary) {
+                  if (emp?.annual_ctc) {
+                    setAnnualCTC(String(Math.round(emp.annual_ctc)));
+                  } else if (emp?.salary) {
                     setAnnualCTC(String(Math.round(emp.salary * 12)));
                   }
                 }}
@@ -365,6 +431,95 @@ const CTCDesigner = () => {
               )}
             </div>
 
+            {/* Component Configuration Toggle */}
+            <div className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800/50' : 'border-zinc-200 bg-zinc-50'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <ToggleLeft className="w-4 h-4 text-blue-500" />
+                  <Label className={`font-medium ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>
+                    CTC Components
+                  </Label>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowComponentSettings(!showComponentSettings)}
+                  className="h-7 text-xs"
+                >
+                  <Settings className="w-3 h-3 mr-1" />
+                  {showComponentSettings ? 'Hide' : 'Configure'}
+                </Button>
+              </div>
+
+              {showComponentSettings && (
+                <div className="space-y-2 mt-3 max-h-64 overflow-y-auto">
+                  {componentConfig.sort((a, b) => (a.order || 99) - (b.order || 99)).map(comp => {
+                    const Icon = componentIcons[comp.key] || IndianRupee;
+                    return (
+                      <div 
+                        key={comp.key}
+                        className={`flex items-center justify-between p-2 rounded-md ${
+                          comp.enabled 
+                            ? isDark ? 'bg-zinc-700/50' : 'bg-white' 
+                            : isDark ? 'bg-zinc-800/30 opacity-50' : 'bg-zinc-100 opacity-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <Switch
+                            checked={comp.enabled}
+                            onCheckedChange={() => toggleComponent(comp.key)}
+                            disabled={comp.is_mandatory}
+                            data-testid={`toggle-${comp.key}`}
+                          />
+                          <Icon className={`w-4 h-4 ${comp.is_deduction ? 'text-red-500' : comp.is_deferred ? 'text-amber-500' : 'text-emerald-500'}`} />
+                          <span className={`text-sm ${comp.is_mandatory ? 'font-medium' : ''}`}>
+                            {comp.name}
+                            {comp.is_mandatory && <span className="text-[10px] ml-1 text-amber-500">(Required)</span>}
+                          </span>
+                        </div>
+                        {!comp.is_balance && comp.enabled && (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              value={comp.value}
+                              onChange={(e) => updateComponentValue(comp.key, e.target.value)}
+                              className={`w-20 h-7 text-xs text-right ${isDark ? 'bg-zinc-700 border-zinc-600' : ''}`}
+                              disabled={comp.is_mandatory && comp.key === 'basic'}
+                            />
+                            <span className={`text-[10px] w-16 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                              {getCalcTypeLabel(comp.calc_type)}
+                            </span>
+                          </div>
+                        )}
+                        {comp.is_balance && (
+                          <span className={`text-[10px] ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Auto-calculated</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!showComponentSettings && (
+                <div className="flex flex-wrap gap-1.5">
+                  {componentConfig.filter(c => c.enabled).map(comp => (
+                    <span 
+                      key={comp.key}
+                      className={`text-[10px] px-2 py-0.5 rounded-full ${
+                        comp.is_deduction 
+                          ? 'bg-red-500/10 text-red-500' 
+                          : comp.is_deferred 
+                            ? 'bg-amber-500/10 text-amber-500' 
+                            : 'bg-emerald-500/10 text-emerald-500'
+                      }`}
+                    >
+                      {comp.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Retention Bonus (Optional) */}
             <div className={`p-4 rounded-md border-2 border-dashed ${isDark ? 'border-zinc-700' : 'border-zinc-300'}`}>
               <Label className={`${isDark ? 'text-zinc-300' : 'text-zinc-700'} flex items-center gap-2`}>
@@ -372,29 +527,25 @@ const CTCDesigner = () => {
                 Retention Bonus (Optional - Part of CTC)
               </Label>
               <div className="grid grid-cols-2 gap-3 mt-2">
-                <div>
-                  <Input
-                    type="number"
-                    value={retentionBonus}
-                    onChange={(e) => setRetentionBonus(e.target.value)}
-                    placeholder="Amount (₹)"
-                    className={isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-100' : ''}
-                    data-testid="ctc-retention-input"
-                  />
-                </div>
-                <div>
-                  <select
-                    value={vestingMonths}
-                    onChange={(e) => setVestingMonths(parseInt(e.target.value))}
-                    className={`w-full h-10 px-3 rounded-md border text-sm ${
-                      isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-100' : 'bg-white border-zinc-300'
-                    }`}
-                  >
-                    <option value={12}>Vesting: 12 months</option>
-                    <option value={18}>Vesting: 18 months</option>
-                    <option value={24}>Vesting: 24 months</option>
-                  </select>
-                </div>
+                <Input
+                  type="number"
+                  value={retentionBonus}
+                  onChange={(e) => setRetentionBonus(e.target.value)}
+                  placeholder="Amount (₹)"
+                  className={isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-100' : ''}
+                  data-testid="ctc-retention-input"
+                />
+                <select
+                  value={vestingMonths}
+                  onChange={(e) => setVestingMonths(parseInt(e.target.value))}
+                  className={`w-full h-10 px-3 rounded-md border text-sm ${
+                    isDark ? 'bg-zinc-800 border-zinc-700 text-zinc-100' : 'bg-white border-zinc-300'
+                  }`}
+                >
+                  <option value={12}>Vesting: 12 months</option>
+                  <option value={18}>Vesting: 18 months</option>
+                  <option value={24}>Vesting: 24 months</option>
+                </select>
               </div>
               <p className={`text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 Paid as lump sum after completion of vesting period
@@ -412,7 +563,7 @@ const CTCDesigner = () => {
                 data-testid="ctc-effective-month"
               />
               <p className={`text-xs mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                Salary will be released on 10th of next month
+                Payroll cycle: 10th to 10th. Salary released on 10th of next month.
               </p>
             </div>
 
@@ -476,9 +627,12 @@ const CTCDesigner = () => {
                     <p className="text-xl font-bold text-emerald-600">{formatCurrency(preview.summary.gross_monthly)}</p>
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-emerald-300/30">
+                <div className="mt-3 pt-3 border-t border-emerald-300/30 grid grid-cols-2 gap-2">
                   <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                    Approx. In-Hand (after PF): <span className="font-semibold">{formatCurrency(preview.summary.in_hand_approx_monthly)}/month</span>
+                    Deductions: <span className="font-semibold text-red-500">{formatCurrency(preview.summary.total_deductions_monthly)}/mo</span>
+                  </p>
+                  <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    In-Hand: <span className="font-semibold text-emerald-600">{formatCurrency(preview.summary.in_hand_approx_monthly)}/mo</span>
                   </p>
                 </div>
               </div>
@@ -498,21 +652,22 @@ const CTCDesigner = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.values(preview.components).map((comp, idx) => {
+                      {Object.values(preview.components).filter(c => c.enabled !== false).map((comp) => {
                         const Icon = componentIcons[comp.key] || IndianRupee;
                         return (
                           <tr key={comp.key} className={`border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`}>
                             <td className="px-4 py-2 flex items-center gap-2">
-                              <Icon className={`w-4 h-4 ${comp.is_optional ? 'text-purple-500' : 'text-zinc-400'}`} />
-                              <span className={comp.is_optional ? 'text-purple-500' : ''}>{comp.name}</span>
-                              {comp.is_optional && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">Optional</span>
-                              )}
+                              <Icon className={`w-4 h-4 ${comp.is_deduction ? 'text-red-500' : comp.is_deferred ? 'text-amber-500' : 'text-zinc-400'}`} />
+                              <span className={comp.is_optional ? 'text-purple-500' : comp.is_deduction ? 'text-red-500' : ''}>{comp.name}</span>
+                              {comp.is_deduction && <span className="text-[10px] px-1 py-0.5 rounded bg-red-500/10 text-red-500">Deduction</span>}
+                              {comp.is_deferred && <span className="text-[10px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-500">Deferred</span>}
                             </td>
-                            <td className="px-4 py-2 text-right font-mono">
-                              {comp.monthly > 0 ? formatCurrency(comp.monthly) : '-'}
+                            <td className={`px-4 py-2 text-right font-mono ${comp.is_deduction ? 'text-red-500' : ''}`}>
+                              {comp.monthly > 0 ? (comp.is_deduction ? '-' : '') + formatCurrency(comp.monthly) : '-'}
                             </td>
-                            <td className="px-4 py-2 text-right font-mono">{formatCurrency(comp.annual)}</td>
+                            <td className={`px-4 py-2 text-right font-mono ${comp.is_deduction ? 'text-red-500' : ''}`}>
+                              {(comp.is_deduction ? '-' : '') + formatCurrency(comp.annual)}
+                            </td>
                           </tr>
                         );
                       })}
@@ -530,11 +685,11 @@ const CTCDesigner = () => {
                 </div>
               </div>
 
-              {/* Notes */}
+              {/* Note */}
               <div className={`p-3 rounded-md ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
                 <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                  <strong>Note:</strong> PF (Employee + Employer), Gratuity, and Retention Bonus are deferred components. 
-                  Actual in-hand salary may vary based on tax deductions and other adjustments.
+                  <strong>Note:</strong> Deferred components (PF Employer, Gratuity, Retention Bonus) are part of CTC but not in monthly in-hand. 
+                  Deductions (PF Employee, ESIC, PT) are subtracted from gross.
                 </p>
               </div>
             </div>
@@ -542,7 +697,7 @@ const CTCDesigner = () => {
             <div className={`flex flex-col items-center justify-center py-12 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
               <Calculator className="w-12 h-12 mb-3 opacity-30" />
               <p>Enter CTC details and click "Preview Breakdown"</p>
-              <p className="text-xs mt-1">to see the component-wise split</p>
+              <p className="text-xs mt-1">Configure components using the toggle panel</p>
             </div>
           )}
         </div>
@@ -588,10 +743,13 @@ const CTCDesigner = () => {
                   </div>
                   <ChevronRight className="w-5 h-5 text-zinc-400" />
                 </div>
-                <div className={`mt-2 pt-2 border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                <div className={`mt-2 pt-2 border-t flex items-center justify-between ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
                   <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                     Submitted by {approval.created_by_name} • {new Date(approval.created_at).toLocaleDateString()}
                   </p>
+                  <div className="flex gap-1">
+                    {Object.values(approval.components || {}).filter(c => c.enabled !== false).length} components
+                  </div>
                 </div>
               </div>
             ))}
@@ -601,7 +759,7 @@ const CTCDesigner = () => {
 
       {/* Approval Dialog */}
       <Dialog open={approvalDialog} onOpenChange={setApprovalDialog}>
-        <DialogContent className="max-w-2xl" data-testid="ctc-approval-dialog">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="ctc-approval-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-emerald-600" />
@@ -664,11 +822,19 @@ const CTCDesigner = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.values(selectedApproval.components || {}).map(comp => (
+                    {Object.values(selectedApproval.components || {}).filter(c => c.enabled !== false).map(comp => (
                       <tr key={comp.key} className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
-                        <td className="px-4 py-2">{comp.name}</td>
-                        <td className="px-4 py-2 text-right font-mono">{comp.monthly > 0 ? formatCurrency(comp.monthly) : '-'}</td>
-                        <td className="px-4 py-2 text-right font-mono">{formatCurrency(comp.annual)}</td>
+                        <td className="px-4 py-2">
+                          {comp.name}
+                          {comp.is_deduction && <span className="ml-1 text-[10px] text-red-500">(Deduction)</span>}
+                          {comp.is_deferred && <span className="ml-1 text-[10px] text-amber-500">(Deferred)</span>}
+                        </td>
+                        <td className={`px-4 py-2 text-right font-mono ${comp.is_deduction ? 'text-red-500' : ''}`}>
+                          {comp.monthly > 0 ? formatCurrency(comp.monthly) : '-'}
+                        </td>
+                        <td className={`px-4 py-2 text-right font-mono ${comp.is_deduction ? 'text-red-500' : ''}`}>
+                          {formatCurrency(comp.annual)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
