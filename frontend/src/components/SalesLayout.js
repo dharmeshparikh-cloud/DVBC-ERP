@@ -23,6 +23,7 @@ const SalesLayout = () => {
   const [expanded, setExpanded] = useState({
     funnel: true, other: true, workspace: true
   });
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
