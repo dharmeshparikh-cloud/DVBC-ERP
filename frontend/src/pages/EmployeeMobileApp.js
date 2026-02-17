@@ -872,6 +872,7 @@ const EmployeeMobileApp = () => {
       </div>
     </div>
   );
+  };
 
   return (
     <div className="min-h-screen bg-zinc-100" style={{ maxWidth: '430px', margin: '0 auto' }}>
