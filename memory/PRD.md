@@ -286,6 +286,44 @@ A comprehensive travel reimbursement feature for employees:
   - [x] Security audit logging on password changes
   - [x] Full test coverage: 7 backend tests, UI verification across all portals
 
+### Session 10 (Feb 17, 2026) - CTC Structure & Approval Workflow
+- [x] **CTC Structure Designer**
+  - [x] New page at `/ctc-designer` for HR/Admin to design employee CTC
+  - [x] Standard Indian CTC components with automatic calculation:
+    - Basic Salary (40% of CTC)
+    - HRA (50% of Basic)
+    - DA (10% of Basic)
+    - Conveyance Allowance (₹1,600/month fixed)
+    - Medical Allowance (₹1,250/month fixed)
+    - Special Allowance (balance/adjusting figure)
+    - PF Employer Contribution (12% of Basic)
+    - Gratuity (4.81% of Basic)
+    - Optional Retention Bonus (paid after vesting period, default 12 months)
+  - [x] Real-time CTC breakdown preview with summary
+  - [x] Employee selection with current salary display
+  - [x] Effective month selector (payroll cycle: 10th to 10th)
+  - [x] Stats dashboard showing pending/approved/rejected counts (Admin only)
+- [x] **Admin Approval Workflow**
+  - [x] HR submits CTC structure → Creates pending approval
+  - [x] Admin sees pending approvals in dedicated section
+  - [x] Approval dialog shows full breakdown comparison
+  - [x] Admin can approve (activates CTC, updates employee salary) or reject (requires reason)
+  - [x] Notifications sent to Admin on submission, HR on approval/rejection
+  - [x] CTC history tracking with version control
+- [x] **Backend APIs**
+  - [x] `POST /api/ctc/calculate-preview` - Preview CTC breakdown
+  - [x] `POST /api/ctc/design` - Submit CTC for approval
+  - [x] `GET /api/ctc/pending-approvals` - Admin pending list
+  - [x] `GET /api/ctc/stats` - Admin statistics
+  - [x] `POST /api/ctc/{id}/approve` - Admin approve
+  - [x] `POST /api/ctc/{id}/reject` - Admin reject
+  - [x] `GET /api/ctc/employee/{id}` - Get employee CTC
+  - [x] `GET /api/ctc/employee/{id}/history` - CTC change history
+  - [x] `DELETE /api/ctc/{id}/cancel` - Cancel pending request
+- [x] **Navigation Updates**
+  - [x] "CTC Designer" link added to HR section in main ERP sidebar
+  - [x] "CTC Designer" link added to HR Portal Operations section
+
 ## Test Accounts (Fresh Database)
 
 | Portal | Role | Email | Password |
