@@ -10714,6 +10714,68 @@ async def get_attendance_analytics(
     }
 
 
+@api_router.get("/attendance/mobile-stats")
+async def get_mobile_attendance_stats(current_user: User = Depends(get_current_user)):
+    """Get mobile app usage statistics for attendance"""
+    # Only HR and Admin can access stats
+    if current_user.role not in ['admin', 'hr_manager', 'hr_executive']:
+        raise HTTPException(status_code=403, detail="Only HR and Admin can access mobile stats")
+    
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Get today's attendance records
+    today_records = await db.attendance.find(
+        {"date": today},
+        {"_id": 0, "selfie": 1, "geo_location": 1, "check_in_time": 1, "approval_status": 1}
+    ).to_list(500)
+    
+    # Count mobile vs desktop check-ins (mobile has selfie)
+    today_mobile_checkins = sum(1 for r in today_records if r.get("selfie"))
+    today_desktop_checkins = sum(1 for r in today_records if not r.get("selfie") and r.get("check_in_time"))
+    
+    # Count pending approvals
+    pending_approvals = await db.attendance.count_documents({
+        "approval_status": "pending_approval"
+    })
+    
+    # Get total employees who have used mobile app (ever had selfie check-in)
+    mobile_users_pipeline = [
+        {"$match": {"selfie": {"$exists": True, "$ne": None}}},
+        {"$group": {"_id": "$employee_id"}},
+        {"$count": "total"}
+    ]
+    mobile_users_result = await db.attendance.aggregate(mobile_users_pipeline).to_list(1)
+    total_mobile_users = mobile_users_result[0]["total"] if mobile_users_result else 0
+    
+    # Get last 7 days trend
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+    weekly_records = await db.attendance.find(
+        {"date": {"$gte": seven_days_ago}},
+        {"_id": 0, "date": 1, "selfie": 1, "check_in_time": 1}
+    ).to_list(5000)
+    
+    # Group by date
+    daily_trend = {}
+    for r in weekly_records:
+        date = r.get("date", "")
+        if date not in daily_trend:
+            daily_trend[date] = {"date": date, "mobile": 0, "desktop": 0}
+        if r.get("selfie"):
+            daily_trend[date]["mobile"] += 1
+        elif r.get("check_in_time"):
+            daily_trend[date]["desktop"] += 1
+    
+    trend = sorted(daily_trend.values(), key=lambda x: x["date"])
+    
+    return {
+        "today_mobile_checkins": today_mobile_checkins,
+        "today_desktop_checkins": today_desktop_checkins,
+        "total_mobile_users": total_mobile_users,
+        "pending_approvals": pending_approvals,
+        "weekly_trend": trend
+    }
+
+
 # ==================== PAYROLL MODULE ====================
 
 @api_router.get("/payroll/salary-components")
