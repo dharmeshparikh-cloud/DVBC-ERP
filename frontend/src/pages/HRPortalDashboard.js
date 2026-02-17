@@ -73,30 +73,30 @@ const HRPortalDashboard = () => {
   const payroll = stats?.payroll || {};
 
   return (
-    <div className="space-y-6" data-testid="hr-portal-dashboard">
+    <div className="space-y-4 md:space-y-6" data-testid="hr-portal-dashboard">
       {/* Welcome Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             Welcome, {user?.full_name?.split(' ')[0]}!
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400">
             {isHRManager ? 'HR Manager Dashboard' : 'HR Executive Dashboard'}
           </p>
         </div>
-        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 w-fit text-xs md:text-sm">
           {attendance.attendance_rate || 0}% Attendance Today
         </Badge>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Key Metrics - 2 cols on mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="border-zinc-200 dark:border-zinc-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Employees</p>
-                <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-1">
+          <CardContent className="p-3 md:pt-6 md:px-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm text-zinc-500 dark:text-zinc-400">Total Employees</p>
+                <p className="text-xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-0.5">
                   {employees.total || 0}
                 </p>
                 {employees.new_this_month > 0 && (
