@@ -38,6 +38,25 @@ const EmployeeMobileApp = () => {
   const [justification, setJustification] = useState('');
   const [locationValidation, setLocationValidation] = useState(null);
 
+  // Expense form states
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    description: '',
+    amount: '',
+    category: 'travel',
+    expense_date: new Date().toISOString().split('T')[0],
+    remarks: ''
+  });
+
+  // Leave form states
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({
+    leave_type: 'casual',
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    reason: ''
+  });
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
