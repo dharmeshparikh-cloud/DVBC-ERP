@@ -550,34 +550,34 @@ const AdminDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800/50 border border-zinc-700' : 'bg-zinc-100'}`}>
-        <h3 className={`text-sm font-medium mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Quick Actions</h3>
-        <div className="flex gap-3 flex-wrap">
+      <div className={`p-3 md:p-4 rounded-lg ${isDark ? 'bg-zinc-800/50 border border-zinc-700' : 'bg-zinc-100'}`}>
+        <h3 className={`text-xs md:text-sm font-medium mb-2 md:mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Quick Actions</h3>
+        <div className="flex gap-2 md:gap-3 flex-wrap">
           <Link to="/leads">
-            <Button variant="outline" size="sm" className={`gap-2 ${isDark ? 'border-zinc-600 text-zinc-300 hover:bg-zinc-700' : ''}`}>
-              <Users className="w-4 h-4" /> View Leads
+            <Button variant="outline" size="sm" className={`gap-1 md:gap-2 text-xs md:text-sm ${isDark ? 'border-zinc-600 text-zinc-300 hover:bg-zinc-700' : ''}`}>
+              <Users className="w-3 h-3 md:w-4 md:h-4" /> View Leads
             </Button>
           </Link>
           <Link to="/projects">
-            <Button variant="outline" size="sm" className={`gap-2 ${isDark ? 'border-zinc-600 text-zinc-300 hover:bg-zinc-700' : ''}`}>
-              <Briefcase className="w-4 h-4" /> View Projects
+            <Button variant="outline" size="sm" className={`gap-1 md:gap-2 text-xs md:text-sm ${isDark ? 'border-zinc-600 text-zinc-300 hover:bg-zinc-700' : ''}`}>
+              <Briefcase className="w-3 h-3 md:w-4 md:h-4" /> View Projects
             </Button>
           </Link>
           <Link to="/approvals">
-            <Button variant="outline" size="sm" className={`gap-2 ${isDark ? 'border-zinc-600 text-zinc-300 hover:bg-zinc-700' : ''}`}>
-              <Clock className="w-4 h-4" /> Pending Approvals
+            <Button variant="outline" size="sm" className={`gap-1 md:gap-2 text-xs md:text-sm ${isDark ? 'border-zinc-600 text-zinc-300 hover:bg-zinc-700' : ''}`}>
+              <Clock className="w-3 h-3 md:w-4 md:h-4" /> Approvals
             </Button>
           </Link>
           <Link to="/reports">
-            <Button variant="outline" size="sm" className={`gap-2 ${isDark ? 'border-zinc-600 text-zinc-300 hover:bg-zinc-700' : ''}`}>
-              <BarChart3 className="w-4 h-4" /> All Reports
+            <Button variant="outline" size="sm" className={`gap-1 md:gap-2 text-xs md:text-sm ${isDark ? 'border-zinc-600 text-zinc-300 hover:bg-zinc-700' : ''}`}>
+              <BarChart3 className="w-3 h-3 md:w-4 md:h-4" /> Reports
             </Button>
           </Link>
         </div>
       </div>
 
       {/* Last Updated */}
-      <p className={`text-xs text-center ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
+      <p className={`text-[10px] md:text-xs text-center ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
         Last updated: {lastUpdated.toLocaleTimeString()}
       </p>
     </div>
