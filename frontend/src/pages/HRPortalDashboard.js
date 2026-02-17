@@ -100,84 +100,84 @@ const HRPortalDashboard = () => {
                   {employees.total || 0}
                 </p>
                 {employees.new_this_month > 0 && (
-                  <p className="text-xs text-emerald-600 mt-1">
+                  <p className="text-[10px] md:text-xs text-emerald-600 mt-0.5">
                     +{employees.new_this_month} this month
                   </p>
                 )}
               </div>
-              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-zinc-200 dark:border-zinc-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Present Today</p>
-                <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-1">
+          <CardContent className="p-3 md:pt-6 md:px-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm text-zinc-500 dark:text-zinc-400">Present Today</p>
+                <p className="text-xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-0.5">
                   {attendance.present_today || 0}
                 </p>
-                <p className="text-xs text-zinc-500 mt-1">
+                <p className="text-[10px] md:text-xs text-zinc-500 mt-0.5">
                   {attendance.wfh_today || 0} WFH
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+              <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-4 h-4 md:w-6 md:h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-zinc-200 dark:border-zinc-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Pending Leaves</p>
-                <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-1">
+          <CardContent className="p-3 md:pt-6 md:px-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm text-zinc-500 dark:text-zinc-400">Pending Leaves</p>
+                <p className="text-xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-0.5">
                   {leaves.pending_requests || 0}
                 </p>
-                <p className="text-xs text-amber-600 mt-1">
+                <p className="text-[10px] md:text-xs text-amber-600 mt-0.5">
                   Requires approval
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-4 h-4 md:w-6 md:h-6 text-amber-600 dark:text-amber-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-zinc-200 dark:border-zinc-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Payroll Pending</p>
-                <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-1">
+          <CardContent className="p-3 md:pt-6 md:px-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-sm text-zinc-500 dark:text-zinc-400">Payroll Pending</p>
+                <p className="text-xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-0.5">
                   {payroll.pending || 0}
                 </p>
-                <p className="text-xs text-zinc-500 mt-1">
+                <p className="text-[10px] md:text-xs text-zinc-500 mt-0.5">
                   {payroll.processed_this_month || 0} processed
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <Wallet className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                <Wallet className="w-4 h-4 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      {/* Main Content Grid - Stack on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {/* Staffing Requests - HR Manager Only */}
         {isHRManager && (
-          <Card className="col-span-2 border-zinc-200 dark:border-zinc-800">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-emerald-600" />
+          <Card className="md:col-span-2 border-zinc-200 dark:border-zinc-800">
+            <CardHeader className="flex flex-row items-center justify-between px-4 md:px-6 py-3 md:py-4">
+              <CardTitle className="text-sm md:text-base flex items-center gap-2">
+                <Briefcase className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
                 Staffing Requests
               </CardTitle>
               <Link to="/hr/staffing-requests">
