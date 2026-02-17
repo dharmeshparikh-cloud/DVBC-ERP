@@ -1505,69 +1505,112 @@ const EmployeeMobileApp = () => {
       {/* Travel Reimbursement Modal - shows after check-out if applicable */}
       {showTravelReimbursementModal && lastTravelReimbursement && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowTravelReimbursementModal(false)}>
-          <div className="w-full max-w-sm bg-white rounded-3xl p-6 animate-slide-up" onClick={(e) => e.stopPropagation()}>
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <Navigation className="w-8 h-8 text-emerald-600" />
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-5">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Car className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-900">Travel Reimbursement</h2>
-              <p className="text-sm text-zinc-500 mt-1">You're eligible for travel claim!</p>
+              <h2 className="text-xl font-bold text-zinc-900">Claim Travel Reimbursement</h2>
+              <p className="text-sm text-zinc-500 mt-1">You traveled to client site today!</p>
             </div>
             
-            <div className="space-y-3 mb-6">
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-emerald-600">₹{lastTravelReimbursement.calculated_amount?.toLocaleString()}</p>
-                  <p className="text-xs text-emerald-700 mt-1">Estimated Reimbursement</p>
+            {/* Route Summary */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-emerald-600 font-medium">FROM</p>
+                  <p className="text-sm font-semibold text-zinc-900 truncate">{lastTravelReimbursement.from_location || 'Office'}</p>
                 </div>
               </div>
-              
-              <div className="p-3 rounded-xl bg-zinc-50 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">Distance</span>
-                  <span className="font-medium">{lastTravelReimbursement.distance_km} km</span>
+              <div className="w-0.5 h-6 bg-emerald-300 ml-4 mb-3" />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-white" />
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">Rate</span>
-                  <span className="font-medium">₹{lastTravelReimbursement.rate_per_km}/km ({lastTravelReimbursement.vehicle_type})</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">Trip Type</span>
-                  <span className="font-medium">{lastTravelReimbursement.is_round_trip ? 'Round Trip' : 'One Way'}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">From</span>
-                  <span className="font-medium text-right flex-1 ml-2 truncate">{lastTravelReimbursement.from_location}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">To</span>
-                  <span className="font-medium text-right flex-1 ml-2 truncate">{lastTravelReimbursement.to_location}</span>
+                <div className="flex-1">
+                  <p className="text-xs text-teal-600 font-medium">TO</p>
+                  <p className="text-sm font-semibold text-zinc-900 truncate">{lastTravelReimbursement.to_location || 'Client Site'}</p>
                 </div>
               </div>
             </div>
+
+            {/* Distance & Trip Info */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-zinc-50 text-center">
+                <p className="text-2xl font-bold text-zinc-900">{lastTravelReimbursement.distance_km}</p>
+                <p className="text-xs text-zinc-500">km (Round Trip)</p>
+              </div>
+              <div className="p-3 rounded-xl bg-zinc-50 text-center">
+                <p className="text-2xl font-bold text-emerald-600">
+                  ₹{(lastTravelReimbursement.distance_km * (travelClaimVehicle === 'car' ? 7 : 3)).toFixed(0)}
+                </p>
+                <p className="text-xs text-zinc-500">Estimated Amount</p>
+              </div>
+            </div>
+
+            {/* Vehicle Selection */}
+            <div className="mb-4">
+              <p className="text-sm font-medium text-zinc-700 mb-2">Select Your Vehicle</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setTravelClaimVehicle('car')}
+                  className={`p-3 rounded-xl border-2 flex items-center gap-3 transition ${
+                    travelClaimVehicle === 'car' 
+                      ? 'border-emerald-500 bg-emerald-50' 
+                      : 'border-zinc-200 hover:border-zinc-300'
+                  }`}
+                >
+                  <Car className={`w-6 h-6 ${travelClaimVehicle === 'car' ? 'text-emerald-600' : 'text-zinc-400'}`} />
+                  <div className="text-left">
+                    <p className={`text-sm font-medium ${travelClaimVehicle === 'car' ? 'text-emerald-700' : 'text-zinc-700'}`}>Car</p>
+                    <p className="text-xs text-zinc-500">₹7/km</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setTravelClaimVehicle('two_wheeler')}
+                  className={`p-3 rounded-xl border-2 flex items-center gap-3 transition ${
+                    travelClaimVehicle === 'two_wheeler' 
+                      ? 'border-emerald-500 bg-emerald-50' 
+                      : 'border-zinc-200 hover:border-zinc-300'
+                  }`}
+                >
+                  <Bike className={`w-6 h-6 ${travelClaimVehicle === 'two_wheeler' ? 'text-emerald-600' : 'text-zinc-400'}`} />
+                  <div className="text-left">
+                    <p className={`text-sm font-medium ${travelClaimVehicle === 'two_wheeler' ? 'text-emerald-700' : 'text-zinc-700'}`}>Bike</p>
+                    <p className="text-xs text-zinc-500">₹3/km</p>
+                  </div>
+                </button>
+              </div>
+            </div>
             
-            <p className="text-xs text-center text-zinc-500 mb-4">
-              Claim this reimbursement through the Expense section
-            </p>
-            
-            <div className="flex gap-3">
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button 
+                onClick={handleSubmitAutoTravelClaim}
+                disabled={submittingTravelClaim}
+                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg disabled:opacity-70"
+                data-testid="submit-auto-travel-claim"
+              >
+                {submittingTravelClaim ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</>
+                ) : (
+                  <><Send className="w-5 h-5" /> Submit Travel Claim</>
+                )}
+              </button>
               <button 
                 onClick={() => setShowTravelReimbursementModal(false)}
-                className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-2xl font-semibold"
+                className="w-full py-3 bg-zinc-100 text-zinc-600 rounded-2xl font-medium"
               >
-                Close
-              </button>
-              <button 
-                onClick={() => {
-                  setShowTravelReimbursementModal(false);
-                  setActiveTab('expense');
-                }}
-                className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2"
-              >
-                <Receipt className="w-5 h-5" />
-                Claim Now
+                Skip for Now
               </button>
             </div>
+            
+            <p className="text-xs text-center text-zinc-400 mt-4">
+              Claim will be sent to HR for approval
+            </p>
           </div>
         </div>
       )}
