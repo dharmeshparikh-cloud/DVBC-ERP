@@ -138,24 +138,52 @@ const HRLayout = () => {
     { name: 'My Expenses', href: '/hr/my-expenses', icon: Receipt },
   ];
 
+  // Mobile bottom nav items
+  const mobileNavItems = [
+    { name: 'Home', href: '/hr', icon: Home },
+    { name: 'Attendance', href: '/hr/my-attendance', icon: Clock },
+    { name: 'Leaves', href: '/hr/my-leaves', icon: Calendar },
+    { name: 'Profile', href: '/hr/profile', icon: UserCircle },
+  ];
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex" data-testid="hr-layout">
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-56' : 'w-16'} bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-200`}>
+      <aside className={`
+        ${isMobile 
+          ? `fixed left-0 top-0 h-full z-50 w-72 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+          : 'w-56 h-screen sticky top-0'
+        } 
+        bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-800 flex flex-col
+      `}>
         {/* Logo */}
-        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <Link to="/hr" className="flex items-center gap-2">
             <img 
               src={LOGO_URL} 
               alt="Logo" 
-              className={`h-8 object-contain ${theme === 'dark' ? 'invert' : ''}`}
+              className={`h-8 object-contain ${isDark ? 'invert' : ''}`}
             />
-            {sidebarOpen && (
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-emerald-600">HR PORTAL</span>
-              </div>
-            )}
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-emerald-600">HR PORTAL</span>
+            </div>
           </Link>
+          {isMobile && (
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className={`p-2 rounded-lg ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-zinc-100 text-zinc-600'}`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation */}
