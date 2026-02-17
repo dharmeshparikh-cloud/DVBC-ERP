@@ -10225,7 +10225,7 @@ async def mark_expense_reimbursed(
             "status": "reimbursed",
             "reimbursed_at": datetime.now(timezone.utc).isoformat(),
             "reimbursed_by": current_user.id,
-            "reimbursed_by_name": current_user.name,
+            "reimbursed_by_name": current_user.email,
             "reimburse_via_payroll": reimburse_via_payroll,
             "payroll_month": payroll_month if reimburse_via_payroll else None,
             "updated_at": datetime.now(timezone.utc).isoformat()
