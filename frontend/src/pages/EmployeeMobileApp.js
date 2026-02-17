@@ -240,6 +240,12 @@ const EmployeeMobileApp = () => {
       return;
     }
     
+    // Validate client selection for onsite
+    if (selectedWorkLocation === 'onsite' && !selectedClient) {
+      toast.error('Please select a client for On-Site check-in');
+      return;
+    }
+    
     setLoading(true);
     try {
       const payload = {
@@ -253,6 +259,14 @@ const EmployeeMobileApp = () => {
           address: location.address
         }
       };
+      
+      // Add client info for onsite
+      if (selectedWorkLocation === 'onsite' && selectedClient) {
+        payload.client_id = selectedClient.id;
+        payload.client_name = selectedClient.client_name;
+        payload.project_id = selectedClient.project_id || '';
+        payload.project_name = selectedClient.project_name || '';
+      }
       
       if (justification) {
         payload.justification = justification;
@@ -270,6 +284,7 @@ const EmployeeMobileApp = () => {
       setSelfieData(null);
       setJustification('');
       setShowJustification(false);
+      setSelectedClient(null);
       fetchData();
     } catch (error) {
       const detail = error.response?.data?.detail || 'Check-in failed';
