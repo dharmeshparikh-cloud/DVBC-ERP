@@ -9,8 +9,9 @@ import { SalesNavigationProvider } from '../context/SalesNavigationContext';
 import {
   LayoutDashboard, Users, LogOut, DollarSign, FileText, FileCheck, 
   Building2, Calendar, BarChart3, ChevronDown, Send, Clock,
-  Umbrella, Receipt, CreditCard, Award, Sun, Moon
+  Umbrella, Receipt, CreditCard, Award, Sun, Moon, Key
 } from 'lucide-react';
+import ChangePasswordDialog from './ChangePasswordDialog';
 
 const SalesLayout = () => {
   const { user, logout } = useContext(AuthContext);

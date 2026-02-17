@@ -7,9 +7,10 @@ import {
   LayoutDashboard, Users, UsersRound, GitBranch, CalendarDays, 
   Clock, Wallet, Receipt, BarChart3, FileText, ChevronDown, ChevronRight,
   LogOut, Menu, X, Sun, Moon, UserPlus, ClipboardCheck, Briefcase,
-  AlertCircle, Bell
+  AlertCircle, Bell, Key
 } from 'lucide-react';
 import { Button } from './ui/button';
+import ChangePasswordDialog from './ChangePasswordDialog';
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png";
 
