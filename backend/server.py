@@ -5753,9 +5753,10 @@ async def unassign_consultant(
     consultant_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Remove consultant from project"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(status_code=403, detail="Only admins and managers can unassign consultants")
+    """Remove consultant from project - Only PM, Principal Consultant, and Admin can unassign"""
+    allowed_roles = [UserRole.ADMIN, UserRole.MANAGER, UserRole.PROJECT_MANAGER, UserRole.PRINCIPAL_CONSULTANT]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Only Admin, Project Manager, or Principal Consultant can unassign consultants")
     
     result = await db.consultant_assignments.update_one(
         {"consultant_id": consultant_id, "project_id": project_id, "is_active": True},
