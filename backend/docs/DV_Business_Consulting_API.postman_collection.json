@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://hr-erp-unified.preview.emergentagent.com",
+      "value": "https://smart-attendance-141.preview.emergentagent.com",
       "type": "string"
     },
     {
