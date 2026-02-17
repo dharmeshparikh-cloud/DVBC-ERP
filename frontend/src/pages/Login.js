@@ -130,9 +130,9 @@ const Login = () => {
             {/* Email/Password Login */}
             <form onSubmit={handlePasswordLogin} className="space-y-4" data-testid="password-login-form">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-zinc-700">Email Address</Label>
+                <Label htmlFor="email" className="text-sm font-medium text-black">Email Address</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
                   <Input
                     id="email"
                     data-testid="email-input"
@@ -141,25 +141,25 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="pl-11 h-11 rounded-lg border-zinc-300 bg-white focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                    className="pl-11 h-11 rounded-lg border-black/20 bg-white focus:ring-2 focus:ring-black focus:border-black"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium text-zinc-700">Password</Label>
+                  <Label htmlFor="password" className="text-sm font-medium text-black">Password</Label>
                   <button
                     type="button"
                     data-testid="forgot-password-link"
                     onClick={() => toast.info('Please contact your administrator for password reset.')}
-                    className="text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
+                    className="text-xs text-black/50 hover:text-black transition-colors"
                   >
                     Forgot password?
                   </button>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
                   <Input
                     id="password"
                     data-testid="password-input"
@@ -168,7 +168,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="pl-11 h-11 rounded-lg border-zinc-300 bg-white focus:ring-2 focus:ring-zinc-800 focus:border-zinc-800"
+                    className="pl-11 h-11 rounded-lg border-black/20 bg-white focus:ring-2 focus:ring-black focus:border-black"
                   />
                 </div>
               </div>
@@ -176,7 +176,7 @@ const Login = () => {
               <Button
                 type="submit"
                 data-testid="submit-button"
-                className="w-full bg-zinc-900 text-white hover:bg-zinc-800 rounded-lg h-11 font-medium shadow-sm"
+                className="w-full bg-black text-white hover:bg-black/90 rounded-lg h-11 font-medium shadow-sm"
                 disabled={loading}
               >
                 {loading ? 'Signing in...' : 'Sign In'}
@@ -186,10 +186,10 @@ const Login = () => {
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-zinc-200" />
+                <span className="w-full border-t border-black/10" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-zinc-50 px-3 text-zinc-400">or continue with</span>
+                <span className="bg-white px-3 text-black/40">or continue with</span>
               </div>
             </div>
 
@@ -199,14 +199,14 @@ const Login = () => {
               data-testid="google-login-btn"
               onClick={handleGoogleLogin}
               variant="outline"
-              className="w-full border-zinc-300 text-zinc-700 hover:bg-white rounded-lg h-11 font-medium"
+              className="w-full border-black/20 text-black hover:bg-black/5 rounded-lg h-11 font-medium"
             >
               <GoogleIcon />
               Sign in with Google
             </Button>
 
-            <p className="text-center text-[11px] text-zinc-400 leading-relaxed">
-              Google login available for <span className="font-medium text-zinc-500">@dvconsulting.co.in</span> accounts.
+            <p className="text-center text-[11px] text-black/40 leading-relaxed">
+              Google login available for <span className="font-medium text-black/60">@dvconsulting.co.in</span> accounts.
               <br />Other users please use email & password provided by your admin.
             </p>
           </CardContent>
@@ -214,9 +214,9 @@ const Login = () => {
       </div>
 
       {/* Mobile Portal Links - visible on small screens */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 flex justify-center gap-6">
-        <a href="/hr/login" className="text-sm text-emerald-600 font-medium">HR Portal</a>
-        <a href="/sales/login" className="text-sm text-orange-600 font-medium">Sales Portal</a>
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 p-4 flex justify-center gap-6">
+        <a href="/hr/login" className="text-sm text-black font-medium">HR Portal</a>
+        <a href="/sales/login" className="text-sm text-black font-medium">Sales Portal</a>
       </div>
     </div>
   );
