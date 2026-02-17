@@ -212,7 +212,7 @@ A comprehensive travel reimbursement feature for employees:
 - **Distance Calculation**: Uses Haversine formula for accurate distance calculation
 - **Per-km Rates**: ₹7/km for car, ₹3/km for two-wheeler
 - **Round Trip Support**: Auto-doubles distance for return journeys
-- **Location Search**: OpenStreetMap/Nominatim integration (free, no API key)
+- **Location Search**: Google Geocoding API integration for accurate location search (with $200/month free credits)
 - **Mobile App Integration**: Dedicated Travel tab for Sales team in `/mobile`
 - **ERP Management**: HR/Admin can approve/reject/convert travel claims
 - **Payroll Integration**: Approved claims can be converted to expenses
