@@ -668,8 +668,18 @@ const EmployeeMobileApp = () => {
   );
 
   // Check-in Modal with Selfie
-  const CheckInModal = () => (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end">
+  const CheckInModal = () => {
+    const closeModal = () => {
+      setShowCheckInModal(false);
+      stopCamera();
+      setSelfieData(null);
+      setJustification('');
+      setShowJustification(false);
+      setLocation(null);
+    };
+
+    return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={closeModal}>
       <div className="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slide-up">
         <div className="sticky top-0 bg-white pt-4 pb-2 px-6 border-b border-zinc-100">
           <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
