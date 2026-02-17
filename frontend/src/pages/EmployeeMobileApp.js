@@ -68,6 +68,10 @@ const EmployeeMobileApp = () => {
       setLeaveBalance(leaveRes.data);
       setExpenses(expRes.data?.expenses || []);
       
+      // Check if consulting employee (can use client sites)
+      const dept = attRes.data?.employee?.department?.toLowerCase() || '';
+      setIsConsultingEmployee(dept.includes('consulting') || dept.includes('delivery'));
+      
       const today = new Date().toISOString().split('T')[0];
       const todayRecord = attRes.data?.records?.find(r => r.date === today);
       setCheckInStatus(todayRecord);
