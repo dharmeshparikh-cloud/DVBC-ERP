@@ -937,9 +937,11 @@ const EmployeeMobileApp = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition ${
+            onTouchEnd={(e) => { e.preventDefault(); setActiveTab(tab.id); }}
+            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition touch-manipulation cursor-pointer ${
               activeTab === tab.id ? 'text-blue-600 bg-blue-50' : 'text-zinc-400'
             }`}
+            style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
             data-testid={`nav-${tab.id}`}
           >
             <tab.icon className="w-6 h-6" />
