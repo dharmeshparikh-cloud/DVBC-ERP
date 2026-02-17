@@ -216,13 +216,34 @@ const WorkflowPage = () => {
         {Object.values(WORKFLOWS).map((workflow) => {
           const Icon = workflow.icon;
           const isActive = activeWorkflow === workflow.id;
+          
+          // Static class mappings for Tailwind JIT compiler
+          const iconBgClasses = {
+            orange: 'bg-orange-100 dark:bg-orange-900/40',
+            blue: 'bg-blue-100 dark:bg-blue-900/40',
+            emerald: 'bg-emerald-100 dark:bg-emerald-900/40',
+            violet: 'bg-violet-100 dark:bg-violet-900/40',
+            teal: 'bg-teal-100 dark:bg-teal-900/40',
+            rose: 'bg-rose-100 dark:bg-rose-900/40',
+            amber: 'bg-amber-100 dark:bg-amber-900/40',
+          };
+          const iconTextClasses = {
+            orange: 'text-orange-600 dark:text-orange-400',
+            blue: 'text-blue-600 dark:text-blue-400',
+            emerald: 'text-emerald-600 dark:text-emerald-400',
+            violet: 'text-violet-600 dark:text-violet-400',
+            teal: 'text-teal-600 dark:text-teal-400',
+            rose: 'text-rose-600 dark:text-rose-400',
+            amber: 'text-amber-600 dark:text-amber-400',
+          };
+          
           return (
             <Card
               key={workflow.id}
               className={`cursor-pointer transition-all ${
                 isActive 
-                  ? `ring-2 ring-${workflow.color}-500 bg-gradient-to-br ${GRADIENT_COLORS[workflow.color]} text-white` 
-                  : 'hover:shadow-lg border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900'
+                  ? `ring-2 ring-offset-2 dark:ring-offset-zinc-950 bg-gradient-to-br ${GRADIENT_COLORS[workflow.color]} text-white` 
+                  : 'hover:shadow-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900'
               }`}
               onClick={() => setActiveWorkflow(workflow.id)}
               data-testid={`workflow-${workflow.id}`}
@@ -230,9 +251,9 @@ const WorkflowPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    isActive ? 'bg-white/20' : `bg-${workflow.color}-100 dark:bg-${workflow.color}-900/30`
+                    isActive ? 'bg-white/20' : iconBgClasses[workflow.color]
                   }`}>
-                    <Icon className={`w-6 h-6 ${isActive ? 'text-white' : `text-${workflow.color}-600 dark:text-${workflow.color}-400`}`} />
+                    <Icon className={`w-6 h-6 ${isActive ? 'text-white' : iconTextClasses[workflow.color]}`} />
                   </div>
                   <div>
                     <h3 className={`font-bold ${isActive ? 'text-white' : 'text-zinc-900 dark:text-zinc-100'}`}>{workflow.title}</h3>
