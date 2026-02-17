@@ -663,7 +663,13 @@ const EmployeeMobileApp = () => {
         ))}
       </div>
 
-      <button className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2">
+      <button 
+        onClick={() => setShowLeaveModal(true)}
+        onTouchEnd={(e) => { e.preventDefault(); setShowLeaveModal(true); }}
+        className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition touch-manipulation cursor-pointer"
+        style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+        data-testid="apply-leave-btn"
+      >
         <Plus className="w-5 h-5" />
         Apply for Leave
       </button>
