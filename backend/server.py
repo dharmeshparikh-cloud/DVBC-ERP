@@ -13810,21 +13810,21 @@ async def download_postman_collection():
 # ============== EMPLOYEE BANK DETAILS CHANGE REQUEST ==============
 
 @api_router.get("/my/profile")
-async def get_my_profile(current_user: dict = Depends(get_current_user)):
+async def get_my_profile(current_user: User = Depends(get_current_user)):
     """Get current user's employee profile including bank details"""
-    employee = db.employees.find_one({"user_id": str(current_user["_id"])}, {"_id": 0})
+    employee = db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
     if not employee:
         # Try finding by email
-        employee = db.employees.find_one({"work_email": current_user.get("email")}, {"_id": 0})
+        employee = db.employees.find_one({"work_email": current_user.email}, {"_id": 0})
     return employee or {}
 
 
 @api_router.get("/my/bank-change-requests")
-async def get_my_bank_change_requests(current_user: dict = Depends(get_current_user)):
+async def get_my_bank_change_requests(current_user: User = Depends(get_current_user)):
     """Get all bank detail change requests for current user"""
-    employee = db.employees.find_one({"user_id": str(current_user["_id"])})
+    employee = db.employees.find_one({"user_id": current_user.id})
     if not employee:
-        employee = db.employees.find_one({"work_email": current_user.get("email")})
+        employee = db.employees.find_one({"work_email": current_user.email})
     if not employee:
         return []
     
@@ -13838,12 +13838,12 @@ async def get_my_bank_change_requests(current_user: dict = Depends(get_current_u
 @api_router.post("/my/bank-change-request")
 async def submit_bank_change_request(
     request_data: dict,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Submit a bank details change request"""
-    employee = db.employees.find_one({"user_id": str(current_user["_id"])})
+    employee = db.employees.find_one({"user_id": current_user.id})
     if not employee:
-        employee = db.employees.find_one({"work_email": current_user.get("email")})
+        employee = db.employees.find_one({"work_email": current_user.email})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee profile not found")
     
