@@ -64,17 +64,17 @@ const Login = () => {
   ];
 
   return (
-    <div className="min-h-screen flex bg-zinc-50" data-testid="main-login-page">
+    <div className="min-h-screen flex bg-white" data-testid="main-login-page">
       {/* Left Panel - Features */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black p-12 flex-col justify-between">
+      <div className="hidden lg:flex lg:w-1/2 bg-black p-12 flex-col justify-between">
         <div>
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/10">
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">DVBC - NETRA</h1>
-              <p className="text-zinc-400 text-sm">Business Management Platform</p>
+              <p className="text-white/60 text-sm">Business Management Platform</p>
             </div>
           </div>
 
@@ -82,51 +82,51 @@ const Login = () => {
             <h2 className="text-3xl font-bold text-white leading-tight">
               Your complete<br />enterprise solution
             </h2>
-            <p className="text-zinc-400 text-lg max-w-md">
+            <p className="text-white/60 text-lg max-w-md">
               Manage sales, HR, projects, and operations - all from a single powerful platform designed for modern businesses.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mt-12">
             {features.map((feature, idx) => (
-              <div key={idx} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
-                <feature.icon className="w-8 h-8 text-zinc-300 mb-3" />
+              <div key={idx} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                <feature.icon className="w-8 h-8 text-white/80 mb-3" />
                 <h3 className="text-white font-semibold text-sm">{feature.label}</h3>
-                <p className="text-zinc-500 text-xs mt-1">{feature.desc}</p>
+                <p className="text-white/50 text-xs mt-1">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="text-zinc-500 text-sm">
+          <div className="text-white/40 text-sm">
             © {new Date().getFullYear()} DVBC Consulting. All rights reserved.
           </div>
           <div className="flex gap-4 text-xs">
-            <a href="/hr/login" className="text-emerald-400 hover:text-emerald-300 transition-colors">HR Portal</a>
-            <a href="/sales/login" className="text-orange-400 hover:text-orange-300 transition-colors">Sales Portal</a>
+            <a href="/hr/login" className="text-white/60 hover:text-white transition-colors">HR Portal</a>
+            <a href="/sales/login" className="text-white/60 hover:text-white transition-colors">Sales Portal</a>
           </div>
         </div>
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <Card className="w-full max-w-[440px] border-zinc-200 shadow-xl rounded-2xl overflow-hidden" data-testid="login-card">
+      <div className="flex-1 flex items-center justify-center p-8 bg-white">
+        <Card className="w-full max-w-[440px] border border-black/10 shadow-lg rounded-2xl overflow-hidden" data-testid="login-card">
           {/* Header with Logo */}
-          <div className="bg-white px-8 pt-10 pb-6 text-center border-b border-zinc-100">
+          <div className="bg-white px-8 pt-10 pb-6 text-center border-b border-black/5">
             <img
               src={LOGO_URL}
               alt="DVBC Logo"
               className="h-16 w-auto mx-auto mb-4"
               data-testid="login-logo"
             />
-            <h1 className="text-xl font-bold tracking-wide text-zinc-900" data-testid="app-name">
+            <h1 className="text-xl font-bold tracking-wide text-black" data-testid="app-name">
               DVBC - NETRA
             </h1>
-            <p className="text-xs text-zinc-400 mt-1 tracking-widest uppercase">Business Management Platform</p>
+            <p className="text-xs text-black/40 mt-1 tracking-widest uppercase">Business Management Platform</p>
           </div>
 
-          <CardContent className="px-8 py-8 space-y-5 bg-zinc-50/50">
+          <CardContent className="px-8 py-8 space-y-5 bg-white">
             {/* Email/Password Login */}
             <form onSubmit={handlePasswordLogin} className="space-y-4" data-testid="password-login-form">
               <div className="space-y-2">
