@@ -394,92 +394,77 @@ const Payroll = () => {
               </Button>
             </div>
           )}
-          <div className="border border-zinc-200 rounded-sm overflow-x-auto">
-            <table className="w-full text-[11px]" data-testid="payroll-inputs-table">
+          <div className="border border-zinc-200 rounded-sm overflow-hidden">
+            <table className="w-full text-[10px]" data-testid="payroll-inputs-table">
               <thead className="bg-zinc-50">
                 <tr>
-                  <th className="text-left px-2 py-2 font-medium text-zinc-600 sticky left-0 bg-zinc-50 min-w-[140px]">Employee</th>
-                  <th className="text-center px-2 py-2 font-medium text-zinc-600 min-w-[55px]">Working Days</th>
-                  <th className="text-center px-2 py-2 font-medium text-zinc-600 min-w-[55px]">Present</th>
-                  <th className="text-center px-2 py-2 font-medium text-zinc-600 min-w-[55px]">Absent</th>
-                  <th className="text-center px-2 py-2 font-medium text-zinc-600 min-w-[55px]">Holidays</th>
-                  <th className="text-center px-2 py-2 font-medium text-zinc-600 min-w-[55px]">Leaves</th>
-                  <th className="text-center px-2 py-2 font-medium text-zinc-600 min-w-[55px]">OT Hrs</th>
-                  <th className="text-right px-2 py-2 font-medium text-emerald-700 min-w-[80px]">Incentive</th>
-                  <th className="text-left px-2 py-2 font-medium text-emerald-700 min-w-[100px]">Reason</th>
-                  <th className="text-right px-2 py-2 font-medium text-blue-700 min-w-[90px]">Expense Reimb.</th>
-                  <th className="text-right px-2 py-2 font-medium text-amber-700 min-w-[80px]">Advance</th>
-                  <th className="text-left px-2 py-2 font-medium text-amber-700 min-w-[100px]">Reason</th>
-                  <th className="text-right px-2 py-2 font-medium text-red-700 min-w-[80px]">Penalty</th>
-                  <th className="text-left px-2 py-2 font-medium text-red-700 min-w-[100px]">Reason</th>
-                  <th className="text-left px-2 py-2 font-medium text-zinc-600 min-w-[100px]">Remarks</th>
-                  {isHR && <th className="text-center px-2 py-2 font-medium text-zinc-600 min-w-[40px]"></th>}
+                  <th className="text-left px-2 py-1.5 font-medium text-zinc-600 w-[130px]">Employee</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-zinc-600 w-[38px]">Days</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-zinc-600 w-[38px]">Pres</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-zinc-600 w-[38px]">Abs</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-zinc-600 w-[38px]">Hol</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-zinc-600 w-[38px]">Lvs</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-zinc-600 w-[38px]">OT</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-emerald-700 w-[55px]">Incent</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-blue-700 w-[55px]">Reimb</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-amber-700 w-[55px]">Adv</th>
+                  <th className="text-center px-1 py-1.5 font-medium text-red-700 w-[55px]">Pen</th>
+                  <th className="text-left px-1 py-1.5 font-medium text-zinc-600 w-[80px]">Remarks</th>
+                  {isHR && <th className="text-center px-1 py-1.5 font-medium text-zinc-600 w-[28px]"></th>}
                 </tr>
               </thead>
               <tbody>
                 {payrollInputs.map(inp => (
                   <tr key={inp.employee_id} className="border-t border-zinc-100 hover:bg-zinc-50/50" data-testid={`input-row-${inp.employee_id}`}>
-                    <td className="px-2 py-1.5 sticky left-0 bg-white">
-                      <div className="font-medium text-zinc-900 text-xs">{inp.name}</div>
-                      <div className="text-[10px] text-zinc-400">{inp.emp_code} | {inp.department || '-'}</div>
+                    <td className="px-2 py-1">
+                      <div className="font-medium text-zinc-900 text-[10px] truncate">{inp.name}</div>
+                      <div className="text-[9px] text-zinc-400 truncate">{inp.emp_code}</div>
                     </td>
                     {['working_days', 'present_days', 'absent_days', 'public_holidays', 'leaves', 'overtime_hours'].map(f => (
-                      <td key={f} className="px-1 py-1">
+                      <td key={f} className="px-0.5 py-0.5">
                         <input type="number" value={inp[f] ?? ''} onChange={e => updateInput(inp.employee_id, f, e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
-                          className={`w-full h-7 px-1.5 text-center text-[11px] rounded border bg-white focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 ${
+                          className={`w-full h-6 px-1 text-center text-[10px] rounded border bg-white focus:ring-1 focus:ring-zinc-400 ${
                             (inp[f] === '' || inp[f] === null || inp[f] === undefined) ? 'border-red-400 bg-red-50/50' : 'border-zinc-200'
                           }`}
                           disabled={!isHR} data-testid={`${f}-${inp.employee_id}`} />
                       </td>
                     ))}
-                    <td className="px-1 py-1">
+                    <td className="px-0.5 py-0.5">
                       <input type="number" value={inp.incentive ?? ''} onChange={e => updateInput(inp.employee_id, 'incentive', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
-                        className={`w-full h-7 px-1.5 text-right text-[11px] rounded border focus:ring-1 focus:ring-emerald-300 ${
+                        className={`w-full h-6 px-1 text-center text-[10px] rounded border focus:ring-1 focus:ring-emerald-300 ${
                           (inp.incentive === '' || inp.incentive === null || inp.incentive === undefined) ? 'border-red-400 bg-red-50/50' : 'border-emerald-200 bg-emerald-50/30'
                         }`}
                         disabled={!isHR} />
                     </td>
-                    <td className="px-1 py-1">
-                      <input type="text" value={inp.incentive_reason || ''} onChange={e => updateInput(inp.employee_id, 'incentive_reason', e.target.value)}
-                        className="w-full h-7 px-1.5 text-[11px] rounded border border-zinc-200 bg-white" disabled={!isHR} placeholder="—" />
-                    </td>
-                    <td className="px-1 py-1">
-                      <div className={`h-7 px-1.5 text-right text-[11px] rounded border flex items-center justify-end ${
+                    <td className="px-0.5 py-0.5">
+                      <div className={`h-6 px-1 text-center text-[10px] rounded border flex items-center justify-center ${
                         inp.expense_reimbursement > 0 ? 'border-blue-200 bg-blue-50/50 text-blue-700 font-medium' : 'border-zinc-200 bg-zinc-50 text-zinc-400'
                       }`}>
-                        {inp.expense_reimbursement > 0 ? `₹${inp.expense_reimbursement.toLocaleString()}` : '—'}
+                        {inp.expense_reimbursement > 0 ? `${(inp.expense_reimbursement/1000).toFixed(1)}k` : '0'}
                       </div>
                     </td>
-                    <td className="px-1 py-1">
+                    <td className="px-0.5 py-0.5">
                       <input type="number" value={inp.advance ?? ''} onChange={e => updateInput(inp.employee_id, 'advance', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
-                        className={`w-full h-7 px-1.5 text-right text-[11px] rounded border focus:ring-1 focus:ring-amber-300 ${
+                        className={`w-full h-6 px-1 text-center text-[10px] rounded border focus:ring-1 focus:ring-amber-300 ${
                           (inp.advance === '' || inp.advance === null || inp.advance === undefined) ? 'border-red-400 bg-red-50/50' : 'border-amber-200 bg-amber-50/30'
                         }`}
                         disabled={!isHR} />
                     </td>
-                    <td className="px-1 py-1">
-                      <input type="text" value={inp.advance_reason || ''} onChange={e => updateInput(inp.employee_id, 'advance_reason', e.target.value)}
-                        className="w-full h-7 px-1.5 text-[11px] rounded border border-zinc-200 bg-white" disabled={!isHR} placeholder="—" />
-                    </td>
-                    <td className="px-1 py-1">
+                    <td className="px-0.5 py-0.5">
                       <input type="number" value={inp.penalty ?? ''} onChange={e => updateInput(inp.employee_id, 'penalty', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
-                        className={`w-full h-7 px-1.5 text-right text-[11px] rounded border focus:ring-1 focus:ring-red-300 ${
+                        className={`w-full h-6 px-1 text-center text-[10px] rounded border focus:ring-1 focus:ring-red-300 ${
                           (inp.penalty === '' || inp.penalty === null || inp.penalty === undefined) ? 'border-red-400 bg-red-50/50' : 'border-red-200 bg-red-50/30'
                         }`}
                         disabled={!isHR} />
                     </td>
-                    <td className="px-1 py-1">
-                      <input type="text" value={inp.penalty_reason || ''} onChange={e => updateInput(inp.employee_id, 'penalty_reason', e.target.value)}
-                        className="w-full h-7 px-1.5 text-[11px] rounded border border-zinc-200 bg-white" disabled={!isHR} placeholder="—" />
-                    </td>
-                    <td className="px-1 py-1">
+                    <td className="px-0.5 py-0.5">
                       <input type="text" value={inp.remarks || ''} onChange={e => updateInput(inp.employee_id, 'remarks', e.target.value)}
-                        className="w-full h-7 px-1.5 text-[11px] rounded border border-zinc-200 bg-white" disabled={!isHR} placeholder="—" />
+                        className="w-full h-6 px-1 text-[10px] rounded border border-zinc-200 bg-white" disabled={!isHR} placeholder="—" />
                     </td>
                     {isHR && (
-                      <td className="px-1 py-1 text-center">
+                      <td className="px-0.5 py-0.5 text-center">
                         <button onClick={() => saveSingleInput(inp)} className="text-zinc-400 hover:text-zinc-900 transition-colors" title="Save row">
-                          <Save className="w-3.5 h-3.5" />
+                          <Save className="w-3 h-3" />
                         </button>
                       </td>
                     )}
