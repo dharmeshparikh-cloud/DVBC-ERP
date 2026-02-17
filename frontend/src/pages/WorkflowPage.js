@@ -179,13 +179,13 @@ const WorkflowPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900 flex items-center gap-3">
-            <GitBranch className="w-8 h-8 text-blue-600" />
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-3">
+            <GitBranch className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             ERP Workflow
           </h1>
-          <p className="text-zinc-500 mt-1">Interactive visualization of all business processes</p>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-1">Interactive visualization of all business processes</p>
         </div>
-        <Badge className="bg-emerald-100 text-emerald-700 px-4 py-2">
+        <Badge className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-4 py-2">
           <Zap className="w-4 h-4 mr-2" />
           All Systems Connected
         </Badge>
@@ -202,7 +202,7 @@ const WorkflowPage = () => {
               className={`cursor-pointer transition-all ${
                 isActive 
                   ? `ring-2 ring-${workflow.color}-500 bg-gradient-to-br ${GRADIENT_COLORS[workflow.color]} text-white` 
-                  : 'hover:shadow-lg border-zinc-200'
+                  : 'hover:shadow-lg border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900'
               }`}
               onClick={() => setActiveWorkflow(workflow.id)}
               data-testid={`workflow-${workflow.id}`}
@@ -210,13 +210,13 @@ const WorkflowPage = () => {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    isActive ? 'bg-white/20' : `bg-${workflow.color}-100`
+                    isActive ? 'bg-white/20' : `bg-${workflow.color}-100 dark:bg-${workflow.color}-900/30`
                   }`}>
-                    <Icon className={`w-6 h-6 ${isActive ? 'text-white' : `text-${workflow.color}-600`}`} />
+                    <Icon className={`w-6 h-6 ${isActive ? 'text-white' : `text-${workflow.color}-600 dark:text-${workflow.color}-400`}`} />
                   </div>
                   <div>
-                    <h3 className={`font-bold ${isActive ? 'text-white' : 'text-zinc-900'}`}>{workflow.title}</h3>
-                    <p className={`text-sm ${isActive ? 'text-white/70' : 'text-zinc-500'}`}>{workflow.subtitle}</p>
+                    <h3 className={`font-bold ${isActive ? 'text-white' : 'text-zinc-900 dark:text-zinc-100'}`}>{workflow.title}</h3>
+                    <p className={`text-sm ${isActive ? 'text-white/70' : 'text-zinc-500 dark:text-zinc-400'}`}>{workflow.subtitle}</p>
                   </div>
                 </div>
               </CardContent>
@@ -226,12 +226,12 @@ const WorkflowPage = () => {
       </div>
 
       {/* Animation Control */}
-      <div className="flex items-center justify-between bg-zinc-50 rounded-xl p-4 border border-zinc-200">
+      <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700">
         <div className="flex items-center gap-4">
           <Info className="w-5 h-5 text-zinc-400" />
           <div>
-            <p className="font-medium text-zinc-700">Click on any step to navigate to that module</p>
-            <p className="text-sm text-zinc-500">Or play the animation to see the complete flow</p>
+            <p className="font-medium text-zinc-700 dark:text-zinc-300">Click on any step to navigate to that module</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Or play the animation to see the complete flow</p>
           </div>
         </div>
         <Button 
