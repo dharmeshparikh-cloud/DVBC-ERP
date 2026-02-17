@@ -13812,26 +13812,26 @@ async def download_postman_collection():
 @api_router.get("/my/profile")
 async def get_my_profile(current_user: User = Depends(get_current_user)):
     """Get current user's employee profile including bank details"""
-    employee = db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
     if not employee:
         # Try finding by email
-        employee = db.employees.find_one({"work_email": current_user.email}, {"_id": 0})
+        employee = await db.employees.find_one({"work_email": current_user.email}, {"_id": 0})
     return employee or {}
 
 
 @api_router.get("/my/bank-change-requests")
 async def get_my_bank_change_requests(current_user: User = Depends(get_current_user)):
     """Get all bank detail change requests for current user"""
-    employee = db.employees.find_one({"user_id": current_user.id})
+    employee = await db.employees.find_one({"user_id": current_user.id})
     if not employee:
-        employee = db.employees.find_one({"work_email": current_user.email})
+        employee = await db.employees.find_one({"work_email": current_user.email})
     if not employee:
         return []
     
-    requests = list(db.bank_change_requests.find(
+    requests = await db.bank_change_requests.find(
         {"employee_id": str(employee["_id"])},
         {"_id": 0}
-    ).sort("created_at", -1).limit(10))
+    ).sort("created_at", -1).limit(10).to_list(length=10)
     return requests
 
 
@@ -13841,14 +13841,14 @@ async def submit_bank_change_request(
     current_user: User = Depends(get_current_user)
 ):
     """Submit a bank details change request"""
-    employee = db.employees.find_one({"user_id": current_user.id})
+    employee = await db.employees.find_one({"user_id": current_user.id})
     if not employee:
-        employee = db.employees.find_one({"work_email": current_user.email})
+        employee = await db.employees.find_one({"work_email": current_user.email})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee profile not found")
     
     # Check for pending requests
-    existing_pending = db.bank_change_requests.find_one({
+    existing_pending = await db.bank_change_requests.find_one({
         "employee_id": str(employee["_id"]),
         "status": {"$in": ["pending_hr", "pending_admin"]}
     })
@@ -13874,10 +13874,10 @@ async def submit_bank_change_request(
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
-    db.bank_change_requests.insert_one(new_request)
+    await db.bank_change_requests.insert_one(new_request)
     
     # Create notification for HR
-    db.notifications.insert_one({
+    await db.notifications.insert_one({
         "type": "bank_change_request",
         "message": f"Bank details change request from {new_request['employee_name']}",
         "link": "/hr/approvals",
