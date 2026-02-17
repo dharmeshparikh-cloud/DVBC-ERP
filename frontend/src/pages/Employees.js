@@ -226,6 +226,19 @@ const Employees = () => {
     }
   };
 
+  const handleToggleMobileAccess = async (employeeId, currentlyDisabled) => {
+    try {
+      await axios.put(`${API}/hr/employee/${employeeId}/mobile-access`, {
+        disabled: !currentlyDisabled,
+        reason: currentlyDisabled ? '' : 'Disabled by admin'
+      });
+      toast.success(`Mobile app access ${currentlyDisabled ? 'enabled' : 'disabled'}`);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to toggle mobile access');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       employee_id: generateEmployeeId(),
