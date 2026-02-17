@@ -166,6 +166,26 @@ const Expenses = () => {
     }
   };
 
+  const handleApproveExpense = async (expenseId) => {
+    try {
+      await axios.post(`${API}/expenses/${expenseId}/approve`);
+      toast.success('Expense approved successfully');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to approve expense');
+    }
+  };
+
+  const handleRejectExpense = async (expenseId, reason) => {
+    try {
+      await axios.post(`${API}/expenses/${expenseId}/reject`, { reason: reason || 'Rejected by HR/Admin' });
+      toast.success('Expense rejected');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to reject expense');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       client_id: '',
