@@ -120,6 +120,9 @@ function AppRouter({ user, login, logout, loading }) {
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       
+      {/* Mobile Employee App - dedicated mobile view */}
+      <Route path="/mobile" element={user ? <EmployeeMobileApp /> : <Navigate to="/login" />} />
+      
       {/* Sales Portal Routes - restricted to sales roles */}
       <Route path="/sales/login" element={<SalesLogin />} />
       <Route
