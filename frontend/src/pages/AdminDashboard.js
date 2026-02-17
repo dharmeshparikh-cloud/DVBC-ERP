@@ -212,12 +212,12 @@ const AdminDashboard = () => {
       {/* Bento Grid */}
       <div className="grid grid-cols-12 gap-4 auto-rows-[140px]">
         
-        {/* Large Revenue Card - With Lock Controls */}
+        {/* Large Revenue Card - With Lock Controls - Green to Yellow Gradient */}
         <LockableCard 
           className={`col-span-4 row-span-2 overflow-hidden relative ${
             isDark 
-              ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' 
-              : 'bg-gradient-to-br from-zinc-900 to-zinc-800 border-zinc-700'
+              ? 'bg-gradient-to-br from-emerald-700 via-emerald-600 to-yellow-500 border-emerald-600' 
+              : 'bg-gradient-to-br from-emerald-600 via-emerald-500 to-yellow-400 border-emerald-500'
           } text-white`}
           cardId="total-revenue"
           isDark={isDark}
@@ -226,24 +226,24 @@ const AdminDashboard = () => {
           lockedValues={{ revenue: stats.finance?.revenue }}
         >
           <CardContent className="pt-6 h-full flex flex-col justify-between relative z-10">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-300/30 rounded-full blur-3xl"></div>
             <div className="relative">
-              <p className="text-zinc-400 text-sm">Total Revenue (YTD)</p>
-              <p className="text-5xl font-bold mt-2">
+              <p className="text-white/80 text-sm font-medium">Total Revenue (YTD)</p>
+              <p className="text-5xl font-bold mt-2 text-white">
                 {formatCurrency(stats.finance?.revenue || 45000000).replace('₹', '')}
-                <span className="text-2xl text-zinc-400 ml-1">
+                <span className="text-2xl text-white/70 ml-1">
                   {formatCurrency(stats.finance?.revenue || 45000000).includes('Cr') ? '' : ''}
                 </span>
               </p>
             </div>
             <div className="flex items-center gap-4 relative">
-              <div className="flex items-center gap-1 text-green-400">
+              <div className="flex items-center gap-1 text-yellow-200">
                 <TrendingUp className="w-5 h-5" />
                 <span className="font-medium">+23.5%</span>
               </div>
-              <span className="text-zinc-500 text-sm">vs last year</span>
+              <span className="text-white/60 text-sm">vs last year</span>
             </div>
-            <Link to="/reports?category=finance" className="text-orange-400 text-sm flex items-center gap-1 hover:underline relative">
+            <Link to="/reports?category=finance" className="text-yellow-100 text-sm flex items-center gap-1 hover:text-white transition-colors relative">
               View Financial Reports <ChevronRight className="w-4 h-4" />
             </Link>
           </CardContent>
