@@ -209,12 +209,12 @@ const AdminDashboard = () => {
         user={user} 
       />
 
-      {/* Bento Grid */}
-      <div className="grid grid-cols-12 gap-4 auto-rows-[140px]">
+      {/* Mobile-Responsive Bento Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-12 gap-3 md:gap-4">
         
         {/* Large Revenue Card - With Lock Controls - Green to Yellow Gradient */}
         <LockableCard 
-          className={`col-span-4 row-span-2 overflow-hidden relative ${
+          className={`col-span-2 md:col-span-3 lg:col-span-4 row-span-1 md:row-span-2 overflow-hidden relative ${
             isDark 
               ? 'bg-gradient-to-br from-emerald-700 via-emerald-600 to-yellow-500 border-emerald-600' 
               : 'bg-gradient-to-br from-emerald-600 via-emerald-500 to-yellow-400 border-emerald-500'
@@ -225,82 +225,96 @@ const AdminDashboard = () => {
           expandedContent={<RevenueExpanded data={stats} isDark={isDark} />}
           lockedValues={{ revenue: stats.finance?.revenue }}
         >
-          <CardContent className="pt-6 h-full flex flex-col justify-between relative z-10">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-300/30 rounded-full blur-3xl"></div>
+          <CardContent className="pt-4 md:pt-6 h-full flex flex-col justify-between relative z-10">
+            <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-yellow-300/30 rounded-full blur-3xl"></div>
             <div className="relative">
-              <p className="text-white/80 text-sm font-medium">Total Revenue (YTD)</p>
-              <p className="text-5xl font-bold mt-2 text-white">
+              <p className="text-white/80 text-xs md:text-sm font-medium">Total Revenue (YTD)</p>
+              <p className="text-3xl md:text-5xl font-bold mt-1 md:mt-2 text-white">
                 {formatCurrency(stats.finance?.revenue || 45000000).replace('₹', '')}
-                <span className="text-2xl text-white/70 ml-1">
-                  {formatCurrency(stats.finance?.revenue || 45000000).includes('Cr') ? '' : ''}
-                </span>
               </p>
             </div>
-            <div className="flex items-center gap-4 relative">
+            <div className="flex items-center gap-2 md:gap-4 relative mt-2">
               <div className="flex items-center gap-1 text-yellow-200">
-                <TrendingUp className="w-5 h-5" />
-                <span className="font-medium">+23.5%</span>
+                <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="font-medium text-sm md:text-base">+23.5%</span>
               </div>
-              <span className="text-white/60 text-sm">vs last year</span>
+              <span className="text-white/60 text-xs md:text-sm hidden sm:inline">vs last year</span>
             </div>
-            <Link to="/reports?category=finance" className="text-yellow-100 text-sm flex items-center gap-1 hover:text-white transition-colors relative">
-              View Financial Reports <ChevronRight className="w-4 h-4" />
+            <Link to="/reports?category=finance" className="text-yellow-100 text-xs md:text-sm flex items-center gap-1 hover:text-white transition-colors relative mt-2 md:mt-0">
+              View Financial Reports <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
             </Link>
           </CardContent>
         </LockableCard>
 
-        {/* Sales Quick Stats */}
+        {/* Sales Quick Stats - Active Leads */}
         <LockableCard 
-          className="col-span-2 bg-gradient-to-br from-orange-500 to-amber-600 text-white border-orange-600"
+          className="col-span-1 md:col-span-2 bg-gradient-to-br from-orange-500 to-amber-600 text-white border-orange-600"
           cardId="active-leads"
           isDark={isDark}
           title="Active Leads"
           expandedContent={<LeadsExpanded data={stats} isDark={isDark} />}
         >
-          <CardContent className="pt-4 h-full flex flex-col justify-between">
-            <BarChart3 className="w-8 h-8 opacity-80" />
+          <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
+            <BarChart3 className="w-6 h-6 md:w-8 md:h-8 opacity-80" />
             <div>
-              <p className="text-3xl font-bold">{salesPipeline.total || 234}</p>
-              <p className="text-orange-100 text-sm">Active Leads</p>
+              <p className="text-2xl md:text-3xl font-bold">{salesPipeline.total || 234}</p>
+              <p className="text-orange-100 text-xs md:text-sm">Active Leads</p>
             </div>
           </CardContent>
         </LockableCard>
 
         {/* Conversion Rate */}
         <LockableCard 
-          className={`col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-zinc-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-zinc-50 border-zinc-200'}`}
           cardId="conversion-rate"
           isDark={isDark}
           title="Conversion Rate"
         >
-          <CardContent className="pt-4 h-full flex flex-col justify-between">
-            <Target className={`w-6 h-6 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+          <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
+            <Target className={`w-5 h-5 md:w-6 md:h-6 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             <div>
-              <p className={`text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+              <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                 {stats.sales?.ratios?.lead_to_closure || 20.1}%
               </p>
-              <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Conversion Rate</p>
+              <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Conversion Rate</p>
             </div>
           </CardContent>
         </LockableCard>
 
         {/* Project Health Pie */}
         <LockableCard 
-          className={`col-span-4 row-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-slate-50 border-zinc-200'}`}
+          className={`col-span-2 md:col-span-3 lg:col-span-4 row-span-1 md:row-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-slate-50 border-zinc-200'}`}
           cardId="project-health"
           isDark={isDark}
           title="Project Health"
           expandedContent={<ProjectsExpanded data={stats} isDark={isDark} />}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className={`text-sm font-medium flex items-center gap-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-              <Briefcase className="w-4 h-4" />
+          <CardHeader className="pb-1 md:pb-2 px-3 md:px-6">
+            <CardTitle className={`text-xs md:text-sm font-medium flex items-center gap-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+              <Briefcase className="w-3 h-3 md:w-4 md:h-4" />
               Project Health
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-6">
-              <ResponsiveContainer width="50%" height={150}>
+          <CardContent className="px-3 md:px-6">
+            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6">
+              <ResponsiveContainer width="100%" height={100} className="md:hidden">
+                <RechartsPie>
+                  <Pie
+                    data={projectStatus}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={25}
+                    outerRadius={40}
+                    dataKey="value"
+                  >
+                    {projectStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </RechartsPie>
+              </ResponsiveContainer>
+              <ResponsiveContainer width="50%" height={150} className="hidden md:block">
                 <RechartsPie>
                   <Pie
                     data={projectStatus}
@@ -317,81 +331,81 @@ const AdminDashboard = () => {
                   <Tooltip />
                 </RechartsPie>
               </ResponsiveContainer>
-              <div className="space-y-2 flex-1">
+              <div className="space-y-1 md:space-y-2 flex-1 w-full">
                 {projectStatus.map((s, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded" style={{ background: s.color }}></div>
-                      <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>{s.name}</span>
+                      <div className="w-2 h-2 md:w-3 md:h-3 rounded" style={{ background: s.color }}></div>
+                      <span className={`text-xs md:text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>{s.name}</span>
                     </div>
-                    <span className={`font-semibold ${isDark ? 'text-zinc-200' : 'text-zinc-900'}`}>{s.value}</span>
+                    <span className={`font-semibold text-sm md:text-base ${isDark ? 'text-zinc-200' : 'text-zinc-900'}`}>{s.value}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <Link to="/projects" className={`text-sm flex items-center gap-1 mt-2 ${isDark ? 'text-blue-400' : 'text-blue-600'} hover:underline`}>
-              View All Projects <ChevronRight className="w-4 h-4" />
+            <Link to="/projects" className={`text-xs md:text-sm flex items-center gap-1 mt-2 ${isDark ? 'text-blue-400' : 'text-blue-600'} hover:underline`}>
+              View All Projects <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
             </Link>
           </CardContent>
         </LockableCard>
 
         {/* Meetings Today */}
         <LockableCard 
-          className="col-span-2 bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-blue-700"
+          className="col-span-1 md:col-span-2 bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-blue-700"
           cardId="meetings-today"
           isDark={isDark}
           title="Meetings Today"
           expandedContent={<MeetingsExpanded data={stats} isDark={isDark} />}
         >
-          <CardContent className="pt-4 h-full flex flex-col justify-between">
-            <Calendar className="w-6 h-6 opacity-80" />
+          <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
+            <Calendar className="w-5 h-5 md:w-6 md:h-6 opacity-80" />
             <div>
-              <p className="text-3xl font-bold">{stats.sales?.meetings?.today || 8}</p>
-              <p className="text-blue-100 text-sm">Meetings Today</p>
+              <p className="text-2xl md:text-3xl font-bold">{stats.sales?.meetings?.today || 8}</p>
+              <p className="text-blue-100 text-xs md:text-sm">Meetings Today</p>
             </div>
           </CardContent>
         </LockableCard>
 
         {/* Pending Approvals */}
         <LockableCard 
-          className="col-span-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white border-amber-600"
+          className="col-span-1 md:col-span-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white border-amber-600"
           cardId="pending-approvals"
           isDark={isDark}
           title="Pending Actions"
         >
-          <CardContent className="pt-4 h-full flex flex-col justify-between">
-            <AlertCircle className="w-6 h-6 opacity-80" />
+          <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
+            <AlertCircle className="w-5 h-5 md:w-6 md:h-6 opacity-80" />
             <div>
-              <p className="text-3xl font-bold">{hrStats.pendingApprovals || 24}</p>
-              <p className="text-amber-100 text-sm">Pending Actions</p>
+              <p className="text-2xl md:text-3xl font-bold">{hrStats.pendingApprovals || 24}</p>
+              <p className="text-amber-100 text-xs md:text-sm">Pending Actions</p>
             </div>
           </CardContent>
         </LockableCard>
 
         {/* Team Present */}
         <LockableCard 
-          className={`col-span-3 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-emerald-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-3 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-emerald-50 border-zinc-200'}`}
           cardId="team-present"
           isDark={isDark}
           title="Team Attendance"
           expandedContent={<AttendanceExpanded data={stats} isDark={isDark} />}
         >
-          <CardContent className="pt-4 h-full">
+          <CardContent className="pt-3 md:pt-4 h-full min-h-[100px] md:min-h-[140px]">
             <div className="flex items-center justify-between h-full">
               <div>
-                <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Team Present</p>
-                <p className={`text-4xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Team Present</p>
+                <p className={`text-2xl md:text-4xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                   {hrStats.presentToday || 79}
-                  <span className={`text-lg ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  <span className={`text-sm md:text-lg ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                     /{hrStats.totalEmployees || 86}
                   </span>
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold text-emerald-500">
+                <p className="text-xl md:text-3xl font-bold text-emerald-500">
                   {hrStats.attendanceRate || 91.8}%
                 </p>
-                <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Attendance</p>
+                <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Attendance</p>
               </div>
             </div>
           </CardContent>
@@ -399,20 +413,20 @@ const AdminDashboard = () => {
 
         {/* Utilization */}
         <LockableCard 
-          className="col-span-3 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white border-purple-700"
+          className="col-span-1 md:col-span-3 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white border-purple-700"
           cardId="team-utilization"
           isDark={isDark}
           title="Team Utilization"
         >
-          <CardContent className="pt-4 h-full flex flex-col justify-between">
+          <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
             <div className="flex items-center justify-between">
-              <span className="text-purple-200 text-sm">Team Utilization</span>
-              <Activity className="w-5 h-5 opacity-80" />
+              <span className="text-purple-200 text-xs md:text-sm">Team Utilization</span>
+              <Activity className="w-4 h-4 md:w-5 md:h-5 opacity-80" />
             </div>
-            <div className="flex items-end gap-4">
-              <p className="text-4xl font-bold">{consultingStats.utilization || 87}%</p>
-              <div className="flex items-center gap-1 text-green-300 text-sm mb-1">
-                <ArrowUpRight className="w-4 h-4" />
+            <div className="flex items-end gap-2 md:gap-4">
+              <p className="text-2xl md:text-4xl font-bold">{consultingStats.utilization || 87}%</p>
+              <div className="flex items-center gap-1 text-green-300 text-xs md:text-sm mb-1">
+                <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" />
                 +5%
               </div>
             </div>
@@ -421,18 +435,36 @@ const AdminDashboard = () => {
 
         {/* Performance Trend Chart */}
         <LockableCard 
-          className={`col-span-6 row-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-blue-50 border-zinc-200'}`}
+          className={`col-span-2 md:col-span-6 row-span-1 md:row-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-blue-50 border-zinc-200'}`}
           cardId="performance-trend"
           isDark={isDark}
           title="Performance Trend"
         >
-          <CardHeader className="pb-2">
-            <CardTitle className={`text-sm font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+          <CardHeader className="pb-1 md:pb-2 px-3 md:px-6">
+            <CardTitle className={`text-xs md:text-sm font-medium ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
               Performance Trend (6 Months)
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={180}>
+          <CardContent className="px-3 md:px-6">
+            <ResponsiveContainer width="100%" height={120} className="md:hidden">
+              <LineChart data={monthlyTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#3f3f46' : '#e5e7eb'} />
+                <XAxis dataKey="month" stroke={isDark ? '#71717a' : '#9ca3af'} fontSize={10} />
+                <YAxis stroke={isDark ? '#71717a' : '#9ca3af'} fontSize={10} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: isDark ? '#18181b' : '#fff',
+                    border: isDark ? '1px solid #3f3f46' : '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '10px'
+                  }}
+                  labelStyle={{ color: isDark ? '#fff' : '#000' }}
+                />
+                <Line type="monotone" dataKey="sales" stroke="#f97316" strokeWidth={2} dot={{ r: 2 }} name="Sales" />
+                <Line type="monotone" dataKey="consulting" stroke="#3b82f6" strokeWidth={2} dot={{ r: 2 }} name="Projects" />
+              </LineChart>
+            </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={180} className="hidden md:block">
               <LineChart data={monthlyTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#3f3f46' : '#e5e7eb'} />
                 <XAxis dataKey="month" stroke={isDark ? '#71717a' : '#9ca3af'} fontSize={12} />
@@ -449,14 +481,14 @@ const AdminDashboard = () => {
                 <Line type="monotone" dataKey="consulting" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6' }} name="Projects" />
               </LineChart>
             </ResponsiveContainer>
-            <div className="flex justify-center gap-6 mt-2">
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>Sales Leads</span>
+            <div className="flex justify-center gap-4 md:gap-6 mt-2">
+              <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-orange-500"></div>
+                <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>Sales</span>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>Consulting Projects</span>
+              <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-blue-500"></div>
+                <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>Projects</span>
               </div>
             </div>
           </CardContent>
@@ -464,54 +496,54 @@ const AdminDashboard = () => {
 
         {/* Hot Leads */}
         <LockableCard 
-          className={`col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-red-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-red-50 border-zinc-200'}`}
           cardId="hot-leads"
           isDark={isDark}
           title="Hot Leads"
         >
-          <CardContent className="pt-4 h-full flex flex-col justify-between">
-            <Flame className="w-6 h-6 text-red-500" />
+          <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
+            <Flame className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
             <div>
-              <p className={`text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+              <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                 {stats.sales?.temperature?.hot || 47}
               </p>
-              <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Hot Leads</p>
+              <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Hot Leads</p>
             </div>
           </CardContent>
         </LockableCard>
 
         {/* Closed Deals */}
         <LockableCard 
-          className={`col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-green-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-green-50 border-zinc-200'}`}
           cardId="closed-deals"
           isDark={isDark}
           title="Closed This Month"
         >
-          <CardContent className="pt-4 h-full flex flex-col justify-between">
-            <CheckCircle className="w-6 h-6 text-green-500" />
+          <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
+            <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
             <div>
-              <p className={`text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+              <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                 {stats.sales?.closures?.this_month || 12}
               </p>
-              <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Closed This Month</p>
+              <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Closed This Month</p>
             </div>
           </CardContent>
         </LockableCard>
 
         {/* On Leave */}
         <LockableCard 
-          className={`col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-amber-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-amber-50 border-zinc-200'}`}
           cardId="on-leave"
           isDark={isDark}
           title="On Leave Today"
         >
-          <CardContent className="pt-4 h-full flex flex-col justify-between">
-            <Users className={`w-6 h-6 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+          <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
+            <Users className={`w-5 h-5 md:w-6 md:h-6 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
             <div>
-              <p className={`text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+              <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                 {hrStats.onLeave || 7}
               </p>
-              <p className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>On Leave Today</p>
+              <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>On Leave Today</p>
             </div>
           </CardContent>
         </LockableCard>
