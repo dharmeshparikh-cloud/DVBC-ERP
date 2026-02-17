@@ -193,7 +193,7 @@ class TestNonConsultingOnsiteRejected:
     
     def test_non_consulting_cannot_use_onsite(self, hr_employee_token):
         """Verify non-consulting employee cannot select onsite"""
-        test_date = (datetime.now() + timedelta(days=103)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+3)).strftime("%Y-%m-%d")
         
         response = requests.post(
             f"{BASE_URL}/api/my/check-in",
