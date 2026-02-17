@@ -286,7 +286,7 @@ const WorkflowPage = () => {
       </div>
 
       {/* Workflow Steps */}
-      <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+      <Card className="border-zinc-200 dark:border-zinc-800 !bg-white dark:!bg-zinc-900">
         <CardHeader className="border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
