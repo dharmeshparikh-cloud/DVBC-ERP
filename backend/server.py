@@ -10436,7 +10436,7 @@ async def reject_expense(
             "status": "rejected",
             "rejected_at": datetime.now(timezone.utc).isoformat(),
             "rejected_by": current_user.id,
-            "rejected_by_name": current_user.name,
+            "rejected_by_name": current_user.email,
             "rejection_reason": reason,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
