@@ -84,7 +84,7 @@ const WORKFLOWS = {
     title: 'Invoice to Collection',
     subtitle: 'Revenue Collection Flow',
     color: 'amber',
-    icon: FileInvoice,
+    icon: Receipt,
     steps: [
       { id: 'generate', title: 'Invoice Generated', description: 'Create from agreement', icon: FileText, link: '/invoices', module: 'Finance' },
       { id: 'review', title: 'Review & Approve', description: 'Finance team review', icon: CheckCircle, link: '/invoices', module: 'Finance' },
