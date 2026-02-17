@@ -130,6 +130,56 @@ const WORKFLOWS = {
       { id: 'reports', title: 'Reports', description: 'Financial reports', icon: BarChart3, link: '/reports', module: 'Finance' },
       { id: 'dashboard', title: 'Dashboard', description: 'Executive view', icon: TrendingUp, link: '/dashboard', module: 'Admin' },
     ]
+  },
+  client_onboarding: {
+    id: 'client_onboarding',
+    title: 'Client Onboarding',
+    subtitle: 'New Client Setup Flow',
+    color: 'teal',
+    icon: Building2,
+    steps: [
+      { id: 'agreement_signed', title: 'Agreement Signed', description: 'Contract finalized', icon: FileCheck, link: '/agreements', module: 'Sales' },
+      { id: 'client_creation', title: 'Client Creation', description: 'Add to client master', icon: Building2, link: '/clients', module: 'Admin' },
+      { id: 'spoc_setup', title: 'SPOC Setup', description: 'Define client contacts', icon: Users, link: '/clients', module: 'Admin' },
+      { id: 'access_setup', title: 'Access Setup', description: 'Portal/system access', icon: Shield, link: '/clients', module: 'Admin' },
+      { id: 'kickoff_schedule', title: 'Kickoff Meeting', description: 'Schedule intro call', icon: Calendar, link: '/meetings', module: 'Consulting' },
+      { id: 'team_intro', title: 'Team Introduction', description: 'Present consulting team', icon: Users, link: '/projects', module: 'Consulting' },
+      { id: 'doc_handover', title: 'Document Handover', description: 'Share project docs', icon: FileText, link: '/projects', module: 'Consulting' },
+      { id: 'onboarding_complete', title: 'Onboarding Complete', description: 'Client fully setup', icon: CheckCircle, link: '/clients', module: 'Admin' },
+    ]
+  },
+  sow_change_request: {
+    id: 'sow_change_request',
+    title: 'SOW / Change Request',
+    subtitle: 'Scope Change Management',
+    color: 'amber',
+    icon: GitBranch,
+    steps: [
+      { id: 'change_identified', title: 'Change Identified', description: 'New requirement/scope', icon: Target, link: '/projects', module: 'Consulting' },
+      { id: 'impact_analysis', title: 'Impact Analysis', description: 'Effort & cost assessment', icon: Calculator, link: '/projects', module: 'Consulting' },
+      { id: 'cr_draft', title: 'CR Draft', description: 'Document change request', icon: FileText, link: '/proposals', module: 'Sales' },
+      { id: 'pricing_update', title: 'Pricing Update', description: 'Revised commercial', icon: DollarSign, link: '/pricing-plans', module: 'Sales' },
+      { id: 'client_approval', title: 'Client Approval', description: 'Get sign-off', icon: UserCheck, link: '/agreements', module: 'Sales' },
+      { id: 'agreement_amendment', title: 'Agreement Amendment', description: 'Update contract', icon: FileCheck, link: '/agreements', module: 'Sales' },
+      { id: 'team_update', title: 'Team Update', description: 'Inform delivery team', icon: Bell, link: '/projects', module: 'Consulting' },
+      { id: 'execution', title: 'Execute Change', description: 'Deliver updated scope', icon: Play, link: '/projects', module: 'Consulting' },
+    ]
+  },
+  bank_details_change: {
+    id: 'bank_details_change',
+    title: 'Bank Details Change',
+    subtitle: 'Employee Bank Update Flow',
+    color: 'rose',
+    icon: CreditCard,
+    steps: [
+      { id: 'employee_request', title: 'Employee Request', description: 'Submit change with proof', icon: Upload, link: '/my-bank-details', module: 'HR' },
+      { id: 'hr_review', title: 'HR Review', description: 'Verify documents', icon: UserCheck, link: '/hr/approvals', module: 'HR' },
+      { id: 'hr_approval', title: 'HR Approval', description: 'First level sign-off', icon: CheckCircle, link: '/hr/approvals', module: 'HR' },
+      { id: 'admin_review', title: 'Admin Review', description: 'Final verification', icon: Shield, link: '/approvals', module: 'Admin' },
+      { id: 'admin_approval', title: 'Admin Approval', description: 'Final sign-off', icon: CheckCircle, link: '/approvals', module: 'Admin' },
+      { id: 'system_update', title: 'System Update', description: 'Update bank details', icon: RefreshCw, link: '/employees', module: 'Admin' },
+      { id: 'employee_notify', title: 'Employee Notified', description: 'Confirmation sent', icon: Bell, link: '/my-bank-details', module: 'HR' },
+    ]
   }
 };
 
