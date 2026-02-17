@@ -101,6 +101,7 @@ const HRLayout = () => {
     { name: 'Team Workload', href: '/hr/team-workload', icon: Briefcase },
     { name: 'Staffing Requests', href: '/hr/staffing-requests', icon: AlertCircle },
     { name: 'Performance Dashboard', href: '/hr/performance-dashboard', icon: BarChart3 },
+    { name: 'Attendance Approvals', href: '/hr/attendance-approvals', icon: ClipboardCheck },
   ];
 
   // Self Service Section
