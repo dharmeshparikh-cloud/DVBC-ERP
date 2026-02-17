@@ -191,56 +191,52 @@ const HRLayout = () => {
           {/* Dashboard */}
           <NavLink item={{ name: 'Dashboard', href: '/hr', icon: LayoutDashboard }} />
 
-          {sidebarOpen && (
-            <>
-              {/* Employee Management */}
-              <div className="pt-4">
-                <SectionHeader title="People" section="employees" icon={Users} />
-                {expanded.employees && (
-                  <div className="mt-1 space-y-0.5">
-                    {employeeItems.map(item => <NavLink key={item.name} item={item} />)}
-                  </div>
-                )}
+          {/* Employee Management */}
+          <div className="pt-4">
+            <SectionHeader title="People" section="employees" icon={Users} />
+            {expanded.employees && (
+              <div className="mt-1 space-y-0.5">
+                {employeeItems.map(item => <NavLink key={item.name} item={item} />)}
               </div>
+            )}
+          </div>
 
-              {/* HR Operations */}
-              <div className="pt-4">
-                <SectionHeader title="Operations" section="operations" icon={ClipboardCheck} />
-                {expanded.operations && (
-                  <div className="mt-1 space-y-0.5">
-                    {operationsItems.map(item => <NavLink key={item.name} item={item} />)}
-                  </div>
-                )}
+          {/* HR Operations */}
+          <div className="pt-4">
+            <SectionHeader title="Operations" section="operations" icon={ClipboardCheck} />
+            {expanded.operations && (
+              <div className="mt-1 space-y-0.5">
+                {operationsItems.map(item => <NavLink key={item.name} item={item} />)}
               </div>
+            )}
+          </div>
 
-              {/* Team View - HR Manager Only */}
-              {isHRManager && (
-                <div className="pt-4">
-                  <SectionHeader title="Team View" section="teamView" icon={Briefcase} />
-                  {expanded.teamView && (
-                    <div className="mt-1 space-y-0.5">
-                      {teamViewItems.map(item => <NavLink key={item.name} item={item} />)}
-                    </div>
-                  )}
+          {/* Team View - HR Manager Only */}
+          {isHRManager && (
+            <div className="pt-4">
+              <SectionHeader title="Team View" section="teamView" icon={Briefcase} />
+              {expanded.teamView && (
+                <div className="mt-1 space-y-0.5">
+                  {teamViewItems.map(item => <NavLink key={item.name} item={item} />)}
                 </div>
               )}
-
-              {/* Self Service */}
-              <div className="pt-4">
-                <SectionHeader title="Self Service" section="selfService" icon={FileText} />
-                {expanded.selfService && (
-                  <div className="mt-1 space-y-0.5">
-                    {selfServiceItems.map(item => <NavLink key={item.name} item={item} />)}
-                  </div>
-                )}
-              </div>
-
-              {/* Reports */}
-              <div className="pt-4">
-                <NavLink item={{ name: 'HR Reports', href: '/hr/reports', icon: BarChart3 }} />
-              </div>
-            </>
+            </div>
           )}
+
+          {/* Self Service */}
+          <div className="pt-4">
+            <SectionHeader title="Self Service" section="selfService" icon={FileText} />
+            {expanded.selfService && (
+              <div className="mt-1 space-y-0.5">
+                {selfServiceItems.map(item => <NavLink key={item.name} item={item} />)}
+              </div>
+            )}
+          </div>
+
+          {/* Reports */}
+          <div className="pt-4">
+            <NavLink item={{ name: 'HR Reports', href: '/hr/reports', icon: BarChart3 }} />
+          </div>
         </nav>
 
         {/* User Section */}
