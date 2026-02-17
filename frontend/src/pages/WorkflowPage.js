@@ -145,6 +145,9 @@ const GRADIENT_COLORS = {
   blue: 'from-blue-500 to-indigo-500',
   emerald: 'from-emerald-500 to-teal-500',
   violet: 'from-violet-500 to-purple-500',
+  teal: 'from-teal-500 to-cyan-500',
+  rose: 'from-rose-500 to-pink-500',
+  amber: 'from-amber-500 to-yellow-500',
 };
 
 const WorkflowPage = () => {
