@@ -13806,6 +13806,250 @@ async def download_postman_collection():
         media_type="application/json")
 
 
+# ============== EMPLOYEE BANK DETAILS CHANGE REQUEST ==============
+
+@api_router.get("/my/profile")
+async def get_my_profile(current_user: dict = Depends(get_current_user)):
+    """Get current user's employee profile including bank details"""
+    employee = db.employees.find_one({"user_id": str(current_user["_id"])}, {"_id": 0})
+    if not employee:
+        # Try finding by email
+        employee = db.employees.find_one({"work_email": current_user.get("email")}, {"_id": 0})
+    return employee or {}
+
+
+@api_router.get("/my/bank-change-requests")
+async def get_my_bank_change_requests(current_user: dict = Depends(get_current_user)):
+    """Get all bank detail change requests for current user"""
+    employee = db.employees.find_one({"user_id": str(current_user["_id"])})
+    if not employee:
+        employee = db.employees.find_one({"work_email": current_user.get("email")})
+    if not employee:
+        return []
+    
+    requests = list(db.bank_change_requests.find(
+        {"employee_id": str(employee["_id"])},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(10))
+    return requests
+
+
+@api_router.post("/my/bank-change-request")
+async def submit_bank_change_request(
+    request_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Submit a bank details change request"""
+    employee = db.employees.find_one({"user_id": str(current_user["_id"])})
+    if not employee:
+        employee = db.employees.find_one({"work_email": current_user.get("email")})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee profile not found")
+    
+    # Check for pending requests
+    existing_pending = db.bank_change_requests.find_one({
+        "employee_id": str(employee["_id"]),
+        "status": {"$in": ["pending_hr", "pending_admin"]}
+    })
+    if existing_pending:
+        raise HTTPException(status_code=400, detail="You already have a pending bank change request")
+    
+    new_request = {
+        "employee_id": str(employee["_id"]),
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}",
+        "employee_code": employee.get("employee_code", ""),
+        "current_bank_details": employee.get("bank_details", {}),
+        "new_bank_details": request_data.get("new_bank_details", {}),
+        "proof_document": request_data.get("proof_document"),
+        "proof_filename": request_data.get("proof_filename"),
+        "reason": request_data.get("reason", ""),
+        "status": "pending_hr",
+        "hr_approved_by": None,
+        "hr_approved_at": None,
+        "admin_approved_by": None,
+        "admin_approved_at": None,
+        "rejection_reason": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    db.bank_change_requests.insert_one(new_request)
+    
+    # Create notification for HR
+    create_notification(
+        db, "bank_change_request",
+        f"Bank details change request from {new_request['employee_name']}",
+        "/hr/approvals",
+        ["hr_manager", "hr_executive"],
+        None
+    )
+    
+    return {"message": "Bank details change request submitted successfully"}
+
+
+@api_router.get("/hr/bank-change-requests")
+async def get_hr_bank_change_requests(
+    status: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get bank change requests for HR review"""
+    if current_user["role"] not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {}
+    if status:
+        query["status"] = status
+    else:
+        query["status"] = "pending_hr"
+    
+    requests = list(db.bank_change_requests.find(query, {"_id": 0}).sort("created_at", -1))
+    return requests
+
+
+@api_router.post("/hr/bank-change-request/{employee_id}/approve")
+async def hr_approve_bank_change(
+    employee_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """HR approves bank change request - moves to admin approval"""
+    if current_user["role"] not in ["hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can approve")
+    
+    result = db.bank_change_requests.update_one(
+        {"employee_id": employee_id, "status": "pending_hr"},
+        {"$set": {
+            "status": "pending_admin",
+            "hr_approved_by": current_user.get("email"),
+            "hr_approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Notify admin
+    req = db.bank_change_requests.find_one({"employee_id": employee_id})
+    create_notification(
+        db, "bank_change_admin_review",
+        f"Bank change request pending admin approval: {req.get('employee_name', '')}",
+        "/approvals",
+        ["admin"],
+        None
+    )
+    
+    return {"message": "Request approved by HR, pending admin approval"}
+
+
+@api_router.post("/hr/bank-change-request/{employee_id}/reject")
+async def hr_reject_bank_change(
+    employee_id: str,
+    rejection_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """HR rejects bank change request"""
+    if current_user["role"] not in ["hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can reject")
+    
+    result = db.bank_change_requests.update_one(
+        {"employee_id": employee_id, "status": "pending_hr"},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": rejection_data.get("reason", "Rejected by HR"),
+            "hr_approved_by": current_user.get("email"),
+            "hr_approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    return {"message": "Request rejected"}
+
+
+@api_router.get("/admin/bank-change-requests")
+async def get_admin_bank_change_requests(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get bank change requests pending admin approval"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    requests = list(db.bank_change_requests.find(
+        {"status": "pending_admin"},
+        {"_id": 0}
+    ).sort("created_at", -1))
+    return requests
+
+
+@api_router.post("/admin/bank-change-request/{employee_id}/approve")
+async def admin_approve_bank_change(
+    employee_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Admin final approval - updates employee bank details"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    request = db.bank_change_requests.find_one({
+        "employee_id": employee_id,
+        "status": "pending_admin"
+    })
+    
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Update employee bank details
+    db.employees.update_one(
+        {"_id": ObjectId(employee_id)},
+        {"$set": {
+            "bank_details": request["new_bank_details"],
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update request status
+    db.bank_change_requests.update_one(
+        {"employee_id": employee_id, "status": "pending_admin"},
+        {"$set": {
+            "status": "approved",
+            "admin_approved_by": current_user.get("email"),
+            "admin_approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Bank details updated successfully"}
+
+
+@api_router.post("/admin/bank-change-request/{employee_id}/reject")
+async def admin_reject_bank_change(
+    employee_id: str,
+    rejection_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Admin rejects bank change request"""
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    result = db.bank_change_requests.update_one(
+        {"employee_id": employee_id, "status": "pending_admin"},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": rejection_data.get("reason", "Rejected by Admin"),
+            "admin_approved_by": current_user.get("email"),
+            "admin_approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    return {"message": "Request rejected"}
+
+
 api_router.include_router(masters_router.router)
 api_router.include_router(sow_masters_router.router)
 api_router.include_router(enhanced_sow_router.router)
