@@ -12337,6 +12337,11 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "date": date_str,
         "status": "present",
         "work_location": work_location,
+        # Client info for onsite visits
+        "client_id": client_id if work_location == "onsite" else None,
+        "client_name": client_name if work_location == "onsite" else None,
+        "project_id": project_id if work_location == "onsite" else None,
+        "project_name": project_name if work_location == "onsite" else None,
         "approval_status": approval_status,
         "approval_note": approval_note,
         "justification": data.get("justification", ""),
