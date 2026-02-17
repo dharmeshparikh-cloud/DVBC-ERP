@@ -472,7 +472,8 @@ class TestCTCDesignerBackend:
             "employee_id": test_employee["id"],
             "annual_ctc": 1100000,
             "effective_month": "2027-07",
-            "remarks": "TEST_NOTIFICATION_CHECK"
+            "remarks": "TEST_NOTIFICATION_CHECK",
+            "components": {}
         }
         
         response = requests.post(
