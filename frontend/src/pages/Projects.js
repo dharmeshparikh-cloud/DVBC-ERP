@@ -79,34 +79,34 @@ const Projects = () => {
     <div data-testid="projects-page">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 dark:text-zinc-100 mb-2">
             Projects
           </h1>
-          <p className="text-zinc-500">Track your consulting projects and deliverables</p>
+          <p className="text-zinc-500 dark:text-zinc-400">Track your consulting projects and deliverables</p>
         </div>
         {canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button
                 data-testid="add-project-button"
-                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                className="bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-sm shadow-none"
               >
                 <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
                 Create Project
               </Button>
             </DialogTrigger>
-            <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+                <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 dark:text-zinc-100">
                   Create New Project
                 </DialogTitle>
-                <DialogDescription className="text-zinc-500">
+                <DialogDescription className="text-zinc-500 dark:text-zinc-400">
                   Set up a new consulting project with client details
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-zinc-950">
+                  <Label htmlFor="name" className="text-sm font-medium text-zinc-950 dark:text-zinc-100">
                     Project Name *
                   </Label>
                   <Input
@@ -115,12 +115,12 @@ const Projects = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
-                    className="rounded-sm border-zinc-200"
+                    className="rounded-sm border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="client_name" className="text-sm font-medium text-zinc-950">
+                  <Label htmlFor="client_name" className="text-sm font-medium text-zinc-950 dark:text-zinc-100">
                     Client Name *
                   </Label>
                   <Input
@@ -129,13 +129,13 @@ const Projects = () => {
                     value={formData.client_name}
                     onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
                     required
-                    className="rounded-sm border-zinc-200"
+                    className="rounded-sm border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="start_date" className="text-sm font-medium text-zinc-950">
+                    <Label htmlFor="start_date" className="text-sm font-medium text-zinc-950 dark:text-zinc-100">
                       Start Date *
                     </Label>
                     <Input
@@ -145,11 +145,11 @@ const Projects = () => {
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                       required
-                      className="rounded-sm border-zinc-200"
+                      className="rounded-sm border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="end_date" className="text-sm font-medium text-zinc-950">
+                    <Label htmlFor="end_date" className="text-sm font-medium text-zinc-950 dark:text-zinc-100">
                       End Date
                     </Label>
                     <Input
@@ -158,7 +158,7 @@ const Projects = () => {
                       type="date"
                       value={formData.end_date}
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      className="rounded-sm border-zinc-200"
+                      className="rounded-sm border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
                   </div>
                 </div>
@@ -167,7 +167,7 @@ const Projects = () => {
                   <div className="space-y-2">
                     <Label
                       htmlFor="total_meetings_committed"
-                      className="text-sm font-medium text-zinc-950"
+                      className="text-sm font-medium text-zinc-950 dark:text-zinc-100"
                     >
                       Meetings Committed
                     </Label>
@@ -180,11 +180,11 @@ const Projects = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, total_meetings_committed: e.target.value })
                       }
-                      className="rounded-sm border-zinc-200"
+                      className="rounded-sm border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="budget" className="text-sm font-medium text-zinc-950">
+                    <Label htmlFor="budget" className="text-sm font-medium text-zinc-950 dark:text-zinc-100">
                       Budget (₹)
                     </Label>
                     <Input
@@ -195,13 +195,13 @@ const Projects = () => {
                       step="0.01"
                       value={formData.budget}
                       onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                      className="rounded-sm border-zinc-200"
+                      className="rounded-sm border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium text-zinc-950">
+                  <Label htmlFor="notes" className="text-sm font-medium text-zinc-950 dark:text-zinc-100">
                     Notes
                   </Label>
                   <textarea
@@ -210,14 +210,14 @@ const Projects = () => {
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
-                    className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                    className="w-full px-3 py-2 rounded-sm border border-zinc-200 dark:border-zinc-700 bg-transparent dark:bg-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-950 dark:focus:ring-zinc-400 text-sm"
                   />
                 </div>
 
                 <Button
                   type="submit"
                   data-testid="submit-project-button"
-                  className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                  className="w-full bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-sm shadow-none"
                 >
                   Create Project
                 </Button>
