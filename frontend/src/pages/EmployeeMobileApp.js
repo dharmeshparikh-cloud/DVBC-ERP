@@ -278,34 +278,82 @@ const EmployeeMobileApp = () => {
 
   // Handle Expense Submission
   const handleSubmitExpense = async () => {
-    if (!expenseForm.description || !expenseForm.amount) {
-      toast.error('Please fill in description and amount');
+    if (expenseForm.line_items.length === 0) {
+      toast.error('Please add at least one expense item');
       return;
     }
     setLoading(true);
     try {
-      await axios.post(`${API}/expenses/quick`, {
-        description: expenseForm.description,
-        total_amount: parseFloat(expenseForm.amount),
-        category: expenseForm.category,
-        expense_date: expenseForm.expense_date,
-        remarks: expenseForm.remarks
+      await axios.post(`${API}/expenses`, {
+        client_id: expenseForm.client_id || null,
+        client_name: expenseForm.client_name || '',
+        project_id: expenseForm.project_id || null,
+        project_name: expenseForm.project_name || '',
+        is_office_expense: expenseForm.is_office_expense,
+        notes: expenseForm.notes,
+        line_items: expenseForm.line_items.map(item => ({
+          ...item,
+          date: item.date
+        }))
       });
-      toast.success('Expense submitted successfully!');
+      toast.success('Expense created! Submit it for approval.');
       setShowExpenseModal(false);
-      setExpenseForm({
-        description: '',
-        amount: '',
-        category: 'travel',
-        expense_date: new Date().toISOString().split('T')[0],
-        remarks: ''
-      });
+      resetExpenseForm();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit expense');
+      toast.error(error.response?.data?.detail || 'Failed to create expense');
     } finally {
       setLoading(false);
     }
+  };
+
+  const addLineItem = () => {
+    if (!lineItemForm.description || !lineItemForm.amount) {
+      toast.error('Please fill description and amount');
+      return;
+    }
+    setExpenseForm({
+      ...expenseForm,
+      line_items: [...expenseForm.line_items, {
+        ...lineItemForm,
+        amount: parseFloat(lineItemForm.amount)
+      }]
+    });
+    setLineItemForm({
+      category: 'local_conveyance',
+      description: '',
+      amount: '',
+      date: new Date().toISOString().split('T')[0]
+    });
+  };
+
+  const removeLineItem = (index) => {
+    setExpenseForm({
+      ...expenseForm,
+      line_items: expenseForm.line_items.filter((_, i) => i !== index)
+    });
+  };
+
+  const resetExpenseForm = () => {
+    setExpenseForm({
+      is_office_expense: true,
+      client_id: '',
+      client_name: '',
+      project_id: '',
+      project_name: '',
+      notes: '',
+      line_items: []
+    });
+    setLineItemForm({
+      category: 'local_conveyance',
+      description: '',
+      amount: '',
+      date: new Date().toISOString().split('T')[0]
+    });
+  };
+
+  const calculateExpenseTotal = () => {
+    return expenseForm.line_items.reduce((sum, item) => sum + item.amount, 0);
   };
 
   // Handle Leave Application
