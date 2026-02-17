@@ -926,6 +926,56 @@ const EmployeeMobileApp = () => {
       {/* Check-in Modal */}
       {showCheckInModal && <CheckInModal />}
 
+      {/* Check-out Modal */}
+      {showCheckOutModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 animate-slide-up">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <LogOut className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-zinc-900">Check Out</h2>
+              <p className="text-sm text-zinc-500 mt-1">Confirm you want to end your work day</p>
+            </div>
+            
+            {checkInStatus && (
+              <div className="p-4 rounded-2xl bg-zinc-50 mb-6">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-zinc-500">Check-in time</span>
+                  <span className="font-medium text-zinc-900">
+                    {checkInStatus.check_in_time ? new Date(checkInStatus.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-500">Location</span>
+                  <span className="font-medium text-zinc-900">
+                    {checkInStatus.work_location === 'in_office' ? 'Office' : 'Client Site'}
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowCheckOutModal(false)}
+                className="flex-1 py-3 bg-zinc-100 text-zinc-700 rounded-2xl font-semibold"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleCheckOut}
+                disabled={loading}
+                className="flex-1 py-3 bg-red-600 text-white rounded-2xl font-semibold flex items-center justify-center gap-2"
+                data-testid="confirm-checkout-btn"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+                Check Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes slide-up {
           from { transform: translateY(100%); }
