@@ -251,6 +251,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="permission-manager" element={<PermissionManager />} />
         <Route path="admin-dashboard-mockups" element={<AdminDashboardMockups />} />
         <Route path="admin-dashboard" element={<AdminDashboard />} />
+        <Route path="office-locations" element={<OfficeLocationsSettings />} />
         <Route path="flow-diagram" element={<FlowDiagram />} />
         {/* HR Features accessible to Admin in Main ERP */}
         <Route path="team-workload" element={<HRTeamWorkload />} />
