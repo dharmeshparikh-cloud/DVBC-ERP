@@ -536,7 +536,7 @@ class TestDisabledEmployeeCannotCheckin:
         assert disable_response.status_code == 200
         
         # Now try to check-in as the disabled employee
-        test_date = (datetime.now() + timedelta(days=207)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+17)).strftime("%Y-%m-%d")
         checkin_response = requests.post(
             f"{BASE_URL}/api/my/check-in",
             headers={"Authorization": f"Bearer {hr_employee_token}", "Content-Type": "application/json"},
