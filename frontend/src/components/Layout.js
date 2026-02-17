@@ -5,12 +5,13 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './ui/button';
 import NotificationBell from './NotificationBell';
 import { sanitizeDisplayText } from '../utils/sanitize';
+import ChangePasswordDialog from './ChangePasswordDialog';
 import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
   User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronDown,
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings,
-  Sun, Moon, TrendingUp, Car, BookOpen
+  Sun, Moon, TrendingUp, Car, BookOpen, Key
 } from 'lucide-react';
 
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
