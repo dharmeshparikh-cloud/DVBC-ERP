@@ -12189,95 +12189,186 @@ async def generate_bulk_salary_slips(data: dict, current_user: User = Depends(ge
 
 # ==================== CTC STRUCTURE & APPROVAL ====================
 
-def calculate_ctc_breakdown(annual_ctc: float, retention_bonus: float = 0, retention_vesting_months: int = 12) -> dict:
+# Default CTC component master configuration
+DEFAULT_CTC_COMPONENTS = [
+    {"key": "basic", "name": "Basic Salary", "calc_type": "percentage_of_ctc", "default_value": 40, "is_mandatory": True, "is_earning": True, "is_taxable": True, "enabled_by_default": True, "order": 1},
+    {"key": "hra", "name": "House Rent Allowance", "calc_type": "percentage_of_basic", "default_value": 50, "is_mandatory": False, "is_earning": True, "is_taxable": True, "enabled_by_default": True, "order": 2},
+    {"key": "da", "name": "Dearness Allowance", "calc_type": "percentage_of_basic", "default_value": 10, "is_mandatory": False, "is_earning": True, "is_taxable": True, "enabled_by_default": False, "order": 3},
+    {"key": "conveyance", "name": "Conveyance Allowance", "calc_type": "fixed_monthly", "default_value": 1600, "is_mandatory": False, "is_earning": True, "is_taxable": False, "enabled_by_default": True, "order": 4},
+    {"key": "medical", "name": "Medical Allowance", "calc_type": "fixed_monthly", "default_value": 1250, "is_mandatory": False, "is_earning": True, "is_taxable": False, "enabled_by_default": True, "order": 5},
+    {"key": "special_allowance", "name": "Special Allowance", "calc_type": "balance", "default_value": 0, "is_mandatory": True, "is_earning": True, "is_taxable": True, "enabled_by_default": True, "order": 6, "is_balance": True},
+    {"key": "pf_employer", "name": "PF (Employer Contribution)", "calc_type": "percentage_of_basic", "default_value": 12, "is_mandatory": False, "is_earning": False, "is_taxable": False, "is_deferred": True, "enabled_by_default": False, "order": 7},
+    {"key": "pf_employee", "name": "PF (Employee Contribution)", "calc_type": "percentage_of_basic", "default_value": 12, "is_mandatory": False, "is_earning": False, "is_taxable": False, "is_deduction": True, "enabled_by_default": False, "order": 8},
+    {"key": "esic_employer", "name": "ESIC (Employer)", "calc_type": "percentage_of_gross", "default_value": 3.25, "is_mandatory": False, "is_earning": False, "is_taxable": False, "is_deferred": True, "enabled_by_default": False, "order": 9},
+    {"key": "esic_employee", "name": "ESIC (Employee)", "calc_type": "percentage_of_gross", "default_value": 0.75, "is_mandatory": False, "is_earning": False, "is_taxable": False, "is_deduction": True, "enabled_by_default": False, "order": 10},
+    {"key": "gratuity", "name": "Gratuity", "calc_type": "percentage_of_basic", "default_value": 4.81, "is_mandatory": False, "is_earning": False, "is_taxable": False, "is_deferred": True, "enabled_by_default": False, "order": 11},
+    {"key": "retention_bonus", "name": "Retention Bonus", "calc_type": "fixed_annual", "default_value": 0, "is_mandatory": False, "is_earning": True, "is_taxable": True, "is_optional": True, "enabled_by_default": False, "order": 12, "vesting_months": 12},
+    {"key": "professional_tax", "name": "Professional Tax", "calc_type": "fixed_monthly", "default_value": 200, "is_mandatory": False, "is_earning": False, "is_taxable": False, "is_deduction": True, "enabled_by_default": False, "order": 13},
+]
+
+async def get_ctc_component_master():
+    """Get CTC component master configuration from DB or return defaults"""
+    config = await db.ctc_config.find_one({"type": "component_master"}, {"_id": 0})
+    if config:
+        return config.get("components", DEFAULT_CTC_COMPONENTS)
+    return DEFAULT_CTC_COMPONENTS
+
+
+def calculate_ctc_breakdown_dynamic(annual_ctc: float, component_config: list, retention_bonus: float = 0, retention_vesting_months: int = 12) -> dict:
     """
-    Calculate standard Indian CTC breakdown.
-    Components: Basic (40%), HRA (50% of Basic), DA (10% of Basic), 
-    Conveyance, Medical, Special Allowance (balance), PF (12% of Basic), Gratuity (4.81% of Basic)
-    Optional: Retention Bonus (paid after vesting period)
+    Calculate CTC breakdown dynamically based on enabled components.
+    component_config: list of dicts with keys: key, enabled, value (percentage or fixed amount)
     """
-    # Standard percentages
-    basic_pct = 40  # 40% of CTC
-    hra_pct = 50    # 50% of Basic
-    da_pct = 10     # 10% of Basic
-    pf_pct = 12     # 12% of Basic (employer contribution)
-    gratuity_pct = 4.81  # 4.81% of Basic
+    components = {}
+    basic_annual = 0
+    gross_monthly = 0
+    total_deferred = 0
+    total_deductions = 0
     
-    # Fixed allowances (annual)
-    conveyance_annual = 19200  # ₹1600/month
-    medical_annual = 15000     # ₹1250/month
+    # First pass: Calculate Basic (required for other calculations)
+    for comp in component_config:
+        if not comp.get("enabled", True):
+            continue
+        if comp["key"] == "basic":
+            pct = comp.get("value", 40)
+            basic_annual = round(annual_ctc * pct / 100, 2)
+            basic_monthly = round(basic_annual / 12, 2)
+            components["basic"] = {
+                "key": "basic", "name": comp.get("name", "Basic Salary"), 
+                "calc_type": "percentage_of_ctc", "value": pct,
+                "annual": basic_annual, "monthly": basic_monthly, 
+                "is_taxable": True, "is_earning": True, "enabled": True
+            }
+            gross_monthly += basic_monthly
+            break
     
-    # Calculate Basic
-    basic_annual = round(annual_ctc * basic_pct / 100, 2)
-    basic_monthly = round(basic_annual / 12, 2)
-    
-    # Calculate HRA (50% of Basic)
-    hra_annual = round(basic_annual * hra_pct / 100, 2)
-    hra_monthly = round(hra_annual / 12, 2)
-    
-    # Calculate DA (10% of Basic)
-    da_annual = round(basic_annual * da_pct / 100, 2)
-    da_monthly = round(da_annual / 12, 2)
-    
-    # Fixed allowances
-    conveyance_monthly = round(conveyance_annual / 12, 2)
-    medical_monthly = round(medical_annual / 12, 2)
-    
-    # PF Employer Contribution (12% of Basic)
-    pf_annual = round(basic_annual * pf_pct / 100, 2)
-    pf_monthly = round(pf_annual / 12, 2)
-    
-    # Gratuity (4.81% of Basic)
-    gratuity_annual = round(basic_annual * gratuity_pct / 100, 2)
-    gratuity_monthly = round(gratuity_annual / 12, 2)
-    
-    # Calculate Special Allowance as balance
-    allocated = basic_annual + hra_annual + da_annual + conveyance_annual + medical_annual + pf_annual + gratuity_annual + retention_bonus
-    special_allowance_annual = round(annual_ctc - allocated, 2)
-    special_allowance_monthly = round(special_allowance_annual / 12, 2)
-    
-    # If special allowance goes negative, adjust
-    if special_allowance_annual < 0:
-        special_allowance_annual = 0
-        special_allowance_monthly = 0
-    
-    # Monthly in-hand (excluding PF, Gratuity, Retention Bonus)
-    gross_monthly = basic_monthly + hra_monthly + da_monthly + conveyance_monthly + medical_monthly + special_allowance_monthly
-    
-    components = {
-        "basic": {
+    # If no basic defined, default to 40%
+    if basic_annual == 0:
+        basic_annual = round(annual_ctc * 40 / 100, 2)
+        basic_monthly = round(basic_annual / 12, 2)
+        components["basic"] = {
             "key": "basic", "name": "Basic Salary", "calc_type": "percentage_of_ctc",
-            "value": basic_pct, "annual": basic_annual, "monthly": basic_monthly, "is_taxable": True
-        },
-        "hra": {
-            "key": "hra", "name": "House Rent Allowance", "calc_type": "percentage_of_basic",
-            "value": hra_pct, "annual": hra_annual, "monthly": hra_monthly, "is_taxable": True
-        },
-        "da": {
-            "key": "da", "name": "Dearness Allowance", "calc_type": "percentage_of_basic",
-            "value": da_pct, "annual": da_annual, "monthly": da_monthly, "is_taxable": True
-        },
-        "conveyance": {
-            "key": "conveyance", "name": "Conveyance Allowance", "calc_type": "fixed",
-            "value": conveyance_annual, "annual": conveyance_annual, "monthly": conveyance_monthly, "is_taxable": False
-        },
-        "medical": {
-            "key": "medical", "name": "Medical Allowance", "calc_type": "fixed",
-            "value": medical_annual, "annual": medical_annual, "monthly": medical_monthly, "is_taxable": False
-        },
-        "special_allowance": {
+            "value": 40, "annual": basic_annual, "monthly": basic_monthly,
+            "is_taxable": True, "is_earning": True, "enabled": True
+        }
+        gross_monthly += basic_monthly
+    
+    # Calculate gross for ESIC calculation (before deferred components)
+    temp_gross = basic_annual
+    
+    # Second pass: Calculate all other components except balance
+    for comp in component_config:
+        if not comp.get("enabled", True) or comp["key"] == "basic" or comp.get("is_balance"):
+            continue
+        
+        key = comp["key"]
+        name = comp.get("name", key.replace("_", " ").title())
+        calc_type = comp.get("calc_type", "fixed_monthly")
+        value = comp.get("value", comp.get("default_value", 0))
+        is_earning = comp.get("is_earning", True)
+        is_deferred = comp.get("is_deferred", False)
+        is_deduction = comp.get("is_deduction", False)
+        
+        annual = 0
+        monthly = 0
+        
+        if calc_type == "percentage_of_ctc":
+            annual = round(annual_ctc * value / 100, 2)
+            monthly = round(annual / 12, 2)
+        elif calc_type == "percentage_of_basic":
+            annual = round(basic_annual * value / 100, 2)
+            monthly = round(annual / 12, 2)
+        elif calc_type == "percentage_of_gross":
+            # Use temp_gross for ESIC-type calculations
+            annual = round(temp_gross * value / 100, 2)
+            monthly = round(annual / 12, 2)
+        elif calc_type == "fixed_monthly":
+            monthly = round(value, 2)
+            annual = round(monthly * 12, 2)
+        elif calc_type == "fixed_annual":
+            annual = round(value, 2)
+            monthly = 0  # Paid as lump sum
+        
+        components[key] = {
+            "key": key, "name": name, "calc_type": calc_type, "value": value,
+            "annual": annual, "monthly": monthly,
+            "is_taxable": comp.get("is_taxable", True),
+            "is_earning": is_earning, "is_deferred": is_deferred,
+            "is_deduction": is_deduction, "enabled": True
+        }
+        
+        if comp.get("vesting_months"):
+            components[key]["vesting_months"] = comp["vesting_months"]
+            components[key]["is_optional"] = True
+        
+        if is_earning and not is_deferred:
+            gross_monthly += monthly
+            temp_gross += annual
+        elif is_deferred:
+            total_deferred += annual
+        elif is_deduction:
+            total_deductions += monthly
+    
+    # Handle retention bonus separately if provided
+    if retention_bonus > 0 and "retention_bonus" not in components:
+        components["retention_bonus"] = {
+            "key": "retention_bonus", "name": "Retention Bonus", "calc_type": "fixed_annual",
+            "value": retention_bonus, "annual": retention_bonus, "monthly": 0,
+            "is_taxable": True, "is_earning": True, "is_optional": True,
+            "vesting_months": retention_vesting_months, "enabled": True,
+            "note": f"Payable after {retention_vesting_months} months of service"
+        }
+        total_deferred += retention_bonus
+    
+    # Calculate Special Allowance as balance (if enabled)
+    balance_comp = next((c for c in component_config if c.get("is_balance") and c.get("enabled", True)), None)
+    if balance_comp or any(c.get("key") == "special_allowance" and c.get("enabled", True) for c in component_config):
+        # Sum all allocated amounts
+        allocated = sum(c["annual"] for c in components.values())
+        special_allowance_annual = round(annual_ctc - allocated, 2)
+        if special_allowance_annual < 0:
+            special_allowance_annual = 0
+        special_allowance_monthly = round(special_allowance_annual / 12, 2)
+        
+        components["special_allowance"] = {
             "key": "special_allowance", "name": "Special Allowance", "calc_type": "balance",
-            "value": 0, "annual": special_allowance_annual, "monthly": special_allowance_monthly, "is_taxable": True
-        },
-        "pf_employer": {
-            "key": "pf_employer", "name": "PF (Employer Contribution)", "calc_type": "percentage_of_basic",
-            "value": pf_pct, "annual": pf_annual, "monthly": pf_monthly, "is_taxable": False, "is_deferred": True
-        },
-        "gratuity": {
-            "key": "gratuity", "name": "Gratuity", "calc_type": "percentage_of_basic",
-            "value": gratuity_pct, "annual": gratuity_annual, "monthly": gratuity_monthly, "is_taxable": False, "is_deferred": True
+            "value": 0, "annual": special_allowance_annual, "monthly": special_allowance_monthly,
+            "is_taxable": True, "is_earning": True, "is_balance": True, "enabled": True
+        }
+        gross_monthly += special_allowance_monthly
+    
+    # Recalculate total deferred
+    total_deferred = sum(c["annual"] for c in components.values() if c.get("is_deferred") or c.get("is_optional"))
+    
+    return {
+        "components": components,
+        "summary": {
+            "annual_ctc": annual_ctc,
+            "gross_monthly": round(gross_monthly, 2),
+            "basic_annual": basic_annual,
+            "total_deferred_annual": round(total_deferred, 2),
+            "total_deductions_monthly": round(total_deductions, 2),
+            "in_hand_approx_monthly": round(gross_monthly - total_deductions, 2)
         }
     }
+
+
+# Legacy function for backward compatibility
+def calculate_ctc_breakdown(annual_ctc: float, retention_bonus: float = 0, retention_vesting_months: int = 12) -> dict:
+    """
+    Calculate standard Indian CTC breakdown (legacy - uses defaults).
+    """
+    default_config = [
+        {"key": "basic", "name": "Basic Salary", "calc_type": "percentage_of_ctc", "value": 40, "enabled": True, "is_earning": True},
+        {"key": "hra", "name": "House Rent Allowance", "calc_type": "percentage_of_basic", "value": 50, "enabled": True, "is_earning": True},
+        {"key": "da", "name": "Dearness Allowance", "calc_type": "percentage_of_basic", "value": 10, "enabled": True, "is_earning": True},
+        {"key": "conveyance", "name": "Conveyance Allowance", "calc_type": "fixed_monthly", "value": 1600, "enabled": True, "is_earning": True, "is_taxable": False},
+        {"key": "medical", "name": "Medical Allowance", "calc_type": "fixed_monthly", "value": 1250, "enabled": True, "is_earning": True, "is_taxable": False},
+        {"key": "special_allowance", "name": "Special Allowance", "calc_type": "balance", "value": 0, "enabled": True, "is_earning": True, "is_balance": True},
+        {"key": "pf_employer", "name": "PF (Employer Contribution)", "calc_type": "percentage_of_basic", "value": 12, "enabled": True, "is_earning": False, "is_deferred": True, "is_taxable": False},
+        {"key": "gratuity", "name": "Gratuity", "calc_type": "percentage_of_basic", "value": 4.81, "enabled": True, "is_earning": False, "is_deferred": True, "is_taxable": False},
+    ]
+    return calculate_ctc_breakdown_dynamic(annual_ctc, default_config, retention_bonus, retention_vesting_months)
     
     # Add retention bonus if provided
     if retention_bonus > 0:
