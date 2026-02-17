@@ -11087,15 +11087,103 @@ async def get_my_attendance(month: Optional[str] = None, current_user: User = De
     return {"records": records, "summary": summary, "employee": {"name": f"{emp['first_name']} {emp['last_name']}", "employee_id": emp["employee_id"], "department": emp.get("department", "")}}
 
 
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance between two coordinates in meters using Haversine formula"""
+    import math
+    R = 6371000  # Earth's radius in meters
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return R * c
+
+
+async def validate_checkin_location(emp: dict, geo_location: dict, work_location: str) -> dict:
+    """
+    Validate check-in location against approved locations.
+    Returns: {is_valid: bool, matched_location: str|None, all_approved_locations: list}
+    """
+    GEOFENCE_RADIUS = 500  # 500 meters
+    
+    lat = geo_location.get("latitude")
+    lon = geo_location.get("longitude")
+    
+    if not lat or not lon:
+        return {"is_valid": False, "matched_location": None, "reason": "Location not captured"}
+    
+    approved_locations = []
+    
+    # Get office locations
+    office_settings = await db.settings.find_one({"type": "office_locations"})
+    if office_settings and office_settings.get("locations"):
+        for loc in office_settings["locations"]:
+            approved_locations.append({
+                "name": loc.get("name", "Office"),
+                "type": "office",
+                "latitude": loc.get("latitude"),
+                "longitude": loc.get("longitude"),
+                "address": loc.get("address")
+            })
+    
+    # For consulting department employees, also get their assigned client locations
+    dept = emp.get("department", "").lower()
+    if dept in ["consulting", "delivery"]:
+        # Get projects assigned to this employee
+        projects = await db.projects.find({
+            "$or": [
+                {"team_members": {"$elemMatch": {"employee_id": emp["id"]}}},
+                {"project_manager_id": emp["id"]}
+            ]
+        }).to_list(100)
+        
+        # Get client locations from assigned projects
+        client_ids = list(set([p.get("client_id") for p in projects if p.get("client_id")]))
+        if client_ids:
+            clients = await db.clients.find({"id": {"$in": client_ids}}).to_list(100)
+            for client in clients:
+                if client.get("geo_coordinates"):
+                    approved_locations.append({
+                        "name": client.get("company_name", "Client"),
+                        "type": "client",
+                        "latitude": client["geo_coordinates"].get("latitude"),
+                        "longitude": client["geo_coordinates"].get("longitude"),
+                        "address": client.get("address")
+                    })
+    
+    # Check if current location matches any approved location
+    for loc in approved_locations:
+        if loc.get("latitude") and loc.get("longitude"):
+            distance = calculate_distance(lat, lon, loc["latitude"], loc["longitude"])
+            if distance <= GEOFENCE_RADIUS:
+                return {
+                    "is_valid": True,
+                    "matched_location": loc["name"],
+                    "location_type": loc["type"],
+                    "distance": round(distance),
+                    "approved_locations": approved_locations
+                }
+    
+    return {
+        "is_valid": False,
+        "matched_location": None,
+        "reason": "Location not within 500m of any approved location",
+        "approved_locations": approved_locations
+    }
+
+
 @api_router.post("/my/check-in")
 async def self_check_in(data: dict, current_user: User = Depends(get_current_user)):
     """
-    Self check-in for employees with GPS location capture.
-    Employees can check in once per day with their work location.
+    Self check-in for employees with mandatory selfie and GPS location.
+    - Validates location against office/client locations (500m radius)
+    - Requires selfie capture
+    - Auto-approves if location matches, else sends to HR for approval
+    - WFH is NOT allowed
     """
     emp = await _get_my_employee(current_user)
     
-    # Get today's date (or use provided date)
     date_str = data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     
     # Check if already checked in today
@@ -11103,68 +11191,221 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     if existing:
         raise HTTPException(status_code=400, detail="You have already checked in today")
     
-    # Validate work location
+    # Validate work location - WFH NOT allowed
     work_location = data.get("work_location", "in_office")
-    if work_location not in ["in_office", "onsite", "wfh"]:
-        raise HTTPException(status_code=400, detail="Invalid work location")
+    if work_location not in ["in_office", "onsite"]:
+        raise HTTPException(status_code=400, detail="Invalid work location. Only 'In Office' or 'On-Site' allowed.")
     
-    # Map work location to status
-    status = data.get("status", "present")
-    if work_location == "wfh" and status == "present":
-        status = "work_from_home"
+    # Mandatory selfie
+    selfie_data = data.get("selfie")
+    if not selfie_data:
+        raise HTTPException(status_code=400, detail="Selfie is mandatory for check-in")
     
-    # Build attendance record with geo-location
+    # Mandatory geo-location
+    geo_location = data.get("geo_location")
+    if not geo_location or not geo_location.get("latitude"):
+        raise HTTPException(status_code=400, detail="GPS location is mandatory for check-in")
+    
+    # Validate location against approved locations (geofencing)
+    location_validation = await validate_checkin_location(emp, geo_location, work_location)
+    
+    # Determine approval status
+    if location_validation["is_valid"]:
+        approval_status = "approved"
+        approval_note = f"Auto-approved: Within 500m of {location_validation['matched_location']}"
+    else:
+        approval_status = "pending_approval"
+        justification = data.get("justification", "")
+        if not justification:
+            raise HTTPException(
+                status_code=400, 
+                detail="You are not within 500m of any approved location. Please provide justification for HR approval."
+            )
+        approval_note = f"Pending HR approval: {location_validation.get('reason', 'Unknown location')}"
+    
+    # Build attendance record
     record = {
         "id": str(uuid.uuid4()),
         "employee_id": emp["id"],
+        "employee_name": f"{emp['first_name']} {emp['last_name']}",
+        "department": emp.get("department", ""),
         "date": date_str,
-        "status": status,
+        "status": "present",
         "work_location": work_location,
-        "remarks": data.get("remarks", "Self check-in"),
+        "approval_status": approval_status,
+        "approval_note": approval_note,
+        "justification": data.get("justification", ""),
+        "remarks": data.get("remarks", "Self check-in with selfie"),
         "check_in_method": "self_check_in",
         "check_in_time": datetime.now(timezone.utc).isoformat(),
-        "created_by": current_user.id,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    # Add geo-location if provided
-    geo_location = data.get("geo_location")
-    if geo_location:
-        record["geo_location"] = {
+        "selfie": selfie_data,  # Base64 encoded image
+        "geo_location": {
             "latitude": geo_location.get("latitude"),
             "longitude": geo_location.get("longitude"),
             "accuracy": geo_location.get("accuracy"),
             "address": geo_location.get("address"),
             "captured_at": geo_location.get("captured_at", datetime.now(timezone.utc).isoformat())
-        }
-        
-        # Optional: Validate location against office coordinates
-        # This can be extended to check if employee is within certain radius of office
-        # office_coords = await db.settings.find_one({"type": "office_locations"})
-        # if office_coords and work_location == "in_office":
-        #     # Verify employee is within acceptable distance of office
-        #     pass
+        },
+        "location_validation": {
+            "is_valid": location_validation["is_valid"],
+            "matched_location": location_validation.get("matched_location"),
+            "location_type": location_validation.get("location_type"),
+            "distance": location_validation.get("distance")
+        },
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
     
     await db.attendance.insert_one(record)
     
-    # Create notification for HR about check-in (optional - can be disabled)
-    # await db.notifications.insert_one({
-    #     "id": str(uuid.uuid4()),
-    #     "user_id": "hr_notifications",  # Would need HR user lookup
-    #     "message": f"{emp['first_name']} {emp['last_name']} checked in from {work_location}",
-    #     "type": "self_check_in",
-    #     "is_read": False,
-    #     "created_at": datetime.now(timezone.utc).isoformat()
-    # })
+    # If pending approval, create notification for HR
+    if approval_status == "pending_approval":
+        hr_users = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"id": 1}).to_list(50)
+        for hr_user in hr_users:
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": hr_user["id"],
+                "message": f"Attendance approval required: {emp['first_name']} {emp['last_name']} checked in from unknown location",
+                "type": "attendance_approval_required",
+                "reference_id": record["id"],
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
     
     return {
-        "message": "Check-in successful",
+        "message": "Check-in successful" if approval_status == "approved" else "Check-in submitted for HR approval",
         "id": record["id"],
         "date": date_str,
-        "status": status,
+        "status": "present",
         "work_location": work_location,
+        "approval_status": approval_status,
+        "matched_location": location_validation.get("matched_location"),
         "check_in_time": record["check_in_time"]
     }
+
+
+@api_router.get("/hr/pending-attendance-approvals")
+async def get_pending_attendance_approvals(current_user: User = Depends(get_current_user)):
+    """Get all attendance records pending HR approval"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="HR access required")
+    
+    records = await db.attendance.find(
+        {"approval_status": "pending_approval"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {"pending_approvals": records, "count": len(records)}
+
+
+@api_router.post("/hr/attendance-approval/{attendance_id}")
+async def approve_reject_attendance(
+    attendance_id: str, 
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve or reject attendance check-in"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="HR access required")
+    
+    action = data.get("action")  # "approve" or "reject"
+    hr_remarks = data.get("remarks", "")
+    
+    if action not in ["approve", "reject"]:
+        raise HTTPException(status_code=400, detail="Action must be 'approve' or 'reject'")
+    
+    record = await db.attendance.find_one({"id": attendance_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+    
+    new_status = "approved" if action == "approve" else "rejected"
+    
+    await db.attendance.update_one(
+        {"id": attendance_id},
+        {"$set": {
+            "approval_status": new_status,
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "hr_remarks": hr_remarks
+        }}
+    )
+    
+    # Notify employee
+    emp = await db.employees.find_one({"id": record["employee_id"]})
+    if emp:
+        user = await db.users.find_one({"email": emp.get("email")})
+        if user:
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": user["id"],
+                "message": f"Your attendance for {record['date']} has been {new_status} by HR",
+                "type": "attendance_approval_result",
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    return {"message": f"Attendance {new_status}", "attendance_id": attendance_id}
+
+
+@api_router.get("/settings/office-locations")
+async def get_office_locations(current_user: User = Depends(get_current_user)):
+    """Get configured office locations"""
+    settings = await db.settings.find_one({"type": "office_locations"})
+    if settings:
+        return {"locations": settings.get("locations", [])}
+    return {"locations": []}
+
+
+@api_router.post("/settings/office-locations")
+async def save_office_locations(data: dict, current_user: User = Depends(get_current_user)):
+    """Save office locations for geofencing (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    locations = data.get("locations", [])
+    
+    await db.settings.update_one(
+        {"type": "office_locations"},
+        {"$set": {
+            "type": "office_locations",
+            "locations": locations,
+            "updated_by": current_user.id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"message": "Office locations saved", "count": len(locations)}
+
+
+@api_router.put("/clients/{client_id}/geo-coordinates")
+async def update_client_geo_coordinates(
+    client_id: str, 
+    data: dict, 
+    current_user: User = Depends(get_current_user)
+):
+    """Update client's geo coordinates for geofencing"""
+    if current_user.role not in ["admin", "hr_manager", "sales_manager"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    result = await db.clients.update_one(
+        {"id": client_id},
+        {"$set": {
+            "geo_coordinates": {
+                "latitude": data.get("latitude"),
+                "longitude": data.get("longitude"),
+                "address": data.get("address")
+            },
+            "geo_updated_by": current_user.id,
+            "geo_updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    return {"message": "Client geo-coordinates updated"}
 
 
 @api_router.get("/my/leave-balance")
