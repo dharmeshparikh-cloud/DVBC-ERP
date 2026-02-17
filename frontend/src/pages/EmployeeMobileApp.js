@@ -1864,6 +1864,217 @@ const EmployeeMobileApp = () => {
         </div>
       )}
 
+      {/* Travel Claim Modal */}
+      {showTravelModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end" onClick={() => setShowTravelModal(false)}>
+          <div className="w-full bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white pt-4 pb-2 px-6 border-b border-zinc-100">
+              <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-zinc-900">Travel Claim</h2>
+                  <p className="text-sm text-zinc-500">Enter travel details for reimbursement</p>
+                </div>
+                <button onClick={() => setShowTravelModal(false)} className="p-2">
+                  <X className="w-6 h-6 text-zinc-400" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Start Location */}
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Start Location *</label>
+                {travelForm.start_location ? (
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-emerald-600" />
+                      <div>
+                        <p className="text-sm font-medium text-zinc-900">{travelForm.start_location.name}</p>
+                        <p className="text-xs text-zinc-500 truncate max-w-[200px]">{travelForm.start_location.address}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setTravelForm({ ...travelForm, start_location: null })} className="p-1 text-zinc-400">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <input
+                        type="text"
+                        value={selectingFor === 'start' ? locationSearchQuery : ''}
+                        onChange={(e) => { setLocationSearchQuery(e.target.value); setSelectingFor('start'); }}
+                        onFocus={() => setSelectingFor('start')}
+                        placeholder="Search for a location..."
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-zinc-200 text-sm"
+                        data-testid="start-location-search"
+                      />
+                      {searchingLocations && selectingFor === 'start' && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
+                      )}
+                    </div>
+                    
+                    <button 
+                      onClick={useCurrentLocationAsStart}
+                      disabled={locationLoading}
+                      className="w-full py-2 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                    >
+                      {locationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                      Use Current Location
+                    </button>
+                    
+                    {/* Search Results */}
+                    {selectingFor === 'start' && locationSearchResults.length > 0 && (
+                      <div className="bg-white border border-zinc-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                        {locationSearchResults.map((loc, i) => (
+                          <button
+                            key={i}
+                            onClick={() => selectLocation(loc)}
+                            className="w-full p-3 text-left border-b border-zinc-100 last:border-0 hover:bg-zinc-50"
+                          >
+                            <p className="text-sm font-medium text-zinc-900">{loc.name}</p>
+                            <p className="text-xs text-zinc-500 truncate">{loc.address}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* End Location */}
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">End Location *</label>
+                {travelForm.end_location ? (
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-emerald-600" />
+                      <div>
+                        <p className="text-sm font-medium text-zinc-900">{travelForm.end_location.name}</p>
+                        <p className="text-xs text-zinc-500 truncate max-w-[200px]">{travelForm.end_location.address}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setTravelForm({ ...travelForm, end_location: null })} className="p-1 text-zinc-400">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <input
+                        type="text"
+                        value={selectingFor === 'end' ? locationSearchQuery : ''}
+                        onChange={(e) => { setLocationSearchQuery(e.target.value); setSelectingFor('end'); }}
+                        onFocus={() => setSelectingFor('end')}
+                        placeholder="Search for a location..."
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-zinc-200 text-sm"
+                        data-testid="end-location-search"
+                      />
+                      {searchingLocations && selectingFor === 'end' && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />
+                      )}
+                    </div>
+                    
+                    {/* Search Results */}
+                    {selectingFor === 'end' && locationSearchResults.length > 0 && (
+                      <div className="bg-white border border-zinc-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                        {locationSearchResults.map((loc, i) => (
+                          <button
+                            key={i}
+                            onClick={() => selectLocation(loc)}
+                            className="w-full p-3 text-left border-b border-zinc-100 last:border-0 hover:bg-zinc-50"
+                          >
+                            <p className="text-sm font-medium text-zinc-900">{loc.name}</p>
+                            <p className="text-xs text-zinc-500 truncate">{loc.address}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Vehicle Type */}
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Vehicle Type *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: 'car', label: 'Car', icon: Car, rate: '₹7/km' },
+                    { value: 'two_wheeler', label: 'Two Wheeler', icon: Bike, rate: '₹3/km' },
+                  ].map((v) => (
+                    <button
+                      key={v.value}
+                      onClick={() => setTravelForm({ ...travelForm, vehicle_type: v.value })}
+                      className={`p-3 rounded-xl border-2 flex items-center gap-3 transition ${
+                        travelForm.vehicle_type === v.value 
+                          ? 'border-teal-500 bg-teal-50' 
+                          : 'border-zinc-200'
+                      }`}
+                    >
+                      <v.icon className={`w-6 h-6 ${travelForm.vehicle_type === v.value ? 'text-teal-600' : 'text-zinc-400'}`} />
+                      <div className="text-left">
+                        <p className={`text-sm font-medium ${travelForm.vehicle_type === v.value ? 'text-teal-700' : 'text-zinc-700'}`}>{v.label}</p>
+                        <p className="text-xs text-zinc-500">{v.rate}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Round Trip Toggle */}
+              <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl">
+                <div>
+                  <p className="font-medium text-zinc-900">Round Trip</p>
+                  <p className="text-xs text-zinc-500">Double the distance for return journey</p>
+                </div>
+                <button
+                  onClick={() => setTravelForm({ ...travelForm, is_round_trip: !travelForm.is_round_trip })}
+                  className={`w-12 h-6 rounded-full transition-colors ${
+                    travelForm.is_round_trip ? 'bg-teal-500' : 'bg-zinc-300'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                    travelForm.is_round_trip ? 'translate-x-6' : 'translate-x-0.5'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-sm font-medium text-zinc-700 block mb-2">Notes (optional)</label>
+                <textarea
+                  value={travelForm.notes}
+                  onChange={(e) => setTravelForm({ ...travelForm, notes: e.target.value })}
+                  placeholder="Purpose of travel, client meeting details, etc."
+                  rows={2}
+                  className="w-full p-3 rounded-xl border border-zinc-200 text-sm resize-none"
+                />
+              </div>
+
+              <button 
+                onClick={handleSubmitTravelClaim}
+                disabled={loading || !travelForm.start_location || !travelForm.end_location}
+                className="w-full py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                data-testid="submit-travel-btn"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Car className="w-5 h-5" />}
+                Calculate & Submit Claim
+              </button>
+
+              <button 
+                onClick={() => setShowTravelModal(false)}
+                className="w-full py-3 bg-zinc-100 text-zinc-700 rounded-2xl font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes slide-up {
           from { transform: translateY(100%); }
