@@ -231,7 +231,7 @@ const AssignTeam = () => {
         <Card className="border-zinc-200 shadow-none rounded-sm lg:col-span-2">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-base font-medium">Assigned Team ({assignedTeam.length})</CardTitle>
-            {isPM && (
+            {canAssignTeam && (
               <Button onClick={() => setShowAddDialog(true)} size="sm" data-testid="add-consultant-btn">
                 <UserPlus className="w-4 h-4 mr-1" />
                 Add Consultant
@@ -266,7 +266,7 @@ const AssignTeam = () => {
                       <Badge variant="outline" className="text-xs">
                         {CONSULTANT_ROLES.find(r => r.value === member.role)?.label || member.role}
                       </Badge>
-                      {isPM && (
+                      {canAssignTeam && (
                         <Button
                           variant="ghost"
                           size="sm"
