@@ -119,7 +119,7 @@ class TestCheckInSelfieRequired:
     def test_checkin_without_selfie_rejected(self, consultant_token):
         """Verify check-in without selfie is rejected"""
         # Use unique date to avoid duplicate check-in issues
-        test_date = (datetime.now() + timedelta(days=100)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET)).strftime("%Y-%m-%d")
         
         response = requests.post(
             f"{BASE_URL}/api/my/check-in",
