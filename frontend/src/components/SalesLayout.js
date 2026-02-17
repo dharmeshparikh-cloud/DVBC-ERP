@@ -173,6 +173,18 @@ const SalesLayout = () => {
                 </div>
               </div>
             </div>
+            <Button
+              onClick={() => setShowChangePassword(true)}
+              data-testid="sales-change-password-button"
+              variant="outline"
+              className={`w-full justify-center h-9 text-sm mb-2 ${
+                isDark 
+                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 border-zinc-700' 
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-white border-zinc-300'
+              }`}
+            >
+              <Key className="w-4 h-4 mr-2" strokeWidth={1.5} /> Change Password
+            </Button>
             <Button 
               onClick={handleLogout} 
               data-testid="sales-logout-button" 
@@ -185,6 +197,10 @@ const SalesLayout = () => {
             >
               <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} /> Sign Out
             </Button>
+            <ChangePasswordDialog 
+              open={showChangePassword} 
+              onOpenChange={setShowChangePassword} 
+            />
           </div>
         </div>
       </aside>
