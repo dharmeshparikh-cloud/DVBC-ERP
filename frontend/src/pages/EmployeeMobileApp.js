@@ -87,15 +87,19 @@ const EmployeeMobileApp = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [attRes, leaveRes, expRes] = await Promise.all([
+      const [attRes, leaveRes, expRes, clientsRes, projectsRes] = await Promise.all([
         axios.get(`${API}/my/attendance?month=${new Date().toISOString().slice(0, 7)}`).catch(() => ({ data: null })),
         axios.get(`${API}/my/leave-balance`).catch(() => ({ data: null })),
-        axios.get(`${API}/my/expenses`).catch(() => ({ data: null }))
+        axios.get(`${API}/my/expenses`).catch(() => ({ data: null })),
+        axios.get(`${API}/clients`).catch(() => ({ data: [] })),
+        axios.get(`${API}/projects`).catch(() => ({ data: [] }))
       ]);
       
       setAttendanceData(attRes.data);
       setLeaveBalance(leaveRes.data);
       setExpenses(expRes.data?.expenses || []);
+      setClients(clientsRes.data || []);
+      setProjects(projectsRes.data || []);
       
       // Check if consulting employee (can use client sites)
       const dept = attRes.data?.employee?.department?.toLowerCase() || '';
