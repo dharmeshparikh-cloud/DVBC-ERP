@@ -8,7 +8,7 @@ import {
   MapPin, CreditCard, CheckCircle, ArrowRight, ArrowDown,
   Target, Building2, Calendar, Receipt, PieChart, UserCheck,
   Plane, Wallet, ClipboardList, Award, BarChart3, Play,
-  ChevronRight, Info, Zap, GitBranch, CalendarOff, Calculator,
+  ChevronRight, Info, Zap, GitBranch, CalendarDays, Calculator,
   Shield, RefreshCw, Bell, Upload, Send, FileCheck
 } from 'lucide-react';
 
