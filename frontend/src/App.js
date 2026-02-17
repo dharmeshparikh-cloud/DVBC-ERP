@@ -258,6 +258,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="admin-dashboard" element={<AdminDashboard />} />
         <Route path="office-locations" element={<OfficeLocationsSettings />} />
         <Route path="flow-diagram" element={<FlowDiagram />} />
+        <Route path="workflow" element={<WorkflowPage />} />
         {/* HR Features accessible to Admin in Main ERP */}
         <Route path="team-workload" element={<HRTeamWorkload />} />
         <Route path="staffing-requests" element={<HRStaffingRequests />} />
