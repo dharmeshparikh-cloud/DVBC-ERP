@@ -22,7 +22,8 @@ const TravelReimbursement = () => {
     try {
       const params = new URLSearchParams();
       if (filter !== 'all') params.append('status', filter);
-      if (selectedMonth) params.append('month', selectedMonth);
+      // Only apply month filter if selectedMonth is set (not empty string)
+      if (selectedMonth && selectedMonth.trim() !== '') params.append('month', selectedMonth);
       
       const response = await axios.get(`${API}/travel/reimbursements?${params.toString()}`);
       setClaims(response.data.records || []);
@@ -35,7 +36,8 @@ const TravelReimbursement = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get(`${API}/travel/stats?month=${selectedMonth}`);
+      const params = selectedMonth ? `?month=${selectedMonth}` : '';
+      const response = await axios.get(`${API}/travel/stats${params}`);
       setStats(response.data);
     } catch (error) {
       console.error('Failed to fetch stats');
