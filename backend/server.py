@@ -10628,7 +10628,7 @@ async def search_locations(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Search for locations using Google Places Autocomplete API.
+    Search for locations using Google Places API (New).
     Used by sales team to find client meeting locations.
     """
     if not query or len(query) < 2:
@@ -10639,46 +10639,53 @@ async def search_locations(
     
     try:
         async with httpx.AsyncClient() as client:
-            # Use Google Places Autocomplete API
-            params = {
-                "input": query,
-                "key": GOOGLE_MAPS_API_KEY,
-                "components": "country:in",  # Restrict to India
-                "language": "en"
+            # Use Google Places API (New) - Text Search
+            headers = {
+                "Content-Type": "application/json",
+                "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+                "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location"
+            }
+            
+            request_body = {
+                "textQuery": query,
+                "languageCode": "en",
+                "regionCode": "IN",  # Restrict to India
+                "maxResultCount": 5
             }
             
             # Add location bias if provided
             if lat and lng:
-                params["location"] = f"{lat},{lng}"
-                params["radius"] = 50000  # 50km radius bias
+                request_body["locationBias"] = {
+                    "circle": {
+                        "center": {"latitude": lat, "longitude": lng},
+                        "radius": 50000.0  # 50km radius bias
+                    }
+                }
             
-            response = await client.get(
-                "https://maps.googleapis.com/maps/api/place/autocomplete/json",
-                params=params,
+            response = await client.post(
+                "https://places.googleapis.com/v1/places:searchText",
+                headers=headers,
+                json=request_body,
                 timeout=10.0
             )
             
             if response.status_code != 200:
-                return {"results": [], "error": "Location service unavailable"}
+                error_detail = response.json() if response.text else {"error": "API error"}
+                return {"results": [], "error": error_detail.get("error", {}).get("message", "Location service unavailable")}
             
             data = response.json()
-            
-            if data.get("status") not in ["OK", "ZERO_RESULTS"]:
-                return {"results": [], "error": data.get("error_message", "API error")}
-            
             results = []
             
-            for prediction in data.get("predictions", []):
-                # Get place details for coordinates
-                place_id = prediction.get("place_id")
-                structured_formatting = prediction.get("structured_formatting", {})
+            for place in data.get("places", []):
+                location = place.get("location", {})
+                display_name = place.get("displayName", {})
                 
                 results.append({
-                    "place_id": place_id,
-                    "name": structured_formatting.get("main_text", prediction.get("description", "").split(",")[0]),
-                    "address": prediction.get("description", ""),
-                    "secondary_text": structured_formatting.get("secondary_text", ""),
-                    "types": prediction.get("types", [])
+                    "place_id": place.get("id", ""),
+                    "name": display_name.get("text", ""),
+                    "address": place.get("formattedAddress", ""),
+                    "latitude": location.get("latitude", 0),
+                    "longitude": location.get("longitude", 0)
                 })
             
             return {"results": results}
@@ -10693,41 +10700,37 @@ async def get_place_details(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Get detailed place information including coordinates from Google Places API.
+    Get detailed place information including coordinates from Google Places API (New).
     """
     if not GOOGLE_MAPS_API_KEY:
         raise HTTPException(status_code=500, detail="Google Maps API key not configured")
     
     try:
         async with httpx.AsyncClient() as client:
+            headers = {
+                "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+                "X-Goog-FieldMask": "id,displayName,formattedAddress,location"
+            }
+            
             response = await client.get(
-                "https://maps.googleapis.com/maps/api/place/details/json",
-                params={
-                    "place_id": place_id,
-                    "key": GOOGLE_MAPS_API_KEY,
-                    "fields": "name,formatted_address,geometry,place_id"
-                },
+                f"https://places.googleapis.com/v1/places/{place_id}",
+                headers=headers,
                 timeout=10.0
             )
             
             if response.status_code != 200:
-                raise HTTPException(status_code=500, detail="Failed to get place details")
-            
-            data = response.json()
-            
-            if data.get("status") != "OK":
                 raise HTTPException(status_code=404, detail="Place not found")
             
-            result = data.get("result", {})
-            geometry = result.get("geometry", {})
-            location = geometry.get("location", {})
+            data = response.json()
+            location = data.get("location", {})
+            display_name = data.get("displayName", {})
             
             return {
-                "place_id": result.get("place_id"),
-                "name": result.get("name", ""),
-                "address": result.get("formatted_address", ""),
-                "latitude": location.get("lat", 0),
-                "longitude": location.get("lng", 0)
+                "place_id": data.get("id"),
+                "name": display_name.get("text", ""),
+                "address": data.get("formattedAddress", ""),
+                "latitude": location.get("latitude", 0),
+                "longitude": location.get("longitude", 0)
             }
             
     except HTTPException:
