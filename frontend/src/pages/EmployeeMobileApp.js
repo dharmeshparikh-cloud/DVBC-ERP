@@ -615,7 +615,7 @@ const EmployeeMobileApp = () => {
     }
   };
 
-  // Use current GPS as start location
+  // Use current GPS as start location (with Google Geocoding)
   const useCurrentLocationAsStart = () => {
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
@@ -625,15 +625,25 @@ const EmployeeMobileApp = () => {
           longitude: position.coords.longitude
         };
         try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`
-          );
-          const data = await response.json();
-          coords.name = data.display_name?.split(',')[0] || 'Current Location';
-          coords.address = data.display_name || 'Current Location';
+          // Use backend to reverse geocode (keeps API key secure)
+          const response = await axios.get(`${API}/travel/location-search?query=${coords.latitude},${coords.longitude}&lat=${coords.latitude}&lng=${coords.longitude}`);
+          if (response.data.results && response.data.results.length > 0) {
+            const firstResult = response.data.results[0];
+            if (firstResult.place_id) {
+              const detailsRes = await axios.get(`${API}/travel/place-details/${firstResult.place_id}`);
+              coords.name = detailsRes.data.name || 'Current Location';
+              coords.address = detailsRes.data.address || 'Current Location';
+            } else {
+              coords.name = firstResult.name || 'Current Location';
+              coords.address = firstResult.address || 'Current Location';
+            }
+          } else {
+            coords.name = 'Current Location';
+            coords.address = `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+          }
         } catch (e) {
           coords.name = 'Current Location';
-          coords.address = 'Current Location';
+          coords.address = `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
         }
         setTravelForm({ ...travelForm, start_location: coords });
         setLocationLoading(false);
