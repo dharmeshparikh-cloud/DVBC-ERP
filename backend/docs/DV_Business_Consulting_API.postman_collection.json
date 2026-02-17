@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://trip-reimberse.preview.emergentagent.com",
+      "value": "https://erp-attendance-6.preview.emergentagent.com",
       "type": "string"
     },
     {
