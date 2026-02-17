@@ -179,6 +179,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="leave-management" element={<LeaveManagement />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="payroll" element={<Payroll />} />
+        <Route path="ctc-designer" element={<CTCDesigner />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="travel-reimbursement" element={<TravelReimbursement />} />
         <Route path="approvals" element={<ApprovalsCenter />} />
