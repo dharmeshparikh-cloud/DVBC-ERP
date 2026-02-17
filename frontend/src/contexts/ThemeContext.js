@@ -4,10 +4,11 @@ const ThemeContext = createContext(null);
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    // Check localStorage first, then system preference
+    // Check localStorage first, default to light theme
     const saved = localStorage.getItem('erp-theme');
     if (saved) return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // Default to light theme (not system preference)
+    return 'light';
   });
 
   useEffect(() => {
@@ -29,6 +30,7 @@ export const ThemeProvider = ({ children }) => {
       {children}
     </ThemeContext.Provider>
   );
+};
 };
 
 export const useTheme = () => {
