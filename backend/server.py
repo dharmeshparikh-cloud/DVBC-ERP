@@ -13931,13 +13931,14 @@ async def hr_approve_bank_change(
     
     # Notify admin
     req = db.bank_change_requests.find_one({"employee_id": employee_id})
-    create_notification(
-        db, "bank_change_admin_review",
-        f"Bank change request pending admin approval: {req.get('employee_name', '')}",
-        "/approvals",
-        ["admin"],
-        None
-    )
+    db.notifications.insert_one({
+        "type": "bank_change_admin_review",
+        "message": f"Bank change request pending admin approval: {req.get('employee_name', '')}",
+        "link": "/approvals",
+        "for_roles": ["admin"],
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
     
     return {"message": "Request approved by HR, pending admin approval"}
 
