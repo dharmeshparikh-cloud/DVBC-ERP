@@ -1366,27 +1366,29 @@ const EmployeeMobileApp = () => {
         {activeTab === 'attendance' && <AttendanceTab />}
         {activeTab === 'leave' && <LeaveTab />}
         {activeTab === 'expense' && <ExpenseTab />}
+        {activeTab === 'travel' && <TravelTab />}
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 py-2 flex justify-around z-[10000]" style={{ maxWidth: '430px', margin: '0 auto' }}>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-2 py-2 flex justify-around z-[10000]" style={{ maxWidth: '430px', margin: '0 auto' }}>
         {[
           { id: 'home', icon: Home, label: 'Home' },
           { id: 'attendance', icon: Clock, label: 'Attendance' },
           { id: 'leave', icon: Calendar, label: 'Leave' },
           { id: 'expense', icon: Receipt, label: 'Expense' },
+          ...(isSalesTeam ? [{ id: 'travel', icon: Car, label: 'Travel' }] : []),
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            onTouchEnd={(e) => { e.preventDefault(); setActiveTab(tab.id); }}
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition touch-manipulation cursor-pointer ${
+            onClick={() => { setActiveTab(tab.id); if (tab.id === 'travel') fetchTravelClaims(); }}
+            onTouchEnd={(e) => { e.preventDefault(); setActiveTab(tab.id); if (tab.id === 'travel') fetchTravelClaims(); }}
+            className={`flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition touch-manipulation cursor-pointer ${
               activeTab === tab.id ? 'text-blue-600 bg-blue-50' : 'text-zinc-400'
             }`}
             style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
             data-testid={`nav-${tab.id}`}
           >
-            <tab.icon className="w-6 h-6" />
+            <tab.icon className="w-5 h-5" />
             <span className="text-xs font-medium">{tab.label}</span>
           </button>
         ))}
