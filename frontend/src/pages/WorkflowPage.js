@@ -243,7 +243,7 @@ const WorkflowPage = () => {
               className={`cursor-pointer transition-all ${
                 isActive 
                   ? `ring-2 ring-offset-2 dark:ring-offset-zinc-950 bg-gradient-to-br ${GRADIENT_COLORS[workflow.color]} text-white` 
-                  : 'hover:shadow-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900'
+                  : 'hover:shadow-lg border-zinc-200 dark:border-zinc-800 !bg-white dark:!bg-zinc-900'
               }`}
               onClick={() => setActiveWorkflow(workflow.id)}
               data-testid={`workflow-${workflow.id}`}
