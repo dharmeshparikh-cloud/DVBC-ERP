@@ -179,6 +179,19 @@ Build a business management application for a consulting firm with complete HR, 
   - [x] Toggle button for Admin/HR to enable/disable mobile app access per employee
   - [x] Employee detail dialog shows mobile app status with reason if disabled
   - [x] Work location field displayed in employee details
+- [x] **Mobile App Download Page**
+  - [x] New `/mobile-app` page with QR code for easy employee access
+  - [x] Step-by-step installation instructions for iOS (Safari) and Android (Chrome)
+  - [x] "Open Mobile App" direct link button
+  - [x] QR code popup accessible from Employees page for HR to share
+  - [x] "Mobile App" link added to My Workspace section in sidebar
+  - [x] App features showcase (Selfie Check-in, GPS, Notifications, Geofencing)
+- [x] **Mobile App Usage Stats API**
+  - [x] `GET /api/attendance/mobile-stats` endpoint
+  - [x] Today's mobile vs desktop check-ins count
+  - [x] Total mobile app users tracking
+  - [x] Pending approvals count
+  - [x] Weekly trend data for mobile adoption
 
 ## Test Credentials
 
