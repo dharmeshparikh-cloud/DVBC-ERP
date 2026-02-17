@@ -168,7 +168,7 @@ class TestCheckInWFHRejected:
     
     def test_wfh_work_location_rejected(self, consultant_token):
         """Verify WFH work_location is rejected"""
-        test_date = (datetime.now() + timedelta(days=102)).strftime("%Y-%m-%d")
+        test_date = (datetime.now() + timedelta(days=TEST_DATE_OFFSET+2)).strftime("%Y-%m-%d")
         
         response = requests.post(
             f"{BASE_URL}/api/my/check-in",
