@@ -258,8 +258,8 @@ const HRPortalDashboard = () => {
               </div>
             ) : (
               <div className="text-center py-6 md:py-8 text-zinc-500">
-                <CheckCircle className="w-8 h-8 mx-auto mb-2 text-zinc-300" />
-                <p>No pending approvals</p>
+                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-zinc-300" />
+                <p className="text-sm">No pending approvals</p>
               </div>
             )}
           </CardContent>
@@ -267,57 +267,57 @@ const HRPortalDashboard = () => {
 
         {/* Department Distribution */}
         <Card className="border-zinc-200 dark:border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-base">Department Distribution</CardTitle>
+          <CardHeader className="px-4 md:px-6 py-3 md:py-4">
+            <CardTitle className="text-sm md:text-base">Department Distribution</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 md:px-6">
             {employees.by_department && Object.keys(employees.by_department).length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {Object.entries(employees.by_department).map(([dept, count]) => (
                   <div key={dept}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-zinc-600 dark:text-zinc-400">{dept}</span>
-                      <span className="font-medium text-zinc-900 dark:text-zinc-100">{count}</span>
+                    <div className="flex justify-between text-xs md:text-sm mb-1">
+                      <span className="text-zinc-600 dark:text-zinc-400 truncate">{dept}</span>
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100 ml-2">{count}</span>
                     </div>
                     <Progress 
                       value={(count / (employees.total || 1)) * 100} 
-                      className="h-2"
+                      className="h-1.5 md:h-2"
                     />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-zinc-500">
-                <Users className="w-8 h-8 mx-auto mb-2 text-zinc-300" />
-                <p>No department data</p>
+              <div className="text-center py-6 md:py-8 text-zinc-500">
+                <Users className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-zinc-300" />
+                <p className="text-sm">No department data</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - 2x3 on mobile, 5 on desktop */}
       <Card className="border-zinc-200 dark:border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-base">Quick Actions</CardTitle>
+        <CardHeader className="px-4 md:px-6 py-3 md:py-4">
+          <CardTitle className="text-sm md:text-base">Quick Actions</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-5 gap-4">
+        <CardContent className="px-4 md:px-6">
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
             <Link to="/hr/onboarding">
-              <Button variant="outline" className="w-full h-20 flex-col gap-2">
-                <UserPlus className="w-5 h-5" />
-                <span className="text-xs">New Employee</span>
+              <Button variant="outline" className="w-full h-16 md:h-20 flex-col gap-1 md:gap-2 p-2">
+                <UserPlus className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-[10px] md:text-xs text-center leading-tight">New Employee</span>
               </Button>
             </Link>
             <Link to="/hr/leave-management">
-              <Button variant="outline" className="w-full h-20 flex-col gap-2">
-                <Calendar className="w-5 h-5" />
-                <span className="text-xs">Manage Leaves</span>
+              <Button variant="outline" className="w-full h-16 md:h-20 flex-col gap-1 md:gap-2 p-2">
+                <Calendar className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-[10px] md:text-xs text-center leading-tight">Leaves</span>
               </Button>
             </Link>
             <Link to="/hr/attendance">
-              <Button variant="outline" className="w-full h-20 flex-col gap-2">
-                <Clock className="w-5 h-5" />
+              <Button variant="outline" className="w-full h-16 md:h-20 flex-col gap-1 md:gap-2 p-2">
+                <Clock className="w-4 h-4 md:w-5 md:h-5" />
                 <span className="text-xs">Attendance</span>
               </Button>
             </Link>
