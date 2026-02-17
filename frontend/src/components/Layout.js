@@ -255,6 +255,18 @@ const Layout = () => {
                 </div>
               </div>
             </Link>
+            <Button 
+              onClick={() => setShowChangePassword(true)} 
+              data-testid="change-password-button" 
+              variant="ghost" 
+              size="sm"
+              className={`w-full justify-start rounded-sm mt-1 h-8 text-xs ${
+                isDark 
+                  ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800' 
+                  : 'text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100'
+              }`}>
+              <Key className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} /> Change Password
+            </Button>
             <Button onClick={logout} data-testid="logout-button" variant="ghost" size="sm"
               className={`w-full justify-start rounded-sm mt-1 h-8 text-xs ${
                 isDark 
@@ -263,6 +275,12 @@ const Layout = () => {
               }`}>
               <LogOut className="w-3.5 h-3.5 mr-2" strokeWidth={1.5} /> Sign Out
             </Button>
+            
+            {/* Change Password Dialog */}
+            <ChangePasswordDialog 
+              open={showChangePassword} 
+              onOpenChange={setShowChangePassword} 
+            />
           </div>
         </div>
       </aside>
