@@ -80,6 +80,8 @@ import MobileAppDownload from './pages/MobileAppDownload';
 import TravelReimbursement from './pages/TravelReimbursement';
 import WorkflowPage from './pages/WorkflowPage';
 import OnboardingTutorial from './pages/OnboardingTutorial';
+import BankDetailsChangeRequest from './pages/BankDetailsChangeRequest';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
