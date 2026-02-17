@@ -591,24 +591,30 @@ const Attendance = () => {
             <table className="w-full text-sm">
               <thead className="bg-zinc-50">
                 <tr>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Date</th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Employee ID</th>
-                  <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
-                  <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Work Location</th>
-                  <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Remarks</th>
+                  <th className="text-left px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Date</th>
+                  <th className="text-left px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Employee</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Location</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-emerald-600 font-medium">Check-In</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-red-600 font-medium">Check-Out</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Hours</th>
+                  <th className="text-center px-3 py-2 text-xs uppercase tracking-wide text-zinc-500 font-medium">Selfie</th>
                 </tr>
               </thead>
               <tbody>
                 {records.map((r, idx) => (
                   <tr key={r.id || idx} className="border-t border-zinc-100 hover:bg-zinc-50">
-                    <td className="px-4 py-3 text-zinc-700">{r.date}</td>
-                    <td className="px-4 py-3 text-zinc-700 font-mono text-xs">{r.employee_id}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-2 text-zinc-700 text-xs">{r.date}</td>
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-zinc-900 text-xs">{r.employee_name || r.employee_id}</div>
+                      <div className="text-[10px] text-zinc-400">{r.employee_id}</div>
+                    </td>
+                    <td className="px-3 py-2 text-center">
                       <span className={`text-xs px-2 py-1 rounded-sm ${getStatusBadge(r.status)}`}>
                         {STATUSES.find(s => s.value === r.status)?.label || r.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-2 text-center">
                       {['present', 'half_day'].includes(r.status) ? (
                         <span className="flex items-center justify-center gap-1 text-xs">
                           {r.work_location === 'in_office' && <><Building2 className="w-3 h-3 text-blue-600" /><span className="text-blue-700">Office</span></>}
@@ -618,7 +624,36 @@ const Attendance = () => {
                         </span>
                       ) : <span className="text-zinc-400">-</span>}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">{r.remarks || '-'}</td>
+                    <td className="px-3 py-2 text-center">
+                      {r.check_in_time ? (
+                        <span className="text-xs text-emerald-700 font-medium">{r.check_in_time}</span>
+                      ) : (
+                        <span className="text-zinc-400 text-xs">-</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {r.check_out_time ? (
+                        <span className="text-xs text-red-600 font-medium">{r.check_out_time}</span>
+                      ) : (
+                        <span className="text-zinc-400 text-xs">-</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {r.work_hours ? (
+                        <span className="text-xs text-zinc-700 font-medium">{r.work_hours.toFixed(1)}h</span>
+                      ) : (
+                        <span className="text-zinc-400 text-xs">-</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {r.selfie ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                          <CheckCircle className="w-3 h-3" />
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400 text-xs">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
