@@ -72,6 +72,7 @@ import HRStaffingRequests from './pages/HRStaffingRequests';
 import HROnboarding from './pages/HROnboarding';
 import AdminDashboard from './pages/AdminDashboard';
 import PerformanceDashboard from './pages/PerformanceDashboard';
+import EmployeeMobileApp from './pages/EmployeeMobileApp';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
