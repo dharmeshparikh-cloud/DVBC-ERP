@@ -321,6 +321,7 @@ function App() {
     <ThemeProvider>
       <AuthContext.Provider value={{ user, login, logout }}>
         <Toaster position="top-right" />
+        <PWAInstallPrompt />
         <BrowserRouter>
           <AppRouter user={user} login={login} logout={logout} loading={loading} />
         </BrowserRouter>
