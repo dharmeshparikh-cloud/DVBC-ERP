@@ -281,33 +281,52 @@ const EmployeeMobileApp = () => {
         {/* Check-in Status */}
         <div className="mt-4 p-3 rounded-2xl bg-white/10 backdrop-blur">
           {checkInStatus ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  checkInStatus.approval_status === 'approved' ? 'bg-emerald-500' :
-                  checkInStatus.approval_status === 'pending_approval' ? 'bg-amber-500' : 'bg-red-500'
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    checkInStatus.check_out_time ? 'bg-zinc-500' :
+                    checkInStatus.approval_status === 'approved' ? 'bg-emerald-500' :
+                    checkInStatus.approval_status === 'pending_approval' ? 'bg-amber-500' : 'bg-red-500'
+                  }`}>
+                    {checkInStatus.check_out_time ? <CheckCircle className="w-5 h-5" /> :
+                     checkInStatus.approval_status === 'approved' ? <CheckCircle className="w-5 h-5" /> :
+                     checkInStatus.approval_status === 'pending_approval' ? <Clock className="w-5 h-5" /> :
+                     <XCircle className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      {checkInStatus.check_out_time ? 'Day Complete' :
+                       checkInStatus.approval_status === 'approved' ? 'Checked In' :
+                       checkInStatus.approval_status === 'pending_approval' ? 'Pending Approval' : 'Rejected'}
+                    </p>
+                    <p className="text-xs text-blue-200">
+                      {checkInStatus.work_location === 'in_office' ? 'Office' : 'On-Site'}
+                      {checkInStatus.work_hours && ` • ${checkInStatus.work_hours.toFixed(1)} hrs`}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-xs px-3 py-1 rounded-full ${
+                  checkInStatus.check_out_time ? 'bg-zinc-500/30' :
+                  checkInStatus.approval_status === 'approved' ? 'bg-emerald-500/30' :
+                  checkInStatus.approval_status === 'pending_approval' ? 'bg-amber-500/30' : 'bg-red-500/30'
                 }`}>
-                  {checkInStatus.approval_status === 'approved' ? <CheckCircle className="w-5 h-5" /> :
-                   checkInStatus.approval_status === 'pending_approval' ? <Clock className="w-5 h-5" /> :
-                   <XCircle className="w-5 h-5" />}
-                </div>
-                <div>
-                  <p className="font-medium">
-                    {checkInStatus.approval_status === 'approved' ? 'Checked In' :
-                     checkInStatus.approval_status === 'pending_approval' ? 'Pending Approval' : 'Rejected'}
-                  </p>
-                  <p className="text-xs text-blue-200">
-                    {checkInStatus.work_location === 'in_office' ? 'Office' : 'On-Site'}
-                  </p>
-                </div>
+                  {checkInStatus.check_out_time ? 'Complete' :
+                   checkInStatus.approval_status === 'approved' ? 'Active' :
+                   checkInStatus.approval_status === 'pending_approval' ? 'Pending' : 'Rejected'}
+                </span>
               </div>
-              <span className={`text-xs px-3 py-1 rounded-full ${
-                checkInStatus.approval_status === 'approved' ? 'bg-emerald-500/30' :
-                checkInStatus.approval_status === 'pending_approval' ? 'bg-amber-500/30' : 'bg-red-500/30'
-              }`}>
-                {checkInStatus.approval_status === 'approved' ? 'Active' :
-                 checkInStatus.approval_status === 'pending_approval' ? 'Pending' : 'Rejected'}
-              </span>
+              {/* Check-out button - only show if checked in and approved, not checked out yet */}
+              {checkInStatus.approval_status === 'approved' && !checkInStatus.check_out_time && (
+                <button 
+                  onClick={() => setShowCheckOutModal(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2 bg-red-500/30 rounded-xl hover:bg-red-500/40 transition text-sm"
+                  data-testid="mobile-checkout-btn"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="font-medium">Check Out</span>
+                </button>
+              )}
             </div>
           ) : (
             <button 
