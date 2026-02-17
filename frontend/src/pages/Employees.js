@@ -565,13 +565,13 @@ const Employees = () => {
                               <span className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded">{emp.role || 'Linked'}</span>
                               {canManage && (
                                 <Button
-                                  onClick={() => handleUnlinkUser(emp.id)}
+                                  onClick={() => handleRevokeAccess(emp.id)}
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0 text-zinc-400 hover:text-red-500"
-                                  title="Unlink user"
+                                  title="Revoke access"
                                 >
-                                  <Unlink className="w-3 h-3" />
+                                  <UserX className="w-3 h-3" />
                                 </Button>
                               )}
                             </div>
@@ -580,13 +580,14 @@ const Employees = () => {
                               <span className="text-xs text-zinc-400">No access</span>
                               {canManage && (
                                 <Button
-                                  onClick={() => { setSelectedEmployee(emp); setLinkUserDialog(true); }}
+                                  onClick={() => { setSelectedEmployee(emp); setGrantAccessDialog(true); }}
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-zinc-400 hover:text-blue-500"
-                                  title="Link to user"
+                                  className="h-6 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
+                                  title="Grant system access"
                                 >
-                                  <Link2 className="w-3 h-3" />
+                                  <UserCheck className="w-3 h-3 mr-1" />
+                                  <span className="text-xs">Grant Access</span>
                                 </Button>
                               )}
                             </div>
