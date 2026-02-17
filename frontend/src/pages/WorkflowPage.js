@@ -429,9 +429,9 @@ const WorkflowPage = () => {
       </div>
 
       {/* Quick Links - What's Connected */}
-      <Card className="border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900">
+      <Card className="border-zinc-200 dark:border-zinc-800 !bg-white dark:!bg-zinc-900">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 dark:text-zinc-100">
+          <CardTitle className="flex items-center gap-2 font-bold text-zinc-900 dark:text-zinc-100">
             <Zap className="w-5 h-5 text-amber-500" />
             System Integrations
           </CardTitle>
