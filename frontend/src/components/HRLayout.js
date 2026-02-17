@@ -136,6 +136,7 @@ const HRLayout = () => {
     { name: 'My Leaves', href: '/hr/my-leaves', icon: CalendarDays },
     { name: 'My Salary Slips', href: '/hr/my-salary', icon: FileText },
     { name: 'My Expenses', href: '/hr/my-expenses', icon: Receipt },
+    { name: 'My Bank Details', href: '/hr/my-bank-details', icon: Building2 },
   ];
 
   // Mobile bottom nav items
