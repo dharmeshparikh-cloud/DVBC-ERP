@@ -1260,9 +1260,16 @@ const EmployeeMobileApp = () => {
                   <div className="space-y-2 mb-4">
                     {expenseForm.line_items.map((item, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
-                        <div>
-                          <p className="text-sm font-medium text-zinc-800">{item.description}</p>
-                          <p className="text-xs text-zinc-500">{item.category} • {item.date}</p>
+                        <div className="flex items-center gap-3">
+                          {item.receipt && (
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-100">
+                              <img src={item.receipt} alt="Receipt" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-medium text-zinc-800">{item.description}</p>
+                            <p className="text-xs text-zinc-500">{item.category} • {item.date}</p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-amber-600">₹{item.amount}</span>
