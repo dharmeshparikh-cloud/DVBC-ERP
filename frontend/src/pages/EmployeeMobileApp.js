@@ -924,7 +924,7 @@ const EmployeeMobileApp = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 py-2 flex justify-around" style={{ maxWidth: '430px', margin: '0 auto' }}>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 py-2 flex justify-around z-[10000]" style={{ maxWidth: '430px', margin: '0 auto' }}>
         {[
           { id: 'home', icon: Home, label: 'Home' },
           { id: 'attendance', icon: Clock, label: 'Attendance' },
