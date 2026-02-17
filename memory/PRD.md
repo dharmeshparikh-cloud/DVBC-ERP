@@ -201,6 +201,30 @@ Build a business management application for a consulting firm with complete HR, 
 | HR Portal | hr.manager@company.com | hr123 | HR Manager |
 | HR Portal | hr.executive@company.com | hr123 | HR Executive |
 | Sales Portal | sales@consulting.com | sales123 | Sales |
+| Mobile App | prakash.rao76@dvconsulting.co.in | password123 | Consultant |
+
+## Recent Updates (February 2025)
+
+### Auto Travel Reimbursement System (COMPLETED)
+A comprehensive travel reimbursement feature for employees:
+
+**Features:**
+- **Distance Calculation**: Uses Haversine formula for accurate distance calculation
+- **Per-km Rates**: ₹7/km for car, ₹3/km for two-wheeler
+- **Round Trip Support**: Auto-doubles distance for return journeys
+- **Location Search**: OpenStreetMap/Nominatim integration (free, no API key)
+- **Mobile App Integration**: Dedicated Travel tab for Sales team in `/mobile`
+- **ERP Management**: HR/Admin can approve/reject/convert travel claims
+- **Payroll Integration**: Approved claims can be converted to expenses
+
+**Components:**
+- `/mobile` - Travel tab with claim submission (location search, vehicle type, round trip toggle)
+- `/travel-reimbursement` - ERP page for HR/Admin to manage claims
+- Backend APIs: `/api/travel/*` endpoints for CRUD operations
+
+**Scenarios Supported:**
+1. **Consultants**: Auto-calculate from attendance check-in/out locations
+2. **Sales Team**: Manual entry with location search for client meetings
 
 ## Backlog / Future Tasks
 
