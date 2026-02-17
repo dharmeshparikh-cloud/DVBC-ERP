@@ -251,22 +251,43 @@ A comprehensive travel reimbursement feature for employees:
 - [ ] Skill matrix and capacity planning
 - [ ] Training/certification tracking
 
-### Session 9 (Feb 17, 2026) - ERP Workflow & Permissions Update
+### Session 9 (Feb 17, 2026) - ERP Workflow, Permissions & Onboarding
 - [x] **High-Priority Workflow Diagrams Added**
-  - [x] Leave Management Flow (7 steps): Leave Request → Balance Check → Manager Approval → HR Approval → Balance Update → Calendar Sync → Notification
-  - [x] Expense Reimbursement Flow (7 steps): Expense Entry → Receipt Upload → Submit Claim → Manager Review → Finance/Admin Approval → Process Payment → Reimbursement
-  - [x] Invoice to Collection Flow (8 steps): Invoice Generated → Review & Approve → Send to Client → Payment Follow-up → Payment Received → Reconciliation → Receipt Issued → Invoice Closed
+  - [x] Leave Management, Expense Reimbursement, Invoice to Collection flows
 - [x] **Lead to Delivery Workflow Corrections**
-  - [x] Fixed subtitle to "Sales → Consulting Handover"
-  - [x] Sales flow correctly ends at "Kickoff Request" (handover point)
-  - [x] Added "Kickoff Accepted" step (Consulting accepts project)
-  - [x] Team Assignment now correctly tagged as Consulting module (not HR)
-  - [x] Meeting Delivery & Project Closure remain Consulting-only
+  - [x] Fixed subtitle, sales handover flow, team assignment permissions
 - [x] **Team Assignment Permission Update (Database & API)**
-  - [x] Only Admin, Manager, Project Manager, and Principal Consultant can assign/unassign/change consultants
-  - [x] HR roles (hr_manager, hr_executive) CANNOT assign consultants
-  - [x] Updated backend APIs: `/projects/{id}/assign-consultant`, `/projects/{id}/unassign-consultant`, `/projects/{id}/change-consultant`
-  - [x] Updated frontend AssignTeam.js permission check
+  - [x] Only Admin, Manager, Project Manager, Principal Consultant can assign consultants
+  - [x] HR roles CANNOT assign consultants
+- [x] **Dark Mode UI Fix for Workflow Page**
+  - [x] Updated CSS variables for proper dark/light mode contrast
+- [x] **Login Page Input Fix**
+  - [x] Fixed white text on white background issue
+  - [x] Added explicit `text-black` class to all login input fields
+- [x] **Fresh Test Environment Created**
+  - [x] Cleared database and created 12 test users for all roles
+- [x] **Grant System Access Feature**
+  - [x] New API endpoints: `/employees/{id}/grant-access`, `/employees/{id}/revoke-access`
+  - [x] Admin/HR Manager can create login credentials for employees
+  - [x] Dialog in Employees page with role selection and temporary password
+- [x] **Onboarding Tutorials Page**
+  - [x] Created `/tutorials` page with step-by-step guides
+  - [x] Added to Admin and HR navigation panels
+  - [x] Includes tutorials for: Add Employee, Grant Access, Mark Attendance, Apply Leave
+  - [x] Interactive progress tracking with "Mark Done" buttons
+
+## Test Accounts (Fresh Database)
+
+| Portal | Role | Email | Password |
+|--------|------|-------|----------|
+| Main ERP | Admin | admin@dvbc.com | admin123 |
+| Main ERP | Manager | manager@dvbc.com | manager123 |
+| Main ERP | Project Manager | pm@dvbc.com | pm123 |
+| Main ERP | Principal Consultant | principal@dvbc.com | consult123 |
+| Main ERP | Consultant | consultant@dvbc.com | consult123 |
+| HR Portal | HR Manager | hr.manager@dvbc.com | hr123 |
+| HR Portal | HR Executive | hr.exec@dvbc.com | hr123 |
+| Sales Portal | Account Manager | sales.manager@dvbc.com | sales123 |
 
 ## Permission Matrix (Updated)
 
