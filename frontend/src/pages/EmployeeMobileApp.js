@@ -316,14 +316,16 @@ const EmployeeMobileApp = () => {
       ...expenseForm,
       line_items: [...expenseForm.line_items, {
         ...lineItemForm,
-        amount: parseFloat(lineItemForm.amount)
+        amount: parseFloat(lineItemForm.amount),
+        receipt: lineItemForm.receipt || null
       }]
     });
     setLineItemForm({
       category: 'local_conveyance',
       description: '',
       amount: '',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      receipt: null
     });
   };
 
