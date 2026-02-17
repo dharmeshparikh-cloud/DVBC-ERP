@@ -12388,6 +12388,10 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "date": date_str,
         "status": "present",
         "work_location": work_location,
+        "client_id": client_id,
+        "client_name": client_name,
+        "project_id": project_id,
+        "project_name": project_name,
         "approval_status": approval_status,
         "matched_location": location_validation.get("matched_location"),
         "check_in_time": record["check_in_time"]
