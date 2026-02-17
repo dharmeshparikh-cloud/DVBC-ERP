@@ -179,6 +179,7 @@ const Layout = () => {
     { name: 'My Leaves', href: '/my-leaves', icon: Calendar },
     { name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet },
     { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
+    { name: 'My Bank Details', href: '/my-bank-details', icon: Building2 },
     { name: 'Mobile App', href: '/mobile-app', icon: Download },
   ];
 
