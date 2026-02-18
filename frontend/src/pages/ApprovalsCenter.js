@@ -754,18 +754,36 @@ const ApprovalsCenter = () => {
                       </tr>
                     </thead>
                     <tbody>
+                      {/* Handle components as object (dictionary) from backend */}
+                      {selectedCtc.components && typeof selectedCtc.components === 'object' && !Array.isArray(selectedCtc.components) && 
+                        Object.values(selectedCtc.components)
+                          .filter(c => c.enabled !== false)
+                          .sort((a, b) => (a.is_deduction ? 1 : 0) - (b.is_deduction ? 1 : 0))
+                          .map((comp, idx) => (
+                        <tr key={idx} className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'} ${comp.is_deduction ? 'text-red-600' : ''}`}>
+                          <td className={`px-3 py-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{comp.name}</td>
+                          <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
+                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.monthly || comp.monthly_amount || 0)}
+                          </td>
+                          <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
+                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.annual || comp.annual_amount || 0)}
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Handle components as array (legacy) */}
                       {Array.isArray(selectedCtc.components) && selectedCtc.components.filter(c => c.enabled !== false).map((comp, idx) => (
                         <tr key={idx} className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'} ${comp.is_deduction ? 'text-red-600' : ''}`}>
                           <td className={`px-3 py-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{comp.name}</td>
                           <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
-                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.monthly_amount || (comp.value ? comp.value / 12 : 0))}
+                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.monthly || comp.monthly_amount || 0)}
                           </td>
                           <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
-                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.annual_amount || comp.value || 0)}
+                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.annual || comp.annual_amount || 0)}
                           </td>
                         </tr>
                       ))}
-                      {(!Array.isArray(selectedCtc.components) || selectedCtc.components.length === 0) && (
+                      {/* Show message only if no components */}
+                      {(!selectedCtc.components || (typeof selectedCtc.components === 'object' && !Array.isArray(selectedCtc.components) && Object.keys(selectedCtc.components).length === 0) || (Array.isArray(selectedCtc.components) && selectedCtc.components.length === 0)) && (
                         <tr>
                           <td colSpan={3} className={`px-3 py-4 text-center ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                             No component breakdown available
@@ -776,6 +794,27 @@ const ApprovalsCenter = () => {
                   </table>
                 </div>
               </div>
+
+              {/* CTC Summary */}
+              {selectedCtc.summary && (
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-purple-900/20 border border-purple-800' : 'bg-purple-50 border border-purple-200'}`}>
+                  <h4 className={`text-sm font-medium mb-2 ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>Summary</h4>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Gross Monthly</p>
+                      <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{formatCurrency(selectedCtc.summary.gross_monthly)}</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Deductions</p>
+                      <p className="font-medium text-red-600">-{formatCurrency(selectedCtc.summary.total_deductions_monthly)}</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>In-Hand (Approx)</p>
+                      <p className="font-bold text-emerald-600">{formatCurrency(selectedCtc.summary.in_hand_approx_monthly)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Comments</label>
