@@ -138,13 +138,72 @@ const KickoffRequests = () => {
   const handleAgreementSelect = async (agreementId) => {
     const agreement = agreements.find(a => a.id === agreementId);
     if (agreement) {
+      // Set initial values from agreement
+      let projectType = 'mixed';
+      let meetingFrequency = agreement.meeting_frequency || 'Monthly';
+      let projectTenureMonths = agreement.project_tenure_months || 12;
+      
+      // Try to fetch from pricing plan for accurate values
+      if (agreement.quotation_id || agreement.pricing_plan_id) {
+        try {
+          let pricingPlanId = agreement.pricing_plan_id;
+          
+          // If no direct pricing_plan_id, get from quotation
+          if (!pricingPlanId && agreement.quotation_id) {
+            const quotationsRes = await fetch(`${API}/quotations`, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (quotationsRes.ok) {
+              const quotations = await quotationsRes.json();
+              const quotation = quotations.find(q => q.id === agreement.quotation_id);
+              if (quotation) {
+                pricingPlanId = quotation.pricing_plan_id;
+              }
+            }
+          }
+          
+          // Fetch pricing plan details
+          if (pricingPlanId) {
+            const pricingPlanRes = await fetch(`${API}/pricing-plans/${pricingPlanId}`, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (pricingPlanRes.ok) {
+              const pricingPlan = await pricingPlanRes.json();
+              
+              // Get project duration from pricing plan
+              if (pricingPlan.project_duration_months) {
+                projectTenureMonths = pricingPlan.project_duration_months;
+              }
+              
+              // Get meeting frequency from team deployment
+              if (pricingPlan.team_deployment && pricingPlan.team_deployment.length > 0) {
+                const firstDeployment = pricingPlan.team_deployment[0];
+                if (firstDeployment.meeting_type) {
+                  meetingFrequency = firstDeployment.meeting_type;
+                }
+              }
+              
+              // Determine project type from payment schedule or project type field
+              if (pricingPlan.project_type) {
+                projectType = pricingPlan.project_type;
+              } else if (pricingPlan.project_duration_type) {
+                projectType = pricingPlan.project_duration_type === 'retainer' ? 'retainer' : 'mixed';
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch pricing plan details:', error);
+        }
+      }
+      
       setFormData(prev => ({
         ...prev,
         agreement_id: agreementId,
         client_name: agreement.client_name || agreement.party_name || '',
         project_name: `${agreement.client_name || agreement.party_name || 'Client'} - Project`,
-        meeting_frequency: agreement.meeting_frequency || 'Monthly',
-        project_tenure_months: agreement.project_tenure_months || 12
+        project_type: projectType,
+        meeting_frequency: meetingFrequency,
+        project_tenure_months: projectTenureMonths
       }));
       
       // Check payment eligibility
