@@ -515,21 +515,24 @@ const HROnboarding = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Reporting Manager {managers.length === 0 && <span className="text-zinc-400 text-xs">(Optional - no managers exist yet)</span>}</Label>
+                <Label>Reporting Manager *</Label>
                 <Select value={formData.reporting_manager_id} onValueChange={(v) => handleInputChange('reporting_manager_id', v)}>
                   <SelectTrigger data-testid="onboard-reporting-mgr">
-                    <SelectValue placeholder={managers.length === 0 ? "No managers available (skip for first employee)" : "Select reporting manager"} />
+                    <SelectValue placeholder="Select reporting manager" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No Manager / Top-Level Employee</SelectItem>
-                    {managers.map(mgr => (
-                      <SelectItem key={mgr.id} value={mgr.id}>{mgr.full_name}</SelectItem>
-                    ))}
+                    {managers.length === 0 ? (
+                      <SelectItem value="" disabled>No managers available - contact admin</SelectItem>
+                    ) : (
+                      managers.map(mgr => (
+                        <SelectItem key={mgr.id} value={mgr.id}>
+                          {mgr.full_name || mgr.email} ({mgr.role?.replace('_', ' ')})
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
-                {managers.length === 0 && (
-                  <p className="text-xs text-amber-600">This appears to be the first employee. You can skip the reporting manager for now and update it later.</p>
-                )}
+                <p className="text-xs text-zinc-500">HR can update the reporting manager later from Employee Master</p>
               </div>
             </div>
           </div>
