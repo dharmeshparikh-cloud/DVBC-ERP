@@ -1,217 +1,183 @@
 <analysis>**original_problem_statement:**
-The user is building a comprehensive business management ERP with integrated HR and Sales portals. Initially, the focus was on refactoring a monolithic backend, enhancing role management, and building an offer letter workflow.
+The user is building a comprehensive business management ERP with integrated HR and Sales portals. The initial scope involved backend refactoring and building core HR workflows. It has since expanded significantly based on several user-provided documents (, , , , ).
 
-The scope has since expanded based on user feedback provided in two documents ( and ). The current set of tasks involves fixing a list of critical bugs, implementing new HR portal features, and ensuring a robust, level-based permission system is in place across the application. The most recent request was to make employee levels mandatory, link them to permissions during onboarding, and enforce those permissions throughout the app.
+The primary goals now are to fix a list of critical bugs, implement new HR and Sales features, ensure a robust level-based permission system is enforced, and create a seamless, fully integrated lifecycle for consultants—from onboarding through project work to termination.
 
 **User's preferred language**: English
 
 **what currently exists?**
 A full-stack application (React/FastAPI/MongoDB) with Admin, HR, and Sales portals.
-- The backend has been partially refactored, with many endpoints moved from a monolithic  to dedicated router files.
-- Core features like Role Management, Offer Letter workflows, and Email Integration are complete.
-- An SOW Scope Builder was added to the Admin Masters page for managing SOW categories and scopes.
-- Several bugs and feature requests from the user's documents have been addressed, including:
-    - Search and timeline filtering on the Leads page.
-    - CSV import for leads.
-    - Password visibility toggles on login/password change forms.
-    - Phone number validation (10-digit limit, duplicate check).
-    - Image upload for expense receipts.
-    - Automated IFSC code verification.
-- A backend endpoint and frontend context () have been created to support level-based permissions, but they are not yet fully integrated into the UI.
+- The backend remains a partial monolith () but several key modules have been moved to routers.
+- A comprehensive, level-based permission system has been implemented, including a new Permission Dashboard for admins to manage employee levels and view the permission matrix.
+- Key HR features are in place:
+    - **Leave Management:** Supports withdrawing pending leaves and applying for half-day leaves, with data correctly feeding into payroll calculations.
+    - **Staffing Requests:** An enhanced system with a detailed form and admin approval flow.
+    - **Employee Directory:** A new Employee Scorecard page acts as a central hub to track the employee lifecycle, linked by a consistent Employee ID.
+- Key Sales/Project features are in place:
+    - **Lead Management:** The lead status can now be changed directly from the main leads view.
+    - **Timesheets:** A previously blank page is now a fully functional timesheet submission system.
+- The critical Left Panel Not Functional bug has been resolved; navigation is now stable and permission-aware.
 
 **Last working item**:
-- **Last item agent was working:** Implementing a comprehensive, level-based permission system. The goal is to make the  field mandatory for all employees and use it to control access to features and UI elements.
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** Frontend testing agent (to verify UI elements are hidden/shown correctly based on permissions) and backend testing agent (to verify API endpoints are protected).
-- **User Testing Done:** N
+-   **Last item agent was working:** Addressing a batch of user-reported issues. The agent just completed fixing the blank Timesheets page and implemented the Lead Status Change feature. It was beginning to analyze the complete consultant lifecycle as requested by the user.
+-   **Status:** IN PROGRESS
+-   **Agent Testing Done:** Y
+-   **Which testing method agent to use?** Frontend and Backend testing agent to verify the entire consultant lifecycle flow (onboarding -> project assignment -> SOW management -> timesheets -> performance -> termination).
+-   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Complete  Refactoring:** The backend refactoring is a long-standing task to improve maintainability. The file is still over 9,000 lines.
--   **Issue 2 (P1): Left Panel Not Functional:** Users reported the main navigation panel is not functional, has improper scrolling, and clicking links can lead to a blank page. This is a critical UX blocker.
--   **Issue 3 (P1): Old Credentials Invalid:** Users report that old credentials stop working after a new link is created. This suggests a potential issue in the user account provisioning or password reset flow.
--   **Issue 4 (P2): Selfie Capture Unavailable:** User reported the selfie capture option is missing. The agent found the code exists, but it needs to be verified from a user's perspective to ensure it's accessible and functional.
--   **Issue 5 (P2): Multi-select Not Working:** The user cannot link/select multiple options for Role, Tenure Type, and Meeting Type in the admin masters section.
+-   **Issue 1 (P0): Analyze and Fix Consultant Lifecycle Flow:** The user's top priority is to ensure the entire flow for a consultant is seamless. This is a multi-step task involving several pages and modules.
+-   **Issue 2 (P0): Complete  Refactoring:** A long-standing, high-priority technical debt item to improve backend maintainability.
+-   **Issue 3 (P1): Old Credentials Invalid:** A critical, unresolved authentication bug where user credentials reportedly stop working.
+-   **Issue 4 (P1): SOW Scope Checkbox:** A user request to change a dropdown to a checkbox in the kick-off meeting section.
+-   **Issue 5 (P1): Proforma Invoice Listing:** A feature request to list proforma invoices against prospects.
+-   **Issue 6 (P2): Selfie Capture Unavailable:** Needs verification and a potential fix.
+-   **Issue 7 (P2): Multi-select Not Working:** In admin masters for Role, Tenure Type, and Meeting Type.
 
 **Issues Detail:**
--   **Issue 1: Complete  Refactoring**
-    -   **Attempted fixes:**  was reduced from over 14k lines to ~9.4k lines by moving , , and  endpoints to routers.
+-   **Issue 1: Analyze and Fix Consultant Lifecycle Flow**
+    -   **Attempted fixes:** The agent started exploring the code and fixed the related blank Timesheets page. The core logic for assigning consultants and managing their work is not yet verified.
     -   **Next debug checklist:**
-        1.  Re-create or locate  to guide the process.
-        2.  Identify the next logical block of endpoints to migrate (e.g., sales targets, performance reviews).
-        3.  Create a new router file in .
-        4.  Move the endpoint logic, ensuring API signatures and response formats remain compatible with the frontend.
-        5.  Replace the legacy code in  with an  call.
-    -   **Why fix this issue and what will be achieved with the fix?** To eliminate major technical debt, making the backend modular, scalable, and easier to maintain.
+        1.  Investigate why the  page (Assign Consultant) might be appearing blank. Check API calls and data fetching.
+        2.  Map out and test the complete sequence: Consultant Onboarding -> Project Assignment () -> SOW Access & Task Management -> Timesheet Submission () -> Performance Review -> Termination.
+        3.  Ensure the  is the consistent key throughout this entire workflow.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a core business process for the user. Fixing it will provide a seamless, end-to-end operational workflow.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
+
+-   **Issue 2: Complete  Refactoring**
+    -   **Attempted fixes:** Several routers (, , , etc.) have been created, but the file remains over 9,000 lines.
+    -   **Next debug checklist:** Systematically identify the next logical group of endpoints (e.g., leads, projects) and migrate them from  to a new file in .
+    -   **Why fix this issue and what will be achieved with the fix?** To eliminate major technical debt and make the backend scalable and easier for future development.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** backend
     -   **Blocked on other issue:** None
 
--   **Issue 2: Left Panel Not Functional**
-    -   **Attempted fixes:** The agent viewed  but found no obvious errors.
-    -   **Next debug checklist:**
-        1.  Review  and associated CSS for scrolling issues (, ).
-        2.  Check the  or  components used in the sidebar for any logic that might cause rendering issues.
-        3.  Use the browser's developer tools (via screenshot or testing agent) to inspect the panel's state when it goes blank.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical navigation blocker. Fixing it will restore core usability to the application.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on other issue:** None
-
--   **Issue 3: Old Credentials Invalid**
-    -   **Attempted fixes:** Agent reviewed the password hashing and user creation logic and found it seemed correct.
-    -   **Next debug checklist:**
-        1.  Trace the entire create portal access flow in  or relevant routers.
-        2.  Identify what a new link refers to—is it a password reset link or an invitation?
-        3.  Check if any step in this flow incorrectly updates the user's password or deactivates their account.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical authentication bug that prevents users from accessing the application.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** backend
-    -   **Blocked on other issue:** None
-
--   **Issues 4 & 5** require further investigation.
-
 **In progress Task List**:
--   **Task 1: Complete Permission System Implementation**
-    -   **Where to resume:** The  is wrapping . The next step is to use the  hook within components to conditionally render UI elements. Start with  to hide/show navigation links based on user permissions.
-    -   **What will be achieved with this?** A fully functional, level-based access control system, fulfilling a mandatory user requirement.
+-   **Task 1: Complete Consultant Lifecycle Implementation**
+    -   **Where to resume:** The  page is functional. The immediate next step is to debug the  (Assign Consultant) page to ensure it loads correctly and allows consultants to be assigned to projects.
+    -   **What will be achieved with this?** A fully integrated and bug-free process for managing consultants, from hiring to termination, as per the user's explicit request.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks (P1):**
-    -   Implement remaining features from :
-        -   Inbuilt country code selector for mobile numbers.
-        -   Dropdowns for Department & Designation.
-        -   Option to withdraw applied leaves.
-        -   Make Reporting Manager field mandatory.
+    -   Implement SOW Scope checkbox for kick-off meetings.
+    -   Implement Proforma Invoice listing against prospects.
+    -   Address remaining bugs from  and .
+    -   Implement remaining features from user documents: Inbuilt country code selector, dropdowns for Department & Designation.
 -   **Future Tasks (P2 - Backlog):**
-    -   Add low-priority workflows (Recruitment, Asset Management).
     -   Build out the full Finance Module and Project P&L Dashboards.
-    -   Implement Day 0 guided onboarding tour.
-    -   Address minor recurring UI bugs (PWA install prompt).
+    -   Implement a Day 0 guided onboarding tour for new users.
+    -   Address minor recurring UI bugs (e.g., PWA install prompt).
 
 **Completed work in this session**
--   ** Stats Refactoring:** Migrated all  endpoints to  and fixed response formats.
--   **SOW Scope Builder:** Implemented a new UI in Admin Masters for managing SOW categories and scopes.
--   **Deployment Bug Fix:** Resolved multiple MongoDB  serialization errors across the backend.
--   **Lead Management Enhancements:** Added search, filtering, and CSV import functionality to the Leads page.
--   **HR Portal Bug Fixes & Features:**
-    -   Added password visibility toggle.
-    -   Added 10-digit phone number validation and duplicate check.
-    -   Added receipt upload for expenses.
-    -   Added IFSC auto-verification for bank details.
--   **Permission System Foundation:**
-    -   Backfilled  for all existing employees in the database.
-    -   Made the  field a mandatory selection during onboarding.
-    -   Created the backend endpoint and frontend context for permission enforcement.
+-   **Level-Based Permission System Integration:** The permission system is now fully active, controlling sidebar visibility and resolving the Left Panel Not Functional bug.
+-   **Admin Permission Dashboard:** A new UI was created for admins to manage employee levels and view permissions.
+-   **Leave Management Enhancements:** Implemented Withdraw Applied Leaves and Half Day Leave options, with correct payroll calculation.
+-   **Enhanced Staffing Request System:** Built a new form and approval flow for staffing requests.
+-   **Employee ID Integration & Scorecard:** Created a central Employee Scorecard to unify employee data and lifecycle events.
+-   **Critical Bug Fixes:**
+    -   **Timesheets Page:** Created the component and backend, resolving the blank page issue.
+    -   **Lead Status Change:** Implemented a dropdown on the Leads page to allow direct status updates.
+    -   **UI Cleanup:** Removed redundant buttons from several pages as requested.
 
 **Earlier issues found/mentioned but not fixed**
--   **PWA Install Notification and Branding:** Recurring UI/UX bug.
--   **Incomplete columns in Leads list view:** This was likely resolved by the rework of the Leads page, but should be verified.
+-   **PWA Install Notification and Branding:** A recurring, low-priority UI/UX bug.
 -   **Apply  presentation controls to Sales Dashboard:** A UI consistency task.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** The monolithic  file.
--   **Recurrence count:** 9+
+-   **Recurrence count:** 10+
 -   **Status:** IN PROGRESS
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Level-based RBAC:** Implementing role-based access control using employee levels (Executive, Manager, Leader).
--   **React Context for Permissions:** Using a global context () to manage and distribute user permissions throughout the frontend.
--   **Frontend File Handling:** Using  to handle client-side CSV parsing for bulk lead imports.
--   **Backend Data Integrity:** Adding database checks and API endpoints to prevent duplicate data entry (e.g., ).
--   **External API for Data Enrichment:** Calling an external service (Razorpay's IFSC API) to verify and fetch bank details.
+-   **Full Lifecycle Feature Implementation:** Building interconnected features that span multiple modules (e.g., Onboarding -> Project Assignment -> Timesheets -> Payroll).
+-   **React Context for State Management:** Used for  and .
+-   **Conditional Rendering:** Using the  hook to dynamically control UI based on user level.
 
 **key DB schema**
--   ****:  is now a mandatory field.
--   ****: Stores the permission sets for each employee level.
--   ****: New collection to store categories for SOW scopes.
--   ****: New collection to store reusable SOW scopes linked to categories.
+-   ****: Field  now supports  for half-day leaves. Status can be Withdrawn.
+-   ****: New collection for detailed staffing requests with an approval flow.
+-   ****: New collection to store weekly timesheet data.
+-   ****: The  field is being reinforced as the primary key linking all user activities and events.
 
 **All files of reference**
--    (The new permissions context)
--    (The new permissions API)
--    (Next file to modify for permission enforcement)
--    (The file undergoing refactoring)
--   User documents in workspace: , 
+-    (Next file to investigate for the consultant lifecycle).
+-    (Newly created functional page).
+-    (Modified for status change).
+-    (New central employee directory).
+-    (The file undergoing slow refactoring).
+-   User documents in workspace: , , .
 
 **Areas that need refactoring**:
--   ****: Requires completion of the migration to a fully router-based architecture.
--   **Frontend Components:** Need to be refactored to use the  hook to conditionally render elements, rather than having access control logic scattered.
+-   ****: This remains the top priority for refactoring to reduce technical debt.
+-   **Frequent Session Expiration:** The token lifecycle or frontend state persistence could be improved to provide a smoother development and testing experience.
 
 **key api endpoints**
--   : (NEW) Fetches the permissions for the currently logged-in user.
--   : (NEW) For bulk-uploading leads via CSV.
--   : (NEW) Checks if a phone number already exists.
--   : (NEW) Fetches bank details from an IFSC code.
--   : (NEW - Internal tool) Endpoint created to fix existing employee data.
+-   : (NEW) Withdraws a pending leave request.
+-   : (NEW) Creates a new staffing request.
+-   : (NEW) Manages employee timesheets.
+-   : (NEW) Updates a lead's properties, including status.
+-   : (NEW) Fetches data for the Employee Scorecard.
+-   : (NEW) Fetches the event history for an employee.
 
 **Critical Info for New Agent**
--   **Priority #1 is completing the permission system.** The foundation is laid (backend API, frontend Context). The next step is to apply the  hook in components like  and other pages to hide/show UI elements based on the user's permissions.
--   After the permission system is done, the next priorities are the critical bugs from the user's , especially the **Left Panel issue**.
--   The  refactoring is an ongoing, lower-priority background task.
+-   **Your immediate priority is the consultant lifecycle.** The user wants this entire flow to be seamless. Start by debugging the Assign Consultant page () to fix any blank page issues, then test and connect the rest of the flow: SOW access, timesheets, and performance/termination.
+-   After the consultant lifecycle, move on to the other P1 tasks from the user's latest requests: SOW Scope checkbox and Proforma Invoice listing.
+-   The  refactoring is a critical background task. If you have downtime or a natural opportunity, continue migrating endpoints out of it.
+-   Session expiration is frequent. Be prepared to log in again after a few minutes of inactivity. The provided credentials are correct.
 
 **documents and test reports created in this job**
 -   
--   
--   
 -    (updated multiple times)
--    (created and updated)
--   User-provided artifacts: , 
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** we have created level, need to link employee while onboarding with permission? is it there in database (PENDING)
-2.  **User:** Update the employee without level to have a default level? its mandatory to update level, Show the level selection UI in the onboarding page? mandatory to be linked everywhere permissions , role based, Check if permissions are being enforced based on level? yes (PENDING)
-3.  **User:** read the attachment and let me know what is the issue that must be corrected (COMPLETED)
-4.  **User:** ok (COMPLETED)
-5.  **User:** yes (COMPLETED)
-6.  **User:** yes (COMPLETED)
-7.  **User:** yes (COMPLETED)
-8.  **User:** Unable to add scopes and category... (COMPLETED)
-9.  **User:** Call Deployer Agent and Run Health Check to Check for Readiness for Deployment (COMPLETED)
-10. **User:** Complete server.py Refactoring... (COMPLETED)
+-   **User:** Analyze and fix the complete consultant lifecycle (onboarding to termination), fix blank pages (Timesheets, Assign Consultant), add SOW scope checkbox, and proforma invoice listing. (IN PROGRESS)
+-   **User:** is half day linked with payroll data or now, proceed with Link Employee ID across all flows. (IN PROGRESS)
+-   **User:**  Implement SOW scope checkbox, a detailed staffing request flow, and half-day leaves. (PARTIALLY COMPLETED)
+-   **User:** Check whats covered and not covered in the new bug reports. (COMPLETED)
+-   **User:**  (COMPLETED)
+-   **User:** Implement Option to withdraw applied leaves. (COMPLETED)
+-   **User:** Create the admin permission dashboard. (COMPLETED)
+-   **User:** continue. (COMPLETED)
+-   **User:** yes. (COMPLETED)
+-   **User:** yes continue. (COMPLETED)
 
 **Project Health Check:**
 -   **Broken:**
-    -   **Left Navigation Panel:** Reported as non-functional, which is a critical usability flaw.
-    -   **Authentication Flow:** An issue where user credentials become invalid needs to be fixed.
-    -   **Multi-select in Admin Masters:** Reported as not working.
--   **Needs Rework:**
-    -   **:** Still requires significant refactoring to become fully modular.
-    -   **Permission System:** In the middle of implementation. The UI does not yet react to user permissions.
+    -   **Consultant Lifecycle:** The full end-to-end flow is unverified and likely has gaps, starting with the Assign Consultant page which may be non-functional.
+    -   **Authentication:** The critical Old Credentials Invalid bug persists.
+-   **Needs Rework / Implementation:**
+    -   **:** Requires significant refactoring.
+    -   **New Features:** SOW Scope checkbox and Proforma Invoice listing are requested but not started.
 
 **3rd Party Integrations**
 -   Google Maps Geocoding API — requires User API Key.
 -   Emergent-managed Google Auth
 -   Google Workspace SMTP
--   
--   , 
--   
--   
--    (backend)
--   
--    (backend)
--    (frontend, for CSV)
--   **Razorpay IFSC API** (New) - Public API used for IFSC verification. No key required.
+-   Razorpay IFSC API (Public, no key required)
+-   Various frontend libraries (, , , etc.)
 
 **Testing status**
 -   **Testing agent used after significant changes:** YES
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None.
--   **Known regressions:** None identified in this session, but the user-reported bugs are effectively regressions.
+-   **Test files created:** None
+-   **Known regressions:** The Assign Consultant page may be a regression or simply an incomplete feature that now appears broken.
 
 **Credentials to test flow:**
 -   **Admin:**  / 
 -   **HR Manager:**  / 
 -   **Sales Manager:**  / 
+-   **Consultant:**  / 
 
 **What agent forgot to execute**
-- The agent did not fully resolve all high-priority bugs reported in the user's  file, such as the broken left panel and credential invalidation issue, before moving on to other tasks. It correctly triaged them but has not yet started the fixes.</analysis>
+-   The agent has not yet started on the SOW Scope checkbox or the Proforma Invoice listing features, which were part of the user's recent high-priority requests.
+-   The agent identified that the Assign Consultant page might be blank but did not investigate it before the session ended. This is a crucial blocker for the top-priority consultant lifecycle task.</analysis>
