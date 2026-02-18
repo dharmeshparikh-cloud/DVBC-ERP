@@ -84,7 +84,8 @@ const Projects = () => {
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400">Track your consulting projects and deliverables</p>
         </div>
-        {canEdit && (
+        {/* Projects can only be created via Kickoff Request handover from Sales team */}
+        {false && canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button
