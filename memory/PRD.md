@@ -193,6 +193,46 @@ Build a business management application for a consulting firm with complete HR, 
   - [x] Pending approvals count
   - [x] Weekly trend data for mobile adoption
 
+### Session 9 (Feb 18, 2026)
+- [x] **Payment Verification Step (Sales-to-Consulting Handoff)**
+  - [x] New `/sales-funnel/payment-verification` page for verifying first installment payments
+  - [x] Payment verification required before kickoff request creation
+  - [x] 3-step flow: Agreement Signed → Verify Payment → Create Kickoff Request
+  - [x] Backend `/api/payments/*` endpoints for payment CRUD
+  - [x] Automatic SOW handover to Consulting when payment is verified
+  - [x] SOW-to-Project linking via `agreement_id`
+  - [x] "Verify Payment" button added to Agreements page
+  - [x] Payment eligibility check in Kickoff Requests page
+  - [x] Clear error messages when payment not verified
+- [x] **Assign Consultant Page Verified Working**
+  - [x] `/consulting/assign-team/:projectId` page confirmed working
+  - [x] Shows project details, duration, meetings
+  - [x] Add Consultant functionality available
+  - [x] Added `/onboarding` route to main ERP (previously only in HR Portal)
+  - [x] Added "Onboarding" link in HR section of main sidebar
+  - [x] Full 5-step onboarding wizard accessible from main ERP
+- [x] **Attendance Approvals in Main ERP**
+  - [x] Added `/attendance-approvals` route to main ERP
+  - [x] Added "Attendance Approvals" link in HR section of main sidebar
+- [x] **Mobile App Access Status in Employees**
+  - [x] New "Mobile App" column showing Enabled/Disabled status with phone icon
+  - [x] Toggle button for Admin/HR to enable/disable mobile app access per employee
+  - [x] Employee detail dialog shows mobile app status with reason if disabled
+  - [x] Work location field displayed in employee details
+- [x] **Mobile App Download Page**
+  - [x] New `/mobile-app` page with QR code for easy employee access
+  - [x] Step-by-step installation instructions for iOS (Safari) and Android (Chrome)
+  - [x] "Open Mobile App" direct link button
+  - [x] QR code popup accessible from Employees page for HR to share
+  - [x] "Mobile App" link added to My Workspace section in sidebar
+  - [x] App features showcase (Selfie Check-in, GPS, Notifications, Geofencing)
+- [x] **Mobile App Usage Stats API**
+  - [x] `GET /api/attendance/mobile-stats` endpoint
+  - [x] Today's mobile vs desktop check-ins count
+  - [x] Total mobile app users tracking
+  - [x] Pending approvals count
+  - [x] Weekly trend data for mobile adoption
+
 ## Test Credentials
 
 | Portal | Email | Password | Role |
