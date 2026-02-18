@@ -8345,7 +8345,25 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     present_days = sum(1 for r in att_records if r.get("status") in ["present", "work_from_home"])
     absent_days = sum(1 for r in att_records if r.get("status") == "absent")
     half_days = sum(1 for r in att_records if r.get("status") == "half_day")
-
+    
+    # Auto-calculate approved leaves for this month
+    leave_requests = await db.leave_requests.find({
+        "employee_id": employee_id,
+        "status": "approved",
+        "$or": [
+            {"start_date": {"$regex": f"^{month}"}},
+            {"end_date": {"$regex": f"^{month}"}}
+        ]
+    }, {"_id": 0}).to_list(50)
+    
+    auto_leaves = 0
+    auto_half_day_leaves = 0
+    for lr in leave_requests:
+        if lr.get("is_half_day"):
+            auto_half_day_leaves += 0.5
+        else:
+            auto_leaves += lr.get("days", 0)
+    
     # Get payroll inputs (manual overrides)
     payroll_input = await db.payroll_inputs.find_one({"employee_id": employee_id, "month": month}, {"_id": 0})
     if payroll_input:
