@@ -7077,10 +7077,9 @@ async def create_staffing_request(
     await notify_admins(
         notif_type="staffing_request",
         title="New Staffing Request",
-        message=f"{requester_name} submitted a staffing request for {request.project_name} ({request.headcount} resource(s))",
+        message=f"{requester_name} submitted a staffing request for {request.project_name} ({request.headcount} resource(s)) - Priority: {request.priority}",
         reference_type="staffing_request",
-        reference_id=staffing_request["id"],
-        priority=request.priority
+        reference_id=staffing_request["id"]
     )
     
     return {"message": "Staffing request submitted for approval", "id": staffing_request["id"]}
