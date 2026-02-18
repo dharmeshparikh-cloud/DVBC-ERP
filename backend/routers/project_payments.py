@@ -498,7 +498,7 @@ async def send_payment_reminder(
     if due_date_str:
         try:
             due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00"))
-        except:
+        except (ValueError, AttributeError):
             due_date = datetime.strptime(due_date_str[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
         
         # Check if within 7 days of due date
