@@ -9930,6 +9930,7 @@ api_router.include_router(meetings_router.router)
 api_router.include_router(users_router.router)
 api_router.include_router(role_management_router.router)
 api_router.include_router(letters_router.router)
+api_router.include_router(payments_router.router)
 
 app.include_router(api_router)
 
