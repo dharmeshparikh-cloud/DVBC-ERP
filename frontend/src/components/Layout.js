@@ -259,7 +259,7 @@ const Layout = () => {
         {showHR && (
           <>
             <SectionHeader label="HR" sectionKey="hr" />
-            {expanded.hr && hrItems.map(item => (
+            {expanded.hr && filteredHrItems.map(item => (
               <NavLink 
                 key={item.name} 
                 item={item} 
