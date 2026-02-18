@@ -618,7 +618,7 @@ const HROnboarding = () => {
               </Card>
 
               {/* Resume - Required */}
-              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.resume ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:border-emerald-500'}`}>
+              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.resume ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-red-300 hover:border-red-400'}`}>
                 <CardContent className="pt-6 text-center">
                   <input
                     type="file"
@@ -631,9 +631,9 @@ const HROnboarding = () => {
                     {uploadedDocs.resume ? (
                       <CheckCircle className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
                     ) : (
-                      <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+                      <Upload className="w-8 h-8 mx-auto text-red-400 mb-2" />
                     )}
-                    <p className="font-medium">Resume</p>
+                    <p className="font-medium">Resume <span className="text-red-500">*</span></p>
                     <p className="text-xs text-zinc-500 mt-1">
                       {uploadedDocs.resume ? uploadedDocs.resume.name : 'PDF format preferred'}
                     </p>
@@ -641,8 +641,8 @@ const HROnboarding = () => {
                 </CardContent>
               </Card>
 
-              {/* Offer Letter */}
-              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.offer_letter ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:border-emerald-500'}`}>
+              {/* Offer Letter - Required */}
+              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.offer_letter ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-red-300 hover:border-red-400'}`}>
                 <CardContent className="pt-6 text-center">
                   <input
                     type="file"
@@ -655,9 +655,9 @@ const HROnboarding = () => {
                     {uploadedDocs.offer_letter ? (
                       <CheckCircle className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
                     ) : (
-                      <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+                      <Upload className="w-8 h-8 mx-auto text-red-400 mb-2" />
                     )}
-                    <p className="font-medium">Offer Letter</p>
+                    <p className="font-medium">Offer Letter <span className="text-red-500">*</span></p>
                     <p className="text-xs text-zinc-500 mt-1">
                       {uploadedDocs.offer_letter ? uploadedDocs.offer_letter.name : 'Signed copy'}
                     </p>
