@@ -754,17 +754,24 @@ const ApprovalsCenter = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedCtc.components?.filter(c => c.enabled !== false).map((comp, idx) => (
+                      {Array.isArray(selectedCtc.components) && selectedCtc.components.filter(c => c.enabled !== false).map((comp, idx) => (
                         <tr key={idx} className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'} ${comp.is_deduction ? 'text-red-600' : ''}`}>
                           <td className={`px-3 py-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{comp.name}</td>
                           <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
-                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.monthly_amount || comp.value / 12)}
+                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.monthly_amount || (comp.value ? comp.value / 12 : 0))}
                           </td>
                           <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
-                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.annual_amount || comp.value)}
+                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.annual_amount || comp.value || 0)}
                           </td>
                         </tr>
                       ))}
+                      {(!Array.isArray(selectedCtc.components) || selectedCtc.components.length === 0) && (
+                        <tr>
+                          <td colSpan={3} className={`px-3 py-4 text-center ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            No component breakdown available
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
