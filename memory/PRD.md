@@ -432,7 +432,14 @@ A comprehensive travel reimbursement feature for employees:
   - [x] All APIs tested and working
   - [x] Frontend CTC approval modal verified working
 
-- [x] **CTC Approval Modal Fix (P0)**
+- [x] **Real-Time Approval Notification Badges (NEW)**
+  - [x] Created `/app/frontend/src/contexts/ApprovalContext.js` - Global context for approval counts
+  - [x] Polls pending approvals every 10 seconds from multiple endpoints
+  - [x] Shows red animated badge on "Approvals Center" nav item with total pending count
+  - [x] Shows badges on HR nav items (CTC Designer, Attendance Approvals)
+  - [x] Updated `Layout.js` to use ApprovalContext and display badges
+  - [x] Updated `HRLayout.js` to use ApprovalContext and display badges
+  - [x] Added `ApprovalProvider` wrapper in `App.js`
   - [x] Fixed `ApprovalsCenter.js` - CTC detail dialog now shows full salary component breakdown
   - [x] Issue: Backend returns `components` as object (dict), frontend expected array
   - [x] Added handling for object-based components with `Object.values()`
