@@ -748,6 +748,50 @@ const KickoffRequests = () => {
               </Select>
             </div>
 
+            {/* Payment Eligibility Status */}
+            {formData.agreement_id && (
+              <div className={`p-3 rounded-sm border ${
+                checkingEligibility 
+                  ? 'bg-zinc-50 border-zinc-200' 
+                  : paymentEligibility?.is_eligible 
+                    ? 'bg-emerald-50 border-emerald-200' 
+                    : 'bg-amber-50 border-amber-200'
+              }`}>
+                {checkingEligibility ? (
+                  <div className="flex items-center gap-2 text-zinc-600">
+                    <Clock className="w-4 h-4 animate-pulse" />
+                    Checking payment status...
+                  </div>
+                ) : paymentEligibility?.is_eligible ? (
+                  <div className="flex items-center gap-2 text-emerald-700">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>
+                      Payment verified (TXN: {paymentEligibility.first_installment_transaction_id})
+                      {paymentEligibility.sow_handover_complete && ' - SOW handed over to Consulting'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-amber-700">
+                      <AlertCircle className="w-4 h-4" />
+                      First installment payment not verified
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                      onClick={() => {
+                        setShowCreateDialog(false);
+                        navigate(`/sales-funnel/payment-verification?agreement_id=${formData.agreement_id}`);
+                      }}
+                    >
+                      Verify Payment First
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Client Name</Label>
