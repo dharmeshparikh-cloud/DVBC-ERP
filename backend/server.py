@@ -4002,6 +4002,135 @@ async def unassign_consultant(
     
     return {"message": "Consultant unassigned successfully"}
 
+
+# ==================== TIMESHEET SYSTEM ====================
+
+class TimesheetCreate(BaseModel):
+    """Create or update a timesheet"""
+    model_config = ConfigDict(extra="ignore")
+    week_start: str  # YYYY-MM-DD
+    entries: dict  # {project_id: {date: hours}}
+    notes: Optional[dict] = {}  # {project_id: note}
+    status: str = "draft"  # draft, submitted
+
+
+@api_router.get("/timesheets")
+async def get_timesheet(
+    week_start: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get timesheet for a specific week"""
+    timesheet = await db.timesheets.find_one({
+        "user_id": current_user.id,
+        "week_start": week_start
+    }, {"_id": 0})
+    
+    return timesheet
+
+
+@api_router.post("/timesheets")
+async def save_timesheet(
+    timesheet: TimesheetCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Save or update a timesheet"""
+    # Check if timesheet exists
+    existing = await db.timesheets.find_one({
+        "user_id": current_user.id,
+        "week_start": timesheet.week_start
+    })
+    
+    if existing and existing.get("status") == "approved":
+        raise HTTPException(status_code=400, detail="Cannot modify approved timesheet")
+    
+    # Calculate total hours
+    total_hours = 0
+    for project_id, dates in timesheet.entries.items():
+        for date, hours in dates.items():
+            total_hours += hours
+    
+    timesheet_data = {
+        "user_id": current_user.id,
+        "week_start": timesheet.week_start,
+        "entries": timesheet.entries,
+        "notes": timesheet.notes,
+        "status": timesheet.status,
+        "total_hours": total_hours,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if existing:
+        await db.timesheets.update_one(
+            {"user_id": current_user.id, "week_start": timesheet.week_start},
+            {"$set": timesheet_data}
+        )
+    else:
+        timesheet_data["id"] = str(uuid.uuid4())
+        timesheet_data["created_at"] = datetime.now(timezone.utc).isoformat()
+        await db.timesheets.insert_one(timesheet_data)
+    
+    # If submitted, create approval request
+    if timesheet.status == "submitted":
+        await create_approval_request(
+            approval_type=ApprovalType.TIMESHEET,
+            reference_id=timesheet_data.get("id") or existing.get("id"),
+            reference_title=f"Timesheet Week: {timesheet.week_start} ({total_hours}h)",
+            requester_id=current_user.id,
+            requires_hr_approval=False,
+            requires_admin_approval=True
+        )
+    
+    return {"message": f"Timesheet {'updated' if existing else 'created'} successfully"}
+
+
+@api_router.get("/timesheets/all")
+async def get_all_timesheets(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all timesheets (HR/Admin only)"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.HR_MANAGER]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    query = {}
+    if status:
+        query["status"] = status
+    
+    timesheets = await db.timesheets.find(query, {"_id": 0}).sort("week_start", -1).to_list(200)
+    
+    # Enrich with user info
+    for ts in timesheets:
+        user = await db.users.find_one({"id": ts["user_id"]}, {"_id": 0, "email": 1, "full_name": 1})
+        if user:
+            ts["user_name"] = user.get("full_name", user.get("email"))
+    
+    return timesheets
+
+
+@api_router.post("/timesheets/{timesheet_id}/approve")
+async def approve_timesheet(
+    timesheet_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a timesheet"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.PROJECT_MANAGER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.timesheets.update_one(
+        {"id": timesheet_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Timesheet not found")
+    
+    return {"message": "Timesheet approved"}
+
+
 # ==================== CONSULTANT DASHBOARD APIs ====================
 
 @api_router.get("/consultant/my-projects")
