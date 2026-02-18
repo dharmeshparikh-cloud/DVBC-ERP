@@ -2,17 +2,42 @@
 Letter Management Router - Offer Letters, Appointment Letters, Templates with Approval Workflow
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, EmailStr
 import uuid
+import base64
+import os
 
 from .models import User
 from .deps import get_db, sanitize_text
 from .auth import get_current_user
 
+# Import email service
+try:
+    from services.email_service import send_offer_letter_email, send_appointment_letter_email, send_acceptance_confirmation_email
+    EMAIL_SERVICE_AVAILABLE = True
+except ImportError:
+    EMAIL_SERVICE_AVAILABLE = False
+
 router = APIRouter(prefix="/letters", tags=["Letter Management"])
+
+# Base URL for acceptance links
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:3000').replace('/api', '')
+
+
+# ============== Letterhead Settings Model ==============
+
+class LetterheadSettings(BaseModel):
+    """Letterhead header and footer settings."""
+    header_image: Optional[str] = None  # Base64 encoded image
+    footer_image: Optional[str] = None  # Base64 encoded image
+    company_name: Optional[str] = "D&V Business Consulting Pvt. Ltd."
+    company_address: Optional[str] = None
+    company_phone: Optional[str] = None
+    company_email: Optional[str] = None
+    company_cin: Optional[str] = None
 
 
 # ============== Pydantic Models ==============
