@@ -63,6 +63,7 @@ import AdminMasters from './pages/AdminMasters';
 import PermissionManager from './pages/PermissionManager';
 import RoleManagement from './pages/RoleManagement';
 import LetterManagement from './pages/LetterManagement';
+import LetterheadSettings from './pages/LetterheadSettings';
 import AcceptOfferPage from './pages/AcceptOfferPage';
 import AdminDashboardMockups from './pages/admin/AdminDashboardMockups';
 import FlowDiagram from './pages/FlowDiagram';
