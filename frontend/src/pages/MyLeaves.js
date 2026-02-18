@@ -28,6 +28,7 @@ const MyLeaves = () => {
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [withdrawingId, setWithdrawingId] = useState(null);
   const [formData, setFormData] = useState({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '' });
 
   useEffect(() => { fetchData(); }, []);
@@ -61,6 +62,21 @@ const MyLeaves = () => {
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to submit');
+    }
+  };
+
+  const handleWithdraw = async (leaveId) => {
+    if (!window.confirm('Are you sure you want to withdraw this leave request?')) return;
+    
+    setWithdrawingId(leaveId);
+    try {
+      await axios.post(`${API}/leave-requests/${leaveId}/withdraw`);
+      toast.success('Leave request withdrawn successfully');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to withdraw leave request');
+    } finally {
+      setWithdrawingId(null);
     }
   };
 
