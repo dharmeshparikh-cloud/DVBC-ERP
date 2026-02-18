@@ -7,7 +7,8 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Any, List
+from bson import ObjectId
 import os
 import re
 
@@ -43,3 +44,35 @@ def sanitize_text(text: str) -> str:
     clean = re.sub(r'onerror\s*=', '', clean, flags=re.IGNORECASE)
     clean = re.sub(r'onclick\s*=', '', clean, flags=re.IGNORECASE)
     return clean.strip()
+
+
+def clean_mongo_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Remove MongoDB ObjectId from document for JSON serialization.
+    Removes _id and converts any ObjectId values to strings.
+    """
+    if doc is None:
+        return None
+    if isinstance(doc, list):
+        return [clean_mongo_doc(d) for d in doc]
+    if not isinstance(doc, dict):
+        return doc
+    
+    cleaned = {}
+    for key, value in doc.items():
+        if key == "_id":
+            continue  # Skip MongoDB's _id field
+        if isinstance(value, ObjectId):
+            cleaned[key] = str(value)
+        elif isinstance(value, dict):
+            cleaned[key] = clean_mongo_doc(value)
+        elif isinstance(value, list):
+            cleaned[key] = [clean_mongo_doc(v) if isinstance(v, dict) else (str(v) if isinstance(v, ObjectId) else v) for v in value]
+        else:
+            cleaned[key] = value
+    return cleaned
+
+
+def clean_mongo_list(docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Clean a list of MongoDB documents."""
+    return [clean_mongo_doc(doc) for doc in docs]
