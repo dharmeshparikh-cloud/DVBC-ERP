@@ -27,6 +27,7 @@ const ADMIN_ROLES = ['admin', 'manager'];
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
   const { theme, toggleTheme } = useTheme();
+  const { pendingCounts } = useApprovals();
   const location = useLocation();
   const role = user?.role;
   const isDark = theme === 'dark';
