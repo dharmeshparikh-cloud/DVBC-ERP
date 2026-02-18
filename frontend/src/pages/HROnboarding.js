@@ -149,6 +149,28 @@ const HROnboarding = () => {
     }
   };
 
+  // Document upload handler
+  const handleDocumentUpload = (docType, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+      if (!validTypes.includes(file.type)) {
+        toast.error('Please upload a JPG, PNG, or PDF file');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      
+      setUploadedDocs(prev => ({ ...prev, [docType]: file }));
+      toast.success(`${docType.replace('_', ' ')} uploaded successfully`);
+    }
+  };
+
   const validateStep = (step) => {
     switch (step) {
       case 0: // Personal Info
