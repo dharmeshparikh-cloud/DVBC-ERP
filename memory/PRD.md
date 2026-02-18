@@ -1094,6 +1094,53 @@ Based on user-provided documents: `Bugs 3.docx`, `ERP Bugs 2.docx`, `HR PORTAL 2
 - `/app/frontend/src/App.js` - Added route
 - `/app/frontend/src/components/Layout.js` - Added nav link
 
+#### 6. Bug Fixes (Feb 18, 2026)
+
+**Lead Status Change - FIXED**
+- Added PATCH `/api/leads/{lead_id}` endpoint
+- Status dropdown in both Card and List views
+- Status change history tracked
+
+**Timesheets Page - CREATED**
+- New page: `/timesheets`
+- Week-by-week timesheet entry
+- Hours dropdown (0-10 in 0.5 increments)
+- Daily totals and project totals
+- Save Draft / Submit for Approval
+- Backend endpoints for CRUD operations
+
+**Files Created:**
+- `/app/frontend/src/pages/Timesheets.js`
+
+**Files Modified:**
+- `/app/backend/server.py` - Added timesheet + lead PATCH endpoints
+- `/app/frontend/src/pages/Leads.js` - Added status dropdown
+- `/app/frontend/src/App.js` - Added Timesheets route
+
+---
+
+### Consultant Lifecycle Flow Analysis
+
+| Step | Feature | Status | Notes |
+|------|---------|--------|-------|
+| 1 | HR Onboarding | ✅ DONE | Employee creation with all fields |
+| 2 | Portal Access | ✅ DONE | Create user account, link to employee |
+| 3 | Project Assignment | ✅ DONE | AssignTeam.js, backend endpoints |
+| 4 | Access Assigned Projects | ✅ DONE | /consultant/my-projects |
+| 5 | View SOW | ✅ DONE | ConsultingSOWList.js |
+| 6 | Task Creation | ✅ DONE | ConsultingProjectTasks.js |
+| 7 | Task linked to SOW | ✅ DONE | Tasks have sow_id |
+| 8 | Mark Task Status | ✅ DONE | Task status updates |
+| 9 | Timesheet Entry | ✅ DONE | New Timesheets page |
+| 10 | Performance Review | 🟡 PARTIAL | Performance dashboard exists |
+| 11 | Termination | 🟡 PARTIAL | Employee status can be updated |
+
+**Gaps Identified:**
+- Performance review not fully integrated with termination flow
+- No explicit "Terminate Employee" button with workflow
+
+
+
 
 | Remove duplicate Apply Leave button | ✅ DONE | From Leave Management |
 | SOW scope checkbox (not dropdown) | 🔶 PENDING | Need to implement |
