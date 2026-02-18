@@ -10759,8 +10759,12 @@ api_router.include_router(attendance_router.router)
 api_router.include_router(expenses_router.router)
 api_router.include_router(hr_router.router)
 
-# Note: auth, leads, projects, meetings, users routers kept as legacy due to 
-# deep integrations with other server.py code
+# Phase 3 - Core routers (auth, leads, projects, meetings, users)
+api_router.include_router(auth_router.router)
+api_router.include_router(leads_router.router)
+api_router.include_router(projects_router.router)
+api_router.include_router(meetings_router.router)
+api_router.include_router(users_router.router)
 
 app.include_router(api_router)
 
