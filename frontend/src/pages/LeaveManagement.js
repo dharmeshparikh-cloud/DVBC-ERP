@@ -38,23 +38,6 @@ const LeaveManagement = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${API}/leave-requests`, {
-        ...formData,
-        start_date: new Date(formData.start_date).toISOString(),
-        end_date: new Date(formData.end_date).toISOString()
-      });
-      toast.success('Leave request submitted. Routing to Reporting Manager → HR Manager.');
-      setDialogOpen(false);
-      setFormData({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '' });
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit leave request');
-    }
-  };
-
   const displayRequests = activeTab === 'all' ? allRequests : myRequests;
   const pendingCount = myRequests.filter(r => r.status === 'pending').length;
   const approvedCount = myRequests.filter(r => r.status === 'approved').length;
@@ -66,11 +49,7 @@ const LeaveManagement = () => {
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Leave Management</h1>
           <p className="text-zinc-500">Review and approve leave requests from employees</p>
         </div>
-        {/* Apply Leave button removed - employees use My Leaves page */}
       </div>
-                  {LEAVE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card className="border-zinc-200 shadow-none rounded-sm">
