@@ -694,58 +694,8 @@ async def log_security_event(event_type: str, email: str = None, details: dict =
 # NOTE: Basic projects CRUD + handover-alerts now handled by projects_router  
 # Additional project endpoints below (assign-consultant, SOW, etc.) remain here
 
-@api_router.post("/meetings", response_model=Meeting)
-async def create_meeting(meeting_create: MeetingCreate, current_user: User = Depends(get_current_user)):
-    meeting_type = meeting_create.type
-    # Role-based access control
-    if current_user.role == "hr_manager":
-        raise HTTPException(status_code=403, detail="HR Managers do not have CRUD access to meetings")
-    if meeting_type == "sales" and current_user.role not in SALES_MEETING_ROLES:
-        raise HTTPException(status_code=403, detail="Only sales roles can create sales meetings")
-    if meeting_type == "consulting" and current_user.role not in CONSULTING_MEETING_ROLES:
-        raise HTTPException(status_code=403, detail="Only consulting/PM roles can create consulting meetings")
-    # Consulting meetings require project_id
-    if meeting_type == "consulting" and not meeting_create.project_id:
-        raise HTTPException(status_code=400, detail="Consulting meetings must be linked to a project")
-
-    meeting_dict = meeting_create.model_dump()
-    meeting = Meeting(**meeting_dict, created_by=current_user.id)
-
-    doc = meeting.model_dump()
-    doc['meeting_date'] = doc['meeting_date'].isoformat()
-    doc['created_at'] = doc['created_at'].isoformat()
-
-    await db.meetings.insert_one(doc)
-
-    if meeting.is_delivered and meeting.project_id:
-        await db.projects.update_one(
-            {"id": meeting.project_id},
-            {"$inc": {"total_meetings_delivered": 1, "number_of_visits": 1}}
-        )
-
-    return meeting
-
-@api_router.get("/meetings", response_model=List[Meeting])
-async def get_meetings(
-    project_id: Optional[str] = None,
-    meeting_type: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
-    query = {}
-    if project_id:
-        query['project_id'] = project_id
-    if meeting_type:
-        query['type'] = meeting_type
-
-    meetings = await db.meetings.find(query, {"_id": 0}).to_list(1000)
-
-    for meeting in meetings:
-        if isinstance(meeting.get('meeting_date'), str):
-            meeting['meeting_date'] = datetime.fromisoformat(meeting['meeting_date'])
-        if isinstance(meeting.get('created_at'), str):
-            meeting['created_at'] = datetime.fromisoformat(meeting['created_at'])
-
-    return meetings
+# NOTE: Basic meetings CRUD now handled by meetings_router
+# Consulting-specific endpoints below remain here
 
 @api_router.get("/consulting-meetings/tracking")
 async def get_consulting_tracking(current_user: User = Depends(get_current_user)):
