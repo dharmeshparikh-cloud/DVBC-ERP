@@ -78,6 +78,7 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
         "department": data.get("department"),
         "designation": data.get("designation"),
         "role": data.get("role", "consultant"),
+        "level": data.get("level", "executive"),  # Employee hierarchy level
         "reporting_manager_id": data.get("reporting_manager_id"),
         "date_of_joining": data.get("date_of_joining"),
         "date_of_birth": data.get("date_of_birth"),
