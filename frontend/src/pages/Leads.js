@@ -436,9 +436,125 @@ const Leads = () => {
               </form>
             </DialogContent>
           </Dialog>
+          </>
           )}
         </div>
       </div>
+
+      {/* CSV Upload Dialog */}
+      <Dialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5" />
+              Import Leads from CSV
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              Upload a CSV file or paste data directly to bulk import leads
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Download Template */}
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div className="text-sm text-blue-700">
+                Need a template? Download our sample CSV format
+              </div>
+              <Button variant="outline" size="sm" onClick={downloadTemplate} className="text-blue-700 border-blue-200">
+                <Download className="w-4 h-4 mr-1" />
+                Template
+              </Button>
+            </div>
+            
+            {/* File Upload */}
+            <div className="border-2 border-dashed border-zinc-300 rounded-lg p-6 text-center">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+                data-testid="csv-file-input"
+              />
+              <Upload className="w-10 h-10 text-zinc-400 mx-auto mb-3" />
+              <p className="text-sm text-zinc-600 mb-2">Drag & drop or click to upload CSV</p>
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                Choose File
+              </Button>
+            </div>
+            
+            {/* Or paste directly */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-zinc-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-2 bg-white text-zinc-500">or paste CSV data</span>
+              </div>
+            </div>
+            
+            <textarea
+              value={csvData}
+              onChange={(e) => {
+                setCsvData(e.target.value);
+                const parsed = parseCSV(e.target.value);
+                setCsvPreview(parsed.slice(0, 5));
+              }}
+              placeholder="first_name,last_name,company,job_title,email,phone,source&#10;John,Doe,Acme Corp,CEO,john@acme.com,9876543210,Website"
+              className="w-full h-32 px-3 py-2 rounded-sm border border-zinc-200 text-sm font-mono"
+              data-testid="csv-paste-area"
+            />
+            
+            {/* Preview */}
+            {csvPreview.length > 0 && (
+              <div className="border border-zinc-200 rounded-lg overflow-hidden">
+                <div className="bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 flex items-center justify-between">
+                  <span>Preview ({csvPreview.length} of {parseCSV(csvData).length} rows)</span>
+                  <Button variant="ghost" size="sm" onClick={() => { setCsvData(''); setCsvPreview([]); }}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-zinc-100">
+                      <tr>
+                        <th className="px-2 py-1 text-left">Name</th>
+                        <th className="px-2 py-1 text-left">Company</th>
+                        <th className="px-2 py-1 text-left">Email</th>
+                        <th className="px-2 py-1 text-left">Phone</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvPreview.map((row, idx) => (
+                        <tr key={idx} className="border-t border-zinc-100">
+                          <td className="px-2 py-1">{row.first_name || row.firstname} {row.last_name || row.lastname}</td>
+                          <td className="px-2 py-1">{row.company}</td>
+                          <td className="px-2 py-1">{row.email}</td>
+                          <td className="px-2 py-1">{row.phone}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setCsvDialogOpen(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleBulkUpload} 
+                disabled={uploading || parseCSV(csvData).length === 0}
+                className="flex-1 bg-zinc-950 text-white"
+                data-testid="import-csv-btn"
+              >
+                {uploading ? 'Importing...' : `Import ${parseCSV(csvData).length} Leads`}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Search and Filters */}
       <div className="mb-6 space-y-4">
