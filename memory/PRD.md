@@ -971,6 +971,35 @@ Admin-only dashboard for managing employee permission levels across the organiza
 - `PATCH /api/employees/{id}` - Update employee level
 - `PUT /api/role-management/level-permissions` - Update level permissions
 
+### Withdraw Applied Leaves Feature (Feb 18, 2026)
+
+#### Feature: `/my-leaves` - Withdraw Pending Leave Requests
+
+**Backend Changes:**
+- Added `POST /api/leave-requests/{leave_id}/withdraw` endpoint
+- Only the requester can withdraw their own leave requests
+- Only "pending" status leaves can be withdrawn
+- Updates both `leave_requests` and `approval_requests` collections
+- Sends notification to managers about withdrawal
+
+**Frontend Changes:**
+- Added "Action" column to leave requests table
+- "Withdraw" button appears only for pending requests
+- Confirmation dialog before withdrawal
+- Loading state during withdrawal
+- New "withdrawn" status style (grey badge)
+
+**Files Modified:**
+- `/app/backend/server.py` - Added withdraw endpoint
+- `/app/frontend/src/pages/MyLeaves.js` - Added withdraw UI
+
+**Test Results:**
+- API tested: Create leave → Withdraw → Verify status changed to "withdrawn"
+- Error handling: Cannot withdraw already withdrawn/approved/rejected requests
+- UI verified: Withdraw button only shows for pending requests
+
+
+
 
 | Admin | ✅ | ✅ | ✅ | ✅ |
 | HR Manager | ✅ | ✅ | ❌ | ✅ |
