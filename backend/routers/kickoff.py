@@ -34,6 +34,18 @@ async def create_kickoff_request(
     if not agreement:
         raise HTTPException(status_code=404, detail="Agreement not found")
     
+    # CRITICAL: Verify first installment payment before allowing kickoff request
+    first_payment = await db.payment_verifications.find_one({
+        "agreement_id": kickoff_create.agreement_id,
+        "installment_number": 1,
+        "status": "verified"
+    })
+    if not first_payment:
+        raise HTTPException(
+            status_code=400, 
+            detail="First installment payment must be verified before creating kickoff request. Please record the advance payment first."
+        )
+    
     kickoff_dict = kickoff_create.model_dump()
     kickoff = KickoffRequest(
         **kickoff_dict,
