@@ -1,10 +1,11 @@
 """
 Project Payments Router - Payment tracking and schedule management
 Handles payment visibility for consultants, sales managers, and admin
+Includes payment reminders and transaction recording
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from pydantic import BaseModel, Field
 import uuid
@@ -14,6 +15,24 @@ from .deps import get_db
 from .auth import get_current_user
 
 router = APIRouter(prefix="/project-payments", tags=["Project Payments"])
+
+
+class PaymentReminderRequest(BaseModel):
+    """Request to send payment reminder"""
+    project_id: str
+    installment_number: int
+    client_email: Optional[str] = None
+    custom_message: Optional[str] = None
+
+
+class RecordPaymentRequest(BaseModel):
+    """Request to record a payment with transaction ID"""
+    project_id: str
+    installment_number: int
+    transaction_id: str
+    amount_received: float
+    payment_date: Optional[str] = None
+    remarks: Optional[str] = None
 
 
 class PaymentScheduleItem(BaseModel):
