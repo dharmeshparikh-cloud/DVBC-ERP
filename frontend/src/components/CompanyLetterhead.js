@@ -2,44 +2,64 @@ import React from 'react';
 
 /**
  * DVBC Company Letterhead Component
- * Recreated based on company branding guidelines
+ * Supports custom uploaded header/footer images
  */
-const CompanyLetterhead = ({ children, showFooter = true }) => {
+const CompanyLetterhead = ({ 
+  children, 
+  showFooter = true,
+  headerImage = null,
+  footerImage = null,
+  companyName = "D&V Business Consulting Pvt. Ltd.",
+  companyAddress = "123, Business Park, Andheri East, Mumbai - 400069",
+  companyPhone = "+91 22 1234 5678",
+  companyEmail = "contact@dvconsulting.co.in",
+  companyCIN = "U74999MH2020PTC123456"
+}) => {
   return (
     <div className="letterhead-container bg-white min-h-[297mm] w-full max-w-[210mm] mx-auto shadow-lg print:shadow-none">
       {/* Header Section */}
-      <div className="letterhead-header border-b-4 border-orange-500 pb-4 px-8 pt-6">
-        <div className="flex items-center justify-between">
-          {/* Logo Section */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center">
-              {/* D&V Logo */}
-              <div className="flex flex-col">
-                <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-orange-600">D</span>
-                  <span className="text-xl font-bold text-gray-600">&</span>
-                  <span className="text-3xl font-bold text-orange-600">V</span>
-                  <span className="text-xs text-gray-500 ml-1 align-top">®</span>
+      {headerImage ? (
+        <div className="letterhead-header">
+          <img 
+            src={headerImage} 
+            alt="Company Letterhead Header" 
+            className="w-full h-auto"
+          />
+        </div>
+      ) : (
+        <div className="letterhead-header border-b-4 border-orange-500 pb-4 px-8 pt-6">
+          <div className="flex items-center justify-between">
+            {/* Logo Section */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center">
+                {/* D&V Logo */}
+                <div className="flex flex-col">
+                  <div className="flex items-baseline">
+                    <span className="text-3xl font-bold text-orange-600">D</span>
+                    <span className="text-xl font-bold text-gray-600">&</span>
+                    <span className="text-3xl font-bold text-orange-600">V</span>
+                    <span className="text-xs text-gray-500 ml-1 align-top">®</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 tracking-wider -mt-1">BUSINESS CONSULTING</span>
                 </div>
-                <span className="text-[10px] text-gray-500 tracking-wider -mt-1">BUSINESS CONSULTING</span>
+              </div>
+              <div className="h-12 w-px bg-gray-300 mx-2"></div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-gray-800 tracking-wide">DVBC</span>
+                <span className="text-xs text-gray-500">NETRA</span>
               </div>
             </div>
-            <div className="h-12 w-px bg-gray-300 mx-2"></div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-bold text-gray-800 tracking-wide">DVBC</span>
-              <span className="text-xs text-gray-500">NETRA</span>
+            
+            {/* Company Info */}
+            <div className="text-right text-xs text-gray-600">
+              <p className="font-semibold text-gray-800">{companyName}</p>
+              <p>CIN: {companyCIN}</p>
+              <p>{companyEmail}</p>
+              <p>{companyPhone}</p>
             </div>
           </div>
-          
-          {/* Company Info */}
-          <div className="text-right text-xs text-gray-600">
-            <p className="font-semibold text-gray-800">D&V Business Consulting Pvt. Ltd.</p>
-            <p>CIN: U74999MH2020PTC123456</p>
-            <p>contact@dvconsulting.co.in</p>
-            <p>+91 22 1234 5678</p>
-          </div>
         </div>
-      </div>
+      )}
 
       {/* Content Area */}
       <div className="letterhead-content px-8 py-6 min-h-[200mm]">
@@ -48,19 +68,28 @@ const CompanyLetterhead = ({ children, showFooter = true }) => {
 
       {/* Footer Section */}
       {showFooter && (
-        <div className="letterhead-footer border-t-2 border-gray-200 px-8 py-4 mt-auto">
-          <div className="flex justify-between items-center text-xs text-gray-500">
-            <div>
-              <p className="font-medium text-gray-700">Registered Office:</p>
-              <p>123, Business Park, Andheri East</p>
-              <p>Mumbai, Maharashtra - 400069</p>
-            </div>
-            <div className="text-right">
-              <p>www.dvconsulting.co.in</p>
-              <p className="text-[10px] mt-1">This is a computer generated document</p>
+        footerImage ? (
+          <div className="letterhead-footer mt-auto">
+            <img 
+              src={footerImage} 
+              alt="Company Letterhead Footer" 
+              className="w-full h-auto"
+            />
+          </div>
+        ) : (
+          <div className="letterhead-footer border-t-2 border-gray-200 px-8 py-4 mt-auto">
+            <div className="flex justify-between items-center text-xs text-gray-500">
+              <div>
+                <p className="font-medium text-gray-700">Registered Office:</p>
+                <p>{companyAddress}</p>
+              </div>
+              <div className="text-right">
+                <p>www.dvconsulting.co.in</p>
+                <p className="text-[10px] mt-1">This is a computer generated document</p>
+              </div>
             </div>
           </div>
-        </div>
+        )
       )}
     </div>
   );
