@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Calendar, CheckCircle, XCircle, Clock, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -19,7 +19,8 @@ const LEAVE_TYPES = [
 const STATUS_STYLES = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  rejected: 'bg-red-50 text-red-700 border-red-200'
+  rejected: 'bg-red-50 text-red-700 border-red-200',
+  withdrawn: 'bg-zinc-100 text-zinc-500 border-zinc-200'
 };
 
 const MyLeaves = () => {
