@@ -348,13 +348,23 @@ const HROnboarding = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Phone Number *</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="+91 XXXXX XXXXX"
-                  data-testid="onboard-phone"
-                />
+                <Label>Phone Number * <span className="text-xs text-zinc-400">(10 digits)</span></Label>
+                <div className="flex gap-2">
+                  <div className="flex items-center px-3 bg-zinc-100 border border-zinc-200 rounded-sm text-sm text-zinc-600">
+                    +91
+                  </div>
+                  <Input
+                    value={formData.phone}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      handleInputChange('phone', value);
+                    }}
+                    placeholder="XXXXXXXXXX"
+                    maxLength={10}
+                    data-testid="onboard-phone"
+                    className="flex-1"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Date of Birth</Label>
