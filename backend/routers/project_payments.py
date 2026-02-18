@@ -269,7 +269,7 @@ async def get_my_payments(
                 "upcoming_payments_count": upcoming_payments,
                 "start_date": project.get("start_date")
             })
-        except Exception as e:
+        except Exception:
             continue
     
     return {
