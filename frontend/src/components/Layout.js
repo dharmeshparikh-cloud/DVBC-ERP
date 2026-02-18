@@ -235,7 +235,16 @@ const Layout = () => {
         {showHR && (
           <>
             <SectionHeader label="HR" sectionKey="hr" />
-            {expanded.hr && hrItems.map(item => <NavLink key={item.name} item={item} />)}
+            {expanded.hr && hrItems.map(item => (
+              <NavLink 
+                key={item.name} 
+                item={item} 
+                badge={
+                  item.name === 'Attendance Approvals' ? pendingCounts.attendance :
+                  item.name === 'CTC Designer' ? pendingCounts.ctc : 0
+                }
+              />
+            ))}
           </>
         )}
 
