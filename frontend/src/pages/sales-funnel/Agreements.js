@@ -619,6 +619,21 @@ const Agreements = () => {
                         Send to Client
                       </Button>
                     )}
+                    {(agreement.status === 'approved' || agreement.status === 'signed' || agreement.status === 'sent') && (
+                      <Button
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          navigate(`/sales-funnel/payment-verification?agreement_id=${agreement.id}`);
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="rounded-sm border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                        data-testid={`verify-payment-${agreement.id}`}
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                        Verify Payment
+                      </Button>
+                    )}
                     {agreement.status === 'pending_approval' && (
                       <span className="text-sm text-yellow-600 flex items-center gap-1">
                         <Clock className="w-4 h-4" strokeWidth={1.5} />
