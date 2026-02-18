@@ -8443,6 +8443,7 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
         "working_days": working_days,
         "public_holidays": public_holidays,
         "leaves": leaves_count,
+        "half_day_leaves": half_day_leaves,
         "bank_details": employee.get("bank_details"),
         "generated_by": current_user.id,
         "generated_at": datetime.now(timezone.utc).isoformat()
