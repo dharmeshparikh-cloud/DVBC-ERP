@@ -6949,6 +6949,60 @@ async def get_all_leave_requests(current_user: User = Depends(get_current_user))
     raise HTTPException(status_code=403, detail="Not authorized")
 
 
+@api_router.post("/leave-requests/{leave_id}/withdraw")
+async def withdraw_leave_request(
+    leave_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Withdraw a pending leave request. Only the requester can withdraw their own request."""
+    # Find the leave request
+    leave_request = await db.leave_requests.find_one({"id": leave_id}, {"_id": 0})
+    if not leave_request:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    
+    # Verify ownership
+    if leave_request.get("user_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only withdraw your own leave requests")
+    
+    # Check if it's still pending
+    if leave_request.get("status") != "pending":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot withdraw a leave request that is already {leave_request.get('status')}"
+        )
+    
+    # Update leave request status to withdrawn
+    await db.leave_requests.update_one(
+        {"id": leave_id},
+        {"$set": {
+            "status": "withdrawn",
+            "withdrawn_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Also update the approval request if it exists
+    if leave_request.get("approval_request_id"):
+        await db.approval_requests.update_one(
+            {"id": leave_request["approval_request_id"]},
+            {"$set": {
+                "status": "withdrawn",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # Notify managers that the request was withdrawn
+    await notify_admins(
+        notif_type="leave_withdrawn",
+        title="Leave Request Withdrawn",
+        message=f"{leave_request['employee_name']} has withdrawn their leave request ({leave_request['leave_type'].replace('_', ' ').title()}, {leave_request['days']} days).",
+        reference_type="leave_request",
+        reference_id=leave_id
+    )
+    
+    return {"message": "Leave request withdrawn successfully", "leave_id": leave_id}
+
+
 @api_router.get("/leave-balance/reportees")
 async def get_reportees_leave_balance(current_user: User = Depends(get_current_user)):
     """Get leave balance for reportees (view only for reporting managers). HR/Admin see all."""
