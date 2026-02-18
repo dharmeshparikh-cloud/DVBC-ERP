@@ -99,6 +99,9 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
     
     await db.employees.insert_one(employee)
     
+    # Remove _id added by MongoDB before returning
+    employee.pop("_id", None)
+    
     return {"message": "Employee created", "employee": employee}
 
 
