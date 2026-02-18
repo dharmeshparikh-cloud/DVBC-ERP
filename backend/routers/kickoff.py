@@ -324,6 +324,10 @@ async def accept_kickoff_request(
     if kickoff.get("status") != "pending":
         raise HTTPException(status_code=400, detail="Can only accept pending requests")
     
+    # Get agreement to link pricing plan and SOW
+    agreement = await db.agreements.find_one({"id": kickoff.get("agreement_id")}, {"_id": 0})
+    pricing_plan_id = agreement.get('pricing_plan_id') if agreement else None
+    
     # Create project from kickoff request
     project = Project(
         name=kickoff.get("project_name"),
@@ -342,7 +346,36 @@ async def accept_kickoff_request(
     project_doc['created_at'] = project_doc['created_at'].isoformat()
     project_doc['updated_at'] = project_doc['updated_at'].isoformat()
     
+    # Add pricing_plan_id to project for SOW linkage
+    if pricing_plan_id:
+        project_doc['pricing_plan_id'] = pricing_plan_id
+    
     await db.projects.insert_one(project_doc)
+    
+    # Link enhanced_sow to project via agreement_id
+    if kickoff.get("agreement_id"):
+        await db.enhanced_sow.update_many(
+            {"agreement_id": kickoff.get("agreement_id")},
+            {"$set": {
+                "project_id": project.id,
+                "consulting_kickoff_complete": True,
+                "consulting_kickoff_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Also try to link via pricing_plan_id if agreement_id match didn't work
+        if pricing_plan_id:
+            await db.enhanced_sow.update_many(
+                {"pricing_plan_id": pricing_plan_id, "project_id": {"$exists": False}},
+                {"$set": {
+                    "project_id": project.id,
+                    "agreement_id": kickoff.get("agreement_id"),
+                    "consulting_kickoff_complete": True,
+                    "consulting_kickoff_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
     
     # Update kickoff request
     await db.kickoff_requests.update_one(
