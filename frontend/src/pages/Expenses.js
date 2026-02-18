@@ -54,7 +54,8 @@ const Expenses = () => {
     project_name: '',
     is_office_expense: false,
     notes: '',
-    line_items: []
+    line_items: [],
+    receipts: []
   });
 
   // Line item form
@@ -62,7 +63,8 @@ const Expenses = () => {
     category: 'local_conveyance',
     description: '',
     amount: '',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    receipt: null
   });
 
   const isHROrAdmin = ['admin', 'hr_manager', 'manager'].includes(user?.role);
