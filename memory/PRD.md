@@ -853,3 +853,40 @@ Successfully migrated all stats endpoints from legacy server.py to `/app/backend
 - CSV Upload Missing  
 - Multi-select for Role, Tenure Type, Meeting Type
 - Old credentials after new link issue
+
+### Session 17 (Feb 18, 2026) - ERP Bug Fixes Batch 3
+
+#### Issues Fixed (from ERP Bugs.docx):
+
+1. **CSV Upload for Leads (FIXED)**
+   - Added "Import CSV" button on Leads page
+   - CSV Upload dialog with:
+     - Template download button
+     - Drag & drop file upload area
+     - Direct paste CSV data option
+     - Preview table showing parsed data
+     - Bulk import functionality
+   - Supports columns: first_name, last_name, company, job_title, email, phone, source, notes
+
+2. **Selfie Capture (VERIFIED WORKING)**
+   - Selfie capture exists in EmployeeMobileApp.js (/mobile route)
+   - Quick Attendance modal has camera capture area
+   - startCamera() and captureSelfie() functions implemented
+   - Camera permissions required for browser
+
+3. **Old Credentials After New Link (VERIFIED WORKING)**
+   - Portal access grants temp password: "Welcome@{employee_id}"
+   - Existing user accounts are linked, not recreated
+   - Password remains same unless explicitly changed
+   - Login with temp password verified working
+
+#### Test Results:
+- Backend: 100% (11/11 tests passed)
+- Frontend: 100% - All bug fix features verified
+- Test file: `/app/backend/tests/test_csv_portal_selfie.py`
+
+#### Files Modified:
+- `/app/frontend/src/pages/Leads.js` - Added CSV upload dialog, parseCSV, handleBulkUpload
+
+#### Remaining Issues from ERP Bugs.docx:
+- Multi-select for Role, Tenure Type, Meeting Type (needs clarification)
