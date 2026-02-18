@@ -204,6 +204,16 @@ Build a business management application for a consulting firm with complete HR, 
   - [x] "Verify Payment" button added to Agreements page
   - [x] Payment eligibility check in Kickoff Requests page
   - [x] Clear error messages when payment not verified
+  - [x] **Expected Amount locked** - Fetched from pricing plan first installment (read-only)
+- [x] **Kickoff Request Form Improvements**
+  - [x] **Project Type locked** - Fetched from pricing plan (read-only)
+  - [x] **Meeting Frequency locked** - Fetched from pricing plan team deployment (read-only)
+  - [x] **Project Tenure locked** - Fetched from pricing plan duration (read-only)
+  - [x] Fields show "(from pricing plan)" label to indicate source
+- [x] **Projects Page - No Direct Creation**
+  - [x] Removed "Create Project" button from Projects page
+  - [x] Projects can ONLY be created via Kickoff Request handover from Sales team
+  - [x] Empty state message updated to explain this workflow
 - [x] **Assign Consultant Page Verified Working**
   - [x] `/consulting/assign-team/:projectId` page confirmed working
   - [x] Shows project details, duration, meetings
