@@ -198,6 +198,7 @@ const Layout = () => {
     { name: 'Admin Masters', href: '/admin-masters', icon: Settings },
     { name: 'User Management', href: '/user-management', icon: UserCog },
     { name: 'Role Management', href: '/role-management', icon: Shield },
+    { name: 'Permission Dashboard', href: '/permission-dashboard', icon: Users },
     { name: 'Permission Config', href: '/permission-manager', icon: Lock },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
