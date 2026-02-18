@@ -122,19 +122,48 @@ const MyLeaves = () => {
                   })}
                 </select>
               </div>
+              
+              {/* Half Day Option */}
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_half_day}
+                    onChange={(e) => setFormData({ ...formData, is_half_day: e.target.checked, end_date: e.target.checked ? formData.start_date : formData.end_date })}
+                    className="w-4 h-4 rounded border-zinc-300"
+                    data-testid="half-day-checkbox"
+                  />
+                  <span className="text-sm text-zinc-700">Half Day Leave</span>
+                </label>
+                
+                {formData.is_half_day && (
+                  <select
+                    value={formData.half_day_type}
+                    onChange={(e) => setFormData({ ...formData, half_day_type: e.target.value })}
+                    className="h-8 px-2 rounded-sm border border-zinc-200 text-sm"
+                    data-testid="half-day-type"
+                  >
+                    <option value="first_half">First Half (Morning)</option>
+                    <option value="second_half">Second Half (Afternoon)</option>
+                  </select>
+                )}
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-zinc-950">Start Date</Label>
-                  <Input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  <Label className="text-sm font-medium text-zinc-950">{formData.is_half_day ? 'Date' : 'Start Date'}</Label>
+                  <Input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value, end_date: formData.is_half_day ? e.target.value : formData.end_date })}
                     required className="rounded-sm border-zinc-200" data-testid="leave-start" />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-zinc-950">End Date</Label>
-                  <Input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    required className="rounded-sm border-zinc-200" data-testid="leave-end" />
-                </div>
+                {!formData.is_half_day && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-zinc-950">End Date</Label>
+                    <Input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                      required className="rounded-sm border-zinc-200" data-testid="leave-end" />
+                  </div>
+                )}
               </div>
-              {days > 0 && <div className="text-sm text-zinc-600 bg-zinc-50 rounded-sm p-2 border border-zinc-200">Duration: <strong>{days} day(s)</strong></div>}
+              {days > 0 && <div className="text-sm text-zinc-600 bg-zinc-50 rounded-sm p-2 border border-zinc-200">Duration: <strong>{days} day(s)</strong>{formData.is_half_day && ` (${formData.half_day_type === 'first_half' ? 'Morning' : 'Afternoon'})`}</div>}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-zinc-950">Reason</Label>
                 <textarea value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
