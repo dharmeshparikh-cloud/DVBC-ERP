@@ -1296,3 +1296,75 @@ Implemented comprehensive role-based visibility for the Project Payments module:
 - Admin: admin@dvbc.com / admin123
 - Consultant: consultant@dvbc.com / consultant123
 
+
+### Session 14 (Feb 18, 2026) - Payment Reminders, Record Payments, and Bug Fixes
+
+#### Payment Reminder System (COMPLETED)
+
+**Backend (`/app/backend/routers/project_payments.py`):**
+- `POST /api/project-payments/send-reminder` - Send payment reminder to client
+  - Only allowed for consulting team roles
+  - Only enabled within 7 days of due date
+  - Creates reminder record in `payment_reminders` collection
+  - Creates notifications for Finance, Sales, Admin, Reporting Manager, HR
+  - Email sending is MOCKED (records to DB only)
+  
+- `POST /api/project-payments/record-payment` - Record payment with transaction ID
+  - Only allowed for consulting team
+  - Validates project_id and installment_number
+  - Creates record in `installment_payments` collection
+  - Notifies Finance, Sales, Admin, Reporting Manager, HR for incentive calculation
+  
+- `GET /api/project-payments/check-reminder-eligibility/{project_id}/{installment_number}`
+  - Returns whether reminder can be sent
+  - Returns days until due date
+
+**Frontend (`/app/frontend/src/pages/ProjectPaymentDetails.js`):**
+- Added "Actions" column to Payment Schedule table
+- "Remind" button - greyed out until within 7 days, green when active
+- "Record" button - opens dialog to enter transaction ID
+- Hidden for already-received payments
+- Available to all consulting team members (including consultants)
+
+#### UI Fixes (COMPLETED)
+
+- Removed "Amounts hidden" indicator from Payment Schedule header
+- Consultant view now shows "Upcoming Payment Dates" without the indicator
+- Clean UI with only relevant data shown
+
+#### P0 - Project Status Auto-Active (COMPLETED)
+
+**Modified `/app/backend/routers/kickoff.py`:**
+- When kickoff request is accepted, project is automatically created with `status="active"`
+- Previously defaulted to no explicit status
+
+#### P2 - Reset Temp Password (COMPLETED)
+
+**Added `/app/backend/routers/employees.py`:**
+- `POST /api/employees/{id}/reset-temp-password`
+  - Only Admin/HR Manager can call
+  - Resets password to `Welcome@{employee_id}`
+  - Re-activates user if deactivated
+  - Useful for users who forgot password or HR needs to resend credentials
+
+#### Proforma Invoice History (EXISTING)
+
+- Already implemented in ProformaInvoice.js
+- Shows multiple invoices per lead with version indicators
+- "Proceed to Agreement" button only on finalized invoices
+
+**Files Modified:**
+- `/app/backend/routers/project_payments.py`
+- `/app/backend/routers/employees.py`
+- `/app/backend/routers/kickoff.py`
+- `/app/frontend/src/pages/ProjectPaymentDetails.js`
+- `/app/frontend/src/pages/sales-funnel/Quotations.js`
+
+**Test Results:** iteration_54.json - 94% backend (1 test data issue), 100% frontend
+
+**Credentials:**
+- Admin: admin@dvbc.com / admin123
+- Consultant: consultant@dvbc.com / consultant123
+
+**MOCKED:** Email sending for payment reminders - records to DB only, no actual email sent
+
