@@ -84,7 +84,7 @@ const Layout = () => {
     return false;
   };
 
-  const NavLink = ({ item }) => {
+  const NavLink = ({ item, badge }) => {
     const Icon = item.icon;
     const active = isActive(item.href);
     return (
@@ -102,7 +102,12 @@ const Layout = () => {
         }`}
       >
         <Icon className="w-4 h-4 md:w-3.5 md:h-3.5 flex-shrink-0" strokeWidth={1.5} />
-        <span className="truncate">{item.name}</span>
+        <span className="truncate flex-1">{item.name}</span>
+        {badge > 0 && (
+          <span className="ml-auto flex-shrink-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center animate-pulse">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
       </Link>
     );
   };
