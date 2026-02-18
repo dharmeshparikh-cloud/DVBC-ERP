@@ -569,45 +569,121 @@ const HROnboarding = () => {
       case 2: // Documents
         return (
           <div className="space-y-4">
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-amber-800 dark:text-amber-300">Document Upload</p>
-                  <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                    Document upload is optional at this stage. You can add documents later from the employee profile.
+                  <p className="font-medium text-blue-800 dark:text-blue-300">Document Upload (Optional)</p>
+                  <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                    Upload employee documents. You can also add/update documents later from the Employee Master.
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors">
+              {/* ID Proof */}
+              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.id_proof ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:border-emerald-500'}`}>
                 <CardContent className="pt-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
-                  <p className="font-medium">ID Proof</p>
-                  <p className="text-xs text-zinc-500 mt-1">Aadhar, PAN, Passport</p>
+                  <input
+                    type="file"
+                    id="id_proof_upload"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => handleDocumentUpload('id_proof', e)}
+                  />
+                  <label htmlFor="id_proof_upload" className="cursor-pointer block">
+                    {uploadedDocs.id_proof ? (
+                      <CheckCircle className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
+                    ) : (
+                      <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+                    )}
+                    <p className="font-medium">ID Proof</p>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {uploadedDocs.id_proof ? uploadedDocs.id_proof.name : 'Aadhar, PAN, Passport'}
+                    </p>
+                  </label>
                 </CardContent>
               </Card>
 
-              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors">
+              {/* Resume */}
+              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.resume ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:border-emerald-500'}`}>
                 <CardContent className="pt-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
-                  <p className="font-medium">Resume</p>
-                  <p className="text-xs text-zinc-500 mt-1">PDF format preferred</p>
+                  <input
+                    type="file"
+                    id="resume_upload"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => handleDocumentUpload('resume', e)}
+                  />
+                  <label htmlFor="resume_upload" className="cursor-pointer block">
+                    {uploadedDocs.resume ? (
+                      <CheckCircle className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
+                    ) : (
+                      <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+                    )}
+                    <p className="font-medium">Resume</p>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {uploadedDocs.resume ? uploadedDocs.resume.name : 'PDF format preferred'}
+                    </p>
+                  </label>
                 </CardContent>
               </Card>
 
-              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors">
+              {/* Offer Letter */}
+              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.offer_letter ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:border-emerald-500'}`}>
                 <CardContent className="pt-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
-                  <p className="font-medium">Offer Letter</p>
-                  <p className="text-xs text-zinc-500 mt-1">Signed copy</p>
+                  <input
+                    type="file"
+                    id="offer_letter_upload"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => handleDocumentUpload('offer_letter', e)}
+                  />
+                  <label htmlFor="offer_letter_upload" className="cursor-pointer block">
+                    {uploadedDocs.offer_letter ? (
+                      <CheckCircle className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
+                    ) : (
+                      <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+                    )}
+                    <p className="font-medium">Offer Letter</p>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {uploadedDocs.offer_letter ? uploadedDocs.offer_letter.name : 'Signed copy'}
+                    </p>
+                  </label>
                 </CardContent>
               </Card>
 
-              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors">
+              {/* Other Documents */}
+              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.other ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:border-emerald-500'}`}>
                 <CardContent className="pt-6 text-center">
+                  <input
+                    type="file"
+                    id="other_upload"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => handleDocumentUpload('other', e)}
+                  />
+                  <label htmlFor="other_upload" className="cursor-pointer block">
+                    {uploadedDocs.other ? (
+                      <CheckCircle className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
+                    ) : (
+                      <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+                    )}
+                    <p className="font-medium">Other Documents</p>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {uploadedDocs.other ? uploadedDocs.other.name : 'Any additional docs'}
+                    </p>
+                  </label>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <p className="text-sm text-zinc-500 mt-4">
+              Uploaded: {Object.values(uploadedDocs).filter(d => d !== null).length} of 4 documents
+            </p>
+          </div>
+        );
                   <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
                   <p className="font-medium">Other Documents</p>
                   <p className="text-xs text-zinc-500 mt-1">Any additional docs</p>
