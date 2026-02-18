@@ -74,6 +74,16 @@ const Leads = () => {
     }
   };
 
+  const handleStatusChange = async (leadId, newStatus) => {
+    try {
+      await axios.patch(`${API}/leads/${leadId}`, { status: newStatus });
+      toast.success(`Lead status updated to ${newStatus}`);
+      fetchLeads();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update status');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
