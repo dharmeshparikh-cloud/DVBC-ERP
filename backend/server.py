@@ -14073,15 +14073,21 @@ api_router.include_router(sow_masters_router.router)
 api_router.include_router(enhanced_sow_router.router)
 
 # New modular routers (v2 - refactored endpoints)
-# Note: These are being gradually introduced alongside existing endpoints
-# api_router.include_router(auth_router.router)  # Auth routes handled separately in existing code
-# api_router.include_router(leads_router.router)  # Leads handled in existing code  
-# api_router.include_router(projects_router.router)  # Projects handled in existing code
-# api_router.include_router(meetings_router.router)  # Meetings handled in existing code
-# api_router.include_router(stats_router.router)  # Stats handled in existing code
-# api_router.include_router(security_router.router)  # Security handled in existing code
-# api_router.include_router(users_router.router)  # Users handled in existing code
-# api_router.include_router(kickoff_router.router)  # Kickoff handled in existing code
+# Note: These routers contain the same endpoints as the legacy code below.
+# Enable these when ready to remove legacy code from server.py
+# api_router.include_router(auth_router.router)  # Auth routes - keep legacy for now
+# api_router.include_router(leads_router.router)  # Leads - keep legacy for now
+# api_router.include_router(projects_router.router)  # Projects - keep legacy for now
+# api_router.include_router(meetings_router.router)  # Meetings - keep legacy for now
+# api_router.include_router(stats_router.router)  # Stats - keep legacy for now
+# api_router.include_router(security_router.router)  # Security - keep legacy for now
+# api_router.include_router(users_router.router)  # Users - keep legacy for now
+# api_router.include_router(kickoff_router.router)  # Kickoff - keep legacy for now
+# api_router.include_router(ctc_router.router)  # CTC - keep legacy for now
+# api_router.include_router(employees_router.router)  # Employees - keep legacy for now
+# api_router.include_router(attendance_router.router)  # Attendance - keep legacy for now
+# api_router.include_router(expenses_router.router)  # Expenses - keep legacy for now
+# api_router.include_router(hr_router.router)  # HR - keep legacy for now
 
 app.include_router(api_router)
 
