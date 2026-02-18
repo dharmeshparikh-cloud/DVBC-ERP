@@ -162,30 +162,20 @@ class TestExpenseReceipts:
         print(f"Total expenses: {len(expenses)}")
         assert isinstance(expenses, list)
     
-    def test_create_expense_with_receipt(self):
-        """Test creating an expense with receipt (base64 encoded)"""
+    def test_create_expense_and_upload_receipt(self):
+        """Test creating an expense and uploading receipt separately"""
         import time
         import base64
         
         # Create a simple base64 encoded "image" (just text for testing)
         sample_receipt = base64.b64encode(b"Sample receipt image data").decode('utf-8')
         
+        # Step 1: Create a basic expense
         expense_data = {
-            "is_office_expense": True,
-            "notes": f"TEST expense with receipt {int(time.time())}",
-            "line_items": [
-                {
-                    "category": "local_conveyance",
-                    "description": "Taxi to client office",
-                    "amount": 500,
-                    "date": "2026-01-15T10:00:00Z",
-                    "receipt": {
-                        "file_data": f"data:image/png;base64,{sample_receipt}",
-                        "file_name": "receipt.png",
-                        "file_type": "image/png"
-                    }
-                }
-            ]
+            "category": "local_conveyance",
+            "description": f"TEST expense {int(time.time())}",
+            "amount": 500,
+            "expense_date": "2026-01-15"
         }
         
         response = self.session.post(f"{BASE_URL}/api/expenses", json=expense_data)
@@ -199,13 +189,27 @@ class TestExpenseReceipts:
         assert data.get("message") == "Expense created"
         assert data.get("expense_id") is not None
         
-        # Fetch the created expense to verify receipt
         expense_id = data.get("expense_id")
+        
+        # Step 2: Upload receipt to the expense
+        receipt_data = {
+            "file_data": f"data:image/png;base64,{sample_receipt}",
+            "file_name": "receipt.png",
+            "file_type": "image/png"
+        }
+        
+        receipt_response = self.session.post(f"{BASE_URL}/api/expenses/{expense_id}/upload-receipt", json=receipt_data)
+        print(f"Upload receipt response: {receipt_response.status_code} - {receipt_response.text}")
+        
+        assert receipt_response.status_code == 200
+        assert "receipt_id" in receipt_response.json()
+        
+        # Step 3: Verify receipt was added
         detail_response = self.session.get(f"{BASE_URL}/api/expenses/{expense_id}")
-        if detail_response.status_code == 200:
-            expense = detail_response.json()
-            print(f"Expense details: {expense}")
-            assert expense.get("line_items") is not None
+        assert detail_response.status_code == 200
+        expense = detail_response.json()
+        print(f"Expense with receipt: receipts count = {len(expense.get('receipts', []))}")
+        assert len(expense.get("receipts", [])) > 0
 
 
 class TestBankDetailsIFSCVerification:
