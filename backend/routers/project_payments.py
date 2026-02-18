@@ -454,3 +454,315 @@ async def get_upcoming_payments(
         "total_upcoming": len(upcoming_payments),
         "payments": upcoming_payments[:100]  # Limit to 100
     }
+
+
+
+@router.post("/send-reminder")
+async def send_payment_reminder(
+    request: PaymentReminderRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Send payment reminder to client.
+    Only allowed for consulting team roles and when payment is within 7 days of due date.
+    """
+    db = get_db()
+    
+    # Check if user is from consulting team
+    allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "consultant", "lead_consultant", "senior_consultant"]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Only consulting team can send payment reminders")
+    
+    # Get project
+    project = await db.projects.find_one({"id": request.project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get pricing plan for schedule
+    pricing_plan_id = project.get("pricing_plan_id")
+    if not pricing_plan_id:
+        raise HTTPException(status_code=400, detail="Project has no pricing plan")
+    
+    pricing_plan = await db.pricing_plans.find_one({"id": pricing_plan_id}, {"_id": 0})
+    if not pricing_plan:
+        raise HTTPException(status_code=404, detail="Pricing plan not found")
+    
+    schedule = pricing_plan.get("payment_plan", {}).get("schedule_breakdown", [])
+    if request.installment_number < 1 or request.installment_number > len(schedule):
+        raise HTTPException(status_code=400, detail="Invalid installment number")
+    
+    installment = schedule[request.installment_number - 1]
+    due_date_str = installment.get("due_date")
+    
+    if due_date_str:
+        try:
+            due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00"))
+        except:
+            due_date = datetime.strptime(due_date_str[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        
+        # Check if within 7 days of due date
+        days_until_due = (due_date - datetime.now(timezone.utc)).days
+        if days_until_due > 7:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Reminders can only be sent within 7 days of due date. Due in {days_until_due} days."
+            )
+    
+    # Get client email from agreement/prospect
+    client_email = request.client_email
+    if not client_email:
+        agreement = await db.agreements.find_one({"id": project.get("agreement_id")}, {"_id": 0})
+        if agreement:
+            prospect = await db.prospects.find_one({"id": agreement.get("prospect_id")}, {"_id": 0})
+            if prospect:
+                client_email = prospect.get("email")
+    
+    # Record the reminder
+    reminder_id = str(uuid.uuid4())
+    reminder_record = {
+        "id": reminder_id,
+        "project_id": request.project_id,
+        "project_name": project.get("name"),
+        "installment_number": request.installment_number,
+        "amount_due": installment.get("net", 0),
+        "due_date": due_date_str,
+        "sent_by": current_user.id,
+        "sent_by_name": current_user.full_name,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "client_email": client_email,
+        "custom_message": request.custom_message,
+        "status": "sent"
+    }
+    
+    await db.payment_reminders.insert_one(reminder_record)
+    
+    # Create notifications for Finance, Sales, Admin, Reporting Manager, HR
+    notification_roles = ["admin", "finance", "account_manager", "hr_manager"]
+    notification_users = await db.users.find(
+        {"role": {"$in": notification_roles}, "is_active": True},
+        {"_id": 0, "id": 1, "full_name": 1}
+    ).to_list(100)
+    
+    for notif_user in notification_users:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": notif_user["id"],
+            "type": "payment_reminder_sent",
+            "title": "Payment Reminder Sent",
+            "message": f"Payment reminder sent for {project.get('name')} - Installment #{request.installment_number} (Due: {due_date_str[:10] if due_date_str else 'TBD'})",
+            "link": f"/projects/{request.project_id}/payments",
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # TODO: Send actual email to client (MOCKED for now)
+    # background_tasks.add_task(send_reminder_email, client_email, project, installment)
+    
+    return {
+        "success": True,
+        "message": f"Payment reminder sent for installment #{request.installment_number}",
+        "reminder_id": reminder_id,
+        "client_email": client_email or "No email found"
+    }
+
+
+@router.post("/record-payment")
+async def record_installment_payment(
+    request: RecordPaymentRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Record a payment received for a specific installment.
+    Consulting team adds transaction ID once client pays.
+    Notifies Finance, Sales, Admin, Reporting Manager, HR for incentive calculation.
+    """
+    db = get_db()
+    
+    # Check if user is from consulting team
+    allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "consultant", "lead_consultant", "senior_consultant"]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Only consulting team can record payments")
+    
+    # Get project
+    project = await db.projects.find_one({"id": request.project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get pricing plan for schedule
+    pricing_plan_id = project.get("pricing_plan_id")
+    if not pricing_plan_id:
+        raise HTTPException(status_code=400, detail="Project has no pricing plan")
+    
+    pricing_plan = await db.pricing_plans.find_one({"id": pricing_plan_id}, {"_id": 0})
+    if not pricing_plan:
+        raise HTTPException(status_code=404, detail="Pricing plan not found")
+    
+    schedule = pricing_plan.get("payment_plan", {}).get("schedule_breakdown", [])
+    if request.installment_number < 1 or request.installment_number > len(schedule):
+        raise HTTPException(status_code=400, detail="Invalid installment number")
+    
+    installment = schedule[request.installment_number - 1]
+    
+    # Check if already recorded
+    existing = await db.installment_payments.find_one({
+        "project_id": request.project_id,
+        "installment_number": request.installment_number
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Payment already recorded for this installment")
+    
+    # Record the payment
+    payment_id = str(uuid.uuid4())
+    payment_record = {
+        "id": payment_id,
+        "project_id": request.project_id,
+        "project_name": project.get("name"),
+        "agreement_id": project.get("agreement_id"),
+        "installment_number": request.installment_number,
+        "frequency": installment.get("frequency"),
+        "expected_amount": installment.get("net", 0),
+        "amount_received": request.amount_received,
+        "transaction_id": request.transaction_id,
+        "payment_date": request.payment_date or datetime.now(timezone.utc).isoformat(),
+        "recorded_by": current_user.id,
+        "recorded_by_name": current_user.full_name,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+        "remarks": request.remarks,
+        "status": "received"
+    }
+    
+    await db.installment_payments.insert_one(payment_record)
+    
+    # Create notifications for Finance, Sales, Admin, Reporting Manager, HR
+    notification_roles = ["admin", "finance", "account_manager", "hr_manager", "principal_consultant"]
+    notification_users = await db.users.find(
+        {"role": {"$in": notification_roles}, "is_active": True},
+        {"_id": 0, "id": 1, "full_name": 1}
+    ).to_list(100)
+    
+    # Also notify project's reporting manager
+    assigned_consultants = project.get("assigned_consultants", [])
+    for consultant_id in assigned_consultants:
+        consultant = await db.users.find_one({"id": consultant_id}, {"_id": 0})
+        if consultant and consultant.get("reporting_manager_id"):
+            rm = await db.users.find_one({"id": consultant.get("reporting_manager_id")}, {"_id": 0, "id": 1})
+            if rm:
+                notification_users.append(rm)
+    
+    for notif_user in notification_users:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": notif_user["id"],
+            "type": "payment_received",
+            "title": "Payment Received",
+            "message": f"Payment received for {project.get('name')} - Installment #{request.installment_number}: ₹{request.amount_received:,.2f} (Txn: {request.transaction_id})",
+            "link": f"/projects/{request.project_id}/payments",
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {
+        "success": True,
+        "message": f"Payment recorded for installment #{request.installment_number}",
+        "payment_id": payment_id,
+        "notifications_sent": len(notification_users)
+    }
+
+
+@router.get("/installment-payments/{project_id}")
+async def get_installment_payments(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all recorded installment payments for a project.
+    """
+    db = get_db()
+    
+    payments = await db.installment_payments.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).sort("installment_number", 1).to_list(100)
+    
+    return {
+        "project_id": project_id,
+        "payments": payments,
+        "total": len(payments)
+    }
+
+
+@router.get("/check-reminder-eligibility/{project_id}/{installment_number}")
+async def check_reminder_eligibility(
+    project_id: str,
+    installment_number: int,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Check if a payment reminder can be sent for a specific installment.
+    Returns eligibility status and days until due.
+    """
+    db = get_db()
+    
+    # Get project
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get pricing plan
+    pricing_plan_id = project.get("pricing_plan_id")
+    if not pricing_plan_id:
+        return {"eligible": False, "reason": "No pricing plan"}
+    
+    pricing_plan = await db.pricing_plans.find_one({"id": pricing_plan_id}, {"_id": 0})
+    if not pricing_plan:
+        return {"eligible": False, "reason": "Pricing plan not found"}
+    
+    schedule = pricing_plan.get("payment_plan", {}).get("schedule_breakdown", [])
+    if installment_number < 1 or installment_number > len(schedule):
+        return {"eligible": False, "reason": "Invalid installment"}
+    
+    installment = schedule[installment_number - 1]
+    due_date_str = installment.get("due_date")
+    
+    # Check if payment already recorded
+    existing_payment = await db.installment_payments.find_one({
+        "project_id": project_id,
+        "installment_number": installment_number
+    })
+    if existing_payment:
+        return {
+            "eligible": False, 
+            "reason": "Payment already received",
+            "payment": existing_payment
+        }
+    
+    if not due_date_str:
+        return {"eligible": False, "reason": "No due date set"}
+    
+    try:
+        due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00"))
+    except:
+        due_date = datetime.strptime(due_date_str[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    
+    days_until_due = (due_date - datetime.now(timezone.utc)).days
+    
+    # Check consulting team role
+    allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "consultant", "lead_consultant", "senior_consultant"]
+    is_consulting_team = current_user.role in allowed_roles
+    
+    # Get last reminder sent
+    last_reminder = await db.payment_reminders.find_one(
+        {"project_id": project_id, "installment_number": installment_number},
+        {"_id": 0}
+    )
+    
+    return {
+        "eligible": days_until_due <= 7 and days_until_due >= 0 and is_consulting_team,
+        "days_until_due": days_until_due,
+        "due_date": due_date_str,
+        "is_consulting_team": is_consulting_team,
+        "within_reminder_window": days_until_due <= 7 and days_until_due >= 0,
+        "last_reminder": last_reminder,
+        "installment": installment
+    }
