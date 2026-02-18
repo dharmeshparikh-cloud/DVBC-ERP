@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '../App';
 import NotificationBell from './NotificationBell';
 import { useTheme } from '../contexts/ThemeContext';
+import { useApprovals } from '../contexts/ApprovalContext';
 import { 
   LayoutDashboard, Users, UsersRound, GitBranch, CalendarDays, 
   Clock, Wallet, Receipt, BarChart3, FileText, ChevronDown, ChevronRight,
@@ -28,6 +29,7 @@ const HRLayout = () => {
   });
   const [showChangePassword, setShowChangePassword] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { pendingCounts } = useApprovals();
   const isDark = theme === 'dark';
 
   const isHRManager = user?.role === 'hr_manager';
