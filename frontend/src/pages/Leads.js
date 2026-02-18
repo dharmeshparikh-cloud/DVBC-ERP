@@ -97,6 +97,105 @@ const Leads = () => {
     }
   };
 
+  // CSV Upload Functions
+  const parseCSV = (text) => {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+    const data = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/['"]/g, ''));
+      if (values.length === headers.length) {
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx];
+        });
+        data.push(row);
+      }
+    }
+    return data;
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please upload a CSV file');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      setCsvData(text);
+      const parsed = parseCSV(text);
+      setCsvPreview(parsed.slice(0, 5)); // Show first 5 rows
+      if (parsed.length > 0) {
+        toast.success(`Parsed ${parsed.length} leads from CSV`);
+      } else {
+        toast.error('No valid data found in CSV');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleBulkUpload = async () => {
+    const parsed = parseCSV(csvData);
+    if (parsed.length === 0) {
+      toast.error('No valid data to upload');
+      return;
+    }
+    
+    setUploading(true);
+    let success = 0;
+    let failed = 0;
+    
+    for (const row of parsed) {
+      try {
+        await axios.post(`${API}/leads`, {
+          first_name: row.first_name || row.firstname || row.name?.split(' ')[0] || '',
+          last_name: row.last_name || row.lastname || row.name?.split(' ').slice(1).join(' ') || '',
+          company: row.company || row.organization || '',
+          job_title: row.job_title || row.title || row.designation || '',
+          email: row.email || '',
+          phone: row.phone || row.mobile || '',
+          linkedin_url: row.linkedin || row.linkedin_url || '',
+          source: row.source || 'CSV Import',
+          notes: row.notes || ''
+        });
+        success++;
+      } catch (error) {
+        failed++;
+      }
+    }
+    
+    setUploading(false);
+    setCsvDialogOpen(false);
+    setCsvData('');
+    setCsvPreview([]);
+    
+    if (success > 0) {
+      toast.success(`Successfully imported ${success} leads${failed > 0 ? `, ${failed} failed` : ''}`);
+      fetchLeads();
+    } else {
+      toast.error('Failed to import leads');
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = 'first_name,last_name,company,job_title,email,phone,source,notes\nJohn,Doe,Acme Corp,CEO,john@acme.com,9876543210,Website,Initial contact';
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leads_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   const getStatusBadge = (status) => {
     const statusStyles = {
       new: 'bg-zinc-100 text-zinc-600',
