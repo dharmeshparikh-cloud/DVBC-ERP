@@ -371,10 +371,43 @@ async def create_offer_letter(
             offer_letter["id"]
         )
     
+    # Send email to candidate
+    acceptance_link = f"{BASE_URL}/accept-offer/{acceptance_token}"
+    email_result = {"status": "skipped", "message": "Email service not configured"}
+    
+    if EMAIL_SERVICE_AVAILABLE:
+        try:
+            # Generate letter HTML for email
+            letter_html = f"""
+            <p><strong>Position:</strong> {offer.designation}</p>
+            <p><strong>Department:</strong> {offer.department}</p>
+            <p><strong>Joining Date:</strong> {offer.joining_date}</p>
+            """
+            if offer.salary_details.get("gross_monthly"):
+                letter_html += f"<p><strong>Gross Monthly Salary:</strong> ₹{offer.salary_details['gross_monthly']:,}</p>"
+            
+            email_result = await send_offer_letter_email(
+                to_email=candidate.get("email"),
+                candidate_name=offer_letter["candidate_name"],
+                designation=offer.designation,
+                department=offer.department,
+                acceptance_link=acceptance_link,
+                letter_html=letter_html
+            )
+        except Exception as e:
+            email_result = {"status": "error", "message": str(e)}
+    
+    # Update offer letter with email status
+    await db.offer_letters.update_one(
+        {"id": offer_letter["id"]},
+        {"$set": {"email_status": email_result}}
+    )
+    
     return {
         "message": "Offer letter created and sent",
         "offer_letter_id": offer_letter["id"],
-        "acceptance_link": f"/accept-offer/{acceptance_token}"
+        "acceptance_link": acceptance_link,
+        "email_status": email_result
     }
 
 
