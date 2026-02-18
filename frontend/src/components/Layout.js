@@ -175,6 +175,8 @@ const Layout = () => {
   const adminItems = [
     { name: 'ERP Workflow', href: '/workflow', icon: Map },
     { name: 'Admin Masters', href: '/admin-masters', icon: Settings },
+    { name: 'User Management', href: '/user-management', icon: UserCog },
+    { name: 'Role & Permissions', href: '/permission-manager', icon: Shield },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
