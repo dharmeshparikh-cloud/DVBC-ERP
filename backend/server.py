@@ -670,33 +670,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         user_data['created_at'] = datetime.fromisoformat(user_data['created_at'])
     return User(**user_data)
 
-@api_router.post("/auth/register", response_model=User)
-async def register(user_create: UserCreate):
-    existing_user = await db.users.find_one({"email": user_create.email})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    user_dict = user_create.model_dump(exclude={"password"})
-    # Sanitize user input to prevent XSS
-    if 'full_name' in user_dict:
-        user_dict['full_name'] = sanitize_text(user_dict['full_name'])
-    if 'department' in user_dict and user_dict['department']:
-        user_dict['department'] = sanitize_text(user_dict['department'])
-    
-    user = User(**user_dict)
-    
-    doc = user.model_dump()
-    doc['created_at'] = doc['created_at'].isoformat()
-    doc['hashed_password'] = get_password_hash(user_create.password)
-    
-    await db.users.insert_one(doc)
-    return user
-
-@api_router.get("/auth/me", response_model=User)
-async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
-
-
 # --- Security Audit Logging ---
 async def log_security_event(event_type: str, email: str = None, details: dict = None, request: Request = None):
     """Log a security event to the audit log collection"""
