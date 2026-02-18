@@ -766,3 +766,178 @@ async def view_appointment_letter(token: str):
         "template": template,
         "can_accept": letter["status"] == "pending_acceptance"
     }
+
+
+
+# ============== Letterhead Settings Endpoints ==============
+
+@router.get("/letterhead-settings")
+async def get_letterhead_settings(current_user: User = Depends(get_current_user)):
+    """Get letterhead settings (header/footer images)."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    settings = await db.letterhead_settings.find_one({"id": "main"}, {"_id": 0})
+    
+    if not settings:
+        # Return default settings
+        return {
+            "id": "main",
+            "header_image": None,
+            "footer_image": None,
+            "company_name": "D&V Business Consulting Pvt. Ltd.",
+            "company_address": "123, Business Park, Andheri East, Mumbai - 400069",
+            "company_phone": "+91 22 1234 5678",
+            "company_email": "contact@dvconsulting.co.in",
+            "company_cin": "U74999MH2020PTC123456"
+        }
+    
+    return settings
+
+
+@router.put("/letterhead-settings")
+async def update_letterhead_settings(
+    settings: LetterheadSettings,
+    current_user: User = Depends(get_current_user)
+):
+    """Update letterhead settings (Admin/HR Manager only)."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin or HR Manager can update letterhead settings")
+    
+    settings_doc = {
+        "id": "main",
+        "header_image": settings.header_image,
+        "footer_image": settings.footer_image,
+        "company_name": settings.company_name,
+        "company_address": settings.company_address,
+        "company_phone": settings.company_phone,
+        "company_email": settings.company_email,
+        "company_cin": settings.company_cin,
+        "updated_by": current_user.id,
+        "updated_by_name": current_user.full_name,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.letterhead_settings.update_one(
+        {"id": "main"},
+        {"$set": settings_doc},
+        upsert=True
+    )
+    
+    return {"message": "Letterhead settings updated successfully"}
+
+
+@router.post("/letterhead-settings/upload-header")
+async def upload_header_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload letterhead header image."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin or HR Manager can upload letterhead images")
+    
+    # Validate file type
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    # Read and encode file
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:  # 5MB limit
+        raise HTTPException(status_code=400, detail="File size must be less than 5MB")
+    
+    encoded = base64.b64encode(contents).decode("utf-8")
+    data_uri = f"data:{file.content_type};base64,{encoded}"
+    
+    # Update settings
+    await db.letterhead_settings.update_one(
+        {"id": "main"},
+        {
+            "$set": {
+                "header_image": data_uri,
+                "header_filename": file.filename,
+                "header_updated_by": current_user.id,
+                "header_updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"message": "Header image uploaded successfully", "filename": file.filename}
+
+
+@router.post("/letterhead-settings/upload-footer")
+async def upload_footer_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload letterhead footer image."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin or HR Manager can upload letterhead images")
+    
+    # Validate file type
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    # Read and encode file
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:  # 5MB limit
+        raise HTTPException(status_code=400, detail="File size must be less than 5MB")
+    
+    encoded = base64.b64encode(contents).decode("utf-8")
+    data_uri = f"data:{file.content_type};base64,{encoded}"
+    
+    # Update settings
+    await db.letterhead_settings.update_one(
+        {"id": "main"},
+        {
+            "$set": {
+                "footer_image": data_uri,
+                "footer_filename": file.filename,
+                "footer_updated_by": current_user.id,
+                "footer_updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"message": "Footer image uploaded successfully", "filename": file.filename}
+
+
+@router.delete("/letterhead-settings/header")
+async def delete_header_image(current_user: User = Depends(get_current_user)):
+    """Delete letterhead header image."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin or HR Manager can delete letterhead images")
+    
+    await db.letterhead_settings.update_one(
+        {"id": "main"},
+        {"$set": {"header_image": None, "header_filename": None}}
+    )
+    
+    return {"message": "Header image deleted"}
+
+
+@router.delete("/letterhead-settings/footer")
+async def delete_footer_image(current_user: User = Depends(get_current_user)):
+    """Delete letterhead footer image."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin or HR Manager can delete letterhead images")
+    
+    await db.letterhead_settings.update_one(
+        {"id": "main"},
+        {"$set": {"footer_image": None, "footer_filename": None}}
+    )
+    
+    return {"message": "Footer image deleted"}
