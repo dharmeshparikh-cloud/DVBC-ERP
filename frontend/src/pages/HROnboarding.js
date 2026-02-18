@@ -690,9 +690,14 @@ const HROnboarding = () => {
               </Card>
             </div>
             
-            <p className="text-sm text-zinc-500 mt-4">
-              Uploaded: {Object.values(uploadedDocs).filter(d => d !== null).length} of 4 documents
-            </p>
+            <div className="flex justify-between items-center text-sm mt-4">
+              <p className="text-zinc-500">
+                Required: {[uploadedDocs.id_proof, uploadedDocs.resume, uploadedDocs.offer_letter].filter(d => d !== null).length}/3 uploaded
+              </p>
+              <p className="text-zinc-400">
+                <span className="text-red-500">*</span> Required documents
+              </p>
+            </div>
           </div>
         );
 
