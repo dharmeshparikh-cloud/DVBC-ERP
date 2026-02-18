@@ -6837,6 +6837,8 @@ class LeaveRequestCreate(BaseModel):
     start_date: datetime
     end_date: datetime
     reason: str
+    is_half_day: bool = False
+    half_day_type: str = "first_half"  # first_half or second_half
 
 @api_router.post("/leave-requests")
 async def create_leave_request(
@@ -6848,7 +6850,11 @@ async def create_leave_request(
     if not employee:
         raise HTTPException(status_code=400, detail="Employee record not found. Please contact HR.")
     
-    days = (leave_data.end_date - leave_data.start_date).days + 1
+    # Calculate days - half day = 0.5
+    if leave_data.is_half_day:
+        days = 0.5
+    else:
+        days = (leave_data.end_date - leave_data.start_date).days + 1
     
     leave_balance = employee.get('leave_balance', {})
     leave_type_key = leave_data.leave_type.replace('_leave', '')
@@ -6869,8 +6875,10 @@ async def create_leave_request(
         "user_id": current_user.id,
         "leave_type": leave_data.leave_type,
         "start_date": leave_data.start_date.isoformat(),
-        "end_date": leave_data.end_date.isoformat(),
+        "end_date": leave_data.end_date.isoformat() if not leave_data.is_half_day else leave_data.start_date.isoformat(),
         "days": days,
+        "is_half_day": leave_data.is_half_day,
+        "half_day_type": leave_data.half_day_type if leave_data.is_half_day else None,
         "reason": leave_data.reason,
         "status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -6880,10 +6888,11 @@ async def create_leave_request(
     await db.leave_requests.insert_one(leave_request)
     
     # Create approval request — manager's leave escalates to their RM + admin
+    half_day_label = f" ({leave_data.half_day_type.replace('_', ' ').title()})" if leave_data.is_half_day else ""
     approval = await create_approval_request(
         approval_type=ApprovalType.LEAVE_REQUEST,
         reference_id=leave_request['id'],
-        reference_title=f"{leave_data.leave_type.replace('_', ' ').title()} - {days} day(s)",
+        reference_title=f"{leave_data.leave_type.replace('_', ' ').title()} - {days} day(s){half_day_label}",
         requester_id=current_user.id,
         requires_hr_approval=True,
         requires_admin_approval=requires_admin,
