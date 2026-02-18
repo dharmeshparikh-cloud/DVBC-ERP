@@ -432,7 +432,7 @@ class ConsultantAssignment(BaseModel):
 
 class ConsultantAssignmentCreate(BaseModel):
     consultant_id: str
-    project_id: str
+    project_id: Optional[str] = None  # Optional - can be set from URL path
     role_in_project: Optional[str] = "consultant"
     meetings_committed: Optional[int] = 0
     notes: Optional[str] = None
