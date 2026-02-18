@@ -647,3 +647,73 @@ px-3 md:px-6          /* Horizontal padding */
 - ✅ SOW/Agreement management
 
 All consulting-specific endpoints remain in server.py and are NOT duplicated in routers.
+
+### Session 13 (continued) - Offer & Appointment Letter Workflow
+
+#### Implemented Features:
+- [x] **Letter Templates System**
+  - Create/Edit templates with HTML content and placeholders
+  - Version history tracking with modification details
+  - Default template per type (offer_letter, appointment_letter)
+  - Permissions: Admin + HR Manager can create/edit
+
+- [x] **Offer Letter Workflow**
+  - HR creates offer letter for verified candidates
+  - Company letterhead with D&V branding
+  - Pre-filled HR signature (text or image)
+  - Generates unique acceptance token/link
+  - Creates approval center entry
+  - Notifies admins and HR managers
+
+- [x] **Employee Acceptance Flow**
+  - Public page at `/accept-offer/{token}`
+  - Displays full offer on company letterhead
+  - One-click acceptance with digital signature
+  - Auto-generates Employee ID (EMP009+)
+  - Stamps acceptance with employee name and timestamp
+
+- [x] **Appointment Letter Workflow**
+  - Available after offer acceptance
+  - Requires employee to have assigned ID
+  - Similar flow to offer letter
+
+- [x] **Company Letterhead Component**
+  - Recreated D&V Business Consulting letterhead
+  - Header with logo and company info
+  - Footer with registered office details
+  - HR signature block
+  - Acceptance stamp component
+
+#### New API Endpoints (`/api/letters/*`):
+- `POST /templates` - Create template
+- `GET /templates` - List templates (filter by type)
+- `GET /templates/{id}` - Get template with history
+- `PUT /templates/{id}` - Update template (saves history)
+- `DELETE /templates/{id}` - Soft delete template
+- `POST /offer-letters` - Create and send offer letter
+- `GET /offer-letters` - List offer letters
+- `GET /offer-letters/{id}` - Get specific offer letter
+- `POST /offer-letters/accept` - Public acceptance endpoint
+- `POST /appointment-letters` - Create appointment letter
+- `GET /appointment-letters` - List appointment letters
+- `POST /appointment-letters/accept` - Accept appointment
+- `GET /view/offer/{token}` - Public view offer
+- `GET /view/appointment/{token}` - Public view appointment
+- `GET /stats` - Letter management statistics
+
+#### Database Collections:
+- **letter_templates**: `{id, template_type, name, subject, body_content, is_default, is_active, version, history[], created_by, created_at, updated_at}`
+- **offer_letters**: `{id, candidate_id, candidate_name, candidate_email, template_id, designation, department, joining_date, salary_details, hr_signature_*, status, acceptance_token, employee_id_assigned, accepted_at, acceptance_signature}`
+- **appointment_letters**: `{id, employee_id, employee_code, employee_name, template_id, hr_signature_*, status, acceptance_token, accepted_at, acceptance_signature}`
+- **approval_entries**: Stores letter send/acceptance events for Approval Center
+
+#### Test Coverage:
+- Backend: 22/22 tests passed
+- Test file: `/app/backend/tests/test_letter_management.py`
+- Test data: Candidate John Smith accepted offer → EMP009
+
+#### Files Created:
+- `/app/backend/routers/letters.py`
+- `/app/frontend/src/pages/LetterManagement.js`
+- `/app/frontend/src/pages/AcceptOfferPage.js`
+- `/app/frontend/src/components/CompanyLetterhead.js`
