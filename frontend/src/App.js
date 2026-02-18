@@ -72,6 +72,8 @@ import LetterheadSettings from './pages/LetterheadSettings';
 import AcceptOfferPage from './pages/AcceptOfferPage';
 import AdminDashboardMockups from './pages/admin/AdminDashboardMockups';
 import FlowDiagram from './pages/FlowDiagram';
+import ProjectPayments from './pages/ProjectPayments';
+import ProjectPaymentDetails from './pages/ProjectPaymentDetails';
 import Layout from './components/Layout';
 import SalesLayout from './components/SalesLayout';
 import HRLayout from './components/HRLayout';
