@@ -54,6 +54,11 @@ from routers import stats as stats_router
 from routers import security as security_router
 from routers import users as users_router
 from routers import kickoff as kickoff_router
+from routers import ctc as ctc_router
+from routers import employees as employees_router
+from routers import attendance as attendance_router
+from routers import expenses as expenses_router
+from routers import hr as hr_router
 
 # Helper function to sanitize user input (prevent XSS)
 def sanitize_text(text: str) -> str:
