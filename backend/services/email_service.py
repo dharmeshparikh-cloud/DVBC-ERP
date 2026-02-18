@@ -8,8 +8,14 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 import os
+from pathlib import Path
 from typing import Optional
 import logging
+
+# Load environment variables
+from dotenv import load_dotenv
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(env_path)
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +25,9 @@ SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
 SMTP_USER = os.environ.get('SMTP_USER', '')  # myhr@dvconsulting.co.in
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')  # App password
 SENDER_NAME = os.environ.get('SENDER_NAME', 'DVBC HR')
+
+# Debug log
+logger.info(f"Email service initialized - SMTP_USER: {SMTP_USER}, SMTP configured: {bool(SMTP_USER and SMTP_PASSWORD)}")
 
 
 async def send_email(
