@@ -412,6 +412,8 @@ async def get_employee_stats(current_user: User = Depends(get_current_user)):
     total = await db.employees.count_documents({})
     active = await db.employees.count_documents({"status": "active"})
     terminated = await db.employees.count_documents({"status": "terminated"})
+    with_access = await db.employees.count_documents({"has_portal_access": True, "status": "active"})
+    without_access = active - with_access
     
     # By department
     dept_stats = await db.employees.aggregate([
@@ -425,10 +427,199 @@ async def get_employee_stats(current_user: User = Depends(get_current_user)):
         {"$group": {"_id": "$role", "count": {"$sum": 1}}}
     ]).to_list(50)
     
+    # By level
+    level_stats = await db.employees.aggregate([
+        {"$match": {"status": "active"}},
+        {"$group": {"_id": "$level", "count": {"$sum": 1}}}
+    ]).to_list(10)
+    
     return {
         "total": total,
         "active": active,
         "terminated": terminated,
+        "with_portal_access": with_access,
+        "without_portal_access": without_access,
         "by_department": {d["_id"]: d["count"] for d in dept_stats if d["_id"]},
-        "by_role": {r["_id"]: r["count"] for r in role_stats if r["_id"]}
+        "by_role": {r["_id"]: r["count"] for r in role_stats if r["_id"]},
+        "by_level": {l["_id"]: l["count"] for l in level_stats if l["_id"]}
     }
+
+
+@router.get("/lookup/by-code/{emp_code}")
+async def lookup_employee_by_code(emp_code: str, current_user: User = Depends(get_current_user)):
+    """Lookup employee by employee code (e.g., EMP001)."""
+    db = get_db()
+    
+    employee = await db.employees.find_one(
+        {"employee_id": {"$regex": emp_code, "$options": "i"}},
+        {"_id": 0}
+    )
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    return employee
+
+
+@router.get("/{employee_id}/timeline")
+async def get_employee_timeline(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Get complete timeline/journey of an employee from hiring to present."""
+    db = get_db()
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    emp_code = employee.get("employee_id", "")
+    timeline = []
+    
+    # 1. Hiring/Onboarding
+    if employee.get("created_at"):
+        timeline.append({
+            "date": employee["created_at"],
+            "event": "hired",
+            "title": "Joined Company",
+            "description": f"Joined as {employee.get('designation', 'Employee')} in {employee.get('department', 'N/A')}"
+        })
+    
+    # 2. Portal Access Grant
+    if employee.get("has_portal_access") and employee.get("user_id"):
+        user = await db.users.find_one({"id": employee["user_id"]}, {"_id": 0, "created_at": 1})
+        if user:
+            timeline.append({
+                "date": user.get("created_at"),
+                "event": "access_granted",
+                "title": "Portal Access Granted",
+                "description": "Employee portal access enabled"
+            })
+    
+    # 3. Offer Letters
+    letters = await db.offer_letters.find(
+        {"$or": [{"employee_id": employee_id}, {"employee_email": employee.get("email")}]},
+        {"_id": 0}
+    ).to_list(20)
+    for letter in letters:
+        timeline.append({
+            "date": letter.get("created_at"),
+            "event": "offer_letter",
+            "title": f"{letter.get('letter_type', 'Offer').title()} Letter",
+            "description": f"Status: {letter.get('status', 'pending')}"
+        })
+    
+    # 4. Leave Requests
+    leaves = await db.leave_requests.find({"employee_id": employee_id}, {"_id": 0}).to_list(50)
+    for leave in leaves:
+        timeline.append({
+            "date": leave.get("created_at"),
+            "event": "leave_request",
+            "title": f"{leave.get('leave_type', '').replace('_', ' ').title()}",
+            "description": f"{leave.get('days')} day(s) - {leave.get('status', 'pending')}"
+        })
+    
+    # 5. Expenses
+    expenses = await db.expenses.find({"employee_id": employee_id}, {"_id": 0}).to_list(50)
+    for exp in expenses:
+        timeline.append({
+            "date": exp.get("created_at"),
+            "event": "expense",
+            "title": f"Expense: {exp.get('category', 'Other')}",
+            "description": f"Amount: {exp.get('total_amount', 0)} - {exp.get('status', 'pending')}"
+        })
+    
+    # 6. Attendance milestones
+    att_count = await db.attendance.count_documents({"employee_id": employee_id})
+    if att_count > 0:
+        first_att = await db.attendance.find_one({"employee_id": employee_id}, {"_id": 0}, sort=[("date", 1)])
+        if first_att:
+            timeline.append({
+                "date": first_att.get("created_at") or first_att.get("date"),
+                "event": "first_attendance",
+                "title": "First Attendance",
+                "description": f"Started tracking attendance ({att_count} records total)"
+            })
+    
+    # 7. Project Assignments
+    project_assignments = await db.project_assignments.find(
+        {"$or": [{"employee_id": employee_id}, {"consultant_id": employee_id}]},
+        {"_id": 0}
+    ).to_list(50)
+    for pa in project_assignments:
+        project = await db.projects.find_one({"id": pa.get("project_id")}, {"_id": 0, "name": 1})
+        timeline.append({
+            "date": pa.get("assigned_at") or pa.get("created_at"),
+            "event": "project_assignment",
+            "title": "Assigned to Project",
+            "description": project.get("name", "Unknown Project") if project else "Unknown Project"
+        })
+    
+    # 8. Salary Slips
+    salary_slips = await db.salary_slips.find({"employee_id": employee_id}, {"_id": 0}).to_list(50)
+    for slip in salary_slips:
+        timeline.append({
+            "date": slip.get("created_at") or f"{slip.get('month', '')}-01",
+            "event": "salary_slip",
+            "title": f"Salary Slip - {slip.get('month', 'N/A')}",
+            "description": f"Net: {slip.get('net_salary', 0)}"
+        })
+    
+    # 9. Termination
+    if employee.get("status") == "terminated":
+        timeline.append({
+            "date": employee.get("terminated_at"),
+            "event": "terminated",
+            "title": "Employment Ended",
+            "description": f"Status changed to terminated"
+        })
+    
+    # Sort by date
+    timeline.sort(key=lambda x: x.get("date") or "", reverse=True)
+    
+    return {
+        "employee_id": employee_id,
+        "employee_code": emp_code,
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "timeline": timeline,
+        "total_events": len(timeline)
+    }
+
+
+@router.get("/{employee_id}/linked-records")
+async def get_employee_linked_records(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Get all records linked to this employee across all modules."""
+    db = get_db()
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    emp_code = employee.get("employee_id", "")
+    user_id = employee.get("user_id")
+    email = employee.get("email")
+    
+    # Count linked records
+    linked = {
+        "attendance": await db.attendance.count_documents({"employee_id": employee_id}),
+        "leave_requests": await db.leave_requests.count_documents({"employee_id": employee_id}),
+        "expenses": await db.expenses.count_documents({"employee_id": employee_id}),
+        "salary_slips": await db.salary_slips.count_documents({"employee_id": employee_id}),
+        "documents": await db.employee_documents.count_documents({"employee_id": employee_id}),
+        "project_assignments": await db.project_assignments.count_documents(
+            {"$or": [{"employee_id": employee_id}, {"consultant_id": employee_id}]}
+        ),
+        "offer_letters": await db.offer_letters.count_documents(
+            {"$or": [{"employee_id": employee_id}, {"employee_email": email}]}
+        ) if email else 0,
+        "approval_requests": await db.approval_requests.count_documents({"requester_id": user_id}) if user_id else 0,
+        "notifications": await db.notifications.count_documents({"user_id": user_id}) if user_id else 0,
+        "staffing_requests": await db.staffing_requests.count_documents({"requester_id": user_id}) if user_id else 0
+    }
+    
+    return {
+        "employee_id": employee_id,
+        "employee_code": emp_code,
+        "user_id": user_id,
+        "email": email,
+        "linked_records": linked,
+        "total_records": sum(linked.values())
+    }
+
