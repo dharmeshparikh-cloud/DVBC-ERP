@@ -799,3 +799,57 @@ Successfully migrated all stats endpoints from legacy server.py to `/app/backend
 
 #### Files Updated:
 - `/app/frontend/src/pages/AdminMasters.js` - Added SOW Scope Builder tab with full CRUD functionality
+
+### Session 16 (Feb 18, 2026) - ERP Bug Fixes Batch 2
+
+#### Issues Fixed (from ERP Bugs.docx):
+
+1. **Leads Search & Filtering (FIXED)**
+   - Added search box - filters by name, company, email, phone
+   - Added timeline filter - Today, This Week, This Month, This Quarter, All Time
+   - Status filter already existed, now works with search
+   - Shows filtered count: "(X of Y leads)"
+
+2. **Password Visibility Toggle (FIXED)**
+   - Added Eye/EyeOff icon on Login page password field
+   - Click to toggle between hidden/visible password
+
+3. **Duplicate Mobile Number Check (FIXED)**
+   - Backend validates phone numbers on employee creation
+   - Returns 400 error "Employee with this phone number already exists"
+   - Normalizes phone number (removes spaces, dashes)
+
+4. **Mobile Number Limit (FIXED)**
+   - Onboarding form limits phone input to 10 digits
+   - Auto-strips non-numeric characters
+   - Shows +91 country code prefix
+
+5. **Receipt/Bill Upload for Expenses (FIXED)**
+   - Added "Attach Receipt/Bill (optional)" section in expense form
+   - Upload Image button with preview
+   - Supports images and PDFs (up to 5MB)
+
+6. **IFSC Verification (FIXED)**
+   - Added "Verify" button next to IFSC code input
+   - Calls Razorpay IFSC API (https://ifsc.razorpay.com/)
+   - Auto-fills Bank Name and Branch Name on verification
+   - Shows green "Verified" status on success
+
+#### Test Results:
+- Backend: 100% (10/10 tests passed)
+- Frontend: 100% - All bug fixes verified
+- Test file: `/app/backend/tests/test_bug_fixes_erp.py`
+
+#### Files Modified:
+- `/app/frontend/src/pages/Leads.js` - Search, timeline filter, useMemo
+- `/app/frontend/src/pages/Login.js` - Password visibility toggle
+- `/app/frontend/src/pages/HROnboarding.js` - Phone validation
+- `/app/frontend/src/pages/Expenses.js` - Receipt upload
+- `/app/frontend/src/pages/BankDetailsChangeRequest.js` - IFSC verification
+- `/app/backend/routers/employees.py` - Duplicate phone check
+
+#### Still Pending from ERP Bugs.docx:
+- Selfie Capture Missing
+- CSV Upload Missing  
+- Multi-select for Role, Tenure Type, Meeting Type
+- Old credentials after new link issue
