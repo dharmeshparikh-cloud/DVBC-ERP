@@ -132,26 +132,37 @@ const Layout = () => {
     </button>
   );
 
-  // Navigation items
+  // Navigation items with permission requirements
   const hrItems = [
-    { name: 'Employees', href: '/employees', icon: UsersRound },
-    { name: 'Onboarding', href: '/onboarding', icon: UserCog },
-    { name: 'Letter Management', href: '/letter-management', icon: FileText },
-    { name: 'Letterhead Settings', href: '/letterhead-settings', icon: Image },
-    { name: 'Onboarding Tutorials', href: '/tutorials', icon: BookOpen },
-    { name: 'Org Chart', href: '/org-chart', icon: GitBranch },
-    { name: 'Leave Mgmt', href: '/leave-management', icon: CalendarDays },
-    { name: 'Attendance', href: '/attendance', icon: Clock },
-    { name: 'Attendance Approvals', href: '/attendance-approvals', icon: ClipboardCheck },
-    { name: 'CTC Designer', href: '/ctc-designer', icon: DollarSign },
-    { name: 'Payroll', href: '/payroll', icon: Wallet },
-    { name: 'Expenses', href: '/expenses', icon: Receipt },
-    { name: 'Travel Reimbursement', href: '/travel-reimbursement', icon: Car },
-    { name: 'Team Workload', href: '/team-workload', icon: Briefcase },
-    { name: 'Staffing Requests', href: '/staffing-requests', icon: AlertTriangle },
-    { name: 'Performance', href: '/performance-dashboard', icon: TrendingUp },
-    { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3 },
+    { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
+    { name: 'Onboarding', href: '/onboarding', icon: UserCog, requiresTeamView: false },
+    { name: 'Letter Management', href: '/letter-management', icon: FileText, requiresTeamView: false },
+    { name: 'Letterhead Settings', href: '/letterhead-settings', icon: Image, requiresTeamView: false },
+    { name: 'Onboarding Tutorials', href: '/tutorials', icon: BookOpen, requiresTeamView: false },
+    { name: 'Org Chart', href: '/org-chart', icon: GitBranch, requiresTeamView: false },
+    { name: 'Leave Mgmt', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
+    { name: 'Attendance', href: '/attendance', icon: Clock, requiresTeamView: true },
+    { name: 'Attendance Approvals', href: '/attendance-approvals', icon: ClipboardCheck, requiresApproval: true },
+    { name: 'CTC Designer', href: '/ctc-designer', icon: DollarSign, requiresApproval: true },
+    { name: 'Payroll', href: '/payroll', icon: Wallet, requiresApproval: true },
+    { name: 'Expenses', href: '/expenses', icon: Receipt, requiresApproval: true },
+    { name: 'Travel Reimbursement', href: '/travel-reimbursement', icon: Car, requiresApproval: true },
+    { name: 'Team Workload', href: '/team-workload', icon: Briefcase, requiresTeamView: true },
+    { name: 'Staffing Requests', href: '/staffing-requests', icon: AlertTriangle, requiresTeamView: true },
+    { name: 'Performance', href: '/performance-dashboard', icon: TrendingUp, requiresReports: true },
+    { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },
   ];
+  
+  // Filter HR items based on permissions
+  const filteredHrItems = hrItems.filter(item => {
+    // Always show basic HR items for HR roles
+    if (HR_ROLES.includes(role)) return true;
+    // For non-HR roles, check level permissions
+    if (item.requiresTeamView && !canViewTeamData()) return false;
+    if (item.requiresApproval && !canApproveRequests()) return false;
+    if (item.requiresReports && !canViewReports()) return false;
+    return true;
+  });
 
   const salesFlowItems = [
     { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3 },
