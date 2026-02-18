@@ -149,6 +149,7 @@ const Layout = () => {
     { name: 'Travel Reimbursement', href: '/travel-reimbursement', icon: Car, requiresApproval: true },
     { name: 'Team Workload', href: '/team-workload', icon: Briefcase, requiresTeamView: true },
     { name: 'Staffing Requests', href: '/staffing-requests', icon: AlertTriangle, requiresTeamView: true },
+    { name: 'Employee Scorecard', href: '/employee-scorecard', icon: Star, requiresReports: true },
     { name: 'Performance', href: '/performance-dashboard', icon: TrendingUp, requiresReports: true },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },
   ];
