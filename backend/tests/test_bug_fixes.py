@@ -12,7 +12,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://level-permissions.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-integration-hub-4.preview.emergentagent.com')
 
 @pytest.fixture(scope="session")
 def auth_token():

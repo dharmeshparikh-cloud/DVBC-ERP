@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://level-permissions.preview.emergentagent.com",
+      "value": "https://erp-integration-hub-4.preview.emergentagent.com",
       "type": "string"
     },
     {
