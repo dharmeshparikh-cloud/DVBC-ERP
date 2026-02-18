@@ -8400,6 +8400,13 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     working_days = payroll_input.get("working_days", 30) if payroll_input else 30
     public_holidays = payroll_input.get("public_holidays", 0) if payroll_input else 0
     leaves_count = payroll_input.get("leaves", 0) if payroll_input else 0
+    # Use auto-calculated leaves if no manual override
+    if leaves_count == 0:
+        leaves_count = auto_leaves + auto_half_day_leaves
+    
+    # Track half-day leaves separately for payroll display
+    half_day_leaves = auto_half_day_leaves
+    
     # Fetch approved/reimbursed expenses for this employee in this month
     expense_reimb = 0
     expense_query = {"employee_id": employee_id, "status": {"$in": ["approved", "reimbursed"]}}
