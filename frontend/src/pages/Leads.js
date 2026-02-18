@@ -677,10 +677,17 @@ const Leads = () => {
                         {lead.lead_score || 0} - {scoreBadge.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(lead.status)}`}>
-                        {lead.status}
-                      </span>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={lead.status}
+                        onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                        className={`px-2 py-1 text-xs font-medium rounded-sm border-0 cursor-pointer ${getStatusBadge(lead.status)}`}
+                        data-testid={`status-select-${lead.id}`}
+                      >
+                        {['new', 'contacted', 'qualified', 'proposal', 'agreement', 'closed', 'lost'].map(s => (
+                          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
