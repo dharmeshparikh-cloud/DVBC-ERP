@@ -311,44 +311,70 @@ const AdminMasters = () => {
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
             Admin Masters
           </h1>
-          <p className="text-zinc-500">Manage tenure types, allocation rules, and consultant roles</p>
+          <p className="text-zinc-500">Manage tenure types, allocation rules, consultant roles, and SOW scope templates</p>
         </div>
-        <Button 
-          onClick={handleSeedDefaults}
-          variant="outline"
-          className="border-zinc-300"
-          data-testid="seed-defaults-btn"
-        >
-          <Database className="w-4 h-4 mr-2" />
-          Seed Defaults
-        </Button>
+        <div className="flex gap-2">
+          {activeTab === 'scope-builder' ? (
+            <Button 
+              onClick={handleSeedSowDefaults}
+              variant="outline"
+              className="border-zinc-300"
+              data-testid="seed-sow-defaults-btn"
+            >
+              <Database className="w-4 h-4 mr-2" />
+              Seed SOW Defaults
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleSeedDefaults}
+              variant="outline"
+              className="border-zinc-300"
+              data-testid="seed-defaults-btn"
+            >
+              <Database className="w-4 h-4 mr-2" />
+              Seed Defaults
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 bg-zinc-100 p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-4 bg-zinc-100 p-1 rounded-lg">
           <TabsTrigger 
             value="tenure-types" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs sm:text-sm"
             data-testid="tenure-types-tab"
           >
-            <Percent className="w-4 h-4 mr-2" />
-            Tenure Types & Allocation
+            <Percent className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Tenure Types</span>
+            <span className="sm:hidden">Tenure</span>
           </TabsTrigger>
           <TabsTrigger 
             value="consultant-roles"
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs sm:text-sm"
             data-testid="consultant-roles-tab"
           >
-            <Users className="w-4 h-4 mr-2" />
-            Consultant Roles
+            <Users className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Consultant Roles</span>
+            <span className="sm:hidden">Roles</span>
           </TabsTrigger>
           <TabsTrigger 
             value="meeting-types"
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs sm:text-sm"
             data-testid="meeting-types-tab"
           >
-            <Calendar className="w-4 h-4 mr-2" />
-            Meeting Types
+            <Calendar className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Meeting Types</span>
+            <span className="sm:hidden">Meetings</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="scope-builder"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs sm:text-sm"
+            data-testid="scope-builder-tab"
+          >
+            <Layers className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">SOW Scope Builder</span>
+            <span className="sm:hidden">Scopes</span>
           </TabsTrigger>
         </TabsList>
 
