@@ -323,8 +323,42 @@ const Leads = () => {
         </div>
       </div>
 
-      <div className="mb-6">
-        <div className="flex gap-2">
+      {/* Search and Filters */}
+      <div className="mb-6 space-y-4">
+        {/* Search Box */}
+        <div className="flex gap-4 flex-wrap">
+          <div className="relative flex-1 min-w-[250px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <Input
+              type="text"
+              placeholder="Search by name, company, email, phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-10 rounded-sm border-zinc-200"
+              data-testid="lead-search-input"
+            />
+          </div>
+          
+          {/* Timeline Filter */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-zinc-400" />
+            <select
+              value={timelineFilter}
+              onChange={(e) => setTimelineFilter(e.target.value)}
+              className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm text-zinc-700"
+              data-testid="timeline-filter"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="quarter">This Quarter</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Status Filters */}
+        <div className="flex gap-2 flex-wrap">
           {['', 'new', 'contacted', 'qualified', 'proposal', 'agreement', 'closed', 'lost'].map(
             (status) => (
               <button
@@ -348,11 +382,13 @@ const Leads = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-zinc-500">Loading leads...</div>
         </div>
-      ) : leads.length === 0 ? (
+      ) : filteredLeads.length === 0 ? (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="flex flex-col items-center justify-center h-64">
-            <p className="text-zinc-500 mb-4">No leads found</p>
-            {canEdit && (
+            <p className="text-zinc-500 mb-4">
+              {searchQuery || timelineFilter !== 'all' ? 'No leads match your search criteria' : 'No leads found'}
+            </p>
+            {canEdit && !searchQuery && (
               <Button
                 onClick={() => setDialogOpen(true)}
                 className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
