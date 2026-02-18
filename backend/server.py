@@ -3920,6 +3920,34 @@ async def assign_consultant_to_project(
         }
     )
     
+    # Create notification for consultant and their reporting manager
+    notification_doc = {
+        "id": str(uuid.uuid4()),
+        "type": "project_assignment",
+        "title": "New Project Assignment",
+        "message": f"You have been assigned to project: {project.get('name')}",
+        "recipient_id": assignment.consultant_id,
+        "project_id": project_id,
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification_doc)
+    
+    # Notify reporting manager
+    if consultant.get('reporting_manager_id'):
+        manager_notification = {
+            "id": str(uuid.uuid4()),
+            "type": "reportee_assignment",
+            "title": "Reportee Assigned to Project",
+            "message": f"{consultant.get('full_name')} has been assigned to project: {project.get('name')}",
+            "recipient_id": consultant.get('reporting_manager_id'),
+            "project_id": project_id,
+            "consultant_id": assignment.consultant_id,
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(manager_notification)
+    
     return {"message": "Consultant assigned successfully", "assignment_id": new_assignment.id}
 
 @api_router.patch("/projects/{project_id}/change-consultant")
