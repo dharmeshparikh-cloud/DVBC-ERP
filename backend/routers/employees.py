@@ -63,6 +63,14 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
         if existing:
             raise HTTPException(status_code=400, detail="Employee with this email already exists")
     
+    # Check for duplicate phone number
+    if data.get("phone"):
+        phone = data["phone"].replace(" ", "").replace("-", "")
+        if len(phone) >= 10:
+            existing_phone = await db.employees.find_one({"phone": {"$regex": phone[-10:]}})
+            if existing_phone:
+                raise HTTPException(status_code=400, detail="Employee with this phone number already exists")
+    
     # Generate employee ID if not provided
     if not data.get("employee_id"):
         count = await db.employees.count_documents({})
