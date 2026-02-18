@@ -584,17 +584,17 @@ const HROnboarding = () => {
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-blue-800 dark:text-blue-300">Document Upload (Optional)</p>
+                  <p className="font-medium text-blue-800 dark:text-blue-300">Document Upload</p>
                   <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                    Upload employee documents. You can also add/update documents later from the Employee Master.
+                    ID Proof, Resume, and Offer Letter are required. You can update documents later from the Employee Master.
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* ID Proof */}
-              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.id_proof ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:border-emerald-500'}`}>
+              {/* ID Proof - Required */}
+              <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.id_proof ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'border-red-300 hover:border-red-400'}`}>
                 <CardContent className="pt-6 text-center">
                   <input
                     type="file"
@@ -607,9 +607,9 @@ const HROnboarding = () => {
                     {uploadedDocs.id_proof ? (
                       <CheckCircle className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
                     ) : (
-                      <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+                      <Upload className="w-8 h-8 mx-auto text-red-400 mb-2" />
                     )}
-                    <p className="font-medium">ID Proof</p>
+                    <p className="font-medium">ID Proof <span className="text-red-500">*</span></p>
                     <p className="text-xs text-zinc-500 mt-1">
                       {uploadedDocs.id_proof ? uploadedDocs.id_proof.name : 'Aadhar, PAN, Passport'}
                     </p>
@@ -617,7 +617,7 @@ const HROnboarding = () => {
                 </CardContent>
               </Card>
 
-              {/* Resume */}
+              {/* Resume - Required */}
               <Card className={`border-dashed border-2 transition-colors ${uploadedDocs.resume ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' : 'hover:border-emerald-500'}`}>
                 <CardContent className="pt-6 text-center">
                   <input
