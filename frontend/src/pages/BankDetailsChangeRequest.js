@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import {
   Building2, CreditCard, Upload, FileText, CheckCircle, XCircle,
-  Clock, AlertCircle, Info, Trash2, Eye, Loader2, Shield, User
+  Clock, AlertCircle, Info, Trash2, Eye, Loader2, Shield, User, Search
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -22,6 +22,8 @@ const BankDetailsChangeRequest = () => {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [verifyingIfsc, setVerifyingIfsc] = useState(false);
+  const [ifscVerified, setIfscVerified] = useState(false);
   const [employee, setEmployee] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [formData, setFormData] = useState({
@@ -40,6 +42,42 @@ const BankDetailsChangeRequest = () => {
     fetchEmployeeData();
     fetchPendingRequests();
   }, []);
+
+  // IFSC verification function
+  const verifyIFSC = async (ifscCode) => {
+    if (!ifscCode || ifscCode.length !== 11) return;
+    
+    const ifscPattern = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    if (!ifscPattern.test(ifscCode.toUpperCase())) {
+      toast.error('Invalid IFSC code format');
+      return;
+    }
+    
+    setVerifyingIfsc(true);
+    try {
+      // Using Razorpay's IFSC API (free, no auth required)
+      const response = await axios.get(`https://ifsc.razorpay.com/${ifscCode.toUpperCase()}`);
+      if (response.data) {
+        setFormData(prev => ({
+          ...prev,
+          bank_name: response.data.BANK || prev.bank_name,
+          branch_name: response.data.BRANCH || prev.branch_name,
+          ifsc_code: ifscCode.toUpperCase()
+        }));
+        setIfscVerified(true);
+        toast.success(`Verified: ${response.data.BANK} - ${response.data.BRANCH}`);
+      }
+    } catch (error) {
+      setIfscVerified(false);
+      if (error.response?.status === 404) {
+        toast.error('Invalid IFSC code. Please check and try again.');
+      } else {
+        toast.error('Could not verify IFSC. Please enter bank details manually.');
+      }
+    } finally {
+      setVerifyingIfsc(false);
+    }
+  };
 
   const fetchEmployeeData = async () => {
     try {
