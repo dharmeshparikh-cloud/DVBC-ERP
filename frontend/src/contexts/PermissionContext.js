@@ -5,13 +5,13 @@ import { API, AuthContext } from '../App';
 const PermissionContext = createContext();
 
 export const PermissionProvider = ({ children }) => {
-  const { user, isAuthenticated } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [permissions, setPermissions] = useState(null);
   const [level, setLevel] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchPermissions = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!user) {
       setPermissions(null);
       setLevel(null);
       setLoading(false);
@@ -20,7 +20,7 @@ export const PermissionProvider = ({ children }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/roles/my-permissions`, {
+      const response = await axios.get(`${API}/role-management/my-permissions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -42,7 +42,7 @@ export const PermissionProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [user]);
 
   useEffect(() => {
     fetchPermissions();
