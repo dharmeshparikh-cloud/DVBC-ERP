@@ -763,3 +763,39 @@ Successfully migrated all stats endpoints from legacy server.py to `/app/backend
 - `/app/backend/routers/stats.py` - Complete rewrite matching frontend expectations
 - `/app/backend/server.py` - Reduced from 9,960 to 9,488 lines
 - `/app/REFACTOR_MIGRATION_PLAN.md` - Created migration tracking document
+
+### Session 15 (Feb 18, 2026) - SOW Scope Builder for Admin Masters
+
+#### Problem Solved:
+- User was unable to add custom scopes in SOW builder because no categories existed
+- Custom Scope dialog showed empty category dropdown
+
+#### Solution Implemented:
+- Added **SOW Scope Builder** tab to Admin Masters page (`/admin-masters`)
+- Categories Panel: Create, Edit, Delete categories with code, name, description
+- Scopes Panel: Create, Edit, Delete scope templates within categories
+- Category filtering: Click a category to filter scopes
+- "Seed SOW Defaults" button to populate default categories and scopes
+- Inline editing for both categories and scopes
+
+#### Features:
+- [x] Categories CRUD with validation
+- [x] Scope Templates CRUD with category association
+- [x] Seed defaults (8 categories, 41 scopes)
+- [x] Category-based filtering
+- [x] Edit/Delete functionality with confirmation
+- [x] Status tracking (Active/Inactive)
+- [x] Type tracking (Default/Custom)
+
+#### Default Categories Created:
+1. Sales (6 scopes)
+2. HR (6 scopes)
+3. Operations (6 scopes)
+4. Training (6 scopes)
+5. Analytics (5 scopes)
+6. Digital Marketing (4 scopes)
+7. Finance (5 scopes)
+8. Strategy (4 scopes)
+
+#### Files Updated:
+- `/app/frontend/src/pages/AdminMasters.js` - Added SOW Scope Builder tab with full CRUD functionality
