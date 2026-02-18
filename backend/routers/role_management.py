@@ -178,6 +178,53 @@ async def update_level_permissions(
     return {"message": "Level permissions updated", "level": data.level}
 
 
+@router.get("/my-permissions")
+async def get_my_permissions(current_user: User = Depends(get_current_user)):
+    """Get the current user's permissions based on their employee level."""
+    db = get_db()
+    
+    # Get user's employee record to find their level
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "level": 1})
+    
+    if not employee:
+        # Fallback to user role-based permissions for non-employees (admin, hr_manager, etc.)
+        if current_user.role in ["admin", "hr_manager"]:
+            return {
+                "level": "leader",
+                "role": current_user.role,
+                "permissions": {
+                    "can_view_own_data": True,
+                    "can_edit_own_profile": True,
+                    "can_submit_requests": True,
+                    "can_view_team_data": True,
+                    "can_approve_requests": True,
+                    "can_view_reports": True,
+                    "can_manage_team": True
+                }
+            }
+        return {
+            "level": "executive",
+            "role": current_user.role,
+            "permissions": DEFAULT_LEVEL_PERMISSIONS.get("executive", {})
+        }
+    
+    level = employee.get("level", "executive")
+    
+    # Get custom permissions if they exist
+    config = await db.level_permissions_config.find_one({"id": "main"}, {"_id": 0})
+    
+    if config and level in config.get("permissions", {}):
+        permissions = config["permissions"][level]
+    else:
+        permissions = DEFAULT_LEVEL_PERMISSIONS.get(level, {})
+    
+    return {
+        "level": level,
+        "role": current_user.role,
+        "permissions": permissions
+    }
+
+
 # ============== Role Creation Request Endpoints ==============
 
 @router.post("/role-requests")
