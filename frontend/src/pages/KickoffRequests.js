@@ -135,7 +135,7 @@ const KickoffRequests = () => {
     await fetchRequestDetails(request.id);
   };
 
-  const handleAgreementSelect = (agreementId) => {
+  const handleAgreementSelect = async (agreementId) => {
     const agreement = agreements.find(a => a.id === agreementId);
     if (agreement) {
       setFormData(prev => ({
@@ -146,6 +146,25 @@ const KickoffRequests = () => {
         meeting_frequency: agreement.meeting_frequency || 'Monthly',
         project_tenure_months: agreement.project_tenure_months || 12
       }));
+      
+      // Check payment eligibility
+      setCheckingEligibility(true);
+      try {
+        const response = await fetch(`${API}/payments/check-eligibility/${agreementId}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentEligibility(data);
+          if (!data.is_eligible) {
+            toast.warning('First installment payment must be verified before creating kickoff request');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check payment eligibility:', error);
+      } finally {
+        setCheckingEligibility(false);
+      }
     }
   };
 
