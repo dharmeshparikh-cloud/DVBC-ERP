@@ -1235,3 +1235,64 @@ Based on user-provided documents: `Bugs 3.docx`, `ERP Bugs 2.docx`, `HR PORTAL 2
 | Sales Manager | ✅ | ❌ | ✅ | ❌ |
 | Consultant | ✅ | ❌ | ❌ | ❌ |
 
+
+### Session 13 (Feb 18, 2026) - Role-Based Payment Visibility & UI Improvements
+
+#### Role-Based Payment Visibility (COMPLETED)
+
+Implemented comprehensive role-based visibility for the Project Payments module:
+
+**Backend Changes (`/app/backend/routers/project_payments.py`):**
+- Modified `get_project_payments()` endpoint:
+  - Added `can_view_amounts` flag (True for Admin/Principal Consultant only)
+  - Added `is_consultant_view` flag for UI customization
+  - Amounts hidden for Consultant and Reporting Manager roles
+  - First payment details hidden for Consultant view
+  - Schedule skips received payments for Consultant
+- Modified `get_my_payments()` endpoint:
+  - Added consultant names to project cards
+  - Total value and payment amounts hidden for non-admin roles
+  - Returns `can_view_amounts` flag
+
+**Frontend Changes:**
+- `ProjectPayments.js`:
+  - Summary cards now role-aware (no amount cards for consultants)
+  - Description text changes based on role
+  - First Payment shows status only (not amount) for consultants
+  - Consultant names displayed in project cards
+  - "Upcoming Payments" tab hidden for non-admin roles
+- `ProjectPaymentDetails.js`:
+  - Removed "Inherited SOW" tab (per user request)
+  - Total Project Value hidden for consultants
+  - First Advance Payment card hidden for consultants
+  - Payment Schedule table hides amount columns for consultants
+  - "Amounts hidden" indicator shown for restricted views
+  - Title changes to "Upcoming Payment Dates" for consultant view
+
+**Visibility Matrix:**
+
+| Feature | Admin | Principal Consultant | Manager | Consultant |
+|---------|-------|---------------------|---------|------------|
+| Total Project Value | ✅ | ✅ | ❌ | ❌ |
+| First Payment Amount | ✅ | ✅ | ❌ | ❌ |
+| Payment Schedule Amounts | ✅ | ✅ | ❌ | ❌ |
+| Consultant Names | ✅ | ✅ | ✅ | ✅ |
+| First Payment Received Status | ✅ | ✅ | ✅ | ✅ |
+| Upcoming Payment Dates | ✅ | ✅ | ✅ | ✅ |
+| Inherited SOW Tab | ❌ | ❌ | ❌ | ❌ |
+
+**Test Results:** All 5 feature tests passed (iteration_53.json)
+- Admin sees full amounts and first payment details
+- Consultant sees dates only, no amounts, no first payment card
+- Inherited SOW tab removed from all views
+- Consultant names visible in project cards
+
+**Files Modified:**
+- `/app/backend/routers/project_payments.py`
+- `/app/frontend/src/pages/ProjectPayments.js`
+- `/app/frontend/src/pages/ProjectPaymentDetails.js`
+
+**Test Credentials:**
+- Admin: admin@dvbc.com / admin123
+- Consultant: consultant@dvbc.com / consultant123
+
