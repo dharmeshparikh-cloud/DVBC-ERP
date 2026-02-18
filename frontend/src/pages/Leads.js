@@ -470,7 +470,7 @@ const Leads = () => {
       ) : (
         /* Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {leads.map((lead) => {
+          {filteredLeads.map((lead) => {
             const scoreBadge = getScoreBadge(lead.lead_score || 0);
             const leadSuggestions = suggestions[lead.id] || [];
             return (
