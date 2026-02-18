@@ -165,6 +165,14 @@ const HROnboarding = () => {
           toast.error('Please fill in all required employment details');
           return false;
         }
+        if (!formData.level) {
+          toast.error('Please select an employee level (Executive/Manager/Leader)');
+          return false;
+        }
+        if (!formData.reporting_manager_id) {
+          toast.error('Please select a reporting manager');
+          return false;
+        }
         return true;
         
       case 2: // Documents
