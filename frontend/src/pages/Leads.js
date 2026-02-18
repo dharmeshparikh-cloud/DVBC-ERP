@@ -267,32 +267,45 @@ const Leads = () => {
         <div className="flex items-center gap-3">
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
           {canEdit && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  data-testid="add-lead-button"
-                  className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                >
-                  <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                  Add Lead
-                </Button>
-              </DialogTrigger>
-            <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
-                  Add New Lead
-                </DialogTitle>
-                <DialogDescription className="text-zinc-500">
-                  Enter lead information to add to your pipeline
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_name" className="text-sm font-medium text-zinc-950">
-                      First Name *
-                    </Label>
-                    <Input
+            <>
+              {/* CSV Upload Button */}
+              <Button
+                variant="outline"
+                onClick={() => setCsvDialogOpen(true)}
+                className="border-zinc-200"
+                data-testid="csv-upload-btn"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import CSV
+              </Button>
+              
+              {/* Add Lead Button */}
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    data-testid="add-lead-button"
+                    className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                  >
+                    <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                    Add Lead
+                  </Button>
+                </DialogTrigger>
+              <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+                    Add New Lead
+                  </DialogTitle>
+                  <DialogDescription className="text-zinc-500">
+                    Enter lead information to add to your pipeline
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name" className="text-sm font-medium text-zinc-950">
+                        First Name *
+                      </Label>
+                      <Input
                       id="first_name"
                       data-testid="lead-first-name"
                       value={formData.first_name}
