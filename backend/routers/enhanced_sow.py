@@ -1282,3 +1282,161 @@ async def get_pending_task_approvals(
     
     return pending_tasks
 
+
+@router.get("/{sow_id}/history")
+async def get_sow_history(
+    sow_id: str,
+    current_user_role: str = "consultant"
+):
+    """
+    Get complete change history for a SOW.
+    Only visible to: Reporting Manager, Project Manager, Principal Consultant, Admin
+    """
+    # Check permission
+    allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "reporting_manager"]
+    if current_user_role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Not authorized to view SOW history")
+    
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+    
+    history = []
+    
+    # SOW level events
+    if sow.get("sales_handover_at"):
+        history.append({
+            "event_type": "sales_handover",
+            "timestamp": sow.get("sales_handover_at"),
+            "changed_by": sow.get("sales_handover_by_name", "Sales Team"),
+            "description": "SOW handed over to Consulting team",
+            "details": {}
+        })
+    
+    if sow.get("consulting_kickoff_at"):
+        history.append({
+            "event_type": "consulting_kickoff",
+            "timestamp": sow.get("consulting_kickoff_at"),
+            "changed_by": "System",
+            "description": "Project created from kickoff request",
+            "details": {"project_id": sow.get("project_id")}
+        })
+    
+    # Scope-level changes
+    for scope in sow.get("scopes", []):
+        scope_name = scope.get("name", "Unknown Scope")
+        
+        # Check for change logs
+        for change in scope.get("change_log", []):
+            description_parts = []
+            for field, new_value in change.get("new_value", {}).items():
+                old_value = change.get("old_value", {}).get(field, "N/A")
+                description_parts.append(f"{field}: {old_value} → {new_value}")
+            
+            history.append({
+                "event_type": "scope_update",
+                "timestamp": change.get("changed_at"),
+                "changed_by": change.get("changed_by_name", "Unknown"),
+                "description": f"Updated scope: {scope_name}",
+                "details": {
+                    "scope_id": scope.get("id"),
+                    "scope_name": scope_name,
+                    "changes": description_parts,
+                    "old_value": change.get("old_value"),
+                    "new_value": change.get("new_value"),
+                    "client_consent": change.get("client_consent", False)
+                }
+            })
+        
+        # Revision history
+        if scope.get("revision_status"):
+            history.append({
+                "event_type": "scope_revision",
+                "timestamp": scope.get("revision_at"),
+                "changed_by": scope.get("revision_by_name", "Unknown"),
+                "description": f"Scope revision: {scope_name}",
+                "details": {
+                    "scope_id": scope.get("id"),
+                    "scope_name": scope_name,
+                    "revision_status": scope.get("revision_status"),
+                    "revision_reason": scope.get("revision_reason"),
+                    "client_consent": scope.get("client_consent_for_revision", False)
+                }
+            })
+    
+    # Sort by timestamp (most recent first)
+    history.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    return {
+        "sow_id": sow_id,
+        "sow_name": sow.get("lead_name", "Unknown"),
+        "project_id": sow.get("project_id"),
+        "total_events": len(history),
+        "history": history
+    }
+
+
+@router.get("/project/{project_id}/sow")
+async def get_project_sow(
+    project_id: str,
+    current_user_id: str = None,
+    current_user_role: str = "consultant"
+):
+    """
+    Get inherited SOW for a project.
+    Shows the SOW linked to the project (inherited from sales flow).
+    Access: Assigned Consultant (view only), PM/Principal/Admin (edit)
+    """
+    # Get project
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Find SOW linked to this project
+    sow = await db.enhanced_sow.find_one({"project_id": project_id}, {"_id": 0})
+    
+    if not sow:
+        # Try via agreement_id
+        if project.get("agreement_id"):
+            sow = await db.enhanced_sow.find_one(
+                {"agreement_id": project.get("agreement_id")},
+                {"_id": 0}
+            )
+        
+        # Try via pricing_plan_id
+        if not sow and project.get("pricing_plan_id"):
+            sow = await db.enhanced_sow.find_one(
+                {"pricing_plan_id": project.get("pricing_plan_id")},
+                {"_id": 0}
+            )
+    
+    if not sow:
+        raise HTTPException(status_code=404, detail="No SOW found for this project")
+    
+    # Determine access level
+    can_edit = current_user_role in ["admin", "principal_consultant", "project_manager", "manager"]
+    
+    # Check if user is assigned consultant
+    is_assigned = False
+    if current_user_id:
+        assigned_consultants = project.get("assigned_consultants", [])
+        is_assigned = current_user_id in assigned_consultants
+    
+    # For consultants not assigned, deny access
+    if current_user_role == "consultant" and not is_assigned and not can_edit:
+        raise HTTPException(status_code=403, detail="Not authorized to view this SOW")
+    
+    # Remove pricing data for consulting team
+    if is_consulting_team(current_user_role) and not can_edit:
+        if "pricing_data" in sow:
+            del sow["pricing_data"]
+    
+    return {
+        "sow": sow,
+        "can_edit": can_edit,
+        "is_assigned_consultant": is_assigned,
+        "project_name": project.get("name"),
+        "client_name": project.get("client_name")
+    }
+
+
