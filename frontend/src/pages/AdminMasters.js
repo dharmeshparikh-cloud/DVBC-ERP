@@ -183,6 +183,108 @@ const AdminMasters = () => {
     }
   };
 
+  // ============ SOW CATEGORY CRUD ============
+  const handleCreateCategory = async () => {
+    try {
+      if (!newCategory.name || !newCategory.code) {
+        toast.error('Name and Code are required');
+        return;
+      }
+      await axios.post(`${API}/sow-masters/categories`, newCategory);
+      toast.success('Category created successfully');
+      setShowNewCategory(false);
+      setNewCategory({ name: '', code: '', description: '', order: sowCategories.length });
+      fetchSowData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create category');
+    }
+  };
+
+  const handleUpdateCategory = async (id, data) => {
+    try {
+      await axios.put(`${API}/sow-masters/categories/${id}`, data);
+      toast.success('Category updated');
+      setEditingCategory(null);
+      fetchSowData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update category');
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    const scopesInCategory = sowScopes.filter(s => s.category_id === id);
+    if (scopesInCategory.length > 0) {
+      toast.error(`Cannot delete category with ${scopesInCategory.length} scopes. Remove scopes first.`);
+      return;
+    }
+    if (!window.confirm('Are you sure you want to deactivate this category?')) return;
+    try {
+      await axios.delete(`${API}/sow-masters/categories/${id}`);
+      toast.success('Category deactivated');
+      fetchSowData();
+    } catch (error) {
+      toast.error('Failed to deactivate category');
+    }
+  };
+
+  // ============ SOW SCOPE CRUD ============
+  const handleCreateScope = async () => {
+    try {
+      if (!newScope.name || !newScope.category_id) {
+        toast.error('Name and Category are required');
+        return;
+      }
+      const category = sowCategories.find(c => c.id === newScope.category_id);
+      await axios.post(`${API}/sow-masters/scopes`, {
+        ...newScope,
+        category_code: category?.code || ''
+      });
+      toast.success('Scope created successfully');
+      setShowNewScope(false);
+      setNewScope({ name: '', description: '', category_id: '' });
+      fetchSowData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create scope');
+    }
+  };
+
+  const handleUpdateScope = async (id, data) => {
+    try {
+      await axios.put(`${API}/sow-masters/scopes/${id}`, data);
+      toast.success('Scope updated');
+      setEditingScope(null);
+      fetchSowData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update scope');
+    }
+  };
+
+  const handleDeleteScope = async (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this scope?')) return;
+    try {
+      await axios.delete(`${API}/sow-masters/scopes/${id}`);
+      toast.success('Scope deactivated');
+      fetchSowData();
+    } catch (error) {
+      toast.error('Failed to deactivate scope');
+    }
+  };
+
+  const handleSeedSowDefaults = async () => {
+    try {
+      const response = await axios.post(`${API}/sow-masters/seed-defaults`);
+      toast.success(`Seeded: ${response.data.created.categories} categories, ${response.data.created.scopes} scopes`);
+      fetchSowData();
+    } catch (error) {
+      toast.error('Failed to seed SOW defaults');
+    }
+  };
+
+  // Get scopes for selected category
+  const filteredScopes = selectedCategory 
+    ? sowScopes.filter(s => s.category_id === selectedCategory)
+    : sowScopes;
+
   // Format currency
   const formatINR = (amount) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
