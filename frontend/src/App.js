@@ -335,13 +335,15 @@ function App() {
   return (
     <ThemeProvider>
       <AuthContext.Provider value={{ user, login, logout }}>
-        <ApprovalProvider>
-          <Toaster position="top-right" />
-          <PWAInstallPrompt />
-          <BrowserRouter>
-            <AppRouter user={user} login={login} logout={logout} loading={loading} />
-          </BrowserRouter>
-        </ApprovalProvider>
+        <PermissionProvider>
+          <ApprovalProvider>
+            <Toaster position="top-right" />
+            <PWAInstallPrompt />
+            <BrowserRouter>
+              <AppRouter user={user} login={login} logout={logout} loading={loading} />
+            </BrowserRouter>
+          </ApprovalProvider>
+        </PermissionProvider>
       </AuthContext.Provider>
     </ThemeProvider>
   );
