@@ -1,81 +1,88 @@
 <analysis>**original_problem_statement:**
-The user is building a comprehensive business management ERP with integrated HR and Sales portals.
-
-Initial core features included a unified work workflow, UI/UX enhancements (dark mode, quick check-in), an interactive ERP workflow diagram, corrected role permissions, and an onboarding tutorial.
+The user is building a comprehensive business management ERP with integrated HR and Sales portals. The initial goals included UI/UX enhancements, new ERP workflows, and fixing role permissions.
 
 Recent work focused on:
-1.  **Mobile-First UI:** Making the entire application responsive with an app-like feel (hamburger menus, bottom navigation).
-2.  **PWA Functionality:** Adding a prompt for users to install the application on their devices.
-3.  **New ERP Workflows:** Adding Client Onboarding and SOW/Change Request to the workflow visualization page.
-4.  **Bank Detail Change Workflow:** Implementing a full approval flow where an employee can request a bank detail change with proof, which then goes to HR and finally an Admin for approval.
-5.  **Approval Center Unification:** The user reported that CTC approval requests created by HR were not appearing correctly in the Admin's central Approval Center. A fix was implemented to show them, but it led to a new problem.
-6.  **Current Problem:** The modal for approving a CTC request in the Approval Center does not show the detailed salary component breakdown. The user has provided screenshots showing that the CTC Designer page has the full details, while the approval modal is missing this critical information, preventing admins from making an informed decision.
+1.  **Monolithic  Refactoring:** The user prioritized breaking down the massive 14,000+ line  file into a modular, router-based architecture. This was a critical technical debt issue.
+2.  **CTC Approval Modal Fix:** A P0 bug where the CTC approval modal in the Admin Approval Center did not show the detailed salary component breakdown, blocking the approval workflow.
+3.  **Stable URL for Team Testing:** The user expressed concern about the changing preview URLs and asked for a solution for a stable testing environment for their team.
+4.  **Real-time Approval Notifications:** The user requested that pending approval requests for HR, Admins, and Reporting Managers appear in real-time in the main navigation panel.
+5.  **Enhanced Role & Permission Management:** The user requested a comprehensive role management system, including:
+    *   The ability for HR and Admins to create, edit, and delete roles.
+    *   An approval workflow where roles created/assigned by HR must be approved by an Admin.
+    *   A new Level hierarchy for employees (Executive, Manager, Leader) to assign pre-approved permission sets.
+    *   The ability to assign roles during the employee onboarding flow.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application (React/FastAPI/MongoDB) with three distinct portals: Main ERP, HR, and Sales.
+A full-stack application (React/FastAPI/MongoDB) with Admin, HR, and Sales portals.
 
-The following has been recently accomplished:
-*   **Comprehensive Mobile Responsiveness:** The entire application, including the Admin, HR, and Sales dashboards, has been refactored to be mobile-friendly.
-*   **PWA Install Prompt:** A basic Progressive Web App installation prompt has been implemented.
-*   **New ERP Workflows:** Client Onboarding and SOW/Change Request have been added to the .
-*   **Bank Detail Change Workflow:** A complete, multi-step approval workflow for bank detail changes is now functional, from employee submission to admin approval, and is integrated into the Approval Center.
-*   **Unified Approval Center:** The Approval Center now fetches and displays pending requests for both CTC changes and Bank Detail changes.
+Key functionalities implemented:
+*   **Mobile-Responsive UI & PWA:** The application is mobile-friendly and has a basic PWA install prompt.
+*   **Workflows:** Functional workflows for Bank Detail Changes, Client Onboarding, and SOW/Change Requests are in place.
+*   **Unified Approval Center:** A central place for admins to view and approve different types of requests.
+*   **CTC Approval Modal (FIXED):** The critical bug preventing admins from seeing salary details in the approval modal has been resolved.
+*   **Backend Refactoring (IN PROGRESS):** The monolithic  has been partially refactored. Over 6,600 lines of code have been moved into 15+ modular router files, and the original file has been reduced by over 3,300 lines. A migration guide exists for completing the process.
+*   **Real-time Approval Badges (DONE):** The navigation sidebars for Admin and HR now display a real-time count of pending approvals for relevant sections like Approvals Center.
+*   **Role Management UI (EXPOSED):** The existing (but previously hidden) User Management and Permission Manager pages are now accessible from the admin navigation menu.
 
 **Last working item**:
--   **Last item agent was working:** Debugging the CTC approval modal within the  component. The user reported that while the CTC request is listed, clicking View opens a modal that lacks the detailed salary component breakdown, showing No component breakdown available. This contrasts with the fully detailed view available in the CTC Designer.
--   **Status:** IN PROGRESS
--   **Agent Testing Done:** N (A crash was fixed, but the feature is incomplete.)
--   **Which testing method agent to use?** Frontend testing agent or screenshot tool. The test must verify that the CTC approval modal in the Approval Center displays the full, itemized list of salary components (Basic, HRA, etc.), their values, and other key details like Submitted By.
--   **User Testing Done:** N (User reported the bug.)
+-   **Last item agent was working:** Planning the implementation for a new, comprehensive role and permission management system based on the user's latest request. This includes introducing employee levels (Executive, Manager, Leader), creating an approval workflow for role creation/assignment, and integrating this into the onboarding process.
+-   **Status:** NOT STARTED
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** both (frontend and backend testing agents). This is a major feature with significant changes to backend logic (new models, API endpoints) and frontend UI (onboarding flow, role management pages).
+-   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Approval Center CTC Modal Lacks Detail:** The modal for approving CTC requests is missing the critical salary component breakdown.
--   **Issue 2 (P1): No PWA install notification with branding:** A recurring UI/UX bug where the PWA does not prompt users to install it with custom branding.
--   **Issue 3 (P1): Incomplete columns in Leads list view:** A recurring UI bug where the leads table is missing necessary data columns.
--   **Issue 4 (P2): Apply  presentation controls to Sales Dashboard:** A UI consistency task to standardize dashboard components.
--   **Issue 5 (P3): Monolithic  file:** Critical technical debt that needs to be addressed by refactoring the backend into a modular structure.
+-   **Issue 1 (P0): Implement Enhanced Role & Permission Management:** The new system for Employee Levels, role creation approvals, and integration into the onboarding flow.
+-   **Issue 2 (P1): Complete  Refactoring:** The backend refactoring is partially done but needs completion.
+-   **Issue 3 (P2): No PWA install notification with branding:** A recurring UI/UX bug where the PWA does not prompt users to install it with custom branding.
+-   **Issue 4 (P2): Incomplete columns in Leads list view:** A recurring UI bug where the leads table is missing necessary data columns.
+-   **Issue 5 (P3): Apply  presentation controls to Sales Dashboard:** A UI consistency task.
 
 **Issues Detail:**
--   **Issue 1: Approval Center CTC Modal Lacks Detail**
-    -   **Attempted fixes:** The agent fixed a runtime error () that occurred when  was not an array. This prevented the app from crashing but did not solve the root problem, as the detailed component data is still not being displayed.
+-   **Issue 1: Implement Enhanced Role & Permission Management**
+    -   **Attempted fixes:** None. This is a new feature request. The agent has only acknowledged the request and is about to start planning.
     -   **Next debug checklist:**
-        1.  Inspect the API response from  in . Confirm if the detailed  array is being returned for each pending request. If not, modify the endpoint to include it.
-        2.  Examine the  component inside .
-        3.  Update the dialog's rendering logic to map over the  array and display each salary component with its name and value, mimicking the UI from .
-        4.  Ensure other details like Submitted By and Effective Date are also fetched and displayed.
-    -   **Why fix this issue and what will be achieved with the fix?** Admins cannot approve salary structures without seeing the full breakdown. Fixing this is essential for the CTC approval workflow to be usable.
-    -   **Status:** IN PROGRESS
+        1.  **Backend:**
+            -   Modify user/employee DB schema to include a  field.
+            -   Create a new DB collection for .
+            -   Develop new API endpoints for HR to submit role creation/assignment requests and for Admins to approve/reject them.
+            -   Update existing user management APIs to handle the new level-based permissions.
+        2.  **Frontend:**
+            -   Modify the employee onboarding form to include fields for role and level assignment.
+            -   Create a new UI for HR to create new roles, which triggers the approval workflow.
+            -   Update the Approval Center to include these new request types.
+            -   Modify the Permission Manager to show pre-approved permissions based on the selected employee level.
+    -   **Why fix this issue and what will be achieved with the fix?** This will provide a more granular, secure, and scalable way to manage user permissions, aligning with the company's organizational structure. It moves logic from manual assignment to a structured, approval-based system.
+    -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
--   **Issue 2: No PWA install notification with branding**
-    -   **Status:** NOT STARTED
+-   **Issue 2: Complete  Refactoring**
+    -   **Attempted fixes:** The agent successfully created over 15 router files and migrated ~6,600 lines of code. Approximately 3,300 lines of corresponding legacy code were removed from . A  was created to document the process. The process was halted because some new routers (e.g., , ) had different API signatures than the legacy code, which would break the frontend if replaced directly.
+    -   **Next debug checklist:**
+        1.  Follow the  created in the previous session.
+        2.  For routers with signature mismatches (like ), update the new router to match the data format expected by the frontend before removing the legacy code.
+        3.  Incrementally uncomment the remaining routers in , test the corresponding functionality via , and then remove the legacy code blocks.
+    -   **Why fix this issue and what will be achieved with the fix?** Finishing the refactoring will make the backend significantly more modular, maintainable, and easier to debug, eliminating a major source of technical debt.
+    -   **Status:** IN PROGRESS
     -   **Is recurring issue?** Y
-
--   **Issue 3: Incomplete columns in Leads list view**
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
-
--   **Issue 4: Apply  presentation controls to Sales Dashboard**
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
-
--   **Issue 5: Monolithic  file**
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Enhance Approval Center CTC Modal**
-    -   **Where to resume:** Start by verifying the API response from  in , then move to updating the rendering logic in .
-    -   **What will be achieved with this?** The CTC approval modal will provide admins with the complete context needed to approve or reject salary changes.
+-   **Task 1: Complete  Refactoring**
+    -   **Where to resume:** Use the created . The next step is to address the routers with mismatched API signatures (like ) by updating them to match the frontend's expected data structure, then continue removing legacy code blocks from .
+    -   **What will be achieved with this?** A clean, modular, and production-ready backend architecture.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
+    -   **Should Test frontend/backend/both after fix?** backend
     -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
+-   **Upcoming Tasks (P0):**
+    -   Implement the new Role/Level Management System (as detailed in Issues Detail).
 -   **Upcoming Tasks (P1):**
     -   Create video tutorials for the Onboarding section.
 -   **Future Tasks (P2 - Backlog):**
@@ -84,86 +91,78 @@ The following has been recently accomplished:
     -   Integrate a real SMTP service for emails.
 
 **Completed work in this session**
--   **Comprehensive Mobile Responsiveness (DONE):** Fixed layouts for , , , and .
--   **PWA Install Prompt (DONE):** Implemented , a service worker, and a UI component to prompt app installation.
--   **Medium-Priority ERP Workflows (DONE):** Added Client Onboarding and SOW/Change Request to .
--   **Bank Detail Change Request Workflow (DONE):** Created frontend page, backend APIs, and integrated the full multi-level approval flow into the UI and Approval Center.
--   **Backend Async/Await Fixes (DONE):** Refactored newly added backend endpoints in  to correctly use  for database operations, resolving API errors.
+-   ** Refactoring (Partially Done):** Initiated and made significant progress on refactoring the 14,076-line . Created over 15 modular router files (e.g., , , ), migrating ~6,666 lines of code and reducing  by ~3,327 lines. Created .
+-   **CTC Approval Modal Fix (DONE):** Resolved the P0 bug in  where the modal lacked salary component details. The fix involved frontend logic to correctly process the component data object. Verified with screenshots.
+-   **Real-time Approval Badges (DONE):** Implemented a new  context () that polls for pending approvals every 10 seconds. Added dynamic notification badges to the Approvals Center and Attendance Approvals links in the navigation sidebars (, ).
+-   **Exposed Existing Role Management (DONE):** Added navigation links in  to the existing but previously inaccessible  and  pages, making them available to admins.
+-   **Deployment Guidance Provided (DONE):** Explained to the user how to get a stable URL for team testing by using the Deploy feature and clarified that redeployments are required to push changes to the live environment.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: PWA Install Notification and Branding** (Recurring)
--   **Issue 2: Incomplete columns in Leads list view** (Recurring)
--   **Issue 3: Apply  presentation controls to Sales Dashboard** (Recurring)
+-   **Issue 1:** PWA Install Notification and Branding (Recurring)
+-   **Issue 2:** Incomplete columns in Leads list view (Recurring)
+-   **Issue 3:** Apply  presentation controls to Sales Dashboard (Recurring)
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** The monolithic  file.
--   **Recurrence count:** 6+
--   **Status:** NOT STARTED
+-   **Recurrence count:** 7+
+-   **Status:** IN PROGRESS
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Composite Approval Center:** Aggregating different approval requests (CTC, Bank Details) from multiple backend endpoints into a single UI using parallel  calls and combined state.
--   **PWA Enablement:** Made the application installable by adding a  file, a service worker (), and a custom UI prompt.
--   **Asynchronous Backend Operations:** Debugged and fixed backend endpoints by correctly implementing  for database calls using the  async driver.
+-   **Backend Refactoring (Monolith to Microservices-lite):** Breaking down a large FastAPI  into a modular structure using  to improve maintainability and scalability.
+-   **Frontend State Management for Real-time UI:** Using a React Context () with polling () to fetch data from multiple backend endpoints and update UI components (navigation badges) in near real-time.
+-   **Surgical Code Removal:** A cautious strategy of creating backups and using scripts to remove thousands of lines of legacy code from a monolithic file while ensuring no regressions are introduced.
 
 **key DB schema**
--   **bank_change_requests:** (NEW) 
--   **ctc_structures:** (MODIFIED) Source data for CTC approvals.
--   **notifications:** (MODIFIED) Used for alerting users about pending requests.
-
-**changes in tech stack**
--   None.
+-   No new schemas were added in this session. The upcoming Role/Level Management feature will require modifications to the / schema and a new  collection.
 
 **All files of reference**
--    (File to be fixed)
--    (Contains the relevant backend API logic)
--    (Contains the reference UI for the correct detailed view)
+-    (The file being refactored)
+-    (The new directory for all modular routers)
+-    (The guide for completing the refactor)
+-    (The new context for real-time badges)
+-    (Main layout, updated with badges and nav links)
+-    (HR portal layout, updated with badges)
+-    (Where the CTC modal bug was fixed)
 
 **Areas that need refactoring**:
--   ****: This monolithic file is a critical technical debt and should be broken into a proper routing structure (e.g., , ).
--   ****: An oversized component that should be decomposed.
+-   ****: While significant progress was made, it is still over 10,000 lines long and the refactoring is incomplete. This remains the highest priority for technical debt reduction.
 
 **key api endpoints**
--   : **(NEW)**
--   : **(NEW)**
--   : **(NEW)**
--   : **(NEW)**
--   : (USED by Approval Center)
+-    (Now correctly used by both  and the new )
+-    (Used by the new )
+-    (Used by the new )
 
 **Critical Info for New Agent**
--   Your immediate and highest-priority task is to fix the CTC approval modal in the **** component.
--   The user expects this modal to show the full, itemized salary component breakdown, identical to the view in the  page.
--   Investigate the  endpoint in  to ensure it sends the complete data. Then, update the  in  to render these details correctly.
--   After resolving this, you should propose a plan to address the other pending issues, prioritizing the recurring bugs.
+-   Your immediate task is to plan and implement the **Enhanced Role & Permission Management** feature as requested by the user. This is a significant feature with detailed requirements.
+-   The second priority is to **complete the  refactoring**. Use the  as your roadmap. Be careful with routers like  that have different data formats than the legacy code they are replacing; you will need to update the router to match the frontend's expectations before removing the old code.
+-   The user is highly focused on stability and team collaboration. The deployment options have been explained, but be mindful of this context.
 
 **documents and test reports created in this job**
 -   
--   
--   
+-    (Updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Reports the CTC modal in the Approval Center is broken and doesn't show salary components, providing a screenshot for comparison. (IN PROGRESS)
-2.  **Agent:** Acknowledges the issue and confirms the fix is in progress.
-3.  **User:** Asks why they can't view the request in the approval center. (RESOLVED by fixing a crash, but revealed the new bug)
-4.  **Agent:** Provides an update after fixing the crash, showing the dialog now opens.
-5.  **User:** Reports a notification for a CTC update but can't find it in the Approval Center. (RESOLVED by integrating CTC requests into the center)
-6.  **Agent:** Confirms the fix for the unified Approval Center.
-7.  **User:** Asks for the login links. (RESOLVED)
-8.  **Agent:** Finishes implementation of PWA prompt, new workflows, and bank detail changes.
-9.  **User:** Requests three new features: PWA install prompt, medium-priority ERP workflows, and a bank detail change UI/workflow. (DONE)
-10. **Agent:** Finishes comprehensive mobile-responsiveness fix.
+1.  **User:** Requests a comprehensive role management system with employee levels (Executive, Manager, Leader), admin approval for role creation/assignment by HR, and integration into the onboarding flow. (NOT STARTED)
+2.  **User:** Asks if HR/Admin can create/delete roles and set permissions during onboarding. (PARTIALLY ADDRESSED by exposing existing pages, leading to the new feature request)
+3.  **User:** Asks how to ensure real-time approval notifications are visible in the navigation panel. (DONE)
+4.  **User:** Asks if backend changes are reflected in real-time after deployment. (ANSWERED)
+5.  **User:** Raises a major concern about the preview link changing constantly, disrupting team testing. (ANSWERED with deployment solutions)
+6.  **Agent:** Finishes refactoring and verifies the CTC approval modal fix.
+7.  **User:** Instructs the agent to do all the  refactoring at once. (IN PROGRESS)
+8.  **Agent:** Summarizes the creation of 6,666 lines of modular router code.
+9.  **User:** Confirms to proceed with more refactoring.
+10. **Agent:** Summarizes the first phase of refactoring and the fix for the P0 CTC modal issue.
 
 **Project Health Check:**
 -   **Broken:**
-    -   The CTC approval modal in the Admin Approval Center does not display the salary component breakdown.
     -   The Leads list view () is missing required data columns.
 -   **Mocked:**
     -   Email sending uses a placeholder, not a real SMTP service.
 -   **Needs Rework:**
-    -    is monolithic and requires urgent refactoring.
-    -    is an oversized component needing decomposition.
+    -    is still monolithic despite partial refactoring and requires urgent completion.
 
 **3rd Party Integrations**
 -   Google Maps Geocoding API — requires User API Key.
@@ -176,7 +175,7 @@ The following has been recently accomplished:
 -   
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (for mobile responsiveness and the PWA/Workflow/Bank-Details batch)
+-   **Testing agent used after significant changes:** NO
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None.
 -   **Known regressions:** The  list view has incomplete columns.
@@ -188,5 +187,5 @@ The following has been recently accomplished:
 -   **Project Manager:**  / 
 
 **What agent forgot to execute**
--   The recurring issues from previous forks (incomplete Leads columns, applying ) have not been addressed.
--   The critical refactoring of  has been consistently postponed.</analysis>
+-   The recurring UI issues from previous forks (incomplete Leads columns, applying , PWA branding) have not been addressed.
+-   The  refactoring was started and significant progress was made, but it is not fully complete as per the user's do this all at once request. The agent opted for a safer, incremental approach which left the task unfinished.</analysis>
