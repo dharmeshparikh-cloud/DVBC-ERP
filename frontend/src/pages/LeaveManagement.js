@@ -82,34 +82,6 @@ const LeaveManagement = () => {
                   {LEAVE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-zinc-950">Start Date</Label>
-                  <Input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    required className="rounded-sm border-zinc-200" data-testid="leave-start-date" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-zinc-950">End Date</Label>
-                  <Input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    required className="rounded-sm border-zinc-200" data-testid="leave-end-date" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-950">Reason</Label>
-                <textarea value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  required rows={3} className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="leave-reason" />
-              </div>
-              <div className="p-3 bg-zinc-50 rounded-sm border border-zinc-200">
-                <div className="text-xs text-zinc-500">Approval Flow: <span className="font-medium text-zinc-700">You → Reporting Manager → HR Manager</span></div>
-              </div>
-              <Button type="submit" data-testid="submit-leave" className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                Submit Leave Request
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card className="border-zinc-200 shadow-none rounded-sm">
