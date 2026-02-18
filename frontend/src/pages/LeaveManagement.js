@@ -75,24 +75,10 @@ const LeaveManagement = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Leave Management</h1>
-          <p className="text-zinc-500">Apply for leave, track requests, and manage approvals</p>
+          <p className="text-zinc-500">Review and approve leave requests from employees</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="apply-leave-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-              <Plus className="w-4 h-4 mr-2" /> Apply Leave
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="border-zinc-200 rounded-sm max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Apply for Leave</DialogTitle>
-              <DialogDescription className="text-zinc-500">Routed to Reporting Manager, then HR Manager</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-950">Leave Type</Label>
-                <select value={formData.leave_type} onChange={(e) => setFormData({ ...formData, leave_type: e.target.value })}
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="leave-type-select">
+        {/* Apply Leave button removed - employees use My Leaves page */}
+      </div>
                   {LEAVE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
