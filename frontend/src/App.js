@@ -165,6 +165,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="quotations" element={<ProformaInvoice />} />
         <Route path="agreements" element={<Agreements />} />
         <Route path="agreement/:agreementId" element={<AgreementView />} />
+        <Route path="payment-verification" element={<PaymentVerification />} />
         <Route path="kickoff-requests" element={<KickoffRequests />} />
         <Route path="clients" element={<Clients />} />
         <Route path="meetings" element={<SalesMeetings />} />
