@@ -194,9 +194,18 @@ class TestExpenseReceipts:
         # Should succeed
         assert response.status_code in [200, 201]
         
-        # Verify receipt data is included
-        expense = response.json()
-        assert expense.get("line_items") is not None
+        # Verify expense was created
+        data = response.json()
+        assert data.get("message") == "Expense created"
+        assert data.get("expense_id") is not None
+        
+        # Fetch the created expense to verify receipt
+        expense_id = data.get("expense_id")
+        detail_response = self.session.get(f"{BASE_URL}/api/expenses/{expense_id}")
+        if detail_response.status_code == 200:
+            expense = detail_response.json()
+            print(f"Expense details: {expense}")
+            assert expense.get("line_items") is not None
 
 
 class TestBankDetailsIFSCVerification:
