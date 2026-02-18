@@ -783,6 +783,320 @@ const AdminMasters = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* SOW SCOPE BUILDER TAB */}
+        <TabsContent value="scope-builder" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Categories Panel */}
+            <Card className="border-zinc-200 shadow-none rounded-sm lg:col-span-1">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-100 pb-4">
+                <div>
+                  <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950 flex items-center gap-2">
+                    <FolderTree className="w-4 h-4" />
+                    Categories
+                  </CardTitle>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Create categories first, then add scopes
+                  </p>
+                </div>
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowNewCategory(!showNewCategory)}
+                  className="bg-zinc-950 text-white"
+                  data-testid="add-category-btn"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {/* New Category Form */}
+                {showNewCategory && (
+                  <div className="p-4 bg-blue-50 rounded-lg mb-4 space-y-3" data-testid="new-category-form">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Name *</Label>
+                      <Input
+                        value={newCategory.name}
+                        onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                        placeholder="e.g., Financial Consulting"
+                        className="h-9 text-sm"
+                        data-testid="category-name-input"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Code *</Label>
+                      <Input
+                        value={newCategory.code}
+                        onChange={(e) => setNewCategory({...newCategory, code: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
+                        placeholder="e.g., financial"
+                        className="h-9 text-sm font-mono"
+                        data-testid="category-code-input"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Description</Label>
+                      <Input
+                        value={newCategory.description}
+                        onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+                        placeholder="Brief description..."
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button size="sm" variant="outline" onClick={() => setShowNewCategory(false)} className="flex-1">Cancel</Button>
+                      <Button size="sm" onClick={handleCreateCategory} className="flex-1 bg-blue-600 text-white" data-testid="save-category-btn">Save</Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Categories List */}
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {sowCategories.length === 0 ? (
+                    <div className="text-center py-8 text-zinc-400 text-sm">
+                      <FolderTree className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      No categories yet. Create one to get started.
+                    </div>
+                  ) : (
+                    sowCategories.map((cat) => (
+                      <div 
+                        key={cat.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                          selectedCategory === cat.id 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+                        } ${!cat.is_active ? 'opacity-50' : ''}`}
+                        onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+                        data-testid={`category-${cat.code}`}
+                      >
+                        {editingCategory === cat.id ? (
+                          <EditCategoryInline 
+                            category={cat}
+                            onSave={(data) => handleUpdateCategory(cat.id, data)}
+                            onCancel={() => setEditingCategory(null)}
+                          />
+                        ) : (
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="font-medium text-sm text-zinc-900">{cat.name}</div>
+                              <div className="text-xs text-zinc-500 font-mono">{cat.code}</div>
+                              {cat.description && (
+                                <div className="text-xs text-zinc-400 mt-1">{cat.description}</div>
+                              )}
+                              <div className="text-xs text-zinc-400 mt-1">
+                                {sowScopes.filter(s => s.category_id === cat.id).length} scopes
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={(e) => { e.stopPropagation(); setEditingCategory(cat.id); }}
+                                className="h-7 w-7 p-0 text-zinc-400 hover:text-blue-600"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              {cat.is_active && (
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
+                                  className="h-7 w-7 p-0 text-zinc-400 hover:text-red-600"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Scopes Panel */}
+            <Card className="border-zinc-200 shadow-none rounded-sm lg:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-100 pb-4">
+                <div>
+                  <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Scope Templates
+                    {selectedCategory && (
+                      <span className="text-xs font-normal text-blue-600 ml-2">
+                        (Filtered: {sowCategories.find(c => c.id === selectedCategory)?.name})
+                      </span>
+                    )}
+                  </CardTitle>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {selectedCategory ? 'Showing scopes for selected category' : 'Showing all scopes'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {selectedCategory && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setSelectedCategory(null)}
+                      className="text-xs"
+                    >
+                      Show All
+                    </Button>
+                  )}
+                  <Button 
+                    size="sm" 
+                    onClick={() => {
+                      setShowNewScope(!showNewScope);
+                      if (selectedCategory && !showNewScope) {
+                        setNewScope({ ...newScope, category_id: selectedCategory });
+                      }
+                    }}
+                    className="bg-zinc-950 text-white"
+                    disabled={sowCategories.length === 0}
+                    data-testid="add-scope-btn"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Scope
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {/* New Scope Form */}
+                {showNewScope && (
+                  <div className="p-4 bg-green-50 rounded-lg mb-4 space-y-3" data-testid="new-scope-form">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Category *</Label>
+                        <select
+                          value={newScope.category_id}
+                          onChange={(e) => setNewScope({...newScope, category_id: e.target.value})}
+                          className="w-full h-9 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
+                          data-testid="scope-category-select"
+                        >
+                          <option value="">Select category...</option>
+                          {sowCategories.filter(c => c.is_active).map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Scope Name *</Label>
+                        <Input
+                          value={newScope.name}
+                          onChange={(e) => setNewScope({...newScope, name: e.target.value})}
+                          placeholder="e.g., Financial Analysis"
+                          className="h-9 text-sm"
+                          data-testid="scope-name-input"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Description</Label>
+                      <Input
+                        value={newScope.description}
+                        onChange={(e) => setNewScope({...newScope, description: e.target.value})}
+                        placeholder="Brief description of this scope..."
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button size="sm" variant="outline" onClick={() => setShowNewScope(false)} className="flex-1">Cancel</Button>
+                      <Button size="sm" onClick={handleCreateScope} className="flex-1 bg-green-600 text-white" data-testid="save-scope-btn">Save Scope</Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Scopes Table */}
+                <div className="rounded-lg border border-zinc-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-zinc-50">
+                      <tr className="text-xs font-medium text-zinc-500 uppercase">
+                        <th className="px-4 py-3 text-left">Scope Name</th>
+                        <th className="px-4 py-3 text-left">Category</th>
+                        <th className="px-4 py-3 text-left">Description</th>
+                        <th className="px-4 py-3 text-center">Type</th>
+                        <th className="px-4 py-3 text-center">Status</th>
+                        <th className="px-4 py-3 text-center w-24">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {filteredScopes.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
+                            {sowCategories.length === 0 
+                              ? 'Create a category first, then add scopes' 
+                              : 'No scopes found. Add one to get started.'}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredScopes.map((scope) => {
+                          const category = sowCategories.find(c => c.id === scope.category_id);
+                          return editingScope === scope.id ? (
+                            <EditScopeRow 
+                              key={scope.id}
+                              scope={scope}
+                              categories={sowCategories}
+                              onSave={(data) => handleUpdateScope(scope.id, data)}
+                              onCancel={() => setEditingScope(null)}
+                            />
+                          ) : (
+                            <tr 
+                              key={scope.id} 
+                              className={`hover:bg-zinc-50 ${!scope.is_active ? 'opacity-50 bg-zinc-100' : ''}`}
+                            >
+                              <td className="px-4 py-3 text-sm font-medium text-zinc-900">{scope.name}</td>
+                              <td className="px-4 py-3 text-sm">
+                                <span className="px-2 py-1 bg-zinc-100 rounded text-xs text-zinc-600">
+                                  {category?.name || scope.category_code}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-zinc-500 max-w-xs truncate">
+                                {scope.description || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`px-2 py-1 text-xs rounded ${
+                                  scope.is_custom ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {scope.is_custom ? 'Custom' : 'Default'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`px-2 py-1 text-xs rounded ${scope.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {scope.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    onClick={() => setEditingScope(scope.id)}
+                                    className="h-8 w-8 p-0 text-zinc-500 hover:text-blue-600"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                  {scope.is_active && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost" 
+                                      onClick={() => handleDeleteScope(scope.id)}
+                                      className="h-8 w-8 p-0 text-zinc-500 hover:text-red-600"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );
