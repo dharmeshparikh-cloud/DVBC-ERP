@@ -742,7 +742,7 @@ async def check_reminder_eligibility(
     
     try:
         due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00"))
-    except:
+    except (ValueError, AttributeError):
         due_date = datetime.strptime(due_date_str[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
     
     days_until_due = (due_date - datetime.now(timezone.utc)).days
