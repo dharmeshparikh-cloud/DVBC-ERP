@@ -35,7 +35,7 @@ export const ApprovalProvider = ({ children }) => {
       // Fetch all pending counts in parallel
       const [ctcRes, bankRes, leaveRes, expenseRes, attendanceRes] = await Promise.allSettled([
         axios.get(`${API}/ctc/pending-approvals`, { headers }),
-        axios.get(`${API}/bank-changes/pending`, { headers }),
+        axios.get(`${API}/hr/bank-change-requests`, { headers }),
         axios.get(`${API}/leave-requests?status=pending`, { headers }),
         axios.get(`${API}/expenses?status=pending`, { headers }),
         axios.get(`${API}/hr/pending-attendance-approvals`, { headers })
