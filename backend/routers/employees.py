@@ -612,7 +612,7 @@ async def get_employee_timeline(employee_id: str, current_user: User = Depends(g
             "date": employee.get("terminated_at"),
             "event": "terminated",
             "title": "Employment Ended",
-            "description": f"Status changed to terminated"
+            "description": "Status changed to terminated"
         })
     
     # Sort by date
