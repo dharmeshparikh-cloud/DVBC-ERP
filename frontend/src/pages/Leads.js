@@ -414,7 +414,7 @@ const Leads = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {leads.map((lead) => {
+              {filteredLeads.map((lead) => {
                 const scoreBadge = getScoreBadge(lead.lead_score || 0);
                 return (
                   <tr 
