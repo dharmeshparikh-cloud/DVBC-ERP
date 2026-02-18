@@ -257,6 +257,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
         <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
         <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
+        <Route path="timesheets" element={<Timesheets />} />
         <Route path="handover-alerts" element={<HandoverAlerts />} />
         <Route path="kickoff-requests" element={<KickoffRequests />} />
         <Route path="profile" element={<UserProfile />} />
