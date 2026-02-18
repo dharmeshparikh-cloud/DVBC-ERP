@@ -741,14 +741,17 @@ const Leads = () => {
                         {lead.job_title || 'N/A'}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(
-                          lead.status
-                        )}`}
+                    <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={lead.status}
+                        onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                        className={`px-2 py-1 text-xs font-medium rounded-sm border-0 cursor-pointer ${getStatusBadge(lead.status)}`}
+                        data-testid={`status-select-card-${lead.id}`}
                       >
-                        {lead.status}
-                      </span>
+                        {['new', 'contacted', 'qualified', 'proposal', 'agreement', 'closed', 'lost'].map(s => (
+                          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                        ))}
+                      </select>
                       <div className="flex items-center gap-1">
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-sm ${scoreBadge.color} ${scoreBadge.text}`}
