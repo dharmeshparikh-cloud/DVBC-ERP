@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Toaster } from './components/ui/sonner';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ApprovalProvider } from './contexts/ApprovalContext';
+import { PermissionProvider } from './contexts/PermissionContext';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
