@@ -89,9 +89,6 @@ async def get_sales_dashboard_stats(current_user: User = Depends(get_current_use
     kickoff_query = {} if current_user.role in ['admin', 'manager'] else {"requested_by": current_user.id}
     pending_kickoffs = await db.kickoff_requests.count_documents({**kickoff_query, "status": "pending"})
     
-    # Revenue from closed deals
-    month_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    
     # Calculate total revenue from clients
     pipeline = [
         {"$match": {"sales_person_id": current_user.id} if current_user.role not in ['admin', 'manager'] else {}},
