@@ -725,18 +725,26 @@ const ApprovalsCenter = () => {
                   <div>
                     <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Employee</p>
                     <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.employee_name}</p>
+                    {selectedCtc.employee_code && (
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{selectedCtc.employee_code}</p>
+                    )}
                   </div>
                   <div>
                     <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Annual CTC</p>
                     <p className="font-bold text-purple-600 text-lg">{formatCurrency(selectedCtc.annual_ctc)}</p>
+                    {selectedCtc.previous_ctc && (
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        Previous: {formatCurrency(selectedCtc.previous_ctc)}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Effective Date</p>
-                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.effective_date}</p>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Effective Month</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.effective_month || selectedCtc.effective_date}</p>
                   </div>
                   <div>
                     <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Submitted By</p>
-                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.created_by || 'HR'}</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.created_by_name || selectedCtc.created_by || 'HR'}</p>
                   </div>
                 </div>
               </div>
