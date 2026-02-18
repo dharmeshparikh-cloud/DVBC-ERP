@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { 
   ArrowLeft, DollarSign, Calendar, CheckCircle, Clock, User,
-  Building2, FileText, History, AlertCircle
+  Building2, AlertCircle, EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../utils/currency';
@@ -17,8 +17,6 @@ const ProjectPaymentDetails = () => {
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [paymentData, setPaymentData] = useState(null);
-  const [sowData, setSowData] = useState(null);
-  const [sowHistory, setSowHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('payments');
 
   useEffect(() => {
@@ -30,27 +28,6 @@ const ProjectPaymentDetails = () => {
       // Fetch payment data
       const paymentRes = await axios.get(`${API}/project-payments/project/${projectId}`);
       setPaymentData(paymentRes.data);
-
-      // Fetch SOW data
-      try {
-        const sowRes = await axios.get(`${API}/enhanced-sow/project/${projectId}/sow`, {
-          params: {
-            current_user_id: user?.id,
-            current_user_role: user?.role
-          }
-        });
-        setSowData(sowRes.data);
-
-        // Fetch SOW history if allowed
-        if (['admin', 'principal_consultant', 'project_manager', 'manager'].includes(user?.role)) {
-          const historyRes = await axios.get(`${API}/enhanced-sow/${sowRes.data.sow.id}/history`, {
-            params: { current_user_role: user?.role }
-          });
-          setSowHistory(historyRes.data.history || []);
-        }
-      } catch (e) {
-        console.log('No SOW found for project');
-      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast.error('Failed to load payment data');
@@ -79,6 +56,10 @@ const ProjectPaymentDetails = () => {
     );
   }
 
+  // Role-based visibility flags from API
+  const canViewAmounts = paymentData.can_view_amounts;
+  const isConsultantView = paymentData.is_consultant_view;
+
   return (
     <div data-testid="project-payment-details">
       {/* Header */}
@@ -87,6 +68,7 @@ const ProjectPaymentDetails = () => {
           onClick={() => navigate('/payments')}
           variant="ghost"
           className="mb-4 hover:bg-zinc-100 rounded-sm"
+          data-testid="back-to-payments-btn"
         >
           <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
           Back to Payments
@@ -102,74 +84,78 @@ const ProjectPaymentDetails = () => {
               {paymentData.client_name}
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-sm text-zinc-500">Total Project Value</div>
-            <div className="text-2xl font-bold text-zinc-900">{formatINR(paymentData.total_value)}</div>
-          </div>
+          {/* Only show total value to users with amount visibility */}
+          {canViewAmounts && paymentData.total_value && (
+            <div className="text-right">
+              <div className="text-sm text-zinc-500">Total Project Value</div>
+              <div className="text-2xl font-bold text-zinc-900">{formatINR(paymentData.total_value)}</div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* First Advance Payment */}
-      <Card className={`mb-6 border-2 shadow-none rounded-sm ${
-        paymentData.first_advance_payment?.received 
-          ? 'border-emerald-200 bg-emerald-50/50' 
-          : 'border-amber-200 bg-amber-50/50'
-      }`}>
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            {paymentData.first_advance_payment?.received ? (
-              <CheckCircle className="w-8 h-8 text-emerald-600" />
-            ) : (
-              <Clock className="w-8 h-8 text-amber-600" />
-            )}
-            <div className="flex-1">
-              <h3 className={`font-semibold text-lg ${
-                paymentData.first_advance_payment?.received ? 'text-emerald-900' : 'text-amber-900'
-              }`}>
-                First Advance Payment {paymentData.first_advance_payment?.received ? '- Received' : '- Pending'}
-              </h3>
-              
+      {/* First Advance Payment - Only visible to admin/principal_consultant */}
+      {paymentData.first_advance_payment && canViewAmounts && (
+        <Card className={`mb-6 border-2 shadow-none rounded-sm ${
+          paymentData.first_advance_payment?.received 
+            ? 'border-emerald-200 bg-emerald-50/50' 
+            : 'border-amber-200 bg-amber-50/50'
+        }`} data-testid="first-advance-payment-card">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
               {paymentData.first_advance_payment?.received ? (
-                <div className="mt-3 grid grid-cols-4 gap-4">
-                  <div>
-                    <div className="text-xs text-emerald-600 uppercase tracking-wide">Amount</div>
-                    <div className="font-semibold text-emerald-900">
-                      {formatINR(paymentData.first_advance_payment.amount)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-emerald-600 uppercase tracking-wide">Transaction ID</div>
-                    <div className="font-medium text-emerald-900">
-                      {paymentData.first_advance_payment.transaction_id}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-emerald-600 uppercase tracking-wide">Payment Date</div>
-                    <div className="font-medium text-emerald-900">
-                      {new Date(paymentData.first_advance_payment.payment_date).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-emerald-600 uppercase tracking-wide">Verified By</div>
-                    <div className="font-medium text-emerald-900">
-                      {paymentData.first_advance_payment.verified_by || 'Sales Team'}
-                    </div>
-                  </div>
-                </div>
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
               ) : (
-                <p className="text-amber-700 mt-2">First installment payment has not been verified yet.</p>
+                <Clock className="w-8 h-8 text-amber-600" />
               )}
+              <div className="flex-1">
+                <h3 className={`font-semibold text-lg ${
+                  paymentData.first_advance_payment?.received ? 'text-emerald-900' : 'text-amber-900'
+                }`}>
+                  First Advance Payment {paymentData.first_advance_payment?.received ? '- Received' : '- Pending'}
+                </h3>
+                
+                {paymentData.first_advance_payment?.received && (
+                  <div className="mt-3 grid grid-cols-4 gap-4">
+                    <div>
+                      <div className="text-xs text-emerald-600 uppercase tracking-wide">Amount</div>
+                      <div className="font-semibold text-emerald-900">
+                        {formatINR(paymentData.first_advance_payment.amount)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-emerald-600 uppercase tracking-wide">Transaction ID</div>
+                      <div className="font-medium text-emerald-900">
+                        {paymentData.first_advance_payment.transaction_id}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-emerald-600 uppercase tracking-wide">Payment Date</div>
+                      <div className="font-medium text-emerald-900">
+                        {new Date(paymentData.first_advance_payment.payment_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-emerald-600 uppercase tracking-wide">Verified By</div>
+                      <div className="font-medium text-emerald-900">
+                        {paymentData.first_advance_payment.verified_by || 'Sales Team'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Tabs */}
+      {/* Tabs - Only Payment Schedule and Consultant Breakdown */}
       <div className="flex gap-2 mb-6">
         <Button
           variant={activeTab === 'payments' ? 'default' : 'outline'}
           onClick={() => setActiveTab('payments')}
           className="rounded-sm"
+          data-testid="payment-schedule-tab"
         >
           <DollarSign className="w-4 h-4 mr-2" />
           Payment Schedule
@@ -178,39 +164,28 @@ const ProjectPaymentDetails = () => {
           variant={activeTab === 'consultants' ? 'default' : 'outline'}
           onClick={() => setActiveTab('consultants')}
           className="rounded-sm"
+          data-testid="consultant-breakdown-tab"
         >
           <User className="w-4 h-4 mr-2" />
           Consultant Breakdown
         </Button>
-        {sowData && (
-          <Button
-            variant={activeTab === 'sow' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('sow')}
-            className="rounded-sm"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Inherited SOW
-          </Button>
-        )}
-        {sowHistory.length > 0 && (
-          <Button
-            variant={activeTab === 'history' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('history')}
-            className="rounded-sm"
-          >
-            <History className="w-4 h-4 mr-2" />
-            SOW History
-          </Button>
-        )}
       </div>
 
       {/* Payment Schedule Tab */}
       {activeTab === 'payments' && (
-        <Card className="border-zinc-200 shadow-none rounded-sm">
+        <Card className="border-zinc-200 shadow-none rounded-sm" data-testid="payment-schedule-content">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold uppercase tracking-tight text-zinc-950">
-              Payment Schedule ({paymentData.payment_frequency})
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold uppercase tracking-tight text-zinc-950">
+                {isConsultantView ? 'Upcoming Payment Dates' : `Payment Schedule (${paymentData.payment_frequency})`}
+              </CardTitle>
+              {!canViewAmounts && (
+                <span className="flex items-center gap-1 text-xs text-zinc-500">
+                  <EyeOff className="w-3 h-3" />
+                  Amounts hidden
+                </span>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {paymentData.payment_schedule.length === 0 ? (
@@ -225,10 +200,15 @@ const ProjectPaymentDetails = () => {
                       <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">#</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">Frequency</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">Due Date</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">Basic</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">GST</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">TDS</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">Net</th>
+                      {/* Only show amount columns if user can view amounts */}
+                      {canViewAmounts && (
+                        <>
+                          <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">Basic</th>
+                          <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">GST</th>
+                          <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">TDS</th>
+                          <th className="text-right py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">Net</th>
+                        </>
+                      )}
                       <th className="text-center py-3 px-4 text-xs font-semibold text-zinc-500 uppercase">Status</th>
                     </tr>
                   </thead>
@@ -240,10 +220,15 @@ const ProjectPaymentDetails = () => {
                         <td className="py-3 px-4 text-zinc-600">
                           {item.due_date ? new Date(item.due_date).toLocaleDateString() : 'TBD'}
                         </td>
-                        <td className="py-3 px-4 text-right text-zinc-600">{formatINR(item.basic)}</td>
-                        <td className="py-3 px-4 text-right text-zinc-600">{formatINR(item.gst)}</td>
-                        <td className="py-3 px-4 text-right text-zinc-600">{formatINR(item.tds)}</td>
-                        <td className="py-3 px-4 text-right font-semibold text-zinc-900">{formatINR(item.net)}</td>
+                        {/* Only show amount values if user can view amounts */}
+                        {canViewAmounts && (
+                          <>
+                            <td className="py-3 px-4 text-right text-zinc-600">{formatINR(item.basic)}</td>
+                            <td className="py-3 px-4 text-right text-zinc-600">{formatINR(item.gst)}</td>
+                            <td className="py-3 px-4 text-right text-zinc-600">{formatINR(item.tds)}</td>
+                            <td className="py-3 px-4 text-right font-semibold text-zinc-900">{formatINR(item.net)}</td>
+                          </>
+                        )}
                         <td className="py-3 px-4 text-center">
                           <span className={`px-2 py-1 rounded-sm text-xs font-medium ${
                             item.status === 'received' ? 'bg-emerald-100 text-emerald-700' :
@@ -265,7 +250,7 @@ const ProjectPaymentDetails = () => {
 
       {/* Consultant Breakdown Tab */}
       {activeTab === 'consultants' && (
-        <Card className="border-zinc-200 shadow-none rounded-sm">
+        <Card className="border-zinc-200 shadow-none rounded-sm" data-testid="consultant-breakdown-content">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold uppercase tracking-tight text-zinc-950">
               Assigned Consultants
@@ -279,7 +264,7 @@ const ProjectPaymentDetails = () => {
             ) : (
               <div className="space-y-4">
                 {paymentData.consultant_breakdown.map((consultant, idx) => (
-                  <div key={idx} className="p-4 border border-zinc-200 rounded-sm">
+                  <div key={idx} className="p-4 border border-zinc-200 rounded-sm" data-testid={`consultant-card-${idx}`}>
                     <div className="flex items-start justify-between">
                       <div>
                         <h4 className="font-semibold text-zinc-900">{consultant.consultant_name}</h4>
@@ -290,7 +275,8 @@ const ProjectPaymentDetails = () => {
                           Assigned: {new Date(consultant.assigned_date).toLocaleDateString()}
                         </div>
                       </div>
-                      {consultant.payment_info && (
+                      {/* Only show payment info if user can view amounts */}
+                      {canViewAmounts && consultant.payment_info && (
                         <div className="text-right">
                           <div className="text-sm text-zinc-500">Rate per Meeting</div>
                           <div className="font-semibold text-zinc-900">
@@ -306,103 +292,6 @@ const ProjectPaymentDetails = () => {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Inherited SOW Tab */}
-      {activeTab === 'sow' && sowData && (
-        <Card className="border-zinc-200 shadow-none rounded-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold uppercase tracking-tight text-zinc-950">
-                Inherited Scope of Work
-              </CardTitle>
-              {sowData.can_edit && (
-                <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-sm">
-                  Can Edit
-                </span>
-              )}
-              {sowData.is_assigned_consultant && !sowData.can_edit && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-sm">
-                  View Only
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {(sowData.sow?.scopes || []).map((scope, idx) => (
-                <div key={idx} className="p-4 border border-zinc-200 rounded-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-zinc-900">{scope.name}</h4>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-sm ${
-                      scope.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                      scope.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                      'bg-zinc-100 text-zinc-700'
-                    }`}>
-                      {scope.status || 'Not Started'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-zinc-600 mb-2">{scope.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-zinc-500">
-                    <span>Category: {scope.category_name}</span>
-                    {scope.progress_percentage !== undefined && (
-                      <span>Progress: {scope.progress_percentage}%</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {(!sowData.sow?.scopes || sowData.sow.scopes.length === 0) && (
-                <div className="text-center py-8 text-zinc-500">
-                  No scope items defined
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* SOW History Tab */}
-      {activeTab === 'history' && sowHistory.length > 0 && (
-        <Card className="border-zinc-200 shadow-none rounded-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold uppercase tracking-tight text-zinc-950">
-              Change History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {sowHistory.map((event, idx) => (
-                <div key={idx} className="flex gap-4 p-4 border-l-4 border-zinc-200 bg-zinc-50 rounded-r-sm">
-                  <div className="flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      event.event_type === 'sales_handover' ? 'bg-emerald-100 text-emerald-600' :
-                      event.event_type === 'scope_update' ? 'bg-blue-100 text-blue-600' :
-                      'bg-zinc-100 text-zinc-600'
-                    }`}>
-                      <History className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-medium text-zinc-900">{event.description}</h4>
-                      <span className="text-xs text-zinc-500">
-                        {new Date(event.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-600">Changed by: {event.changed_by}</p>
-                    {event.details?.changes && event.details.changes.length > 0 && (
-                      <div className="mt-2 text-sm text-zinc-500">
-                        {event.details.changes.map((change, i) => (
-                          <div key={i}>{change}</div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
       )}
