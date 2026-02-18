@@ -235,16 +235,11 @@ const Projects = () => {
       ) : projects.length === 0 ? (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="flex flex-col items-center justify-center h-64">
-            <p className="text-zinc-500 mb-4">No projects found</p>
-            {canEdit && (
-              <Button
-                onClick={() => setDialogOpen(true)}
-                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-              >
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                Create Your First Project
-              </Button>
-            )}
+            <p className="text-zinc-500 mb-2">No projects found</p>
+            <p className="text-sm text-zinc-400 text-center max-w-md">
+              Projects are created via Kickoff Request handover from Sales team. 
+              Go to Kickoff Requests to accept pending requests and create projects.
+            </p>
           </CardContent>
         </Card>
       ) : (
