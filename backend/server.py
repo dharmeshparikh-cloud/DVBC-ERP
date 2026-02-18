@@ -4051,13 +4051,26 @@ async def unassign_consultant(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Assignment not found")
     
-    # Update project
+    # Update project - handle both old format (ID strings) and new format (objects with user_id)
     await db.projects.update_one(
         {"id": project_id},
         {
-            "$pull": {"assigned_consultants": consultant_id},
+            "$pull": {
+                "assigned_consultants": {
+                    "$or": [
+                        {"user_id": consultant_id},  # New format (object)
+                        consultant_id  # Old format (string ID)
+                    ]
+                }
+            },
             "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
         }
+    )
+    
+    # Also try direct string pull for backwards compatibility
+    await db.projects.update_one(
+        {"id": project_id},
+        {"$pull": {"assigned_consultants": consultant_id}}
     )
     
     return {"message": "Consultant unassigned successfully"}
