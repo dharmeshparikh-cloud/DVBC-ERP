@@ -7003,6 +7003,200 @@ async def withdraw_leave_request(
     return {"message": "Leave request withdrawn successfully", "leave_id": leave_id}
 
 
+# ==================== STAFFING REQUEST SYSTEM ====================
+
+class StaffingRequestCreate(BaseModel):
+    """Create a new staffing request"""
+    model_config = ConfigDict(extra="ignore")
+    project_name: str
+    purpose: str
+    budget_range: Optional[str] = None
+    timeline: str  # Expected start date or timeline
+    location: str
+    work_mode: str = "office"  # office, client_site, remote
+    skills_required: List[str] = []
+    experience_years: Optional[int] = None
+    headcount: int = 1
+    priority: str = "normal"  # low, normal, high, urgent
+    additional_notes: Optional[str] = None
+
+
+@api_router.post("/staffing-requests")
+async def create_staffing_request(
+    request: StaffingRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new staffing request - requires Admin approval"""
+    # Get employee details for the requester
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    
+    requester_name = f"{current_user.email}"
+    reporting_manager = None
+    requester_employee_id = None
+    
+    if employee:
+        requester_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
+        reporting_manager = employee.get('reporting_manager')
+        requester_employee_id = employee.get('employee_id') or employee.get('id')
+    
+    staffing_request = {
+        "id": str(uuid.uuid4()),
+        "requester_id": current_user.id,
+        "requester_name": requester_name,
+        "requester_employee_id": requester_employee_id,
+        "requester_email": current_user.email,
+        "reporting_manager": reporting_manager,
+        "project_name": request.project_name,
+        "purpose": request.purpose,
+        "budget_range": request.budget_range,
+        "timeline": request.timeline,
+        "location": request.location,
+        "work_mode": request.work_mode,
+        "skills_required": request.skills_required,
+        "experience_years": request.experience_years,
+        "headcount": request.headcount,
+        "priority": request.priority,
+        "additional_notes": request.additional_notes,
+        "status": "pending_approval",  # pending_approval, approved, rejected, fulfilled
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.staffing_requests.insert_one(staffing_request)
+    
+    # Notify admins about new staffing request
+    await notify_admins(
+        notif_type="staffing_request",
+        title="New Staffing Request",
+        message=f"{requester_name} submitted a staffing request for {request.project_name} ({request.headcount} resource(s))",
+        reference_type="staffing_request",
+        reference_id=staffing_request["id"],
+        priority=request.priority
+    )
+    
+    return {"message": "Staffing request submitted for approval", "id": staffing_request["id"]}
+
+
+@api_router.get("/staffing-requests")
+async def get_staffing_requests(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get staffing requests - Admin/HR see all, others see their own"""
+    query = {}
+    
+    if current_user.role not in [UserRole.ADMIN, UserRole.HR_MANAGER]:
+        # Regular users only see their own requests
+        query["requester_id"] = current_user.id
+    
+    if status:
+        query["status"] = status
+    
+    requests = await db.staffing_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return requests
+
+
+@api_router.get("/staffing-requests/{request_id}")
+async def get_staffing_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific staffing request"""
+    request = await db.staffing_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Staffing request not found")
+    
+    # Check access
+    if current_user.role not in [UserRole.ADMIN, UserRole.HR_MANAGER]:
+        if request.get("requester_id") != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    return request
+
+
+@api_router.post("/staffing-requests/{request_id}/approve")
+async def approve_staffing_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a staffing request - Admin only"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can approve staffing requests")
+    
+    request = await db.staffing_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Staffing request not found")
+    
+    if request.get("status") != "pending_approval":
+        raise HTTPException(status_code=400, detail=f"Request is already {request.get('status')}")
+    
+    await db.staffing_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify requester
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": request["requester_id"],
+        "type": "staffing_approved",
+        "title": "Staffing Request Approved",
+        "message": f"Your staffing request for {request['project_name']} has been approved",
+        "reference_type": "staffing_request",
+        "reference_id": request_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Staffing request approved"}
+
+
+@api_router.post("/staffing-requests/{request_id}/reject")
+async def reject_staffing_request(
+    request_id: str,
+    reason: str = "",
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a staffing request - Admin only"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can reject staffing requests")
+    
+    request = await db.staffing_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Staffing request not found")
+    
+    await db.staffing_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user.id,
+            "rejection_reason": reason,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify requester
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": request["requester_id"],
+        "type": "staffing_rejected",
+        "title": "Staffing Request Rejected",
+        "message": f"Your staffing request for {request['project_name']} was rejected. Reason: {reason or 'Not specified'}",
+        "reference_type": "staffing_request",
+        "reference_id": request_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Staffing request rejected"}
+
+
 @api_router.get("/leave-balance/reportees")
 async def get_reportees_leave_balance(current_user: User = Depends(get_current_user)):
     """Get leave balance for reportees (view only for reporting managers). HR/Admin see all."""
