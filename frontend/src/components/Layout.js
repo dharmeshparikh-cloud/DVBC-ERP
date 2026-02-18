@@ -29,15 +29,22 @@ const Layout = () => {
   const { user, logout } = useContext(AuthContext);
   const { theme, toggleTheme } = useTheme();
   const { pendingCounts } = useApprovals();
+  const { permissions, level, canViewTeamData, canApproveRequests, canViewReports, canManageTeam, isManagerOrAbove, isLeader } = usePermissions();
   const location = useLocation();
   const role = user?.role;
   const isDark = theme === 'dark';
 
-  const showHR = HR_ROLES.includes(role);
+  // Permission-based visibility (combining role and level permissions)
+  const showHR = HR_ROLES.includes(role) || canManageTeam();
   const showSales = SALES_ROLES_NAV.includes(role);
   const showConsulting = CONSULTING_ROLES_NAV.includes(role);
-  const showAdmin = ADMIN_ROLES.includes(role);
+  const showAdmin = ADMIN_ROLES.includes(role) || isLeader();
   const isConsultant = role === 'consultant';
+  
+  // Additional permission checks for specific features
+  const canViewTeamWorkload = canViewTeamData() || HR_ROLES.includes(role);
+  const canViewApprovals = canApproveRequests() || ADMIN_ROLES.includes(role);
+  const canViewHRReports = canViewReports() || HR_ROLES.includes(role);
 
   // Mobile state
   const [isMobile, setIsMobile] = useState(false);
