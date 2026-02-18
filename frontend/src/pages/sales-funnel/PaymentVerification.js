@@ -396,11 +396,12 @@ const PaymentVerification = () => {
                 <Input
                   type="number"
                   value={formData.expected_amount}
-                  onChange={(e) => setFormData({ ...formData, expected_amount: parseFloat(e.target.value) || 0 })}
-                  className="rounded-sm"
+                  readOnly
+                  disabled
+                  className="rounded-sm bg-zinc-100 cursor-not-allowed"
                   data-testid="expected-amount-input"
                 />
-                <p className="text-xs text-zinc-400">Typically 30% of total value</p>
+                <p className="text-xs text-zinc-400">Fetched from pricing plan (locked)</p>
               </div>
               <div className="space-y-2">
                 <Label>Received Amount (₹) *</Label>
