@@ -199,6 +199,17 @@ class LeadUpdate(BaseModel):
     assigned_to: Optional[str] = None
 
 
+class AssignedConsultant(BaseModel):
+    """Consultant assignment object for projects."""
+    model_config = ConfigDict(extra="ignore")
+    user_id: str
+    name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = "consultant"
+    department: Optional[str] = None
+    assigned_at: Optional[str] = None
+
+
 class Project(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -213,7 +224,7 @@ class Project(BaseModel):
     total_meetings_committed: int = 0
     total_meetings_delivered: int = 0
     number_of_visits: int = 0
-    assigned_consultants: List[str] = []
+    assigned_consultants: List[Any] = []  # Can be strings (old format) or AssignedConsultant objects (new format)
     assigned_team: List[str] = []
     budget: Optional[float] = None
     project_value: Optional[float] = None
