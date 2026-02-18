@@ -169,11 +169,9 @@ const HROnboarding = () => {
           toast.error('Please select an employee level (Executive/Manager/Leader)');
           return false;
         }
-        // Reporting manager is optional if:
-        // 1. No managers exist (first employee scenario)
-        // 2. "None / Top-Level Employee" is explicitly selected
-        if (!formData.reporting_manager_id && managers.length > 0) {
-          toast.error('Please select a reporting manager (or choose "No Manager / Top-Level Employee")');
+        // Reporting manager is always required - HR Manager/Admin should be available
+        if (!formData.reporting_manager_id) {
+          toast.error('Please select a reporting manager');
           return false;
         }
         return true;
