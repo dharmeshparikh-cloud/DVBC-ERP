@@ -152,6 +152,12 @@ const HROnboarding = () => {
           toast.error('Please enter a valid email address');
           return false;
         }
+        // Validate phone number - must be 10 digits
+        const cleanPhone = formData.phone.replace(/\D/g, '');
+        if (cleanPhone.length < 10) {
+          toast.error('Please enter a valid 10-digit phone number');
+          return false;
+        }
         return true;
         
       case 1: // Employment Details
