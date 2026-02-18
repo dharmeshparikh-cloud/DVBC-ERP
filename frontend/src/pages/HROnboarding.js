@@ -169,7 +169,9 @@ const HROnboarding = () => {
           toast.error('Please select an employee level (Executive/Manager/Leader)');
           return false;
         }
-        if (!formData.reporting_manager_id) {
+        // Reporting manager is optional if no managers exist (first employee scenario)
+        // or if the employee is being onboarded as a top-level executive
+        if (!formData.reporting_manager_id && managers.length > 0) {
           toast.error('Please select a reporting manager');
           return false;
         }
