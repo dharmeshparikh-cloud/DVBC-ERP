@@ -3909,11 +3909,20 @@ async def assign_consultant_to_project(
     
     await db.consultant_assignments.insert_one(doc)
     
-    # Update project's assigned_consultants list
+    # Build consultant object for the project (frontend expects full objects, not just IDs)
+    consultant_object = {
+        "user_id": consultant['id'],
+        "name": consultant.get('full_name', consultant.get('email', 'Unknown')),
+        "email": consultant.get('email'),
+        "role": assignment.role_in_project or 'consultant',
+        "assigned_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update project's assigned_consultants list with full objects
     await db.projects.update_one(
         {"id": project_id},
         {
-            "$addToSet": {"assigned_consultants": assignment.consultant_id},
+            "$addToSet": {"assigned_consultants": consultant_object},
             "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}
         }
     )
