@@ -45,6 +45,15 @@ from document_generator import AgreementDocumentGenerator, SOWDocumentGenerator
 from routers import masters as masters_router
 from routers import sow_masters as sow_masters_router
 from routers import enhanced_sow as enhanced_sow_router
+from routers import deps as router_deps
+from routers import auth as auth_router
+from routers import leads as leads_router
+from routers import projects as projects_router
+from routers import meetings as meetings_router
+from routers import stats as stats_router
+from routers import security as security_router
+from routers import users as users_router
+from routers import kickoff as kickoff_router
 
 # Helper function to sanitize user input (prevent XSS)
 def sanitize_text(text: str) -> str:
