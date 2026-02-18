@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { useApprovals } from '../contexts/ApprovalContext';
+import { usePermissions } from '../contexts/PermissionContext';
 import { Button } from './ui/button';
 import NotificationBell from './NotificationBell';
 import { sanitizeDisplayText } from '../utils/sanitize';
