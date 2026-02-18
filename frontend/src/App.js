@@ -42,6 +42,7 @@ import PaymentReminders from './pages/consulting/PaymentReminders';
 import Consultants from './pages/Consultants';
 import ConsultantDashboard from './pages/ConsultantDashboard';
 import ProjectTasks from './pages/ProjectTasks';
+import Timesheets from './pages/Timesheets';
 import HandoverAlerts from './pages/HandoverAlerts';
 import KickoffMeeting from './pages/KickoffMeeting';
 import KickoffRequests from './pages/KickoffRequests';
