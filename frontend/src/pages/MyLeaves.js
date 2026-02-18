@@ -29,7 +29,14 @@ const MyLeaves = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [withdrawingId, setWithdrawingId] = useState(null);
-  const [formData, setFormData] = useState({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '' });
+  const [formData, setFormData] = useState({ 
+    leave_type: 'casual_leave', 
+    start_date: '', 
+    end_date: '', 
+    reason: '',
+    is_half_day: false,
+    half_day_type: 'first_half'  // first_half or second_half
+  });
 
   useEffect(() => { fetchData(); }, []);
 
@@ -54,11 +61,11 @@ const MyLeaves = () => {
       await axios.post(`${API}/leave-requests`, {
         ...formData,
         start_date: new Date(formData.start_date).toISOString(),
-        end_date: new Date(formData.end_date).toISOString()
+        end_date: formData.is_half_day ? new Date(formData.start_date).toISOString() : new Date(formData.end_date).toISOString()
       });
       toast.success('Leave request submitted for approval');
       setDialogOpen(false);
-      setFormData({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '' });
+      setFormData({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '', is_half_day: false, half_day_type: 'first_half' });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to submit');
@@ -80,9 +87,11 @@ const MyLeaves = () => {
     }
   };
 
-  const days = formData.start_date && formData.end_date
-    ? Math.max(1, Math.ceil((new Date(formData.end_date) - new Date(formData.start_date)) / 86400000) + 1)
-    : 0;
+  const days = formData.is_half_day 
+    ? 0.5 
+    : (formData.start_date && formData.end_date
+      ? Math.max(1, Math.ceil((new Date(formData.end_date) - new Date(formData.start_date)) / 86400000) + 1)
+      : 0);
 
   return (
     <div data-testid="my-leaves-page">
