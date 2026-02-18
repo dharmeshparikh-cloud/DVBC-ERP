@@ -1,714 +1,486 @@
 """
-Role Management Router - Role Creation, Assignment, and Level-based Permissions
+Role Management Router - Employee Levels, Role Creation/Assignment Approval Workflow
 """
 
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel
 import uuid
 
-from .models import User
+from .models import User, UserRole
 from .deps import get_db, sanitize_text
 from .auth import get_current_user
 
 router = APIRouter(prefix="/role-management", tags=["Role Management"])
 
 
-# ==================== EMPLOYEE LEVELS ====================
-# Level Hierarchy: Executive < Manager < Leader
-# - Executive: Stand-alone user (no reportees)
-# - Manager: Has direct reportees
-# - Leader: Manager's manager (has managers reporting to them)
+# ============== Employee Levels ==============
 
-EMPLOYEE_LEVELS = {
+class EmployeeLevel:
+    """Employee hierarchy levels with predefined permission sets."""
+    EXECUTIVE = "executive"     # Entry level - basic permissions
+    MANAGER = "manager"         # Mid level - team management permissions  
+    LEADER = "leader"           # Senior level - strategic permissions
+
+
+# Default permission sets for each level (customizable by admin)
+DEFAULT_LEVEL_PERMISSIONS = {
     "executive": {
-        "name": "Executive",
-        "description": "Stand-alone user from any department without reportees",
-        "hierarchy": 1,
-        "default_permissions": {
-            "sales": ["leads.read", "leads.create", "meetings.create", "meetings.read"],
-            "consulting": ["projects.read", "tasks.read", "tasks.update", "timesheets.create"],
-            "hr": ["attendance.read", "leaves.create", "expenses.create"],
-            "finance": [],
-            "admin": []
-        }
+        "can_view_own_data": True,
+        "can_edit_own_profile": True,
+        "can_submit_requests": True,
+        "can_view_team_data": False,
+        "can_approve_requests": False,
+        "can_manage_team": False,
+        "can_access_reports": False,
+        "can_access_financials": False,
+        "can_create_projects": False,
+        "can_assign_tasks": False,
     },
     "manager": {
-        "name": "Manager",
-        "description": "Reporting manager with direct reportees under them",
-        "hierarchy": 2,
-        "default_permissions": {
-            "sales": ["leads.read", "leads.create", "leads.update", "leads.assign", "meetings.create", "meetings.read", "meetings.update"],
-            "consulting": ["projects.read", "projects.update", "tasks.read", "tasks.create", "tasks.assign", "timesheets.create", "timesheets.approve"],
-            "hr": ["attendance.read", "attendance.approve", "leaves.create", "leaves.approve", "expenses.create", "expenses.approve"],
-            "finance": ["reports.view"],
-            "admin": []
-        }
+        "can_view_own_data": True,
+        "can_edit_own_profile": True,
+        "can_submit_requests": True,
+        "can_view_team_data": True,
+        "can_approve_requests": True,
+        "can_manage_team": True,
+        "can_access_reports": True,
+        "can_access_financials": False,
+        "can_create_projects": True,
+        "can_assign_tasks": True,
     },
     "leader": {
-        "name": "Leader",
-        "description": "Senior leader - reporting manager's reporting manager",
-        "hierarchy": 3,
-        "default_permissions": {
-            "sales": ["leads.read", "leads.create", "leads.update", "leads.delete", "leads.assign", "leads.export", 
-                     "meetings.create", "meetings.read", "meetings.update", "meetings.delete",
-                     "sow.read", "sow.create", "sow.update", "agreements.read", "agreements.approve"],
-            "consulting": ["projects.read", "projects.create", "projects.update", "projects.assign_team",
-                          "tasks.read", "tasks.create", "tasks.update", "tasks.delete", "tasks.assign",
-                          "timesheets.create", "timesheets.approve", "deliverables.read", "deliverables.approve"],
-            "hr": ["employees.read", "attendance.read", "attendance.approve", "leaves.create", "leaves.approve", 
-                   "expenses.create", "expenses.approve", "payroll.read"],
-            "finance": ["reports.view", "reports.export"],
-            "admin": ["audit_logs.read"]
-        }
+        "can_view_own_data": True,
+        "can_edit_own_profile": True,
+        "can_submit_requests": True,
+        "can_view_team_data": True,
+        "can_approve_requests": True,
+        "can_manage_team": True,
+        "can_access_reports": True,
+        "can_access_financials": True,
+        "can_create_projects": True,
+        "can_assign_tasks": True,
     }
 }
 
 
+# ============== Pydantic Models ==============
+
+class LevelPermissionsUpdate(BaseModel):
+    """Model for updating level permissions."""
+    level: str
+    permissions: Dict[str, bool]
+
+
+class RoleCreationRequest(BaseModel):
+    """Model for creating a new role request."""
+    role_id: str
+    role_name: str
+    role_description: Optional[str] = None
+    permissions: Optional[Dict[str, bool]] = None
+    reason: Optional[str] = None
+
+
+class RoleAssignmentRequest(BaseModel):
+    """Model for requesting role assignment to an employee."""
+    employee_id: str
+    role_id: str
+    level: str
+    reason: Optional[str] = None
+
+
+class RequestApproval(BaseModel):
+    """Model for approving/rejecting a request."""
+    approved: bool
+    comments: Optional[str] = None
+
+
+# ============== Level Management Endpoints ==============
+
 @router.get("/levels")
 async def get_employee_levels(current_user: User = Depends(get_current_user)):
-    """Get all employee levels with their default permissions."""
-    return EMPLOYEE_LEVELS
+    """Get available employee levels."""
+    return {
+        "levels": [
+            {"id": "executive", "name": "Executive", "description": "Entry level - basic permissions"},
+            {"id": "manager", "name": "Manager", "description": "Mid level - team management permissions"},
+            {"id": "leader", "name": "Leader", "description": "Senior level - strategic permissions"},
+        ]
+    }
 
 
-@router.get("/levels/{level_id}")
-async def get_employee_level(level_id: str, current_user: User = Depends(get_current_user)):
-    """Get a specific employee level details."""
-    if level_id not in EMPLOYEE_LEVELS:
-        raise HTTPException(status_code=404, detail="Level not found")
-    return {level_id: EMPLOYEE_LEVELS[level_id]}
-
-
-# ==================== ROLE CREATION WITH APPROVAL ====================
-
-@router.post("/roles/request")
-async def request_role_creation(data: dict, current_user: User = Depends(get_current_user)):
-    """
-    HR requests creation of a new role - requires Admin approval.
-    
-    Flow:
-    1. HR creates role request with name, description, base_level, permissions
-    2. Request goes to pending state
-    3. Admin reviews and approves/rejects
-    4. If approved, role is created and available for assignment
-    """
+@router.get("/level-permissions")
+async def get_level_permissions(current_user: User = Depends(get_current_user)):
+    """Get permission configurations for all levels."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
-        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can request role creation")
+    # Try to get custom configurations from DB
+    config = await db.level_permissions_config.find_one({"id": "main"}, {"_id": 0})
     
-    role_id = data.get("id", "").lower().replace(" ", "_")
-    role_name = sanitize_text(data.get("name", ""))
-    description = sanitize_text(data.get("description", ""))
-    base_level = data.get("base_level", "executive")
-    custom_permissions = data.get("permissions", {})
+    if config:
+        return config.get("permissions", DEFAULT_LEVEL_PERMISSIONS)
     
-    if not role_id or not role_name:
-        raise HTTPException(status_code=400, detail="Role ID and name are required")
+    return DEFAULT_LEVEL_PERMISSIONS
+
+
+@router.get("/level-permissions/{level}")
+async def get_level_permission(level: str, current_user: User = Depends(get_current_user)):
+    """Get permission configuration for a specific level."""
+    db = get_db()
+    
+    if level not in ["executive", "manager", "leader"]:
+        raise HTTPException(status_code=400, detail="Invalid level")
+    
+    config = await db.level_permissions_config.find_one({"id": "main"}, {"_id": 0})
+    
+    if config and level in config.get("permissions", {}):
+        return {"level": level, "permissions": config["permissions"][level]}
+    
+    return {"level": level, "permissions": DEFAULT_LEVEL_PERMISSIONS.get(level, {})}
+
+
+@router.put("/level-permissions")
+async def update_level_permissions(
+    data: LevelPermissionsUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update permission configuration for a level (Admin only)."""
+    db = get_db()
+    
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can update level permissions")
+    
+    if data.level not in ["executive", "manager", "leader"]:
+        raise HTTPException(status_code=400, detail="Invalid level")
+    
+    # Get or create config
+    config = await db.level_permissions_config.find_one({"id": "main"}, {"_id": 0})
+    
+    if not config:
+        config = {
+            "id": "main",
+            "permissions": DEFAULT_LEVEL_PERMISSIONS.copy(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+    
+    # Update the specific level
+    config["permissions"][data.level] = data.permissions
+    config["updated_at"] = datetime.now(timezone.utc).isoformat()
+    config["updated_by"] = current_user.id
+    
+    await db.level_permissions_config.update_one(
+        {"id": "main"},
+        {"$set": config},
+        upsert=True
+    )
+    
+    return {"message": "Level permissions updated", "level": data.level}
+
+
+# ============== Role Creation Request Endpoints ==============
+
+@router.post("/role-requests")
+async def create_role_request(
+    request: RoleCreationRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """HR creates a request to add a new role (requires Admin approval)."""
+    db = get_db()
+    
+    if current_user.role not in ["hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can create role requests")
     
     # Check if role already exists
-    existing_role = await db.roles.find_one({"id": role_id})
+    existing_role = await db.roles.find_one({"id": request.role_id})
     if existing_role:
         raise HTTPException(status_code=400, detail="Role with this ID already exists")
     
-    # Check if there's already a pending request for this role
-    existing_request = await db.role_creation_requests.find_one({
-        "role_id": role_id,
+    # Check for pending request with same role_id
+    pending = await db.role_requests.find_one({
+        "role_id": request.role_id,
+        "request_type": "create_role",
         "status": "pending"
     })
-    if existing_request:
-        raise HTTPException(status_code=400, detail="There's already a pending request for this role")
+    if pending:
+        raise HTTPException(status_code=400, detail="A pending request for this role already exists")
     
-    # Get default permissions from base level
-    base_permissions = EMPLOYEE_LEVELS.get(base_level, {}).get("default_permissions", {})
-    
-    # Merge base permissions with custom permissions
-    final_permissions = {**base_permissions}
-    for module, perms in custom_permissions.items():
-        if module in final_permissions:
-            final_permissions[module] = list(set(final_permissions[module] + perms))
-        else:
-            final_permissions[module] = perms
-    
-    request_doc = {
+    role_request = {
         "id": str(uuid.uuid4()),
-        "role_id": role_id,
-        "role_name": role_name,
-        "description": description,
-        "base_level": base_level,
-        "permissions": final_permissions,
-        "status": "pending",  # pending, approved, rejected
-        "requested_by": current_user.id,
-        "requested_by_name": current_user.full_name,
-        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "request_type": "create_role",
+        "role_id": request.role_id,
+        "role_name": sanitize_text(request.role_name),
+        "role_description": sanitize_text(request.role_description) if request.role_description else "",
+        "permissions": request.permissions or {},
+        "reason": sanitize_text(request.reason) if request.reason else "",
+        "status": "pending",
+        "submitted_by": current_user.id,
+        "submitted_by_name": current_user.full_name,
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
         "reviewed_by": None,
         "reviewed_at": None,
         "review_comments": None
     }
     
-    await db.role_creation_requests.insert_one(request_doc)
+    await db.role_requests.insert_one(role_request)
     
-    # If admin is creating, auto-approve
-    if current_user.role == "admin":
-        return await approve_role_creation(request_doc["id"], {"comments": "Auto-approved by admin"}, current_user)
-    
-    # Notify admins
-    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(50)
+    # Create notification for admins
+    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1, "email": 1}).to_list(100)
     for admin in admins:
         notification = {
             "id": str(uuid.uuid4()),
-            "user_id": admin["id"],
-            "type": "role_creation_request",
+            "type": "role_request_pending",
+            "recipient_id": admin["id"],
             "title": "New Role Creation Request",
-            "message": f"{current_user.full_name} requested to create role: {role_name}",
-            "reference_type": "role_creation_request",
-            "reference_id": request_doc["id"],
-            "is_read": False,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "message": f"{current_user.full_name} has requested to create a new role: {request.role_name}",
+            "request_id": role_request["id"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "read": False
         }
         await db.notifications.insert_one(notification)
     
-    return {
-        "message": "Role creation request submitted for admin approval",
-        "request_id": request_doc["id"],
-        "status": "pending"
-    }
+    return {"message": "Role creation request submitted", "request_id": role_request["id"]}
 
 
-@router.get("/roles/pending-requests")
+@router.get("/role-requests")
+async def get_role_requests(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get role requests (Admin sees all, HR sees own requests)."""
+    db = get_db()
+    
+    query = {}
+    
+    if current_user.role == "admin":
+        # Admin sees all
+        if status:
+            query["status"] = status
+    elif current_user.role in ["hr_manager", "hr_executive"]:
+        # HR sees their own requests
+        query["submitted_by"] = current_user.id
+        if status:
+            query["status"] = status
+    else:
+        raise HTTPException(status_code=403, detail="Not authorized to view role requests")
+    
+    requests = await db.role_requests.find(query, {"_id": 0}).sort("submitted_at", -1).to_list(500)
+    return requests
+
+
+@router.get("/role-requests/pending")
 async def get_pending_role_requests(current_user: User = Depends(get_current_user)):
-    """Get all pending role creation requests (Admin only)."""
+    """Get pending role requests for admin approval."""
     db = get_db()
     
     if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admin can view pending role requests")
+        raise HTTPException(status_code=403, detail="Only admins can view pending requests")
     
-    requests = await db.role_creation_requests.find(
+    requests = await db.role_requests.find(
         {"status": "pending"},
         {"_id": 0}
-    ).sort("requested_at", -1).to_list(100)
+    ).sort("submitted_at", -1).to_list(100)
     
     return requests
 
 
-@router.post("/roles/request/{request_id}/approve")
-async def approve_role_creation(request_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Admin approves role creation request."""
+@router.post("/role-requests/{request_id}/approve")
+async def approve_role_request(
+    request_id: str,
+    approval: RequestApproval,
+    current_user: User = Depends(get_current_user)
+):
+    """Admin approves or rejects a role creation request."""
     db = get_db()
     
     if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admin can approve role creation")
+        raise HTTPException(status_code=403, detail="Only admins can approve role requests")
     
-    request_doc = await db.role_creation_requests.find_one({"id": request_id}, {"_id": 0})
-    if not request_doc:
+    request = await db.role_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     
-    if request_doc["status"] != "pending":
-        raise HTTPException(status_code=400, detail=f"Request is already {request_doc['status']}")
+    if request["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Request already processed")
     
-    # Create the role
-    new_role = {
-        "id": request_doc["role_id"],
-        "name": request_doc["role_name"],
-        "description": request_doc["description"],
-        "base_level": request_doc["base_level"],
-        "permissions": request_doc["permissions"],
-        "is_system_role": False,
-        "can_delete": True,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "created_by": request_doc["requested_by"],
-        "approved_by": current_user.id
-    }
-    
-    await db.roles.insert_one(new_role)
+    new_status = "approved" if approval.approved else "rejected"
     
     # Update request status
-    await db.role_creation_requests.update_one(
+    await db.role_requests.update_one(
         {"id": request_id},
         {"$set": {
-            "status": "approved",
+            "status": new_status,
             "reviewed_by": current_user.id,
             "reviewed_by_name": current_user.full_name,
             "reviewed_at": datetime.now(timezone.utc).isoformat(),
-            "review_comments": data.get("comments", "")
+            "review_comments": approval.comments
         }}
     )
     
-    # Notify requester
+    if approval.approved and request["request_type"] == "create_role":
+        # Create the role
+        new_role = {
+            "id": request["role_id"],
+            "name": request["role_name"],
+            "description": request["role_description"],
+            "permissions": request.get("permissions", {}),
+            "is_system_role": False,
+            "can_delete": True,
+            "created_by": request["submitted_by"],
+            "approved_by": current_user.id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.roles.insert_one(new_role)
+    
+    elif approval.approved and request["request_type"] == "assign_role":
+        # Update employee role and level
+        await db.employees.update_one(
+            {"id": request["employee_id"]},
+            {"$set": {
+                "role": request["role_id"],
+                "level": request.get("level", "executive"),
+                "role_updated_at": datetime.now(timezone.utc).isoformat(),
+                "role_updated_by": current_user.id
+            }}
+        )
+        
+        # Also update user if linked
+        employee = await db.employees.find_one({"id": request["employee_id"]}, {"_id": 0})
+        if employee and employee.get("user_id"):
+            await db.users.update_one(
+                {"id": employee["user_id"]},
+                {"$set": {"role": request["role_id"]}}
+            )
+    
+    # Notify the requester
     notification = {
         "id": str(uuid.uuid4()),
-        "user_id": request_doc["requested_by"],
-        "type": "role_creation_approved",
-        "title": "Role Creation Approved",
-        "message": f"Your role creation request for '{request_doc['role_name']}' has been approved",
-        "reference_type": "role",
-        "reference_id": request_doc["role_id"],
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "type": "role_request_" + new_status,
+        "recipient_id": request["submitted_by"],
+        "title": f"Role Request {new_status.title()}",
+        "message": f"Your role request has been {new_status}" + (f": {approval.comments}" if approval.comments else ""),
+        "request_id": request_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read": False
     }
     await db.notifications.insert_one(notification)
     
-    return {
-        "message": "Role created successfully",
-        "role_id": request_doc["role_id"]
-    }
+    return {"message": f"Request {new_status}", "request_id": request_id}
 
 
-@router.post("/roles/request/{request_id}/reject")
-async def reject_role_creation(request_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Admin rejects role creation request."""
+# ============== Role Assignment Request Endpoints ==============
+
+@router.post("/assignment-requests")
+async def create_role_assignment_request(
+    request: RoleAssignmentRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """HR requests to assign a role and level to an employee (requires Admin approval)."""
     db = get_db()
     
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admin can reject role creation")
-    
-    request_doc = await db.role_creation_requests.find_one({"id": request_id}, {"_id": 0})
-    if not request_doc:
-        raise HTTPException(status_code=404, detail="Request not found")
-    
-    rejection_reason = data.get("reason", "")
-    if not rejection_reason:
-        raise HTTPException(status_code=400, detail="Rejection reason is required")
-    
-    await db.role_creation_requests.update_one(
-        {"id": request_id},
-        {"$set": {
-            "status": "rejected",
-            "reviewed_by": current_user.id,
-            "reviewed_by_name": current_user.full_name,
-            "reviewed_at": datetime.now(timezone.utc).isoformat(),
-            "review_comments": rejection_reason
-        }}
-    )
-    
-    # Notify requester
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": request_doc["requested_by"],
-        "type": "role_creation_rejected",
-        "title": "Role Creation Rejected",
-        "message": f"Your role creation request for '{request_doc['role_name']}' was rejected. Reason: {rejection_reason}",
-        "reference_type": "role_creation_request",
-        "reference_id": request_id,
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.notifications.insert_one(notification)
-    
-    return {"message": "Role creation request rejected"}
-
-
-# ==================== ROLE ASSIGNMENT WITH APPROVAL ====================
-
-@router.post("/assign-role")
-async def request_role_assignment(data: dict, current_user: User = Depends(get_current_user)):
-    """
-    HR assigns role to employee - requires Admin approval.
-    
-    Flow:
-    1. HR selects employee, role, and level during onboarding or later
-    2. Request goes to pending state
-    3. Admin reviews and approves/rejects
-    4. If approved:
-       - Employee's role and level are updated
-       - User account (if exists) is updated with new role
-       - Pre-approved permissions based on level are applied
-    """
-    db = get_db()
-    
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
-        raise HTTPException(status_code=403, detail="Only HR can assign roles")
-    
-    employee_id = data.get("employee_id")
-    role_id = data.get("role_id")
-    level = data.get("level", "executive")
-    custom_permissions = data.get("custom_permissions", {})
-    notes = sanitize_text(data.get("notes", ""))
-    
-    if not employee_id or not role_id:
-        raise HTTPException(status_code=400, detail="Employee ID and Role ID are required")
+    if current_user.role not in ["hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can create assignment requests")
     
     # Validate employee exists
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    employee = await db.employees.find_one({"id": request.employee_id}, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
     # Validate role exists
-    role = await db.roles.find_one({"id": role_id}, {"_id": 0})
+    role = await db.roles.find_one({"id": request.role_id}, {"_id": 0})
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     
     # Validate level
-    if level not in EMPLOYEE_LEVELS:
-        raise HTTPException(status_code=400, detail="Invalid employee level")
+    if request.level not in ["executive", "manager", "leader"]:
+        raise HTTPException(status_code=400, detail="Invalid level")
     
-    # Check for existing pending request
-    existing_request = await db.role_assignment_requests.find_one({
-        "employee_id": employee_id,
+    # Check for pending request for same employee
+    pending = await db.role_requests.find_one({
+        "employee_id": request.employee_id,
+        "request_type": "assign_role",
         "status": "pending"
     })
-    if existing_request:
-        raise HTTPException(status_code=400, detail="There's already a pending role assignment for this employee")
+    if pending:
+        raise HTTPException(status_code=400, detail="A pending assignment request for this employee already exists")
     
-    # Get base permissions from level
-    level_permissions = EMPLOYEE_LEVELS[level]["default_permissions"]
-    
-    # Merge with role permissions and custom permissions
-    final_permissions = {**level_permissions}
-    if role.get("permissions"):
-        for module, perms in role["permissions"].items():
-            if module in final_permissions:
-                final_permissions[module] = list(set(final_permissions[module] + perms))
-            else:
-                final_permissions[module] = perms
-    
-    for module, perms in custom_permissions.items():
-        if module in final_permissions:
-            final_permissions[module] = list(set(final_permissions[module] + perms))
-        else:
-            final_permissions[module] = perms
-    
-    request_doc = {
+    assignment_request = {
         "id": str(uuid.uuid4()),
-        "employee_id": employee_id,
+        "request_type": "assign_role",
+        "employee_id": request.employee_id,
         "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
-        "employee_email": employee.get("email") or employee.get("work_email"),
+        "employee_code": employee.get("employee_id", ""),
         "current_role": employee.get("role"),
         "current_level": employee.get("level"),
-        "requested_role": role_id,
-        "requested_role_name": role.get("name", role_id),
-        "requested_level": level,
-        "requested_level_name": EMPLOYEE_LEVELS[level]["name"],
-        "permissions": final_permissions,
-        "custom_permissions": custom_permissions,
-        "notes": notes,
+        "new_role_id": request.role_id,
+        "new_role_name": role.get("name", request.role_id),
+        "level": request.level,
+        "reason": sanitize_text(request.reason) if request.reason else "",
         "status": "pending",
-        "requested_by": current_user.id,
-        "requested_by_name": current_user.full_name,
-        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "submitted_by": current_user.id,
+        "submitted_by_name": current_user.full_name,
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
         "reviewed_by": None,
         "reviewed_at": None,
         "review_comments": None
     }
     
-    await db.role_assignment_requests.insert_one(request_doc)
-    
-    # If admin is assigning, auto-approve
-    if current_user.role == "admin":
-        return await approve_role_assignment(request_doc["id"], {"comments": "Auto-approved by admin"}, current_user)
+    await db.role_requests.insert_one(assignment_request)
     
     # Notify admins
-    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(50)
+    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(100)
     for admin in admins:
         notification = {
             "id": str(uuid.uuid4()),
-            "user_id": admin["id"],
-            "type": "role_assignment_request",
-            "title": "Role Assignment Request",
-            "message": f"{current_user.full_name} requested to assign {role.get('name')} ({EMPLOYEE_LEVELS[level]['name']}) to {request_doc['employee_name']}",
-            "reference_type": "role_assignment_request",
-            "reference_id": request_doc["id"],
-            "is_read": False,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "type": "role_assignment_pending",
+            "recipient_id": admin["id"],
+            "title": "New Role Assignment Request",
+            "message": f"{current_user.full_name} has requested to assign {role.get('name')} ({request.level}) to {assignment_request['employee_name']}",
+            "request_id": assignment_request["id"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "read": False
         }
         await db.notifications.insert_one(notification)
     
-    return {
-        "message": "Role assignment request submitted for admin approval",
-        "request_id": request_doc["id"],
-        "status": "pending"
-    }
+    return {"message": "Role assignment request submitted", "request_id": assignment_request["id"]}
 
 
-@router.get("/assign-role/pending")
-async def get_pending_role_assignments(current_user: User = Depends(get_current_user)):
-    """Get all pending role assignment requests."""
+# ============== Stats & Summary ==============
+
+@router.get("/stats")
+async def get_role_management_stats(current_user: User = Depends(get_current_user)):
+    """Get statistics for role management dashboard."""
     db = get_db()
     
     if current_user.role not in ["admin", "hr_manager"]:
-        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view pending assignments")
+        raise HTTPException(status_code=403, detail="Not authorized")
     
-    requests = await db.role_assignment_requests.find(
-        {"status": "pending"},
-        {"_id": 0}
-    ).sort("requested_at", -1).to_list(100)
+    # Count requests by status
+    pending_count = await db.role_requests.count_documents({"status": "pending"})
+    approved_count = await db.role_requests.count_documents({"status": "approved"})
+    rejected_count = await db.role_requests.count_documents({"status": "rejected"})
     
-    return requests
-
-
-@router.post("/assign-role/{request_id}/approve")
-async def approve_role_assignment(request_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Admin approves role assignment request."""
-    db = get_db()
-    
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admin can approve role assignments")
-    
-    request_doc = await db.role_assignment_requests.find_one({"id": request_id}, {"_id": 0})
-    if not request_doc:
-        raise HTTPException(status_code=404, detail="Request not found")
-    
-    if request_doc["status"] != "pending":
-        raise HTTPException(status_code=400, detail=f"Request is already {request_doc['status']}")
-    
-    # Update employee
-    await db.employees.update_one(
-        {"id": request_doc["employee_id"]},
-        {"$set": {
-            "role": request_doc["requested_role"],
-            "level": request_doc["requested_level"],
-            "permissions": request_doc["permissions"],
-            "role_updated_at": datetime.now(timezone.utc).isoformat(),
-            "role_updated_by": current_user.id
-        }}
-    )
-    
-    # Update user account if exists
-    employee = await db.employees.find_one({"id": request_doc["employee_id"]}, {"_id": 0})
-    if employee and employee.get("user_id"):
-        await db.users.update_one(
-            {"id": employee["user_id"]},
-            {"$set": {
-                "role": request_doc["requested_role"],
-                "level": request_doc["requested_level"],
-                "permissions": request_doc["permissions"]
-            }}
-        )
-    
-    # Update request status
-    await db.role_assignment_requests.update_one(
-        {"id": request_id},
-        {"$set": {
-            "status": "approved",
-            "reviewed_by": current_user.id,
-            "reviewed_by_name": current_user.full_name,
-            "reviewed_at": datetime.now(timezone.utc).isoformat(),
-            "review_comments": data.get("comments", "")
-        }}
-    )
-    
-    # Notify requester
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": request_doc["requested_by"],
-        "type": "role_assignment_approved",
-        "title": "Role Assignment Approved",
-        "message": f"Role assignment for {request_doc['employee_name']} has been approved",
-        "reference_type": "employee",
-        "reference_id": request_doc["employee_id"],
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
+    # Count employees by level
+    level_counts = {
+        "executive": await db.employees.count_documents({"level": "executive"}),
+        "manager": await db.employees.count_documents({"level": "manager"}),
+        "leader": await db.employees.count_documents({"level": "leader"}),
+        "unassigned": await db.employees.count_documents({"$or": [{"level": None}, {"level": {"$exists": False}}]})
     }
-    await db.notifications.insert_one(notification)
+    
+    # Count custom roles
+    total_roles = await db.roles.count_documents({})
+    custom_roles = await db.roles.count_documents({"is_system_role": False})
     
     return {
-        "message": "Role assignment approved and applied",
-        "employee_id": request_doc["employee_id"]
-    }
-
-
-@router.post("/assign-role/{request_id}/reject")
-async def reject_role_assignment(request_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Admin rejects role assignment request."""
-    db = get_db()
-    
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admin can reject role assignments")
-    
-    request_doc = await db.role_assignment_requests.find_one({"id": request_id}, {"_id": 0})
-    if not request_doc:
-        raise HTTPException(status_code=404, detail="Request not found")
-    
-    rejection_reason = data.get("reason", "")
-    if not rejection_reason:
-        raise HTTPException(status_code=400, detail="Rejection reason is required")
-    
-    await db.role_assignment_requests.update_one(
-        {"id": request_id},
-        {"$set": {
-            "status": "rejected",
-            "reviewed_by": current_user.id,
-            "reviewed_by_name": current_user.full_name,
-            "reviewed_at": datetime.now(timezone.utc).isoformat(),
-            "review_comments": rejection_reason
-        }}
-    )
-    
-    # Notify requester
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": request_doc["requested_by"],
-        "type": "role_assignment_rejected",
-        "title": "Role Assignment Rejected",
-        "message": f"Role assignment for {request_doc['employee_name']} was rejected. Reason: {rejection_reason}",
-        "reference_type": "role_assignment_request",
-        "reference_id": request_id,
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.notifications.insert_one(notification)
-    
-    return {"message": "Role assignment request rejected"}
-
-
-# ==================== EMPLOYEE LEVEL MANAGEMENT ====================
-
-@router.patch("/employee/{employee_id}/level")
-async def update_employee_level(employee_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Update employee's level (HR/Admin only)."""
-    db = get_db()
-    
-    if current_user.role not in ["admin", "hr_manager"]:
-        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update employee level")
-    
-    new_level = data.get("level")
-    if new_level not in EMPLOYEE_LEVELS:
-        raise HTTPException(status_code=400, detail="Invalid level")
-    
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    # Get new level's default permissions
-    level_permissions = EMPLOYEE_LEVELS[new_level]["default_permissions"]
-    
-    # Merge with existing custom permissions
-    existing_permissions = employee.get("permissions", {})
-    final_permissions = {**level_permissions}
-    for module, perms in existing_permissions.items():
-        if module in final_permissions:
-            # Keep custom permissions that were added beyond level defaults
-            custom_perms = [p for p in perms if p not in level_permissions.get(module, [])]
-            final_permissions[module] = list(set(final_permissions[module] + custom_perms))
-    
-    await db.employees.update_one(
-        {"id": employee_id},
-        {"$set": {
-            "level": new_level,
-            "permissions": final_permissions,
-            "level_updated_at": datetime.now(timezone.utc).isoformat(),
-            "level_updated_by": current_user.id
-        }}
-    )
-    
-    # Update user if exists
-    if employee.get("user_id"):
-        await db.users.update_one(
-            {"id": employee["user_id"]},
-            {"$set": {"level": new_level, "permissions": final_permissions}}
-        )
-    
-    return {
-        "message": "Employee level updated",
-        "new_level": new_level,
-        "permissions": final_permissions
-    }
-
-
-@router.get("/employee/{employee_id}/permissions")
-async def get_employee_permissions(employee_id: str, current_user: User = Depends(get_current_user)):
-    """Get employee's current permissions."""
-    db = get_db()
-    
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    level = employee.get("level", "executive")
-    level_info = EMPLOYEE_LEVELS.get(level, EMPLOYEE_LEVELS["executive"])
-    
-    return {
-        "employee_id": employee_id,
-        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
-        "role": employee.get("role"),
-        "level": level,
-        "level_name": level_info["name"],
-        "level_description": level_info["description"],
-        "permissions": employee.get("permissions", level_info["default_permissions"])
-    }
-
-
-@router.patch("/employee/{employee_id}/permissions")
-async def update_employee_permissions(employee_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Update employee's permissions (HR/Admin can customize)."""
-    db = get_db()
-    
-    if current_user.role not in ["admin", "hr_manager"]:
-        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update permissions")
-    
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    new_permissions = data.get("permissions", {})
-    
-    await db.employees.update_one(
-        {"id": employee_id},
-        {"$set": {
-            "permissions": new_permissions,
-            "permissions_updated_at": datetime.now(timezone.utc).isoformat(),
-            "permissions_updated_by": current_user.id
-        }}
-    )
-    
-    # Update user if exists
-    if employee.get("user_id"):
-        await db.users.update_one(
-            {"id": employee["user_id"]},
-            {"$set": {"permissions": new_permissions}}
-        )
-    
-    return {"message": "Employee permissions updated", "permissions": new_permissions}
-
-
-# ==================== AUTO-DETECT LEVEL ====================
-
-@router.get("/employee/{employee_id}/detect-level")
-async def detect_employee_level(employee_id: str, current_user: User = Depends(get_current_user)):
-    """
-    Auto-detect employee level based on reporting structure.
-    
-    Logic:
-    - If employee has no reportees → Executive
-    - If employee has direct reportees who are NOT managers → Manager  
-    - If employee has direct reportees who ARE managers → Leader
-    """
-    db = get_db()
-    
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
-    # Get direct reportees
-    direct_reportees = await db.employees.find(
-        {"reporting_manager_id": employee_id},
-        {"_id": 0, "id": 1, "first_name": 1, "last_name": 1}
-    ).to_list(100)
-    
-    if not direct_reportees:
-        detected_level = "executive"
-        reason = "No direct reportees found"
-    else:
-        # Check if any reportee has their own reportees (making them a manager)
-        has_manager_reportees = False
-        for reportee in direct_reportees:
-            sub_reportees = await db.employees.count_documents({"reporting_manager_id": reportee["id"]})
-            if sub_reportees > 0:
-                has_manager_reportees = True
-                break
-        
-        if has_manager_reportees:
-            detected_level = "leader"
-            reason = f"Has {len(direct_reportees)} direct reportees, some of whom have their own teams"
-        else:
-            detected_level = "manager"
-            reason = f"Has {len(direct_reportees)} direct reportees (individual contributors)"
-    
-    return {
-        "employee_id": employee_id,
-        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
-        "current_level": employee.get("level"),
-        "detected_level": detected_level,
-        "detection_reason": reason,
-        "direct_reportee_count": len(direct_reportees)
+        "requests": {
+            "pending": pending_count,
+            "approved": approved_count,
+            "rejected": rejected_count
+        },
+        "employees_by_level": level_counts,
+        "roles": {
+            "total": total_roles,
+            "custom": custom_roles
+        }
     }
