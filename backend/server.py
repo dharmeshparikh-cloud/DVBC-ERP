@@ -1143,6 +1143,57 @@ async def complete_reminder(reminder_id: str, current_user: User = Depends(get_c
     
     return {"message": "Reminder marked as complete"}
 
+
+class LeadUpdate(BaseModel):
+    """Update lead fields"""
+    model_config = ConfigDict(extra="ignore")
+    status: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    company: Optional[str] = None
+    job_title: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@api_router.patch("/leads/{lead_id}")
+async def update_lead(
+    lead_id: str,
+    update_data: LeadUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a lead - including status change"""
+    existing = await db.leads.find_one({"id": lead_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Build update dict with only provided fields
+    update_dict = {}
+    for field, value in update_data.model_dump(exclude_unset=True).items():
+        if value is not None:
+            update_dict[field] = value
+    
+    if not update_dict:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_dict["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # If status changed, log it
+    if "status" in update_dict and update_dict["status"] != existing.get("status"):
+        update_dict["status_history"] = existing.get("status_history", []) + [{
+            "from": existing.get("status"),
+            "to": update_dict["status"],
+            "changed_by": current_user.id,
+            "changed_at": datetime.now(timezone.utc).isoformat()
+        }]
+    
+    await db.leads.update_one({"id": lead_id}, {"$set": update_dict})
+    
+    return {"message": "Lead updated successfully"}
+
+
 @api_router.get("/leads/{lead_id}/suggestions")
 async def get_lead_suggestions(lead_id: str, current_user: User = Depends(get_current_user)):
     lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
