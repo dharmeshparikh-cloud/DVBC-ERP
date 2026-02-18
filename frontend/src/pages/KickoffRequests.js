@@ -872,43 +872,34 @@ const KickoffRequests = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Project Type</Label>
-                <Select value={formData.project_type} onValueChange={(v) => setFormData({...formData, project_type: v})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="online">Online</SelectItem>
-                    <SelectItem value="offline">Offline</SelectItem>
-                    <SelectItem value="mixed">Mixed</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Project Type <span className="text-xs text-zinc-400">(from pricing plan)</span></Label>
+                <Input 
+                  value={formData.project_type === 'mixed' ? 'Mixed' : formData.project_type === 'online' ? 'Online' : formData.project_type === 'offline' ? 'Offline' : formData.project_type}
+                  readOnly
+                  disabled
+                  className="bg-zinc-100 cursor-not-allowed capitalize"
+                />
               </div>
               <div className="space-y-2">
-                <Label>Meeting Frequency</Label>
-                <Select value={formData.meeting_frequency} onValueChange={(v) => setFormData({...formData, meeting_frequency: v})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                    <SelectItem value="Quarterly">Quarterly</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Meeting Frequency <span className="text-xs text-zinc-400">(from pricing plan)</span></Label>
+                <Input 
+                  value={formData.meeting_frequency}
+                  readOnly
+                  disabled
+                  className="bg-zinc-100 cursor-not-allowed"
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Project Tenure (months)</Label>
+                <Label>Project Tenure (months) <span className="text-xs text-zinc-400">(from pricing plan)</span></Label>
                 <Input 
                   type="number"
-                  min="1"
-                  max="60"
                   value={formData.project_tenure_months}
-                  onChange={(e) => setFormData({...formData, project_tenure_months: e.target.value})}
+                  readOnly
+                  disabled
+                  className="bg-zinc-100 cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2">
