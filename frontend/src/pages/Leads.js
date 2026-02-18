@@ -112,6 +112,43 @@ const Leads = () => {
     return { color: 'bg-zinc-400', label: 'Cold', text: 'text-white' };
   };
 
+  // Filter leads by search query and timeline
+  const filteredLeads = useMemo(() => {
+    let result = leads;
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(lead => 
+        lead.first_name?.toLowerCase().includes(query) ||
+        lead.last_name?.toLowerCase().includes(query) ||
+        lead.company?.toLowerCase().includes(query) ||
+        lead.email?.toLowerCase().includes(query) ||
+        lead.phone?.includes(query) ||
+        `${lead.first_name} ${lead.last_name}`.toLowerCase().includes(query)
+      );
+    }
+    
+    // Timeline filter
+    if (timelineFilter !== 'all') {
+      const now = new Date();
+      result = result.filter(lead => {
+        const createdAt = new Date(lead.created_at);
+        const daysDiff = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+        
+        switch(timelineFilter) {
+          case 'today': return daysDiff === 0;
+          case 'week': return daysDiff <= 7;
+          case 'month': return daysDiff <= 30;
+          case 'quarter': return daysDiff <= 90;
+          default: return true;
+        }
+      });
+    }
+    
+    return result;
+  }, [leads, searchQuery, timelineFilter]);
+
   const canEdit = user?.role !== 'manager';
 
   return (
@@ -121,7 +158,7 @@ const Leads = () => {
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
             Leads
           </h1>
-          <p className="text-zinc-500">Manage your sales pipeline</p>
+          <p className="text-zinc-500">Manage your sales pipeline ({filteredLeads.length} of {leads.length} leads)</p>
         </div>
         <div className="flex items-center gap-3">
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
