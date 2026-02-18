@@ -565,16 +565,51 @@ const Expenses = () => {
                     className="rounded-sm"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Date</Label>
-                  <Input
-                    type="date"
-                    value={lineItemForm.date}
-                    onChange={(e) => setLineItemForm({ ...lineItemForm, date: e.target.value })}
-                    className="rounded-sm"
-                  />
+              </div>
+              
+              {/* Receipt Upload */}
+              <div className="mt-3 p-3 border border-dashed border-zinc-300 rounded-sm bg-zinc-50">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <Label className="text-xs text-zinc-500 mb-1 block">Attach Receipt/Bill (optional)</Label>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 px-3 py-2 bg-white border border-zinc-200 rounded-sm cursor-pointer hover:bg-zinc-100 transition-colors">
+                        <Upload className="w-4 h-4 text-zinc-500" />
+                        <span className="text-sm text-zinc-600">
+                          {lineItemForm.receipt ? lineItemForm.receipt.file_name : 'Upload Image'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={handleReceiptUpload}
+                          className="hidden"
+                          data-testid="receipt-upload"
+                        />
+                      </label>
+                      {lineItemForm.receipt && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setLineItemForm({...lineItemForm, receipt: null})}
+                          className="h-8 text-red-500"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {lineItemForm.receipt && lineItemForm.receipt.file_type?.startsWith('image/') && (
+                    <div className="w-16 h-16 rounded border border-zinc-200 overflow-hidden">
+                      <img 
+                        src={lineItemForm.receipt.file_data} 
+                        alt="Receipt preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
+              
               <Button 
                 onClick={addLineItem} 
                 variant="outline" 
@@ -597,6 +632,12 @@ const Expenses = () => {
                           {EXPENSE_CATEGORIES.find(c => c.value === item.category)?.label}
                         </span>
                         <span className="text-sm">{item.description}</span>
+                        {item.receipt && (
+                          <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded flex items-center gap-1">
+                            <Image className="w-3 h-3" />
+                            Receipt
+                          </span>
+                        )}
                         <span className="text-xs text-zinc-500">
                           {new Date(item.date).toLocaleDateString()}
                         </span>
