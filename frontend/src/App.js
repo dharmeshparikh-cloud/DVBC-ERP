@@ -133,6 +133,9 @@ function AppRouter({ user, login, logout, loading }) {
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       
+      {/* Public Letter Acceptance Routes - No auth required */}
+      <Route path="/accept-offer/:token" element={<AcceptOfferPage />} />
+      
       {/* Mobile Employee App - dedicated mobile view */}
       <Route path="/mobile" element={user ? <EmployeeMobileApp /> : <Navigate to="/login" />} />
       
