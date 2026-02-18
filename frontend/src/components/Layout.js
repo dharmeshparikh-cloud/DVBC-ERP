@@ -265,7 +265,13 @@ const Layout = () => {
         {showAdmin && (
           <>
             <SectionHeader label="Admin" sectionKey="admin" />
-            {expanded.admin && adminItems.map(item => <NavLink key={item.name} item={item} />)}
+            {expanded.admin && adminItems.map(item => (
+              <NavLink 
+                key={item.name} 
+                item={item} 
+                badge={item.name === 'Approvals Center' ? pendingCounts.total : 0}
+              />
+            ))}
           </>
         )}
       </nav>
