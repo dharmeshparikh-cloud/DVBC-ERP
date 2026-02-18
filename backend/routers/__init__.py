@@ -15,6 +15,11 @@ from . import stats
 from . import security
 from . import users
 from . import kickoff
+from . import ctc
+from . import employees
+from . import attendance
+from . import expenses
+from . import hr
 from . import masters
 from . import sow_masters
 from . import enhanced_sow
@@ -30,6 +35,11 @@ __all__ = [
     "security",
     "users",
     "kickoff",
+    "ctc",
+    "employees",
+    "attendance",
+    "expenses",
+    "hr",
     "masters",
     "sow_masters",
     "enhanced_sow",
