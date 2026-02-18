@@ -1125,7 +1125,7 @@ Based on user-provided documents: `Bugs 3.docx`, `ERP Bugs 2.docx`, `HR PORTAL 2
 |------|---------|--------|-------|
 | 1 | HR Onboarding | ✅ DONE | Employee creation with all fields |
 | 2 | Portal Access | ✅ DONE | Create user account, link to employee |
-| 3 | Project Assignment | ✅ DONE | AssignTeam.js, backend endpoints |
+| 3 | Project Assignment | ✅ DONE | AssignTeam.js, backend endpoints - FIXED Feb 18, 2026 |
 | 4 | Access Assigned Projects | ✅ DONE | /consultant/my-projects |
 | 5 | View SOW | ✅ DONE | ConsultingSOWList.js |
 | 6 | Task Creation | ✅ DONE | ConsultingProjectTasks.js |
@@ -1135,19 +1135,29 @@ Based on user-provided documents: `Bugs 3.docx`, `ERP Bugs 2.docx`, `HR PORTAL 2
 | 10 | Performance Review | 🟡 PARTIAL | Performance dashboard exists |
 | 11 | Termination | 🟡 PARTIAL | Employee status can be updated |
 
+**Bug Fixes Applied (Feb 18, 2026):**
+1. **ConsultantAssignmentCreate model** - Fixed `project_id` to be Optional (was required but comes from URL path)
+2. **assigned_consultants format** - Projects now store full consultant objects `{user_id, name, email, role, assigned_at}` instead of just IDs for frontend compatibility
+3. **Project model** - Updated to accept `List[Any]` for `assigned_consultants` to support both old (string IDs) and new (objects) formats
+
+**Testing Results:**
+- Backend: 100% (14/14 tests passed)
+- Frontend: 100% (All pages and features working)
+- Test Report: `/app/test_reports/iteration_52.json`
+
 **Gaps Identified:**
 - Performance review not fully integrated with termination flow
 - No explicit "Terminate Employee" button with workflow
 
 
-
-
+| Bug/Feature | Status | Notes |
+|-------------|--------|-------|
 | Remove duplicate Apply Leave button | ✅ DONE | From Leave Management |
 | SOW scope checkbox (not dropdown) | 🔶 PENDING | Need to implement |
-| Lead status change | 🔶 PENDING | Upper panel issue |
-| Blank pages (Timesheets, Assign Team) | 🔶 PENDING | Need investigation |
+| Lead status change | ✅ DONE | Status dropdown in Leads page |
+| Blank pages (Timesheets, Assign Team) | ✅ FIXED | Both pages working correctly |
 | Proforma Invoice listing | 🔶 PENDING | Against prospects |
-| Employee scorecards | 🔶 PENDING | Total, with/without access |
+| Employee scorecards | ✅ DONE | Total, with/without access |
 
 
 - UI verified: Withdraw button only shows for pending requests
