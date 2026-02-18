@@ -621,3 +621,29 @@ px-3 md:px-6          /* Horizontal padding */
 - Backend: 24/24 tests passed (pytest)
 - Frontend: All Role Management features verified
 - Test file: `/app/backend/tests/test_role_management_levels.py`
+
+### Server.py Final Cleanup (Feb 18, 2026)
+- [x] **Safe Micro-Cleanup Completed**
+  - Removed duplicate meetings endpoints (POST, GET, GET/:id, PATCH/:id/mom, POST/:id/action-items, PATCH/:id/action-items/:id, POST/:id/send-mom)
+  - Meetings router now handles all meeting CRUD
+  - Kept `/consulting-meetings/tracking` endpoint (unique to server.py)
+  - Kept `/follow-up-tasks` endpoint (not in router)
+  - Lines removed: ~385 (48 + 335)
+  - server.py: 10,341 → 9,958 lines (now under 10K!)
+
+- [x] **Migration Plan Created**
+  - Created `/app/MIGRATION_PLAN.md` with full analysis
+  - Documents safe vs risky endpoints
+  - Lists consulting/handoff critical endpoints that MUST stay
+  - Provides future migration steps
+
+### Consulting/Handoff Impact Analysis
+**NO IMPACT on critical flows:**
+- ✅ Consultant assignment/unassignment
+- ✅ Kickoff meeting workflow
+- ✅ Project handoff process  
+- ✅ Cross-team notifications
+- ✅ Approval workflows
+- ✅ SOW/Agreement management
+
+All consulting-specific endpoints remain in server.py and are NOT duplicated in routers.
