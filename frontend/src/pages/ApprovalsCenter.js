@@ -148,86 +148,295 @@ const ApprovalsCenter = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-96"><div className="text-zinc-500">Loading...</div></div>;
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+      </div>
+    );
   }
 
+  // Calculate total pending for current user
+  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length;
+
+  // CTC Action handlers
+  const handleCtcAction = async (ctcId, action) => {
+    setActionLoading(true);
+    try {
+      if (action === 'approve') {
+        await axios.post(`${API}/ctc/${ctcId}/approve`, { comments });
+        toast.success('CTC structure approved successfully');
+      } else {
+        await axios.post(`${API}/ctc/${ctcId}/reject`, { reason: comments });
+        toast.success('CTC structure rejected');
+      }
+      setCtcDetailDialog(false);
+      setSelectedCtc(null);
+      setComments('');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} CTC structure`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Bank Change Action handlers
+  const handleBankAction = async (employeeId, action) => {
+    setActionLoading(true);
+    try {
+      const endpoint = isAdmin 
+        ? `${API}/admin/bank-change-request/${employeeId}/${action}`
+        : `${API}/hr/bank-change-request/${employeeId}/${action}`;
+      
+      await axios.post(endpoint, { reason: comments });
+      toast.success(`Bank change request ${action === 'approve' ? 'approved' : 'rejected'}`);
+      setBankDetailDialog(false);
+      setSelectedBank(null);
+      setComments('');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} bank change request`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    if (!amount) return '₹0';
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} L`;
+    return `₹${amount.toLocaleString('en-IN')}`;
+  };
+
   return (
-    <div data-testid="approvals-center">
+    <div data-testid="approvals-center" className={isDark ? 'text-zinc-100' : ''}>
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+        <h1 className={`text-2xl md:text-3xl font-semibold tracking-tight mb-2 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
           Approvals Center
         </h1>
-        <p className="text-zinc-500">Review and manage approval requests</p>
+        <p className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>Review and manage approval requests</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card className="border-zinc-200 shadow-none rounded-sm">
-          <CardContent className="p-4">
+      {/* Stats - Updated to include CTC and Bank approvals */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase text-zinc-500">Pending My Action</p>
-                <p className="text-2xl font-semibold text-yellow-600">{pendingApprovals.length}</p>
+                <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Pending</p>
+                <p className="text-xl md:text-2xl font-semibold text-yellow-600">{totalPending}</p>
               </div>
-              <Clock className="w-8 h-8 text-yellow-200" />
+              <Clock className="w-6 h-6 md:w-8 md:h-8 text-yellow-500/30" />
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200 shadow-none rounded-sm">
-          <CardContent className="p-4">
+
+        {isAdmin && (
+          <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>CTC Approvals</p>
+                  <p className="text-xl md:text-2xl font-semibold text-purple-600">{ctcApprovals.length}</p>
+                </div>
+                <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-purple-500/30" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {(isAdmin || isHR) && (
+          <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Bank Changes</p>
+                  <p className="text-xl md:text-2xl font-semibold text-rose-600">{bankApprovals.length}</p>
+                </div>
+                <Building2 className="w-6 h-6 md:w-8 md:h-8 text-rose-500/30" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase text-zinc-500">My Requests</p>
-                <p className="text-2xl font-semibold text-blue-600">{myRequests.length}</p>
+                <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>My Requests</p>
+                <p className="text-xl md:text-2xl font-semibold text-blue-600">{myRequests.length}</p>
               </div>
-              <Send className="w-8 h-8 text-blue-200" />
+              <Send className="w-6 h-6 md:w-8 md:h-8 text-blue-500/30" />
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200 shadow-none rounded-sm">
-          <CardContent className="p-4">
+
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase text-zinc-500">My Approved</p>
-                <p className="text-2xl font-semibold text-emerald-600">
+                <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Approved</p>
+                <p className="text-xl md:text-2xl font-semibold text-emerald-600">
                   {myRequests.filter(r => r.overall_status === 'approved').length}
                 </p>
               </div>
-              <CheckCircle className="w-8 h-8 text-emerald-200" />
+              <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-emerald-500/30" />
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200 shadow-none rounded-sm">
-          <CardContent className="p-4">
+
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase text-zinc-500">My Rejected</p>
-                <p className="text-2xl font-semibold text-red-600">
+                <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Rejected</p>
+                <p className="text-xl md:text-2xl font-semibold text-red-600">
                   {myRequests.filter(r => r.overall_status === 'rejected').length}
                 </p>
               </div>
-              <XCircle className="w-8 h-8 text-red-200" />
+              <XCircle className="w-6 h-6 md:w-8 md:h-8 text-red-500/30" />
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* CTC Approvals Section - Only for Admin */}
+      {isAdmin && ctcApprovals.length > 0 && (
+        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <DollarSign className="w-5 h-5 text-purple-500" />
+              Pending CTC Approvals ({ctcApprovals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {ctcApprovals.map((ctc, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                          {ctc.employee_name || 'Unknown Employee'}
+                        </span>
+                        <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                          CTC Structure
+                        </Badge>
+                      </div>
+                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        <span>Annual CTC: <strong className="text-purple-600">{formatCurrency(ctc.annual_ctc)}</strong></span>
+                        <span className="mx-2">•</span>
+                        <span>Effective: {ctc.effective_date || 'N/A'}</span>
+                      </div>
+                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        Submitted by: {ctc.created_by || 'HR'} on {new Date(ctc.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setSelectedCtc(ctc); setCtcDetailDialog(true); }}
+                        className={isDark ? 'border-zinc-600' : ''}
+                      >
+                        <Eye className="w-4 h-4 mr-1" /> View
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => { setSelectedCtc(ctc); setCtcDetailDialog(true); }}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bank Change Approvals Section - For Admin and HR */}
+      {(isAdmin || isHR) && bankApprovals.length > 0 && (
+        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <Building2 className="w-5 h-5 text-rose-500" />
+              Pending Bank Detail Changes ({bankApprovals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {bankApprovals.map((bank, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                          {bank.employee_name || 'Unknown Employee'}
+                        </span>
+                        <Badge className={`${bank.status === 'pending_hr' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'} ${isDark ? 'dark:bg-amber-900/30 dark:text-amber-400' : ''}`}>
+                          {bank.status === 'pending_hr' ? 'Pending HR' : 'Pending Admin'}
+                        </Badge>
+                      </div>
+                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        <span>Bank: <strong>{bank.new_bank_details?.bank_name}</strong></span>
+                        <span className="mx-2">•</span>
+                        <span>A/C: ****{bank.new_bank_details?.account_number?.slice(-4)}</span>
+                      </div>
+                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        Reason: {bank.reason || 'Not specified'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setSelectedBank(bank); setBankDetailDialog(true); }}
+                        className={isDark ? 'border-zinc-600' : ''}
+                      >
+                        <Eye className="w-4 h-4 mr-1" /> View
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => { setSelectedBank(bank); setBankDetailDialog(true); }}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" /> Review
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
-      <div className="flex border-b border-zinc-200 mb-6">
+      <div className={`flex border-b ${isDark ? 'border-zinc-700' : 'border-zinc-200'} mb-6 overflow-x-auto`}>
         <button
           onClick={() => setActiveTab('pending')}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 md:px-6 py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'pending' 
-              ? 'border-zinc-950 text-zinc-950' 
-              : 'border-transparent text-zinc-500 hover:text-zinc-950'
+              ? isDark ? 'border-orange-500 text-orange-400' : 'border-zinc-950 text-zinc-950'
+              : isDark ? 'border-transparent text-zinc-500 hover:text-zinc-300' : 'border-transparent text-zinc-500 hover:text-zinc-950'
           }`}
         >
-          <Clock className="w-4 h-4 inline mr-2" />
-          Pending My Action ({pendingApprovals.length})
+          <Clock className="w-4 h-4 inline mr-1 md:mr-2" />
+          General ({pendingApprovals.length})
         </button>
         <button
           onClick={() => setActiveTab('my-requests')}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 md:px-6 py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'my-requests' 
               ? 'border-zinc-950 text-zinc-950' 
               : 'border-transparent text-zinc-500 hover:text-zinc-950'
