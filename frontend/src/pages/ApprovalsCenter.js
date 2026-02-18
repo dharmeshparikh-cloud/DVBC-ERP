@@ -3,12 +3,16 @@ import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Textarea } from '../components/ui/textarea';
 import { 
   CheckCircle, XCircle, Clock, AlertCircle, ChevronRight, 
-  FileText, Calendar, User, MessageSquare, Send
+  FileText, Calendar, User, MessageSquare, Send, DollarSign,
+  Building2, CreditCard, Eye, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTheme } from '../contexts/ThemeContext';
 
 const APPROVAL_TYPE_LABELS = {
   sow_item: 'SOW Item',
@@ -16,12 +20,19 @@ const APPROVAL_TYPE_LABELS = {
   quotation: 'Quotation',
   leave_request: 'Leave Request',
   expense: 'Expense',
-  client_communication: 'Client Communication'
+  client_communication: 'Client Communication',
+  ctc_structure: 'CTC Structure',
+  bank_change: 'Bank Details Change'
 };
 
 const ApprovalsCenter = () => {
   const { user } = useContext(AuthContext);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  
   const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [ctcApprovals, setCtcApprovals] = useState([]);
+  const [bankApprovals, setBankApprovals] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [allApprovals, setAllApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +41,14 @@ const ApprovalsCenter = () => {
   const [actionDialog, setActionDialog] = useState(false);
   const [actionType, setActionType] = useState('');
   const [comments, setComments] = useState('');
+  const [ctcDetailDialog, setCtcDetailDialog] = useState(false);
+  const [selectedCtc, setSelectedCtc] = useState(null);
+  const [bankDetailDialog, setBankDetailDialog] = useState(false);
+  const [selectedBank, setSelectedBank] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const isAdmin = user?.role === 'admin';
+  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
   const isManager = ['admin', 'manager', 'hr_manager', 'project_manager'].includes(user?.role);
 
   useEffect(() => {
@@ -40,17 +57,37 @@ const ApprovalsCenter = () => {
 
   const fetchData = async () => {
     try {
-      const [pendingRes, myRes] = await Promise.all([
-        axios.get(`${API}/approvals/pending`),
-        axios.get(`${API}/approvals/my-requests`)
-      ]);
+      const requests = [
+        axios.get(`${API}/approvals/pending`).catch(() => ({ data: [] })),
+        axios.get(`${API}/approvals/my-requests`).catch(() => ({ data: [] }))
+      ];
       
-      setPendingApprovals(pendingRes.data || []);
-      setMyRequests(myRes.data || []);
+      // Fetch CTC approvals for admin
+      if (isAdmin) {
+        requests.push(axios.get(`${API}/ctc/pending-approvals`).catch(() => ({ data: [] })));
+        requests.push(axios.get(`${API}/admin/bank-change-requests`).catch(() => ({ data: [] })));
+      }
+      
+      // Fetch bank approvals for HR
+      if (isHR) {
+        requests.push(axios.get(`${API}/hr/bank-change-requests`).catch(() => ({ data: [] })));
+      }
+      
+      const results = await Promise.all(requests);
+      
+      setPendingApprovals(results[0]?.data || []);
+      setMyRequests(results[1]?.data || []);
+      
+      if (isAdmin) {
+        setCtcApprovals(results[2]?.data || []);
+        setBankApprovals(results[3]?.data || []);
+      } else if (isHR) {
+        setBankApprovals(results[2]?.data || []);
+      }
       
       // Fetch all approvals if admin/manager
       if (isManager) {
-        const allRes = await axios.get(`${API}/approvals/all`);
+        const allRes = await axios.get(`${API}/approvals/all`).catch(() => ({ data: [] }));
         setAllApprovals(allRes.data || []);
       }
     } catch (error) {
@@ -64,6 +101,7 @@ const ApprovalsCenter = () => {
   const handleAction = async () => {
     if (!selectedApproval) return;
     
+    setActionLoading(true);
     try {
       await axios.post(`${API}/approvals/${selectedApproval.id}/action`, {
         action: actionType,
@@ -77,6 +115,8 @@ const ApprovalsCenter = () => {
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || `Failed to ${actionType} request`);
+    } finally {
+      setActionLoading(false);
     }
   };
 
