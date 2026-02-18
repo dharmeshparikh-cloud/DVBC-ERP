@@ -441,7 +441,7 @@ const HROnboarding = () => {
               <div className="space-y-2">
                 <Label>Role *</Label>
                 <Select value={formData.role} onValueChange={(v) => handleInputChange('role', v)}>
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="onboard-role">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -452,9 +452,30 @@ const HROnboarding = () => {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>Employee Level *</Label>
+                <Select value={formData.level} onValueChange={(v) => handleInputChange('level', v)}>
+                  <SelectTrigger data-testid="onboard-level">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPLOYEE_LEVELS.map(level => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {EMPLOYEE_LEVELS.find(l => l.value === formData.level)?.description || ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Employment Type *</Label>
                 <Select value={formData.employment_type} onValueChange={(v) => handleInputChange('employment_type', v)}>
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="onboard-emp-type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -464,20 +485,19 @@ const HROnboarding = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Reporting Manager</Label>
-              <Select value={formData.reporting_manager_id} onValueChange={(v) => handleInputChange('reporting_manager_id', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select reporting manager" />
-                </SelectTrigger>
-                <SelectContent>
-                  {managers.map(mgr => (
-                    <SelectItem key={mgr.id} value={mgr.id}>{mgr.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label>Reporting Manager</Label>
+                <Select value={formData.reporting_manager_id} onValueChange={(v) => handleInputChange('reporting_manager_id', v)}>
+                  <SelectTrigger data-testid="onboard-reporting-mgr">
+                    <SelectValue placeholder="Select reporting manager" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {managers.map(mgr => (
+                      <SelectItem key={mgr.id} value={mgr.id}>{mgr.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         );
