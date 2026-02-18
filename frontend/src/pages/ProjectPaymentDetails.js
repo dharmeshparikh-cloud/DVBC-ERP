@@ -175,17 +175,9 @@ const ProjectPaymentDetails = () => {
       {activeTab === 'payments' && (
         <Card className="border-zinc-200 shadow-none rounded-sm" data-testid="payment-schedule-content">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold uppercase tracking-tight text-zinc-950">
-                {isConsultantView ? 'Upcoming Payment Dates' : `Payment Schedule (${paymentData.payment_frequency})`}
-              </CardTitle>
-              {!canViewAmounts && (
-                <span className="flex items-center gap-1 text-xs text-zinc-500">
-                  <EyeOff className="w-3 h-3" />
-                  Amounts hidden
-                </span>
-              )}
-            </div>
+            <CardTitle className="text-lg font-semibold uppercase tracking-tight text-zinc-950">
+              {isConsultantView ? 'Upcoming Payment Dates' : `Payment Schedule (${paymentData.payment_frequency})`}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {paymentData.payment_schedule.length === 0 ? (
