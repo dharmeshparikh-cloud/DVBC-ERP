@@ -328,7 +328,7 @@ async def accept_kickoff_request(
     agreement = await db.agreements.find_one({"id": kickoff.get("agreement_id")}, {"_id": 0})
     pricing_plan_id = agreement.get('pricing_plan_id') if agreement else None
     
-    # Create project from kickoff request
+    # Create project from kickoff request - SET STATUS TO ACTIVE
     project = Project(
         name=kickoff.get("project_name"),
         client_name=kickoff.get("client_name"),
@@ -338,7 +338,8 @@ async def accept_kickoff_request(
         start_date=datetime.now(timezone.utc),
         total_meetings_committed=kickoff.get("total_meetings", 0),
         project_value=kickoff.get("project_value"),
-        created_by=current_user.id
+        created_by=current_user.id,
+        status="active"  # Auto-set to active on kickoff acceptance
     )
     
     project_doc = project.model_dump()
