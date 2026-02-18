@@ -265,6 +265,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="hr-dashboard" element={<HRDashboard />} />
         <Route path="admin-masters" element={<AdminMasters />} />
         <Route path="permission-manager" element={<PermissionManager />} />
+        <Route path="role-management" element={<RoleManagement />} />
         <Route path="admin-dashboard-mockups" element={<AdminDashboardMockups />} />
         <Route path="admin-dashboard" element={<AdminDashboard />} />
         <Route path="office-locations" element={<OfficeLocationsSettings />} />
