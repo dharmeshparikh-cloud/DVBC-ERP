@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent } from '../components/ui/card';
 import { toast } from 'sonner';
-import { Mail, Lock, LayoutDashboard, Users, Briefcase, BarChart3, Shield, Settings } from 'lucide-react';
+import { Mail, Lock, LayoutDashboard, Users, Briefcase, BarChart3, Shield, Settings, Eye, EyeOff } from 'lucide-react';
 
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 
