@@ -935,6 +935,43 @@ const showAdmin = ADMIN_ROLES.includes(role) || isLeader();
 #### Permission Behavior by Role:
 | Role | My Workspace | HR | Sales | Admin |
 |------|-------------|-----|-------|-------|
+
+### Permission Dashboard Feature (Feb 18, 2026)
+
+#### New Page: `/permission-dashboard`
+Admin-only dashboard for managing employee permission levels across the organization.
+
+**Features:**
+1. **Stats Overview Cards**
+   - Count of Executives, Managers, Leaders
+   - Count of employees without assigned level
+
+2. **Level Permission Matrix**
+   - Visual grid showing all 10 permissions across 3 levels
+   - Edit button to customize permissions for each level
+   - Inline editing with Save/Cancel
+
+3. **Employee Permission Levels**
+   - Searchable list of all employees
+   - Filter by level (All/Executive/Manager/Leader)
+   - Each employee row expandable to:
+     - Change level with one click (Executive/Manager/Leader buttons)
+     - View current permissions based on level
+
+**Files Created:**
+- `/app/frontend/src/pages/PermissionDashboard.js` - New dashboard page
+
+**Files Modified:**
+- `/app/frontend/src/App.js` - Added import and route
+- `/app/frontend/src/components/Layout.js` - Added nav link in Admin section
+
+**API Endpoints Used:**
+- `GET /api/role-management/stats` - Level statistics
+- `GET /api/role-management/level-permissions` - Permission matrix
+- `PATCH /api/employees/{id}` - Update employee level
+- `PUT /api/role-management/level-permissions` - Update level permissions
+
+
 | Admin | ✅ | ✅ | ✅ | ✅ |
 | HR Manager | ✅ | ✅ | ❌ | ✅ |
 | HR Executive | ✅ | ✅ | ❌ | ❌ |
