@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://enterprise-ops-10.preview.emergentagent.com",
+      "value": "https://level-permissions.preview.emergentagent.com",
       "type": "string"
     },
     {
