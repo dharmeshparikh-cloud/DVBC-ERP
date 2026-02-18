@@ -1175,4 +1175,104 @@ const EditTenureRow = ({ tenure, onSave, onCancel }) => {
   );
 };
 
+// Inline edit component for SOW Categories
+const EditCategoryInline = ({ category, onSave, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: category.name,
+    description: category.description || '',
+    is_active: category.is_active
+  });
+
+  return (
+    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+      <Input 
+        value={formData.name} 
+        onChange={(e) => setFormData({...formData, name: e.target.value})}
+        className="h-8 text-sm"
+        placeholder="Category name"
+      />
+      <Input 
+        value={formData.description}
+        onChange={(e) => setFormData({...formData, description: e.target.value})}
+        className="h-8 text-sm"
+        placeholder="Description"
+      />
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-1 text-xs">
+          <input 
+            type="checkbox"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+          />
+          Active
+        </label>
+        <div className="flex-1" />
+        <Button size="sm" variant="ghost" onClick={onCancel} className="h-7 px-2 text-xs">Cancel</Button>
+        <Button size="sm" onClick={() => onSave(formData)} className="h-7 px-2 text-xs bg-blue-600 text-white">Save</Button>
+      </div>
+    </div>
+  );
+};
+
+// Inline edit component for SOW Scopes (table row)
+const EditScopeRow = ({ scope, categories, onSave, onCancel }) => {
+  const [formData, setFormData] = useState({
+    name: scope.name,
+    description: scope.description || '',
+    is_active: scope.is_active
+  });
+
+  return (
+    <tr className="bg-yellow-50">
+      <td className="px-4 py-2">
+        <Input 
+          value={formData.name} 
+          onChange={(e) => setFormData({...formData, name: e.target.value})}
+          className="h-8 text-sm"
+        />
+      </td>
+      <td className="px-4 py-2 text-sm">
+        <span className="px-2 py-1 bg-zinc-100 rounded text-xs text-zinc-600">
+          {categories.find(c => c.id === scope.category_id)?.name || scope.category_code}
+        </span>
+      </td>
+      <td className="px-4 py-2">
+        <Input 
+          value={formData.description}
+          onChange={(e) => setFormData({...formData, description: e.target.value})}
+          className="h-8 text-sm"
+          placeholder="Description"
+        />
+      </td>
+      <td className="px-4 py-2 text-center">
+        <span className={`px-2 py-1 text-xs rounded ${
+          scope.is_custom ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+        }`}>
+          {scope.is_custom ? 'Custom' : 'Default'}
+        </span>
+      </td>
+      <td className="px-4 py-2 text-center">
+        <label className="flex items-center justify-center gap-1 text-xs">
+          <input 
+            type="checkbox"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+          />
+          Active
+        </label>
+      </td>
+      <td className="px-4 py-2 text-center">
+        <div className="flex items-center justify-center gap-1">
+          <Button size="sm" variant="ghost" onClick={() => onSave(formData)} className="h-7 w-7 p-0 text-green-600">
+            <Check className="w-4 h-4" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onCancel} className="h-7 w-7 p-0 text-red-600">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 export default AdminMasters;
