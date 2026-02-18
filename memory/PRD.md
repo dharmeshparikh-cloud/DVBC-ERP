@@ -996,6 +996,66 @@ Admin-only dashboard for managing employee permission levels across the organiza
 **Test Results:**
 - API tested: Create leave → Withdraw → Verify status changed to "withdrawn"
 - Error handling: Cannot withdraw already withdrawn/approved/rejected requests
+
+### Bug Fixes & Features - Session 19 (Feb 18, 2026)
+
+Based on user-provided documents: `Bugs 3.docx`, `ERP Bugs 2.docx`, `HR PORTAL 2.0.docx`
+
+#### 1. Enhanced Staffing Requests System (NEW)
+**Endpoint:** `POST/GET /api/staffing-requests`
+
+**Fields included:**
+- Requester info (name, employee_id, email, reporting_manager)
+- Project name & Purpose/Justification
+- Budget range
+- Timeline/Start date
+- Location
+- Work mode (office/client_site/remote)
+- Skills required (array)
+- Experience years
+- Headcount
+- Priority (low/normal/high/urgent)
+- Status (pending_approval/approved/rejected/fulfilled)
+
+**Admin Approval Flow:**
+- `POST /api/staffing-requests/{id}/approve` - Admin only
+- `POST /api/staffing-requests/{id}/reject` - Admin only with reason
+
+**Files Modified:**
+- `/app/backend/server.py` - Added staffing request endpoints
+- `/app/frontend/src/pages/HRStaffingRequests.js` - Complete rewrite with form
+
+#### 2. Half-Day Leave Option (NEW)
+- Added `is_half_day` checkbox in Apply Leave dialog
+- Added `half_day_type` dropdown (First Half/Second Half)
+- Backend calculates days as 0.5 for half-day leaves
+- Displayed in leave request list
+
+**Files Modified:**
+- `/app/backend/server.py` - Updated LeaveRequestCreate model
+- `/app/frontend/src/pages/MyLeaves.js` - Added half-day UI
+
+#### 3. Removed Duplicate Buttons
+- ❌ Removed "Apply Leave" from LeaveManagement.js (HR page)
+  - Employees should use My Leaves page instead
+
+**Files Modified:**
+- `/app/frontend/src/pages/LeaveManagement.js` - Removed dialog and form
+
+#### Bug Fixes Status from Documents:
+
+| Bug/Feature | Status | Notes |
+|-------------|--------|-------|
+| Staffing request with proper fields | ✅ DONE | Budget, timeline, location, etc. |
+| Half-day leave option | ✅ DONE | First/Second half selection |
+| Remove duplicate Apply Leave button | ✅ DONE | From Leave Management |
+| SOW scope checkbox (not dropdown) | 🔶 PENDING | Need to implement |
+| Lead status change | 🔶 PENDING | Upper panel issue |
+| Blank pages (Timesheets, Assign Team) | 🔶 PENDING | Need investigation |
+| Proforma Invoice listing | 🔶 PENDING | Against prospects |
+| Employee scorecards | 🔶 PENDING | Total, with/without access |
+
+
 - UI verified: Withdraw button only shows for pending requests
 
 
