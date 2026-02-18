@@ -10321,6 +10321,7 @@ api_router.include_router(leads_router.router)
 api_router.include_router(projects_router.router)
 api_router.include_router(meetings_router.router)
 api_router.include_router(users_router.router)
+api_router.include_router(role_management_router.router)
 
 app.include_router(api_router)
 
