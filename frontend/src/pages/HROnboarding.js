@@ -226,6 +226,8 @@ const HROnboarding = () => {
         address: formData.address,
         department: formData.department,
         designation: formData.designation,
+        level: formData.level || 'executive',  // Employee permission level (mandatory)
+        role: formData.role || 'consultant',   // System role
         employment_type: formData.employment_type,
         joining_date: formData.joining_date,
         reporting_manager_id: formData.reporting_manager_id,
