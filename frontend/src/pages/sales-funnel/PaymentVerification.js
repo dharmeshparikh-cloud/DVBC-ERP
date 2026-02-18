@@ -90,19 +90,40 @@ const PaymentVerification = () => {
       const eligibilityRes = await axios.get(`${API}/payments/check-eligibility/${agreementId}`);
       setEligibilityStatus(eligibilityRes.data);
       
-      // Fetch quotation details for expected amount
+      // Fetch quotation and pricing plan details for expected amount
       if (agreement.quotation_id) {
         const quotationsRes = await axios.get(`${API}/quotations`);
         const quotation = quotationsRes.data.find(q => q.id === agreement.quotation_id);
         if (quotation) {
           setQuotationDetails(quotation);
-          // Calculate first installment amount (typically 30-50% advance)
-          const advancePercentage = 0.30; // 30% advance
-          const expectedAmount = Math.round(quotation.grand_total * advancePercentage);
+          
+          // Fetch pricing plan to get first installment from payment terms
+          let firstInstallmentAmount = Math.round(quotation.grand_total * 0.30); // Default 30%
+          
+          if (quotation.pricing_plan_id) {
+            try {
+              const pricingPlanRes = await axios.get(`${API}/pricing-plans/${quotation.pricing_plan_id}`);
+              const pricingPlan = pricingPlanRes.data;
+              
+              // Check if pricing plan has specific payment terms/installments
+              if (pricingPlan.payment_terms && pricingPlan.payment_terms.length > 0) {
+                const firstTerm = pricingPlan.payment_terms[0];
+                firstInstallmentAmount = firstTerm.amount || Math.round(quotation.grand_total * (firstTerm.percentage || 30) / 100);
+              } else if (pricingPlan.first_installment_amount) {
+                firstInstallmentAmount = pricingPlan.first_installment_amount;
+              } else if (pricingPlan.advance_percentage) {
+                firstInstallmentAmount = Math.round(quotation.grand_total * pricingPlan.advance_percentage / 100);
+              }
+            } catch (e) {
+              console.log('Using default 30% for first installment');
+            }
+          }
+          
           setFormData(prev => ({ 
             ...prev, 
-            expected_amount: expectedAmount,
-            received_amount: expectedAmount
+            expected_amount: firstInstallmentAmount,
+            received_amount: firstInstallmentAmount,
+            pricing_plan_id: quotation.pricing_plan_id
           }));
         }
       }
