@@ -218,6 +218,30 @@ Build a business management application for a consulting firm with complete HR, 
   - [x] `/consulting/assign-team/:projectId` page confirmed working
   - [x] Shows project details, duration, meetings
   - [x] Add Consultant functionality available
+- [x] **Consultant Assignment Notifications**
+  - [x] Notification sent to assigned consultant when assigned to project
+  - [x] Notification sent to reporting manager when their reportee is assigned
+- [x] **Project Payments Page**
+  - [x] New `/payments` page showing all project payments
+  - [x] Summary cards: Total Received, Total Value, Active Projects, Upcoming Amount
+  - [x] My Projects tab with payment status per project
+  - [x] Upcoming Payments tab for Admin/PM/Principal Consultant
+  - [x] Navigation link added under Consulting and Admin sections
+- [x] **Project Payment Details Page**
+  - [x] `/projects/:projectId/payments` detailed payment view
+  - [x] First Advance Payment status with transaction details
+  - [x] Payment Schedule tab (from pricing plan)
+  - [x] Consultant Breakdown tab with assigned consultants
+  - [x] Inherited SOW tab (view-only for consultants, editable for PM/Admin)
+  - [x] SOW History tab for tracking changes (PM/Admin only)
+- [x] **Backend APIs for Project Payments**
+  - [x] `GET /api/project-payments/project/{project_id}` - Full payment details
+  - [x] `GET /api/project-payments/my-payments` - User's projects payments
+  - [x] `GET /api/project-payments/upcoming` - Upcoming payment schedule
+- [x] **SOW History Tracking**
+  - [x] `GET /api/enhanced-sow/{sow_id}/history` - Complete SOW change history
+  - [x] `GET /api/enhanced-sow/project/{project_id}/sow` - Inherited SOW for project
+  - [x] Access control: View-only for consultants, Edit for PM/Admin
   - [x] Added `/onboarding` route to main ERP (previously only in HR Portal)
   - [x] Added "Onboarding" link in HR section of main sidebar
   - [x] Full 5-step onboarding wizard accessible from main ERP
