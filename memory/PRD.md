@@ -570,3 +570,54 @@ px-3 md:px-6          /* Horizontal padding */
 ## Database Schema Updates (Session 11)
 - **bank_change_requests**: `{employee_id, employee_name, employee_code, current_bank_details, new_bank_details, proof_document, proof_filename, reason, status, hr_approved_by, hr_approved_at, admin_approved_by, admin_approved_at, rejection_reason, created_at, updated_at}`
   - Status values: `pending_hr`, `pending_admin`, `approved`, `rejected`
+
+### Session 13 (Feb 18, 2026) - Enhanced Role & Permission Management System
+- [x] **Employee Levels System**
+  - [x] 3 hierarchy levels: Executive (entry), Manager (mid), Leader (senior)
+  - [x] Default permission sets per level (10 boolean permissions)
+  - [x] Admin can customize level permissions via UI
+  - [x] Level stored on employee record
+
+- [x] **Role Creation/Assignment Approval Workflow**
+  - [x] HR submits role creation request → Admin approval required
+  - [x] HR submits role assignment request → Admin approval required  
+  - [x] Admin can approve/reject with comments
+  - [x] Notifications created for admins on submission and requester on resolution
+  - [x] Duplicate request prevention
+
+- [x] **Backend APIs (`/api/role-management/*`)**
+  - `GET /levels` - List employee levels (executive, manager, leader)
+  - `GET /level-permissions` - Get all level permission configs
+  - `GET /level-permissions/{level}` - Get specific level permissions
+  - `PUT /level-permissions` - Admin update level permissions
+  - `POST /role-requests` - HR create role request
+  - `GET /role-requests` - List role requests
+  - `GET /role-requests/pending` - Admin pending requests
+  - `POST /role-requests/{id}/approve` - Approve/reject request
+  - `POST /assignment-requests` - HR create assignment request
+  - `GET /stats` - Role management statistics
+
+- [x] **Frontend Updates**
+  - [x] `/role-management` page with stats cards and two tabs
+  - [x] Pending Requests tab - approve/reject workflow
+  - [x] Level Permissions tab - view/edit permissions per level
+  - [x] Navigation added to Admin section (Role Management, Permission Config)
+  - [x] Onboarding form updated with Employee Level dropdown
+
+- [x] **Server.py Refactoring Continued**
+  - [x] Enabled auth, leads, projects, meetings, users routers
+  - [x] Added role_management_router
+  - [x] Removed ~441 lines of duplicate legacy code
+  - [x] Server.py reduced from 10,782 → 10,341 lines
+
+### Database Schema Updates (Session 13)
+- **employees**: Added `level` field (executive, manager, leader)
+- **role_requests**: `{id, request_type, role_id, role_name, role_description, permissions, employee_id, employee_name, employee_code, current_role, current_level, new_role_id, new_role_name, level, reason, status, submitted_by, submitted_by_name, submitted_at, reviewed_by, reviewed_by_name, reviewed_at, review_comments}`
+  - request_type: `create_role` or `assign_role`
+  - status: `pending`, `approved`, `rejected`
+- **level_permissions_config**: `{id, permissions: {executive: {...}, manager: {...}, leader: {...}}, updated_at, updated_by}`
+
+### Test Coverage (Session 13)
+- Backend: 24/24 tests passed (pytest)
+- Frontend: All Role Management features verified
+- Test file: `/app/backend/tests/test_role_management_levels.py`
