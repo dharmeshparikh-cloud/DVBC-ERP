@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://proj-payment-dash.preview.emergentagent.com",
+      "value": "https://payment-tracker-415.preview.emergentagent.com",
       "type": "string"
     },
     {

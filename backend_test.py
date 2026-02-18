@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 class ConsultingWorkflowTester:
     def __init__(self):
-        self.base_url = "https://proj-payment-dash.preview.emergentagent.com/api"
+        self.base_url = "https://payment-tracker-415.preview.emergentagent.com/api"
         self.token = None
         self.user_id = None
         self.tests_run = 0
