@@ -425,6 +425,40 @@ class KickoffReturnRequest(BaseModel):
     return_notes: Optional[str] = None
 
 
+class PaymentVerification(BaseModel):
+    """Payment verification model for first installment validation"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    agreement_id: str
+    pricing_plan_id: Optional[str] = None
+    installment_number: int = 1
+    expected_amount: float
+    received_amount: float
+    transaction_id: str
+    payment_date: datetime
+    payment_mode: str = "bank_transfer"  # bank_transfer, cheque, upi, cash
+    bank_reference: Optional[str] = None
+    verified_by: str
+    verified_by_name: Optional[str] = None
+    verified_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    notes: Optional[str] = None
+    status: str = "verified"  # verified, pending, disputed
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class PaymentVerificationCreate(BaseModel):
+    agreement_id: str
+    pricing_plan_id: Optional[str] = None
+    installment_number: int = 1
+    expected_amount: float
+    received_amount: float
+    transaction_id: str
+    payment_date: datetime
+    payment_mode: str = "bank_transfer"
+    bank_reference: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class CTCComponent(BaseModel):
     """Individual CTC component with calculation method"""
     key: str
