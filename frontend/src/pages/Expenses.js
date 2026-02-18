@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { 
   Receipt, Plus, Search, Eye, Edit2, Send, Check, 
   Clock, XCircle, CheckCircle, DollarSign, Calendar,
-  Building2, Trash2, FileText
+  Building2, Trash2, FileText, Upload, Image
 } from 'lucide-react';
 import { toast } from 'sonner';
 
