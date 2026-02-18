@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { 
   DollarSign, Calendar, CheckCircle, Clock, AlertCircle, 
-  ArrowRight, Building2, User, TrendingUp, Eye
+  Building2, User, TrendingUp, Eye, EyeOff, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../utils/currency';
@@ -15,7 +15,7 @@ const ProjectPayments = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
-  const [myPayments, setMyPayments] = useState({ payments: [], total_projects: 0 });
+  const [myPayments, setMyPayments] = useState({ payments: [], total_projects: 0, can_view_amounts: false });
   const [upcomingPayments, setUpcomingPayments] = useState({ payments: [], total_upcoming: 0 });
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -58,16 +58,21 @@ const ProjectPayments = () => {
     }
   };
 
-  // Calculate totals
-  const totalReceived = myPayments.payments
-    .filter(p => p.first_payment_received)
-    .reduce((sum, p) => sum + (p.first_payment_amount || 0), 0);
+  // Role-based visibility flag from API
+  const canViewAmounts = myPayments.can_view_amounts;
+
+  // Calculate totals only if user can view amounts
+  const totalReceived = canViewAmounts 
+    ? myPayments.payments.filter(p => p.first_payment_received).reduce((sum, p) => sum + (p.first_payment_amount || 0), 0)
+    : 0;
   
-  const totalValue = myPayments.payments
-    .reduce((sum, p) => sum + (p.total_value || 0), 0);
+  const totalValue = canViewAmounts 
+    ? myPayments.payments.reduce((sum, p) => sum + (p.total_value || 0), 0)
+    : 0;
   
-  const totalUpcoming = upcomingPayments.payments
-    .reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalUpcoming = canViewAmounts 
+    ? upcomingPayments.payments.reduce((sum, p) => sum + (p.amount || 0), 0)
+    : 0;
 
   if (loading) {
     return (
@@ -85,36 +90,45 @@ const ProjectPayments = () => {
           Project Payments
         </h1>
         <p className="text-zinc-500">
-          Track payment schedules and received amounts for your projects
+          {canViewAmounts 
+            ? 'Track payment schedules and received amounts for your projects'
+            : 'View upcoming payment schedules for your projects'}
         </p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card className="border-zinc-200 shadow-none rounded-sm bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-emerald-100 text-sm uppercase tracking-wide">Total Received</p>
-                <p className="text-2xl font-bold mt-1">{formatINR(totalReceived)}</p>
+      {/* Summary Cards - Different display based on role */}
+      <div className={`grid grid-cols-1 ${canViewAmounts ? 'md:grid-cols-4' : 'md:grid-cols-2'} gap-4 mb-6`}>
+        {/* Only show Total Received for users who can view amounts */}
+        {canViewAmounts && (
+          <Card className="border-zinc-200 shadow-none rounded-sm bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm uppercase tracking-wide">Total Received</p>
+                  <p className="text-2xl font-bold mt-1">{formatINR(totalReceived)}</p>
+                </div>
+                <CheckCircle className="w-10 h-10 opacity-50" />
               </div>
-              <CheckCircle className="w-10 h-10 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="border-zinc-200 shadow-none rounded-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm uppercase tracking-wide">Total Project Value</p>
-                <p className="text-2xl font-bold mt-1">{formatINR(totalValue)}</p>
+        {/* Only show Total Project Value for users who can view amounts */}
+        {canViewAmounts && (
+          <Card className="border-zinc-200 shadow-none rounded-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm uppercase tracking-wide">Total Project Value</p>
+                  <p className="text-2xl font-bold mt-1">{formatINR(totalValue)}</p>
+                </div>
+                <TrendingUp className="w-10 h-10 opacity-50" />
               </div>
-              <TrendingUp className="w-10 h-10 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
+        {/* Active Projects - Visible to all */}
         <Card className="border-zinc-200 shadow-none rounded-sm bg-gradient-to-br from-amber-500 to-amber-600 text-white">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -127,13 +141,31 @@ const ProjectPayments = () => {
           </CardContent>
         </Card>
 
-        {canViewAllPayments && (
+        {/* Upcoming Amount - Only for users who can view amounts and upcoming payments */}
+        {canViewAllPayments && canViewAmounts && (
           <Card className="border-zinc-200 shadow-none rounded-sm bg-gradient-to-br from-purple-500 to-purple-600 text-white">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm uppercase tracking-wide">Upcoming Amount</p>
                   <p className="text-2xl font-bold mt-1">{formatINR(totalUpcoming)}</p>
+                </div>
+                <Calendar className="w-10 h-10 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Upcoming Payments Count - For non-amount viewers */}
+        {!canViewAmounts && (
+          <Card className="border-zinc-200 shadow-none rounded-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm uppercase tracking-wide">Upcoming Payments</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {myPayments.payments.reduce((sum, p) => sum + (p.upcoming_payments_count || 0), 0)}
+                  </p>
                 </div>
                 <Calendar className="w-10 h-10 opacity-50" />
               </div>
@@ -148,14 +180,16 @@ const ProjectPayments = () => {
           variant={activeTab === 'overview' ? 'default' : 'outline'}
           onClick={() => setActiveTab('overview')}
           className="rounded-sm"
+          data-testid="my-projects-tab"
         >
           My Projects
         </Button>
-        {canViewAllPayments && (
+        {canViewAllPayments && canViewAmounts && (
           <Button
             variant={activeTab === 'upcoming' ? 'default' : 'outline'}
             onClick={() => setActiveTab('upcoming')}
             className="rounded-sm"
+            data-testid="upcoming-payments-tab"
           >
             Upcoming Payments
           </Button>
@@ -178,6 +212,7 @@ const ProjectPayments = () => {
               <Card 
                 key={payment.project_id} 
                 className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
+                data-testid={`project-card-${payment.project_id}`}
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
@@ -206,23 +241,59 @@ const ProjectPayments = () => {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="p-3 bg-zinc-50 rounded-sm">
-                          <div className="text-xs text-zinc-500 uppercase tracking-wide">Total Value</div>
-                          <div className="text-lg font-semibold text-zinc-900 mt-1">
-                            {formatINR(payment.total_value)}
-                          </div>
+                      {/* Consultant Names - Visible to Admin and Manager roles */}
+                      {payment.consultant_names && payment.consultant_names.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm text-zinc-600 mb-4">
+                          <Users className="w-4 h-4" />
+                          <span>Consultants: {payment.consultant_names.join(', ')}</span>
                         </div>
-                        <div className={`p-3 rounded-sm ${payment.first_payment_received ? 'bg-emerald-50' : 'bg-amber-50'}`}>
-                          <div className={`text-xs uppercase tracking-wide ${payment.first_payment_received ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            First Payment
+                      )}
+
+                      <div className={`grid ${canViewAmounts ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
+                        {/* Total Value - Only for users who can view amounts */}
+                        {canViewAmounts && (
+                          <div className="p-3 bg-zinc-50 rounded-sm">
+                            <div className="text-xs text-zinc-500 uppercase tracking-wide">Total Value</div>
+                            <div className="text-lg font-semibold text-zinc-900 mt-1">
+                              {formatINR(payment.total_value)}
+                            </div>
                           </div>
-                          <div className={`text-lg font-semibold mt-1 ${payment.first_payment_received ? 'text-emerald-700' : 'text-amber-700'}`}>
-                            {payment.first_payment_received 
-                              ? formatINR(payment.first_payment_amount) 
-                              : 'Pending'}
+                        )}
+                        
+                        {/* First Payment - Different display based on role */}
+                        {canViewAmounts ? (
+                          <div className={`p-3 rounded-sm ${payment.first_payment_received ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+                            <div className={`text-xs uppercase tracking-wide ${payment.first_payment_received ? 'text-emerald-600' : 'text-amber-600'}`}>
+                              First Payment
+                            </div>
+                            <div className={`text-lg font-semibold mt-1 ${payment.first_payment_received ? 'text-emerald-700' : 'text-amber-700'}`}>
+                              {payment.first_payment_received 
+                                ? formatINR(payment.first_payment_amount) 
+                                : 'Pending'}
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          /* For consultants - just show status without amount */
+                          <div className={`p-3 rounded-sm ${payment.first_payment_received ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+                            <div className={`text-xs uppercase tracking-wide ${payment.first_payment_received ? 'text-emerald-600' : 'text-amber-600'}`}>
+                              First Payment
+                            </div>
+                            <div className={`text-lg font-semibold mt-1 flex items-center gap-2 ${payment.first_payment_received ? 'text-emerald-700' : 'text-amber-700'}`}>
+                              {payment.first_payment_received ? (
+                                <>
+                                  <CheckCircle className="w-4 h-4" />
+                                  Received
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-4 h-4" />
+                                  Pending
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="p-3 bg-blue-50 rounded-sm">
                           <div className="text-xs text-blue-600 uppercase tracking-wide">Upcoming</div>
                           <div className="text-lg font-semibold text-blue-700 mt-1">
@@ -237,6 +308,7 @@ const ProjectPayments = () => {
                       size="sm"
                       onClick={() => navigate(`/projects/${payment.project_id}/payments`)}
                       className="rounded-sm"
+                      data-testid={`view-details-btn-${payment.project_id}`}
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       View Details
@@ -249,8 +321,8 @@ const ProjectPayments = () => {
         </div>
       )}
 
-      {/* Upcoming Payments Tab */}
-      {activeTab === 'upcoming' && canViewAllPayments && (
+      {/* Upcoming Payments Tab - Only for users who can view all payments and amounts */}
+      {activeTab === 'upcoming' && canViewAllPayments && canViewAmounts && (
         <div className="space-y-4">
           {upcomingPayments.payments.length === 0 ? (
             <Card className="border-zinc-200 shadow-none rounded-sm">
@@ -285,6 +357,7 @@ const ProjectPayments = () => {
                           key={idx} 
                           className="border-b border-zinc-100 hover:bg-zinc-50 cursor-pointer"
                           onClick={() => navigate(`/projects/${payment.project_id}/payments`)}
+                          data-testid={`upcoming-payment-row-${idx}`}
                         >
                           <td className="py-3 px-4">
                             <div className="font-medium text-zinc-900">{payment.project_name}</div>
