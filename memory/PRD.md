@@ -389,7 +389,30 @@ A comprehensive travel reimbursement feature for employees:
 - PWA install notification with branding not implemented
 - Leads list view has incomplete columns
 - `LockableCard` not applied to Sales Dashboard
-- `server.py` is monolithic and needs refactoring
+
+### Session 12 (Feb 18, 2026) - Server.py Refactoring & CTC Approval Fix
+- [x] **Backend Modularization (server.py refactoring - Phase 1)**
+  - [x] Created `/app/backend/routers/deps.py` - Shared dependencies (database, sanitization, JWT config)
+  - [x] Created `/app/backend/routers/models.py` - Shared Pydantic models (~500 lines)
+  - [x] Created `/app/backend/routers/auth.py` - Authentication endpoints (login, register, Google auth, OTP, password reset)
+  - [x] Created `/app/backend/routers/leads.py` - Lead management CRUD with scoring
+  - [x] Created `/app/backend/routers/projects.py` - Project management, handover alerts
+  - [x] Created `/app/backend/routers/meetings.py` - Meeting management, MOM, action items
+  - [x] Created `/app/backend/routers/stats.py` - Dashboard statistics (admin, sales, HR, consulting)
+  - [x] Created `/app/backend/routers/security.py` - Security audit logs endpoint
+  - [x] Created `/app/backend/routers/users.py` - User management, roles, reporting managers
+  - [x] Created `/app/backend/routers/kickoff.py` - Kickoff request workflow
+  - [x] Updated `/app/backend/routers/__init__.py` - Export all routers
+  - [x] Total new modular code: ~4,800 lines across 10 router files
+  - [x] Original server.py (14,076 lines) still functional with new imports ready
+
+- [x] **CTC Approval Modal Fix (P0)**
+  - [x] Fixed `ApprovalsCenter.js` - CTC detail dialog now shows full salary component breakdown
+  - [x] Issue: Backend returns `components` as object (dict), frontend expected array
+  - [x] Added handling for object-based components with `Object.values()`
+  - [x] Added CTC Summary section (Gross Monthly, Deductions, In-Hand approx)
+  - [x] Fixed employee info display (employee code, previous CTC, submitted by name)
+  - [x] Deductions shown in red with minus sign
 
 ## UI/UX Updates (Feb 17, 2026)
 - [x] **Default Theme Changed to Light**
