@@ -148,8 +148,13 @@ async def login(user_login: UserLogin, request: Request = None):
     if not user_data:
         await log_security_event("password_login_failed", email=user_login.email, details={"reason": "user_not_found"}, request=request)
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-
-    if not verify_password(user_login.password, user_data.get('hashed_password', '')):
+    
+    # Debug: Print stored hash
+    stored_hash = user_data.get('hashed_password', '')
+    print(f"[DEBUG] Login attempt for {user_login.email}")
+    print(f"[DEBUG] Stored hash: {stored_hash[:30] if stored_hash else 'EMPTY'}...")
+    
+    if not verify_password(user_login.password, stored_hash):
         await log_security_event("password_login_failed", email=user_login.email, details={"reason": "wrong_password"}, request=request)
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
