@@ -485,7 +485,7 @@ async def get_employee_stats(current_user: User = Depends(get_current_user)):
         "without_portal_access": without_access,
         "by_department": {d["_id"]: d["count"] for d in dept_stats if d["_id"]},
         "by_role": {r["_id"]: r["count"] for r in role_stats if r["_id"]},
-        "by_level": {l["_id"]: l["count"] for l in level_stats if l["_id"]}
+        "by_level": {lvl["_id"]: lvl["count"] for lvl in level_stats if lvl["_id"]}
     }
 
 
