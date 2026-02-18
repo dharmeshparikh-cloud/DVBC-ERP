@@ -128,6 +128,7 @@ const Layout = () => {
   const hrItems = [
     { name: 'Employees', href: '/employees', icon: UsersRound },
     { name: 'Onboarding', href: '/onboarding', icon: UserCog },
+    { name: 'Letter Management', href: '/letter-management', icon: FileText },
     { name: 'Onboarding Tutorials', href: '/tutorials', icon: BookOpen },
     { name: 'Org Chart', href: '/org-chart', icon: GitBranch },
     { name: 'Leave Mgmt', href: '/leave-management', icon: CalendarDays },
