@@ -14066,6 +14066,18 @@ async def admin_reject_bank_change(
 api_router.include_router(masters_router.router)
 api_router.include_router(sow_masters_router.router)
 api_router.include_router(enhanced_sow_router.router)
+
+# New modular routers (v2 - refactored endpoints)
+# Note: These are being gradually introduced alongside existing endpoints
+# api_router.include_router(auth_router.router)  # Auth routes handled separately in existing code
+# api_router.include_router(leads_router.router)  # Leads handled in existing code  
+# api_router.include_router(projects_router.router)  # Projects handled in existing code
+# api_router.include_router(meetings_router.router)  # Meetings handled in existing code
+# api_router.include_router(stats_router.router)  # Stats handled in existing code
+# api_router.include_router(security_router.router)  # Security handled in existing code
+# api_router.include_router(users_router.router)  # Users handled in existing code
+# api_router.include_router(kickoff_router.router)  # Kickoff handled in existing code
+
 app.include_router(api_router)
 
 app.add_middleware(
