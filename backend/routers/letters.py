@@ -16,9 +16,14 @@ from .auth import get_current_user
 
 # Import email service
 try:
+    import sys
+    import os
+    # Add parent directory to path for services import
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from services.email_service import send_offer_letter_email, send_appointment_letter_email, send_acceptance_confirmation_email
     EMAIL_SERVICE_AVAILABLE = True
-except ImportError:
+except ImportError as e:
+    print(f"Email service not available: {e}")
     EMAIL_SERVICE_AVAILABLE = False
 
 router = APIRouter(prefix="/letters", tags=["Letter Management"])
