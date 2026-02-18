@@ -3,18 +3,9 @@ import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Clock, CheckCircle, XCircle, Calendar, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-
-const LEAVE_TYPES = [
-  { value: 'casual_leave', label: 'Casual Leave' },
-  { value: 'sick_leave', label: 'Sick Leave' },
-  { value: 'earned_leave', label: 'Earned Leave' }
-];
 
 const STATUS_STYLES = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -27,9 +18,7 @@ const LeaveManagement = () => {
   const [myRequests, setMyRequests] = useState([]);
   const [allRequests, setAllRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('my');
-  const [formData, setFormData] = useState({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '' });
 
   const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
 
