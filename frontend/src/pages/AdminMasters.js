@@ -8,7 +8,8 @@ import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { 
   Plus, Pencil, Trash2, Settings, Users, Calendar, 
-  ChevronDown, ChevronUp, Check, X, Database, Percent
+  ChevronDown, ChevronUp, Check, X, Database, Percent,
+  FileText, FolderTree, Layers
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,13 +23,22 @@ const AdminMasters = () => {
   const [consultantRoles, setConsultantRoles] = useState([]);
   const [meetingTypes, setMeetingTypes] = useState([]);
   
+  // SOW Categories and Scopes
+  const [sowCategories, setSowCategories] = useState([]);
+  const [sowScopes, setSowScopes] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  
   // Edit states
   const [editingTenure, setEditingTenure] = useState(null);
   const [editingRole, setEditingRole] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editingScope, setEditingScope] = useState(null);
   
   // New item forms
   const [showNewTenure, setShowNewTenure] = useState(false);
   const [showNewRole, setShowNewRole] = useState(false);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [showNewScope, setShowNewScope] = useState(false);
   const [newTenure, setNewTenure] = useState({
     name: '', code: '', allocation_percentage: 0, 
     meetings_per_month: 0, description: ''
@@ -37,10 +47,35 @@ const AdminMasters = () => {
     name: '', code: '', min_rate_per_meeting: 10000, 
     max_rate_per_meeting: 50000, default_rate: 12500, seniority_level: 1
   });
+  const [newCategory, setNewCategory] = useState({
+    name: '', code: '', description: '', order: 0
+  });
+  const [newScope, setNewScope] = useState({
+    name: '', description: '', category_id: ''
+  });
 
   useEffect(() => {
     fetchAllMasters();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'scope-builder') {
+      fetchSowData();
+    }
+  }, [activeTab]);
+
+  const fetchSowData = async () => {
+    try {
+      const [categoriesRes, scopesRes] = await Promise.all([
+        axios.get(`${API}/sow-masters/categories?include_inactive=true`),
+        axios.get(`${API}/sow-masters/scopes?include_inactive=true`)
+      ]);
+      setSowCategories(categoriesRes.data);
+      setSowScopes(scopesRes.data);
+    } catch (error) {
+      toast.error('Failed to fetch SOW data');
+    }
+  };
 
   const fetchAllMasters = async () => {
     try {
