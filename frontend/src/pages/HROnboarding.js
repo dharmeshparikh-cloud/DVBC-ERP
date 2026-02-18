@@ -60,6 +60,14 @@ const HROnboarding = () => {
   const [managers, setManagers] = useState([]);
   const [bankProofFile, setBankProofFile] = useState(null);
   
+  // Document upload state
+  const [uploadedDocs, setUploadedDocs] = useState({
+    id_proof: null,
+    resume: null,
+    offer_letter: null,
+    other: null
+  });
+  
   const [formData, setFormData] = useState({
     // Personal Info
     first_name: '',
