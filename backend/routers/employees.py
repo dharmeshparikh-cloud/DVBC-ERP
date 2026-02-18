@@ -172,6 +172,50 @@ async def grant_employee_access(employee_id: str, current_user: User = Depends(g
     }
 
 
+@router.post("/{employee_id}/reset-temp-password")
+async def reset_employee_temp_password(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Reset the temporary password for an employee's portal access.
+    This is useful when an employee forgets their password or HR needs to resend credentials.
+    """
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can reset passwords")
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    if not employee.get("user_id"):
+        raise HTTPException(status_code=400, detail="Employee does not have portal access. Grant access first.")
+    
+    # Find the user
+    user = await db.users.find_one({"id": employee["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User account not found")
+    
+    # Generate new temp password
+    temp_password = f"Welcome@{employee.get('employee_id', '123')}"
+    new_hash = get_password_hash(temp_password)
+    
+    # Update user's password
+    await db.users.update_one(
+        {"id": employee["user_id"]},
+        {"$set": {
+            "hashed_password": new_hash,
+            "is_active": True,  # Re-activate if deactivated
+            "password_reset_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": "Temporary password reset successfully",
+        "user_id": employee["user_id"],
+        "temp_password": temp_password,
+        "note": "Old password is now invalid. User must use this new password."
+    }
+
+
 @router.delete("/{employee_id}/revoke-access")
 async def revoke_employee_access(employee_id: str, current_user: User = Depends(get_current_user)):
     """Revoke portal access from an employee."""
