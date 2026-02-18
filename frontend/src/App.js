@@ -62,6 +62,7 @@ import ConsultingDashboard from './pages/ConsultingDashboard';
 import HRDashboard from './pages/HRDashboard';
 import AdminMasters from './pages/AdminMasters';
 import PermissionManager from './pages/PermissionManager';
+import PermissionDashboard from './pages/PermissionDashboard';
 import RoleManagement from './pages/RoleManagement';
 import LetterManagement from './pages/LetterManagement';
 import LetterheadSettings from './pages/LetterheadSettings';
