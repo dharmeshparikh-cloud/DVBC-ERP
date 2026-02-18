@@ -717,3 +717,49 @@ All consulting-specific endpoints remain in server.py and are NOT duplicated in 
 - `/app/frontend/src/pages/LetterManagement.js`
 - `/app/frontend/src/pages/AcceptOfferPage.js`
 - `/app/frontend/src/components/CompanyLetterhead.js`
+
+### Session 14 (Feb 18, 2026) - Stats Router Refactoring Complete
+
+#### Stats Endpoints Migration (COMPLETED)
+Successfully migrated all stats endpoints from legacy server.py to `/app/backend/routers/stats.py`:
+
+- [x] `/api/stats/dashboard` - Main dashboard statistics
+  - Returns: `total_leads`, `new_leads`, `qualified_leads`, `closed_deals`, `active_projects`
+  - Matches frontend Dashboard.js expected data format
+  
+- [x] `/api/stats/sales-dashboard` - Sales pipeline stats
+  - Returns: `pipeline`, `clients`, `quotations`, `agreements`, `kickoffs`, `revenue`, `conversion_rate`
+  
+- [x] `/api/stats/sales-dashboard-enhanced` - Enhanced sales metrics
+  - Returns: `pipeline`, `temperature`, `meetings`, `ratios`, `closures`, `deal_value`, `targets`, `mom_performance`, `lead_sources`, `leaderboard`
+  - Supports `view_mode` parameter (own/team/all)
+  
+- [x] `/api/stats/hr-dashboard` - HR employee/attendance/payroll stats
+  - Returns: `employees`, `attendance`, `leaves`, `expenses`, `payroll`
+  - Role-restricted: admin, hr_manager, hr_executive, manager only
+  
+- [x] `/api/stats/consulting-dashboard` - Consulting delivery stats
+  - Returns: `projects`, `meetings`, `efficiency_score`, `incoming_kickoffs`, `consultant_workload`
+
+#### Server.py Refactoring Progress:
+- **Original Size:** ~14,000+ lines
+- **Current Size:** 9,488 lines
+- **Total Reduction:** ~4,500+ lines (32% reduction)
+
+#### Legacy Code Removed:
+- `/stats/dashboard` endpoint (lines 754-777)
+- `/stats/sales-dashboard` endpoint (lines 782-852)
+- `/stats/sales-dashboard-enhanced` endpoint (lines 870-1088)
+- Orphan `get_consulting_dashboard_stats` function (lines 1372-1450)
+- `/stats/hr-dashboard` endpoint (lines 1453-1514)
+- Helper functions: `get_team_member_ids`, `can_see_all_data`
+
+#### Test Coverage:
+- Backend: 21/21 tests passed (100%)
+- Frontend: All dashboard types verified (Admin, Sales, HR)
+- Test file: `/app/backend/tests/test_stats_router.py`
+
+#### Files Updated:
+- `/app/backend/routers/stats.py` - Complete rewrite matching frontend expectations
+- `/app/backend/server.py` - Reduced from 9,960 to 9,488 lines
+- `/app/REFACTOR_MIGRATION_PLAN.md` - Created migration tracking document
