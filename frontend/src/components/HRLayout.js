@@ -209,7 +209,18 @@ const HRLayout = () => {
             <SectionHeader title="Operations" section="operations" icon={ClipboardCheck} />
             {expanded.operations && (
               <div className="mt-1 space-y-0.5">
-                {operationsItems.map(item => <NavLink key={item.name} item={item} />)}
+                {operationsItems.map(item => (
+                  <NavLink 
+                    key={item.name} 
+                    item={{
+                      ...item,
+                      badge: 
+                        item.name === 'CTC Designer' ? (pendingCounts.ctc > 0 ? pendingCounts.ctc : null) :
+                        item.name === 'Attendance Approvals' ? (pendingCounts.attendance > 0 ? pendingCounts.attendance : null) :
+                        null
+                    }} 
+                  />
+                ))}
               </div>
             )}
           </div>
