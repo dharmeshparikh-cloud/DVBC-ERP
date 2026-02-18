@@ -79,6 +79,7 @@ db = client[os.environ['DB_NAME']]
 masters_router.set_db(db)
 sow_masters_router.set_db(db)
 enhanced_sow_router.set_db(db)
+router_deps.set_db(db)
 
 app = FastAPI(title="Consulting Workflow Management API")
 api_router = APIRouter(prefix="/api")
