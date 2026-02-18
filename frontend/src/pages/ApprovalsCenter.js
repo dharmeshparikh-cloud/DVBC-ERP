@@ -660,50 +660,262 @@ const ApprovalsCenter = () => {
 
       {/* Action Dialog */}
       <Dialog open={actionDialog} onOpenChange={setActionDialog}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+        <DialogContent className={`${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200'} rounded-lg max-w-md`}>
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+            <DialogTitle className={`text-xl font-semibold ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
               {actionType === 'approve' ? 'Approve Request' : 'Reject Request'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {selectedApproval && (
-              <div className="p-4 bg-zinc-50 rounded-sm">
-                <p className="font-medium text-zinc-950">{selectedApproval.reference_title}</p>
-                <p className="text-sm text-zinc-500 mt-1">
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>{selectedApproval.reference_title}</p>
+                <p className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                   Requested by {selectedApproval.requester_name}
                 </p>
               </div>
             )}
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700">Comments {actionType === 'reject' && '(required)'}</label>
-              <textarea
+              <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                Comments {actionType === 'reject' && '(required)'}
+              </label>
+              <Textarea
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 placeholder={actionType === 'approve' ? 'Optional comments...' : 'Reason for rejection...'}
                 rows={3}
-                className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
               />
             </div>
             
             <div className="flex gap-3 pt-4">
-              <Button onClick={() => setActionDialog(false)} variant="outline" className="flex-1 rounded-sm">
+              <Button onClick={() => setActionDialog(false)} variant="outline" className={`flex-1 ${isDark ? 'border-zinc-600' : ''}`}>
                 Cancel
               </Button>
               <Button 
                 onClick={handleAction}
-                disabled={actionType === 'reject' && !comments}
-                className={`flex-1 rounded-sm shadow-none ${
+                disabled={actionType === 'reject' && !comments || actionLoading}
+                className={`flex-1 ${
                   actionType === 'approve' 
                     ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
                     : 'bg-red-600 text-white hover:bg-red-700'
                 }`}
               >
-                {actionType === 'approve' ? 'Approve' : 'Reject'}
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (actionType === 'approve' ? 'Approve' : 'Reject')}
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* CTC Detail Dialog */}
+      <Dialog open={ctcDetailDialog} onOpenChange={setCtcDetailDialog}>
+        <DialogContent className={`${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200'} rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto`}>
+          <DialogHeader>
+            <DialogTitle className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
+              <DollarSign className="w-5 h-5 text-purple-500" />
+              CTC Structure Approval
+            </DialogTitle>
+          </DialogHeader>
+          {selectedCtc && (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Employee</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.employee_name}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Annual CTC</p>
+                    <p className="font-bold text-purple-600 text-lg">{formatCurrency(selectedCtc.annual_ctc)}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Effective Date</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.effective_date}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Submitted By</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedCtc.created_by || 'HR'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTC Components */}
+              <div>
+                <h4 className={`text-sm font-medium mb-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Salary Components</h4>
+                <div className={`border rounded-lg overflow-hidden ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                  <table className="w-full text-sm">
+                    <thead className={isDark ? 'bg-zinc-800' : 'bg-zinc-50'}>
+                      <tr>
+                        <th className={`text-left px-3 py-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Component</th>
+                        <th className={`text-right px-3 py-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Monthly</th>
+                        <th className={`text-right px-3 py-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Annual</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedCtc.components?.filter(c => c.enabled !== false).map((comp, idx) => (
+                        <tr key={idx} className={`border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'} ${comp.is_deduction ? 'text-red-600' : ''}`}>
+                          <td className={`px-3 py-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>{comp.name}</td>
+                          <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
+                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.monthly_amount || comp.value / 12)}
+                          </td>
+                          <td className={`text-right px-3 py-2 ${comp.is_deduction ? 'text-red-600' : ''}`}>
+                            {comp.is_deduction ? '-' : ''}{formatCurrency(comp.annual_amount || comp.value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Comments</label>
+                <Textarea
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  placeholder="Optional comments for approval/rejection..."
+                  rows={2}
+                  className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+                />
+              </div>
+              
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setCtcDetailDialog(false)} className={isDark ? 'border-zinc-600' : ''}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleCtcAction(selectedCtc.id, 'reject')}
+                  disabled={actionLoading}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><XCircle className="w-4 h-4 mr-1" /> Reject</>}
+                </Button>
+                <Button 
+                  onClick={() => handleCtcAction(selectedCtc.id, 'approve')}
+                  disabled={actionLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4 mr-1" /> Approve</>}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bank Detail Dialog */}
+      <Dialog open={bankDetailDialog} onOpenChange={setBankDetailDialog}>
+        <DialogContent className={`${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200'} rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto`}>
+          <DialogHeader>
+            <DialogTitle className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
+              <Building2 className="w-5 h-5 text-rose-500" />
+              Bank Details Change Request
+            </DialogTitle>
+          </DialogHeader>
+          {selectedBank && (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Employee</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedBank.employee_name}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Status</p>
+                    <Badge className={selectedBank.status === 'pending_hr' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}>
+                      {selectedBank.status === 'pending_hr' ? 'Pending HR Review' : 'Pending Admin Approval'}
+                    </Badge>
+                  </div>
+                  <div className="col-span-2">
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Reason for Change</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedBank.reason || 'Not specified'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Current vs New Bank Details */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800/50' : 'border-zinc-200 bg-zinc-50'}`}>
+                  <h4 className={`text-sm font-medium mb-3 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Current Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Bank:</span> {selectedBank.current_bank_details?.bank_name || 'N/A'}</p>
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>A/C:</span> ****{selectedBank.current_bank_details?.account_number?.slice(-4) || '****'}</p>
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>IFSC:</span> {selectedBank.current_bank_details?.ifsc_code || 'N/A'}</p>
+                  </div>
+                </div>
+                <div className={`p-4 rounded-lg border-2 border-emerald-500 ${isDark ? 'bg-emerald-900/20' : 'bg-emerald-50'}`}>
+                  <h4 className="text-sm font-medium mb-3 text-emerald-600">New Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Holder:</span> <strong>{selectedBank.new_bank_details?.account_holder_name}</strong></p>
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Bank:</span> <strong>{selectedBank.new_bank_details?.bank_name}</strong></p>
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>A/C:</span> <strong>{selectedBank.new_bank_details?.account_number}</strong></p>
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>IFSC:</span> <strong>{selectedBank.new_bank_details?.ifsc_code}</strong></p>
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Branch:</span> {selectedBank.new_bank_details?.branch_name || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Proof Document */}
+              {selectedBank.proof_document && (
+                <div>
+                  <h4 className={`text-sm font-medium mb-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                    Proof Document: {selectedBank.proof_filename}
+                  </h4>
+                  {selectedBank.proof_document.startsWith('data:image') ? (
+                    <img 
+                      src={selectedBank.proof_document} 
+                      alt="Proof" 
+                      className="max-h-48 rounded-lg border"
+                    />
+                  ) : (
+                    <a 
+                      href={selectedBank.proof_document} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <FileText className="w-4 h-4" /> View Document
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Comments</label>
+                <Textarea
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  placeholder="Comments for approval/rejection..."
+                  rows={2}
+                  className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+                />
+              </div>
+              
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setBankDetailDialog(false)} className={isDark ? 'border-zinc-600' : ''}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleBankAction(selectedBank.employee_id, 'reject')}
+                  disabled={actionLoading}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><XCircle className="w-4 h-4 mr-1" /> Reject</>}
+                </Button>
+                <Button 
+                  onClick={() => handleBankAction(selectedBank.employee_id, 'approve')}
+                  disabled={actionLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4 mr-1" /> Approve</>}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
