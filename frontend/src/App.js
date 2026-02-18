@@ -32,6 +32,7 @@ import SalesSOWList from './pages/sales-funnel/SalesSOWList';
 import ProformaInvoice from './pages/sales-funnel/ProformaInvoice';
 import Agreements from './pages/sales-funnel/Agreements';
 import AgreementView from './pages/sales-funnel/AgreementView';
+import PaymentVerification from './pages/sales-funnel/PaymentVerification';
 import ManagerApprovals from './pages/sales-funnel/ManagerApprovals';
 import ConsultingSOWList from './pages/consulting/ConsultingSOWList';
 import ConsultingProjectTasks from './pages/consulting/ConsultingProjectTasks';
