@@ -46,6 +46,12 @@ const ROLES = [
   { value: 'hr_executive', label: 'HR Executive' },
 ];
 
+const EMPLOYEE_LEVELS = [
+  { value: 'executive', label: 'Executive', description: 'Entry level - basic permissions' },
+  { value: 'manager', label: 'Manager', description: 'Mid level - team management permissions' },
+  { value: 'leader', label: 'Leader', description: 'Senior level - strategic permissions' },
+];
+
 const HROnboarding = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -70,6 +76,7 @@ const HROnboarding = () => {
     department: '',
     designation: '',
     role: 'consultant',
+    level: 'executive',  // Employee hierarchy level
     employment_type: 'full_time',
     joining_date: '',
     reporting_manager_id: '',
