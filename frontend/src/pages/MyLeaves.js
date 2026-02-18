@@ -191,6 +191,7 @@ const MyLeaves = () => {
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Days</th>
                 <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Reason</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
+                <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -205,6 +206,21 @@ const MyLeaves = () => {
                     <span className={`text-xs px-2 py-1 rounded-sm border ${STATUS_STYLES[req.status] || STATUS_STYLES.pending}`}>
                       {req.status?.charAt(0).toUpperCase() + req.status?.slice(1)}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {req.status === 'pending' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleWithdraw(req.id)}
+                        disabled={withdrawingId === req.id}
+                        className="text-xs h-7 px-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                        data-testid={`withdraw-btn-${req.id}`}
+                      >
+                        <Undo2 className="w-3 h-3 mr-1" />
+                        {withdrawingId === req.id ? 'Withdrawing...' : 'Withdraw'}
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
