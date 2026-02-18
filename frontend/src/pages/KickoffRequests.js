@@ -39,6 +39,8 @@ const KickoffRequests = () => {
   const [returnNotes, setReturnNotes] = useState('');
   const [editDate, setEditDate] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [paymentEligibility, setPaymentEligibility] = useState(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [formData, setFormData] = useState({
     agreement_id: '',
     client_name: '',
