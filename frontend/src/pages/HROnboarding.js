@@ -206,8 +206,19 @@ const HROnboarding = () => {
         }
         return true;
         
-      case 2: // Documents
-        // Documents are optional but recommended
+      case 2: // Documents - ID Proof, Resume, Offer Letter are mandatory
+        if (!uploadedDocs.id_proof) {
+          toast.error('Please upload ID Proof (Aadhar, PAN, or Passport)');
+          return false;
+        }
+        if (!uploadedDocs.resume) {
+          toast.error('Please upload Resume');
+          return false;
+        }
+        if (!uploadedDocs.offer_letter) {
+          toast.error('Please upload signed Offer Letter');
+          return false;
+        }
         return true;
         
       case 3: // Bank Details
