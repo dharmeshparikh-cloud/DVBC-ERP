@@ -232,7 +232,7 @@ const HROnboarding = () => {
         role: formData.role || 'consultant',   // System role
         employment_type: formData.employment_type,
         joining_date: formData.joining_date,
-        reporting_manager_id: formData.reporting_manager_id,
+        reporting_manager_id: formData.reporting_manager_id === 'none' ? null : formData.reporting_manager_id,
         bank_details: formData.bank_account_number ? {
           account_number: formData.bank_account_number,
           ifsc_code: formData.bank_ifsc,
