@@ -684,14 +684,6 @@ const HROnboarding = () => {
             </p>
           </div>
         );
-                  <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
-                  <p className="font-medium">Other Documents</p>
-                  <p className="text-xs text-zinc-500 mt-1">Any additional docs</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        );
 
       case 3: // Bank Details
         return (
