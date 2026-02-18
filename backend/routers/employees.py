@@ -199,6 +199,26 @@ async def revoke_employee_access(employee_id: str, current_user: User = Depends(
     return {"message": "Portal access revoked"}
 
 
+@router.post("/fix-missing-levels")
+async def fix_missing_levels(current_user: User = Depends(get_current_user)):
+    """Update all employees without a level to have 'executive' as default."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can fix levels")
+    
+    # Find employees without level or with null level
+    result = await db.employees.update_many(
+        {"$or": [{"level": {"$exists": False}}, {"level": None}, {"level": ""}]},
+        {"$set": {"level": "executive"}}
+    )
+    
+    return {
+        "message": f"Updated {result.modified_count} employees to have 'executive' level",
+        "modified_count": result.modified_count
+    }
+
+
 @router.get("/{employee_id}")
 async def get_employee(employee_id: str, current_user: User = Depends(get_current_user)):
     """Get a single employee by ID."""
