@@ -461,25 +461,50 @@ const BankDetailsChangeRequest = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ifsc_code">IFSC Code *</Label>
-                <Input
-                  id="ifsc_code"
-                  name="ifsc_code"
-                  value={formData.ifsc_code}
-                  onChange={handleInputChange}
-                  placeholder="e.g., HDFC0001234"
-                  className={`uppercase ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
-                />
+                <Label htmlFor="ifsc_code">IFSC Code * <span className="text-xs text-zinc-400">(Auto-verifies bank & branch)</span></Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="ifsc_code"
+                    name="ifsc_code"
+                    value={formData.ifsc_code}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+                      setFormData({...formData, ifsc_code: value});
+                      setIfscVerified(false);
+                    }}
+                    placeholder="e.g., HDFC0001234"
+                    maxLength={11}
+                    className={`uppercase flex-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''} ${ifscVerified ? 'border-green-500' : ''}`}
+                    data-testid="ifsc-input"
+                  />
+                  <Button
+                    type="button"
+                    variant={ifscVerified ? "default" : "outline"}
+                    onClick={() => verifyIFSC(formData.ifsc_code)}
+                    disabled={verifyingIfsc || formData.ifsc_code.length !== 11}
+                    className={`px-4 ${ifscVerified ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                    data-testid="verify-ifsc-btn"
+                  >
+                    {verifyingIfsc ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : ifscVerified ? (
+                      <><CheckCircle className="w-4 h-4 mr-1" /> Verified</>
+                    ) : (
+                      <><Search className="w-4 h-4 mr-1" /> Verify</>
+                    )}
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="branch_name">Branch Name</Label>
+                <Label htmlFor="branch_name">Branch Name {ifscVerified && <span className="text-xs text-green-600">(Auto-filled)</span>}</Label>
                 <Input
                   id="branch_name"
                   name="branch_name"
                   value={formData.branch_name}
                   onChange={handleInputChange}
                   placeholder="e.g., Koramangala"
-                  className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+                  className={`${isDark ? 'bg-zinc-800 border-zinc-700' : ''} ${ifscVerified ? 'bg-green-50 border-green-200' : ''}`}
+                  readOnly={ifscVerified}
                 />
               </div>
             </div>
