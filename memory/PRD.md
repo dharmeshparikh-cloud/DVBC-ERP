@@ -1048,6 +1048,53 @@ Based on user-provided documents: `Bugs 3.docx`, `ERP Bugs 2.docx`, `HR PORTAL 2
 |-------------|--------|-------|
 | Staffing request with proper fields | ✅ DONE | Budget, timeline, location, etc. |
 | Half-day leave option | ✅ DONE | First/Second half selection |
+
+#### 4. Half-Day Leave Linked to Payroll (COMPLETE)
+**Backend Changes:**
+- Payroll now auto-calculates approved leaves for the month
+- Half-day leaves tracked separately (`half_day_leaves` field)
+- If no manual override, uses auto-calculated leave counts
+- Salary slip includes `half_day_leaves` field
+
+**Files Modified:**
+- `/app/backend/server.py` - Updated salary slip generation
+
+#### 5. Employee ID Linking System (COMPLETE)
+**New API Endpoints:**
+
+1. `GET /api/employees/stats/summary`
+   - Total, Active, Terminated counts
+   - **NEW**: With/Without Portal Access counts
+   - By department, role, and level
+
+2. `GET /api/employees/lookup/by-code/{emp_code}`
+   - Lookup employee by employee code (e.g., EMP001)
+
+3. `GET /api/employees/{id}/timeline`
+   - Complete employee journey from hiring to present
+   - Events: hired, access_granted, offer_letter, leave_request, expense, project_assignment, salary_slip, terminated
+
+4. `GET /api/employees/{id}/linked-records`
+   - Count of all records linked to employee:
+   - attendance, leave_requests, expenses, salary_slips, documents, project_assignments, offer_letters, approval_requests, notifications, staffing_requests
+
+**New Frontend Page: Employee Scorecard** (`/employee-scorecard`)
+- Stats: Total, Active, With Access, Without Access, Terminated
+- By Level distribution
+- Employee Directory table with search
+- Click employee to view:
+  - Complete journey timeline with icons
+  - Linked records summary
+
+**Files Created:**
+- `/app/frontend/src/pages/EmployeeScorecard.js`
+
+**Files Modified:**
+- `/app/backend/routers/employees.py` - Added timeline and linked-records endpoints
+- `/app/frontend/src/App.js` - Added route
+- `/app/frontend/src/components/Layout.js` - Added nav link
+
+
 | Remove duplicate Apply Leave button | ✅ DONE | From Leave Management |
 | SOW scope checkbox (not dropdown) | 🔶 PENDING | Need to implement |
 | Lead status change | 🔶 PENDING | Upper panel issue |
