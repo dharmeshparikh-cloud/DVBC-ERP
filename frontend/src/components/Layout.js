@@ -187,11 +187,13 @@ const Layout = () => {
         { name: 'My Schedule', href: '/my-schedule', icon: Calendar },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'My Clients', href: '/my-clients', icon: Building2 },
+        { name: 'My Payments', href: '/payments', icon: DollarSign },
       ]
     : [
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Team Assignment', href: '/team-assignment', icon: Users },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
+        { name: 'Payments', href: '/payments', icon: DollarSign },
         { name: 'Project Reports', href: '/reports?category=consulting', icon: BarChart3 },
       ];
 
@@ -203,6 +205,7 @@ const Layout = () => {
     { name: 'Permission Dashboard', href: '/permission-dashboard', icon: Users },
     { name: 'Permission Config', href: '/permission-manager', icon: Lock },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
+    { name: 'Project Payments', href: '/payments', icon: DollarSign },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
     { name: 'Downloads', href: '/downloads', icon: Download },
