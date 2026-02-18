@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign, Eye } from 'lucide-react';
+import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign, Eye, Search, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 
@@ -18,6 +18,8 @@ const Leads = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [timelineFilter, setTimelineFilter] = useState('all');
   const [suggestions, setSuggestions] = useState({});
   const [viewMode, setViewMode] = useState('card');
   const [formData, setFormData] = useState({
