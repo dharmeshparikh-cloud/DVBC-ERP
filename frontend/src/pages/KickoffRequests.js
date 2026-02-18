@@ -182,6 +182,12 @@ const KickoffRequests = () => {
       toast.error('Please fill required fields');
       return;
     }
+    
+    // Check if payment is verified before proceeding
+    if (!paymentEligibility?.is_eligible) {
+      toast.error('First installment payment must be verified before creating kickoff request. Please verify payment first.');
+      return;
+    }
 
     try {
       const payload = {
@@ -203,6 +209,7 @@ const KickoffRequests = () => {
       if (response.ok) {
         toast.success('Kickoff request sent successfully');
         setShowCreateDialog(false);
+        setPaymentEligibility(null);
         setFormData({
           agreement_id: '', client_name: '', project_name: '',
           project_type: 'mixed', total_meetings: 0, meeting_frequency: 'Monthly',
