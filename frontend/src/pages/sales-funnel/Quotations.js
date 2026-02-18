@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, History, Star, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 
@@ -21,12 +21,14 @@ const Quotations = () => {
   const [quotations, setQuotations] = useState([]);
   const [pricingPlans, setPricingPlans] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [selectedPlanDetails, setSelectedPlanDetails] = useState(null);
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
+  const [activeView, setActiveView] = useState('list'); // 'list' or 'history'
   
   const [formData, setFormData] = useState({
     pricing_plan_id: pricingPlanIdFromUrl || '',
@@ -59,14 +61,16 @@ const Quotations = () => {
 
   const fetchData = async () => {
     try {
-      const [quotationsRes, plansRes, leadsRes] = await Promise.all([
+      const [quotationsRes, plansRes, leadsRes, agreementsRes] = await Promise.all([
         axios.get(`${API}/quotations`, { params: leadId ? { lead_id: leadId } : {} }),
         axios.get(`${API}/pricing-plans`, { params: leadId ? { lead_id: leadId } : {} }),
-        axios.get(`${API}/leads`)
+        axios.get(`${API}/leads`),
+        axios.get(`${API}/agreements`).catch(() => ({ data: [] }))
       ]);
       setQuotations(quotationsRes.data);
       setPricingPlans(plansRes.data);
       setLeads(leadsRes.data);
+      setAgreements(agreementsRes.data);
     } catch (error) {
       toast.error('Failed to fetch data');
     } finally {
@@ -127,6 +131,15 @@ const Quotations = () => {
     return lead ? `${lead.first_name} ${lead.last_name} - ${lead.company}` : 'Unknown Lead';
   };
 
+  const getLead = (leadId) => {
+    return leads.find(l => l.id === leadId);
+  };
+
+  // Check if quotation is used in an agreement
+  const isUsedInAgreement = (quotationId) => {
+    return agreements.some(a => a.quotation_id === quotationId);
+  };
+
   const canEdit = user?.role !== 'manager';
 
   // Calculate team totals from pricing plan
@@ -154,6 +167,21 @@ const Quotations = () => {
     return { totalMeetings, subtotal };
   };
 
+  // Group quotations by lead for history view
+  const groupedByLead = quotations.reduce((acc, quotation) => {
+    const key = quotation.lead_id;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(quotation);
+    return acc;
+  }, {});
+
+  // Sort quotations within each group by created_at (newest first)
+  Object.keys(groupedByLead).forEach(leadId => {
+    groupedByLead[leadId].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  });
+
   return (
     <div className="max-w-6xl mx-auto" data-testid="quotations-page">
       <div className="mb-6">
@@ -168,9 +196,9 @@ const Quotations = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-              Quotations
+              Proforma Invoices / Quotations
             </h1>
-            <p className="text-zinc-500">Manage and send quotations to clients</p>
+            <p className="text-zinc-500">Manage proforma invoices during negotiations</p>
           </div>
           {canEdit && (
             <Button
@@ -186,6 +214,28 @@ const Quotations = () => {
             </Button>
           )}
         </div>
+      </div>
+
+      {/* View Toggle Tabs */}
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={activeView === 'list' ? 'default' : 'outline'}
+          onClick={() => setActiveView('list')}
+          className="rounded-sm"
+          data-testid="list-view-tab"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          All Quotations
+        </Button>
+        <Button
+          variant={activeView === 'history' ? 'default' : 'outline'}
+          onClick={() => setActiveView('history')}
+          className="rounded-sm"
+          data-testid="history-view-tab"
+        >
+          <History className="w-4 h-4 mr-2" />
+          Negotiation History
+        </Button>
       </div>
 
       {loading ? (
@@ -210,86 +260,221 @@ const Quotations = () => {
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : activeView === 'list' ? (
+        /* LIST VIEW - All Quotations */
         <div className="space-y-4">
-          {quotations.map((quotation) => (
-            <Card
-              key={quotation.id}
-              data-testid={`quotation-card-${quotation.id}`}
-              className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-zinc-950">
-                      {quotation.quotation_number}
-                    </CardTitle>
-                    <p className="text-sm text-zinc-500 mt-1">
-                      {getLeadName(quotation.lead_id)}
-                    </p>
+          {quotations.map((quotation) => {
+            const usedInAgreement = isUsedInAgreement(quotation.id);
+            return (
+              <Card
+                key={quotation.id}
+                data-testid={`quotation-card-${quotation.id}`}
+                className={`border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors ${
+                  usedInAgreement ? 'border-l-4 border-l-emerald-500' : ''
+                }`}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg font-semibold text-zinc-950">
+                          {quotation.quotation_number}
+                        </CardTitle>
+                        {usedInAgreement && (
+                          <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-sm bg-emerald-100 text-emerald-700">
+                            <Star className="w-3 h-3" />
+                            Selected for Agreement
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-zinc-500 mt-1">
+                        {getLeadName(quotation.lead_id)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(quotation.status, quotation.is_final)}`}>
+                        {quotation.is_final ? 'Finalized' : quotation.status}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(quotation.status, quotation.is_final)}`}>
-                      {quotation.is_final ? 'Finalized' : quotation.status}
-                    </span>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <div className="text-xs text-zinc-500 uppercase tracking-wide">Meetings</div>
+                      <div className="text-lg font-semibold text-zinc-950">{quotation.total_meetings}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500 uppercase tracking-wide">Subtotal</div>
+                      <div className="text-lg font-semibold text-zinc-950">{formatINR(quotation.subtotal)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500 uppercase tracking-wide">GST (18%)</div>
+                      <div className="text-lg font-semibold text-zinc-950">{formatINR(quotation.gst_amount)}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-zinc-500 uppercase tracking-wide">Grand Total</div>
+                      <div className="text-lg font-semibold text-emerald-600">{formatINR(quotation.grand_total)}</div>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <div className="text-xs text-zinc-500 uppercase tracking-wide">Meetings</div>
-                    <div className="text-lg font-semibold text-zinc-950">{quotation.total_meetings}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500 uppercase tracking-wide">Subtotal</div>
-                    <div className="text-lg font-semibold text-zinc-950">{formatINR(quotation.subtotal)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500 uppercase tracking-wide">GST (18%)</div>
-                    <div className="text-lg font-semibold text-zinc-950">{formatINR(quotation.gst_amount)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500 uppercase tracking-wide">Grand Total</div>
-                    <div className="text-lg font-semibold text-emerald-600">{formatINR(quotation.grand_total)}</div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => openDetailDialog(quotation)}
-                    size="sm"
-                    variant="outline"
-                    className="rounded-sm border-zinc-200"
-                    data-testid={`view-details-${quotation.id}`}
-                  >
-                    <Eye className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                    View Team Breakdown
-                  </Button>
-                  {!quotation.is_final && canEdit && (
+                  <div className="flex gap-2">
                     <Button
-                      onClick={() => handleFinalize(quotation.id)}
+                      onClick={() => openDetailDialog(quotation)}
                       size="sm"
                       variant="outline"
                       className="rounded-sm border-zinc-200"
+                      data-testid={`view-details-${quotation.id}`}
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                      Finalize
+                      <Eye className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                      View Team Breakdown
                     </Button>
-                  )}
-                  {quotation.is_final && canEdit && (
-                    <Button
-                      onClick={() => navigate(`/sales-funnel/agreements?quotationId=${quotation.id}&leadId=${quotation.lead_id}`)}
-                      size="sm"
-                      className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                    >
-                      <Send className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                      Create Agreement
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    {!quotation.is_final && canEdit && (
+                      <Button
+                        onClick={() => handleFinalize(quotation.id)}
+                        size="sm"
+                        variant="outline"
+                        className="rounded-sm border-zinc-200"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                        Finalize
+                      </Button>
+                    )}
+                    {quotation.is_final && canEdit && !usedInAgreement && (
+                      <Button
+                        onClick={() => navigate(`/sales-funnel/agreements?quotationId=${quotation.id}&leadId=${quotation.lead_id}`)}
+                        size="sm"
+                        className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                      >
+                        <Send className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                        Create Agreement
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        /* HISTORY VIEW - Grouped by Lead/Prospect */
+        <div className="space-y-6">
+          {Object.keys(groupedByLead).map(leadId => {
+            const lead = getLead(leadId);
+            const quotationsList = groupedByLead[leadId];
+            const selectedQuotation = quotationsList.find(q => isUsedInAgreement(q.id));
+            
+            return (
+              <Card key={leadId} className="border-zinc-200 shadow-none rounded-sm" data-testid={`lead-group-${leadId}`}>
+                <CardHeader className="bg-zinc-50 border-b border-zinc-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-zinc-500" />
+                      <div>
+                        <CardTitle className="text-lg font-semibold text-zinc-950">
+                          {lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Lead'}
+                        </CardTitle>
+                        <p className="text-sm text-zinc-500">{lead?.company || 'No company'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-zinc-500 uppercase">Total Revisions</div>
+                      <div className="text-lg font-semibold text-zinc-950">{quotationsList.length}</div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-zinc-100">
+                    {quotationsList.map((quotation, idx) => {
+                      const isLatest = idx === 0;
+                      const usedInAgreement = isUsedInAgreement(quotation.id);
+                      const versionNumber = quotationsList.length - idx;
+                      
+                      return (
+                        <div 
+                          key={quotation.id} 
+                          className={`p-4 ${usedInAgreement ? 'bg-emerald-50/50' : isLatest ? 'bg-blue-50/30' : ''}`}
+                          data-testid={`history-item-${quotation.id}`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <span className={`px-2 py-1 text-xs font-mono font-semibold rounded-sm ${
+                                usedInAgreement ? 'bg-emerald-100 text-emerald-700' :
+                                isLatest ? 'bg-blue-100 text-blue-700' :
+                                'bg-zinc-100 text-zinc-600'
+                              }`}>
+                                v{versionNumber}
+                              </span>
+                              <div>
+                                <span className="font-medium text-zinc-900">{quotation.quotation_number}</span>
+                                <span className="text-sm text-zinc-500 ml-2">
+                                  {new Date(quotation.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              {usedInAgreement && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-sm bg-emerald-100 text-emerald-700">
+                                  <Star className="w-3 h-3" />
+                                  Selected for Agreement
+                                </span>
+                              )}
+                              {isLatest && !usedInAgreement && (
+                                <span className="px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-700">
+                                  Latest
+                                </span>
+                              )}
+                            </div>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(quotation.status, quotation.is_final)}`}>
+                              {quotation.is_final ? 'Finalized' : quotation.status}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-4 gap-4 mb-3">
+                            <div>
+                              <div className="text-xs text-zinc-500">Meetings</div>
+                              <div className="font-semibold">{quotation.total_meetings}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-zinc-500">Subtotal</div>
+                              <div className="font-semibold">{formatINR(quotation.subtotal)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-zinc-500">GST</div>
+                              <div className="font-semibold">{formatINR(quotation.gst_amount)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-zinc-500">Total</div>
+                              <div className="font-semibold text-emerald-600">{formatINR(quotation.grand_total)}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => openDetailDialog(quotation)}
+                              size="sm"
+                              variant="outline"
+                              className="rounded-sm border-zinc-200 h-8"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                            {quotation.is_final && canEdit && !usedInAgreement && (
+                              <Button
+                                onClick={() => navigate(`/sales-funnel/agreements?quotationId=${quotation.id}&leadId=${quotation.lead_id}`)}
+                                size="sm"
+                                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none h-8"
+                              >
+                                <Send className="w-3 h-3 mr-1" />
+                                Use for Agreement
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -501,41 +686,31 @@ const Quotations = () => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-zinc-400 text-center py-4">No team deployment data available</p>
+                    <div className="text-sm text-zinc-500 text-center py-4">No team deployment data available</div>
                   )}
                 </div>
               </div>
-              
-              {/* Pricing Summary */}
-              <div className="border border-zinc-200 rounded-sm p-4 bg-zinc-50">
+
+              {/* Quotation Summary */}
+              <div className="border border-zinc-200 rounded-sm p-4">
+                <h4 className="text-sm font-semibold mb-3">Quotation Summary</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-zinc-600">Subtotal:</span>
-                    <span className="font-semibold">{formatINR(selectedQuotation?.subtotal || 0)}</span>
+                    <span className="text-zinc-500">Subtotal</span>
+                    <span className="font-medium">{formatINR(selectedQuotation?.subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-600">Discount:</span>
-                    <span className="font-semibold text-red-600">- {formatINR(selectedQuotation?.discount_amount || 0)}</span>
+                    <span className="text-zinc-500">GST (18%)</span>
+                    <span className="font-medium">{formatINR(selectedQuotation?.gst_amount)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-600">GST (18%):</span>
-                    <span className="font-semibold">+ {formatINR(selectedQuotation?.gst_amount || 0)}</span>
-                  </div>
-                  <div className="flex justify-between text-lg pt-2 border-t border-zinc-200">
-                    <span className="font-bold">Grand Total:</span>
-                    <span className="font-bold text-emerald-600">{formatINR(selectedQuotation?.grand_total || 0)}</span>
+                  <div className="flex justify-between border-t border-zinc-200 pt-2">
+                    <span className="font-semibold">Grand Total</span>
+                    <span className="font-semibold text-emerald-600">{formatINR(selectedQuotation?.grand_total)}</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
-          
-          <Button
-            onClick={() => setDetailDialogOpen(false)}
-            className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-          >
-            Close
-          </Button>
         </DialogContent>
       </Dialog>
     </div>
