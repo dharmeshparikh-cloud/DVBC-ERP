@@ -1915,3 +1915,26 @@ HR Views Employee Checklist → All Items Green? → Submit for Approval
 |------|-------|----------|
 | HR Manager | hr.manager@dvbc.com | hr123 |
 | Admin | admin@dvbc.com | admin123 |
+
+### Session 13 Update - Permission Change Requests in Approvals Center
+
+**Issue Fixed:** Permission Change Requests from HR were not appearing in Admin's Approvals Center (notification received but no UI to manage them)
+
+**Changes Made:**
+1. Added `permissionApprovals` state and fetch logic in `ApprovalsCenter.js`
+2. Added "Permissions" stats card showing pending count
+3. Added "Pending Permission Changes" section with employee details and actions
+4. Added Permission Detail Dialog showing:
+   - Employee name and ID
+   - Requested by (HR)
+   - Requested changes (Role, Reporting Manager, Module Permissions)
+   - Original values for comparison
+   - Comments field
+   - Cancel, Reject, Approve buttons
+5. Integrated approve/reject API calls with proper toast notifications
+
+**Testing Results:**
+- Backend: 12/12 tests passed
+- Frontend: 6/6 features verified
+- Test file: `/app/backend/tests/test_permission_change_requests.py`
+- Test report: `/app/test_reports/iteration_66.json`
