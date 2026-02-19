@@ -72,6 +72,10 @@ const HROnboarding = () => {
   const [suggestedDept, setSuggestedDept] = useState(null);
   const [deptSuggestionLoading, setDeptSuggestionLoading] = useState(false);
   
+  // Success dialog state
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [onboardingSuccess, setOnboardingSuccess] = useState(null);
+  
   const [formData, setFormData] = useState({
     // Personal Info
     first_name: '',
