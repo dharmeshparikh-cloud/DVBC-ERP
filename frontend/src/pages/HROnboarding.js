@@ -674,40 +674,7 @@ const HROnboarding = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Role * <span className="text-xs text-muted-foreground">(Job title)</span></Label>
-                <Select value={formData.role} onValueChange={(v) => handleInputChange('role', v)}>
-                  <SelectTrigger data-testid="onboard-role">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ROLES.filter(role => !formData.department || role.department === formData.department || role.department === 'Admin').map(role => (
-                      <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Employee Level *</Label>
-                <Select value={formData.level} onValueChange={(v) => handleInputChange('level', v)}>
-                  <SelectTrigger data-testid="onboard-level">
-                    <SelectValue placeholder="Select level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EMPLOYEE_LEVELS.map(level => (
-                      <SelectItem key={level.value} value={level.value}>
-                        {level.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {EMPLOYEE_LEVELS.find(l => l.value === formData.level)?.description || ''}
-                </p>
-              </div>
-            </div>
-
+            {/* Simplified - No Role/Level dropdowns */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Employment Type *</Label>
@@ -723,7 +690,7 @@ const HROnboarding = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Reporting Manager</Label>
+                <Label>Reporting Manager * <span className="text-xs text-blue-600">(Determines team access)</span></Label>
                 <Select value={formData.reporting_manager_id} onValueChange={(v) => handleInputChange('reporting_manager_id', v)}>
                   <SelectTrigger data-testid="onboard-reporting-mgr">
                     <SelectValue placeholder="Select reporting manager" />
@@ -734,6 +701,27 @@ const HROnboarding = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  This person will gain team approval rights for this employee
+                </p>
+              </div>
+            </div>
+
+            {/* View Only Toggle */}
+            <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-md">
+              <input
+                type="checkbox"
+                id="is_view_only"
+                checked={formData.is_view_only || false}
+                onChange={(e) => handleInputChange('is_view_only', e.target.checked)}
+                className="w-4 h-4 rounded border-zinc-300"
+                data-testid="onboard-view-only"
+              />
+              <div>
+                <Label htmlFor="is_view_only" className="cursor-pointer">View Only Access</Label>
+                <p className="text-xs text-muted-foreground">
+                  Employee can view data but cannot create or edit records
+                </p>
               </div>
             </div>
           </div>
