@@ -6,11 +6,16 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Checkbox } from '../components/ui/checkbox';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   Users, Building2, Shield, TrendingUp, Briefcase, DollarSign, 
   Search, Plus, X, Check, ChevronDown, ChevronRight, Edit2, 
-  UserPlus, Settings, Eye, EyeOff
+  UserPlus, Settings, Eye, EyeOff, Clock, Key, AlertTriangle,
+  Calendar, Lock, Unlock
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -21,7 +26,8 @@ const DEPT_CONFIG = {
   HR: { icon: Users, color: 'bg-green-500', textColor: 'text-green-600', bgLight: 'bg-green-50' },
   Consulting: { icon: Briefcase, color: 'bg-purple-500', textColor: 'text-purple-600', bgLight: 'bg-purple-50' },
   Finance: { icon: DollarSign, color: 'bg-blue-500', textColor: 'text-blue-600', bgLight: 'bg-blue-50' },
-  Admin: { icon: Shield, color: 'bg-red-500', textColor: 'text-red-600', bgLight: 'bg-red-50' }
+  Admin: { icon: Shield, color: 'bg-red-500', textColor: 'text-red-600', bgLight: 'bg-red-50' },
+  Marketing: { icon: TrendingUp, color: 'bg-pink-500', textColor: 'text-pink-600', bgLight: 'bg-pink-50' },
 };
 
 const DepartmentAccessManager = () => {
@@ -33,6 +39,7 @@ const DepartmentAccessManager = () => {
   const [selectedDept, setSelectedDept] = useState('all');
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState({});
+  const [configuredDepts, setConfiguredDepts] = useState([]);
   
   // Edit dialog state
   const [editDialog, setEditDialog] = useState(false);
@@ -42,6 +49,18 @@ const DepartmentAccessManager = () => {
     primary_department: '',
     custom_page_access: [],
     restricted_pages: []
+  });
+  
+  // Special Permissions dialog state
+  const [specialDialog, setSpecialDialog] = useState(false);
+  const [specialForm, setSpecialForm] = useState({
+    additional_departments: [],
+    additional_pages: [],
+    restricted_pages: [],
+    temporary_role: '',
+    temporary_role_expiry: '',
+    can_approve_for_departments: [],
+    notes: ''
   });
   
   // Bulk edit state
