@@ -227,13 +227,25 @@ const HROnboarding = () => {
 
   const validateStep = (step) => {
     switch (step) {
-      case 0: // Personal Info
-        if (!formData.first_name || !formData.last_name || !formData.email || !formData.phone) {
-          toast.error('Please fill in all required personal information');
+      case 0: // Personal Info - ALL MANDATORY
+        if (!formData.first_name?.trim()) {
+          toast.error('First Name is required');
+          return false;
+        }
+        if (!formData.last_name?.trim()) {
+          toast.error('Last Name is required');
+          return false;
+        }
+        if (!formData.email?.trim()) {
+          toast.error('Work Email is required');
           return false;
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
           toast.error('Please enter a valid email address');
+          return false;
+        }
+        if (!formData.phone?.trim()) {
+          toast.error('Phone Number is required');
           return false;
         }
         // Validate phone number - must be 10 digits
@@ -242,19 +254,39 @@ const HROnboarding = () => {
           toast.error('Please enter a valid 10-digit phone number');
           return false;
         }
+        if (!formData.gender) {
+          toast.error('Gender is required');
+          return false;
+        }
         return true;
         
-      case 1: // Employment Details
-        if (!formData.employee_id || !formData.designation || !formData.joining_date) {
-          toast.error('Please fill in all required employment details');
+      case 1: // Employment Details - ALL MANDATORY
+        if (!formData.employee_id?.trim()) {
+          toast.error('Employee ID is required');
+          return false;
+        }
+        if (!formData.employee_id.toUpperCase().startsWith('EMP')) {
+          toast.error('Employee ID must start with "EMP"');
+          return false;
+        }
+        if (!formData.designation?.trim()) {
+          toast.error('Designation is required');
+          return false;
+        }
+        if (!formData.joining_date) {
+          toast.error('Joining Date is required');
           return false;
         }
         if (!formData.departments || formData.departments.length === 0) {
           toast.error('Please select at least one department');
           return false;
         }
+        if (!formData.employment_type) {
+          toast.error('Employment Type is required');
+          return false;
+        }
         if (!formData.reporting_manager_id) {
-          toast.error('Please select a reporting manager');
+          toast.error('Reporting Manager is required');
           return false;
         }
         return true;
@@ -263,15 +295,22 @@ const HROnboarding = () => {
         // Documents are optional but recommended
         return true;
         
-      case 3: // Bank Details
+      case 3: // Bank Details - Optional but if provided, all required
         if (formData.bank_account_number || formData.bank_ifsc) {
-          // If any bank detail is provided, require proof
-          if (!formData.bank_proof_uploaded) {
-            toast.error('Bank proof document is required when providing bank details');
+          if (!formData.bank_account_number?.trim()) {
+            toast.error('Bank Account Number is required');
             return false;
           }
-          if (!formData.bank_account_number || !formData.bank_ifsc || !formData.bank_name) {
-            toast.error('Please complete all bank details');
+          if (!formData.bank_ifsc?.trim()) {
+            toast.error('Bank IFSC Code is required');
+            return false;
+          }
+          if (!formData.bank_name?.trim()) {
+            toast.error('Bank Name is required');
+            return false;
+          }
+          if (!formData.bank_proof_uploaded) {
+            toast.error('Bank proof document is required when providing bank details');
             return false;
           }
         }
