@@ -284,7 +284,14 @@ class TestPermissionConfigDepartments:
         if response.status_code == 200 or response.status_code == 201:
             data = response.json()
             print(f"Created department: {data}")
-            assert "id" in data or "name" in data, "Response should contain department data"
+            # Response format: {"message": "...", "department": {...}}
+            if "department" in data:
+                dept_data = data["department"]
+                assert "id" in dept_data, "Department should have id"
+                assert "name" in dept_data, "Department should have name"
+                print(f"Successfully created department: {dept_data.get('name')}")
+            else:
+                assert "id" in data or "name" in data, "Response should contain department data"
         elif response.status_code == 400 and "already exists" in response.text.lower():
             print("Department already exists - this is acceptable")
         else:
