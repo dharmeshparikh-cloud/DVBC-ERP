@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   FileText, Download, Eye, Plus, Edit, Trash2, Save, Printer,
   User, Building2, Calendar, Mail, Phone, Award, Briefcase,
-  CheckCircle, AlertCircle, Copy, FileSignature, Stamp
+  CheckCircle, AlertCircle, Copy, FileSignature, Stamp, History
 } from 'lucide-react';
 import { toast } from 'sonner';
 
