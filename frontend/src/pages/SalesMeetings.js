@@ -256,14 +256,20 @@ const SalesMeetings = () => {
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="p-4">
             <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">With MOM</div>
-            <div className="text-2xl font-semibold text-zinc-950">{meetings.filter(m => m.mom_generated).length}</div>
+            <div className="text-2xl font-semibold text-zinc-950">{meetings.filter(m => m.mom_id || m.mom_generated).length}</div>
           </CardContent>
         </Card>
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="p-4">
             <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">This Month</div>
             <div className="text-2xl font-semibold text-zinc-950">
-              {meetings.filter(m => { const d = new Date(m.meeting_date); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length}
+              {meetings.filter(m => { 
+                const dateStr = m.scheduled_date || m.meeting_date;
+                if (!dateStr) return false;
+                const d = new Date(dateStr); 
+                const now = new Date(); 
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); 
+              }).length}
             </div>
           </CardContent>
         </Card>
@@ -288,31 +294,53 @@ const SalesMeetings = () => {
           {meetings.map((meeting) => {
             const lead = leads.find(l => l.id === meeting.lead_id);
             const isExpanded = expandedMeetings[meeting.id];
+            const meetingDate = meeting.scheduled_date || meeting.meeting_date;
+            const meetingTime = meeting.scheduled_time || '';
+            const meetingMode = meeting.location?.toLowerCase().includes('meet') || meeting.location?.toLowerCase().includes('zoom') ? 'online' : 
+                               meeting.location?.toLowerCase().includes('phone') ? 'tele_call' : (meeting.mode || 'offline');
             return (
               <Card key={meeting.id} data-testid={`sales-meeting-card-${meeting.id}`} className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className={`p-2 rounded-sm ${getModeBadge(meeting.mode)}`}>{getModeIcon(meeting.mode)}</div>
+                        <div className={`p-2 rounded-sm ${getModeBadge(meetingMode)}`}>{getModeIcon(meetingMode)}</div>
                         <div>
                           <div className="font-medium text-zinc-950">{meeting.title || 'Sales Meeting'}</div>
-                          <div className="text-sm text-zinc-500">{lead ? `${lead.first_name} ${lead.last_name} - ${lead.company}` : 'No lead linked'}</div>
+                          <div className="text-sm text-zinc-500">
+                            {meeting.lead_name || (lead ? `${lead.first_name} ${lead.last_name}` : 'No lead linked')}
+                            {meeting.company && ` - ${meeting.company}`}
+                          </div>
                         </div>
-                        {meeting.mom_generated && (
+                        {(meeting.mom_id || meeting.mom_generated) && (
                           <span className="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 rounded-sm flex items-center gap-1">
                             <FileText className="w-3 h-3" /> MOM
                           </span>
                         )}
+                        {meeting.status && (
+                          <span className={`text-xs px-2 py-1 rounded-sm ${
+                            meeting.status === 'completed' ? 'bg-green-50 text-green-700' :
+                            meeting.status === 'scheduled' ? 'bg-blue-50 text-blue-700' :
+                            'bg-zinc-100 text-zinc-600'
+                          }`}>
+                            {meeting.status.charAt(0).toUpperCase() + meeting.status.slice(1)}
+                          </span>
+                        )}
                       </div>
-                      <div className="grid grid-cols-3 gap-4 mt-3">
+                      <div className="grid grid-cols-4 gap-4 mt-3">
                         <div>
-                          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Date & Time</div>
-                          <div className="text-sm text-zinc-950">{format(new Date(meeting.meeting_date), 'MMM dd, yyyy HH:mm')}</div>
+                          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Date</div>
+                          <div className="text-sm text-zinc-950">
+                            {meetingDate ? format(new Date(meetingDate), 'MMM dd, yyyy') : '-'}
+                          </div>
                         </div>
                         <div>
-                          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Mode</div>
-                          <div className="text-sm text-zinc-950">{meeting.mode === 'online' ? 'Online' : meeting.mode === 'offline' ? 'In-person' : 'Tele Call'}</div>
+                          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Time</div>
+                          <div className="text-sm text-zinc-950">{meetingTime || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Location</div>
+                          <div className="text-sm text-zinc-950">{meeting.location || meetingMode}</div>
                         </div>
                         <div>
                           <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Duration</div>
