@@ -321,6 +321,62 @@ const AdminMasters = () => {
     }
   };
 
+  // Department CRUD
+  const handleCreateDept = async () => {
+    try {
+      if (!newDept.name || !newDept.code) {
+        toast.error('Name and Code are required');
+        return;
+      }
+      // Parse pages from comma-separated string
+      const pagesArray = newDept.pages.split(',').map(p => p.trim()).filter(p => p);
+      
+      await axios.post(`${API}/permission-config/departments`, {
+        name: newDept.name,
+        code: newDept.code.toUpperCase(),
+        description: newDept.description,
+        pages: pagesArray,
+        icon: newDept.icon,
+        color: newDept.color,
+        is_active: true
+      });
+      toast.success('Department created');
+      setShowNewDept(false);
+      setNewDept({ name: '', code: '', description: '', pages: '', icon: 'Building2', color: '#6B7280' });
+      fetchDepartments();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create department');
+    }
+  };
+
+  const handleUpdateDept = async (id, data) => {
+    try {
+      // Parse pages if it's a string
+      const updateData = { ...data };
+      if (typeof updateData.pages === 'string') {
+        updateData.pages = updateData.pages.split(',').map(p => p.trim()).filter(p => p);
+      }
+      
+      await axios.put(`${API}/permission-config/departments/${id}`, updateData);
+      toast.success('Department updated');
+      setEditingDept(null);
+      fetchDepartments();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update department');
+    }
+  };
+
+  const handleDeleteDept = async (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this department?')) return;
+    try {
+      await axios.delete(`${API}/permission-config/departments/${id}`);
+      toast.success('Department deactivated');
+      fetchDepartments();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to deactivate department');
+    }
+  };
+
   // Get scopes for selected category
   const filteredScopes = selectedCategory 
     ? sowScopes.filter(s => s.category_id === selectedCategory)
