@@ -441,6 +441,8 @@ A comprehensive travel reimbursement feature for employees:
 ## Backlog / Future Tasks
 
 ### P1 - High Priority
+- [ ] Admin approval workflow for employee record edits
+- [ ] Download button for documents uploaded during onboarding
 - [ ] Frontend permission enforcement (dynamic UI based on roles)
 - [ ] Complete meeting management logic for sales flow
 - [ ] Lead status enforcement (must be "Hot" for pricing)
