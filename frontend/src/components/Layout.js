@@ -249,6 +249,7 @@ const Layout = () => {
     { name: 'Admin Masters', href: '/admin-masters', icon: Settings },
     { name: 'User Management', href: '/user-management', icon: UserCog },
     { name: 'Role Management', href: '/role-management', icon: Shield },
+    { name: 'Employee Permissions', href: '/employee-permissions', icon: UserCog },
     { name: 'Dept Access Manager', href: '/department-access', icon: Building2 },
     { name: 'Permission Dashboard', href: '/permission-dashboard', icon: Users },
     { name: 'Permission Config', href: '/permission-manager', icon: Lock },
