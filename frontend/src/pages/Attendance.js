@@ -85,15 +85,26 @@ const Attendance = () => {
 
   const fetchData = async () => {
     try {
+      // Parse month string (YYYY-MM) into month and year integers
+      const [yearStr, monthStr] = month.split('-');
+      const year = parseInt(yearStr, 10);
+      const monthNum = parseInt(monthStr, 10);
+      
+      // Calculate date range for the month
+      const startDate = `${year}-${monthStr}-01`;
+      const lastDay = new Date(year, monthNum, 0).getDate();
+      const endDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+      
       const [empRes, summaryRes, recordsRes] = await Promise.all([
         axios.get(`${API}/employees`),
-        axios.get(`${API}/attendance/summary?month=${month}`),
-        axios.get(`${API}/attendance?month=${month}`)
+        axios.get(`${API}/attendance/summary?month=${monthNum}&year=${year}`),
+        axios.get(`${API}/attendance?date_from=${startDate}&date_to=${endDate}`)
       ]);
       setEmployees(empRes.data);
       setSummary(summaryRes.data);
       setRecords(recordsRes.data);
     } catch (error) {
+      console.error('Attendance fetch error:', error);
       toast.error('Failed to fetch data');
     } finally {
       setLoading(false);
