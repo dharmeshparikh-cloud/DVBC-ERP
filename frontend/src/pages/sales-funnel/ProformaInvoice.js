@@ -9,7 +9,8 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { 
   ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, 
-  Download, Printer, ArrowRight, Building2, Phone, Mail, MapPin, AlertCircle
+  Download, Printer, ArrowRight, Building2, Phone, Mail, MapPin, AlertCircle,
+  History, Star
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
