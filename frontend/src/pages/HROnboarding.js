@@ -79,6 +79,22 @@ const HROnboarding = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [onboardingSuccess, setOnboardingSuccess] = useState(null);
   
+  // CSV Import state
+  const [csvData, setCsvData] = useState([]);
+  const [csvFile, setCsvFile] = useState(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkResults, setBulkResults] = useState([]);
+  const csvInputRef = useRef(null);
+  
+  // Document files with download capability
+  const [documentFiles, setDocumentFiles] = useState({
+    photo: null,
+    id_proof: null,
+    address_proof: null,
+    education: null,
+    experience: null
+  });
+  
   const [formData, setFormData] = useState({
     // Personal Info
     first_name: '',
