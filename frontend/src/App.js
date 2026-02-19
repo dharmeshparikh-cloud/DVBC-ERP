@@ -97,6 +97,7 @@ import WorkflowPage from './pages/WorkflowPage';
 import OnboardingTutorial from './pages/OnboardingTutorial';
 import BankDetailsChangeRequest from './pages/BankDetailsChangeRequest';
 import PasswordManagement from './pages/PasswordManagement';
+import GoLiveDashboard from './pages/GoLiveDashboard';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import './App.css';
 
