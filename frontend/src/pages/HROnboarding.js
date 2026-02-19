@@ -1287,7 +1287,9 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                   </SelectTrigger>
                   <SelectContent>
                     {managers.map(mgr => (
-                      <SelectItem key={mgr.id} value={mgr.id}>{mgr.full_name}</SelectItem>
+                      <SelectItem key={mgr.id} value={mgr.id}>
+                        {mgr.full_name} ({mgr.employee_id || mgr.id})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
