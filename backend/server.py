@@ -5838,6 +5838,27 @@ async def mark_all_notifications_read(current_user: User = Depends(get_current_u
     )
     return {"message": f"{result.modified_count} notifications marked as read"}
 
+
+@api_router.patch("/notifications/{notification_id}/action")
+async def mark_notification_actioned(
+    notification_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Mark a notification as actioned (after approve/reject action taken)"""
+    result = await db.notifications.update_one(
+        {"id": notification_id, "user_id": current_user.id},
+        {"$set": {
+            "status": "actioned",
+            "action_taken": data.get("action"),
+            "actioned_at": data.get("actioned_at", datetime.now(timezone.utc).isoformat())
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"message": "Notification marked as actioned"}
+
+
 # ==================== ENHANCED CONSULTANT PROFILE ====================
 
 class ConsultantProfileUpdate(BaseModel):
