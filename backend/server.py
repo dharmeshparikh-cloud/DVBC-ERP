@@ -9687,9 +9687,25 @@ async def approve_reject_attendance(
     data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Approve or reject attendance check-in"""
-    if current_user.role not in ["admin", "hr_manager"]:
-        raise HTTPException(status_code=403, detail="HR access required")
+    """Approve or reject attendance check-in. RM can approve their reportees, HR/Admin can approve all."""
+    record = await db.attendance.find_one({"id": attendance_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+    
+    # Check authorization - HR/Admin can approve anyone, RM can approve reportees
+    is_hr_admin = current_user.role in ["admin", "hr_manager"]
+    is_reporting_manager = False
+    
+    if not is_hr_admin:
+        # Check if current user is the reporting manager of this employee
+        emp = await db.employees.find_one({"id": record["employee_id"]}, {"_id": 0, "reporting_manager_id": 1})
+        if emp:
+            rm_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
+            if rm_emp and emp.get("reporting_manager_id") == rm_emp["id"]:
+                is_reporting_manager = True
+    
+    if not is_hr_admin and not is_reporting_manager:
+        raise HTTPException(status_code=403, detail="Only HR, Admin, or Reporting Manager can approve attendance")
     
     action = data.get("action")  # "approve" or "reject"
     hr_remarks = data.get("remarks", "")
@@ -9697,18 +9713,17 @@ async def approve_reject_attendance(
     if action not in ["approve", "reject"]:
         raise HTTPException(status_code=400, detail="Action must be 'approve' or 'reject'")
     
-    record = await db.attendance.find_one({"id": attendance_id})
-    if not record:
-        raise HTTPException(status_code=404, detail="Attendance record not found")
-    
     new_status = "approved" if action == "approve" else "rejected"
+    approver_role = "Reporting Manager" if is_reporting_manager else current_user.role.replace("_", " ").title()
     
     await db.attendance.update_one(
         {"id": attendance_id},
         {"$set": {
             "approval_status": new_status,
+            "status": "present" if action == "approve" else "absent",  # Update payroll status
             "approved_by": current_user.id,
             "approved_by_name": current_user.full_name,
+            "approved_by_role": approver_role,
             "approved_at": datetime.now(timezone.utc).isoformat(),
             "hr_remarks": hr_remarks
         }}
@@ -9716,17 +9731,17 @@ async def approve_reject_attendance(
     
     # Notify employee
     emp = await db.employees.find_one({"id": record["employee_id"]})
-    if emp:
-        user = await db.users.find_one({"email": emp.get("email")})
-        if user:
-            await db.notifications.insert_one({
-                "id": str(uuid.uuid4()),
-                "user_id": user["id"],
-                "message": f"Your attendance for {record['date']} has been {new_status} by HR",
-                "type": "attendance_approval_result",
-                "is_read": False,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            })
+    if emp and emp.get("user_id"):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": emp["user_id"],
+            "title": f"Attendance {new_status.title()}",
+            "message": f"Your attendance for {record['date']} has been {new_status} by {current_user.full_name} ({approver_role})",
+            "type": "attendance_approval_result",
+            "status": "info",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
     
     return {"message": f"Attendance {new_status}", "attendance_id": attendance_id}
 
