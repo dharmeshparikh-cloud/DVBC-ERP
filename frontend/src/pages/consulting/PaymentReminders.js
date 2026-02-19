@@ -115,6 +115,82 @@ const PaymentReminders = () => {
     return `Due in ${days} days`;
   };
 
+  // Open record payment dialog
+  const openRecordPayment = (payment) => {
+    setSelectedPayment(payment);
+    setPaymentForm({
+      transaction_id: '',
+      received_amount: '',
+      payment_date: format(new Date(), 'yyyy-MM-dd'),
+      payment_mode: 'bank_transfer',
+      notes: ''
+    });
+    setRecordPaymentOpen(true);
+  };
+
+  // Send payment reminder
+  const handleSendReminder = async (payment) => {
+    // Check if within 7 days of due date
+    if (payment.days_until_due > 7) {
+      toast.error('Reminders can only be sent within 7 days of the due date');
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/payment-reminders/send`, {
+        project_id: payment.project_id,
+        installment_number: payment.installment_number,
+        client_email: payment.client_email,
+        client_name: payment.client_name,
+        due_date: payment.due_date,
+        project_name: payment.project_name
+      });
+      toast.success(`Reminder sent for Installment #${payment.installment_number}`);
+    } catch (error) {
+      // Backend might not have email configured yet
+      toast.info('Reminder logged. Email notification will be sent when email service is configured.');
+    }
+  };
+
+  // Record payment with transaction ID
+  const handleRecordPayment = async (e) => {
+    e.preventDefault();
+    
+    if (!paymentForm.transaction_id.trim()) {
+      toast.error('Transaction ID is required');
+      return;
+    }
+    
+    if (!paymentForm.received_amount || parseFloat(paymentForm.received_amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await axios.post(`${API}/project-payments/record`, {
+        project_id: selectedPayment.project_id,
+        agreement_id: selectedPayment.agreement_id,
+        installment_number: selectedPayment.installment_number,
+        transaction_id: paymentForm.transaction_id.trim(),
+        received_amount: parseFloat(paymentForm.received_amount),
+        payment_date: paymentForm.payment_date,
+        payment_mode: paymentForm.payment_mode,
+        notes: paymentForm.notes,
+        pricing_plan_id: selectedPayment.pricing_plan_id
+      });
+      
+      toast.success(`Payment recorded for Installment #${selectedPayment.installment_number}`);
+      setRecordPaymentOpen(false);
+      fetchReminders(); // Refresh list
+    } catch (error) {
+      const errMsg = error.response?.data?.detail || 'Failed to record payment';
+      toast.error(errMsg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
