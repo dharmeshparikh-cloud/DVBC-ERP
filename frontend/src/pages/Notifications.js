@@ -138,7 +138,7 @@ const timeAgo = (dateStr) => {
 };
 
 const Notifications = () => {
-  const { user } = useAuth();
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
