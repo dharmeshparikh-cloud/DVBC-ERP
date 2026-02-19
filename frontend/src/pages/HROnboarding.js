@@ -126,8 +126,51 @@ const HROnboarding = () => {
     }
   };
 
+  // Auto-suggest department based on designation
+  const suggestDepartmentFromDesignation = async (designation) => {
+    if (!designation || designation.length < 3) {
+      setSuggestedDept(null);
+      return;
+    }
+    
+    setDeptSuggestionLoading(true);
+    try {
+      const res = await fetch(`${API}/permission-config/suggest-department?designation=${encodeURIComponent(designation)}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestedDept(data);
+        
+        // Auto-fill if high confidence and department not already set
+        if (data.suggested_department && data.confidence >= 0.7 && !formData.department) {
+          setFormData(prev => ({ ...prev, department: data.suggested_department }));
+          // Also auto-select matching role
+          const matchingRole = ROLES.find(r => r.department === data.suggested_department);
+          if (matchingRole) {
+            setFormData(prev => ({ ...prev, role: matchingRole.value }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to suggest department:', error);
+    } finally {
+      setDeptSuggestionLoading(false);
+    }
+  };
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Debounced designation change handler
+  const handleDesignationChange = (value) => {
+    handleInputChange('designation', value);
+    // Debounce the API call
+    clearTimeout(window.designationTimeout);
+    window.designationTimeout = setTimeout(() => {
+      suggestDepartmentFromDesignation(value);
+    }, 500);
   };
 
   const handleBankProofUpload = (e) => {
