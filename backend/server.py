@@ -9304,11 +9304,13 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 async def validate_checkin_location(emp: dict, geo_location: dict, work_location: str) -> dict:
     """
     Validate check-in location against approved locations.
-    - Consulting/Delivery employees: Can check in from office OR assigned client locations
-    - Other employees (HR, Admin, Sales, etc.): Can ONLY check in from office
+    Priority order:
+    1. Employee's assigned locations (geo-fence locations set by HR)
+    2. Office locations (from settings)
+    3. Client locations from assigned projects (for consulting employees)
     Returns: {is_valid: bool, matched_location: str|None, all_approved_locations: list}
     """
-    GEOFENCE_RADIUS = 500  # 500 meters
+    GEOFENCE_RADIUS = 500  # Default 500 meters
     
     lat = geo_location.get("latitude")
     lon = geo_location.get("longitude")
@@ -9320,10 +9322,23 @@ async def validate_checkin_location(emp: dict, geo_location: dict, work_location
     dept = emp.get("department", "").lower()
     role = emp.get("designation", "").lower()
     
+    # 1. Employee's assigned geo-fence locations (highest priority)
+    if emp.get("assigned_locations"):
+        for loc in emp["assigned_locations"]:
+            if loc.get("latitude") and loc.get("longitude"):
+                approved_locations.append({
+                    "name": loc.get("name", "Assigned Location"),
+                    "type": loc.get("type", "assigned"),
+                    "latitude": float(loc["latitude"]),
+                    "longitude": float(loc["longitude"]),
+                    "address": loc.get("address"),
+                    "radius": loc.get("radius", 500)
+                })
+    
     # Determine if employee can check in from client sites
     can_use_client_sites = dept in ["consulting", "delivery"] or "consultant" in role
     
-    # Get office locations (available to everyone)
+    # 2. Get office locations (available to everyone)
     office_settings = await db.settings.find_one({"type": "office_locations"})
     if office_settings and office_settings.get("locations"):
         for loc in office_settings["locations"]:
@@ -9332,10 +9347,11 @@ async def validate_checkin_location(emp: dict, geo_location: dict, work_location
                 "type": "office",
                 "latitude": loc.get("latitude"),
                 "longitude": loc.get("longitude"),
-                "address": loc.get("address")
+                "address": loc.get("address"),
+                "radius": 500
             })
     
-    # For consulting/delivery employees, also get their assigned client locations
+    # 3. For consulting/delivery employees, also get their assigned client locations
     if can_use_client_sites:
         # Get projects assigned to this employee
         projects = await db.projects.find({
@@ -9356,26 +9372,29 @@ async def validate_checkin_location(emp: dict, geo_location: dict, work_location
                         "type": "client",
                         "latitude": client["geo_coordinates"].get("latitude"),
                         "longitude": client["geo_coordinates"].get("longitude"),
-                        "address": client.get("address")
+                        "address": client.get("address"),
+                        "radius": 500
                     })
     
     # Check if current location matches any approved location
     for loc in approved_locations:
         if loc.get("latitude") and loc.get("longitude"):
             distance = calculate_distance(lat, lon, loc["latitude"], loc["longitude"])
-            if distance <= GEOFENCE_RADIUS:
+            loc_radius = loc.get("radius", GEOFENCE_RADIUS)
+            if distance <= loc_radius:
                 return {
                     "is_valid": True,
                     "matched_location": loc["name"],
                     "location_type": loc["type"],
                     "distance": round(distance),
+                    "radius": loc_radius,
                     "approved_locations": approved_locations
                 }
     
     return {
         "is_valid": False,
         "matched_location": None,
-        "reason": "Location not within 500m of any approved location",
+        "reason": "Location not within approved geo-fence radius",
         "approved_locations": approved_locations
     }
 
