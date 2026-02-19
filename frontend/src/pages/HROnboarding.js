@@ -472,7 +472,10 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
 
   const validateStep = (step) => {
     switch (step) {
-      case 0: // Personal Info - ALL MANDATORY
+      case 0: // Quick Import - always valid (optional)
+        return true;
+        
+      case 1: // Personal Info - ALL MANDATORY
         if (!formData.first_name?.trim()) {
           toast.error('First Name is required');
           return false;
