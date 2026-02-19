@@ -125,24 +125,82 @@ async def get_my_department_access(current_user: User = Depends(get_current_user
     """Get current user's department access configuration"""
     db = get_db()
     
-    # Get employee record
+    # First check user record for departments (most authoritative)
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    user_departments = user.get("departments", []) if user else []
+    user_primary = user.get("primary_department") if user else None
+    
+    # Get employee record for additional info
     employee = await db.employees.find_one(
         {"user_id": current_user.id},
         {"_id": 0}
     )
     
-    if not employee:
-        # Return basic access for users without employee record
-        return {
-            "departments": ["Admin"] if current_user.role == "admin" else [],
-            "primary_department": "Admin" if current_user.role == "admin" else None,
-            "accessible_pages": UNIVERSAL_PAGES + (["*"] if current_user.role == "admin" else []),
-            "level": "leader" if current_user.role == "admin" else "executive",
-            "custom_access": None
-        }
+    # Use user departments if available, otherwise fall back to employee or role-based
+    if user_departments:
+        departments = user_departments
+        primary_dept = user_primary or user_departments[0]
+    elif employee:
+        departments = employee.get("departments", [])
+        primary_dept = employee.get("primary_department") or employee.get("department")
+        if not departments and primary_dept:
+            departments = [primary_dept]
+    else:
+        # Fall back to role-based access for users without employee record
+        if current_user.role == "admin":
+            departments = ["Admin"]
+            primary_dept = "Admin"
+        else:
+            departments = []
+            primary_dept = None
     
-    # Get departments from employee record
-    departments = employee.get("departments", [])
+    # Admin role always has full access
+    if current_user.role == "admin":
+        departments = ["Admin"]
+        primary_dept = "Admin"
+    
+    # Build accessible pages list
+    accessible_pages = list(UNIVERSAL_PAGES)
+    
+    for dept in departments:
+        if dept in DEPARTMENTS:
+            dept_pages = DEPARTMENTS[dept]["pages"]
+            if dept_pages == ["*"]:
+                accessible_pages = ["*"]
+                break
+            accessible_pages.extend(dept_pages)
+    
+    # Add custom access pages if any (from employee record)
+    custom_access = employee.get("custom_page_access", []) if employee else []
+    if custom_access:
+        accessible_pages.extend(custom_access)
+    
+    # Remove restricted pages
+    restricted = employee.get("restricted_pages", []) if employee else []
+    if restricted and accessible_pages != ["*"]:
+        accessible_pages = [p for p in accessible_pages if p not in restricted]
+    
+    # Remove duplicates
+    if accessible_pages != ["*"]:
+        accessible_pages = list(set(accessible_pages))
+    
+    # Get level - user level takes precedence
+    level = user.get("level") if user else None
+    if not level and employee:
+        level = employee.get("level", "executive")
+    if not level:
+        level = "leader" if current_user.role == "admin" else "executive"
+    
+    return {
+        "employee_id": employee.get("id") if employee else None,
+        "employee_code": employee.get("employee_id") if employee else None,
+        "departments": departments,
+        "primary_department": primary_dept,
+        "accessible_pages": accessible_pages,
+        "level": level,
+        "custom_access": custom_access,
+        "restricted_pages": restricted
+    }
     primary_dept = employee.get("primary_department") or employee.get("department")
     
     # If no departments set, use legacy department field
