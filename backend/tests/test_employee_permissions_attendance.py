@@ -23,15 +23,19 @@ class TestEmployeePermissionsAndAttendance:
             json={"email": self.admin_email, "password": self.admin_password}
         )
         if login_response.status_code == 200:
-            token = login_response.json().get("token")
-            self.headers["Authorization"] = f"Bearer {token}"
+            data = login_response.json()
+            token = data.get("access_token") or data.get("token")
+            if token:
+                self.headers["Authorization"] = f"Bearer {token}"
+            else:
+                pytest.skip("No token in login response")
         else:
-            pytest.skip("Failed to authenticate as admin")
+            pytest.skip(f"Failed to authenticate as admin: {login_response.status_code}")
     
     def test_employees_list(self):
         """Test employees list endpoint returns employees"""
         response = requests.get(f"{BASE_URL}/api/employees", headers=self.headers)
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         employees = response.json()
         assert isinstance(employees, list), "Expected list of employees"
@@ -62,7 +66,7 @@ class TestEmployeePermissionsAndAttendance:
         )
         
         # Should return 200 or 404 (if no permissions set yet)
-        assert response.status_code in [200, 404], f"Expected 200 or 404, got {response.status_code}"
+        assert response.status_code in [200, 404], f"Expected 200 or 404, got {response.status_code}: {response.text}"
         
         if response.status_code == 200:
             data = response.json()
@@ -78,7 +82,7 @@ class TestEmployeePermissionsAndAttendance:
             headers=self.headers
         )
         
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         requests_list = response.json()
         assert isinstance(requests_list, list), "Expected list of requests"
@@ -103,7 +107,7 @@ class TestEmployeePermissionsAndAttendance:
             headers=self.headers
         )
         
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         summary = response.json()
         assert isinstance(summary, list), "Expected list of attendance summaries"
@@ -132,7 +136,7 @@ class TestEmployeePermissionsAndAttendance:
             headers=self.headers
         )
         
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         records = response.json()
         assert isinstance(records, list), "Expected list of records"
