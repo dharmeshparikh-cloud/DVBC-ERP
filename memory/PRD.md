@@ -464,6 +464,32 @@ A comprehensive travel reimbursement feature for employees:
 - [ ] Skill matrix and capacity planning
 - [ ] Training/certification tracking
 
+### Session 10 (Feb 19, 2026) - Document Builder & Onboarding Flow Enhancement
+- [x] **Document Builder Page** (New)
+  - [x] Created `/document-builder` page for generating employment documents
+  - [x] 4 document types: Offer Letter, Appointment Letter, Confirmation Letter, Experience Letter
+  - [x] Employee selection dropdown with Employee ID and department badges
+  - [x] Live preview with D&V Business Consulting letterhead
+  - [x] Custom values override (CTC, Location, Reporting Manager, Notice Period)
+  - [x] HTML template editor with placeholder tags
+  - [x] Print, Download (HTML), and Copy functionality
+  - [x] Templates saved to localStorage for persistence
+  - [x] Added to HR section in main sidebar
+- [x] **Onboarding to CTC Designer/Document Builder Flow**
+  - [x] Updated HROnboarding.js success dialog with new action buttons
+  - [x] "Design CTC Structure" button redirects to `/ctc-designer?employee={id}`
+  - [x] "Generate Documents" button redirects to `/document-builder?employee={id}`
+  - [x] Employee pre-selection via URL query parameter
+- [x] **Login Page Enhancement**
+  - [x] Updated login to support both Employee ID and Email
+  - [x] Smart detection: if input contains '@', treat as email; otherwise as Employee ID
+  - [x] Updated placeholder to show "EMP001 or email@domain.com"
+  - [x] Maintains backward compatibility with existing users
+- [x] **Navigation Updates**
+  - [x] Added Document Builder link in main Layout.js sidebar (HR section)
+  - [x] Added Document Builder link in HRLayout.js (HR Portal)
+  - [x] Added routes in App.js for both portals
+
 ### Session 9 (Feb 17, 2026) - ERP Workflow, Permissions & Onboarding
 - [x] **High-Priority Workflow Diagrams Added**
   - [x] Leave Management, Expense Reimbursement, Invoice to Collection flows
