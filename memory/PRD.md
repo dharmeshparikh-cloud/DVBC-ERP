@@ -14,6 +14,17 @@
 2. **Proforma Invoice History View** - Negotiation history grouped by lead for tracking revisions
 3. **Payment Reminder & Transaction Recording** - Send reminders and record payments with transaction IDs
 4. **Department-based Permission Refactoring** - Started migration from role-based to department-based permission checks
+5. **E2E Sales Flow Tested** - Complete flow from onboarding to kickoff verified with test employee "Dharmesh Parikh"
+
+## E2E Test Employee (Feb 19, 2025)
+- **Name:** Dharmesh Parikh
+- **Employee ID:** EMP009
+- **Email:** dharmesh.parikh@dvconsulting.co.in
+- **Password:** Welcome@EMP009
+- **Department:** Sales
+- **Designation:** Sales Manager
+- **Level:** Manager
+- **Sales Activity:** 1 Lead (HOT), 1 Pricing Plan, 1 SOW, 1 Quotation, 1 Agreement
 
 ## Original Problem Statement
 Build a business management application for a consulting firm with complete HR, Sales, and Consulting workflows, including:
