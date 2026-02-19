@@ -217,8 +217,12 @@ const HROnboarding = () => {
         return true;
         
       case 1: // Employment Details
-        if (!formData.employee_id || !formData.department || !formData.designation || !formData.joining_date) {
+        if (!formData.employee_id || !formData.designation || !formData.joining_date) {
           toast.error('Please fill in all required employment details');
+          return false;
+        }
+        if (!formData.departments || formData.departments.length === 0) {
+          toast.error('Please select at least one department');
           return false;
         }
         if (!formData.level) {
