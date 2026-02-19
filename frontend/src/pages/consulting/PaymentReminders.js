@@ -482,6 +482,117 @@ const PaymentReminders = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Record Payment Dialog */}
+      <Dialog open={recordPaymentOpen} onOpenChange={setRecordPaymentOpen}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-zinc-950">
+              Record Payment
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              {selectedPayment && (
+                <span>
+                  Installment #{selectedPayment.installment_number} for {sanitizeDisplayText(selectedPayment.project_name)}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRecordPayment} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Transaction ID *</Label>
+              <Input
+                value={paymentForm.transaction_id}
+                onChange={(e) => setPaymentForm({...paymentForm, transaction_id: e.target.value})}
+                placeholder="e.g., UTR123456789, CHQ001234"
+                required
+                data-testid="transaction-id-input"
+                className="rounded-sm border-zinc-200"
+              />
+              <p className="text-xs text-zinc-500">Bank UTR number, cheque number, or UPI reference</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Amount Received (₹) *</Label>
+              <Input
+                type="number"
+                value={paymentForm.received_amount}
+                onChange={(e) => setPaymentForm({...paymentForm, received_amount: e.target.value})}
+                placeholder="0.00"
+                required
+                min="1"
+                step="0.01"
+                data-testid="amount-input"
+                className="rounded-sm border-zinc-200"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Payment Date</Label>
+                <Input
+                  type="date"
+                  value={paymentForm.payment_date}
+                  onChange={(e) => setPaymentForm({...paymentForm, payment_date: e.target.value})}
+                  className="rounded-sm border-zinc-200"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-zinc-950">Payment Mode</Label>
+                <select
+                  value={paymentForm.payment_mode}
+                  onChange={(e) => setPaymentForm({...paymentForm, payment_mode: e.target.value})}
+                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                >
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="cheque">Cheque</option>
+                  <option value="upi">UPI</option>
+                  <option value="cash">Cash</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Notes (Optional)</Label>
+              <Input
+                value={paymentForm.notes}
+                onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                placeholder="Any additional notes..."
+                className="rounded-sm border-zinc-200"
+              />
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRecordPaymentOpen(false)}
+                className="rounded-sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm"
+                data-testid="submit-payment-btn"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Recording...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Record Payment
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
