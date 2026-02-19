@@ -226,6 +226,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="my-bank-details" element={<BankDetailsChangeRequest />} />
         {/* Reports */}
         <Route path="reports" element={<Reports />} />
+        <Route path="notifications" element={<Notifications />} />
+        <Route path="employee-permissions" element={<EmployeePermissions />} />
       </Route>
       
       {/* Main App Routes */}
