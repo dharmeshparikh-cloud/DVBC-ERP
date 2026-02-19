@@ -84,7 +84,9 @@ const HROnboarding = () => {
     
     // Employment Details
     employee_id: '',
-    department: '',
+    department: '',           // Primary department (legacy, kept for compatibility)
+    departments: [],          // Multi-department array
+    primary_department: '',   // Explicitly marked primary
     designation: '',
     role: 'consultant',
     level: 'executive',  // Employee hierarchy level
