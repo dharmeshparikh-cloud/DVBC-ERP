@@ -147,7 +147,8 @@ const Employees = () => {
         ...formData,
         salary: formData.salary ? parseFloat(formData.salary) : null,
         joining_date: formData.joining_date ? new Date(formData.joining_date).toISOString() : null,
-        bank_details: formData.bank_details.account_number ? formData.bank_details : null
+        bank_details: formData.bank_details.account_number ? formData.bank_details : null,
+        assigned_locations: formData.assigned_locations || []
       };
 
       await axios.patch(`${API}/employees/${selectedEmployee.id}`, payload);
