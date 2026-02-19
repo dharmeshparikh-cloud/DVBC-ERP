@@ -467,3 +467,140 @@ async def get_approval_matrix(current_user: User = Depends(get_current_user)):
             for e in approvers
         ]
     }
+
+
+# ============== Designation to Department Mapping ==============
+
+# Default mapping rules - can be extended via database
+DEFAULT_DESIGNATION_MAPPINGS = [
+    # Sales
+    {"keywords": ["sales", "business development", "bd ", "account manager", "account executive"], "department": "Sales"},
+    # HR
+    {"keywords": ["hr ", "human resource", "people", "talent", "recruiter", "recruitment"], "department": "HR"},
+    # Consulting
+    {"keywords": ["consultant", "delivery", "project manager", "engagement", "implementation"], "department": "Consulting"},
+    # Finance
+    {"keywords": ["finance", "accounts", "accountant", "billing", "payroll", "treasury"], "department": "Finance"},
+    # Marketing
+    {"keywords": ["marketing", "brand", "content", "seo", "social media", "digital"], "department": "Marketing"},
+    # Technology
+    {"keywords": ["developer", "engineer", "architect", "devops", "qa ", "quality", "tech lead", "cto"], "department": "Technology"},
+    # Admin/Operations
+    {"keywords": ["admin", "operations", "office", "facilities", "executive assistant"], "department": "Admin"},
+]
+
+
+@router.get("/suggest-department")
+async def suggest_department_from_designation(
+    designation: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Suggest a department based on the designation/job title.
+    Returns the best matching department or None if no match.
+    """
+    if not designation:
+        return {"suggested_department": None, "confidence": 0, "reason": "No designation provided"}
+    
+    db = get_db()
+    designation_lower = designation.lower().strip()
+    
+    # First, check custom mappings from database
+    custom_mappings = await db.designation_department_mappings.find({"is_active": True}).to_list(100)
+    
+    # Check custom mappings first
+    for mapping in custom_mappings:
+        for keyword in mapping.get("keywords", []):
+            if keyword.lower() in designation_lower:
+                return {
+                    "suggested_department": mapping["department"],
+                    "confidence": 0.95,
+                    "reason": f"Matched custom rule: '{keyword}'",
+                    "can_override": True
+                }
+    
+    # Fall back to default mappings
+    for mapping in DEFAULT_DESIGNATION_MAPPINGS:
+        for keyword in mapping["keywords"]:
+            if keyword.lower() in designation_lower:
+                return {
+                    "suggested_department": mapping["department"],
+                    "confidence": 0.8,
+                    "reason": f"Matched default rule: '{keyword}'",
+                    "can_override": True
+                }
+    
+    # No match found - return the most common department or None
+    return {
+        "suggested_department": None,
+        "confidence": 0,
+        "reason": "No matching rule found for this designation",
+        "can_override": True
+    }
+
+
+@router.get("/designation-mappings")
+async def get_designation_mappings(current_user: User = Depends(get_current_user)):
+    """Get all designation to department mappings (Admin/HR only)"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
+    
+    db = get_db()
+    custom_mappings = await db.designation_department_mappings.find({}, {"_id": 0}).to_list(100)
+    
+    return {
+        "default_mappings": DEFAULT_DESIGNATION_MAPPINGS,
+        "custom_mappings": custom_mappings
+    }
+
+
+class DesignationMappingCreate(BaseModel):
+    keywords: List[str]
+    department: str
+    description: Optional[str] = None
+
+
+@router.post("/designation-mappings")
+async def create_designation_mapping(
+    mapping: DesignationMappingCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a custom designation to department mapping (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    db = get_db()
+    
+    new_mapping = {
+        "id": str(uuid.uuid4()),
+        "keywords": [k.lower().strip() for k in mapping.keywords],
+        "department": mapping.department,
+        "description": mapping.description,
+        "is_active": True,
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.designation_department_mappings.insert_one(new_mapping)
+    new_mapping.pop("_id", None)
+    
+    return {"message": "Mapping created", "mapping": new_mapping}
+
+
+@router.delete("/designation-mappings/{mapping_id}")
+async def delete_designation_mapping(
+    mapping_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a custom designation mapping (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    db = get_db()
+    result = await db.designation_department_mappings.delete_one({"id": mapping_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Mapping not found")
+    
+    return {"message": "Mapping deleted"}
+
