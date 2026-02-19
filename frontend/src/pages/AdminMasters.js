@@ -436,7 +436,16 @@ const AdminMasters = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-zinc-100 p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-5 bg-zinc-100 p-1 rounded-lg">
+          <TabsTrigger 
+            value="departments" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs sm:text-sm"
+            data-testid="departments-tab"
+          >
+            <Building2 className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Departments</span>
+            <span className="sm:hidden">Depts</span>
+          </TabsTrigger>
           <TabsTrigger 
             value="tenure-types" 
             className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md text-xs sm:text-sm"
