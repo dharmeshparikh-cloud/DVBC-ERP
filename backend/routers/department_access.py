@@ -366,7 +366,8 @@ async def add_department_to_employee(
     if current_user.role not in ["admin", "hr_manager"]:
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
-    if grant.department not in DEPARTMENTS:
+    DEPARTMENTS = await get_departments_config()
+    if grant.department not in DEPARTMENTS and grant.department not in DEFAULT_DEPARTMENTS:
         raise HTTPException(status_code=400, detail=f"Invalid department: {grant.department}")
     
     db = get_db()
