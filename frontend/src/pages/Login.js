@@ -143,18 +143,18 @@ const Login = () => {
             {/* Employee ID/Password Login */}
             <form onSubmit={handlePasswordLogin} className="space-y-4" data-testid="password-login-form">
               <div className="space-y-2">
-                <Label htmlFor="employeeId" className="text-sm font-medium text-black">Employee ID</Label>
+                <Label htmlFor="employeeId" className="text-sm font-medium text-black">Employee ID or Email</Label>
                 <div className="relative">
                   <IdCard className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
                   <Input
                     id="employeeId"
                     data-testid="employee-id-input"
                     type="text"
-                    placeholder="EMP001"
+                    placeholder="EMP001 or email@domain.com"
                     value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value.toUpperCase())}
+                    onChange={(e) => setEmployeeId(e.target.value)}
                     required
-                    className="pl-11 h-11 rounded-lg border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-2 focus:ring-black focus:border-black uppercase"
+                    className="pl-11 h-11 rounded-lg border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-2 focus:ring-black focus:border-black"
                   />
                 </div>
               </div>
