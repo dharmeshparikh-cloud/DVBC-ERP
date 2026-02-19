@@ -1101,8 +1101,12 @@ const HROnboarding = () => {
                 <div>
                   <p className="font-medium text-emerald-800 dark:text-emerald-300">Ready to Submit</p>
                   <p className="text-sm text-emerald-700 dark:text-emerald-400 mt-1">
-                    Review the information above. Once submitted, a user account will be created with temporary password: <strong>Welcome@123</strong>
+                    Review the information above. Once submitted, a user account will be created with login credentials:
                   </p>
+                  <div className="mt-2 bg-white/50 rounded p-2 text-sm">
+                    <p><strong>Login ID:</strong> <code className="bg-white px-2 py-0.5 rounded font-mono">{formData.employee_id}</code></p>
+                    <p><strong>Password:</strong> <code className="bg-white px-2 py-0.5 rounded font-mono">Welcome@{formData.employee_id}</code></p>
+                  </div>
                 </div>
               </div>
             </div>
