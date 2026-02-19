@@ -47,10 +47,13 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/auth/login`, { 
-        employee_id: employeeId.toUpperCase(), 
-        password 
-      });
+      // Determine if input is an email or employee ID
+      const isEmail = employeeId.includes('@');
+      const loginPayload = isEmail 
+        ? { email: employeeId, password }
+        : { employee_id: employeeId.toUpperCase(), password };
+      
+      const response = await axios.post(`${API}/auth/login`, loginPayload);
       login(response.data.access_token, response.data.user);
       
       // Check if first login (password is default)
