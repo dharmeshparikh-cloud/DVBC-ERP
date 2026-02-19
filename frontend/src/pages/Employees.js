@@ -224,16 +224,6 @@ const Employees = () => {
     }
   };
 
-  const handleSyncFromUsers = async () => {
-    try {
-      const res = await axios.post(`${API}/employees/sync-from-users`);
-      toast.success(res.data.message);
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to sync employees');
-    }
-  };
-
   const handleToggleMobileAccess = async (employeeId, currentlyDisabled) => {
     try {
       await axios.put(`${API}/hr/employee/${employeeId}/mobile-access`, {
