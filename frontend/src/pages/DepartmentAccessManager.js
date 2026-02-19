@@ -139,7 +139,6 @@ const DepartmentAccessManager = () => {
         e.additional_departments?.includes(selectedDept)
       );
     }
-    }
     
     setFilteredEmployees(filtered);
   };
