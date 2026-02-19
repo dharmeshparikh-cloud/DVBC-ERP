@@ -376,6 +376,26 @@ const ProformaInvoice = () => {
     }
   };
 
+  // Check if invoice is used in agreement
+  const isUsedInAgreement = (invoiceId) => {
+    return agreements.some(a => a.quotation_id === invoiceId);
+  };
+
+  // Group invoices by lead for history view
+  const groupedByLead = invoices.reduce((acc, invoice) => {
+    const key = invoice.lead_id;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(invoice);
+    return acc;
+  }, {});
+
+  // Sort invoices within each group by created_at (newest first)
+  Object.keys(groupedByLead).forEach(leadId => {
+    groupedByLead[leadId].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  });
+
   // Format date for invoice
   const formatDate = (date) => {
     const d = new Date(date || new Date());
