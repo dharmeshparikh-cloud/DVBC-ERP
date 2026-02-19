@@ -122,19 +122,39 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
 
 
 @router.post("/{employee_id}/grant-access")
-async def grant_employee_access(employee_id: str, current_user: User = Depends(get_current_user)):
-    """Grant portal access to an employee by creating a user account."""
+async def grant_employee_access(
+    employee_id: str, 
+    data: dict = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Grant portal access to an employee by creating a user account.
+    
+    Args:
+        employee_id: Can be either internal UUID (id) or Employee ID (EMP001)
+        data: Optional dict with password override
+    
+    The user.employee_id will always store the human-readable Employee ID (EMP001 format).
+    """
     db = get_db()
     
     if current_user.role not in ["admin", "hr_manager"]:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can grant access")
     
+    # Find employee by either id (UUID) or employee_id (EMP001)
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        # Try finding by employee_id (EMP001 format)
+        employee = await db.employees.find_one({"employee_id": employee_id.upper()}, {"_id": 0})
+    
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
     if not employee.get("email"):
         raise HTTPException(status_code=400, detail="Employee must have an email to grant access")
+    
+    # IMPORTANT: Always use the human-readable employee_id (EMP001 format)
+    emp_code = employee.get("employee_id")  # This is EMP001, EMP002 etc.
+    emp_internal_id = employee.get("id")  # This is the UUID
     
     # Get departments - use departments array or fallback to single department
     departments = employee.get("departments", [])
@@ -142,28 +162,39 @@ async def grant_employee_access(employee_id: str, current_user: User = Depends(g
         departments = [employee.get("department")]
     primary_department = employee.get("primary_department") or employee.get("department")
     
-    # Check if user already exists
+    # Check if user already exists by email
     existing_user = await db.users.find_one({"email": employee["email"]})
     if existing_user:
-        # Link existing user and update departments
-        await db.employees.update_one(
-            {"id": employee_id},
-            {"$set": {"user_id": existing_user["id"], "has_portal_access": True}}
-        )
-        # Update user with department info
+        # Update existing user with proper employee_id and link
         await db.users.update_one(
             {"id": existing_user["id"]},
             {"$set": {
+                "employee_id": emp_code,  # Store EMP001 format, NOT UUID
                 "departments": departments,
                 "primary_department": primary_department,
                 "department": primary_department
             }}
         )
-        return {"message": "Linked to existing user account", "user_id": existing_user["id"]}
+        # Link employee to user
+        await db.employees.update_one(
+            {"id": emp_internal_id},
+            {"$set": {"user_id": existing_user["id"], "has_portal_access": True}}
+        )
+        return {
+            "message": "Linked to existing user account", 
+            "user_id": existing_user["id"],
+            "employee_id": emp_code,
+            "login_id": emp_code  # For clarity - this is what user logs in with
+        }
     
     # Create new user with department-based access
     user_id = str(uuid.uuid4())
-    temp_password = f"Welcome@{employee.get('employee_id', '123')}"
+    
+    # Password: Use provided or generate pattern-based
+    if data and data.get("password"):
+        temp_password = data.get("password")
+    else:
+        temp_password = f"Welcome@{emp_code}"  # Welcome@EMP001
     
     user = {
         "id": user_id,
@@ -171,31 +202,35 @@ async def grant_employee_access(employee_id: str, current_user: User = Depends(g
         "full_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
         "role": employee.get("role", "consultant"),
         "department": primary_department,  # Legacy field
-        "departments": departments,  # NEW: Array for multi-department access
-        "primary_department": primary_department,  # NEW: Primary department
-        "level": employee.get("level", "executive"),  # Permission level
+        "departments": departments,  # Array for multi-department access
+        "primary_department": primary_department,
+        "level": employee.get("level", "executive"),
         "designation": employee.get("designation"),
         "reporting_manager_id": employee.get("reporting_manager_id"),
         "is_active": True,
+        "is_view_only": employee.get("is_view_only", False),
         "hashed_password": get_password_hash(temp_password),
+        "requires_password_change": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "employee_id": employee_id
+        "employee_id": emp_code  # CRITICAL: Store EMP001 format, NOT UUID
     }
     
     await db.users.insert_one(user)
     
     # Update employee with user link
     await db.employees.update_one(
-        {"id": employee_id},
+        {"id": emp_internal_id},
         {"$set": {"user_id": user_id, "has_portal_access": True}}
     )
     
     return {
         "message": "Portal access granted",
         "user_id": user_id,
+        "employee_id": emp_code,
+        "login_id": emp_code,  # User logs in with this
         "temp_password": temp_password,
         "departments": departments,
-        "note": f"User can access {', '.join(departments)} pages. Password should be changed on first login."
+        "note": f"Login ID: {emp_code}, Password: {temp_password}. Password should be changed on first login."
     }
 
 
