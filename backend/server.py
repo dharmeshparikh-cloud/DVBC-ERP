@@ -2845,6 +2845,126 @@ async def get_project_payment_schedule(
     }
 
 
+# ==============================
+# PROJECT PAYMENTS ENDPOINTS
+# ==============================
+
+@api_router.post("/project-payments/record")
+async def record_project_payment(
+    payment_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Record a payment for a project installment with transaction ID.
+    Required fields: project_id, installment_number, transaction_id, received_amount
+    """
+    project_id = payment_data.get('project_id')
+    installment_number = payment_data.get('installment_number')
+    transaction_id = payment_data.get('transaction_id')
+    received_amount = payment_data.get('received_amount')
+    
+    if not all([project_id, installment_number, transaction_id, received_amount]):
+        raise HTTPException(status_code=400, detail="Missing required fields: project_id, installment_number, transaction_id, received_amount")
+    
+    # Verify project exists
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Check for duplicate transaction ID
+    existing_txn = await db.project_payments.find_one({"transaction_id": transaction_id})
+    if existing_txn:
+        raise HTTPException(status_code=400, detail="Transaction ID already exists")
+    
+    # Check if this installment was already paid
+    existing_payment = await db.project_payments.find_one({
+        "project_id": project_id,
+        "installment_number": installment_number
+    })
+    if existing_payment:
+        raise HTTPException(status_code=400, detail=f"Installment #{installment_number} was already recorded")
+    
+    # Create payment record
+    payment_record = {
+        "id": str(uuid.uuid4()),
+        "project_id": project_id,
+        "agreement_id": payment_data.get('agreement_id'),
+        "pricing_plan_id": payment_data.get('pricing_plan_id'),
+        "installment_number": installment_number,
+        "transaction_id": transaction_id,
+        "received_amount": float(received_amount),
+        "payment_date": payment_data.get('payment_date', datetime.now(timezone.utc).isoformat()),
+        "payment_mode": payment_data.get('payment_mode', 'bank_transfer'),
+        "notes": payment_data.get('notes', ''),
+        "recorded_by": current_user.id,
+        "recorded_by_name": current_user.full_name,
+        "status": "verified",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.project_payments.insert_one(payment_record)
+    
+    # Return without _id
+    del payment_record['_id'] if '_id' in payment_record else None
+    
+    return {
+        "message": "Payment recorded successfully",
+        "payment": payment_record
+    }
+
+
+@api_router.get("/project-payments/project/{project_id}")
+async def get_project_payments(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all recorded payments for a project"""
+    payments = await db.project_payments.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).sort("installment_number", 1).to_list(100)
+    
+    return payments
+
+
+@api_router.post("/payment-reminders/send")
+async def send_payment_reminder(
+    reminder_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Send a payment reminder email/notification.
+    Note: Email service must be configured for actual delivery.
+    Currently logs the reminder for audit purposes.
+    """
+    project_id = reminder_data.get('project_id')
+    installment_number = reminder_data.get('installment_number')
+    
+    if not project_id or not installment_number:
+        raise HTTPException(status_code=400, detail="project_id and installment_number are required")
+    
+    # Log the reminder
+    reminder_log = {
+        "id": str(uuid.uuid4()),
+        "project_id": project_id,
+        "installment_number": installment_number,
+        "client_name": reminder_data.get('client_name'),
+        "client_email": reminder_data.get('client_email'),
+        "due_date": reminder_data.get('due_date'),
+        "project_name": reminder_data.get('project_name'),
+        "sent_by": current_user.id,
+        "sent_by_name": current_user.full_name,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "status": "logged"  # Would be "sent" if email service is configured
+    }
+    
+    await db.payment_reminder_logs.insert_one(reminder_log)
+    
+    return {
+        "message": "Reminder logged successfully",
+        "reminder_id": reminder_log["id"]
+    }
+
 
 @api_router.post("/quotations", response_model=Quotation)
 async def create_quotation(quotation_create: QuotationCreate, current_user: User = Depends(get_current_user)):
