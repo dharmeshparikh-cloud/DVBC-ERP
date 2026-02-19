@@ -24,13 +24,15 @@ const SalesMeetings = () => {
   const [expandedMeetings, setExpandedMeetings] = useState({});
 
   const [formData, setFormData] = useState({
-    title: '', meeting_date: '', mode: 'online', duration_minutes: '',
-    notes: '', lead_id: '', attendees: [], attendee_names: [], agenda: ['']
+    title: '', meeting_date: '', meeting_time: '10:00', meeting_type: 'discovery',
+    mode: 'online', duration_minutes: '60', notes: '', lead_id: '', 
+    attendees: [], attendee_names: [], agenda: ['']
   });
 
   const [momData, setMomData] = useState({
-    title: '', agenda: [''], discussion_points: [''], decisions_made: [''],
-    next_meeting_date: ''
+    summary: '', discussion_points: [''], 
+    action_items: [{ task: '', owner: '', due_date: '' }],
+    next_steps: '', client_feedback: '', lead_temperature_update: ''
   });
 
   const canEdit = SALES_ROLES.includes(user?.role);
