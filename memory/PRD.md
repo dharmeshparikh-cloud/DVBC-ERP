@@ -1,13 +1,19 @@
 # DVBC Business Management ERP - Product Requirements Document
 
-## Last Updated: December 2025
+## Last Updated: February 2025
 
-## DBAC System Status: ✅ VERIFIED WORKING (Dec 2025)
+## DBAC System Status: ✅ VERIFIED WORKING (Feb 2025)
 - All login flows tested and working
 - Department-based navigation filtering working correctly
 - Admin Masters Departments tab functional
 - 100% backend tests passing (14/14)
 - 100% frontend tests passing
+
+## Recent Updates (Feb 19, 2025)
+1. **Multi-Department Employee Onboarding** - HR can now assign multiple departments to an employee during onboarding
+2. **Proforma Invoice History View** - Negotiation history grouped by lead for tracking revisions
+3. **Payment Reminder & Transaction Recording** - Send reminders and record payments with transaction IDs
+4. **Department-based Permission Refactoring** - Started migration from role-based to department-based permission checks
 
 ## Original Problem Statement
 Build a business management application for a consulting firm with complete HR, Sales, and Consulting workflows, including:
