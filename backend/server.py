@@ -9889,6 +9889,159 @@ async def get_check_in_status(current_user: User = Depends(get_current_user)):
     }
 
 
+@api_router.post("/hr/attendance/finalize-for-payroll")
+async def finalize_attendance_for_payroll(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Finalize attendance for payroll month. 
+    - Should be run 7 days before payroll
+    - Marks all pending_approval attendance as 'absent' if not approved
+    - Returns summary of changes
+    """
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="HR Manager or Admin access required")
+    
+    month = data.get("month")  # Format: YYYY-MM
+    if not month:
+        raise HTTPException(status_code=400, detail="Month is required (YYYY-MM format)")
+    
+    # Find all pending approvals for this month
+    pending_records = await db.attendance.find({
+        "date": {"$regex": f"^{month}"},
+        "approval_status": "pending_approval"
+    }).to_list(1000)
+    
+    finalized_count = 0
+    finalized_ids = []
+    
+    for record in pending_records:
+        await db.attendance.update_one(
+            {"id": record["id"]},
+            {"$set": {
+                "approval_status": "auto_rejected",
+                "status": "absent",
+                "finalized_at": datetime.now(timezone.utc).isoformat(),
+                "finalized_by": current_user.id,
+                "finalized_reason": "Not approved before payroll deadline (7 days before payroll)"
+            }}
+        )
+        finalized_ids.append(record["id"])
+        finalized_count += 1
+        
+        # Notify employee
+        emp = await db.employees.find_one({"id": record["employee_id"]}, {"_id": 0, "user_id": 1})
+        if emp and emp.get("user_id"):
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": emp["user_id"],
+                "title": "Attendance Marked as Absent",
+                "message": f"Your attendance for {record['date']} was not approved before payroll deadline and has been marked as Absent.",
+                "type": "attendance_auto_rejected",
+                "status": "info",
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
+    return {
+        "message": f"Finalized {finalized_count} attendance records for payroll",
+        "month": month,
+        "finalized_count": finalized_count,
+        "finalized_ids": finalized_ids
+    }
+
+
+@api_router.post("/hr/attendance/regularize")
+async def regularize_attendance(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Regularize attendance after payroll. 
+    - Only allowed until 3rd of the following month
+    - Can change absent to present, or pending to approved
+    """
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="HR Manager or Admin access required")
+    
+    # Check if within regularization window (until 3rd of month)
+    today = datetime.now(timezone.utc)
+    if today.day > 3:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Regularization window has closed. Attendance can only be regularized until the 3rd of each month. Today is {today.day}th."
+        )
+    
+    attendance_id = data.get("attendance_id")
+    new_status = data.get("status")  # "present" or "absent"
+    reason = data.get("reason", "")
+    
+    if not attendance_id:
+        raise HTTPException(status_code=400, detail="attendance_id is required")
+    if new_status not in ["present", "absent"]:
+        raise HTTPException(status_code=400, detail="status must be 'present' or 'absent'")
+    if not reason:
+        raise HTTPException(status_code=400, detail="Reason for regularization is required")
+    
+    record = await db.attendance.find_one({"id": attendance_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+    
+    old_status = record.get("status")
+    
+    await db.attendance.update_one(
+        {"id": attendance_id},
+        {"$set": {
+            "status": new_status,
+            "approval_status": "approved" if new_status == "present" else "rejected",
+            "regularized": True,
+            "regularized_at": datetime.now(timezone.utc).isoformat(),
+            "regularized_by": current_user.id,
+            "regularized_by_name": current_user.full_name,
+            "regularization_reason": reason,
+            "old_status": old_status
+        }}
+    )
+    
+    # Notify employee
+    emp = await db.employees.find_one({"id": record["employee_id"]}, {"_id": 0, "user_id": 1, "first_name": 1, "last_name": 1})
+    if emp and emp.get("user_id"):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": emp["user_id"],
+            "title": "Attendance Regularized",
+            "message": f"Your attendance for {record['date']} has been regularized to '{new_status}' by {current_user.full_name}. Reason: {reason}",
+            "type": "attendance_regularized",
+            "status": "info",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {
+        "message": f"Attendance regularized to '{new_status}'",
+        "attendance_id": attendance_id,
+        "old_status": old_status,
+        "new_status": new_status,
+        "regularized_by": current_user.full_name
+    }
+
+
+@api_router.get("/hr/attendance/regularization-window")
+async def get_regularization_window_status(current_user: User = Depends(get_current_user)):
+    """Check if regularization window is open (until 3rd of month)"""
+    today = datetime.now(timezone.utc)
+    is_open = today.day <= 3
+    days_remaining = max(0, 3 - today.day + 1) if is_open else 0
+    
+    return {
+        "is_open": is_open,
+        "current_day": today.day,
+        "days_remaining": days_remaining,
+        "message": f"Regularization window {'is open' if is_open else 'has closed'}. {'Closes on 3rd.' if is_open else 'Opens on 1st of next month.'}"
+    }
+
+
 @api_router.put("/hr/employee/{employee_id}/mobile-access")
 async def toggle_employee_mobile_access(
     employee_id: str,
