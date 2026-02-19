@@ -726,6 +726,215 @@ const DepartmentAccessManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Special Permissions Dialog */}
+      <Dialog open={specialDialog} onOpenChange={setSpecialDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-yellow-600" />
+              Special Permissions
+            </DialogTitle>
+          </DialogHeader>
+          {selectedEmployee && (
+            <div className="space-y-6">
+              {/* Employee Info */}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{selectedEmployee.employee_name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedEmployee.employee_code} • {selectedEmployee.designation} • Primary: {selectedEmployee.primary_department}
+                </p>
+              </div>
+
+              {/* Info Box */}
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+                <p className="font-medium text-yellow-800 flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4" /> Use Case
+                </p>
+                <p className="text-yellow-700 mt-1">
+                  Grant additional access when an employee needs to work across departments. 
+                  Example: A Sales person temporarily acting as Marketing Manager.
+                </p>
+              </div>
+
+              <Tabs defaultValue="departments" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="departments">Extra Departments</TabsTrigger>
+                  <TabsTrigger value="approvals">Approval Rights</TabsTrigger>
+                  <TabsTrigger value="temporary">Temporary Role</TabsTrigger>
+                </TabsList>
+
+                {/* Additional Departments Tab */}
+                <TabsContent value="departments" className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">
+                      Additional Department Access
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Grant access to pages from other departments beyond their primary assignment
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.entries(DEPT_CONFIG).map(([dept, config]) => {
+                        const Icon = config.icon;
+                        const isBase = selectedEmployee.base_departments?.includes(dept);
+                        const isAdditional = specialForm.additional_departments.includes(dept);
+                        return (
+                          <div 
+                            key={dept}
+                            className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                              isBase ? 'bg-gray-100 cursor-not-allowed' :
+                              isAdditional ? 'bg-yellow-50 border-yellow-400' : 'hover:bg-muted'
+                            }`}
+                            onClick={() => {
+                              if (isBase) return; // Can't toggle base departments
+                              if (isAdditional) {
+                                setSpecialForm({
+                                  ...specialForm,
+                                  additional_departments: specialForm.additional_departments.filter(d => d !== dept)
+                                });
+                              } else {
+                                setSpecialForm({
+                                  ...specialForm,
+                                  additional_departments: [...specialForm.additional_departments, dept]
+                                });
+                              }
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Icon className={`w-4 h-4 ${isAdditional ? 'text-yellow-600' : ''}`} />
+                                <span>{dept}</span>
+                              </div>
+                              {isBase && <Badge variant="outline" className="text-xs">Base</Badge>}
+                              {isAdditional && <Check className="w-4 h-4 text-yellow-600" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Approval Rights Tab */}
+                <TabsContent value="approvals" className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">
+                      Can Approve For Departments
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Allow this employee to approve leaves/expenses for other departments
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.entries(DEPT_CONFIG).map(([dept, config]) => {
+                        const Icon = config.icon;
+                        const canApprove = specialForm.can_approve_for_departments.includes(dept);
+                        return (
+                          <div 
+                            key={dept}
+                            className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                              canApprove ? 'bg-green-50 border-green-400' : 'hover:bg-muted'
+                            }`}
+                            onClick={() => {
+                              if (canApprove) {
+                                setSpecialForm({
+                                  ...specialForm,
+                                  can_approve_for_departments: specialForm.can_approve_for_departments.filter(d => d !== dept)
+                                });
+                              } else {
+                                setSpecialForm({
+                                  ...specialForm,
+                                  can_approve_for_departments: [...specialForm.can_approve_for_departments, dept]
+                                });
+                              }
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Icon className={`w-4 h-4 ${canApprove ? 'text-green-600' : ''}`} />
+                                <span>{dept}</span>
+                              </div>
+                              {canApprove && <Check className="w-4 h-4 text-green-600" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Temporary Role Tab */}
+                <TabsContent value="temporary" className="space-y-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Temporary Role Override</Label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Temporarily change this employee's role (e.g., acting manager)
+                      </p>
+                      <Select 
+                        value={specialForm.temporary_role} 
+                        onValueChange={(v) => setSpecialForm({...specialForm, temporary_role: v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select temporary role (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No temporary role</SelectItem>
+                          <SelectItem value="manager">Acting Manager</SelectItem>
+                          <SelectItem value="lead_consultant">Acting Lead Consultant</SelectItem>
+                          <SelectItem value="project_manager">Acting Project Manager</SelectItem>
+                          <SelectItem value="hr_manager">Acting HR Manager</SelectItem>
+                          <SelectItem value="account_manager">Acting Account Manager</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {specialForm.temporary_role && (
+                      <div>
+                        <Label>Expiry Date</Label>
+                        <Input
+                          type="date"
+                          value={specialForm.temporary_role_expiry?.split('T')[0] || ''}
+                          onChange={(e) => setSpecialForm({
+                            ...specialForm,
+                            temporary_role_expiry: e.target.value ? new Date(e.target.value).toISOString() : ''
+                          })}
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {/* Notes */}
+              <div>
+                <Label>Permission Notes</Label>
+                <Textarea
+                  placeholder="Document why these special permissions were granted..."
+                  value={specialForm.notes}
+                  onChange={(e) => setSpecialForm({...specialForm, notes: e.target.value})}
+                  rows={2}
+                />
+              </div>
+
+              {/* Summary */}
+              <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                <p className="font-medium mb-1">Effective Access Summary:</p>
+                <p>Base Departments: {selectedEmployee.base_departments?.join(', ') || 'None'}</p>
+                <p>Additional: {specialForm.additional_departments.join(', ') || 'None'}</p>
+                <p>Can Approve For: {specialForm.can_approve_for_departments.join(', ') || 'Own department only'}</p>
+                {specialForm.temporary_role && (
+                  <p className="text-yellow-700">Temporary Role: {specialForm.temporary_role}</p>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSpecialDialog(false)}>Cancel</Button>
+            <Button onClick={saveSpecialPermissions}>Save Special Permissions</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
