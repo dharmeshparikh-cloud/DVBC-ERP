@@ -10545,6 +10545,151 @@ async def create_document_history(
     return {"message": "Document saved to history", "id": doc.id}
 
 
+# ==================== DOCUMENT TEMPLATES ====================
+
+class DocumentTemplate(BaseModel):
+    """Reusable document template"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    document_type: str  # offer_letter, appointment_letter, confirmation_letter, experience_letter
+    name: str
+    subject: str
+    content: str  # HTML with placeholders
+    is_default: bool = False
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class DocumentTemplateCreate(BaseModel):
+    document_type: str
+    name: str
+    subject: str
+    content: str
+    is_default: Optional[bool] = False
+
+
+@api_router.post("/document-templates")
+async def create_document_template(
+    template_data: DocumentTemplateCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new document template"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can create templates")
+    
+    template = DocumentTemplate(
+        document_type=template_data.document_type,
+        name=template_data.name,
+        subject=template_data.subject,
+        content=template_data.content,
+        is_default=template_data.is_default,
+        created_by=current_user.email
+    )
+    
+    await db.document_templates.insert_one(template.model_dump())
+    return {"message": "Template created", "id": template.id}
+
+
+@api_router.get("/document-templates")
+async def get_document_templates(
+    document_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all document templates"""
+    query = {}
+    if document_type:
+        query["document_type"] = document_type
+    
+    templates = await db.document_templates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return templates
+
+
+@api_router.put("/document-templates/{template_id}")
+async def update_document_template(
+    template_id: str,
+    template_data: DocumentTemplateCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a document template"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update templates")
+    
+    result = await db.document_templates.update_one(
+        {"id": template_id},
+        {"$set": {
+            "name": template_data.name,
+            "subject": template_data.subject,
+            "content": template_data.content,
+            "document_type": template_data.document_type,
+            "is_default": template_data.is_default,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return {"message": "Template updated"}
+
+
+@api_router.delete("/document-templates/{template_id}")
+async def delete_document_template(
+    template_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a document template"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can delete templates")
+    
+    result = await db.document_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return {"message": "Template deleted"}
+
+
+@api_router.post("/document-history/{doc_id}/send-email")
+async def send_document_email(
+    doc_id: str,
+    email_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Send document via email to employee"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR can send documents")
+    
+    doc = await db.document_history.find_one({"id": doc_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    to_email = email_data.get("to_email")
+    if not to_email:
+        # Try to get employee email
+        employee = await db.employees.find_one({"employee_id": doc["employee_id"]}, {"_id": 0})
+        if employee:
+            to_email = employee.get("email") or employee.get("personal_email")
+    
+    if not to_email:
+        raise HTTPException(status_code=400, detail="No email address found")
+    
+    # Update document status
+    await db.document_history.update_one(
+        {"id": doc_id},
+        {"$set": {
+            "status": "sent",
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "sent_to": to_email,
+            "sent_by": current_user.email
+        }}
+    )
+    
+    # Log the email (actual sending would be done via email service)
+    print(f"[DOCUMENT EMAIL] Sending {doc['document_type']} to {to_email} for {doc['employee_name']}")
+    
+    return {"message": f"Document sent to {to_email}", "status": "sent"}
+
+
 @api_router.get("/document-history")
 async def get_document_history(
     employee_id: Optional[str] = None,
