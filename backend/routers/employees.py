@@ -118,6 +118,71 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
     # Remove _id added by MongoDB before returning
     employee.pop("_id", None)
     
+    # Send notifications to Admin, HR, and Reporting Manager
+    emp_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
+    emp_code = employee.get('employee_id')
+    department = employee.get('department', 'Unknown')
+    
+    # Notification for all HR users
+    hr_users = await db.users.find(
+        {"role": {"$in": ["hr_manager", "hr_executive"]}},
+        {"_id": 0, "id": 1}
+    ).to_list(50)
+    
+    for hr_user in hr_users:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": hr_user["id"],
+            "type": "employee_onboarded",
+            "title": "New Employee Onboarded",
+            "message": f"{emp_name} ({emp_code}) has joined {department} department.",
+            "link": f"/employees",
+            "reference_id": employee["id"],
+            "is_read": False,
+            "status": "info",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Notification for all Admin users
+    admin_users = await db.users.find(
+        {"role": "admin"},
+        {"_id": 0, "id": 1}
+    ).to_list(20)
+    
+    for admin_user in admin_users:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": admin_user["id"],
+            "type": "employee_onboarded",
+            "title": "New Employee Onboarded",
+            "message": f"{emp_name} ({emp_code}) has joined {department} department. Review Go-Live readiness.",
+            "link": "/go-live",
+            "reference_id": employee["id"],
+            "is_read": False,
+            "status": "info",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Notification for Reporting Manager
+    if employee.get("reporting_manager_id"):
+        rm_employee = await db.employees.find_one(
+            {"id": employee["reporting_manager_id"]},
+            {"_id": 0, "user_id": 1, "first_name": 1, "last_name": 1}
+        )
+        if rm_employee and rm_employee.get("user_id"):
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": rm_employee["user_id"],
+                "type": "employee_onboarded",
+                "title": "New Team Member",
+                "message": f"{emp_name} ({emp_code}) has been assigned to your team in {department}.",
+                "link": "/employees",
+                "reference_id": employee["id"],
+                "is_read": False,
+                "status": "info",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+    
     return {"message": "Employee created", "employee": employee}
 
 
