@@ -464,39 +464,41 @@ A comprehensive travel reimbursement feature for employees:
 - [ ] Skill matrix and capacity planning
 - [ ] Training/certification tracking
 
-### Session 10 (Feb 19, 2026) - Document Builder & Onboarding Flow Enhancement
-- [x] **Document Builder Page** (New)
-  - [x] Created `/document-builder` page for generating employment documents
-  - [x] 4 document types: Offer Letter, Appointment Letter, Confirmation Letter, Experience Letter
-  - [x] Employee selection dropdown with Employee ID and department badges
+### Session 10 (Feb 19, 2026) - Document Center (Unified Document Management)
+- [x] **Unified Document Center** (Merged Letter Management + Document Builder)
+  - [x] Created single `/document-center` page replacing both `/letter-management` and `/document-builder`
+  - [x] All documents now linked by **employee_id** (not candidate_id)
+  - [x] Employee selection pulls from onboarding data (department, reporting manager, designation, etc.)
+  - [x] 3 Main Tabs: Generate, History, Templates
+  - [x] Stats dashboard showing document counts by type
+- [x] **Generate Tab Features:**
+  - [x] 4 document types: Offer, Appointment, Confirmation, Experience Letter
+  - [x] Employee selection dropdown with employee_id + department badges
+  - [x] Auto-fills data from employee record (department, designation, reporting manager, joining date)
+  - [x] Custom values override (CTC, Location, Notice Period, etc.)
   - [x] Live preview with D&V Business Consulting letterhead
-  - [x] Custom values override (CTC, Location, Reporting Manager, Notice Period)
-  - [x] HTML template editor with placeholder tags
-  - [x] Print, Download (HTML), and Copy functionality
-  - [x] Templates saved to localStorage for persistence
-  - [x] Added to HR section in main sidebar
-- [x] **Document History Feature** (New)
-  - [x] Backend API endpoints: POST/GET/PUT/DELETE `/api/document-history`
-  - [x] Documents saved to MongoDB `document_history` collection
-  - [x] History tab in Document Builder showing complete audit trail
-  - [x] Color-coded document types with status badges
-  - [x] View, download past documents directly from history
-  - [x] Employee statistics endpoint: `/api/document-history/employee/{id}/stats`
-  - [x] Automatic notification to employee when document is generated
-- [x] **Onboarding to CTC Designer/Document Builder Flow**
-  - [x] Updated HROnboarding.js success dialog with new action buttons
-  - [x] "Design CTC Structure" button redirects to `/ctc-designer?employee={id}`
-  - [x] "Generate Documents" button redirects to `/document-builder?employee={id}`
-  - [x] Employee pre-selection via URL query parameter
-- [x] **Login Page Enhancement**
-  - [x] Updated login to support both Employee ID and Email
-  - [x] Smart detection: if input contains '@', treat as email; otherwise as Employee ID
-  - [x] Updated placeholder to show "EMP001 or email@domain.com"
-  - [x] Maintains backward compatibility with existing users
-- [x] **Navigation Updates**
-  - [x] Added Document Builder link in main Layout.js sidebar (HR section)
-  - [x] Added Document Builder link in HRLayout.js (HR Portal)
-  - [x] Added routes in App.js for both portals
+  - [x] Print and Download functionality
+- [x] **History Tab Features:**
+  - [x] Complete audit trail of all generated documents
+  - [x] Search by employee name or employee_id
+  - [x] Filter by document type
+  - [x] View, Download, Send Email actions for each document
+  - [x] Status tracking (generated, sent)
+- [x] **Templates Tab Features:**
+  - [x] Default templates for all 4 document types
+  - [x] Create custom templates with placeholders
+  - [x] Backend storage for templates (`document_templates` collection)
+  - [x] "Use Template" button to apply template
+- [x] **Backend APIs Added:**
+  - [x] `POST/GET/PUT/DELETE /api/document-templates` - Template CRUD
+  - [x] `POST /api/document-history/{id}/send-email` - Email document to employee
+- [x] **Navigation Updates:**
+  - [x] Removed separate "Letter Management" and "Document Builder" links
+  - [x] Single "Document Center" link in HR section
+  - [x] Backward compatible routes (`/letter-management`, `/document-builder` redirect to `/document-center`)
+- [x] **Login Enhancement:**
+  - [x] Login now accepts both Employee ID and Email
+  - [x] Smart detection based on @ character
 
 ### Session 9 (Feb 17, 2026) - ERP Workflow, Permissions & Onboarding
 - [x] **High-Priority Workflow Diagrams Added**
