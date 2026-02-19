@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
+import { usePermissions } from '../contexts/PermissionContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -14,6 +15,7 @@ import ProjectConsultantAssignment from '../components/ProjectConsultantAssignme
 
 const Projects = () => {
   const { user } = useContext(AuthContext);
+  const { level } = usePermissions();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
