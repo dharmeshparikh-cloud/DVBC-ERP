@@ -497,6 +497,24 @@ A comprehensive travel reimbursement feature for employees:
 - [x] **Login Enhancement:**
   - [x] Login now accepts both Employee ID and Email
 
+### Session 11 (Dec 19, 2026) - Bug Fixes & Navigation Updates
+- [x] **Employee Permissions Navigation Link**
+  - [x] Added "Employee Permissions" to Admin section in main Layout.js
+  - [x] Added "Employee Permissions" to People section in HRLayout.js
+  - [x] Page accessible via sidebar navigation
+- [x] **Attendance Page Fix**
+  - [x] Fixed API calls to use proper month/year parameters instead of YYYY-MM string
+  - [x] Updated backend `/api/attendance/summary` to return per-employee attendance breakdown
+  - [x] Table now shows: Emp ID, Name, Department, Present, Absent, Half Day, WFH, Leave, Total
+- [x] **HR→Admin Approval Workflow (Verified Working)**
+  - [x] HR submits permission changes → Creates pending request
+  - [x] Admin sees pending approvals with Approve/Reject buttons
+  - [x] Notifications sent on submission and approval/rejection
+- [x] **Reporting Manager Dropdown (Verified Working)**
+  - [x] Dropdown shows all employees except the currently selected one
+  - [x] Format: "Employee Name (Employee ID)"
+  - [x] "None" option available for employees without a manager
+
 ### Session 9 (Feb 17, 2026) - ERP Workflow, Permissions & Onboarding
 - [x] **High-Priority Workflow Diagrams Added**
   - [x] Leave Management, Expense Reimbursement, Invoice to Collection flows
