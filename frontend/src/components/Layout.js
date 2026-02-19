@@ -192,6 +192,7 @@ const Layout = () => {
     { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
     { name: 'Onboarding', href: '/onboarding', icon: UserCog, requiresTeamView: false },
     { name: 'Employee Permissions', href: '/employee-permissions', icon: Shield, requiresHRorAdmin: true },
+    { name: 'Password Management', href: '/password-management', icon: Key, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
     { name: 'Leave & Attendance', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
     { name: 'CTC & Payroll', href: '/ctc-designer', icon: Wallet, requiresApproval: true },
