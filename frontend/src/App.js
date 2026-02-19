@@ -65,6 +65,7 @@ import HRDashboard from './pages/HRDashboard';
 import AdminMasters from './pages/AdminMasters';
 import PermissionManager from './pages/PermissionManager';
 import PermissionDashboard from './pages/PermissionDashboard';
+import DepartmentAccessManager from './pages/DepartmentAccessManager';
 import EmployeeScorecard from './pages/EmployeeScorecard';
 import RoleManagement from './pages/RoleManagement';
 import LetterManagement from './pages/LetterManagement';
