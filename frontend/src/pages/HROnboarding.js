@@ -92,41 +92,74 @@ const HROnboarding = () => {
     id_proof: null,
     address_proof: null,
     education: null,
-    experience: null
+    experience: null,
+    aadhar: null,
+    pan: null,
+    bank_proof: null,
+    prev_offer_letter: null,
+    prev_salary_slips: null,
+    prev_experience_letter: null
   });
   
+  // Confirmation dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmData, setConfirmData] = useState(null);
+  
   const [formData, setFormData] = useState({
-    // Personal Info
+    // Personal Info (Tab 1 from Excel)
     first_name: '',
     last_name: '',
     email: '',
     personal_email: '',
     phone: '',
+    emergency_contact_no: '',
+    emergency_contact_name: '',
+    emergency_contact_relation: '',
     date_of_birth: '',
     gender: '',
+    blood_group: '',
     address: '',
+    aadhar_number: '',
+    pan_number: '',
+    driving_license: '',
+    uan_number: '',
+    esic_number: '',
     
-    // Employment Details
+    // Employment Details (Tab 2 from Excel)
     employee_id: '',
-    department: '',           // Primary department (legacy, kept for compatibility)
-    departments: [],          // Multi-department array
-    primary_department: '',   // Explicitly marked primary
+    department: '',
+    departments: [],
+    primary_department: '',
     designation: '',
     employment_type: 'full_time',
     joining_date: '',
+    probation_period: 6, // Default 6 months, 3 for non-consulting
+    confirmation_date: '', // Auto-calculated
     reporting_manager_id: '',
-    is_view_only: false,      // View-only flag (simplified permission)
+    is_view_only: false,
     
-    // Documents (file references)
-    documents: [],
-    
-    // Bank Details
+    // Bank Details (Tab 3 from Excel)
     bank_account_number: '',
     bank_ifsc: '',
     bank_name: '',
     bank_branch: '',
     bank_account_holder: '',
     bank_proof_uploaded: false,
+    
+    // Previous Employment (Tab 4 from Excel)
+    prev_company_name: '',
+    prev_designation: '',
+    prev_from_date: '',
+    prev_to_date: '',
+    verification_contact_1_name: '',
+    verification_contact_1_designation: '',
+    verification_contact_1_phone: '',
+    verification_contact_2_name: '',
+    verification_contact_2_designation: '',
+    verification_contact_2_phone: '',
+    
+    // Documents (file references)
+    documents: [],
   });
 
   useEffect(() => {
