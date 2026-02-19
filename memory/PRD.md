@@ -3,13 +3,28 @@
 ## Original Problem Statement
 Build a business management application for a consulting firm with complete HR, Sales, and Consulting workflows, including:
 - Dedicated portals for Sales and HR teams
-- **Department-based access control** (NEW: Department determines page access, not role)
+- **Department-based access control** (Department determines page access, not role)
 - Multi-department support for cross-functional employees
+- **Employee-level special permissions** for temporary cross-functional roles
 - End-to-end sales flow: Lead → Meetings → MOM → Hot → Pricing Plan → SOW → Proforma → Agreement → Kickoff → Project
 - HR module with employee onboarding, attendance, leave, payroll management
 - Consulting team workload visibility for HR (operational data only)
 
-## Access Control Architecture (NEW - Feb 2025)
+## Access Control Architecture (Feb 2025)
+
+### 3-Tier Permission System
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  TIER 1: DEPARTMENT → Which PAGES can I see?                    │
+│  (Sales, HR, Consulting, Finance, Admin, Marketing, etc.)       │
+├─────────────────────────────────────────────────────────────────┤
+│  TIER 2: LEVEL → How MUCH can I do within those pages?          │
+│  (Executive: view/create, Manager: +approve, Leader: +config)   │
+├─────────────────────────────────────────────────────────────────┤
+│  TIER 3: SPECIAL PERMISSIONS → Individual exceptions            │
+│  (Additional departments, approval rights, temporary roles)     │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Department-Based Access
 **Primary Change**: Page access is now determined by `department` field, not `role`.
@@ -21,6 +36,7 @@ Build a business management application for a consulting firm with complete HR, 
 | **Consulting** | Projects, Tasks, Timesheets, SOW Execution, Payments |
 | **Finance** | Payments, Expenses, Financial Reports |
 | **Admin** | Full access to all pages (*) |
+| **Marketing** | (Configurable via Admin Masters) |
 
 ### Multi-Department Support
 - Employees can have **multiple departments** for cross-functional roles
@@ -28,16 +44,37 @@ Build a business management application for a consulting firm with complete HR, 
 - Admin/HR can grant **additional department access**
 - Custom page exceptions (grant/restrict specific pages)
 
+### Employee-Level Special Permissions (NEW)
+For cases like: "Sales employee temporarily working as Marketing Manager"
+
+| Permission Type | Description | Use Case |
+|-----------------|-------------|----------|
+| **Additional Departments** | Grant access to other department pages | Cross-functional projects |
+| **Approval Rights** | Allow approving leaves/expenses for other depts | Acting manager |
+| **Temporary Role** | Override role with expiry date | Acting position |
+| **Restricted Pages** | Block specific pages | Compliance/security |
+
 ### Employee Data Fields
 ```javascript
 {
-  department: "Sales",           // Legacy - kept for compatibility
-  departments: ["Sales", "HR"],  // NEW: Array for multi-department
-  primary_department: "Sales",   // NEW: Primary department
-  level: "manager",              // Permission depth (executive/manager/leader)
-  role: "account_manager",       // Job title (secondary to department)
-  custom_page_access: [],        // Additional pages granted
-  restricted_pages: []           // Pages explicitly blocked
+  // Base Access
+  department: "Sales",           // Legacy field
+  departments: ["Sales"],        // Base department array
+  primary_department: "Sales",   // Primary department
+  
+  // Permission Level
+  level: "manager",              // executive/manager/leader
+  role: "account_manager",       // Job title (legacy)
+  
+  // Special Permissions
+  additional_departments: ["Marketing"],  // Extra dept access
+  additional_pages: [],                   // Extra page access
+  restricted_pages: [],                   // Blocked pages
+  temporary_role: "hr_manager",           // Temp role override
+  temporary_role_expiry: "2025-03-01",    // When temp role ends
+  can_approve_for_departments: ["Sales"], // Approval rights
+  special_permissions: [],                // Audit trail
+  permission_notes: "Acting Marketing Manager during Q1"
 }
 ```
 
