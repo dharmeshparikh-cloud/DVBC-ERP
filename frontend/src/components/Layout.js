@@ -13,7 +13,7 @@ import {
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
   User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronDown,
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings,
-  Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard
+  Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard, KeyRound
 } from 'lucide-react';
 
 // Legacy role-based access (kept for backward compatibility)
