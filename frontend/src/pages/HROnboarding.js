@@ -546,13 +546,16 @@ const HROnboarding = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Employee ID *</Label>
+                <Label>Employee ID * <span className="text-xs text-green-600">(Auto-generated)</span></Label>
                 <Input
                   value={formData.employee_id}
-                  onChange={(e) => handleInputChange('employee_id', e.target.value)}
-                  placeholder="EMP001"
+                  readOnly
+                  className="bg-zinc-50 font-mono"
                   data-testid="onboard-emp-id"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Auto-generated with EMP prefix
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Joining Date *</Label>
