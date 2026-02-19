@@ -351,3 +351,131 @@ async def change_password(pwd_data: ChangePasswordModel, current_user: User = De
 
     await log_security_event("password_change_success", email=current_user.email, request=request)
     return {"message": "Password changed successfully"}
+
+
+
+# ============== Admin Password Management ==============
+
+class AdminResetPasswordModel(BaseModel):
+    employee_id: str
+    new_password: str
+
+
+class AdminToggleAccessModel(BaseModel):
+    employee_id: str
+    is_active: bool
+
+
+@router.post("/admin/reset-employee-password")
+async def admin_reset_employee_password(
+    data: AdminResetPasswordModel, 
+    current_user: User = Depends(get_current_user), 
+    request: Request = None
+):
+    """Reset password for an employee. Only Admin and HR Managers can do this."""
+    db = get_db()
+    
+    # Check if current user is Admin or HR Manager
+    is_admin = current_user.role == "admin"
+    is_hr = current_user.role == "hr_manager" or (current_user.department and "HR" in current_user.department.upper())
+    
+    if not (is_admin or is_hr):
+        await log_security_event("admin_password_reset_rejected", email=current_user.email, details={"reason": "not_authorized", "target": data.employee_id}, request=request)
+        raise HTTPException(status_code=403, detail="Only Admin and HR Managers can reset passwords")
+    
+    # Find the employee
+    employee = await db.employees.find_one({"employee_id": data.employee_id.upper()}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Find the linked user
+    user_data = await db.users.find_one({"email": employee.get("email")}, {"_id": 0})
+    if not user_data:
+        raise HTTPException(status_code=404, detail="No user account found for this employee")
+    
+    # Prevent non-admin from resetting admin passwords
+    if user_data.get("role") == "admin" and not is_admin:
+        raise HTTPException(status_code=403, detail="Only Admin can reset another Admin's password")
+    
+    # Validate password
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    # Reset password
+    new_hash = get_password_hash(data.new_password)
+    await db.users.update_one(
+        {"email": employee.get("email")}, 
+        {"$set": {
+            "hashed_password": new_hash,
+            "requires_password_change": True,
+            "password_reset_at": datetime.now(timezone.utc).isoformat(),
+            "password_reset_by": current_user.email
+        }}
+    )
+    
+    await log_security_event(
+        "admin_password_reset_success", 
+        email=current_user.email, 
+        details={"target_employee": data.employee_id, "target_email": employee.get("email")}, 
+        request=request
+    )
+    
+    return {"message": f"Password reset successfully for {employee.get('first_name')} {employee.get('last_name')}", "employee_id": data.employee_id}
+
+
+@router.post("/admin/toggle-employee-access")
+async def admin_toggle_employee_access(
+    data: AdminToggleAccessModel, 
+    current_user: User = Depends(get_current_user), 
+    request: Request = None
+):
+    """Enable or disable employee access. Only Admin and HR Managers can do this."""
+    db = get_db()
+    
+    # Check if current user is Admin or HR Manager
+    is_admin = current_user.role == "admin"
+    is_hr = current_user.role == "hr_manager" or (current_user.department and "HR" in current_user.department.upper())
+    
+    if not (is_admin or is_hr):
+        await log_security_event("admin_toggle_access_rejected", email=current_user.email, details={"reason": "not_authorized", "target": data.employee_id}, request=request)
+        raise HTTPException(status_code=403, detail="Only Admin and HR Managers can toggle employee access")
+    
+    # Find the employee
+    employee = await db.employees.find_one({"employee_id": data.employee_id.upper()}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Find the linked user
+    user_data = await db.users.find_one({"email": employee.get("email")}, {"_id": 0})
+    if not user_data:
+        raise HTTPException(status_code=404, detail="No user account found for this employee")
+    
+    # Prevent disabling admin accounts (except by other admins)
+    if user_data.get("role") == "admin":
+        raise HTTPException(status_code=403, detail="Cannot disable Admin accounts")
+    
+    # Toggle access
+    await db.users.update_one(
+        {"email": employee.get("email")}, 
+        {"$set": {
+            "is_active": data.is_active,
+            "access_modified_at": datetime.now(timezone.utc).isoformat(),
+            "access_modified_by": current_user.email
+        }}
+    )
+    
+    # Also update employee record
+    await db.employees.update_one(
+        {"employee_id": data.employee_id.upper()},
+        {"$set": {"is_active": data.is_active}}
+    )
+    
+    action = "enabled" if data.is_active else "disabled"
+    await log_security_event(
+        f"admin_access_{action}", 
+        email=current_user.email, 
+        details={"target_employee": data.employee_id, "target_email": employee.get("email")}, 
+        request=request
+    )
+    
+    return {"message": f"Access {action} for {employee.get('first_name')} {employee.get('last_name')}", "employee_id": data.employee_id, "is_active": data.is_active}
