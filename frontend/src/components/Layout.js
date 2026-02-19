@@ -174,6 +174,7 @@ const Layout = () => {
   const hrItems = [
     { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
     { name: 'Onboarding', href: '/onboarding', icon: UserCog, requiresTeamView: false },
+    { name: 'Password Management', href: '/password-management', icon: KeyRound, requiresTeamView: false, requiresHRorAdmin: true },
     { name: 'Letter Management', href: '/letter-management', icon: FileText, requiresTeamView: false },
     { name: 'Letterhead Settings', href: '/letterhead-settings', icon: Image, requiresTeamView: false },
     { name: 'Onboarding Tutorials', href: '/tutorials', icon: BookOpen, requiresTeamView: false },
