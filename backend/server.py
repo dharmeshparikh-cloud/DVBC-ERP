@@ -10502,7 +10502,7 @@ async def get_go_live_checklist(
     current_user: User = Depends(get_current_user)
 ):
     """Get Go-Live checklist status for an employee."""
-    db = get_db()
+    global db
     
     # Find employee by employee_id field (EMP001) or id (uuid)
     employee = await db.employees.find_one(
@@ -10571,7 +10571,7 @@ async def submit_go_live_request(
     current_user: User = Depends(get_current_user)
 ):
     """HR submits Go-Live request for Admin approval."""
-    db = get_db()
+    global db
     
     if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Only HR can submit Go-Live requests")
@@ -10630,7 +10630,7 @@ async def submit_go_live_request(
 @api_router.get("/go-live/pending")
 async def get_pending_go_live_requests(current_user: User = Depends(get_current_user)):
     """Get all pending Go-Live requests (Admin only)."""
-    db = get_db()
+    global db
     
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only Admin can view pending Go-Live requests")
