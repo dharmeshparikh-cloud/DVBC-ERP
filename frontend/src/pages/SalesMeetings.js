@@ -40,7 +40,7 @@ const SalesMeetings = () => {
   const fetchData = async () => {
     try {
       const [meetingsRes, leadsRes, usersRes] = await Promise.all([
-        axios.get(`${API}/meetings?meeting_type=sales`),
+        axios.get(`${API}/sales-meetings`).catch(() => ({ data: [] })),
         axios.get(`${API}/leads`),
         axios.get(`${API}/users`)
       ]);
@@ -57,16 +57,21 @@ const SalesMeetings = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/meetings`, {
-        ...formData,
-        type: 'sales',
-        meeting_date: new Date(formData.meeting_date).toISOString(),
-        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
-        agenda: formData.agenda.filter(a => a.trim())
+      await axios.post(`${API}/sales-meetings`, {
+        lead_id: formData.lead_id,
+        title: formData.title,
+        meeting_type: formData.meeting_type || 'discovery',
+        scheduled_date: formData.meeting_date,
+        scheduled_time: formData.meeting_time || '10:00',
+        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : 60,
+        location: formData.mode === 'online' ? 'Google Meet' : formData.mode === 'offline' ? 'Client Office' : 'Phone Call',
+        attendees: formData.attendees || [],
+        agenda: formData.agenda?.filter(a => a.trim()).join('\n') || '',
+        notes: formData.notes
       });
-      toast.success('Sales meeting created');
+      toast.success('Sales meeting scheduled');
       setDialogOpen(false);
-      setFormData({ title: '', meeting_date: '', mode: 'online', duration_minutes: '', notes: '', lead_id: '', attendees: [], attendee_names: [], agenda: [''] });
+      setFormData({ title: '', meeting_date: '', meeting_time: '10:00', meeting_type: 'discovery', mode: 'online', duration_minutes: '60', notes: '', lead_id: '', attendees: [], attendee_names: [], agenda: [''] });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create meeting');
@@ -75,32 +80,51 @@ const SalesMeetings = () => {
 
   const openMOMDialog = async (meeting) => {
     try {
-      const res = await axios.get(`${API}/meetings/${meeting.id}`);
-      const m = res.data;
-      setSelectedMeeting(m);
-      setMomData({
-        title: m.title || '', agenda: m.agenda?.length ? m.agenda : [''],
-        discussion_points: m.discussion_points?.length ? m.discussion_points : [''],
-        decisions_made: m.decisions_made?.length ? m.decisions_made : [''],
-        next_meeting_date: m.next_meeting_date ? m.next_meeting_date.split('T')[0] : ''
-      });
+      setSelectedMeeting(meeting);
+      // Try to get existing MOM
+      try {
+        const momRes = await axios.get(`${API}/sales-meetings/${meeting.id}/mom`);
+        const m = momRes.data;
+        setMomData({
+          summary: m.summary || '',
+          discussion_points: m.discussion_points || [''],
+          action_items: m.action_items || [{ task: '', owner: '', due_date: '' }],
+          next_steps: m.next_steps || '',
+          client_feedback: m.client_feedback || '',
+          lead_temperature_update: m.lead_temperature_update || ''
+        });
+      } catch {
+        // No existing MOM, start fresh
+        setMomData({
+          summary: '',
+          discussion_points: [''],
+          action_items: [{ task: '', owner: '', due_date: '' }],
+          next_steps: '',
+          client_feedback: '',
+          lead_temperature_update: ''
+        });
+      }
       setMomDialogOpen(true);
     } catch { toast.error('Failed to load meeting'); }
   };
 
   const handleSaveMOM = async () => {
     try {
-      await axios.patch(`${API}/meetings/${selectedMeeting.id}/mom`, {
-        ...momData,
-        agenda: momData.agenda.filter(a => a.trim()),
-        discussion_points: momData.discussion_points.filter(d => d.trim()),
-        decisions_made: momData.decisions_made.filter(d => d.trim()),
-        next_meeting_date: momData.next_meeting_date ? new Date(momData.next_meeting_date).toISOString() : null
+      await axios.post(`${API}/sales-meetings/${selectedMeeting.id}/mom`, {
+        meeting_id: selectedMeeting.id,
+        summary: momData.summary,
+        discussion_points: momData.discussion_points?.filter(d => d.trim()) || [],
+        action_items: momData.action_items?.filter(a => a.task?.trim()) || [],
+        next_steps: momData.next_steps,
+        client_feedback: momData.client_feedback,
+        lead_temperature_update: momData.lead_temperature_update
       });
-      toast.success('Sales MOM saved');
+      toast.success('MOM saved & meeting completed');
       setMomDialogOpen(false);
       fetchData();
-    } catch { toast.error('Failed to save MOM'); }
+    } catch (error) { 
+      toast.error(error.response?.data?.detail || 'Failed to save MOM'); 
+    }
   };
 
   const addArrayItem = (field, setFn, data) => setFn({ ...data, [field]: [...data[field], ''] });
