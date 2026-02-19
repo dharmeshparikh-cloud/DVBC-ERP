@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://erp-permissions.preview.emergentagent.com",
+      "value": "https://dept-auth-staging.preview.emergentagent.com",
       "type": "string"
     },
     {

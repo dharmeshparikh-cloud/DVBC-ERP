@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://erp-permissions.preview.emergentagent.com"
+    BASE_URL = "https://dept-auth-staging.preview.emergentagent.com"
 
 class TestSalesFlowE2E:
     """Complete E2E test of the sales workflow"""
