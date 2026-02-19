@@ -565,6 +565,138 @@ const ProformaInvoice = () => {
             )}
           </CardContent>
         </Card>
+      ) : activeView === 'history' ? (
+        /* HISTORY VIEW - Grouped by Lead/Prospect */
+        <div className="space-y-6" data-testid="history-view">
+          {Object.keys(groupedByLead).map(groupLeadId => {
+            const lead = leads.find(l => l.id === groupLeadId);
+            const invoicesList = groupedByLead[groupLeadId];
+            const selectedInvoice = invoicesList.find(inv => isUsedInAgreement(inv.id));
+            
+            return (
+              <Card key={groupLeadId} className="border-zinc-200 shadow-none rounded-sm" data-testid={`lead-group-${groupLeadId}`}>
+                <CardHeader className="bg-zinc-50 border-b border-zinc-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-5 h-5 text-zinc-500" />
+                      <div>
+                        <CardTitle className="text-lg font-semibold text-zinc-950">
+                          {lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Lead'}
+                        </CardTitle>
+                        <p className="text-sm text-zinc-500">{lead?.company || 'No company'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-zinc-500 uppercase">Total Revisions</div>
+                      <div className="text-lg font-semibold text-zinc-950">{invoicesList.length}</div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-zinc-100">
+                    {invoicesList.map((invoice, idx) => {
+                      const isLatest = idx === 0;
+                      const usedInAgreement = isUsedInAgreement(invoice.id);
+                      const versionNumber = invoicesList.length - idx;
+                      
+                      return (
+                        <div 
+                          key={invoice.id} 
+                          className={`p-4 ${usedInAgreement ? 'bg-emerald-50/50' : isLatest ? 'bg-blue-50/30' : ''}`}
+                          data-testid={`history-item-${invoice.id}`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <span className={`px-2 py-1 text-xs font-mono font-semibold rounded-sm ${
+                                usedInAgreement ? 'bg-emerald-100 text-emerald-700' :
+                                isLatest ? 'bg-blue-100 text-blue-700' :
+                                'bg-zinc-100 text-zinc-600'
+                              }`}>
+                                v{versionNumber}
+                              </span>
+                              <div>
+                                <span className="font-medium text-zinc-900">{invoice.quotation_number}</span>
+                                <span className="text-sm text-zinc-500 ml-2">
+                                  {new Date(invoice.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              {usedInAgreement && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-sm bg-emerald-100 text-emerald-700">
+                                  <Star className="w-3 h-3" />
+                                  Selected for Agreement
+                                </span>
+                              )}
+                              {isLatest && !usedInAgreement && (
+                                <span className="px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-700">
+                                  Latest
+                                </span>
+                              )}
+                            </div>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-sm ${getStatusBadge(invoice.status, invoice.is_final)}`}>
+                              {invoice.is_final ? 'Finalized' : invoice.status}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-4 gap-4 mb-3">
+                            <div>
+                              <div className="text-xs text-zinc-500">Meetings</div>
+                              <div className="font-semibold">{invoice.total_meetings}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-zinc-500">Subtotal</div>
+                              <div className="font-semibold">{formatINR(invoice.subtotal)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-zinc-500">GST</div>
+                              <div className="font-semibold">{formatINR(invoice.gst_amount)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-zinc-500">Total</div>
+                              <div className="font-semibold text-emerald-600">{formatINR(invoice.grand_total)}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => openViewDialog(invoice)}
+                              size="sm"
+                              variant="outline"
+                              className="rounded-sm h-8"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                            {!invoice.is_final && canEdit && (
+                              <Button
+                                onClick={() => handleFinalize(invoice.id)}
+                                size="sm"
+                                variant="outline"
+                                className="rounded-sm h-8"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Finalize
+                              </Button>
+                            )}
+                            {invoice.is_final && canEdit && !usedInAgreement && (
+                              <Button
+                                onClick={() => navigate(`/sales-funnel/agreements?quotationId=${invoice.id}&leadId=${invoice.lead_id}`)}
+                                size="sm"
+                                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm h-8"
+                              >
+                                <Send className="w-4 h-4 mr-1" />
+                                Create Agreement
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       ) : viewMode === 'list' ? (
         /* List View */
         <div className="border border-zinc-200 rounded-sm overflow-hidden">
