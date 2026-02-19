@@ -336,6 +336,9 @@ const HROnboarding = () => {
     try {
       const token = localStorage.getItem('token');
       
+      // Generate password based on Employee ID pattern: Welcome@EMP001
+      const generatedPassword = `Welcome@${formData.employee_id}`;
+      
       // Prepare employee data
       const employeeData = {
         employee_id: formData.employee_id,
@@ -365,7 +368,7 @@ const HROnboarding = () => {
           proof_uploaded: formData.bank_proof_uploaded,
           proof_verified: false, // Requires admin approval
         } : null,
-        onboarding_status: 'pending_user_creation',
+        onboarding_status: 'completed',
         onboarded_by: user?.id,
         onboarded_at: new Date().toISOString(),
       };
@@ -383,7 +386,10 @@ const HROnboarding = () => {
       if (response.ok) {
         const employee = await response.json();
         
-        // Create user account for the employee
+        // Get reporting manager details
+        const reportingManager = managers.find(m => m.id === formData.reporting_manager_id);
+        
+        // Create user account for the employee with pattern-based password
         const userResponse = await fetch(`${API}/users`, {
           method: 'POST',
           headers: {
@@ -397,7 +403,9 @@ const HROnboarding = () => {
             departments: formData.departments,
             primary_department: formData.primary_department || formData.departments[0],
             is_view_only: formData.is_view_only || false,
-            password: 'Welcome@123', // Temporary password
+            employee_id: formData.employee_id, // Store employee_id in user for login
+            password: generatedPassword,
+            requires_password_change: true, // Flag for first login
             is_active: true
           })
         });
@@ -415,11 +423,35 @@ const HROnboarding = () => {
             body: JSON.stringify({ user_id: userData.id })
           });
           
-          toast.success('Employee onboarded successfully! Temporary password: Welcome@123');
-          navigate('/hr/employees');
+          // Show success popup with all details
+          setOnboardingSuccess({
+            employee: {
+              id: formData.employee_id,
+              name: `${formData.first_name} ${formData.last_name}`,
+              email: formData.email,
+              department: formData.departments.join(', '),
+              designation: formData.designation,
+              joiningDate: formData.joining_date,
+            },
+            credentials: {
+              loginId: formData.employee_id,
+              password: generatedPassword,
+            },
+            reportingManager: reportingManager ? {
+              name: reportingManager.full_name,
+              email: reportingManager.email,
+              department: reportingManager.department,
+            } : null,
+          });
+          setShowSuccessDialog(true);
+          
+          // Simulate email notification (mock)
+          console.log('📧 Mock Email Sent to:', formData.email, '- Welcome email with credentials');
+          console.log('📧 Mock Email Sent to HR/Admin - New employee onboarded notification');
+          
         } else {
           toast.success('Employee record created. User account creation may require admin setup.');
-          navigate('/hr/employees');
+          navigate('/employees');
         }
       } else {
         const error = await response.json();
