@@ -475,6 +475,14 @@ A comprehensive travel reimbursement feature for employees:
   - [x] Print, Download (HTML), and Copy functionality
   - [x] Templates saved to localStorage for persistence
   - [x] Added to HR section in main sidebar
+- [x] **Document History Feature** (New)
+  - [x] Backend API endpoints: POST/GET/PUT/DELETE `/api/document-history`
+  - [x] Documents saved to MongoDB `document_history` collection
+  - [x] History tab in Document Builder showing complete audit trail
+  - [x] Color-coded document types with status badges
+  - [x] View, download past documents directly from history
+  - [x] Employee statistics endpoint: `/api/document-history/employee/{id}/stats`
+  - [x] Automatic notification to employee when document is generated
 - [x] **Onboarding to CTC Designer/Document Builder Flow**
   - [x] Updated HROnboarding.js success dialog with new action buttons
   - [x] "Design CTC Structure" button redirects to `/ctc-designer?employee={id}`
