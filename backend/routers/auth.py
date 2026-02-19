@@ -142,20 +142,50 @@ async def register(user_create: UserCreate):
 
 @router.post("/login", response_model=Token)
 async def login(user_login: UserLogin, request: Request = None):
-    """Login with email and password."""
+    """Login with Employee ID or email and password."""
     db = get_db()
-    user_data = await db.users.find_one({"email": user_login.email}, {"_id": 0})
+    
+    user_data = None
+    login_identifier = None
+    
+    # Priority: Employee ID > Email
+    if user_login.employee_id:
+        # Look up user by employee_id from employees collection
+        employee = await db.employees.find_one({"employee_id": user_login.employee_id.upper()}, {"_id": 0})
+        if employee:
+            # Get linked user
+            user_data = await db.users.find_one({"email": employee.get("email")}, {"_id": 0})
+            login_identifier = user_login.employee_id
+        else:
+            # Also check if employee_id is stored directly in users (for admin/hr)
+            user_data = await db.users.find_one({"employee_id": user_login.employee_id.upper()}, {"_id": 0})
+            login_identifier = user_login.employee_id
+    elif user_login.email:
+        # Fallback to email login (for backward compatibility and admin users)
+        user_data = await db.users.find_one({"email": user_login.email}, {"_id": 0})
+        login_identifier = user_login.email
+    else:
+        raise HTTPException(status_code=400, detail="Employee ID or Email is required")
+    
     if not user_data:
-        await log_security_event("password_login_failed", email=user_login.email, details={"reason": "user_not_found"}, request=request)
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        await log_security_event("password_login_failed", email=login_identifier, details={"reason": "user_not_found"}, request=request)
+        raise HTTPException(status_code=401, detail="Invalid Employee ID or password")
+
+    # Check if account is active
+    if not user_data.get("is_active", True):
+        await log_security_event("password_login_failed", email=login_identifier, details={"reason": "account_disabled"}, request=request)
+        raise HTTPException(status_code=401, detail="Your account has been disabled. Please contact HR.")
 
     if not verify_password(user_login.password, user_data.get('hashed_password', '')):
-        await log_security_event("password_login_failed", email=user_login.email, details={"reason": "wrong_password"}, request=request)
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        await log_security_event("password_login_failed", email=login_identifier, details={"reason": "wrong_password"}, request=request)
+        raise HTTPException(status_code=401, detail="Invalid Employee ID or password")
 
     if isinstance(user_data.get('created_at'), str):
         user_data['created_at'] = datetime.fromisoformat(user_data['created_at'])
 
+    # Check if first login (default password)
+    requires_password_change = user_data.get('requires_password_change', False)
+    
     user_data.pop('hashed_password', None)
     user = User(**user_data)
 
@@ -164,9 +194,15 @@ async def login(user_login: UserLogin, request: Request = None):
         data={"sub": user.email}, expires_delta=access_token_expires
     )
 
-    await log_security_event("password_login_success", email=user_login.email, request=request)
-    await db.users.update_one({"email": user_login.email}, {"$set": {"last_login": datetime.now(timezone.utc).isoformat(), "auth_method": "password"}})
-    return Token(access_token=access_token, token_type="bearer", user=user)
+    await log_security_event("password_login_success", email=login_identifier, request=request)
+    await db.users.update_one({"email": user.email}, {"$set": {"last_login": datetime.now(timezone.utc).isoformat(), "auth_method": "password"}})
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user,
+        "requires_password_change": requires_password_change
+    }
 
 
 @router.get("/me", response_model=User)
