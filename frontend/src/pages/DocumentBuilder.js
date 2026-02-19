@@ -283,6 +283,24 @@ const DocumentBuilder = () => {
     }
   };
 
+  const fetchDocumentHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API}/document-history?limit=100`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDocumentHistory(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch document history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   const saveTemplate = () => {
     try {
       const updated = { ...savedTemplates, [selectedDocType]: templateContent };
