@@ -1828,3 +1828,90 @@ HR Updates Employee → Protected Field Change Detected → Modification Request
                                     ↓
                     Admin Reviews → Approve/Reject → Employee Record Updated/Unchanged
 ```
+
+---
+## Session 13 (Feb 19, 2026) - Go-Live Workflow Feature
+
+### Feature: Employee Go-Live Workflow
+A new workflow for tracking employee activation status and managing final approval before employees become active in the system.
+
+### What Was Built
+
+1. **Go-Live Dashboard** (`/hr/go-live` and `/go-live`)
+   - Employee list with filter buttons (All, Pending, Active)
+   - Per-employee Go-Live checklist with status indicators
+   - Checklist items: Onboarding Complete, CTC Approved, Bank Details Added, Bank Verified, Documents Generated, Portal Access Granted
+   - CTC Details display (annual CTC from approved structure)
+   - "Not Ready for Go-Live" warning when requirements not met
+   - Submit for Go-Live Approval button (HR only)
+
+2. **Admin Approval Section**
+   - Pending Go-Live Approvals section in Approvals Center
+   - View, Approve, Reject buttons for each request
+   - Rejection requires reason input
+
+3. **Backend APIs**
+   - `GET /api/go-live/checklist/{employee_id}` - Get employee's Go-Live checklist
+   - `POST /api/go-live/submit/{employee_id}` - HR submits Go-Live request
+   - `GET /api/go-live/pending` - Admin gets pending requests
+   - `POST /api/go-live/{request_id}/approve` - Admin approves
+   - `POST /api/go-live/{request_id}/reject` - Admin rejects with reason
+   - `POST /api/bank-verify/{employee_id}` - Admin verifies bank details
+
+4. **Bug Fix**
+   - Fixed `NameError: name 'get_db' is not defined` in all Go-Live endpoints
+   - Changed `db = get_db()` to `global db` to use the global database variable
+
+5. **Navigation Updates**
+   - Go-Live Dashboard added to HR Portal sidebar (People section)
+   - Go-Live Dashboard route added to main ERP for Admin access
+
+### Go-Live Workflow Flow
+```
+HR Views Employee Checklist → All Items Green? → Submit for Approval
+                                    ↓
+                Admin Reviews Request → Approve → Employee Status = Active
+                                    ↓
+                                Reject → Employee Notified with Reason
+```
+
+### Database Schema
+```javascript
+// Employee document updated with:
+{
+  go_live_status: "active" | "pending" | "rejected" | "not_submitted",
+  go_live_approved_at: ISO timestamp,
+  go_live_approved_by: Admin name
+}
+
+// New collection: go_live_requests
+{
+  id: UUID,
+  employee_id: UUID,
+  employee_name: String,
+  employee_code: String (EMP001),
+  department: String,
+  checklist: Object,
+  status: "pending" | "approved" | "rejected",
+  submitted_by: UUID,
+  submitted_by_name: String,
+  submitted_at: ISO timestamp,
+  approved_by: UUID (optional),
+  approved_by_name: String (optional),
+  approved_at: ISO timestamp (optional),
+  rejection_reason: String (optional),
+  notes: String (optional)
+}
+```
+
+### Testing Results
+- Backend: 8/8 tests passed
+- Frontend: 6/6 features verified
+- Test file: `/app/backend/tests/test_go_live_workflow.py`
+- Test report: `/app/test_reports/iteration_65.json`
+
+### Credentials for Testing
+| Role | Email | Password |
+|------|-------|----------|
+| HR Manager | hr.manager@dvbc.com | hr123 |
+| Admin | admin@dvbc.com | admin123 |
