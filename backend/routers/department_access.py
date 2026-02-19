@@ -127,6 +127,7 @@ class BulkDepartmentUpdate(BaseModel):
 @router.get("/departments")
 async def get_all_departments(current_user: User = Depends(get_current_user)):
     """Get list of all departments with their configurations"""
+    DEPARTMENTS = await get_departments_config()
     return {
         "departments": DEPARTMENTS,
         "universal_pages": UNIVERSAL_PAGES
@@ -135,15 +136,16 @@ async def get_all_departments(current_user: User = Depends(get_current_user)):
 
 @router.get("/my-access")
 async def get_my_department_access(current_user: User = Depends(get_current_user)):
-    """Get current user's department access configuration"""
+    """Get current user's department access configuration including special permissions"""
     db = get_db()
+    DEPARTMENTS = await get_departments_config()
     
     # First check user record for departments (most authoritative)
     user = await db.users.find_one({"id": current_user.id}, {"_id": 0})
     user_departments = user.get("departments", []) if user else []
     user_primary = user.get("primary_department") if user else None
     
-    # Get employee record for additional info
+    # Get employee record for additional info and special permissions
     employee = await db.employees.find_one(
         {"user_id": current_user.id},
         {"_id": 0}
@@ -151,10 +153,10 @@ async def get_my_department_access(current_user: User = Depends(get_current_user
     
     # Use user departments if available, otherwise fall back to employee or role-based
     if user_departments:
-        departments = user_departments
+        departments = list(user_departments)
         primary_dept = user_primary or user_departments[0]
     elif employee:
-        departments = employee.get("departments", [])
+        departments = list(employee.get("departments", []))
         primary_dept = employee.get("primary_department") or employee.get("department")
         if not departments and primary_dept:
             departments = [primary_dept]
@@ -171,6 +173,30 @@ async def get_my_department_access(current_user: User = Depends(get_current_user
     if current_user.role == "admin":
         departments = ["Admin"]
         primary_dept = "Admin"
+    
+    # === SPECIAL PERMISSIONS: Add additional departments ===
+    additional_depts = []
+    additional_pages = []
+    temporary_role = None
+    
+    if employee:
+        additional_depts = employee.get("additional_departments", [])
+        additional_pages = employee.get("additional_pages", [])
+        temporary_role = employee.get("temporary_role")
+        
+        # Check if temporary permissions have expired
+        if temporary_role and employee.get("temporary_role_expiry"):
+            try:
+                expiry = datetime.fromisoformat(employee["temporary_role_expiry"].replace("Z", "+00:00"))
+                if datetime.now(timezone.utc) > expiry:
+                    temporary_role = None
+            except:
+                pass
+        
+        # Add additional departments to the list
+        for dept in additional_depts:
+            if dept not in departments:
+                departments.append(dept)
     
     # Build accessible pages list
     accessible_pages = list(UNIVERSAL_PAGES)
