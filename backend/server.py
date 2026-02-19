@@ -1148,6 +1148,266 @@ async def complete_reminder(reminder_id: str, current_user: User = Depends(get_c
     return {"message": "Reminder marked as complete"}
 
 
+# ==============================
+# SALES MEETINGS & MOM ENDPOINTS
+# ==============================
+
+class SalesMeetingCreate(BaseModel):
+    """Create a sales meeting with a lead"""
+    lead_id: str
+    title: str
+    meeting_type: str  # discovery, demo, proposal, negotiation, closing
+    scheduled_date: str
+    scheduled_time: str
+    duration_minutes: int = 60
+    location: Optional[str] = None  # Office, Client Site, Google Meet, Zoom
+    meeting_link: Optional[str] = None
+    attendees: Optional[List[str]] = []
+    agenda: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class MOMCreate(BaseModel):
+    """Minutes of Meeting"""
+    meeting_id: str
+    summary: str
+    discussion_points: List[str]
+    action_items: List[dict]  # {task, owner, due_date}
+    next_steps: Optional[str] = None
+    client_feedback: Optional[str] = None
+    lead_temperature_update: Optional[str] = None  # cold, warm, hot
+
+
+@api_router.post("/sales-meetings")
+async def create_sales_meeting(
+    meeting: SalesMeetingCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new sales meeting for a lead"""
+    if current_user.role not in SALES_MEETING_ROLES:
+        raise HTTPException(status_code=403, detail="Only sales team can create meetings")
+    
+    # Verify lead exists
+    lead = await db.leads.find_one({"id": meeting.lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    meeting_doc = {
+        "id": str(uuid.uuid4()),
+        "lead_id": meeting.lead_id,
+        "lead_name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+        "company": lead.get("company", ""),
+        "title": meeting.title,
+        "meeting_type": meeting.meeting_type,
+        "scheduled_date": meeting.scheduled_date,
+        "scheduled_time": meeting.scheduled_time,
+        "duration_minutes": meeting.duration_minutes,
+        "location": meeting.location,
+        "meeting_link": meeting.meeting_link,
+        "attendees": meeting.attendees or [],
+        "agenda": meeting.agenda,
+        "notes": meeting.notes,
+        "status": "scheduled",  # scheduled, completed, cancelled, no_show
+        "mom_id": None,  # Will be linked when MOM is created
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.sales_meetings.insert_one(meeting_doc)
+    
+    # Update lead status to "contacted" if it's "new"
+    if lead.get("status") == "new":
+        await db.leads.update_one(
+            {"id": meeting.lead_id},
+            {"$set": {"status": "contacted", "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    meeting_doc.pop("_id", None)
+    return meeting_doc
+
+
+@api_router.get("/sales-meetings")
+async def get_sales_meetings(
+    lead_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get sales meetings with optional filters"""
+    query = {}
+    if lead_id:
+        query["lead_id"] = lead_id
+    if status:
+        query["status"] = status
+    
+    meetings = await db.sales_meetings.find(query, {"_id": 0}).sort("scheduled_date", -1).to_list(500)
+    return meetings
+
+
+@api_router.get("/sales-meetings/{meeting_id}")
+async def get_sales_meeting(meeting_id: str, current_user: User = Depends(get_current_user)):
+    """Get a single sales meeting by ID"""
+    meeting = await db.sales_meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return meeting
+
+
+@api_router.patch("/sales-meetings/{meeting_id}")
+async def update_sales_meeting(
+    meeting_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a sales meeting"""
+    if current_user.role not in SALES_MEETING_ROLES:
+        raise HTTPException(status_code=403, detail="Only sales team can update meetings")
+    
+    meeting = await db.sales_meetings.find_one({"id": meeting_id})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    allowed_fields = ["title", "scheduled_date", "scheduled_time", "duration_minutes", 
+                      "location", "meeting_link", "attendees", "agenda", "notes", "status"]
+    update_dict = {k: v for k, v in data.items() if k in allowed_fields}
+    update_dict["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.sales_meetings.update_one({"id": meeting_id}, {"$set": update_dict})
+    return {"message": "Meeting updated successfully"}
+
+
+@api_router.post("/sales-meetings/{meeting_id}/complete")
+async def complete_sales_meeting(
+    meeting_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Mark a meeting as completed"""
+    result = await db.sales_meetings.update_one(
+        {"id": meeting_id},
+        {"$set": {
+            "status": "completed",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return {"message": "Meeting marked as completed"}
+
+
+@api_router.post("/sales-meetings/{meeting_id}/mom")
+async def create_meeting_mom(
+    meeting_id: str,
+    mom: MOMCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create Minutes of Meeting (MOM) for a sales meeting"""
+    if current_user.role not in SALES_MEETING_ROLES:
+        raise HTTPException(status_code=403, detail="Only sales team can create MOM")
+    
+    # Verify meeting exists
+    meeting = await db.sales_meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    mom_doc = {
+        "id": str(uuid.uuid4()),
+        "meeting_id": meeting_id,
+        "lead_id": meeting.get("lead_id"),
+        "summary": mom.summary,
+        "discussion_points": mom.discussion_points,
+        "action_items": mom.action_items,
+        "next_steps": mom.next_steps,
+        "client_feedback": mom.client_feedback,
+        "lead_temperature_update": mom.lead_temperature_update,
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.sales_mom.insert_one(mom_doc)
+    
+    # Link MOM to meeting and mark meeting as completed
+    await db.sales_meetings.update_one(
+        {"id": meeting_id},
+        {"$set": {
+            "mom_id": mom_doc["id"],
+            "status": "completed",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update lead status based on meeting type and temperature
+    lead_id = meeting.get("lead_id")
+    if lead_id:
+        new_status = None
+        meeting_type = meeting.get("meeting_type", "")
+        
+        # Auto-update lead status based on meeting type
+        if meeting_type == "discovery":
+            new_status = "contacted"
+        elif meeting_type == "demo":
+            new_status = "qualified"
+        elif meeting_type == "proposal":
+            new_status = "proposal"
+        elif meeting_type == "negotiation":
+            new_status = "proposal"
+        elif meeting_type == "closing":
+            new_status = "agreement"
+        
+        if new_status:
+            update_fields = {
+                "status": new_status,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Update temperature if provided
+            if mom.lead_temperature_update:
+                temp_map = {"cold": 20, "warm": 60, "hot": 90}
+                update_fields["temperature"] = mom.lead_temperature_update
+                update_fields["score"] = temp_map.get(mom.lead_temperature_update, 50)
+            
+            await db.leads.update_one({"id": lead_id}, {"$set": update_fields})
+    
+    mom_doc.pop("_id", None)
+    return {
+        "message": "MOM created successfully",
+        "mom": mom_doc,
+        "lead_status_updated": new_status
+    }
+
+
+@api_router.get("/sales-meetings/{meeting_id}/mom")
+async def get_meeting_mom(meeting_id: str, current_user: User = Depends(get_current_user)):
+    """Get MOM for a sales meeting"""
+    mom = await db.sales_mom.find_one({"meeting_id": meeting_id}, {"_id": 0})
+    if not mom:
+        raise HTTPException(status_code=404, detail="MOM not found for this meeting")
+    return mom
+
+
+@api_router.get("/leads/{lead_id}/meetings")
+async def get_lead_meetings(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Get all meetings for a specific lead"""
+    meetings = await db.sales_meetings.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("scheduled_date", -1).to_list(100)
+    return meetings
+
+
+@api_router.get("/leads/{lead_id}/mom-history")
+async def get_lead_mom_history(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Get all MOMs for a specific lead"""
+    moms = await db.sales_mom.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return moms
+
+
 class LeadUpdate(BaseModel):
     """Update lead fields"""
     model_config = ConfigDict(extra="ignore")
