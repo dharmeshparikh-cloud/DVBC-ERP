@@ -105,7 +105,7 @@ async def get_attendance_summary(
     year: Optional[int] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get attendance summary for a month."""
+    """Get attendance summary for a month - returns per-employee breakdown."""
     db = get_db()
     
     now = datetime.now(timezone.utc)
@@ -119,26 +119,71 @@ async def get_attendance_summary(
     else:
         end_date = f"{year}-{str(month + 1).zfill(2)}-01"
     
-    query = {"date": {"$gte": start_date, "$lt": end_date}}
+    # Get all employees first
+    employees = await db.employees.find(
+        {"is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1}
+    ).to_list(500)
     
-    if employee_id:
-        query["employee_id"] = employee_id
+    # Create employee lookup dict
+    emp_lookup = {}
+    for emp in employees:
+        emp_key = emp.get("id") or emp.get("employee_id")
+        emp_lookup[emp_key] = {
+            "employee_id": emp_key,
+            "emp_code": emp.get("employee_id", emp_key),
+            "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip() or "Unknown",
+            "department": emp.get("department", "-"),
+            "present": 0,
+            "absent": 0,
+            "half_day": 0,
+            "wfh": 0,
+            "on_leave": 0,
+            "total": 0
+        }
     
-    # Count by status
+    # Aggregate attendance by employee and status
     pipeline = [
-        {"$match": query},
+        {"$match": {"date": {"$gte": start_date, "$lt": end_date}}},
         {"$group": {
-            "_id": "$status",
+            "_id": {"employee_id": "$employee_id", "status": "$status"},
             "count": {"$sum": 1}
         }}
     ]
     
-    results = await db.attendance.aggregate(pipeline).to_list(20)
+    results = await db.attendance.aggregate(pipeline).to_list(1000)
     
-    summary = {r["_id"]: r["count"] for r in results if r["_id"]}
-    summary["total"] = sum(summary.values())
+    # Map status names to frontend expected keys
+    status_map = {
+        "present": "present",
+        "absent": "absent",
+        "half_day": "half_day",
+        "work_from_home": "wfh",
+        "wfh": "wfh",
+        "on_leave": "on_leave",
+        "leave": "on_leave"
+    }
     
-    return summary
+    # Populate counts
+    for result in results:
+        emp_id = result["_id"]["employee_id"]
+        status = result["_id"]["status"]
+        count = result["count"]
+        
+        if emp_id in emp_lookup:
+            status_key = status_map.get(status, status)
+            if status_key in emp_lookup[emp_id]:
+                emp_lookup[emp_id][status_key] = count
+                emp_lookup[emp_id]["total"] += count
+    
+    # Return as array, filtered to only employees with attendance data
+    summary_list = [emp for emp in emp_lookup.values() if emp["total"] > 0]
+    
+    # If no attendance data, return all employees with zero counts
+    if not summary_list:
+        summary_list = list(emp_lookup.values())
+    
+    return summary_list
 
 
 @router.get("/analytics")
