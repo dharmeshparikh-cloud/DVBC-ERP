@@ -87,6 +87,56 @@ const Employees = () => {
     fetchData();
   }, []);
 
+  const fetchData = async () => {
+    try {
+      const [empRes, deptRes] = await Promise.all([
+        axios.get(`${API}/employees`),
+        axios.get(`${API}/employees/departments/list`)
+      ]);
+      setEmployees(empRes.data || []);
+      setDepartments(deptRes.data || []);
+      
+      // Fetch stats if HR access
+      if (canManage) {
+        try {
+          const statsRes = await axios.get(`${API}/employees/stats/summary`);
+          setStats(statsRes.data);
+        } catch (e) {
+          console.error('Error fetching stats:', e);
+        }
+      }
+      
+      // Fetch users for linking
+      try {
+        const usersRes = await axios.get(`${API}/users-with-roles`);
+        setUsers(usersRes.data || []);
+      } catch (e) {
+        console.error('Error fetching users:', e);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load employees');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrgChart = async () => {
+    try {
+      const res = await axios.get(`${API}/employees/org-chart/hierarchy`);
+      setOrgChart(res.data || []);
+    } catch (error) {
+      console.error('Error fetching org chart:', error);
+      toast.error('Failed to load org chart');
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === 'orgchart') {
+      fetchOrgChart();
+    }
+  }, [activeView]);
+
   const handleUpdateEmployee = async () => {
     if (!selectedEmployee) return;
 
