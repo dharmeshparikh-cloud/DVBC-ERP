@@ -1524,3 +1524,50 @@ Implemented comprehensive role-based visibility for the Project Payments module:
    - `/api/department-access/my-access` returns correct permission flags
    - `has_reportees`, `is_view_only`, `can_edit`, `can_manage_team` all functioning
    - Department-based page access working correctly
+
+---
+## Employee ID Login System (Feb 19, 2026) - ✅ IMPLEMENTED
+
+### Login System Changes
+1. **Login with Employee ID** instead of email
+   - Login field shows "Employee ID" with placeholder "EMP001"
+   - Input auto-converts to uppercase
+   - Backend supports both `employee_id` and `email` for backward compatibility
+
+2. **Pattern-based Password**
+   - Format: `Welcome@{EmployeeID}` (e.g., `Welcome@EMP001`)
+   - Auto-generated during onboarding
+
+3. **Predefined Admin Credentials**
+   - `ADMIN001` / `admin123` - System Admin
+   - `HR001` / `hr123` - HR Manager
+   - `MGR001` / `manager123` - Manager
+
+### Password Management Page (`/password-management`)
+- **Access**: Admin and HR Managers only
+- **Features**:
+  - View all employees with their access status
+  - Reset employee passwords (pattern-based default)
+  - Enable/Disable employee access (except Admin accounts)
+  - Search by Employee ID, name, or email
+- **Stats Cards**: Total Employees, With Access, Disabled, No Access
+
+### Post-Onboarding Success Popup
+- Shows employee details (name, ID, department, etc.)
+- Displays login credentials (Employee ID + generated password)
+- Shows reporting manager information
+- Copy buttons for credentials
+- Mock email notification (simulated)
+
+### API Endpoints
+- `POST /api/auth/login` - Updated to accept `employee_id` or `email`
+- `POST /api/auth/admin/reset-employee-password` - Reset password (Admin/HR only)
+- `POST /api/auth/admin/toggle-employee-access` - Enable/Disable access (Admin/HR only)
+
+### Testing Status
+- Backend: 100% (10/10 tests passed)
+- Frontend: 100% (All UI verifications passed)
+- Test report: `/app/test_reports/iteration_60.json`
+
+### Mock/Simulated Features
+- **Email Notifications**: Console.log only, no actual emails sent
