@@ -453,9 +453,10 @@ A comprehensive travel reimbursement feature for employees:
 - [ ] Rich drill-down views for Admin Dashboard
 
 ### P3 - Low Priority / Tech Debt
-- [ ] Refactor `server.py` into separate route files
+- [ ] Refactor `server.py` into separate route files (ongoing - partial refactor done)
 - [ ] Fix incomplete columns in Leads list view
 - [ ] Real SMTP integration for emails
+- [ ] Refactor HROnboarding.js into smaller step-specific sub-components
 
 ### Future
 - [ ] Finance Module & Project P&L Dashboards
