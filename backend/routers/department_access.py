@@ -1,6 +1,7 @@
 """
 Department Access Management Router
 Controls department-based page access with multi-department support and exceptions
+Now supports configurable departments from database and employee special permissions
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -16,9 +17,10 @@ from .models import User
 router = APIRouter(prefix="/department-access", tags=["Department Access"])
 
 
-# ============== Department Definitions ==============
+# ============== Default Department Definitions ==============
+# Used as fallback if no departments configured in database
 
-DEPARTMENTS = {
+DEFAULT_DEPARTMENTS = {
     "Sales": {
         "id": "sales",
         "name": "Sales",
@@ -73,6 +75,17 @@ DEPARTMENTS = {
         "color": "#EF4444"
     }
 }
+
+
+async def get_departments_config():
+    """Get departments from database, fallback to defaults"""
+    db = get_db()
+    dept_configs = await db.department_config.find({"is_active": True}, {"_id": 0}).to_list(100)
+    
+    if dept_configs:
+        # Convert list to dict keyed by name
+        return {d["name"]: d for d in dept_configs}
+    return DEFAULT_DEPARTMENTS
 
 # Pages accessible to all authenticated users (My Workspace)
 UNIVERSAL_PAGES = [
