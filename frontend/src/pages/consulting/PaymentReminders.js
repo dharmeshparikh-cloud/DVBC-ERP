@@ -34,6 +34,18 @@ const PaymentReminders = () => {
   const [reminders, setReminders] = useState([]);
   const [viewMode, setViewMode] = useState('card');
   const [filter, setFilter] = useState('all'); // all, overdue, due_soon, upcoming
+  
+  // Payment recording dialog
+  const [recordPaymentOpen, setRecordPaymentOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({
+    transaction_id: '',
+    received_amount: '',
+    payment_date: format(new Date(), 'yyyy-MM-dd'),
+    payment_mode: 'bank_transfer',
+    notes: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchReminders();
