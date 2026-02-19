@@ -527,10 +527,10 @@ async def cancel_ctc_request(ctc_id: str, current_user: User = Depends(get_curre
 
 @router.get("/stats")
 async def get_ctc_stats(current_user: User = Depends(get_current_user)):
-    """Get CTC approval statistics (Admin only)."""
+    """Get CTC approval statistics (Admin/HR Manager)."""
     db = get_db()
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admin can view CTC stats")
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view CTC stats")
     
     pending_count = await db.ctc_structures.count_documents({"status": "pending"})
     approved_count = await db.ctc_structures.count_documents({"status": "approved"})
