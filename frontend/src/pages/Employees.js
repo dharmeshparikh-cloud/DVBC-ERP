@@ -44,7 +44,6 @@ const Employees = () => {
   const [orgChart, setOrgChart] = useState([]);
 
   // Dialogs
-  const [createDialog, setCreateDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [linkUserDialog, setLinkUserDialog] = useState(false);
