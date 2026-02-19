@@ -515,15 +515,45 @@ const HROnboarding = () => {
                 <p className="text-xs text-muted-foreground">
                   Employee will see {formData.department || '...'} pages after portal access is granted
                 </p>
+                {suggestedDept?.suggested_department && formData.department !== suggestedDept.suggested_department && (
+                  <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md mt-1">
+                    <span className="text-xs text-yellow-700">
+                      Suggested: <strong>{suggestedDept.suggested_department}</strong> ({suggestedDept.reason})
+                    </span>
+                    <button 
+                      type="button"
+                      className="text-xs text-yellow-700 underline"
+                      onClick={() => {
+                        handleInputChange('department', suggestedDept.suggested_department);
+                        const matchingRole = ROLES.find(r => r.department === suggestedDept.suggested_department);
+                        if (matchingRole) handleInputChange('role', matchingRole.value);
+                      }}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
-                <Label>Designation *</Label>
-                <Input
-                  value={formData.designation}
-                  onChange={(e) => handleInputChange('designation', e.target.value)}
-                  placeholder="e.g., Software Engineer"
-                  data-testid="onboard-designation"
-                />
+                <Label>Designation * <span className="text-xs text-blue-600">(Auto-suggests department)</span></Label>
+                <div className="relative">
+                  <Input
+                    value={formData.designation}
+                    onChange={(e) => handleDesignationChange(e.target.value)}
+                    placeholder="e.g., Sales Manager, HR Executive, Consultant"
+                    data-testid="onboard-designation"
+                  />
+                  {deptSuggestionLoading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                </div>
+                {suggestedDept?.suggested_department && !deptSuggestionLoading && (
+                  <p className="text-xs text-green-600">
+                    ✓ Auto-assigned to {suggestedDept.suggested_department} based on designation
+                  </p>
+                )}
               </div>
             </div>
 
