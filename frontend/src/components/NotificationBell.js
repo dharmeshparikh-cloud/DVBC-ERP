@@ -42,6 +42,7 @@ const NotificationBell = () => {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
   const lastCountRef = useRef(0);
+  const navigate = useNavigate();
 
   const fetchUnreadCount = useCallback(async () => {
     try {
