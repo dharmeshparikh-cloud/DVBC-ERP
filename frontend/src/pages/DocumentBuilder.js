@@ -380,21 +380,57 @@ const DocumentBuilder = () => {
 
     setGenerating(true);
     try {
-      // Store generated document locally
-      const newDoc = {
-        id: Date.now(),
-        type: selectedDocType,
+      const token = localStorage.getItem('token');
+      const docData = {
+        document_type: selectedDocType,
         employee_id: selectedEmployee.employee_id,
         employee_name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
-        generated_at: new Date().toISOString(),
-        generated_by: user?.full_name,
         content: previewHtml,
+        custom_values: customValues,
       };
 
-      setGeneratedDocs(prev => [newDoc, ...prev]);
-      toast.success(`${DOCUMENT_TYPES.find(d => d.id === selectedDocType)?.name} generated successfully`);
+      // Save to backend
+      const response = await fetch(`${API}/document-history`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(docData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Add to local state with backend ID
+        const newDoc = {
+          id: result.id,
+          document_type: selectedDocType,
+          employee_id: selectedEmployee.employee_id,
+          employee_name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+          generated_at: new Date().toISOString(),
+          generated_by_name: user?.full_name,
+          content: previewHtml,
+        };
+        setGeneratedDocs(prev => [newDoc, ...prev]);
+        setDocumentHistory(prev => [newDoc, ...prev]);
+        toast.success(`${DOCUMENT_TYPES.find(d => d.id === selectedDocType)?.name} generated and saved to history`);
+      } else {
+        // Fallback to local storage only
+        const newDoc = {
+          id: Date.now(),
+          document_type: selectedDocType,
+          employee_id: selectedEmployee.employee_id,
+          employee_name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+          generated_at: new Date().toISOString(),
+          generated_by_name: user?.full_name,
+          content: previewHtml,
+        };
+        setGeneratedDocs(prev => [newDoc, ...prev]);
+        toast.success(`${DOCUMENT_TYPES.find(d => d.id === selectedDocType)?.name} generated successfully`);
+      }
       setShowPreview(true);
     } catch (error) {
+      console.error('Failed to save document:', error);
       toast.error('Failed to generate document');
     } finally {
       setGenerating(false);
