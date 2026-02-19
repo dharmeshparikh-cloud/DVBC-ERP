@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://hr-admin-control.preview.emergentagent.com",
+      "value": "https://perm-dashboard-2.preview.emergentagent.com",
       "type": "string"
     },
     {
