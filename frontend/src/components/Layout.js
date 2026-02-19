@@ -16,6 +16,7 @@ import {
   Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard
 } from 'lucide-react';
 
+// Legacy role-based access (kept for backward compatibility)
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
 const SALES_ROLES_NAV = ['admin', 'executive', 'account_manager', 'manager'];
 const CONSULTING_ROLES_NAV = [
@@ -33,18 +34,49 @@ const Layout = () => {
   const location = useLocation();
   const role = user?.role;
   const isDark = theme === 'dark';
-
-  // Permission-based visibility (combining role and level permissions)
-  const showHR = HR_ROLES.includes(role) || canManageTeam();
-  const showSales = SALES_ROLES_NAV.includes(role);
-  const showConsulting = CONSULTING_ROLES_NAV.includes(role);
-  const showAdmin = ADMIN_ROLES.includes(role) || isLeader();
+  
+  // Department-based access state
+  const [departmentAccess, setDepartmentAccess] = useState(null);
+  
+  // Fetch department access on mount
+  useEffect(() => {
+    const fetchDepartmentAccess = async () => {
+      try {
+        const API_URL = process.env.REACT_APP_BACKEND_URL;
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/department-access/my-access`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setDepartmentAccess(data);
+        }
+      } catch (error) {
+        console.error('Error fetching department access:', error);
+      }
+    };
+    
+    if (user) {
+      fetchDepartmentAccess();
+    }
+  }, [user]);
+  
+  // Department-based visibility (NEW - Primary method)
+  const userDepartments = departmentAccess?.departments || [];
+  const hasDepartment = (dept) => userDepartments.includes(dept) || userDepartments.includes('Admin') || role === 'admin';
+  
+  // Combined visibility: Department-based OR legacy Role-based (for backward compatibility)
+  const showHR = hasDepartment('HR') || HR_ROLES.includes(role) || canManageTeam();
+  const showSales = hasDepartment('Sales') || SALES_ROLES_NAV.includes(role);
+  const showConsulting = hasDepartment('Consulting') || CONSULTING_ROLES_NAV.includes(role);
+  const showFinance = hasDepartment('Finance');
+  const showAdmin = hasDepartment('Admin') || ADMIN_ROLES.includes(role) || isLeader();
   const isConsultant = role === 'consultant';
   
   // Additional permission checks for specific features
-  const canViewTeamWorkload = canViewTeamData() || HR_ROLES.includes(role);
-  const canViewApprovals = canApproveRequests() || ADMIN_ROLES.includes(role);
-  const canViewHRReports = canViewReports() || HR_ROLES.includes(role);
+  const canViewTeamWorkload = canViewTeamData() || HR_ROLES.includes(role) || hasDepartment('HR');
+  const canViewApprovals = canApproveRequests() || ADMIN_ROLES.includes(role) || hasDepartment('Admin');
+  const canViewHRReports = canViewReports() || HR_ROLES.includes(role) || hasDepartment('HR');
 
   // Mobile state
   const [isMobile, setIsMobile] = useState(false);
