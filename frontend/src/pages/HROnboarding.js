@@ -287,8 +287,8 @@ const HROnboarding = () => {
         departments: formData.departments,  // Multi-department array
         primary_department: formData.primary_department || formData.departments[0],
         designation: formData.designation,
-        level: formData.level || 'executive',  // Employee permission level (mandatory)
-        role: formData.role || 'consultant',   // System role
+        // SIMPLIFIED: No role/level - just is_view_only flag
+        is_view_only: formData.is_view_only || false,
         employment_type: formData.employment_type,
         joining_date: formData.joining_date,
         reporting_manager_id: formData.reporting_manager_id,
@@ -329,10 +329,10 @@ const HROnboarding = () => {
           body: JSON.stringify({
             email: formData.email,
             full_name: `${formData.first_name} ${formData.last_name}`,
-            role: formData.role,
             department: formData.primary_department || formData.departments[0],
-            departments: formData.departments,  // Pass departments array to user
+            departments: formData.departments,
             primary_department: formData.primary_department || formData.departments[0],
+            is_view_only: formData.is_view_only || false,
             password: 'Welcome@123', // Temporary password
             is_active: true
           })
