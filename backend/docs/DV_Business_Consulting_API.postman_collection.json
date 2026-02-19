@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://dept-auth-staging.preview.emergentagent.com",
+      "value": "https://onboard-to-payroll.preview.emergentagent.com",
       "type": "string"
     },
     {

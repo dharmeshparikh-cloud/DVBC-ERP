@@ -1,205 +1,165 @@
 <analysis>**original_problem_statement:**
-The user is building a comprehensive business management ERP.
+The user is building a comprehensive business management ERP. The initial goal was a Sales to Consulting workflow, but priorities shifted to a major architectural refactor of the permission system, followed by significant enhancements to the HR and authentication modules.
 
-The initial goal was to build a Sales to Consulting workflow with payment reminders, transaction recording, and role-based visibility. However, during this session, the user's priority shifted to a fundamental architectural change.
-
-**New User Requirements from this session:**
-1.  **(P0) Refactor Access Control:** Replace the existing Role-Based Access Control (RBAC) with a more intuitive Department-Based Access Control (DBAC).
-    - An employee's primary department should determine which pages they can see.
-    - An employee's  (Executive, Manager, Leader) should control the depth of their permissions (e.g., view own vs. view team).
-2.  **(P0) Multi-Department Access:** Allow Admins and HR to grant an employee access to multiple departments for cross-functional work.
-3.  **(P0) Employee-Level Special Permissions:** Implement a system for granting temporary or exceptional permissions to individual employees, overriding their standard department access. This should cover:
-    - Access to extra departments.
-    - Approval rights in other departments.
-    - A temporary role override.
-4.  **(P1) Configurable Departments:** Move department management from hardcoded values into the Admin Masters UI, allowing Admins/HR to add, edit, and delete departments.
-5.  **(P1) Smart Department Assignment:** During HR onboarding, automatically suggest a department based on the employee's  text (e.g., Sales Manager suggests the Sales department).
-6.  **(Request)** Generate a comprehensive Excel file documenting all application flows, features, permissions, and data linkages.
+**Recent User Requirements:**
+1.  **(P0) Enhance Onboarding Flow:** Based on an Excel file (), make all onboarding fields mandatory and add several new ones.
+2.  **(P0) New Onboarding Workflow:** After an HR/Admin confirms a new employee's details in a final pop-up, the app should auto-redirect to a Payroll Builder / Design CTC page. After CTC approval, it should prompt the user to optionally go to a Document Builder page.
+3.  **(P0) CSV Bulk Upload:** Add a Quick Import step to the beginning of the onboarding process to allow bulk employee creation via CSV upload.
+4.  **(P0) Document Builder:** Create a new page where HR can generate employment letters for onboarded employees using pre-built templates.
+5.  **(P1) Admin Approval for Edits:** Employee records, once created, should only be modifiable with an admin's approval.
+6.  **(P1) Downloadable Documents:** Allow uploaded documents in the onboarding process to be downloaded.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application has undergone a major architectural refactor, moving from Role-Based Access Control (RBAC) to a more flexible Department-Based Access Control (DBAC).
-
-- **New DBAC System:** An employee's access is now primarily determined by their assigned (s), not their . Roles are being deprecated.
-- **Multi-Department & Special Permissions:** A new UI () allows Admins and HR Managers to assign employees to multiple departments and grant granular, employee-level Special Permissions for temporary or cross-functional roles.
-- **Configurable Departments:** The backend now supports configurable departments stored in a  collection. A new UI in Admin Masters allows for CRUD operations on these departments.
-- **HR Onboarding:** The employee onboarding form has been updated to be department-centric and includes a feature to auto-suggest a department based on the entered job designation.
-- **Documentation:** A comprehensive Excel file () documenting the system's flows and data models was created.
+The application features a simplified permission model (based on Department and Reporting Hierarchy), a functional sales flow, and a robust authentication system allowing login via Employee ID. The core data model has been consolidated, with  as the master record and  as the linked authentication record, consistently using  as the key. The HR onboarding process was recently enhanced with a Quick Import CSV feature, but the implementation of further user requests for this flow is incomplete and has left the component in a broken state.
 
 **Last working item**:
-- **Last item agent was working:** The agent was implementing the final pieces of the new configurable permissions system. This included:
-    1.  Creating the Departments tab in the  page for UI-based department management.
-    2.  Implementing the backend and frontend logic for the auto-suggestion of a department based on  in the  form.
-- **Status:** IN PROGRESS (The UI was built and tested with screenshots, but end-to-end user flow verification is pending).
-- **Agent Testing Done:** Y (via screenshots and curl commands for specific parts).
-- **Which testing method agent to use?** both. A full regression test is needed after the massive architectural change.
-    - **Backend testing agent:** Verify all new endpoints (, , ) and the updated access logic in .
-    - **Frontend testing agent:** Verify the entire new permissions workflow: creating a user with a department, assigning multi-department access, granting special permissions, and confirming the navigation menu updates correctly based on these settings.
+- **Last item agent was working:** Implementing a major overhaul of the  page. The agent was adding numerous new fields from a user-provided Excel sheet, making all fields mandatory, and trying to restructure the multi-step form logic.
+- **Status:** IN PROGRESS
+- **Agent Testing Done:** N
+- **Which testing method agent to use?** both. The frontend  component needs significant UI/UX testing, and the backend needs to support the new fields and the proposed modification approval workflow.
 - **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-- **Issue 1 (P0): Complete Server.py Refactoring**
-- **Issue 2 (P1): Proforma Invoice History on Wrong Page**
-- **Issue 3 (P2): Multi-select Not Working in Admin Masters**
+- **Issue 1 (P0):  component is broken and incomplete.**
+- **Issue 2 (P1): Complete  Refactoring.**
 
 **Issues Detail:**
-- **Issue 1: Complete  Refactoring**
-    - **Attempted fixes:** New routers (, ) were created, but  still contains significant logic for core modules like sales and projects.
-    - **Next debug checklist:** Identify the next logical block of endpoints (e.g., leads, SOWs, agreements), create a new router file in , move the logic, and update  to use the new router.
-    - **Why fix this issue and what will be achieved with the fix?** To improve backend maintainability, scalability, and developer velocity. This is a recurring source of technical debt.
+- **Issue 1:  component is broken and incomplete.**
+    - **Attempted fixes:** The agent added a new Quick Import step (Step 0), which required re-numbering all subsequent steps. This led to errors from duplicated code blocks and incorrect  statements in the  and  functions. The agent was attempting to fix these sequentially but was getting stuck due to the file's complexity. The implementation of new fields from the Excel file and the new post-onboarding workflow has not been completed.
+    - **Next debug checklist:**
+        1.  Gain a clear understanding of the file by viewing  in its entirety.
+        2.  Systematically add all new fields from  to the  state object.
+        3.  Implement the department-based probation period logic (3 months for non-consulting, 6 months for consulting) in a  hook.
+        4.  Thoroughly refactor the  and  functions to correct the step numbering (now 0-6) and add the new mandatory fields to their respective steps and validation checks.
+        5.  Implement the post-onboarding confirmation pop-up.
+    - **Why fix this issue and what will be achieved with the fix?** This is a critical user request that will complete the core HR onboarding module according to the new, more detailed specifications.
+    - **Status:** IN PROGRESS
+    - **Is recurring issue?** N
+    - **Should Test frontend/backend/both after fix?** both
+- **Issue 2: Complete  Refactoring**
+    - **Attempted fixes:** Some logic has been moved to routers, but the file remains monolithic and contains legacy / checks.
+    - **Next debug checklist:** Use  to find and systematically purge all remaining legacy permission checks. Identify the next logical group of endpoints (e.g., projects, finance) and migrate them to a new router file in .
+    - **Why fix this issue and what will be achieved with the fix?** To improve backend maintainability, reduce technical debt, and prevent conflicts with the new permission system.
     - **Status:** IN PROGRESS
     - **Is recurring issue?** Y
     - **Should Test frontend/backend/both after fix?** backend
-- **Issue 2: Proforma Invoice History on Wrong Page**
-    - **Attempted fixes:** None in this session. The previous agent implemented this feature on the wrong file ().
-    - **Next debug checklist:** Re-implement the Proforma Invoice History feature on the correct file: .
-    - **Why fix this issue and what will be achieved with the fix?** To fulfill the user's original P1 requirement for enhancing proforma invoice management.
-    - **Status:** NOT STARTED
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** frontend
-- **Issue 3: Multi-select Not Working in Admin Masters**
-    - **Attempted fixes:** None. This issue was not addressed.
-    - **Next debug checklist:** Inspect the frontend components and backend endpoints for Role, Tenure Type, etc., in  to diagnose why array values are not being saved.
-    - **Why fix this issue and what will be achieved with the fix?** To restore core admin functionality.
-    - **Status:** NOT STARTED
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** both
 
 **In progress Task List**:
-- **Task 1: Finalize and Verify New DBAC System (P0)**
-    - **Where to resume:** The core components are built, but the system needs thorough testing and user verification. The old role-based logic still exists in some places and needs to be fully purged.
-    - **Next Steps:**
-        1.  Conduct a full regression test using the testing agent to ensure the new DBAC system hasn't introduced side effects.
-        2.  Systematically search the codebase for remaining  checks and replace them with the new department/level/permission logic.
-        3.  Present the complete, tested feature to the user for verification.
-    - **What will be achieved with this?** A stable, intuitive, and scalable access control system that meets the user's core requirement.
-    - **Status:** USER VERIFICATION PENDING
+- **Task 1: Implement the full Onboarding-to-CTC-to-Document-Builder flow (P0)**
+    - **Where to resume:** The  file needs to be fixed first. Then, the new pages (, ) and the routing logic between them must be created.
+    - **What will be achieved with this?** A seamless, end-to-end HR workflow from initial data entry to payroll setup and document generation, as specified by the user.
+    - **Status:** BLOCKED
     - **Should Test frontend/backend/both after fix?** both
-- **Task 2: Complete Payment Reminder and Transaction ID Feature (P0)**
-    - **Where to resume:** This task from the previous session was paused. Backend endpoints exist but the email notification logic and DB model updates are missing.
-    - **What will be achieved with this?** A functional payment tracking and reminder system.
-    - **Status:** NOT STARTED (in this session)
-    - **Should Test frontend/backend/both after fix?** both
-- **Task 3: Verify Fix for Old Credentials Invalid Bug (P2)**
-    - **Where to resume:** This task was paused. A backend endpoint was added but never tested or verified by the user.
-    - **What will be achieved with this?** Resolves a critical authentication bug.
-    - **Status:** USER VERIFICATION PENDING
-    - **Should Test frontend/backend/both after fix?** both
+    - **Blocked on something:** Issue 1:  component is broken and incomplete.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - **(P1)** Inbuilt Country Code Selector for mobile number inputs.
-    - **(P2)** Dropdowns for Department & Designation in admin masters (distinct from the new Department Configurator).
+    - **(P0)** Create the Payroll Builder / Design CTC page.
+    - **(P0)** Create the Document Builder page for generating employment letters.
+    - **(P1)** Implement the admin approval workflow for modifying employee records by updating the  endpoint.
+    - **(P1)** Add a download button for documents uploaded during onboarding.
 - **Future Tasks:**
     - Build out the full Finance Module and Project P&L Dashboards.
     - Add low-priority workflows (Recruitment, Asset Management).
-    - Implement a Day 0 guided onboarding tour.
+    - Implement a Day 0 guided onboarding tour for new users.
+    - Implement an inbuilt Country Code Selector for mobile number inputs.
     - Address minor UI bugs (PWA install prompt, applying  to Sales Dashboard).
 
 **Completed work in this session**
-- **Refactored Access Control:** Architected and implemented a new Department-Based Access Control (DBAC) system, replacing the legacy role-based system.
-- **Created Department Access Manager:** Built a new page () for Admins/HR to assign primary and secondary departments to employees.
-- **Implemented Special Permissions:** Added a UI and backend logic for granting granular, employee-level permission overrides for cross-functional work.
-- **Made Departments Configurable:** Created a new UI in Admin Masters () and corresponding backend APIs () to allow dynamic creation and management of departments.
-- **Enhanced HR Onboarding:** Updated  to be department-centric and added an API-driven feature to auto-suggest a department based on the employee's designation.
-- **Generated System Documentation:** Created a detailed Excel file () explaining the application's architecture, data flows, and permission model.
-- **Data Migration:** Wrote and executed a script to migrate existing users and employees to the new department-based data structure.
+- **Data Model Consolidation:** Fixed critical data inconsistencies between the  and  collections. Established  (e.g., 'EMP001') as the reliable, primary key for linking the two, and created a migration script to fix historical data.
+- **Employee ID Authentication:** Successfully implemented and tested a new login system allowing users to authenticate with their Employee ID and a pattern-based default password ().
+- **Password Management Module:** Created a new Password Management page, accessible to Admin/HR, to view all employees, manage system access (enable/disable), and reset passwords.
+- **Employee Dashboard Fixes:** Resolved bugs on the employee dashboard, ensuring stat scorecards display correct data and removing redundant Add Employee and Sync from Users buttons to enforce onboarding as the single entry point.
+- **Refactored User Creation:** Simplified the onboarding backend logic to use a single, reliable  API call for user creation, removing previous error-prone calls.
+- **E2E Flow Verification:** Successfully tested the end-to-end flow of onboarding a new employee and verifying they can log in and perform their job functions (e.g., a sales rep creating a lead).
 
 **Earlier issues found/mentioned but not fixed**
-- PWA Install Notification and Branding.
-- Apply  presentation controls to the Sales Dashboard.
+- PWA Install Notification and Branding not implemented.
+- The  component has not been applied to the Sales Dashboard widgets.
 
 **Known issue recurrence from previous fork**
 - **Issue recurrence in previous fork:** The monolithic  file.
-- **Recurrence count:** 11+
+- **Recurrence count:** 12+
 - **Status:** IN PROGRESS
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Department-Based Access Control (DBAC):** The core architectural shift. Access is now derived from , , and , not .
-- **Dynamic Permission Calculation:** The  endpoint now computes a user's final access rights by combining their base departments, any special permissions, and level.
-- **Configurable Data Models:** Departments are no longer hardcoded but fetched from a MongoDB  collection, making the system more flexible.
-- **Data Migration:** A one-time script was used to update existing records in the database to conform to the new data schema, preventing data inconsistencies.
+- **Employee as Master Record:** The  collection is the source of truth for all HR data. The  collection is for authentication only and is linked via a consistent  field.
+- **Stateful Multi-Step Form:** The  component manages a complex, multi-step user journey with a single large state object and step-by-step validation. Its current complexity is a source of bugs.
+- **Derived Business Logic:** The application calculates certain fields based on others, such as determining an employee's  based on their assigned .
 
 **key DB schema**
-- ****:
-    -  - Array of department s the user has access to.
-    -  - Stores employee-level overrides (extra departments, temp roles, etc.).
-- ****:
-    -  - Mirrored from the user record for consistency.
-    -  - Mirrored from the user record.
-- ** (New Collection)**:
-    -  - Defines a department and the frontend paths it grants access to.
+- ****: 
+- ****: 
+- ** (Proposed)**: 
 
 **All files of reference**
--  (New UI for managing employee access)
--  (Modified to include department configuration)
--  (Heavily modified for new navigation logic)
--  (New backend for access management)
--  (New backend for department CRUD)
--  (Specifically the  endpoint)
--  (Generated documentation)
+-  (The primary file that needs to be fixed and completed)
+- The user-provided artifact  (Contains the requirements for all new fields)
+-  (For implementing the approval workflow and continued refactoring)
+-  (Contains a summary of the data model decisions)
 
 **Areas that need refactoring**:
-- **Purge Legacy Role Logic:** The old -based checks need to be systematically found and removed from the entire codebase to avoid confusion and conflicting logic.
-- **:** Still needs to be broken down into more routers (e.g., , ).
-- **Frontend State Management:** Some components like  are becoming very large. Consider breaking them down into smaller, more manageable sub-components with dedicated state.
+- ****: This component has become excessively large and difficult to manage. After fixing the immediate bugs, it should be broken down into smaller, step-specific sub-components to improve maintainability.
+- ****: This remains a high-priority refactoring target to be broken down into domain-specific routers.
 
 **key api endpoints**
-- **New Endpoints:**
-    - : Full CRUD for managing departments.
-    - : Suggests a department based on designation text.
-    - : Fetches employees for the access manager UI.
-    - : Updates an employee's primary and secondary departments.
-    - : Manages special permissions for an employee.
-- **Modified Endpoints:**
-    - : Rewritten to calculate permissions based on the new DBAC model.
-    - : Updated to include  array.
-    - : Updated to copy  to the user record.
+- **Modified:**
+    - : Accepts  in addition to .
+    - : Slated for modification to include an approval workflow.
+- **New:**
+    - : Resets an employee's password.
+    - : Enables or disables an employee's system access.
+- **Proposed:**
+    - : To handle the CSV import feature.
 
 **Critical Info for New Agent**
-- **ACCESS CONTROL HAS FUNDAMENTALLY CHANGED:** The application no longer uses simple Role-Based Access Control. All navigation and permission logic is now driven by a combination of an employee's **Department**, **Level**, and **Special Permissions**. Do not rely on the  field for access control; it is being deprecated.
-- **Test Thoroughly:** This session involved a massive architectural refactor. Before implementing any new features, a full regression test using the  is critical to ensure stability.
-- **Resume Original Tasks:** The user-directed pivot to access control has left several high-priority tasks from the previous session (Payment Reminders, Proforma Invoice History) incomplete. These should be re-prioritized after verifying the new DBAC system.
+- Your immediate and highest priority task is to **fix the broken  component**. The previous agent got stuck after adding a Quick Import step, which caused cascading errors in the step-by-step logic. You must meticulously refactor the  and  functions to align with the new 7-step structure (0-6) and integrate all the new mandatory fields from the user's Excel file.
+- The user has defined a new, critical E2E workflow that must be built: **Onboarding Confirmation -> Auto-Redirect to CTC Builder -> Optional Redirect to Document Builder**. This requires creating two new pages (, ) and implementing the navigation logic.
+- The data model has been standardized around  (e.g., EMP001). Ensure all new features and fixes adhere to this by using  as the primary identifier for linking employees and users.
 
 **documents and test reports created in this job**
 - 
+- 
+- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (Msg 173):** Asked how to add a new department and questioned the linkage between department, designation, role, and level. (Status: **COMPLETED**)
-2.  **User (Msg 175):** Requested employee-level special permissions for cross-functional work scenarios. (Status: **COMPLETED**)
-3.  **User (Msg 284):** Requested that Department configuration be added to the Admin/HR Masters UI and that departments be auto-assigned based on designation. (Status: **COMPLETED**)
-
-The core of the recent user requests has been implemented. The next step is to test and stabilize this new architecture before moving on.
+1.  **User:** Is the  linked E2E in all flows (Sales, Consulting)?
+2.  **Agent:** Confirmed the linkage is correct via UUIDs, which map back to the employee.
+3.  **User:** Requested verification of the full onboarding E2E flow.
+4.  **Agent:** Onboarded a test employee () and confirmed they could log in and access the Sales module correctly.
+5.  **User:** Requested enhancements: make all onboarding fields mandatory, add admin approval for edits, add document download options, and add a CSV bulk upload feature.
+6.  **Agent:** Began implementing the enhancements.
+7.  **User:** Provided an Excel file () with the full field list and requested a new post-onboarding flow (Confirmation -> CTC Builder -> Document Builder).
+8.  **Agent:** Analyzed the file and confirmed understanding.
+9.  **User:** Clarified logic: probation period (3/6 months), Document Builder is optional, Previous Employment is part of the documents step.
+10. **Agent:** Agreed and began the implementation, which is currently in a broken, in-progress state.
 
 **Project Health Check:**
 - **Broken:**
-    - **Admin Masters Multi-select:** This core admin feature is still non-functional and was not addressed.
+    - : The component is non-functional due to an incomplete and buggy refactor.
 - **Needs Rework:**
-    - **:** Still a major source of technical debt.
-    - **Legacy Role Logic:** Codebase needs to be purged of deprecated -based checks.
-- **User Verification Pending:**
-    - The entire new Department-Based Access Control (DBAC) system, including multi-department access and special permissions.
+    - : Still requires significant refactoring to break it out of its monolithic structure.
+- **Mocked / Not Started:**
+    - The Payroll Builder / Design CTC page.
+    - The Document Builder page.
+    - The admin approval system for employee data changes.
 
 **3rd Party Integrations**
-- No new integrations were added.
+- None added in this session.
 
 **Testing status**
-- **Testing agent used after significant changes:** NO. This is a critical oversight. The agent performed a massive architectural change without running a full regression test via the testing agent.
-- **Troubleshoot agent used after agent stuck in loop:** NO
-- **Test files created:** None
-- **Known regressions:** Unknown, due to lack of regression testing.
+- **Testing agent used after significant changes:** YES (for features completed earlier in the session).
+- **Test files created:** None.
+- **Known regressions:** The entire HR Onboarding page is currently broken.
 
 **Credentials to test flow:**
 - **Admin:**  / 
 - **HR Manager:**  / 
-- **Sales Manager:**  / 
-- **Consultant:**  / 
 
 **What agent forgot to execute**
-- The agent completely deprioritized and did not work on the original  from the previous handoff (Proforma Invoice History, Payment Reminders, Invalid Credentials Bug) due to the user's new, overriding request to refactor the permission system.
-- **Critically, the agent did not call the  after completing the massive DBAC architectural refactor.** This leaves the stability of the application unknown.
-- The agent did not fully remove the old -based logic, leaving behind technical debt and potential for conflicting permission checks.</analysis>
+The agent got overwhelmed by the complexity of modifying the monolithic  file. They did not complete the user's request to add all mandatory fields from the Excel file or build out the new post-onboarding workflow (CTC Builder, Document Builder). The file was left in a broken state.</analysis>
