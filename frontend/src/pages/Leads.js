@@ -14,6 +14,7 @@ import ViewToggle from '../components/ViewToggle';
 
 const Leads = () => {
   const { user } = useContext(AuthContext);
+  const { isManagerOrAbove, canApproveRequests, level } = usePermissions();
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
