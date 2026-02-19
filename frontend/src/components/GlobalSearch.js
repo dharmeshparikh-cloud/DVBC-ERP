@@ -44,6 +44,7 @@ const ERP_PAGES = [
   
   // Admin Module
   { name: 'Permission Manager', path: '/permission-manager', icon: Shield, category: 'Admin', keywords: ['roles', 'access', 'rights'] },
+  { name: 'Employee Permissions', path: '/employee-permissions', icon: User, category: 'Admin', keywords: ['access', 'permissions', 'employee access'] },
   { name: 'Dept Access Manager', path: '/department-access', icon: Building2, category: 'Admin', keywords: ['department', 'permissions'] },
   { name: 'Role Management', path: '/role-management', icon: Shield, category: 'Admin', keywords: ['roles', 'create role'] },
   { name: 'Admin Masters', path: '/admin-masters', icon: Settings, category: 'Admin', keywords: ['settings', 'configuration'] },
