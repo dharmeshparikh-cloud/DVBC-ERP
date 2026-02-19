@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent } from '../components/ui/card';
 import { toast } from 'sonner';
-import { Mail, Lock, LayoutDashboard, Users, Briefcase, BarChart3, Shield, Settings, Eye, EyeOff } from 'lucide-react';
+import { IdCard, Lock, LayoutDashboard, Users, Briefcase, BarChart3, Shield, Eye, EyeOff } from 'lucide-react';
 
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 
@@ -23,7 +23,7 @@ const GoogleIcon = () => (
 );
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -47,9 +47,18 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/auth/login`, { email, password });
+      const response = await axios.post(`${API}/auth/login`, { 
+        employee_id: employeeId.toUpperCase(), 
+        password 
+      });
       login(response.data.access_token, response.data.user);
-      toast.success('Login successful');
+      
+      // Check if first login (password is default)
+      if (response.data.requires_password_change) {
+        toast.info('Please change your password on first login');
+      } else {
+        toast.success('Login successful');
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Authentication failed');
     } finally {
@@ -128,21 +137,21 @@ const Login = () => {
           </div>
 
           <CardContent className="px-8 py-8 space-y-5 bg-white">
-            {/* Email/Password Login */}
+            {/* Employee ID/Password Login */}
             <form onSubmit={handlePasswordLogin} className="space-y-4" data-testid="password-login-form">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-black">Email Address</Label>
+                <Label htmlFor="employeeId" className="text-sm font-medium text-black">Employee ID</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
+                  <IdCard className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
                   <Input
-                    id="email"
-                    data-testid="email-input"
-                    type="email"
-                    placeholder="you@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="employeeId"
+                    data-testid="employee-id-input"
+                    type="text"
+                    placeholder="EMP001"
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(e.target.value.toUpperCase())}
                     required
-                    className="pl-11 h-11 rounded-lg border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-2 focus:ring-black focus:border-black"
+                    className="pl-11 h-11 rounded-lg border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-2 focus:ring-black focus:border-black uppercase"
                   />
                 </div>
               </div>
@@ -153,7 +162,7 @@ const Login = () => {
                   <button
                     type="button"
                     data-testid="forgot-password-link"
-                    onClick={() => toast.info('Please contact your administrator for password reset.')}
+                    onClick={() => toast.info('Please contact your HR administrator for password reset.')}
                     className="text-xs text-black/50 hover:text-black transition-colors"
                   >
                     Forgot password?
@@ -216,7 +225,7 @@ const Login = () => {
 
             <p className="text-center text-[11px] text-black/40 leading-relaxed">
               Google login available for <span className="font-medium text-black/60">@dvconsulting.co.in</span> accounts.
-              <br />Other users please use email & password provided by your admin.
+              <br />First time login? Use Employee ID with default password provided by HR.
             </p>
           </CardContent>
         </Card>
