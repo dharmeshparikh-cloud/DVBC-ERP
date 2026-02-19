@@ -1680,3 +1680,43 @@ user.id → user.employee_id (CON001, PC001, SC001, etc.)
 
 ### No Orphaned References Found
 All `created_by` and assignment fields properly reference existing users with valid employee_id.
+
+---
+## E2E Onboarding & Flow Test - COMPLETE (Feb 19, 2026)
+
+### Test Scenario
+Created new employee EMP011 (E2ETest SalesRep) via HR onboarding and verified complete data flow.
+
+### Results Summary
+| Test | Status | Details |
+|------|--------|---------|
+| Employee Creation | ✅ PASS | EMP011 created with Sales department |
+| Portal Access Grant | ✅ PASS | User created with Welcome@EMP011 password |
+| Employee ID Login | ✅ PASS | Login works, returns correct user data |
+| Department Sidebar | ✅ PASS | Sales menu items visible |
+| Leads Access | ✅ PASS | Can view 16 leads |
+| Lead Creation | ✅ PASS | Created "E2E Test Company Pvt Ltd" |
+| Employee ID Linkage | ✅ PASS | lead.created_by → user.id → user.employee_id = EMP011 |
+| Sales Flow | ✅ PASS | Start Sales Flow → Pricing Plan page works |
+| Password Management | ✅ PASS | EMP011 visible in admin list |
+
+### Data Integrity Verified
+```
+Lead: E2E Test Company Pvt Ltd
+├── created_by: e93f64e5-0239-4430-9281-c4421ef683eb (user.id)
+└── User: e2e.sales.rep@dvbc.com
+    ├── id: e93f64e5-0239-4430-9281-c4421ef683eb
+    ├── employee_id: EMP011 ✅
+    └── Employee Record: E2ETest SalesRep ✅
+```
+
+### Test Credentials
+| Role | Employee ID | Password |
+|------|-------------|----------|
+| New Employee | EMP011 | Welcome@EMP011 |
+| Admin | ADMIN001 | admin123 |
+| HR Manager | HR001 | hr123 |
+
+### Backend Tests Created
+- `/app/backend/tests/test_e2e_onboarding_flow.py`
+- Test report: `/app/test_reports/iteration_62.json`
