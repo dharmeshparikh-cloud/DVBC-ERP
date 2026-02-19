@@ -324,10 +324,10 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
 
 @router.get("/pending-approvals")
 async def get_pending_ctc_approvals(current_user: User = Depends(get_current_user)):
-    """Get all pending CTC structure approvals (Admin only)."""
+    """Get all pending CTC structure approvals (Admin/HR Manager)."""
     db = get_db()
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admin can view pending CTC approvals")
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view pending CTC approvals")
     
     pending = await db.ctc_structures.find(
         {"status": "pending"},
