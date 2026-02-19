@@ -1221,8 +1221,9 @@ async def get_my_clients(current_user: User = Depends(get_current_user)):
 
 @api_router.post("/email-templates", response_model=EmailTemplate)
 async def create_email_template(template_create: EmailTemplateCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    # SIMPLIFIED: Use is_view_only check instead of role
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     template_dict = template_create.model_dump()
     template = EmailTemplate(**template_dict, created_by=current_user.id)
