@@ -1,16 +1,27 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { API } from '../App';
-import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, X, ExternalLink } from 'lucide-react';
 
 const NOTIF_ICONS = {
-  approval_request: { color: 'bg-amber-500', label: 'Approval' },
-  approval_completed: { color: 'bg-emerald-500', label: 'Approved' },
-  approval_rejected: { color: 'bg-red-500', label: 'Rejected' },
-  leave_request: { color: 'bg-blue-500', label: 'Leave' },
-  expense_submitted: { color: 'bg-purple-500', label: 'Expense' },
-  sow_completion: { color: 'bg-teal-500', label: 'SOW' },
-  default: { color: 'bg-zinc-400', label: 'Info' },
+  // Actionable notifications
+  go_live_approval: { color: 'bg-emerald-500', label: 'Go-Live', actionable: true },
+  ctc_approval: { color: 'bg-purple-500', label: 'CTC', actionable: true },
+  permission_change: { color: 'bg-indigo-500', label: 'Permission', actionable: true },
+  approval_request: { color: 'bg-amber-500', label: 'Approval', actionable: true },
+  
+  // Information notifications
+  employee_onboarded: { color: 'bg-blue-500', label: 'New Employee', actionable: false },
+  approval_completed: { color: 'bg-emerald-500', label: 'Approved', actionable: false },
+  approval_rejected: { color: 'bg-red-500', label: 'Rejected', actionable: false },
+  leave_request: { color: 'bg-blue-500', label: 'Leave', actionable: false },
+  expense_submitted: { color: 'bg-purple-500', label: 'Expense', actionable: false },
+  sow_completion: { color: 'bg-teal-500', label: 'SOW', actionable: false },
+  bank_change_approved: { color: 'bg-emerald-500', label: 'Bank', actionable: false },
+  go_live_approved: { color: 'bg-emerald-500', label: 'Go-Live', actionable: false },
+  go_live_rejected: { color: 'bg-red-500', label: 'Rejected', actionable: false },
+  default: { color: 'bg-zinc-400', label: 'Info', actionable: false },
 };
 
 const timeAgo = (dateStr) => {
