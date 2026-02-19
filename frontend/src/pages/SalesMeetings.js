@@ -389,67 +389,110 @@ const SalesMeetings = () => {
         </div>
       )}
 
-      {/* Sales MOM Dialog - Simplified */}
+      {/* Sales MOM Dialog - New Structure */}
       <Dialog open={momDialogOpen} onOpenChange={setMomDialogOpen}>
         <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Sales MOM</DialogTitle>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Meeting Minutes (MOM)</DialogTitle>
             <DialogDescription className="text-zinc-500">
-              {selectedMeeting?.title} - {selectedMeeting?.meeting_date ? format(new Date(selectedMeeting.meeting_date), 'MMM dd, yyyy') : ''}
+              {selectedMeeting?.title} - {selectedMeeting?.scheduled_date || selectedMeeting?.meeting_date || ''}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
+            {/* Summary */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Meeting Title</Label>
-              <Input value={momData.title} onChange={(e) => setMomData({ ...momData, title: e.target.value })}
-                className="rounded-sm border-zinc-200" data-testid="sales-mom-title" />
+              <Label className="text-sm font-medium text-zinc-950">Meeting Summary *</Label>
+              <textarea 
+                value={momData.summary || ''} 
+                onChange={(e) => setMomData({ ...momData, summary: e.target.value })}
+                placeholder="Brief summary of the meeting..."
+                rows={3}
+                className="w-full px-3 py-2 rounded-sm border border-zinc-200 text-sm resize-none"
+                data-testid="mom-summary"
+              />
             </div>
+
+            {/* Discussion Points */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Agenda</Label>
-              {momData.agenda.map((item, idx) => (
+              <Label className="text-sm font-medium text-zinc-950">Key Discussion Points</Label>
+              {(momData.discussion_points || ['']).map((item, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <Input value={item} onChange={(e) => updateArrayItem('agenda', idx, e.target.value, setMomData, momData)}
-                    placeholder={`Agenda ${idx + 1}`} className="rounded-sm border-zinc-200" />
-                  {momData.agenda.length > 1 && <Button onClick={() => removeArrayItem('agenda', idx, setMomData, momData)} variant="ghost" className="px-2"><Trash2 className="w-4 h-4 text-red-500" /></Button>}
+                  <Input 
+                    value={item || ''} 
+                    onChange={(e) => {
+                      const arr = [...(momData.discussion_points || [''])];
+                      arr[idx] = e.target.value;
+                      setMomData({ ...momData, discussion_points: arr });
+                    }}
+                    placeholder={`Point ${idx + 1}`} 
+                    className="rounded-sm border-zinc-200" 
+                  />
+                  {(momData.discussion_points || []).length > 1 && (
+                    <Button 
+                      onClick={() => setMomData({ ...momData, discussion_points: momData.discussion_points.filter((_, i) => i !== idx) })} 
+                      variant="ghost" 
+                      className="px-2"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  )}
                 </div>
               ))}
-              <Button onClick={() => addArrayItem('agenda', setMomData, momData)} variant="outline" size="sm" className="rounded-sm">
-                <Plus className="w-4 h-4 mr-1" /> Add Agenda
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Discussion Points</Label>
-              {momData.discussion_points.map((item, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <Input value={item} onChange={(e) => updateArrayItem('discussion_points', idx, e.target.value, setMomData, momData)}
-                    placeholder={`Point ${idx + 1}`} className="rounded-sm border-zinc-200" />
-                  {momData.discussion_points.length > 1 && <Button onClick={() => removeArrayItem('discussion_points', idx, setMomData, momData)} variant="ghost" className="px-2"><Trash2 className="w-4 h-4 text-red-500" /></Button>}
-                </div>
-              ))}
-              <Button onClick={() => addArrayItem('discussion_points', setMomData, momData)} variant="outline" size="sm" className="rounded-sm">
+              <Button 
+                onClick={() => setMomData({ ...momData, discussion_points: [...(momData.discussion_points || []), ''] })} 
+                variant="outline" 
+                size="sm" 
+                className="rounded-sm"
+              >
                 <Plus className="w-4 h-4 mr-1" /> Add Point
               </Button>
             </div>
+
+            {/* Client Feedback */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Decisions Made</Label>
-              {momData.decisions_made.map((item, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <Input value={item} onChange={(e) => updateArrayItem('decisions_made', idx, e.target.value, setMomData, momData)}
-                    placeholder={`Decision ${idx + 1}`} className="rounded-sm border-zinc-200" />
-                  {momData.decisions_made.length > 1 && <Button onClick={() => removeArrayItem('decisions_made', idx, setMomData, momData)} variant="ghost" className="px-2"><Trash2 className="w-4 h-4 text-red-500" /></Button>}
-                </div>
-              ))}
-              <Button onClick={() => addArrayItem('decisions_made', setMomData, momData)} variant="outline" size="sm" className="rounded-sm">
-                <Plus className="w-4 h-4 mr-1" /> Add Decision
-              </Button>
+              <Label className="text-sm font-medium text-zinc-950">Client Feedback</Label>
+              <Input 
+                value={momData.client_feedback || ''} 
+                onChange={(e) => setMomData({ ...momData, client_feedback: e.target.value })}
+                placeholder="What did the client say?"
+                className="rounded-sm border-zinc-200"
+              />
             </div>
+
+            {/* Next Steps */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-zinc-950">Next Meeting Date</Label>
-              <Input type="datetime-local" value={momData.next_meeting_date}
-                onChange={(e) => setMomData({ ...momData, next_meeting_date: e.target.value })} className="rounded-sm border-zinc-200 w-64" />
+              <Label className="text-sm font-medium text-zinc-950">Next Steps</Label>
+              <Input 
+                value={momData.next_steps || ''} 
+                onChange={(e) => setMomData({ ...momData, next_steps: e.target.value })}
+                placeholder="What's the next action?"
+                className="rounded-sm border-zinc-200"
+              />
             </div>
+
+            {/* Lead Temperature */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Update Lead Temperature</Label>
+              <select 
+                value={momData.lead_temperature_update || ''} 
+                onChange={(e) => setMomData({ ...momData, lead_temperature_update: e.target.value })}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
+              >
+                <option value="">No change</option>
+                <option value="cold">Cold - Low interest</option>
+                <option value="warm">Warm - Interested</option>
+                <option value="hot">Hot - Ready to proceed</option>
+              </select>
+            </div>
+
             <div className="flex justify-end pt-4 border-t border-zinc-200">
-              <Button onClick={handleSaveMOM} data-testid="save-sales-mom" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">Save MOM</Button>
+              <Button 
+                onClick={handleSaveMOM} 
+                data-testid="save-sales-mom" 
+                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+              >
+                Save MOM & Complete Meeting
+              </Button>
             </div>
           </div>
         </DialogContent>
