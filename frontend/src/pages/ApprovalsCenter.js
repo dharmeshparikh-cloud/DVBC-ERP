@@ -67,6 +67,7 @@ const ApprovalsCenter = () => {
       if (isAdmin) {
         requests.push(axios.get(`${API}/ctc/pending-approvals`).catch(() => ({ data: [] })));
         requests.push(axios.get(`${API}/admin/bank-change-requests`).catch(() => ({ data: [] })));
+        requests.push(axios.get(`${API}/go-live/pending`).catch(() => ({ data: [] })));
       }
       
       // Fetch bank approvals for HR
@@ -82,6 +83,7 @@ const ApprovalsCenter = () => {
       if (isAdmin) {
         setCtcApprovals(results[2]?.data || []);
         setBankApprovals(results[3]?.data || []);
+        setGoLiveApprovals(results[4]?.data || []);
       } else if (isHR) {
         setBankApprovals(results[2]?.data || []);
       }
