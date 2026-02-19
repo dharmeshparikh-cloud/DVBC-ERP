@@ -484,6 +484,236 @@ const AdminMasters = () => {
           </TabsTrigger>
         </TabsList>
 
+        {/* DEPARTMENTS TAB */}
+        <TabsContent value="departments" className="space-y-4">
+          <Card className="border-zinc-200 shadow-none rounded-sm">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-100 pb-4">
+              <div>
+                <CardTitle className="text-sm font-medium uppercase tracking-wide text-zinc-950">
+                  Departments & Page Access
+                </CardTitle>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Configure departments and which pages each department can access
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => setShowNewDept(!showNewDept)}
+                className="bg-zinc-950 text-white"
+                data-testid="add-dept-btn"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Department
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {/* New Department Form */}
+              {showNewDept && (
+                <div className="p-4 bg-blue-50 rounded-lg mb-4 space-y-4" data-testid="new-dept-form">
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Name *</Label>
+                      <Input
+                        value={newDept.name}
+                        onChange={(e) => setNewDept({...newDept, name: e.target.value})}
+                        placeholder="e.g., Marketing"
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Code *</Label>
+                      <Input
+                        value={newDept.code}
+                        onChange={(e) => setNewDept({...newDept, code: e.target.value.toUpperCase()})}
+                        placeholder="e.g., MKT"
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Icon</Label>
+                      <select
+                        value={newDept.icon}
+                        onChange={(e) => setNewDept({...newDept, icon: e.target.value})}
+                        className="h-9 w-full border rounded-md px-2 text-sm"
+                      >
+                        {Object.keys(DEPT_ICONS).map(icon => (
+                          <option key={icon} value={icon}>{icon}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Color</Label>
+                      <div className="flex gap-1">
+                        {DEPT_COLORS.map(c => (
+                          <button
+                            key={c.value}
+                            type="button"
+                            onClick={() => setNewDept({...newDept, color: c.value})}
+                            className={`w-6 h-6 rounded-full border-2 ${newDept.color === c.value ? 'border-zinc-900' : 'border-transparent'}`}
+                            style={{ backgroundColor: c.value }}
+                            title={c.name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Description</Label>
+                    <Input
+                      value={newDept.description}
+                      onChange={(e) => setNewDept({...newDept, description: e.target.value})}
+                      placeholder="Brief description of this department"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Pages (comma-separated routes)</Label>
+                    <Input
+                      value={newDept.pages}
+                      onChange={(e) => setNewDept({...newDept, pages: e.target.value})}
+                      placeholder="e.g., /campaigns, /analytics, /content"
+                      className="h-9"
+                    />
+                    <p className="text-xs text-zinc-400">Use * for full access (Admin only)</p>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setShowNewDept(false)}>Cancel</Button>
+                    <Button size="sm" onClick={handleCreateDept}>Create Department</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Departments List */}
+              <div className="space-y-2">
+                {departments.length === 0 ? (
+                  <p className="text-center text-zinc-500 py-8">No departments configured. Add one above.</p>
+                ) : (
+                  departments.map((dept) => {
+                    const IconComponent = DEPT_ICONS[dept.icon] || Building2;
+                    return editingDept?.id === dept.id ? (
+                      <div key={dept.id} className="p-4 border rounded-lg bg-yellow-50 space-y-3">
+                        <div className="grid grid-cols-4 gap-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Name</Label>
+                            <Input
+                              value={editingDept.name}
+                              onChange={(e) => setEditingDept({...editingDept, name: e.target.value})}
+                              className="h-9"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Code</Label>
+                            <Input
+                              value={editingDept.code}
+                              onChange={(e) => setEditingDept({...editingDept, code: e.target.value})}
+                              className="h-9"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Icon</Label>
+                            <select
+                              value={editingDept.icon}
+                              onChange={(e) => setEditingDept({...editingDept, icon: e.target.value})}
+                              className="h-9 w-full border rounded-md px-2 text-sm"
+                            >
+                              {Object.keys(DEPT_ICONS).map(icon => (
+                                <option key={icon} value={icon}>{icon}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Color</Label>
+                            <div className="flex gap-1">
+                              {DEPT_COLORS.map(c => (
+                                <button
+                                  key={c.value}
+                                  type="button"
+                                  onClick={() => setEditingDept({...editingDept, color: c.value})}
+                                  className={`w-6 h-6 rounded-full border-2 ${editingDept.color === c.value ? 'border-zinc-900' : 'border-transparent'}`}
+                                  style={{ backgroundColor: c.value }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Pages (comma-separated)</Label>
+                          <Input
+                            value={Array.isArray(editingDept.pages) ? editingDept.pages.join(', ') : editingDept.pages}
+                            onChange={(e) => setEditingDept({...editingDept, pages: e.target.value})}
+                            className="h-9"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setEditingDept(null)}>Cancel</Button>
+                          <Button size="sm" onClick={() => handleUpdateDept(dept.id, editingDept)}>Save</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        key={dept.id} 
+                        className={`p-4 border rounded-lg flex items-center justify-between ${!dept.is_active ? 'opacity-50 bg-zinc-50' : ''}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div 
+                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: dept.color || '#6B7280' }}
+                          >
+                            <IconComponent className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{dept.name}</span>
+                              <Badge variant="outline" className="text-xs">{dept.code}</Badge>
+                              {!dept.is_active && <Badge variant="destructive" className="text-xs">Inactive</Badge>}
+                            </div>
+                            <p className="text-xs text-zinc-500">{dept.description || 'No description'}</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {Array.isArray(dept.pages) && dept.pages.slice(0, 5).map((page, i) => (
+                                <Badge key={i} variant="secondary" className="text-xs font-mono">{page}</Badge>
+                              ))}
+                              {Array.isArray(dept.pages) && dept.pages.length > 5 && (
+                                <Badge variant="secondary" className="text-xs">+{dept.pages.length - 5} more</Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => setEditingDept({
+                              id: dept.id,
+                              name: dept.name,
+                              code: dept.code,
+                              description: dept.description,
+                              pages: Array.isArray(dept.pages) ? dept.pages.join(', ') : dept.pages,
+                              icon: dept.icon,
+                              color: dept.color
+                            })}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          {dept.is_active && (
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteDept(dept.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* TENURE TYPES TAB */}
         <TabsContent value="tenure-types" className="space-y-4">
           <Card className="border-zinc-200 shadow-none rounded-sm">
