@@ -195,6 +195,10 @@ const Layout = () => {
   
   // Filter HR items based on permissions
   const filteredHrItems = hrItems.filter(item => {
+    // Password Management only for Admin or HR Managers
+    if (item.requiresHRorAdmin) {
+      return role === 'admin' || role === 'hr_manager' || HR_ROLES.includes(role);
+    }
     // Always show basic HR items for HR roles
     if (HR_ROLES.includes(role)) return true;
     // For non-HR roles, check level permissions
