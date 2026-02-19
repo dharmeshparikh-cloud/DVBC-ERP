@@ -159,7 +159,7 @@ const ApprovalsCenter = () => {
   }
 
   // Calculate total pending for current user
-  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length;
+  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length;
 
   // CTC Action handlers
   const handleCtcAction = async (ctcId, action) => {
