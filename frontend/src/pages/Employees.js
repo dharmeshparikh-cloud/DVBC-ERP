@@ -527,7 +527,7 @@ const Employees = () => {
                               <Button onClick={() => openViewDialog(emp)} variant="ghost" size="sm" className="h-8 w-8 p-0">
                                 <Eye className="w-4 h-4 text-zinc-500" />
                               </Button>
-                              <Button onClick={() => openEditDialog(emp)} variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Button onClick={() => openEditDialog(emp)} variant="ghost" size="sm" className="h-8 w-8 p-0" data-testid={`edit-emp-${emp.employee_id}`}>
                                 <Edit2 className="w-4 h-4 text-zinc-500" />
                               </Button>
                               {isAdmin && (
