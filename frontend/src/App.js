@@ -200,6 +200,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="employees" element={<Employees />} />
         <Route path="onboarding" element={<HROnboarding />} />
         <Route path="password-management" element={<PasswordManagement />} />
+        <Route path="go-live" element={<GoLiveDashboard />} />
         <Route path="org-chart" element={<OrgChart />} />
         <Route path="leave-management" element={<LeaveManagement />} />
         <Route path="attendance" element={<Attendance />} />
