@@ -5804,6 +5804,13 @@ async def get_user_notifications(
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     
+    # Ensure is_read field is always present (for legacy notifications)
+    for notif in notifications:
+        if "is_read" not in notif:
+            notif["is_read"] = False
+        if "status" not in notif:
+            notif["status"] = "pending"
+    
     return notifications
 
 @api_router.patch("/notifications/{notification_id}/read")
