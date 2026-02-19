@@ -3,10 +3,52 @@
 ## Original Problem Statement
 Build a business management application for a consulting firm with complete HR, Sales, and Consulting workflows, including:
 - Dedicated portals for Sales and HR teams
-- Role-based access control with granular permissions
+- **Department-based access control** (NEW: Department determines page access, not role)
+- Multi-department support for cross-functional employees
 - End-to-end sales flow: Lead → Meetings → MOM → Hot → Pricing Plan → SOW → Proforma → Agreement → Kickoff → Project
 - HR module with employee onboarding, attendance, leave, payroll management
 - Consulting team workload visibility for HR (operational data only)
+
+## Access Control Architecture (NEW - Feb 2025)
+
+### Department-Based Access
+**Primary Change**: Page access is now determined by `department` field, not `role`.
+
+| Department | Pages/Modules Accessible |
+|------------|--------------------------|
+| **Sales** | Leads, Meetings, Pricing, SOW, Quotations, Proforma, Agreements, Kickoff |
+| **HR** | Employees, Attendance, Leaves, Payroll, CTC, Onboarding, Staffing |
+| **Consulting** | Projects, Tasks, Timesheets, SOW Execution, Payments |
+| **Finance** | Payments, Expenses, Financial Reports |
+| **Admin** | Full access to all pages (*) |
+
+### Multi-Department Support
+- Employees can have **multiple departments** for cross-functional roles
+- One **primary department** (determines default view)
+- Admin/HR can grant **additional department access**
+- Custom page exceptions (grant/restrict specific pages)
+
+### Employee Data Fields
+```javascript
+{
+  department: "Sales",           // Legacy - kept for compatibility
+  departments: ["Sales", "HR"],  // NEW: Array for multi-department
+  primary_department: "Sales",   // NEW: Primary department
+  level: "manager",              // Permission depth (executive/manager/leader)
+  role: "account_manager",       // Job title (secondary to department)
+  custom_page_access: [],        // Additional pages granted
+  restricted_pages: []           // Pages explicitly blocked
+}
+```
+
+### Department Access Manager UI
+- Location: `/department-access` (Admin) and `/hr/department-access` (HR Manager)
+- Features:
+  - View employees by department
+  - Grant/remove department access
+  - Set primary department
+  - Bulk edit department access
+  - Stats: employees per department, multi-department count
 
 ## Core Modules
 
