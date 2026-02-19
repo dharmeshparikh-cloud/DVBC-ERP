@@ -300,15 +300,17 @@ class TestSalesDepartmentPages:
         assert response.status_code == 200, f"Failed: {response.status_code} - {response.text}"
         print(f"PASSED: EMP011 can access agreements endpoint")
     
-    def test_emp011_can_access_sow(self, emp011_token):
-        """EMP011 can access SOW endpoint"""
+    def test_emp011_can_access_sow_categories(self, emp011_token):
+        """EMP011 can access SOW categories endpoint"""
         response = requests.get(
-            f"{BASE_URL}/api/sow",
+            f"{BASE_URL}/api/sow-categories",
             headers={"Authorization": f"Bearer {emp011_token}"}
         )
         
         assert response.status_code == 200, f"Failed: {response.status_code} - {response.text}"
-        print(f"PASSED: EMP011 can access SOW endpoint")
+        categories = response.json()
+        assert isinstance(categories, list)
+        print(f"PASSED: EMP011 can access SOW categories ({len(categories)} categories)")
 
 
 if __name__ == "__main__":
