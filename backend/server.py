@@ -10763,11 +10763,11 @@ async def verify_bank_details(
     employee_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Admin verifies employee bank details."""
+    """HR or Admin verifies employee bank details."""
     global db
     
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only Admin can verify bank details")
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only HR Manager or Admin can verify bank details")
     
     result = await db.employees.update_one(
         {"$or": [{"employee_id": employee_id}, {"id": employee_id}]},
