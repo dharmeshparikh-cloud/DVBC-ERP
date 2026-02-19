@@ -449,8 +449,15 @@ const HROnboarding = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Department *</Label>
-                <Select value={formData.department} onValueChange={(v) => handleInputChange('department', v)}>
+                <Label>Department * <span className="text-xs text-blue-600">(Determines page access)</span></Label>
+                <Select value={formData.department} onValueChange={(v) => {
+                  handleInputChange('department', v);
+                  // Auto-select a matching role
+                  const matchingRole = ROLES.find(r => r.department === v);
+                  if (matchingRole) {
+                    handleInputChange('role', matchingRole.value);
+                  }
+                }}>
                   <SelectTrigger data-testid="onboard-department">
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
@@ -460,6 +467,9 @@ const HROnboarding = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Employee will see {formData.department || '...'} pages after portal access is granted
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Designation *</Label>
@@ -474,13 +484,13 @@ const HROnboarding = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Role *</Label>
+                <Label>Role * <span className="text-xs text-muted-foreground">(Job title)</span></Label>
                 <Select value={formData.role} onValueChange={(v) => handleInputChange('role', v)}>
                   <SelectTrigger data-testid="onboard-role">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROLES.map(role => (
+                    {ROLES.filter(role => !formData.department || role.department === formData.department || role.department === 'Admin').map(role => (
                       <SelectItem key={role.value} value={role.value}>{role.label}</SelectItem>
                     ))}
                   </SelectContent>
