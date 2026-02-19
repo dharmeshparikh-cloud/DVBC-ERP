@@ -389,44 +389,27 @@ const HROnboarding = () => {
       });
 
       if (response.ok) {
-        const employee = await response.json();
+        const result = await response.json();
+        const employee = result.employee;
         
         // Get reporting manager details
         const reportingManager = managers.find(m => m.id === formData.reporting_manager_id);
         
-        // Create user account for the employee with pattern-based password
-        const userResponse = await fetch(`${API}/users`, {
+        // Grant portal access using the consolidated endpoint
+        // This creates the user account and links it to the employee
+        const accessResponse = await fetch(`${API}/employees/${employee.id}/grant-access`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            email: formData.email,
-            full_name: `${formData.first_name} ${formData.last_name}`,
-            department: formData.primary_department || formData.departments[0],
-            departments: formData.departments,
-            primary_department: formData.primary_department || formData.departments[0],
-            is_view_only: formData.is_view_only || false,
-            employee_id: formData.employee_id, // Store employee_id in user for login
-            password: generatedPassword,
-            requires_password_change: true, // Flag for first login
-            is_active: true
+            password: generatedPassword  // Welcome@EMP001
           })
         });
 
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          
-          // Link user to employee
-          await fetch(`${API}/employees/${employee.id}/link-user`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ user_id: userData.id })
-          });
+        if (accessResponse.ok) {
+          const accessData = await accessResponse.json();
           
           // Show success popup with all details
           setOnboardingSuccess({
@@ -439,7 +422,7 @@ const HROnboarding = () => {
               joiningDate: formData.joining_date,
             },
             credentials: {
-              loginId: formData.employee_id,
+              loginId: accessData.login_id || formData.employee_id,
               password: generatedPassword,
             },
             reportingManager: reportingManager ? {
@@ -455,7 +438,9 @@ const HROnboarding = () => {
           console.log('📧 Mock Email Sent to HR/Admin - New employee onboarded notification');
           
         } else {
-          toast.success('Employee record created. User account creation may require admin setup.');
+          // Employee created but access grant failed
+          const error = await accessResponse.json();
+          toast.warning(`Employee created but portal access failed: ${error.detail || 'Unknown error'}`);
           navigate('/employees');
         }
       } else {
