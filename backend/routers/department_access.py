@@ -234,13 +234,31 @@ async def get_my_department_access(current_user: User = Depends(get_current_user
     special_permissions = employee.get("special_permissions", []) if employee else []
     can_approve_for = employee.get("can_approve_for_departments", []) if employee else []
     
+    # NEW: Check if user has reportees (for team management access)
+    reportee_count = await db.employees.count_documents({"reporting_manager_id": current_user.id})
+    has_team = reportee_count > 0
+    
+    # NEW: Check view-only flag
+    is_view_only = employee.get("is_view_only", False) if employee else False
+    if user:
+        is_view_only = user.get("is_view_only", is_view_only)
+    
     return {
+        "user_id": current_user.id,
+        "full_name": current_user.full_name,
         "employee_id": employee.get("id") if employee else None,
         "employee_code": employee.get("employee_id") if employee else None,
         "departments": departments,
         "primary_department": primary_dept,
         "additional_departments": additional_depts,
         "accessible_pages": accessible_pages,
+        # NEW SIMPLIFIED FIELDS
+        "has_reportees": has_team,  # Auto-detected from org chart
+        "reportee_count": reportee_count,
+        "is_view_only": is_view_only,  # View-only flag
+        "can_edit": not is_view_only,  # Convenience field
+        "can_manage_team": has_team,  # Team management access
+        # Legacy fields (kept for compatibility, will be removed later)
         "level": level,
         "role": employee.get("role") if employee else current_user.role,
         "temporary_role": temporary_role,
