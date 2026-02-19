@@ -76,6 +76,10 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
         count = await db.employees.count_documents({})
         data["employee_id"] = f"EMP{str(count + 1).zfill(3)}"
     
+    # Set up departments array - department determines page access
+    primary_department = data.get("department")
+    departments = data.get("departments", [primary_department] if primary_department else [])
+    
     employee = {
         "id": str(uuid.uuid4()),
         "employee_id": data.get("employee_id"),
@@ -83,7 +87,9 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
         "last_name": sanitize_text(data.get("last_name", "")),
         "email": data.get("email"),
         "phone": data.get("phone"),
-        "department": data.get("department"),
+        "department": primary_department,  # Legacy field - kept for compatibility
+        "departments": departments,  # NEW: Array of departments for multi-department access
+        "primary_department": primary_department,  # NEW: Primary department for access
         "designation": data.get("designation"),
         "role": data.get("role", "consultant"),
         "level": data.get("level", "executive"),  # Employee hierarchy level
@@ -100,6 +106,8 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
         "salary": data.get("salary", 0),
         "status": "active",
         "user_id": None,
+        "custom_page_access": [],  # NEW: Custom page exceptions
+        "restricted_pages": [],  # NEW: Restricted pages
         "created_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
