@@ -126,6 +126,7 @@ const HRLayout = () => {
 
   // Team View Section - HR Manager Only (Consulting visibility)
   const teamViewItems = [
+    { name: 'Dept Access Manager', href: '/hr/department-access', icon: Building2 },
     { name: 'Team Workload', href: '/hr/team-workload', icon: Briefcase },
     { name: 'Staffing Requests', href: '/hr/staffing-requests', icon: AlertCircle },
     { name: 'Performance Dashboard', href: '/hr/performance-dashboard', icon: BarChart3 },
