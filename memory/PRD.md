@@ -1963,3 +1963,33 @@ HR Views Employee Checklist → All Items Green? → Submit for Approval
 - Test report: `/app/test_reports/iteration_67.json`
 
 **Go-Live Active Employees:** Only these employees can use attendance check-in and have salary slips generated.
+
+### Session 13 - Simplified Approval Workflow (HR Direct)
+
+**Changes Made:**
+Removed Admin from bank detail and document verification flows. HR now handles these directly with employees.
+
+**New Workflow:**
+| Action | Before | After |
+|--------|--------|-------|
+| Bank Details Verification | Admin only | HR Manager or Admin |
+| Bank Change Approval | HR → Admin → Update | HR → Update (direct) |
+| Document Verification | N/A | HR handles directly |
+| CTC Approval | HR → Admin | HR → Admin (unchanged) |
+| Go-Live Approval | HR → Admin | HR → Admin (unchanged) |
+
+**Backend Changes:**
+1. `/api/bank-verify/{employee_id}` - Now accepts `hr_manager` role (not just admin)
+2. `/api/hr/bank-change-request/{employee_id}/approve` - Directly updates employee bank_details, skips Admin step
+3. Notifications sent to employee (not Admin) on bank approval
+
+**Frontend Changes:**
+1. `GoLiveDashboard.js` - "Verify" button shown for HR Manager (canVerifyBank check)
+2. `ApprovalsCenter.js` - Bank Changes section only shown to HR, removed from Admin view
+3. Admin Approvals Center now shows: CTC Approvals, Go-Live Approvals, Permission Changes
+
+**Testing Results:**
+- Backend: 12/12 tests passed
+- Frontend: 100% UI verification passed
+- Test file: `/app/backend/tests/test_hr_bank_approval_workflow.py`
+- Test report: `/app/test_reports/iteration_68.json`
