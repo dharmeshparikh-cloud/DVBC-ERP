@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -10,14 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { 
   UserPlus, FileText, Upload, CheckCircle, AlertCircle,
   Building2, Mail, Phone, Calendar, Wallet, User,
-  ChevronRight, ChevronLeft, Save, X, Plus, Copy, Key, UserCheck
+  ChevronRight, ChevronLeft, Save, X, Plus, Copy, Key, UserCheck,
+  Download, FileSpreadsheet, Users, Trash2, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ONBOARDING_STEPS = [
+  { id: 'import', title: 'Quick Import', icon: FileSpreadsheet },
   { id: 'personal', title: 'Personal Info', icon: User },
   { id: 'employment', title: 'Employment Details', icon: Building2 },
   { id: 'documents', title: 'Documents', icon: FileText },
