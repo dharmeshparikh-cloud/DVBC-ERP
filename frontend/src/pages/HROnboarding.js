@@ -217,6 +217,227 @@ const HROnboarding = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // CSV Template download
+  const downloadCSVTemplate = () => {
+    const template = `first_name,last_name,email,personal_email,phone,date_of_birth,gender,address,designation,department,employment_type,joining_date
+John,Doe,john.doe@company.com,john.personal@gmail.com,9876543210,1990-01-15,male,"123 Main St, City",Sales Executive,Sales,full_time,2026-02-20
+Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,female,"456 Oak Ave, Town",Consultant,Consulting,full_time,2026-02-20`;
+    
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'employee_onboarding_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('CSV template downloaded');
+  };
+
+  // Parse CSV file
+  const handleCSVUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setCsvFile(file);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      const lines = text.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      
+      const data = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = values[idx]?.replace(/"/g, '').trim() || '';
+        });
+        if (row.first_name && row.email) {
+          data.push(row);
+        }
+      }
+      
+      setCsvData(data);
+      setBulkMode(true);
+      toast.success(`Loaded ${data.length} employees from CSV`);
+    };
+    reader.readAsText(file);
+  };
+
+  // Bulk onboard employees from CSV
+  const handleBulkOnboard = async () => {
+    if (csvData.length === 0) {
+      toast.error('No employee data to process');
+      return;
+    }
+    
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    const results = [];
+    
+    for (const emp of csvData) {
+      try {
+        // Create employee
+        const empResponse = await fetch(`${API}/employees`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            email: emp.email,
+            personal_email: emp.personal_email,
+            phone: emp.phone,
+            date_of_birth: emp.date_of_birth,
+            gender: emp.gender,
+            address: emp.address,
+            designation: emp.designation,
+            department: emp.department,
+            departments: [emp.department],
+            primary_department: emp.department,
+            employment_type: emp.employment_type || 'full_time',
+            joining_date: emp.joining_date,
+            onboarding_status: 'completed'
+          })
+        });
+        
+        if (empResponse.ok) {
+          const empResult = await empResponse.json();
+          const empId = empResult.employee?.id;
+          const empCode = empResult.employee?.employee_id;
+          
+          // Grant portal access
+          const accessResponse = await fetch(`${API}/employees/${empId}/grant-access`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+          });
+          
+          const accessResult = accessResponse.ok ? await accessResponse.json() : null;
+          
+          results.push({
+            name: `${emp.first_name} ${emp.last_name}`,
+            email: emp.email,
+            employee_id: empCode,
+            password: accessResult?.temp_password || `Welcome@${empCode}`,
+            status: 'success'
+          });
+        } else {
+          const error = await empResponse.json();
+          results.push({
+            name: `${emp.first_name} ${emp.last_name}`,
+            email: emp.email,
+            status: 'failed',
+            error: error.detail || 'Creation failed'
+          });
+        }
+      } catch (error) {
+        results.push({
+          name: `${emp.first_name} ${emp.last_name}`,
+          email: emp.email,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
+    
+    setBulkResults(results);
+    setLoading(false);
+    
+    const successCount = results.filter(r => r.status === 'success').length;
+    toast.success(`Bulk onboarding complete: ${successCount}/${csvData.length} successful`);
+  };
+
+  // Download bulk results as CSV
+  const downloadBulkResults = () => {
+    if (bulkResults.length === 0) return;
+    
+    const headers = 'Name,Email,Employee ID,Password,Status,Error\n';
+    const rows = bulkResults.map(r => 
+      `"${r.name}","${r.email}","${r.employee_id || ''}","${r.password || ''}","${r.status}","${r.error || ''}"`
+    ).join('\n');
+    
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `onboarding_results_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Results downloaded');
+  };
+
+  // Download master employee file
+  const downloadMasterFile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API}/employees`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const employees = await response.json();
+        
+        const headers = 'Employee ID,First Name,Last Name,Email,Phone,Department,Designation,Employment Type,Joining Date,Status\n';
+        const rows = employees.map(e => 
+          `"${e.employee_id}","${e.first_name}","${e.last_name}","${e.email}","${e.phone || ''}","${e.department || ''}","${e.designation || ''}","${e.employment_type || ''}","${e.joining_date || ''}","${e.status || 'active'}"`
+        ).join('\n');
+        
+        const blob = new Blob([headers + rows], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `employee_master_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('Master file downloaded');
+      }
+    } catch (error) {
+      toast.error('Failed to download master file');
+    }
+  };
+
+  // Document upload handler with preview
+  const handleDocumentUpload = (docType, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a JPG, PNG, or PDF file');
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setDocumentFiles(prev => ({
+      ...prev,
+      [docType]: { file, name: file.name, url: previewUrl, type: file.type }
+    }));
+    toast.success(`${docType.replace('_', ' ')} uploaded`);
+  };
+
+  // Download uploaded document
+  const downloadDocument = (docType) => {
+    const doc = documentFiles[docType];
+    if (!doc?.url) return;
+    
+    const a = document.createElement('a');
+    a.href = doc.url;
+    a.download = doc.name;
+    a.click();
+  };
+
   // Debounced designation change handler
   const handleDesignationChange = (value) => {
     handleInputChange('designation', value);
