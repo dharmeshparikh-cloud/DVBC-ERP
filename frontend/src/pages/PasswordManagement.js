@@ -42,7 +42,7 @@ const PasswordManagement = () => {
     try {
       const [empRes, usersRes] = await Promise.all([
         axios.get(`${API}/employees`),
-        axios.get(`${API}/users`)
+        axios.get(`${API}/users-with-roles`)  // HR Manager can access this endpoint
       ]);
       
       // Merge employee data with user data
