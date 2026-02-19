@@ -6,22 +6,48 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Textarea } from '../components/ui/textarea';
+import { Badge } from '../components/ui/badge';
 import { 
   Plus, Pencil, Trash2, Settings, Users, Calendar, 
   ChevronDown, ChevronUp, Check, X, Database, Percent,
-  FileText, FolderTree, Layers
+  FileText, FolderTree, Layers, Building2, TrendingUp,
+  Briefcase, DollarSign, Shield
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Department icon mapping
+const DEPT_ICONS = {
+  TrendingUp: TrendingUp,
+  Users: Users,
+  Briefcase: Briefcase,
+  DollarSign: DollarSign,
+  Shield: Shield,
+  Building2: Building2,
+};
+
+// Default colors for departments
+const DEPT_COLORS = [
+  { name: 'Orange', value: '#F97316' },
+  { name: 'Green', value: '#10B981' },
+  { name: 'Purple', value: '#8B5CF6' },
+  { name: 'Blue', value: '#3B82F6' },
+  { name: 'Red', value: '#EF4444' },
+  { name: 'Pink', value: '#EC4899' },
+  { name: 'Yellow', value: '#EAB308' },
+  { name: 'Teal', value: '#14B8A6' },
+];
 
 const AdminMasters = () => {
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('tenure-types');
+  const [activeTab, setActiveTab] = useState('departments');
   
   // Data states
   const [tenureTypes, setTenureTypes] = useState([]);
   const [consultantRoles, setConsultantRoles] = useState([]);
   const [meetingTypes, setMeetingTypes] = useState([]);
+  const [departments, setDepartments] = useState([]);
   
   // SOW Categories and Scopes
   const [sowCategories, setSowCategories] = useState([]);
@@ -33,12 +59,14 @@ const AdminMasters = () => {
   const [editingRole, setEditingRole] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingScope, setEditingScope] = useState(null);
+  const [editingDept, setEditingDept] = useState(null);
   
   // New item forms
   const [showNewTenure, setShowNewTenure] = useState(false);
   const [showNewRole, setShowNewRole] = useState(false);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [showNewScope, setShowNewScope] = useState(false);
+  const [showNewDept, setShowNewDept] = useState(false);
   const [newTenure, setNewTenure] = useState({
     name: '', code: '', allocation_percentage: 0, 
     meetings_per_month: 0, description: ''
@@ -52,6 +80,9 @@ const AdminMasters = () => {
   });
   const [newScope, setNewScope] = useState({
     name: '', description: '', category_id: ''
+  });
+  const [newDept, setNewDept] = useState({
+    name: '', code: '', description: '', pages: '', icon: 'Building2', color: '#6B7280'
   });
 
   useEffect(() => {
