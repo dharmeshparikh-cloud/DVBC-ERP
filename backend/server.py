@@ -10353,35 +10353,56 @@ async def hr_approve_bank_change(
     employee_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """HR approves bank change request - moves to admin approval"""
+    """HR approves bank change request - directly updates employee bank details (no Admin step needed)"""
     if current_user.role not in ["hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Only HR can approve")
     
-    result = await db.bank_change_requests.update_one(
+    # Get the pending request
+    request = await db.bank_change_requests.find_one({
+        "employee_id": employee_id,
+        "status": "pending_hr"
+    })
+    
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Directly update employee bank details (no Admin step)
+    await db.employees.update_one(
+        {"id": employee_id},
+        {"$set": {
+            "bank_details": request["new_bank_details"],
+            "bank_details.proof_verified": True,
+            "bank_details.verified_by": current_user.full_name,
+            "bank_details.verified_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update request status to approved
+    await db.bank_change_requests.update_one(
         {"employee_id": employee_id, "status": "pending_hr"},
         {"$set": {
-            "status": "pending_admin",
+            "status": "approved",
             "hr_approved_by": current_user.email,
             "hr_approved_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    # Notify employee
+    emp = await db.employees.find_one({"id": employee_id}, {"_id": 0, "user_id": 1, "first_name": 1, "last_name": 1})
+    if emp and emp.get("user_id"):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": emp["user_id"],
+            "type": "bank_change_approved",
+            "title": "Bank Details Updated",
+            "message": "Your bank details change request has been approved and updated.",
+            "link": "/my-bank-details",
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
     
-    # Notify admin
-    req = await db.bank_change_requests.find_one({"employee_id": employee_id})
-    await db.notifications.insert_one({
-        "type": "bank_change_admin_review",
-        "message": f"Bank change request pending admin approval: {req.get('employee_name', '')}",
-        "link": "/approvals",
-        "for_roles": ["admin"],
-        "read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    
-    return {"message": "Request approved by HR, pending admin approval"}
+    return {"message": "Bank details updated successfully"}
 
 
 @api_router.post("/hr/bank-change-request/{employee_id}/reject")
