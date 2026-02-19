@@ -373,7 +373,7 @@ const Employees = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase text-zinc-500">Total Employees</p>
-                  <p className="text-2xl font-semibold text-zinc-950">{stats.total_employees}</p>
+                  <p className="text-2xl font-semibold text-zinc-950">{stats.total || stats.active || 0}</p>
                 </div>
                 <Users className="w-8 h-8 text-zinc-300" />
               </div>
