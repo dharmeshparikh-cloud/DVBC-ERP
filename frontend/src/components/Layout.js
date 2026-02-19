@@ -65,18 +65,24 @@ const Layout = () => {
   const userDepartments = departmentAccess?.departments || [];
   const hasDepartment = (dept) => userDepartments.includes(dept) || userDepartments.includes('Admin') || role === 'admin';
   
-  // Combined visibility: Department-based OR legacy Role-based (for backward compatibility)
-  const showHR = hasDepartment('HR') || HR_ROLES.includes(role) || canManageTeam();
+  // NEW SIMPLIFIED PERMISSION FLAGS from API
+  const hasReportees = departmentAccess?.has_reportees || false;
+  const canManageTeamFlag = departmentAccess?.can_manage_team || false;
+  const canEditFlag = departmentAccess?.can_edit !== false; // Default to true if not set
+  const isViewOnly = departmentAccess?.is_view_only || false;
+  
+  // Combined visibility: Department-based OR has team (for approvals)
+  const showHR = hasDepartment('HR') || HR_ROLES.includes(role) || hasReportees;
   const showSales = hasDepartment('Sales') || SALES_ROLES_NAV.includes(role);
   const showConsulting = hasDepartment('Consulting') || CONSULTING_ROLES_NAV.includes(role);
   const showFinance = hasDepartment('Finance');
-  const showAdmin = hasDepartment('Admin') || ADMIN_ROLES.includes(role) || isLeader();
+  const showAdmin = hasDepartment('Admin') || ADMIN_ROLES.includes(role);
   const isConsultant = role === 'consultant';
   
-  // Additional permission checks for specific features
-  const canViewTeamWorkload = canViewTeamData() || HR_ROLES.includes(role) || hasDepartment('HR');
-  const canViewApprovals = canApproveRequests() || ADMIN_ROLES.includes(role) || hasDepartment('Admin');
-  const canViewHRReports = canViewReports() || HR_ROLES.includes(role) || hasDepartment('HR');
+  // Permission checks for specific features - now using has_reportees
+  const canViewTeamWorkload = hasReportees || hasDepartment('HR') || role === 'admin';
+  const canViewApprovals = hasReportees || hasDepartment('Admin') || role === 'admin';
+  const canViewHRReports = hasDepartment('HR') || role === 'admin';
 
   // Mobile state
   const [isMobile, setIsMobile] = useState(false);
