@@ -503,9 +503,21 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
           toast.error('Gender is required');
           return false;
         }
+        if (!formData.date_of_birth) {
+          toast.error('Date of Birth is required');
+          return false;
+        }
+        if (!formData.personal_email?.trim()) {
+          toast.error('Personal Email is required');
+          return false;
+        }
+        if (!formData.address?.trim()) {
+          toast.error('Address is required');
+          return false;
+        }
         return true;
         
-      case 1: // Employment Details - ALL MANDATORY
+      case 2: // Employment Details - ALL MANDATORY
         if (!formData.employee_id?.trim()) {
           toast.error('Employee ID is required');
           return false;
@@ -536,11 +548,11 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
         }
         return true;
         
-      case 2: // Documents
+      case 3: // Documents
         // Documents are optional but recommended
         return true;
         
-      case 3: // Bank Details - Optional but if provided, all required
+      case 4: // Bank Details - Optional but if provided, all required
         if (formData.bank_account_number || formData.bank_ifsc) {
           if (!formData.bank_account_number?.trim()) {
             toast.error('Bank Account Number is required');
