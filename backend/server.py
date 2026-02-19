@@ -1249,8 +1249,8 @@ async def get_email_templates(current_user: User = Depends(get_current_user)):
 
 @api_router.post("/follow-up-reminders", response_model=FollowUpReminder)
 async def create_follow_up_reminder(reminder_create: FollowUpReminderCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     reminder_dict = reminder_create.model_dump()
     reminder = FollowUpReminder(**reminder_dict, created_by=current_user.id)
@@ -1647,8 +1647,8 @@ async def generate_email_for_lead(
 
 @api_router.post("/communication-logs", response_model=CommunicationLog)
 async def create_communication_log(log_create: CommunicationLogCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     log_dict = log_create.model_dump()
     log = CommunicationLog(**log_dict, created_by=current_user.id)
@@ -1678,8 +1678,8 @@ async def get_communication_logs(
 
 @api_router.post("/pricing-plans", response_model=PricingPlan)
 async def create_pricing_plan(plan_create: PricingPlanCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     plan_dict = plan_create.model_dump()
     
@@ -3383,8 +3383,8 @@ async def send_payment_reminder(
 
 @api_router.post("/quotations", response_model=Quotation)
 async def create_quotation(quotation_create: QuotationCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     # Get pricing plan
     plan_data = await db.pricing_plans.find_one({"id": quotation_create.pricing_plan_id}, {"_id": 0})
@@ -3453,8 +3453,8 @@ async def finalize_quotation(quotation_id: str, current_user: User = Depends(get
 
 @api_router.post("/agreements", response_model=Agreement)
 async def create_agreement(agreement_create: AgreementCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     # Generate agreement number
     count = await db.agreements.count_documents({})
@@ -3970,8 +3970,8 @@ async def bulk_upload_leads(
     skip_duplicates: bool = True,
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     created_leads = []
     skipped_duplicates = []
@@ -4031,8 +4031,8 @@ async def create_agreement_template(
     template_create: AgreementTemplateCreate,
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     template_dict = template_create.model_dump()
     
@@ -4066,8 +4066,8 @@ async def create_email_notification_template(
     template_create: EmailNotificationTemplateCreate,
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    if not await can_edit_data_async(current_user):
+        raise HTTPException(status_code=403, detail="You have view-only access")
     
     template_dict = template_create.model_dump()
     
