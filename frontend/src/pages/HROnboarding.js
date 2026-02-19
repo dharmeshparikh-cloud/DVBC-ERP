@@ -247,7 +247,33 @@ const HROnboarding = () => {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // Auto-calculate probation period based on department
+      if (field === 'departments' || field === 'primary_department') {
+        const depts = field === 'departments' ? value : prev.departments;
+        const primaryDept = field === 'primary_department' ? value : prev.primary_department || (depts[0] || '');
+        
+        // 6 months for Consulting, 3 months for others
+        const isConsulting = primaryDept?.toLowerCase().includes('consult');
+        updated.probation_period = isConsulting ? 6 : 3;
+      }
+      
+      // Auto-calculate confirmation date from joining date + probation
+      if (field === 'joining_date' || field === 'probation_period') {
+        const joiningDate = field === 'joining_date' ? value : prev.joining_date;
+        const probation = field === 'probation_period' ? value : prev.probation_period;
+        
+        if (joiningDate && probation) {
+          const confirmDate = new Date(joiningDate);
+          confirmDate.setMonth(confirmDate.getMonth() + parseInt(probation));
+          updated.confirmation_date = confirmDate.toISOString().split('T')[0];
+        }
+      }
+      
+      return updated;
+    });
   };
 
   // CSV Template download
