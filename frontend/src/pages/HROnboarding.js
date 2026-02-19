@@ -1248,7 +1248,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
           </div>
         );
 
-      case 2: // Documents
+      case 3: // Documents with download option
         return (
           <div className="space-y-4">
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
@@ -1257,49 +1257,105 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                 <div>
                   <p className="font-medium text-amber-800 dark:text-amber-300">Document Upload</p>
                   <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                    Document upload is optional at this stage. You can add documents later from the employee profile.
+                    Upload documents now or add them later from the employee profile. Uploaded documents can be downloaded.
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors">
-                <CardContent className="pt-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
-                  <p className="font-medium">ID Proof</p>
-                  <p className="text-xs text-zinc-500 mt-1">Aadhar, PAN, Passport</p>
+              {/* Photo */}
+              <Card className={`border-2 ${documentFiles.photo ? 'border-emerald-500 bg-emerald-50' : 'border-dashed hover:border-emerald-500'} cursor-pointer transition-colors`}>
+                <CardContent className="pt-6 text-center relative">
+                  <input type="file" accept="image/*" onChange={(e) => handleDocumentUpload('photo', e)} className="hidden" id="photo-upload" />
+                  <label htmlFor="photo-upload" className="cursor-pointer">
+                    {documentFiles.photo ? <CheckCircle className="w-8 h-8 mx-auto text-emerald-600 mb-2" /> : <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />}
+                    <p className="font-medium">Photo</p>
+                    <p className="text-xs text-zinc-500 mt-1">{documentFiles.photo ? documentFiles.photo.name : 'Passport size photo'}</p>
+                  </label>
+                  {documentFiles.photo && (
+                    <div className="flex justify-center gap-2 mt-2">
+                      <Button size="sm" variant="outline" onClick={() => downloadDocument('photo')}>
+                        <Download className="w-3 h-3 mr-1" /> Download
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDocumentFiles(p => ({...p, photo: null}))}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors">
-                <CardContent className="pt-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
-                  <p className="font-medium">Resume</p>
-                  <p className="text-xs text-zinc-500 mt-1">PDF format preferred</p>
+              {/* ID Proof */}
+              <Card className={`border-2 ${documentFiles.id_proof ? 'border-emerald-500 bg-emerald-50' : 'border-dashed hover:border-emerald-500'} cursor-pointer transition-colors`}>
+                <CardContent className="pt-6 text-center relative">
+                  <input type="file" accept="image/*,.pdf" onChange={(e) => handleDocumentUpload('id_proof', e)} className="hidden" id="id-upload" />
+                  <label htmlFor="id-upload" className="cursor-pointer">
+                    {documentFiles.id_proof ? <CheckCircle className="w-8 h-8 mx-auto text-emerald-600 mb-2" /> : <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />}
+                    <p className="font-medium">ID Proof</p>
+                    <p className="text-xs text-zinc-500 mt-1">{documentFiles.id_proof ? documentFiles.id_proof.name : 'Aadhar, PAN, Passport'}</p>
+                  </label>
+                  {documentFiles.id_proof && (
+                    <div className="flex justify-center gap-2 mt-2">
+                      <Button size="sm" variant="outline" onClick={() => downloadDocument('id_proof')}>
+                        <Download className="w-3 h-3 mr-1" /> Download
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDocumentFiles(p => ({...p, id_proof: null}))}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors">
-                <CardContent className="pt-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
-                  <p className="font-medium">Offer Letter</p>
-                  <p className="text-xs text-zinc-500 mt-1">Signed copy</p>
+              {/* Education */}
+              <Card className={`border-2 ${documentFiles.education ? 'border-emerald-500 bg-emerald-50' : 'border-dashed hover:border-emerald-500'} cursor-pointer transition-colors`}>
+                <CardContent className="pt-6 text-center relative">
+                  <input type="file" accept="image/*,.pdf" onChange={(e) => handleDocumentUpload('education', e)} className="hidden" id="edu-upload" />
+                  <label htmlFor="edu-upload" className="cursor-pointer">
+                    {documentFiles.education ? <CheckCircle className="w-8 h-8 mx-auto text-emerald-600 mb-2" /> : <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />}
+                    <p className="font-medium">Education Certificate</p>
+                    <p className="text-xs text-zinc-500 mt-1">{documentFiles.education ? documentFiles.education.name : 'Degree/Diploma certificate'}</p>
+                  </label>
+                  {documentFiles.education && (
+                    <div className="flex justify-center gap-2 mt-2">
+                      <Button size="sm" variant="outline" onClick={() => downloadDocument('education')}>
+                        <Download className="w-3 h-3 mr-1" /> Download
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDocumentFiles(p => ({...p, education: null}))}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors">
-                <CardContent className="pt-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
-                  <p className="font-medium">Other Documents</p>
-                  <p className="text-xs text-zinc-500 mt-1">Any additional docs</p>
+              {/* Experience */}
+              <Card className={`border-2 ${documentFiles.experience ? 'border-emerald-500 bg-emerald-50' : 'border-dashed hover:border-emerald-500'} cursor-pointer transition-colors`}>
+                <CardContent className="pt-6 text-center relative">
+                  <input type="file" accept="image/*,.pdf" onChange={(e) => handleDocumentUpload('experience', e)} className="hidden" id="exp-upload" />
+                  <label htmlFor="exp-upload" className="cursor-pointer">
+                    {documentFiles.experience ? <CheckCircle className="w-8 h-8 mx-auto text-emerald-600 mb-2" /> : <Upload className="w-8 h-8 mx-auto text-zinc-400 mb-2" />}
+                    <p className="font-medium">Experience Letter</p>
+                    <p className="text-xs text-zinc-500 mt-1">{documentFiles.experience ? documentFiles.experience.name : 'Previous employer'}</p>
+                  </label>
+                  {documentFiles.experience && (
+                    <div className="flex justify-center gap-2 mt-2">
+                      <Button size="sm" variant="outline" onClick={() => downloadDocument('experience')}>
+                        <Download className="w-3 h-3 mr-1" /> Download
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDocumentFiles(p => ({...p, experience: null}))}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
           </div>
         );
 
-      case 3: // Bank Details
+      case 4: // Bank Details
         return (
           <div className="space-y-4">
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
@@ -1309,7 +1365,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                   <p className="font-medium text-blue-800 dark:text-blue-300">Bank Proof Required</p>
                   <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
                     Bank details can only be saved with a valid proof document (cancelled cheque or bank statement).
-                    Changes after onboarding require admin approval.
+                    <strong> Changes after onboarding require admin approval.</strong>
                   </p>
                 </div>
               </div>
