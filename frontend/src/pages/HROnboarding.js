@@ -515,9 +515,9 @@ const HROnboarding = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Gender</Label>
+                <Label>Gender *</Label>
                 <Select value={formData.gender} onValueChange={(v) => handleInputChange('gender', v)}>
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="onboard-gender">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
