@@ -325,7 +325,7 @@ const GoLiveDashboard = () => {
                         icon={Shield}
                       />
                     </div>
-                    {isAdmin && checklist.checklist.bank_details_added && !checklist.checklist.bank_verified && (
+                    {canVerifyBank && checklist.checklist.bank_details_added && !checklist.checklist.bank_verified && (
                       <Button
                         size="sm"
                         className="bg-blue-600 hover:bg-blue-700"
