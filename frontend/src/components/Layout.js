@@ -187,26 +187,13 @@ const Layout = () => {
     </button>
   );
 
-  // Navigation items with permission requirements
+  // Navigation items with permission requirements - SIMPLIFIED (only main pages)
   const hrItems = [
     { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
     { name: 'Onboarding', href: '/onboarding', icon: UserCog, requiresTeamView: false },
-    { name: 'Password Management', href: '/password-management', icon: KeyRound, requiresTeamView: false, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
-    { name: 'Letterhead Settings', href: '/letterhead-settings', icon: Image, requiresTeamView: false },
-    { name: 'Onboarding Tutorials', href: '/tutorials', icon: BookOpen, requiresTeamView: false },
-    { name: 'Org Chart', href: '/org-chart', icon: GitBranch, requiresTeamView: false },
-    { name: 'Leave Mgmt', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
-    { name: 'Attendance', href: '/attendance', icon: Clock, requiresTeamView: true },
-    { name: 'Attendance Approvals', href: '/attendance-approvals', icon: ClipboardCheck, requiresApproval: true },
-    { name: 'CTC Designer', href: '/ctc-designer', icon: DollarSign, requiresApproval: true },
-    { name: 'Payroll', href: '/payroll', icon: Wallet, requiresApproval: true },
-    { name: 'Expenses', href: '/expenses', icon: Receipt, requiresApproval: true },
-    { name: 'Travel Reimbursement', href: '/travel-reimbursement', icon: Car, requiresApproval: true },
-    { name: 'Team Workload', href: '/team-workload', icon: Briefcase, requiresTeamView: true },
-    { name: 'Staffing Requests', href: '/staffing-requests', icon: AlertTriangle, requiresTeamView: true },
-    { name: 'Employee Scorecard', href: '/employee-scorecard', icon: Star, requiresReports: true },
-    { name: 'Performance', href: '/performance-dashboard', icon: TrendingUp, requiresReports: true },
+    { name: 'Leave & Attendance', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
+    { name: 'CTC & Payroll', href: '/ctc-designer', icon: Wallet, requiresApproval: true },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },
   ];
   
