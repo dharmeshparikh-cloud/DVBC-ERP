@@ -570,8 +570,22 @@ const DocumentBuilder = () => {
         </div>
       </div>
 
-      {/* Document Type Selection */}
-      <Card>
+      {/* Tabs for Builder/History */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="builder" data-testid="builder-tab">
+            <FileSignature className="w-4 h-4 mr-2" />
+            Document Builder
+          </TabsTrigger>
+          <TabsTrigger value="history" data-testid="history-tab">
+            <FileText className="w-4 h-4 mr-2" />
+            History ({documentHistory.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="builder" className="space-y-6 mt-4">
+          {/* Document Type Selection */}
+          <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Select Document Type</CardTitle>
         </CardHeader>
