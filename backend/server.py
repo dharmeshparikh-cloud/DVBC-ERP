@@ -10474,6 +10474,193 @@ async def admin_reject_bank_change(
     return {"message": "Request rejected"}
 
 
+# ==================== DOCUMENT HISTORY (HR Documents) ====================
+
+class GeneratedDocument(BaseModel):
+    """Model for storing generated HR documents"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    document_type: str  # offer_letter, appointment_letter, confirmation_letter, experience_letter
+    employee_id: str
+    employee_name: str
+    content: str  # HTML content
+    custom_values: Optional[Dict[str, Any]] = {}
+    generated_by: str
+    generated_by_name: str
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    status: str = "generated"  # generated, sent, signed, archived
+    sent_at: Optional[datetime] = None
+    signed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class GeneratedDocumentCreate(BaseModel):
+    document_type: str
+    employee_id: str
+    employee_name: str
+    content: str
+    custom_values: Optional[Dict[str, Any]] = {}
+    notes: Optional[str] = None
+
+
+@api_router.post("/document-history")
+async def create_document_history(
+    doc_data: GeneratedDocumentCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Save a generated document to history"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR can generate documents")
+    
+    doc = GeneratedDocument(
+        document_type=doc_data.document_type,
+        employee_id=doc_data.employee_id,
+        employee_name=doc_data.employee_name,
+        content=doc_data.content,
+        custom_values=doc_data.custom_values,
+        generated_by=current_user.id if hasattr(current_user, 'id') else str(current_user.email),
+        generated_by_name=current_user.full_name,
+        notes=doc_data.notes
+    )
+    
+    await db.document_history.insert_one(doc.model_dump())
+    
+    # Notify the employee
+    await create_notification(
+        user_id=doc_data.employee_id,
+        notif_type="document_generated",
+        title=f"New Document Generated: {doc_data.document_type.replace('_', ' ').title()}",
+        message=f"A {doc_data.document_type.replace('_', ' ').title()} has been generated for you by {current_user.full_name}.",
+        reference_type="document",
+        reference_id=doc.id
+    )
+    
+    return {"message": "Document saved to history", "id": doc.id}
+
+
+@api_router.get("/document-history")
+async def get_document_history(
+    employee_id: Optional[str] = None,
+    document_type: Optional[str] = None,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user)
+):
+    """Get document history with optional filters"""
+    query = {}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if document_type:
+        query["document_type"] = document_type
+    
+    docs = await db.document_history.find(query, {"_id": 0}).sort("generated_at", -1).limit(limit).to_list(limit)
+    return docs
+
+
+@api_router.get("/document-history/{doc_id}")
+async def get_document_by_id(
+    doc_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific document by ID"""
+    doc = await db.document_history.find_one({"id": doc_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return doc
+
+
+@api_router.put("/document-history/{doc_id}/status")
+async def update_document_status(
+    doc_id: str,
+    status_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update document status (sent, signed, archived)"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR can update document status")
+    
+    update_fields = {"status": status_data.get("status")}
+    if status_data.get("status") == "sent":
+        update_fields["sent_at"] = datetime.now(timezone.utc).isoformat()
+    elif status_data.get("status") == "signed":
+        update_fields["signed_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if status_data.get("notes"):
+        update_fields["notes"] = status_data.get("notes")
+    
+    result = await db.document_history.update_one(
+        {"id": doc_id},
+        {"$set": update_fields}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    return {"message": "Document status updated"}
+
+
+@api_router.delete("/document-history/{doc_id}")
+async def delete_document_from_history(
+    doc_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a document from history (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can delete documents")
+    
+    result = await db.document_history.delete_one({"id": doc_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    return {"message": "Document deleted"}
+
+
+@api_router.get("/document-history/employee/{employee_id}/stats")
+async def get_employee_document_stats(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get document statistics for an employee"""
+    pipeline = [
+        {"$match": {"employee_id": employee_id}},
+        {"$group": {
+            "_id": "$document_type",
+            "count": {"$sum": 1},
+            "latest": {"$max": "$generated_at"}
+        }}
+    ]
+    
+    stats = await db.document_history.aggregate(pipeline).to_list(10)
+    
+    # Format response
+    result = {
+        "total_documents": 0,
+        "by_type": {},
+        "latest_document": None
+    }
+    
+    for stat in stats:
+        result["by_type"][stat["_id"]] = {
+            "count": stat["count"],
+            "latest": stat["latest"]
+        }
+        result["total_documents"] += stat["count"]
+    
+    # Get latest document
+    latest = await db.document_history.find_one(
+        {"employee_id": employee_id}, 
+        {"_id": 0},
+        sort=[("generated_at", -1)]
+    )
+    if latest:
+        result["latest_document"] = {
+            "id": latest.get("id"),
+            "type": latest.get("document_type"),
+            "generated_at": latest.get("generated_at")
+        }
+    
+    return result
+
+
 api_router.include_router(masters_router.router)
 api_router.include_router(sow_masters_router.router)
 api_router.include_router(enhanced_sow_router.router)
