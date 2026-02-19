@@ -265,7 +265,8 @@ const Leads = () => {
     return result;
   }, [leads, searchQuery, timelineFilter]);
 
-  const canEdit = user?.role !== 'manager';
+  // Permission-based edit rights: Managers can only view (level-based, not role-based)
+  const canEdit = level !== 'executive' || user?.role === 'admin' || !['manager'].includes(user?.role);
 
   return (
     <div data-testid="leads-page">
