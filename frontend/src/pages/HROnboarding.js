@@ -25,7 +25,7 @@ const ONBOARDING_STEPS = [
 ];
 
 const DEPARTMENTS = [
-  'Consulting', 'Sales', 'HR', 'Finance', 'Technology', 'Operations', 'Marketing'
+  'Sales', 'HR', 'Consulting', 'Finance', 'Admin'
 ];
 
 const EMPLOYMENT_TYPES = [
@@ -35,15 +35,24 @@ const EMPLOYMENT_TYPES = [
   { value: 'part_time', label: 'Part Time' },
 ];
 
+// Roles are now secondary - Department determines page access
 const ROLES = [
-  { value: 'consultant', label: 'Consultant' },
-  { value: 'senior_consultant', label: 'Senior Consultant' },
-  { value: 'lead_consultant', label: 'Lead Consultant' },
-  { value: 'principal_consultant', label: 'Principal Consultant' },
-  { value: 'project_manager', label: 'Project Manager' },
-  { value: 'executive', label: 'Sales Executive' },
-  { value: 'account_manager', label: 'Account Manager' },
-  { value: 'hr_executive', label: 'HR Executive' },
+  // Consulting roles
+  { value: 'consultant', label: 'Consultant', department: 'Consulting' },
+  { value: 'senior_consultant', label: 'Senior Consultant', department: 'Consulting' },
+  { value: 'lead_consultant', label: 'Lead Consultant', department: 'Consulting' },
+  { value: 'principal_consultant', label: 'Principal Consultant', department: 'Consulting' },
+  { value: 'project_manager', label: 'Project Manager', department: 'Consulting' },
+  { value: 'subject_matter_expert', label: 'Subject Matter Expert', department: 'Consulting' },
+  // Sales roles
+  { value: 'executive', label: 'Sales Executive', department: 'Sales' },
+  { value: 'account_manager', label: 'Account Manager', department: 'Sales' },
+  // HR roles
+  { value: 'hr_executive', label: 'HR Executive', department: 'HR' },
+  { value: 'hr_manager', label: 'HR Manager', department: 'HR' },
+  // Admin/General roles
+  { value: 'manager', label: 'Manager', department: 'Admin' },
+  { value: 'admin', label: 'Administrator', department: 'Admin' },
 ];
 
 const EMPLOYEE_LEVELS = [
