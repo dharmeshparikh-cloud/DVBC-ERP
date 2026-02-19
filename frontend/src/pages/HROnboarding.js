@@ -494,69 +494,176 @@ const HROnboarding = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Department * <span className="text-xs text-blue-600">(Determines page access)</span></Label>
-                <Select value={formData.department} onValueChange={(v) => {
-                  handleInputChange('department', v);
-                  // Auto-select a matching role
-                  const matchingRole = ROLES.find(r => r.department === v);
-                  if (matchingRole) {
-                    handleInputChange('role', matchingRole.value);
-                  }
-                }}>
-                  <SelectTrigger data-testid="onboard-department">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEPARTMENTS.map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Employee will see {formData.department || '...'} pages after portal access is granted
-                </p>
-                {suggestedDept?.suggested_department && formData.department !== suggestedDept.suggested_department && (
-                  <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md mt-1">
-                    <span className="text-xs text-yellow-700">
-                      Suggested: <strong>{suggestedDept.suggested_department}</strong> ({suggestedDept.reason})
-                    </span>
-                    <button 
-                      type="button"
-                      className="text-xs text-yellow-700 underline"
-                      onClick={() => {
-                        handleInputChange('department', suggestedDept.suggested_department);
-                        const matchingRole = ROLES.find(r => r.department === suggestedDept.suggested_department);
-                        if (matchingRole) handleInputChange('role', matchingRole.value);
-                      }}
-                    >
-                      Apply
-                    </button>
+            {/* Designation Field - Auto-suggests department */}
+            <div className="space-y-2">
+              <Label>Designation * <span className="text-xs text-blue-600">(Auto-suggests department)</span></Label>
+              <div className="relative">
+                <Input
+                  value={formData.designation}
+                  onChange={(e) => handleDesignationChange(e.target.value)}
+                  placeholder="e.g., Sales Manager, HR Executive, Consultant"
+                  data-testid="onboard-designation"
+                />
+                {deptSuggestionLoading && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label>Designation * <span className="text-xs text-blue-600">(Auto-suggests department)</span></Label>
-                <div className="relative">
-                  <Input
-                    value={formData.designation}
-                    onChange={(e) => handleDesignationChange(e.target.value)}
-                    placeholder="e.g., Sales Manager, HR Executive, Consultant"
-                    data-testid="onboard-designation"
-                  />
-                  {deptSuggestionLoading && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-                </div>
-                {suggestedDept?.suggested_department && !deptSuggestionLoading && (
-                  <p className="text-xs text-green-600">
-                    ✓ Auto-assigned to {suggestedDept.suggested_department} based on designation
-                  </p>
+              {suggestedDept?.suggested_department && !deptSuggestionLoading && (
+                <p className="text-xs text-green-600">
+                  ✓ Suggested department: {suggestedDept.suggested_department} based on designation
+                </p>
+              )}
+            </div>
+
+            {/* Multi-Department Selection */}
+            <div className="space-y-3">
+              <Label>Departments * <span className="text-xs text-blue-600">(Multi-select - determines page access)</span></Label>
+              
+              {/* Selected Departments Display */}
+              <div className="flex flex-wrap gap-2 min-h-[36px] p-2 border rounded-md bg-zinc-50">
+                {formData.departments.length === 0 ? (
+                  <span className="text-sm text-zinc-400">No departments selected</span>
+                ) : (
+                  formData.departments.map((dept) => (
+                    <Badge 
+                      key={dept} 
+                      variant={dept === formData.primary_department ? "default" : "secondary"}
+                      className="flex items-center gap-1 px-2 py-1"
+                    >
+                      {dept}
+                      {dept === formData.primary_department && (
+                        <span className="text-[10px] ml-1 opacity-75">(Primary)</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newDepts = formData.departments.filter(d => d !== dept);
+                          const newPrimary = dept === formData.primary_department 
+                            ? (newDepts[0] || '') 
+                            : formData.primary_department;
+                          setFormData({
+                            ...formData,
+                            departments: newDepts,
+                            primary_department: newPrimary,
+                            department: newPrimary // Keep legacy field in sync
+                          });
+                        }}
+                        className="ml-1 hover:text-red-500"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))
                 )}
               </div>
+
+              {/* Add Department Dropdown */}
+              <div className="flex gap-2">
+                <Select 
+                  value="" 
+                  onValueChange={(v) => {
+                    if (v && !formData.departments.includes(v)) {
+                      const newDepts = [...formData.departments, v];
+                      const newPrimary = formData.primary_department || v;
+                      setFormData({
+                        ...formData,
+                        departments: newDepts,
+                        primary_department: newPrimary,
+                        department: newPrimary // Keep legacy field in sync
+                      });
+                      // Auto-select a matching role for primary dept
+                      if (!formData.primary_department) {
+                        const matchingRole = ROLES.find(r => r.department === v);
+                        if (matchingRole) {
+                          handleInputChange('role', matchingRole.value);
+                        }
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger data-testid="onboard-department-add" className="flex-1">
+                    <SelectValue placeholder="Add department..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.filter(dept => !formData.departments.includes(dept)).map(dept => (
+                      <SelectItem key={dept} value={dept}>
+                        <div className="flex items-center gap-2">
+                          <Plus className="w-3 h-3" />
+                          {dept}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Primary Department Selection */}
+              {formData.departments.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Primary:</Label>
+                  <Select 
+                    value={formData.primary_department} 
+                    onValueChange={(v) => {
+                      setFormData({
+                        ...formData,
+                        primary_department: v,
+                        department: v // Keep legacy field in sync
+                      });
+                      // Auto-select a matching role
+                      const matchingRole = ROLES.find(r => r.department === v);
+                      if (matchingRole) {
+                        handleInputChange('role', matchingRole.value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs" data-testid="onboard-primary-department">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.departments.map(dept => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                Employee will see pages from: {formData.departments.length > 0 ? formData.departments.join(', ') : '...'}
+              </p>
+
+              {/* Department Suggestion */}
+              {suggestedDept?.suggested_department && !formData.departments.includes(suggestedDept.suggested_department) && (
+                <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <span className="text-xs text-yellow-700">
+                    Suggested: <strong>{suggestedDept.suggested_department}</strong> ({suggestedDept.reason})
+                  </span>
+                  <button 
+                    type="button"
+                    className="text-xs text-yellow-700 underline"
+                    onClick={() => {
+                      const newDepts = formData.departments.includes(suggestedDept.suggested_department)
+                        ? formData.departments
+                        : [...formData.departments, suggestedDept.suggested_department];
+                      const newPrimary = formData.primary_department || suggestedDept.suggested_department;
+                      setFormData({
+                        ...formData,
+                        departments: newDepts,
+                        primary_department: newPrimary,
+                        department: newPrimary
+                      });
+                      const matchingRole = ROLES.find(r => r.department === suggestedDept.suggested_department);
+                      if (matchingRole && !formData.primary_department) {
+                        handleInputChange('role', matchingRole.value);
+                      }
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
