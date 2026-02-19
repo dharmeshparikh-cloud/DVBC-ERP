@@ -979,22 +979,8 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
             </div>
           </div>
         );
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Textarea
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="Enter full address"
-                rows={2}
-              />
-            </div>
-          </div>
-        );
-
-      case 1: // Employment Details
+      case 2: // Employment Details
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -1017,6 +1003,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                   value={formData.joining_date}
                   onChange={(e) => handleInputChange('joining_date', e.target.value)}
                   data-testid="onboard-joining-date"
+                  required
                 />
               </div>
             </div>
