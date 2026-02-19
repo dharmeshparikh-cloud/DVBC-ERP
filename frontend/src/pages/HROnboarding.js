@@ -12,7 +12,7 @@ import { Progress } from '../components/ui/progress';
 import { 
   UserPlus, FileText, Upload, CheckCircle, AlertCircle,
   Building2, Mail, Phone, Calendar, Wallet, User,
-  ChevronRight, ChevronLeft, Save
+  ChevronRight, ChevronLeft, Save, X, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 
