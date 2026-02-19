@@ -499,6 +499,7 @@ const DepartmentAccessManager = () => {
                 {filteredEmployees.map((emp) => {
                   const depts = emp.departments || (emp.department ? [emp.department] : []);
                   const primaryDept = emp.primary_department || emp.department;
+                  const hasSpecialPerms = emp.additional_departments?.length > 0 || emp.temporary_role;
                   return (
                     <tr key={emp.id} className="border-b hover:bg-muted/50">
                       {bulkMode && (
@@ -531,6 +532,11 @@ const DepartmentAccessManager = () => {
                           ) : (
                             <Badge variant="outline" className="text-muted-foreground">None</Badge>
                           )}
+                          {emp.additional_departments?.map(d => (
+                            <Badge key={`add-${d}`} variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                              +{d}
+                            </Badge>
+                          ))}
                         </div>
                       </td>
                       <td className="p-2">
@@ -546,13 +552,23 @@ const DepartmentAccessManager = () => {
                         )}
                       </td>
                       <td className="p-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => openEditDialog(emp)}
-                        >
-                          <Settings className="w-4 h-4 mr-1" /> Edit Access
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => openEditDialog(emp)}
+                          >
+                            <Settings className="w-4 h-4 mr-1" /> Dept
+                          </Button>
+                          <Button 
+                            variant={hasSpecialPerms ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => openSpecialDialog(emp)}
+                            className={hasSpecialPerms ? "bg-yellow-500 hover:bg-yellow-600" : ""}
+                          >
+                            <Key className="w-4 h-4 mr-1" /> Special
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
