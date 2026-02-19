@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { AuthContext } from '../App';
+import { AuthContext, API } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -14,8 +14,6 @@ import {
   ChevronRight, PiggyBank, Heart, Car, Wallet, Gift, Settings,
   Plus, Minus, Edit2, Save, ToggleLeft
 } from 'lucide-react';
-
-const API = process.env.REACT_APP_BACKEND_URL;
 
 // Default component master (fallback)
 const DEFAULT_COMPONENTS = [
