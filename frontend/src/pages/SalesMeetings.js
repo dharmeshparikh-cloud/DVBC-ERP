@@ -349,28 +349,16 @@ const SalesMeetings = () => {
                       </div>
                       {isExpanded && (
                         <div className="mt-4 pt-4 border-t border-zinc-200 space-y-3">
-                          {meeting.agenda?.length > 0 && meeting.agenda.some(a => a) && (
+                          {meeting.agenda && (
                             <div>
                               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Agenda</div>
-                              <ul className="list-disc list-inside text-sm text-zinc-600">
-                                {meeting.agenda.filter(a => a).map((item, idx) => <li key={idx}>{item}</li>)}
-                              </ul>
+                              <div className="text-sm text-zinc-600 whitespace-pre-line">{meeting.agenda}</div>
                             </div>
                           )}
-                          {meeting.discussion_points?.length > 0 && meeting.discussion_points.some(d => d) && (
+                          {meeting.meeting_type && (
                             <div>
-                              <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Discussion Points</div>
-                              <ul className="list-disc list-inside text-sm text-zinc-600">
-                                {meeting.discussion_points.filter(d => d).map((item, idx) => <li key={idx}>{item}</li>)}
-                              </ul>
-                            </div>
-                          )}
-                          {meeting.decisions_made?.length > 0 && meeting.decisions_made.some(d => d) && (
-                            <div>
-                              <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Decisions</div>
-                              <ul className="list-disc list-inside text-sm text-zinc-600">
-                                {meeting.decisions_made.filter(d => d).map((item, idx) => <li key={idx}>{item}</li>)}
-                              </ul>
+                              <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Meeting Type</div>
+                              <div className="text-sm text-zinc-600 capitalize">{meeting.meeting_type}</div>
                             </div>
                           )}
                           {meeting.notes && (
