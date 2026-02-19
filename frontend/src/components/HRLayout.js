@@ -111,6 +111,7 @@ const HRLayout = () => {
   const employeeItems = [
     { name: 'All Employees', href: '/hr/employees', icon: UsersRound },
     { name: 'Onboarding', href: '/hr/onboarding', icon: UserPlus },
+    { name: 'Document Builder', href: '/hr/document-builder', icon: FileSignature },
     { name: 'Org Chart', href: '/hr/org-chart', icon: GitBranch },
   ];
 
