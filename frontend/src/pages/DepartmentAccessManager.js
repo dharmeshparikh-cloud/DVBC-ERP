@@ -216,6 +216,79 @@ const DepartmentAccessManager = () => {
     }
   };
 
+  // Special Permissions Functions
+  const openSpecialDialog = async (employee) => {
+    try {
+      const res = await fetch(`${API_URL}/api/permission-config/employee/${employee.id}/special-permissions`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedEmployee(data);
+        setSpecialForm({
+          additional_departments: data.additional_departments || [],
+          additional_pages: data.additional_pages || [],
+          restricted_pages: data.restricted_pages || [],
+          temporary_role: data.temporary_role || '',
+          temporary_role_expiry: data.temporary_role_expiry || '',
+          can_approve_for_departments: data.can_approve_for_departments || [],
+          notes: data.permission_notes || ''
+        });
+        setSpecialDialog(true);
+      }
+    } catch (error) {
+      toast.error('Failed to load special permissions');
+    }
+  };
+
+  const saveSpecialPermissions = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/permission-config/employee/${selectedEmployee.employee_id}/special-permissions`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          additional_departments: specialForm.additional_departments,
+          additional_pages: specialForm.additional_pages,
+          restricted_pages: specialForm.restricted_pages,
+          temporary_role: specialForm.temporary_role || null,
+          temporary_role_expiry: specialForm.temporary_role_expiry || null,
+          can_approve_for_departments: specialForm.can_approve_for_departments,
+          notes: specialForm.notes,
+          special_permissions: []
+        })
+      });
+      
+      if (res.ok) {
+        toast.success('Special permissions updated');
+        setSpecialDialog(false);
+        fetchData();
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Failed to update');
+      }
+    } catch (error) {
+      toast.error('Failed to update special permissions');
+    }
+  };
+
+  const grantTemporaryAccess = async (employeeId, department, reason, days) => {
+    try {
+      const res = await fetch(`${API_URL}/api/permission-config/employee/${employeeId}/grant-temporary-access?department=${department}&reason=${encodeURIComponent(reason)}&expiry_days=${days}`, {
+        method: 'POST',
+        headers
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message);
+        fetchData();
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Failed to grant access');
+      }
+    } catch (error) {
+      toast.error('Failed to grant temporary access');
+    }
+  };
+
   const handleBulkUpdate = async () => {
     if (!selectedIds.length) {
       toast.error('Select employees first');
