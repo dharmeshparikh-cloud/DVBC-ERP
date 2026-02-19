@@ -201,47 +201,6 @@ async def get_my_department_access(current_user: User = Depends(get_current_user
         "custom_access": custom_access,
         "restricted_pages": restricted
     }
-    primary_dept = employee.get("primary_department") or employee.get("department")
-    
-    # If no departments set, use legacy department field
-    if not departments and primary_dept:
-        departments = [primary_dept]
-    
-    # Build accessible pages list
-    accessible_pages = list(UNIVERSAL_PAGES)
-    
-    for dept in departments:
-        if dept in DEPARTMENTS:
-            dept_pages = DEPARTMENTS[dept]["pages"]
-            if dept_pages == ["*"]:
-                accessible_pages = ["*"]
-                break
-            accessible_pages.extend(dept_pages)
-    
-    # Add custom access pages if any
-    custom_access = employee.get("custom_page_access", [])
-    if custom_access:
-        accessible_pages.extend(custom_access)
-    
-    # Remove restricted pages
-    restricted = employee.get("restricted_pages", [])
-    if restricted and accessible_pages != ["*"]:
-        accessible_pages = [p for p in accessible_pages if p not in restricted]
-    
-    # Remove duplicates
-    if accessible_pages != ["*"]:
-        accessible_pages = list(set(accessible_pages))
-    
-    return {
-        "employee_id": employee.get("id"),
-        "employee_code": employee.get("employee_id"),
-        "departments": departments,
-        "primary_department": primary_dept,
-        "accessible_pages": accessible_pages,
-        "level": employee.get("level", "executive"),
-        "custom_access": custom_access,
-        "restricted_pages": restricted
-    }
 
 
 @router.get("/employee/{employee_id}")
