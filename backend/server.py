@@ -10649,7 +10649,7 @@ async def approve_go_live(
     current_user: User = Depends(get_current_user)
 ):
     """Admin approves Go-Live request."""
-    db = get_db()
+    global db
     
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only Admin can approve Go-Live")
@@ -10703,7 +10703,7 @@ async def reject_go_live(
     current_user: User = Depends(get_current_user)
 ):
     """Admin rejects Go-Live request."""
-    db = get_db()
+    global db
     
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only Admin can reject Go-Live")
@@ -10745,7 +10745,7 @@ async def verify_bank_details(
     current_user: User = Depends(get_current_user)
 ):
     """Admin verifies employee bank details."""
-    db = get_db()
+    global db
     
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only Admin can verify bank details")
