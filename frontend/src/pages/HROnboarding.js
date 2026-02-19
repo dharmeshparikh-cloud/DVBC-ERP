@@ -200,13 +200,23 @@ const HROnboarding = () => {
   const fetchManagers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/users`, {
+      // Fetch from employees endpoint - includes all employees, not just those with login accounts
+      const response = await fetch(`${API}/employees`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const users = await response.json();
-        // Filter for potential managers - anyone can be a manager now
-        setManagers(users.filter(u => u.is_active !== false));
+        const employees = await response.json();
+        // Transform to manager format - filter for active employees
+        const potentialManagers = employees
+          .filter(emp => emp.is_active !== false)
+          .map(emp => ({
+            id: emp.id || emp.employee_id,
+            full_name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.employee_id,
+            email: emp.email,
+            department: emp.department || emp.primary_department,
+            employee_id: emp.employee_id
+          }));
+        setManagers(potentialManagers);
       }
     } catch (error) {
       console.error('Failed to fetch managers:', error);
