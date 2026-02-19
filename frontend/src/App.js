@@ -17,6 +17,7 @@ import LeaveManagement from './pages/LeaveManagement';
 import Attendance from './pages/Attendance';
 import Payroll from './pages/Payroll';
 import CTCDesigner from './pages/CTCDesigner';
+import DocumentBuilder from './pages/DocumentBuilder';
 import MyAttendance from './pages/MyAttendance';
 import MyLeaves from './pages/MyLeaves';
 import MySalarySlips from './pages/MySalarySlips';
