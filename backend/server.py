@@ -9597,16 +9597,56 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     
     await db.attendance.insert_one(record)
     
-    # If pending approval, create notification for HR
+    # If pending approval, create notifications for RM, HR Manager, and Admin
     if approval_status == "pending_approval":
-        hr_users = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"id": 1}).to_list(50)
+        # Get reporting manager
+        rm_user_id = None
+        if emp.get("reporting_manager_id"):
+            rm_emp = await db.employees.find_one({"id": emp["reporting_manager_id"]}, {"_id": 0, "user_id": 1, "first_name": 1, "last_name": 1})
+            if rm_emp and rm_emp.get("user_id"):
+                rm_user_id = rm_emp["user_id"]
+                # Notify Reporting Manager (Actionable)
+                await db.notifications.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "user_id": rm_user_id,
+                    "title": "Attendance Approval Required",
+                    "message": f"{emp['first_name']} {emp['last_name']} checked in from outside approved geo-fence. Justification: {data.get('justification', 'N/A')}",
+                    "type": "attendance_approval",
+                    "reference_id": record["id"],
+                    "status": "pending",
+                    "is_read": False,
+                    "link": "/approvals",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+        
+        # Notify HR Managers (Actionable)
+        hr_users = await db.users.find({"role": "hr_manager"}, {"_id": 0, "id": 1}).to_list(20)
         for hr_user in hr_users:
+            if hr_user["id"] != rm_user_id:  # Don't duplicate if RM is HR
+                await db.notifications.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "user_id": hr_user["id"],
+                    "title": "Attendance Approval Required",
+                    "message": f"{emp['first_name']} {emp['last_name']} ({emp.get('employee_id')}) checked in from outside geo-fence.",
+                    "type": "attendance_approval",
+                    "reference_id": record["id"],
+                    "status": "pending",
+                    "is_read": False,
+                    "link": "/approvals",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+        
+        # Notify Admin (Info only - not actionable, just FYI)
+        admin_users = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(10)
+        for admin_user in admin_users:
             await db.notifications.insert_one({
                 "id": str(uuid.uuid4()),
-                "user_id": hr_user["id"],
-                "message": f"Attendance approval required: {emp['first_name']} {emp['last_name']} checked in from unknown location",
-                "type": "attendance_approval_required",
+                "user_id": admin_user["id"],
+                "title": "Attendance Pending Approval",
+                "message": f"{emp['first_name']} {emp['last_name']} checked in from outside geo-fence. Awaiting RM/HR approval.",
+                "type": "attendance_pending_info",
                 "reference_id": record["id"],
+                "status": "info",
                 "is_read": False,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
