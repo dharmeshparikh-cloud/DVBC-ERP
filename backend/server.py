@@ -595,6 +595,39 @@ def can_edit_data(user) -> bool:
     return not getattr(user, 'is_view_only', False)
 
 
+async def can_edit_data_async(user) -> bool:
+    """
+    Async version - Check if user can create/edit data.
+    Checks database for is_view_only flag.
+    """
+    # Admins and HR can always edit
+    if is_admin_user(user) or is_hr_user(user):
+        return True
+    
+    # Check database for view_only flag
+    db_user = await db.users.find_one({"id": user.id}, {"is_view_only": 1, "_id": 0})
+    if db_user and db_user.get("is_view_only", False):
+        return False
+    
+    employee = await db.employees.find_one({"user_id": user.id}, {"is_view_only": 1, "_id": 0})
+    if employee and employee.get("is_view_only", False):
+        return False
+    
+    return True
+
+
+def check_edit_permission(user):
+    """
+    Raises HTTPException if user cannot edit.
+    Use this instead of role-based checks.
+    """
+    if not can_edit_data(user):
+        raise HTTPException(
+            status_code=403,
+            detail="You have view-only access. Contact admin for edit permissions."
+        )
+
+
 async def can_access_employee_data(current_user, target_employee_id: str) -> bool:
     """
     Check if current user can access target employee's data.
