@@ -284,7 +284,9 @@ const HROnboarding = () => {
         date_of_birth: formData.date_of_birth,
         gender: formData.gender,
         address: formData.address,
-        department: formData.department,
+        department: formData.primary_department || formData.departments[0], // Legacy field
+        departments: formData.departments,  // Multi-department array
+        primary_department: formData.primary_department || formData.departments[0],
         designation: formData.designation,
         level: formData.level || 'executive',  // Employee permission level (mandatory)
         role: formData.role || 'consultant',   // System role
@@ -329,7 +331,9 @@ const HROnboarding = () => {
             email: formData.email,
             full_name: `${formData.first_name} ${formData.last_name}`,
             role: formData.role,
-            department: formData.department,
+            department: formData.primary_department || formData.departments[0],
+            departments: formData.departments,  // Pass departments array to user
+            primary_department: formData.primary_department || formData.departments[0],
             password: 'Welcome@123', // Temporary password
             is_active: true
           })
