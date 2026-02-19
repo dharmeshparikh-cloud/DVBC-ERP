@@ -1571,3 +1571,70 @@ Implemented comprehensive role-based visibility for the Project Payments module:
 
 ### Mock/Simulated Features
 - **Email Notifications**: Console.log only, no actual emails sent
+
+---
+## User & Employee Architecture - CONSOLIDATED (Feb 19, 2026)
+
+### Data Model Relationship
+
+```
+┌─────────────────────────────────────┐     ┌─────────────────────────────────────┐
+│           EMPLOYEES                 │     │              USERS                  │
+│         (HR Master Data)            │     │       (Authentication Only)         │
+├─────────────────────────────────────┤     ├─────────────────────────────────────┤
+│ id: UUID (internal)                 │     │ id: UUID (internal)                 │
+│ employee_id: "EMP001" ◄─────────────┼────►│ employee_id: "EMP001" (LOGIN KEY)   │
+│ email: "john@dvbc.com"              │     │ email: "john@dvbc.com"              │
+│ first_name, last_name               │     │ full_name                           │
+│ department, designation             │     │ role, department                    │
+│ salary, bank_details                │     │ hashed_password                     │
+│ user_id: UUID (links to users.id)   │     │ is_active                           │
+│ has_portal_access: Boolean          │     │ requires_password_change            │
+└─────────────────────────────────────┘     └─────────────────────────────────────┘
+                 │                                          │
+                 │  LINK: employees.user_id = users.id      │
+                 │  KEY:  employees.employee_id = users.employee_id
+                 └──────────────────────────────────────────┘
+```
+
+### Key Points
+1. **Employee ID is the human-readable key** (EMP001, HR001, ADMIN001)
+2. **User.employee_id stores the same format** - NOT UUID
+3. **Login uses employee_id** (e.g., EMP001 + password)
+4. **One employee → One user** (when portal access granted)
+5. **Employee can exist without user** (no portal access)
+
+### Endpoint Consolidation
+
+| Before (Removed/Deprecated) | After (Consolidated) |
+|-----------------------------|----------------------|
+| POST /api/users | ❌ REMOVED - Use grant-access |
+| POST /api/employees/{id}/link-user | ❌ REMOVED - grant-access handles this |
+
+| Active Endpoints | Purpose |
+|------------------|---------|
+| POST /api/employees | Create employee (HR master) |
+| POST /api/employees/{id}/grant-access | Create user + link (single endpoint) |
+| POST /api/auth/admin/reset-employee-password | Reset password by employee_id |
+| POST /api/auth/admin/toggle-employee-access | Enable/Disable access |
+
+### Login Flow
+```
+1. User enters: EMP001 + password
+2. Backend searches: users.employee_id = "EMP001"
+3. If not found, searches: employees.employee_id = "EMP001" → users.email
+4. Verifies password hash
+5. Returns JWT token
+```
+
+### Password Format
+- Pattern: `Welcome@{employee_id}` (e.g., Welcome@EMP001)
+- Auto-generated during onboarding
+- User should change on first login
+
+### Predefined Admin Accounts
+| Employee ID | Email | Role |
+|-------------|-------|------|
+| ADMIN001 | admin@dvbc.com | admin |
+| HR001 | hr.manager@dvbc.com | hr_manager |
+| MGR001 | manager@dvbc.com | manager |
