@@ -10525,15 +10525,22 @@ async def create_document_history(
     
     await db.document_history.insert_one(doc.model_dump())
     
-    # Notify the employee
-    await create_notification(
-        user_id=doc_data.employee_id,
-        notif_type="document_generated",
-        title=f"New Document Generated: {doc_data.document_type.replace('_', ' ').title()}",
-        message=f"A {doc_data.document_type.replace('_', ' ').title()} has been generated for you by {current_user.full_name}.",
-        reference_type="document",
-        reference_id=doc.id
-    )
+    # Notify the employee (using direct DB insert)
+    try:
+        notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": doc_data.employee_id,
+            "type": "document_generated",
+            "title": f"New Document Generated: {doc_data.document_type.replace('_', ' ').title()}",
+            "message": f"A {doc_data.document_type.replace('_', ' ').title()} has been generated for you by {current_user.full_name}.",
+            "reference_type": "document",
+            "reference_id": doc.id,
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+    except Exception as e:
+        print(f"[DOCUMENT NOTIFICATION] Failed to create notification: {e}")
     
     return {"message": "Document saved to history", "id": doc.id}
 
