@@ -1902,11 +1902,11 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
             <Button
               onClick={() => {
                 setShowSuccessDialog(false);
-                // Navigate to Document Builder with employee pre-selected
-                navigate(`/document-builder?employee=${onboardingSuccess?.employee?.id}`);
+                // Navigate to Document Center with employee pre-selected
+                navigate(`/document-center?employee=${onboardingSuccess?.employee?.id}`);
               }}
               className="bg-emerald-600 hover:bg-emerald-700"
-              data-testid="go-to-document-builder"
+              data-testid="go-to-document-center"
             >
               <FileText className="w-4 h-4 mr-2" />
               Generate Documents
