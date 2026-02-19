@@ -204,6 +204,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="travel-reimbursement" element={<TravelReimbursement />} />
         <Route path="approvals" element={<ApprovalsCenter />} />
         {/* HR Manager Only - Team View */}
+        <Route path="department-access" element={<DepartmentAccessManager />} />
         <Route path="team-workload" element={<HRTeamWorkload />} />
         <Route path="staffing-requests" element={<HRStaffingRequests />} />
         <Route path="performance-dashboard" element={<PerformanceDashboard />} />
