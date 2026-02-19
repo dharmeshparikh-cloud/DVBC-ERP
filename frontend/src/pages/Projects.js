@@ -75,7 +75,8 @@ const Projects = () => {
     }
   };
 
-  const canEdit = user?.role !== 'manager';
+  // Permission-based: level determines edit rights, managers at 'manager' role can only view
+  const canEdit = user?.role !== 'manager' || level === 'leader' || user?.role === 'admin';
 
   return (
     <div data-testid="projects-page">
