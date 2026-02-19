@@ -157,130 +157,27 @@ const MyAttendance = () => {
           <p className="text-zinc-500 dark:text-zinc-400">{data?.employee?.name || ''} {data?.employee?.employee_id ? `(${data.employee.employee_id})` : ''}</p>
         </div>
         
-        {/* Check-In Button */}
+        {/* Check-In Status - Now use Quick Check-in from Dashboard */}
         <div className="flex flex-col items-end gap-1">
-          <Button 
-            onClick={openCheckIn}
-            disabled={todayCheckedIn}
-            className={`${todayCheckedIn ? 'bg-emerald-600' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-lg px-6 py-2 shadow-lg`}
-            data-testid="self-checkin-btn"
+          <div 
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+              todayCheckedIn 
+                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
+                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+            }`}
           >
             {todayCheckedIn ? (
-              <><CheckCircle className="w-4 h-4 mr-2" /> Checked In Today</>
+              <><CheckCircle className="w-4 h-4" /> <span className="text-sm font-medium">Checked In Today</span></>
             ) : (
-              <><Navigation className="w-4 h-4 mr-2" /> Check In Now</>
-            )}
-          </Button>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">{today}</span>
-        </div>
-      </div>
-
-      {/* Check-In Dialog */}
-      <Dialog open={checkInOpen} onOpenChange={setCheckInOpen}>
-        <DialogContent className="max-w-md border-zinc-200 dark:border-zinc-700 rounded-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Self Check-In</DialogTitle>
-            <DialogDescription className="text-zinc-500 dark:text-zinc-400">Mark your attendance for today with location</DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-5 mt-4">
-            {/* Location Capture Section */}
-            <div className="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Your Location</span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={captureLocation}
-                  disabled={locationLoading}
-                  className="text-blue-600 hover:text-blue-700"
-                  data-testid="refresh-location-btn"
-                >
-                  {locationLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-                  <span className="ml-1">{locationLoading ? 'Capturing...' : 'Refresh'}</span>
-                </Button>
-              </div>
-              
-              {locationError ? (
-                <div className="flex items-start gap-2 text-red-600 dark:text-red-400">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">{locationError}</span>
-                </div>
-              ) : location ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="text-sm font-medium">Location captured</span>
-                  </div>
-                  {location.address && (
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                      {location.address}
-                    </p>
-                  )}
-                  <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                    Coordinates: {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-                    {location.accuracy && ` (±${Math.round(location.accuracy)}m)`}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-zinc-500">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Detecting your location...</span>
-                </div>
-              )}
-            </div>
-
-            {/* Work Location Selection */}
-            <div>
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3 block">Where are you working from?</label>
-              <div className="grid grid-cols-3 gap-2">
-                {WORK_LOCATIONS.map(loc => {
-                  const Icon = loc.icon;
-                  const isSelected = selectedLocation === loc.value;
-                  return (
-                    <button
-                      key={loc.value}
-                      type="button"
-                      onClick={() => setSelectedLocation(loc.value)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
-                        isSelected 
-                          ? `border-${loc.color}-500 bg-${loc.color}-50 dark:bg-${loc.color}-900/20` 
-                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                      }`}
-                      data-testid={`checkin-location-${loc.value}`}
-                    >
-                      <Icon className={`w-6 h-6 ${isSelected ? `text-${loc.color}-600` : 'text-zinc-400'}`} />
-                      <span className={`text-xs font-medium ${isSelected ? `text-${loc.color}-700 dark:text-${loc.color}-400` : 'text-zinc-600 dark:text-zinc-400'}`}>
-                        {loc.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <Button 
-              onClick={handleCheckIn}
-              disabled={checkInLoading || (!location && !locationError)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg py-2.5"
-              data-testid="confirm-checkin-btn"
-            >
-              {checkInLoading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-              ) : (
-                <><CheckCircle className="w-4 h-4 mr-2" /> Confirm Check-In</>
-              )}
-            </Button>
-            
-            {!location && !locationError && (
-              <p className="text-xs text-center text-zinc-500 dark:text-zinc-400">
-                Please wait for location to be captured or allow location access
-              </p>
+              <><Clock className="w-4 h-4" /> <span className="text-sm">Not checked in yet</span></>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">{today}</span>
+          {!todayCheckedIn && (
+            <span className="text-xs text-blue-600 dark:text-blue-400">Use Quick Check-in from Dashboard</span>
+          )}
+        </div>
+      </div>
 
       <div className="flex items-center gap-4 mb-6">
         <CalendarDays className="w-4 h-4 text-zinc-500" />
