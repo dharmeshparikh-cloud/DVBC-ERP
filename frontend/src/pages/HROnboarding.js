@@ -1211,6 +1211,148 @@ const HROnboarding = () => {
           </Button>
         )}
       </div>
+
+      {/* Onboarding Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="max-w-lg" data-testid="onboarding-success-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <UserCheck className="w-6 h-6" />
+              Employee Onboarded Successfully!
+            </DialogTitle>
+            <DialogDescription>
+              The employee account has been created. Share the login credentials below.
+            </DialogDescription>
+          </DialogHeader>
+
+          {onboardingSuccess && (
+            <div className="space-y-4 mt-4">
+              {/* Employee Details */}
+              <div className="bg-zinc-50 rounded-lg p-4 space-y-2">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <User className="w-4 h-4" /> Employee Details
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-zinc-500">Name:</span>
+                    <span className="ml-2 font-medium">{onboardingSuccess.employee.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Employee ID:</span>
+                    <span className="ml-2 font-medium">{onboardingSuccess.employee.id}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Email:</span>
+                    <span className="ml-2 font-medium">{onboardingSuccess.employee.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Department:</span>
+                    <span className="ml-2 font-medium">{onboardingSuccess.employee.department}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Designation:</span>
+                    <span className="ml-2 font-medium">{onboardingSuccess.employee.designation}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Joining Date:</span>
+                    <span className="ml-2 font-medium">{onboardingSuccess.employee.joiningDate}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Login Credentials */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-3">
+                <h4 className="font-semibold flex items-center gap-2 text-emerald-800">
+                  <Key className="w-4 h-4" /> Login Credentials
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between bg-white rounded-md p-2 border">
+                    <div>
+                      <span className="text-xs text-zinc-500 block">Login ID</span>
+                      <span className="font-mono font-bold text-lg">{onboardingSuccess.credentials.loginId}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(onboardingSuccess.credentials.loginId);
+                        toast.success('Login ID copied!');
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between bg-white rounded-md p-2 border">
+                    <div>
+                      <span className="text-xs text-zinc-500 block">Password</span>
+                      <span className="font-mono font-bold text-lg">{onboardingSuccess.credentials.password}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(onboardingSuccess.credentials.password);
+                        toast.success('Password copied!');
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-emerald-700">
+                  Employee should change password on first login.
+                </p>
+              </div>
+
+              {/* Reporting Manager */}
+              {onboardingSuccess.reportingManager && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold flex items-center gap-2 text-blue-800">
+                    <Building2 className="w-4 h-4" /> Reporting Manager
+                  </h4>
+                  <div className="mt-2 text-sm">
+                    <p><span className="text-zinc-500">Name:</span> <span className="font-medium">{onboardingSuccess.reportingManager.name}</span></p>
+                    <p><span className="text-zinc-500">Email:</span> <span className="font-medium">{onboardingSuccess.reportingManager.email}</span></p>
+                    {onboardingSuccess.reportingManager.department && (
+                      <p><span className="text-zinc-500">Department:</span> <span className="font-medium">{onboardingSuccess.reportingManager.department}</span></p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Mock Email Notification */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-xs text-amber-800 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  <span><strong>Notification sent</strong> (simulated): Welcome email with credentials sent to {onboardingSuccess.employee.email}</span>
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSuccessDialog(false);
+                navigate('/onboarding');
+                window.location.reload();
+              }}
+            >
+              Onboard Another
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSuccessDialog(false);
+                navigate('/employees');
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              View Employees
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
