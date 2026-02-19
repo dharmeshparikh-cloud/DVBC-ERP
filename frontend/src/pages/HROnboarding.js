@@ -1867,7 +1867,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
             </div>
           )}
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -1879,13 +1879,37 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
               Onboard Another
             </Button>
             <Button
+              variant="outline"
               onClick={() => {
                 setShowSuccessDialog(false);
                 navigate('/employees');
               }}
-              className="bg-emerald-600 hover:bg-emerald-700"
             >
               View Employees
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSuccessDialog(false);
+                // Navigate to CTC Designer with employee pre-selected
+                navigate(`/ctc-designer?employee=${onboardingSuccess?.employee?.id}`);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="go-to-ctc-designer"
+            >
+              <Wallet className="w-4 h-4 mr-2" />
+              Design CTC Structure
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSuccessDialog(false);
+                // Navigate to Document Builder with employee pre-selected
+                navigate(`/document-builder?employee=${onboardingSuccess?.employee?.id}`);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700"
+              data-testid="go-to-document-builder"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Generate Documents
             </Button>
           </DialogFooter>
         </DialogContent>
