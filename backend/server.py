@@ -2905,7 +2905,8 @@ async def record_project_payment(
     await db.project_payments.insert_one(payment_record)
     
     # Return without _id
-    del payment_record['_id'] if '_id' in payment_record else None
+    if '_id' in payment_record:
+        del payment_record['_id']
     
     return {
         "message": "Payment recorded successfully",
