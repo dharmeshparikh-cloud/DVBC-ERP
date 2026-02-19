@@ -699,7 +699,178 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 0: // Personal Info
+      case 0: // Quick Import (CSV Upload)
+        return (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-center pb-4 border-b">
+              <h3 className="text-lg font-semibold">Quick Import Options</h3>
+              <p className="text-sm text-zinc-500">Upload CSV for bulk onboarding or proceed with single employee</p>
+            </div>
+
+            {/* Download Template & Master File */}
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="border-dashed border-2 hover:border-emerald-500 cursor-pointer transition-colors" onClick={downloadCSVTemplate}>
+                <CardContent className="p-6 text-center">
+                  <Download className="w-10 h-10 mx-auto text-emerald-600 mb-3" />
+                  <h4 className="font-medium">Download CSV Template</h4>
+                  <p className="text-xs text-zinc-500 mt-1">Get the template with all required fields</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-dashed border-2 hover:border-blue-500 cursor-pointer transition-colors" onClick={downloadMasterFile}>
+                <CardContent className="p-6 text-center">
+                  <FileSpreadsheet className="w-10 h-10 mx-auto text-blue-600 mb-3" />
+                  <h4 className="font-medium">Download Master File</h4>
+                  <p className="text-xs text-zinc-500 mt-1">Export all existing employees</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* CSV Upload */}
+            <Card className="border-2 border-dashed">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <Upload className="w-12 h-12 mx-auto text-zinc-400 mb-4" />
+                  <h4 className="font-medium mb-2">Upload CSV for Bulk Onboarding</h4>
+                  <p className="text-sm text-zinc-500 mb-4">Upload a CSV file with multiple employees</p>
+                  
+                  <input
+                    ref={csvInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCSVUpload}
+                    className="hidden"
+                  />
+                  
+                  <Button variant="outline" onClick={() => csvInputRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Select CSV File
+                  </Button>
+                  
+                  {csvFile && (
+                    <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
+                      <p className="text-sm text-emerald-700">
+                        <FileSpreadsheet className="w-4 h-4 inline mr-2" />
+                        {csvFile.name} - {csvData.length} employees found
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* CSV Preview */}
+            {csvData.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Preview ({csvData.length} employees)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-60 overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Department</TableHead>
+                          <TableHead>Designation</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {csvData.slice(0, 10).map((row, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{row.first_name} {row.last_name}</TableCell>
+                            <TableCell className="text-zinc-500">{row.email}</TableCell>
+                            <TableCell><Badge variant="outline">{row.department}</Badge></TableCell>
+                            <TableCell>{row.designation}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {csvData.length > 10 && (
+                      <p className="text-center text-xs text-zinc-500 mt-2">
+                        ...and {csvData.length - 10} more
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => { setCsvData([]); setCsvFile(null); setBulkMode(false); }}>
+                      <X className="w-4 h-4 mr-2" />
+                      Clear
+                    </Button>
+                    <Button onClick={handleBulkOnboard} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
+                      {loading ? 'Processing...' : `Onboard ${csvData.length} Employees`}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Bulk Results */}
+            {bulkResults.length > 0 && (
+              <Card className="border-emerald-200 bg-emerald-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-emerald-600" />
+                      Bulk Onboarding Results
+                    </span>
+                    <Button size="sm" variant="outline" onClick={downloadBulkResults}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Results
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-h-40 overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Employee ID</TableHead>
+                          <TableHead>Password</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {bulkResults.map((r, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{r.name}</TableCell>
+                            <TableCell className="font-mono">{r.employee_id || '-'}</TableCell>
+                            <TableCell className="font-mono">{r.password || '-'}</TableCell>
+                            <TableCell>
+                              {r.status === 'success' ? (
+                                <Badge className="bg-emerald-100 text-emerald-700">Success</Badge>
+                              ) : (
+                                <Badge className="bg-red-100 text-red-700">Failed</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Skip to Single Employee */}
+            <div className="text-center pt-4 border-t">
+              <p className="text-sm text-zinc-500 mb-3">Or onboard a single employee manually</p>
+              <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                Continue with Single Employee
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 1: // Personal Info
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -710,6 +881,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                   onChange={(e) => handleInputChange('first_name', e.target.value)}
                   placeholder="Enter first name"
                   data-testid="onboard-first-name"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -719,6 +891,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                   onChange={(e) => handleInputChange('last_name', e.target.value)}
                   placeholder="Enter last name"
                   data-testid="onboard-last-name"
+                  required
                 />
               </div>
             </div>
@@ -732,15 +905,17 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="work@company.com"
                   data-testid="onboard-email"
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label>Personal Email</Label>
+                <Label>Personal Email *</Label>
                 <Input
                   type="email"
                   value={formData.personal_email}
                   onChange={(e) => handleInputChange('personal_email', e.target.value)}
                   placeholder="personal@email.com"
+                  required
                 />
               </div>
             </div>
@@ -762,15 +937,17 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                     maxLength={10}
                     data-testid="onboard-phone"
                     className="flex-1"
+                    required
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Date of Birth</Label>
+                <Label>Date of Birth *</Label>
                 <Input
                   type="date"
                   value={formData.date_of_birth}
                   onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -788,6 +965,20 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Address *</Label>
+                <Textarea
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  placeholder="Enter full address"
+                  className="h-[42px] min-h-[42px]"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+        );
               </div>
             </div>
 
