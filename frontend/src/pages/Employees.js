@@ -237,36 +237,6 @@ const Employees = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      employee_id: generateEmployeeId(),
-      first_name: '',
-      last_name: '',
-      email: '',
-      phone: '',
-      personal_email: '',
-      department: '',
-      designation: '',
-      employment_type: 'full_time',
-      joining_date: '',
-      reporting_manager_id: '',
-      salary: '',
-      bank_details: {
-        account_number: '',
-        ifsc_code: '',
-        bank_name: '',
-        branch: '',
-        account_holder_name: ''
-      }
-    });
-  };
-
-  const openCreateDialog = () => {
-    resetForm();
-    setFormData(prev => ({ ...prev, employee_id: generateEmployeeId() }));
-    setCreateDialog(true);
-  };
-
   const openEditDialog = (emp) => {
     setSelectedEmployee(emp);
     setFormData({
