@@ -1172,6 +1172,120 @@ const ApprovalsCenter = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Permission Change Detail Dialog */}
+      <Dialog open={permissionDetailDialog} onOpenChange={setPermissionDetailDialog}>
+        <DialogContent className={`${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200'} rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto`}>
+          <DialogHeader>
+            <DialogTitle className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
+              <User className="w-5 h-5 text-indigo-500" />
+              Permission Change Request
+            </DialogTitle>
+          </DialogHeader>
+          {selectedPermission && (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Employee</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                      {selectedPermission.employee_name} ({selectedPermission.employee_id})
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Requested By</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                      {selectedPermission.requested_by_name}
+                    </p>
+                  </div>
+                  {selectedPermission.note && (
+                    <div className="col-span-2">
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Note</p>
+                      <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedPermission.note}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Changes Requested */}
+              <div className={`p-4 rounded-lg border-2 border-indigo-500 ${isDark ? 'bg-indigo-900/20' : 'bg-indigo-50'}`}>
+                <h4 className="text-sm font-medium mb-3 text-indigo-600">Requested Changes</h4>
+                <div className="space-y-2 text-sm">
+                  {selectedPermission.changes?.role && (
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Role:</span> <strong>{selectedPermission.changes.role}</strong></p>
+                  )}
+                  {selectedPermission.changes?.reporting_manager_id && (
+                    <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Reporting Manager:</span> <strong>{selectedPermission.changes.reporting_manager_id}</strong></p>
+                  )}
+                  {selectedPermission.changes?.permissions && (
+                    <div>
+                      <p className={`${isDark ? 'text-zinc-500' : 'text-zinc-400'} mb-1`}>Module Permissions:</p>
+                      <div className="pl-2 space-y-1">
+                        {Object.entries(selectedPermission.changes.permissions).map(([module, perms]) => (
+                          <div key={module} className="text-xs">
+                            <strong className="capitalize">{module}:</strong> {Object.entries(perms).map(([feature, actions]) => (
+                              <span key={feature} className="ml-2">
+                                {feature}: {Object.entries(actions).filter(([,v]) => v).map(([k]) => k).join(', ')}
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Original Values */}
+              {selectedPermission.original_values && (
+                <div className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800/50' : 'border-zinc-200 bg-zinc-50'}`}>
+                  <h4 className={`text-sm font-medium mb-3 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Original Values</h4>
+                  <div className="space-y-2 text-sm">
+                    {selectedPermission.original_values.role && (
+                      <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Role:</span> {selectedPermission.original_values.role}</p>
+                    )}
+                    {selectedPermission.original_values.reporting_manager_id && (
+                      <p><span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>Reporting Manager:</span> {selectedPermission.original_values.reporting_manager_id}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Comments</label>
+                <Textarea
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  placeholder="Comments for approval/rejection..."
+                  rows={2}
+                  className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+                />
+              </div>
+              
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setPermissionDetailDialog(false)} className={isDark ? 'border-zinc-600' : ''}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handlePermissionAction(selectedPermission.id, 'reject')}
+                  disabled={actionLoading}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><XCircle className="w-4 h-4 mr-1" /> Reject</>}
+                </Button>
+                <Button 
+                  onClick={() => handlePermissionAction(selectedPermission.id, 'approve')}
+                  disabled={actionLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4 mr-1" /> Approve</>}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
