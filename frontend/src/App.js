@@ -294,6 +294,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="employee-scorecard" element={<EmployeeScorecard />} />
         <Route path="role-management" element={<RoleManagement />} />
         <Route path="letter-management" element={<LetterManagement />} />
+        <Route path="document-builder" element={<DocumentBuilder />} />
         <Route path="letterhead-settings" element={<LetterheadSettings />} />
         <Route path="admin-dashboard-mockups" element={<AdminDashboardMockups />} />
         <Route path="admin-dashboard" element={<AdminDashboard />} />
