@@ -1463,7 +1463,7 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
           </div>
         );
 
-      case 4: // Review
+      case 5: // Review
         return (
           <div className="space-y-6">
             {/* Personal Info Summary */}
