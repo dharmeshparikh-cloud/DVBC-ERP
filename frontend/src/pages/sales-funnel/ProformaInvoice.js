@@ -37,6 +37,8 @@ const ProformaInvoice = () => {
   const [selectedLead, setSelectedLead] = useState(null);
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
   const [viewMode, setViewMode] = useState('card');
+  const [activeView, setActiveView] = useState('list'); // 'list' or 'history'
+  const [agreements, setAgreements] = useState([]);
   
   const [formData, setFormData] = useState({
     pricing_plan_id: pricingPlanIdFromUrl || '',
