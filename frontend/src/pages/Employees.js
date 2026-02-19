@@ -609,16 +609,26 @@ const Employees = () => {
                         </div>
                       </div>
                       {canManage && (
-                        <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-zinc-100" onClick={(e) => e.stopPropagation()}>
-                          <Button onClick={() => openViewDialog(emp)} variant="ghost" size="sm" className="h-8 px-2">
-                            <Eye className="w-4 h-4 text-zinc-500" />
-                          </Button>
-                          <Button onClick={() => openEditDialog(emp)} variant="ghost" size="sm" className="h-8 px-2">
-                            <Edit2 className="w-4 h-4 text-zinc-500" />
-                          </Button>
+                        <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-zinc-100" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            <Button onClick={() => openViewDialog(emp)} variant="ghost" size="sm" className="h-8 px-2">
+                              <Eye className="w-4 h-4 text-zinc-500" />
+                            </Button>
+                            <Button onClick={() => openEditDialog(emp)} variant="ghost" size="sm" className="h-8 px-2">
+                              <Edit2 className="w-4 h-4 text-zinc-500" />
+                            </Button>
+                          </div>
                           {emp.user_id ? (
-                            <Button onClick={() => handleRevokeAccess(emp.id)} variant="ghost" size="sm" className="h-8 px-2" title="Revoke system access">
-                              <UserX className="w-4 h-4 text-orange-500" />
+                            <Button 
+                              onClick={() => handleRevokeAccess(emp.id)} 
+                              variant="destructive" 
+                              size="sm" 
+                              className="h-7 px-2 bg-red-500 hover:bg-red-600 text-white" 
+                              title="Revoke system access"
+                              data-testid={`card-revoke-${emp.employee_id}`}
+                            >
+                              <UserX className="w-3.5 h-3.5 mr-1" />
+                              <span className="text-xs">Revoke Access</span>
                             </Button>
                           ) : (
                             <Button onClick={() => { setSelectedEmployee(emp); setGrantAccessDialog(true); }} variant="ghost" size="sm" className="h-8 px-2 bg-emerald-50 hover:bg-emerald-100" title="Grant system access">
