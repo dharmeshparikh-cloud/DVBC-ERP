@@ -76,7 +76,8 @@ const Employees = () => {
       bank_name: '',
       branch: '',
       account_holder_name: ''
-    }
+    },
+    assigned_locations: []  // Geo-fence locations for attendance
   });
 
   const isAdmin = user?.role === 'admin';
