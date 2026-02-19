@@ -384,7 +384,7 @@ const Employees = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase text-zinc-500">With System Access</p>
-                  <p className="text-2xl font-semibold text-emerald-600">{stats.with_user_access}</p>
+                  <p className="text-2xl font-semibold text-emerald-600">{stats.with_portal_access || 0}</p>
                 </div>
                 <UserCheck className="w-8 h-8 text-emerald-200" />
               </div>
@@ -395,7 +395,7 @@ const Employees = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase text-zinc-500">No System Access</p>
-                  <p className="text-2xl font-semibold text-amber-600">{stats.without_user_access}</p>
+                  <p className="text-2xl font-semibold text-amber-600">{stats.without_portal_access || 0}</p>
                 </div>
                 <UserX className="w-8 h-8 text-amber-200" />
               </div>
