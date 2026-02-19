@@ -9470,24 +9470,12 @@ async def get_my_assigned_clients(current_user: User = Depends(get_current_user)
 @api_router.post("/my/check-in")
 async def self_check_in(data: dict, current_user: User = Depends(get_current_user)):
     """
-    Self check-in for employees with mandatory selfie and GPS location.
-    - Validates location against office/client locations (500m radius)
+    Simple self check-in for employees with selfie and GPS location.
+    - All check-ins are auto-approved (no geo-fencing)
     - Requires selfie capture
-    - Auto-approves if location matches, else sends to HR for approval
-    - WFH is NOT allowed
-    - Consulting employees can check in from office OR assigned client sites
-    - Non-consulting employees (HR, Admin, Sales) can ONLY check in from office
-    - Employee must be Go-Live Active to check in
+    - Links with payroll as 'present'
     """
     emp = await _get_my_employee(current_user)
-    
-    # Check if employee is Go-Live Active
-    go_live_status = emp.get("go_live_status")
-    if go_live_status != "active":
-        raise HTTPException(
-            status_code=403, 
-            detail="You cannot check in until your Go-Live status is Active. Please contact HR."
-        )
     
     # Check if employee mobile app access is disabled
     if emp.get("mobile_app_disabled"):
@@ -9507,64 +9495,34 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     if work_location not in ["in_office", "onsite"]:
         raise HTTPException(status_code=400, detail="Invalid work location. Only 'In Office' or 'On-Site' allowed.")
     
-    # Non-consulting employees cannot select "onsite" - BUT Sales can also visit clients
-    dept = emp.get("department", "").lower()
-    role = emp.get("designation", "").lower()
-    user_role = current_user.role.lower() if current_user.role else ""
-    is_consulting = dept in ["consulting", "delivery"] or "consultant" in role
-    is_sales = user_role in ["admin", "executive", "account_manager", "manager"] or dept in ["sales", "business development"]
-    
-    # Both consulting and sales teams can do onsite visits
-    if work_location == "onsite" and not (is_consulting or is_sales):
-        raise HTTPException(
-            status_code=400, 
-            detail="On-Site check-in is only available for Consulting/Delivery or Sales team members. Please select 'Office'."
-        )
-    
-    # For onsite, client selection is mandatory
+    # For onsite, client selection is optional but recommended
     client_id = data.get("client_id")
     client_name = data.get("client_name")
     project_id = data.get("project_id")
     project_name = data.get("project_name")
-    
-    if work_location == "onsite" and not client_name:
-        raise HTTPException(status_code=400, detail="Please select a client for On-Site check-in")
     
     # Mandatory selfie
     selfie_data = data.get("selfie")
     if not selfie_data:
         raise HTTPException(status_code=400, detail="Selfie is mandatory for check-in")
     
-    # Mandatory geo-location
+    # Mandatory geo-location (for records, not for validation)
     geo_location = data.get("geo_location")
     if not geo_location or not geo_location.get("latitude"):
         raise HTTPException(status_code=400, detail="GPS location is mandatory for check-in")
     
-    # Validate location against approved locations (geofencing)
-    location_validation = await validate_checkin_location(emp, geo_location, work_location)
-    
-    # Determine approval status
-    if location_validation["is_valid"]:
-        approval_status = "approved"
-        approval_note = f"Auto-approved: Within 500m of {location_validation['matched_location']}"
-    else:
-        approval_status = "pending_approval"
-        justification = data.get("justification", "")
-        if not justification:
-            raise HTTPException(
-                status_code=400, 
-                detail="You are not within 500m of any approved location. Please provide justification for HR approval."
-            )
-        approval_note = f"Pending HR approval: {location_validation.get('reason', 'Unknown location')}"
+    # All check-ins are auto-approved (no geo-fencing)
+    approval_status = "approved"
     
     # Build attendance record
     record = {
         "id": str(uuid.uuid4()),
         "employee_id": emp["id"],
+        "employee_code": emp.get("employee_id", ""),
         "employee_name": f"{emp['first_name']} {emp['last_name']}",
         "department": emp.get("department", ""),
         "date": date_str,
-        "status": "present",
+        "status": "present",  # For payroll linkage
         "work_location": work_location,
         # Client info for onsite visits
         "client_id": client_id if work_location == "onsite" else None,
@@ -9572,12 +9530,10 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "project_id": project_id if work_location == "onsite" else None,
         "project_name": project_name if work_location == "onsite" else None,
         "approval_status": approval_status,
-        "approval_note": approval_note,
-        "justification": data.get("justification", ""),
-        "remarks": data.get("remarks", "Self check-in with selfie"),
-        "check_in_method": "self_check_in",
+        "remarks": data.get("remarks", "Quick check-in"),
+        "check_in_method": "quick_check_in",
         "check_in_time": datetime.now(timezone.utc).isoformat(),
-        "selfie": selfie_data,  # Base64 encoded image
+        "selfie": selfie_data,
         "geo_location": {
             "latitude": geo_location.get("latitude"),
             "longitude": geo_location.get("longitude"),
@@ -9585,69 +9541,11 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
             "address": geo_location.get("address"),
             "captured_at": geo_location.get("captured_at", datetime.now(timezone.utc).isoformat())
         },
-        "location_validation": {
-            "is_valid": location_validation["is_valid"],
-            "matched_location": location_validation.get("matched_location"),
-            "location_type": location_validation.get("location_type"),
-            "distance": location_validation.get("distance")
-        },
         "created_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.attendance.insert_one(record)
-    
-    # If pending approval, create notifications for RM, HR Manager, and Admin
-    if approval_status == "pending_approval":
-        # Get reporting manager
-        rm_user_id = None
-        if emp.get("reporting_manager_id"):
-            rm_emp = await db.employees.find_one({"id": emp["reporting_manager_id"]}, {"_id": 0, "user_id": 1, "first_name": 1, "last_name": 1})
-            if rm_emp and rm_emp.get("user_id"):
-                rm_user_id = rm_emp["user_id"]
-                # Notify Reporting Manager (Actionable)
-                await db.notifications.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "user_id": rm_user_id,
-                    "title": "Attendance Approval Required",
-                    "message": f"{emp['first_name']} {emp['last_name']} checked in from outside approved geo-fence. Justification: {data.get('justification', 'N/A')}",
-                    "type": "attendance_approval",
-                    "reference_id": record["id"],
-                    "status": "pending",
-                    "is_read": False,
-                    "link": "/approvals",
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                })
-        
-        # Notify HR Managers (Actionable)
-        hr_users = await db.users.find({"role": "hr_manager"}, {"_id": 0, "id": 1}).to_list(20)
-        for hr_user in hr_users:
-            if hr_user["id"] != rm_user_id:  # Don't duplicate if RM is HR
-                await db.notifications.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "user_id": hr_user["id"],
-                    "title": "Attendance Approval Required",
-                    "message": f"{emp['first_name']} {emp['last_name']} ({emp.get('employee_id')}) checked in from outside geo-fence.",
-                    "type": "attendance_approval",
-                    "reference_id": record["id"],
-                    "status": "pending",
-                    "is_read": False,
-                    "link": "/approvals",
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                })
-        
-        # Notify Admin (Info only - not actionable, just FYI)
-        admin_users = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(10)
-        for admin_user in admin_users:
-            await db.notifications.insert_one({
-                "id": str(uuid.uuid4()),
-                "user_id": admin_user["id"],
-                "title": "Attendance Pending Approval",
-                "message": f"{emp['first_name']} {emp['last_name']} checked in from outside geo-fence. Awaiting RM/HR approval.",
-                "type": "attendance_pending_info",
-                "reference_id": record["id"],
-                "status": "info",
-                "is_read": False,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
     
