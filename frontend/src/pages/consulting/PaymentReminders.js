@@ -437,9 +437,32 @@ const PaymentReminders = () => {
                       </div>
                     </div>
 
-                    <Button variant="ghost" size="sm">
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                      {payment.days_until_due <= 7 && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); handleSendReminder(payment); }}
+                          title="Send reminder"
+                        >
+                          <Send className="w-4 h-4 mr-1" />
+                          Remind
+                        </Button>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); openRecordPayment(payment); }}
+                        title="Record payment"
+                      >
+                        <CreditCard className="w-4 h-4 mr-1" />
+                        Record
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/consulting/my-projects`)}>
+                        <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
