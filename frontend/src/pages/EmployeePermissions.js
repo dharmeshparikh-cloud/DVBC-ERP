@@ -512,15 +512,15 @@ const EmployeePermissions = () => {
                   <div className="space-y-2">
                     <Label>Reporting Manager</Label>
                     <Select 
-                      value={reportingManager || ''} 
-                      onValueChange={setReportingManager}
+                      value={reportingManager || 'none'} 
+                      onValueChange={(v) => setReportingManager(v === 'none' ? null : v)}
                       disabled={!editMode}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select manager" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {employees
                           .filter(e => e.id !== selectedEmployee.id)
                           .map(emp => (
