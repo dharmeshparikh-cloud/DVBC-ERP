@@ -599,7 +599,8 @@ async def get_employees_by_department(
     if current_user.role not in ["admin", "hr_manager"]:
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
-    if department not in DEPARTMENTS:
+    DEPARTMENTS = await get_departments_config()
+    if department not in DEPARTMENTS and department not in DEFAULT_DEPARTMENTS:
         raise HTTPException(status_code=400, detail=f"Invalid department: {department}")
     
     db = get_db()
@@ -611,17 +612,20 @@ async def get_employees_by_department(
             "$or": [
                 {"departments": department},
                 {"primary_department": department},
-                {"department": department}
+                {"department": department},
+                {"additional_departments": department}  # Include special permissions
             ]
         },
         {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1,
          "designation": 1, "level": 1, "departments": 1, "primary_department": 1,
-         "user_id": 1}
+         "additional_departments": 1, "user_id": 1}
     ).to_list(500)
+    
+    dept_info = DEPARTMENTS.get(department) or DEFAULT_DEPARTMENTS.get(department, {})
     
     return {
         "department": department,
-        "department_info": DEPARTMENTS[department],
+        "department_info": dept_info,
         "employee_count": len(employees),
         "employees": [
             {
