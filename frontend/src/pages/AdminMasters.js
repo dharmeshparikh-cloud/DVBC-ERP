@@ -87,6 +87,7 @@ const AdminMasters = () => {
 
   useEffect(() => {
     fetchAllMasters();
+    fetchDepartments();
   }, []);
 
   useEffect(() => {
@@ -94,6 +95,15 @@ const AdminMasters = () => {
       fetchSowData();
     }
   }, [activeTab]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await axios.get(`${API}/permission-config/departments?include_inactive=true`);
+      setDepartments(res.data.departments || []);
+    } catch (error) {
+      console.error('Failed to fetch departments:', error);
+    }
+  };
 
   const fetchSowData = async () => {
     try {
