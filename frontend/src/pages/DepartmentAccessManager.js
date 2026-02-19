@@ -87,11 +87,22 @@ const DepartmentAccessManager = () => {
       const statsRes = await fetch(`${API_URL}/api/department-access/stats`, { headers });
       if (statsRes.ok) setStats(await statsRes.json());
 
-      // Fetch departments config
-      const deptRes = await fetch(`${API_URL}/api/department-access/departments`, { headers });
-      if (deptRes.ok) {
-        const data = await deptRes.json();
-        setDepartments(data.departments);
+      // Fetch configured departments from permission-config
+      const configDeptRes = await fetch(`${API_URL}/api/permission-config/departments`, { headers });
+      if (configDeptRes.ok) {
+        const data = await configDeptRes.json();
+        setConfiguredDepts(data.departments);
+        // Update DEPT_CONFIG dynamically
+        const deptObj = {};
+        data.departments.forEach(d => {
+          deptObj[d.name] = {
+            icon: DEPT_CONFIG[d.name]?.icon || Building2,
+            color: `bg-[${d.color}]`,
+            textColor: `text-[${d.color}]`,
+            bgLight: 'bg-gray-50'
+          };
+        });
+        setDepartments(deptObj);
       }
 
       // Fetch all employees
@@ -124,8 +135,10 @@ const DepartmentAccessManager = () => {
       filtered = filtered.filter(e => 
         e.departments?.includes(selectedDept) ||
         e.primary_department === selectedDept ||
-        e.department === selectedDept
+        e.department === selectedDept ||
+        e.additional_departments?.includes(selectedDept)
       );
+    }
     }
     
     setFilteredEmployees(filtered);
