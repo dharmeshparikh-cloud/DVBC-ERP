@@ -107,7 +107,38 @@ const HROnboarding = () => {
 
   useEffect(() => {
     fetchManagers();
+    generateEmployeeId();
   }, []);
+
+  // Auto-generate Employee ID with EMP prefix
+  const generateEmployeeId = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API}/employees`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const employees = await response.json();
+        // Find the highest EMP number
+        let maxNum = 0;
+        employees.forEach(emp => {
+          const match = emp.employee_id?.match(/EMP(\d+)/i);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum) maxNum = num;
+          }
+        });
+        // Generate next number with padding
+        const nextNum = maxNum + 1;
+        const newEmployeeId = `EMP${String(nextNum).padStart(3, '0')}`;
+        setFormData(prev => ({ ...prev, employee_id: newEmployeeId }));
+      }
+    } catch (error) {
+      console.error('Failed to generate employee ID:', error);
+      // Default fallback
+      setFormData(prev => ({ ...prev, employee_id: `EMP${Date.now().toString().slice(-4)}` }));
+    }
+  };
 
   const fetchManagers = async () => {
     try {
@@ -117,10 +148,8 @@ const HROnboarding = () => {
       });
       if (response.ok) {
         const users = await response.json();
-        // Filter for potential managers
-        const managerRoles = ['manager', 'hr_manager', 'project_manager', 'principal_consultant', 'admin'];
-        const potentialManagers = users.filter(u => managerRoles.includes(u.role));
-        setManagers(potentialManagers);
+        // Filter for potential managers - anyone can be a manager now
+        setManagers(users.filter(u => u.is_active !== false));
       }
     } catch (error) {
       console.error('Failed to fetch managers:', error);
