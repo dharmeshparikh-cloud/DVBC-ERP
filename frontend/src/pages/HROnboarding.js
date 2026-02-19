@@ -88,11 +88,10 @@ const HROnboarding = () => {
     departments: [],          // Multi-department array
     primary_department: '',   // Explicitly marked primary
     designation: '',
-    role: 'consultant',
-    level: 'executive',  // Employee hierarchy level
     employment_type: 'full_time',
     joining_date: '',
     reporting_manager_id: '',
+    is_view_only: false,      // View-only flag (simplified permission)
     
     // Documents (file references)
     documents: [],
