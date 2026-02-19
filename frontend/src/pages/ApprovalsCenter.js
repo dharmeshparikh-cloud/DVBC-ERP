@@ -289,7 +289,7 @@ const ApprovalsCenter = () => {
           </Card>
         )}
 
-        {(isAdmin || isHR) && (
+        {isHR && (
           <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
             <CardContent className="p-3 md:p-4">
               <div className="flex items-center justify-between">
