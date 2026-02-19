@@ -405,6 +405,87 @@ const ApprovalsCenter = () => {
         </Card>
       )}
 
+      {/* Permission Change Requests Section - For Admin */}
+      {isAdmin && permissionApprovals.length > 0 && (
+        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <User className="w-5 h-5 text-indigo-500" />
+              Pending Permission Changes ({permissionApprovals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {permissionApprovals.map((perm, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                          {perm.employee_name} ({perm.employee_id})
+                        </span>
+                        <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                          Permission Change
+                        </Badge>
+                      </div>
+                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        <span>Role: <strong>{perm.changes?.role || 'N/A'}</strong></span>
+                        {perm.changes?.reporting_manager_id && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <span>New Manager: {perm.changes.reporting_manager_id}</span>
+                          </>
+                        )}
+                      </div>
+                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        Requested by: {perm.requested_by_name} on {new Date(perm.created_at).toLocaleDateString()}
+                        {perm.note && <span className="ml-2">• Note: {perm.note}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setSelectedPermission(perm); setPermissionDetailDialog(true); }}
+                        className={isDark ? 'border-zinc-600' : ''}
+                        data-testid={`view-perm-${perm.id}`}
+                      >
+                        <Eye className="w-4 h-4 mr-1" /> View
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handlePermissionAction(perm.id, 'approve')}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        data-testid={`approve-perm-${perm.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          const reason = prompt('Enter rejection reason:');
+                          if (reason) {
+                            setComments(reason);
+                            handlePermissionAction(perm.id, 'reject');
+                          }
+                        }}
+                        data-testid={`reject-perm-${perm.id}`}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Go-Live Approvals Section - For Admin */}
       {isAdmin && goLiveApprovals.length > 0 && (
         <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
