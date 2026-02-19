@@ -510,6 +510,126 @@ SALES_MEETING_ROLES = ["admin", "executive", "account_manager"]
 CONSULTING_MEETING_ROLES = ["admin", "project_manager", "consultant", "principal_consultant",
     "lean_consultant", "lead_consultant", "senior_consultant", "subject_matter_expert", "manager"]
 
+# =====================================================
+# SIMPLIFIED PERMISSION SYSTEM
+# =====================================================
+# New system uses only:
+# 1. Department → What pages user can access
+# 2. Has Reportees → Auto-detected from reporting_manager_id for team permissions
+# 3. is_view_only → Boolean flag for view-only users
+# 4. Special Permissions → Admin/HR granted cross-department access
+# =====================================================
+
+# Admin users who can do everything
+ADMIN_USERS = ["admin"]
+
+# HR users who can manage employees
+HR_USERS = ["admin", "hr_manager", "hr_executive"]
+
+# Department to pages mapping
+DEPARTMENT_PAGES = {
+    "Sales": ["/dashboard", "/leads", "/clients", "/sales-meetings", "/quotations", "/pricing-plans",
+              "/agreements", "/payment-verification", "/sales-funnel", "/sow", "/kickoff-requests"],
+    "HR": ["/employees", "/onboarding", "/attendance", "/leave-mgmt", "/payroll", "/org-chart",
+           "/letter-management", "/letterhead-settings", "/ctc-designer", "/attendance-approvals"],
+    "Consulting": ["/consulting", "/my-projects", "/project-deliverables", "/consulting-meetings",
+                   "/meeting-mom", "/project-payments", "/task-management"],
+    "Finance": ["/finance", "/invoices", "/payments", "/expenses", "/reports"],
+    "Admin": ["/admin-masters", "/department-access", "/user-management", "/system-settings"]
+}
+
+# My Workspace pages - available to ALL authenticated users
+MY_WORKSPACE_PAGES = ["/my-attendance", "/my-leaves", "/my-salary-slips", "/my-expenses",
+                      "/my-bank-details", "/mobile-app", "/change-password"]
+
+
+async def get_user_departments(user_id: str) -> list:
+    """Get all departments a user has access to (primary + special permissions)"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        return []
+    
+    departments = user.get("departments", [])
+    if user.get("department") and user.get("department") not in departments:
+        departments.append(user.get("department"))
+    
+    # Add special permission departments
+    special = user.get("special_permissions", {})
+    if special.get("extra_departments"):
+        departments.extend(special.get("extra_departments", []))
+    
+    return list(set(departments))
+
+
+async def has_reportees(user_id: str) -> bool:
+    """Check if user has any employees reporting to them"""
+    count = await db.employees.count_documents({"reporting_manager_id": user_id})
+    return count > 0
+
+
+async def get_reportee_ids(user_id: str) -> list:
+    """Get list of employee IDs who report to this user"""
+    employees = await db.employees.find(
+        {"reporting_manager_id": user_id},
+        {"id": 1, "user_id": 1, "_id": 0}
+    ).to_list(1000)
+    return [e.get("user_id") or e.get("id") for e in employees]
+
+
+def is_admin_user(user) -> bool:
+    """Check if user is an admin"""
+    return user.role in ADMIN_USERS or user.department == "Admin"
+
+
+def is_hr_user(user) -> bool:
+    """Check if user is HR"""
+    return user.role in HR_USERS or user.department == "HR"
+
+
+def can_edit_data(user) -> bool:
+    """Check if user can create/edit data (not view-only)"""
+    # Admins and HR can always edit
+    if is_admin_user(user) or is_hr_user(user):
+        return True
+    # Check view_only flag
+    return not getattr(user, 'is_view_only', False)
+
+
+async def can_access_employee_data(current_user, target_employee_id: str) -> bool:
+    """
+    Check if current user can access target employee's data.
+    Rules:
+    1. Admin/HR can access all
+    2. User can access own data
+    3. Manager can access reportees' data
+    """
+    if is_admin_user(current_user) or is_hr_user(current_user):
+        return True
+    
+    # Own data
+    if current_user.id == target_employee_id:
+        return True
+    
+    # Check if target reports to current user
+    reportee_ids = await get_reportee_ids(current_user.id)
+    return target_employee_id in reportee_ids
+
+
+async def get_accessible_employee_ids(current_user) -> list:
+    """
+    Get list of employee IDs the current user can access.
+    Returns None if user can access all (admin/HR).
+    """
+    if is_admin_user(current_user) or is_hr_user(current_user):
+        return None  # Can access all
+    
+    accessible = [current_user.id]  # Own data
+    reportee_ids = await get_reportee_ids(current_user.id)
+    accessible.extend(reportee_ids)
+    
+    return list(set(accessible))
+
+
 class MeetingActionItem(BaseModel):
     """Action item from MOM"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
