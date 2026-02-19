@@ -2048,3 +2048,85 @@ Removed Admin from bank detail and document verification flows. HR now handles t
 - Frontend: All Playwright tests passed
 - Test file: `/app/backend/tests/test_notifications_page.py`
 - Test report: `/app/test_reports/iteration_69.json`
+
+---
+## Session 14 (Feb 19, 2026) - Geo-Fence Attendance System
+
+### Feature: Field Employee Geo-Fence Attendance
+
+**Requirements Implemented:**
+1. **Geo-Fence Locations per Employee** (HR manages in Employee Edit page)
+   - Multiple locations per employee (Office, Client Site, Other)
+   - Each location: Name, Address, Lat/Long, Radius (200m/500m/1km/2km)
+   - HR can add/edit/remove locations
+
+2. **Proximity-Based Auto-Approval**
+   - Within assigned location radius → Auto-approved ✓
+   - Outside all assigned locations → Pending approval
+   - Employee must provide justification for out-of-range check-in
+
+3. **Approval Workflow**
+   - **Reporting Manager** can approve their direct reportees
+   - **HR Manager** can approve any employee
+   - **Admin** receives info-only notification (cannot approve directly)
+   - Notifications sent to all three on pending check-in
+
+4. **Payroll Deadline Logic**
+   - 7 days before payroll run: Unapproved attendance auto-marked as "Absent"
+   - `POST /api/hr/attendance/finalize-for-payroll` endpoint
+   - Employees notified when their pending attendance is auto-rejected
+
+5. **Regularization Window**
+   - Open until 3rd of each month only
+   - HR/Admin can change absent to present with reason
+   - `POST /api/hr/attendance/regularize` endpoint
+   - `GET /api/hr/attendance/regularization-window` returns status
+
+6. **Merged Check-in UI**
+   - Removed standalone check-in button from MyAttendance page
+   - Single unified flow via Quick Check-in widget on Dashboard
+   - MyAttendance shows status indicator: "Checked In Today" or "Not checked in yet"
+
+### API Endpoints Added
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/hr/attendance/finalize-for-payroll` | POST | Mark pending as absent (7 days before payroll) |
+| `/hr/attendance/regularize` | POST | Change status (until 3rd only) |
+| `/hr/attendance/regularization-window` | GET | Check if window is open |
+| `/hr/attendance-approval/{id}` | POST | RM/HR approve/reject attendance |
+
+### Database Schema Updates
+
+```javascript
+// Employee document - assigned_locations field
+{
+  assigned_locations: [
+    {
+      id: String,
+      name: String,  // e.g., "Infosys Pune"
+      type: "client" | "office" | "other",
+      address: String,
+      latitude: Number,
+      longitude: Number,
+      radius: Number  // meters (default 500)
+    }
+  ]
+}
+
+// Attendance document - new fields
+{
+  approval_status: "auto_approved" | "pending_approval" | "approved" | "rejected" | "auto_rejected",
+  status: "present" | "absent",
+  approved_by_role: "Reporting Manager" | "HR Manager",
+  regularized: Boolean,
+  regularization_reason: String,
+  finalized_reason: String
+}
+```
+
+### Testing Results
+- Backend: 12/17 tests passed (2 skipped, 3 expected failures)
+- Frontend: 100% Playwright tests passed
+- Test file: `/app/backend/tests/test_geofence_attendance.py`
+- Test report: `/app/test_reports/iteration_70.json`
