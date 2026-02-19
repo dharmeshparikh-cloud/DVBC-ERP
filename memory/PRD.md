@@ -514,6 +514,11 @@ A comprehensive travel reimbursement feature for employees:
   - [x] Dropdown shows all employees except the currently selected one
   - [x] Format: "Employee Name (Employee ID)"
   - [x] "None" option available for employees without a manager
+- [x] **HR Manager Role Access Fix**
+  - [x] Added `hr_manager` to `ADMIN_ROLES` so HR Managers can see Admin section
+  - [x] Added "Employee Permissions" to HR section with `requiresHRorAdmin: true`
+  - [x] HR Manager now has full access to all HR and Admin features
+  - [x] **Permanent rule:** HR Manager role has equal visibility as Admin for all HR-related features
 
 ### Session 9 (Feb 17, 2026) - ERP Workflow, Permissions & Onboarding
 - [x] **High-Priority Workflow Diagrams Added**
