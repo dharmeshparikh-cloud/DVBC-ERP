@@ -747,23 +747,6 @@ const Employees = () => {
         </Card>
       )}
 
-      {/* Create Employee Dialog */}
-      <Dialog open={createDialog} onOpenChange={setCreateDialog}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Add New Employee</DialogTitle>
-          </DialogHeader>
-          <EmployeeForm 
-            formData={formData} 
-            setFormData={setFormData} 
-            employees={employees}
-            onSubmit={handleCreateEmployee}
-            onCancel={() => setCreateDialog(false)}
-            submitLabel="Create Employee"
-          />
-        </DialogContent>
-      </Dialog>
-
       {/* Edit Employee Dialog */}
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
         <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
