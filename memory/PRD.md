@@ -464,41 +464,38 @@ A comprehensive travel reimbursement feature for employees:
 - [ ] Skill matrix and capacity planning
 - [ ] Training/certification tracking
 
-### Session 10 (Feb 19, 2026) - Document Center (Unified Document Management)
+### Session 10 (Feb 19, 2026) - Document Center & Employee Access Management
 - [x] **Unified Document Center** (Merged Letter Management + Document Builder)
   - [x] Created single `/document-center` page replacing both `/letter-management` and `/document-builder`
   - [x] All documents now linked by **employee_id** (not candidate_id)
   - [x] Employee selection pulls from onboarding data (department, reporting manager, designation, etc.)
   - [x] 3 Main Tabs: Generate, History, Templates
   - [x] Stats dashboard showing document counts by type
-- [x] **Generate Tab Features:**
-  - [x] 4 document types: Offer, Appointment, Confirmation, Experience Letter
-  - [x] Employee selection dropdown with employee_id + department badges
-  - [x] Auto-fills data from employee record (department, designation, reporting manager, joining date)
-  - [x] Custom values override (CTC, Location, Notice Period, etc.)
-  - [x] Live preview with D&V Business Consulting letterhead
-  - [x] Print and Download functionality
-- [x] **History Tab Features:**
-  - [x] Complete audit trail of all generated documents
-  - [x] Search by employee name or employee_id
-  - [x] Filter by document type
-  - [x] View, Download, Send Email actions for each document
-  - [x] Status tracking (generated, sent)
-- [x] **Templates Tab Features:**
-  - [x] Default templates for all 4 document types
-  - [x] Create custom templates with placeholders
-  - [x] Backend storage for templates (`document_templates` collection)
-  - [x] "Use Template" button to apply template
-- [x] **Backend APIs Added:**
-  - [x] `POST/GET/PUT/DELETE /api/document-templates` - Template CRUD
-  - [x] `POST /api/document-history/{id}/send-email` - Email document to employee
-- [x] **Navigation Updates:**
-  - [x] Removed separate "Letter Management" and "Document Builder" links
-  - [x] Single "Document Center" link in HR section
-  - [x] Backward compatible routes (`/letter-management`, `/document-builder` redirect to `/document-center`)
+- [x] **Employee Access Management** (`/employee-permissions`)
+  - [x] Employee list with search and department filter
+  - [x] Per-employee permission configuration (View, Create, Edit, Delete per module/feature)
+  - [x] Assigned Role selection
+  - [x] Reporting Manager selection from employee list
+  - [x] HR can edit but changes require Admin approval
+  - [x] Admin can directly save changes
+  - [x] Pending approval requests section (Admin only)
+  - [x] Notification to Admin when HR submits change request
+  - [x] Backend APIs: `/api/employee-permissions/{id}`, `/api/permission-change-requests`
+- [x] **Global ERP Search Bar**
+  - [x] Command palette style search (⌘K or Ctrl+K)
+  - [x] Searches pages, features, employees
+  - [x] Quick Actions section (Add Employee, Generate Document, etc.)
+  - [x] Keyboard navigation (Arrow keys, Enter, Escape)
+  - [x] Category badges for results
+- [x] **Prominent Revoke Access Button**
+  - [x] Red "Revoke" button in Employees list (table and card views)
+  - [x] Clear visibility for HR/Admin to disable employee access
+- [x] **Simplified Navigation**
+  - [x] Reduced HR sidebar to main pages only (6 items instead of 20)
+  - [x] Sub-features accessible from main pages
+  - [x] Removed redundant navigation links
 - [x] **Login Enhancement:**
   - [x] Login now accepts both Employee ID and Email
-  - [x] Smart detection based on @ character
 
 ### Session 9 (Feb 17, 2026) - ERP Workflow, Permissions & Onboarding
 - [x] **High-Priority Workflow Diagrams Added**
