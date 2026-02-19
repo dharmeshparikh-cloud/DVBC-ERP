@@ -9687,16 +9687,17 @@ async def approve_reject_attendance(
     data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Approve or reject attendance check-in. RM can approve their reportees, HR/Admin can approve all."""
+    """Approve or reject attendance check-in. RM can approve their reportees, HR can approve all. Admin receives info-only notifications."""
     record = await db.attendance.find_one({"id": attendance_id})
     if not record:
         raise HTTPException(status_code=404, detail="Attendance record not found")
     
-    # Check authorization - HR/Admin can approve anyone, RM can approve reportees
-    is_hr_admin = current_user.role in ["admin", "hr_manager"]
+    # Check authorization - HR can approve anyone, RM can approve reportees
+    # Admin cannot approve directly - they only get FYI notifications
+    is_hr = current_user.role == "hr_manager"
     is_reporting_manager = False
     
-    if not is_hr_admin:
+    if not is_hr:
         # Check if current user is the reporting manager of this employee
         emp = await db.employees.find_one({"id": record["employee_id"]}, {"_id": 0, "reporting_manager_id": 1})
         if emp:
@@ -9704,8 +9705,8 @@ async def approve_reject_attendance(
             if rm_emp and emp.get("reporting_manager_id") == rm_emp["id"]:
                 is_reporting_manager = True
     
-    if not is_hr_admin and not is_reporting_manager:
-        raise HTTPException(status_code=403, detail="Only HR, Admin, or Reporting Manager can approve attendance")
+    if not is_hr and not is_reporting_manager:
+        raise HTTPException(status_code=403, detail="Only HR Manager or Reporting Manager can approve attendance. Admin receives info-only notifications.")
     
     action = data.get("action")  # "approve" or "reject"
     hr_remarks = data.get("remarks", "")
