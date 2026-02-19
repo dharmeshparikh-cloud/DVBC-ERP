@@ -68,6 +68,8 @@ const HROnboarding = () => {
   const [loading, setLoading] = useState(false);
   const [managers, setManagers] = useState([]);
   const [bankProofFile, setBankProofFile] = useState(null);
+  const [suggestedDept, setSuggestedDept] = useState(null);
+  const [deptSuggestionLoading, setDeptSuggestionLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     // Personal Info
