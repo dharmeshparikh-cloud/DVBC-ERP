@@ -339,7 +339,7 @@ async def get_employee(employee_id: str, current_user: User = Depends(get_curren
 
 @router.patch("/{employee_id}")
 async def update_employee(employee_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Update an employee's details."""
+    """Update an employee's details. For onboarded employees, changes require admin approval."""
     db = get_db()
     
     if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
@@ -349,6 +349,39 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
+    # Check if employee is fully onboarded (has portal access)
+    is_onboarded = employee.get("onboarding_status") == "completed" or employee.get("has_portal_access", False)
+    
+    # Fields that require admin approval after onboarding
+    protected_fields = ["bank_details", "bank_account_number", "bank_ifsc", "salary", "designation", "department", "departments", "employment_type"]
+    has_protected_changes = any(field in data for field in protected_fields)
+    
+    # If employee is onboarded and has protected field changes, require admin approval (unless user is admin)
+    if is_onboarded and has_protected_changes and current_user.role != "admin":
+        # Create modification request instead of direct update
+        modification_request = {
+            "id": str(uuid.uuid4()),
+            "employee_id": employee_id,
+            "employee_code": employee.get("employee_id"),
+            "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}",
+            "requested_by": current_user.id,
+            "requested_by_email": current_user.email,
+            "requested_changes": {k: v for k, v in data.items() if k in protected_fields},
+            "current_values": {k: employee.get(k) for k in data.keys() if k in protected_fields},
+            "status": "pending",
+            "request_type": "employee_modification",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.modification_requests.insert_one(modification_request)
+        
+        return {
+            "message": "Modification request submitted for admin approval",
+            "request_id": modification_request["id"],
+            "status": "pending_approval",
+            "note": "Changes to bank details, salary, and department require admin approval for onboarded employees."
+        }
+    
     # Sanitize text fields
     if "first_name" in data:
         data["first_name"] = sanitize_text(data["first_name"])
@@ -356,6 +389,7 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
         data["last_name"] = sanitize_text(data["last_name"])
     
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    data["updated_by"] = current_user.id
     
     await db.employees.update_one({"id": employee_id}, {"$set": data})
     
