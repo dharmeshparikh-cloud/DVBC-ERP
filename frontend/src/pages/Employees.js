@@ -484,16 +484,18 @@ const Employees = () => {
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           {emp.user_id ? (
                             <div className="flex items-center gap-2">
-                              <span className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded">{emp.role || 'Linked'}</span>
+                              <span className="px-2 py-1 text-xs bg-emerald-100 text-emerald-700 rounded">{emp.role || 'Active'}</span>
                               {canManage && (
                                 <Button
                                   onClick={() => handleRevokeAccess(emp.id)}
-                                  variant="ghost"
+                                  variant="destructive"
                                   size="sm"
-                                  className="h-6 w-6 p-0 text-zinc-400 hover:text-red-500"
-                                  title="Revoke access"
+                                  className="h-6 px-2 bg-red-500 hover:bg-red-600 text-white"
+                                  title="Revoke all system access"
+                                  data-testid={`revoke-access-${emp.employee_id}`}
                                 >
-                                  <UserX className="w-3 h-3" />
+                                  <UserX className="w-3 h-3 mr-1" />
+                                  <span className="text-xs">Revoke</span>
                                 </Button>
                               )}
                             </div>
