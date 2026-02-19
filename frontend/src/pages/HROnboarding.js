@@ -936,9 +936,20 @@ const HROnboarding = () => {
                   <p className="text-zinc-500">Employee ID</p>
                   <p className="font-medium">{formData.employee_id}</p>
                 </div>
-                <div>
-                  <p className="text-zinc-500">Department</p>
-                  <p className="font-medium">{formData.department}</p>
+                <div className="col-span-2">
+                  <p className="text-zinc-500">Departments</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {formData.departments.map(dept => (
+                      <Badge 
+                        key={dept} 
+                        variant={dept === formData.primary_department ? "default" : "secondary"}
+                        className="text-xs"
+                      >
+                        {dept}
+                        {dept === formData.primary_department && <span className="ml-1 opacity-75">(Primary)</span>}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <p className="text-zinc-500">Designation</p>
@@ -947,6 +958,10 @@ const HROnboarding = () => {
                 <div>
                   <p className="text-zinc-500">Role</p>
                   <p className="font-medium capitalize">{formData.role.replace('_', ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-500">Level</p>
+                  <p className="font-medium capitalize">{formData.level}</p>
                 </div>
                 <div>
                   <p className="text-zinc-500">Joining Date</p>
