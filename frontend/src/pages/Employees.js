@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { 
   Users, Plus, Search, Building2, UserCheck, UserX, Edit2, Eye, 
   FileText, Download, Trash2, Link2, Unlink, Lock, Key,
-  RefreshCw, BarChart3, Mail, Phone, Briefcase, Smartphone, MapPin, QrCode
+  BarChart3, Mail, Phone, Briefcase, Smartphone, MapPin, QrCode
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
