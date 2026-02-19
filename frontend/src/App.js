@@ -274,6 +274,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="profile" element={<UserProfile />} />
         <Route path="user-management" element={<UserManagement />} />
         <Route path="employees" element={<Employees />} />
+        <Route path="password-management" element={<PasswordManagement />} />
         <Route path="approvals" element={<ApprovalsCenter />} />
         <Route path="clients" element={<Clients />} />
         <Route path="expenses" element={<Expenses />} />
