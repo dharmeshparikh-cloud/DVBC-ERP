@@ -535,6 +535,9 @@ const Layout = () => {
           </div>
         </nav>
       )}
+
+      {/* Global Search Modal */}
+      <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 };
