@@ -1938,3 +1938,28 @@ HR Views Employee Checklist → All Items Green? → Submit for Approval
 - Frontend: 6/6 features verified
 - Test file: `/app/backend/tests/test_permission_change_requests.py`
 - Test report: `/app/test_reports/iteration_66.json`
+
+### Session 13 - Go-Live Linkages (Payroll & Attendance)
+
+**Features Implemented:**
+
+1. **Payroll Blocking for Non-Go-Live Employees**
+   - `POST /api/payroll/generate-slip` now checks `go_live_status`
+   - Returns 400 error: "Cannot generate salary slip for {name}. Employee is not Go-Live Active. Current status: {status}"
+   - Bulk generation automatically skips non-Go-Live employees
+
+2. **Attendance Check-in Blocking for Non-Go-Live Employees**
+   - `POST /api/my/check-in` now checks `go_live_status`
+   - Returns 403 error: "You cannot check in until your Go-Live status is Active. Please contact HR."
+   - Mobile app also blocked for non-Go-Live employees
+
+3. **Bank Verification Fix**
+   - Verified bank verification endpoint works correctly
+   - Admin can verify bank details via "Verify" button in Go-Live Dashboard
+
+**Testing Results:**
+- Backend: 12/12 tests passed
+- Test file: `/app/backend/tests/test_go_live_checkin_payroll.py`
+- Test report: `/app/test_reports/iteration_67.json`
+
+**Go-Live Active Employees:** Only these employees can use attendance check-in and have salary slips generated.
