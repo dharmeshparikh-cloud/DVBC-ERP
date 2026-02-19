@@ -1504,3 +1504,23 @@ Implemented comprehensive role-based visibility for the Project Payments module:
 
 **MOCKED:** Email sending for payment reminders - records to DB only, no actual email sent
 
+
+---
+## Bug Fixes (Feb 19, 2026)
+
+### Employees Page Issues - FIXED
+1. **Scorecards not showing values** - ✅ FIXED
+   - Changed field mapping from `with_user_access` to `with_portal_access`
+   - Changed field mapping from `without_user_access` to `without_portal_access`
+   - Now shows: Total Employees (10), With System Access (3), No System Access (5), Departments (3)
+
+2. **Multiple employee entry points** - ✅ FIXED
+   - REMOVED "Add Employee" button and dialog
+   - REMOVED "Sync from Users" button (was showing "Method Not Allowed" error)
+   - Now only ONE entry point: "Onboard New Employee" button → redirects to /onboarding page
+   - This ensures all employees go through the standard onboarding workflow
+
+3. **Permission sync across ERP** - ✅ VERIFIED WORKING
+   - `/api/department-access/my-access` returns correct permission flags
+   - `has_reportees`, `is_view_only`, `can_edit`, `can_manage_team` all functioning
+   - Department-based page access working correctly
