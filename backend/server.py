@@ -9420,8 +9420,17 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     - WFH is NOT allowed
     - Consulting employees can check in from office OR assigned client sites
     - Non-consulting employees (HR, Admin, Sales) can ONLY check in from office
+    - Employee must be Go-Live Active to check in
     """
     emp = await _get_my_employee(current_user)
+    
+    # Check if employee is Go-Live Active
+    go_live_status = emp.get("go_live_status")
+    if go_live_status != "active":
+        raise HTTPException(
+            status_code=403, 
+            detail="You cannot check in until your Go-Live status is Active. Please contact HR."
+        )
     
     # Check if employee mobile app access is disabled
     if emp.get("mobile_app_disabled"):
