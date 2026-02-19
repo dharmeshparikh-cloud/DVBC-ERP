@@ -98,6 +98,7 @@ import OnboardingTutorial from './pages/OnboardingTutorial';
 import BankDetailsChangeRequest from './pages/BankDetailsChangeRequest';
 import PasswordManagement from './pages/PasswordManagement';
 import GoLiveDashboard from './pages/GoLiveDashboard';
+import Notifications from './pages/Notifications';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import './App.css';
 
