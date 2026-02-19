@@ -24,6 +24,8 @@ const GoLiveDashboard = () => {
   const [notes, setNotes] = useState('');
   const [filter, setFilter] = useState('all');
   const isAdmin = user?.role === 'admin';
+  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
+  const canVerifyBank = isAdmin || user?.role === 'hr_manager';
 
   useEffect(() => {
     fetchEmployees();
