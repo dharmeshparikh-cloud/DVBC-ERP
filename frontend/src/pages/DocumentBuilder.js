@@ -212,6 +212,11 @@ const DocumentBuilder = () => {
   // Template saved templates
   const [savedTemplates, setSavedTemplates] = useState({});
   
+  // History tab
+  const [activeTab, setActiveTab] = useState('builder');
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [documentHistory, setDocumentHistory] = useState([]);
+  
   const printRef = useRef();
 
   const isAdmin = user?.role === 'admin';
@@ -221,6 +226,7 @@ const DocumentBuilder = () => {
   useEffect(() => {
     fetchEmployees();
     loadSavedTemplates();
+    fetchDocumentHistory();
   }, []);
 
   useEffect(() => {
