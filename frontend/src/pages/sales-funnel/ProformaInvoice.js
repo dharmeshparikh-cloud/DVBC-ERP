@@ -521,6 +521,28 @@ const ProformaInvoice = () => {
         </div>
       </div>
 
+      {/* View Toggle Tabs */}
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={activeView === 'list' ? 'default' : 'outline'}
+          onClick={() => setActiveView('list')}
+          className="rounded-sm"
+          data-testid="list-view-tab"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          All Invoices
+        </Button>
+        <Button
+          variant={activeView === 'history' ? 'default' : 'outline'}
+          onClick={() => setActiveView('history')}
+          className="rounded-sm"
+          data-testid="history-view-tab"
+        >
+          <History className="w-4 h-4 mr-2" />
+          Negotiation History
+        </Button>
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-zinc-500">Loading proforma invoices...</div>
