@@ -161,9 +161,10 @@ const NotificationBell = () => {
                 <p className="text-xs text-zinc-400">No notifications yet</p>
               </div>
             ) : (
-              notifications.slice(0, 20).map(notif => {
+              notifications.slice(0, 10).map(notif => {
                 const notifType = notif.type || notif.notification_type || 'default';
                 const meta = NOTIF_ICONS[notifType] || NOTIF_ICONS.default;
+                const isActioned = notif.status === 'actioned';
                 return (
                   <div
                     key={notif.id}
@@ -171,12 +172,23 @@ const NotificationBell = () => {
                     className={`flex gap-3 px-4 py-3 border-b border-zinc-50 hover:bg-zinc-50/80 transition-colors cursor-pointer ${
                       notif.is_read ? 'opacity-60' : ''
                     }`}
-                    onClick={() => !notif.is_read && markAsRead(notif.id)}
+                    onClick={() => {
+                      if (!notif.is_read) markAsRead(notif.id);
+                      setOpen(false);
+                      navigate('/notifications');
+                    }}
                   >
                     <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${meta.color}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-medium text-zinc-900 leading-snug">{notif.title}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-medium text-zinc-900 leading-snug">{notif.title}</p>
+                          {meta.actionable && !isActioned && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-medium bg-amber-100 text-amber-700 rounded">
+                              Action
+                            </span>
+                          )}
+                        </div>
                         {!notif.is_read && (
                           <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
                         )}
@@ -188,6 +200,17 @@ const NotificationBell = () => {
                 );
               })
             )}
+          </div>
+          
+          {/* Footer - View All */}
+          <div className="px-4 py-2 border-t border-zinc-100 bg-zinc-50/50">
+            <button 
+              onClick={() => { setOpen(false); navigate('/notifications'); }}
+              className="w-full text-center text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center justify-center gap-1"
+              data-testid="view-all-notifications"
+            >
+              View All Notifications <ExternalLink className="w-3 h-3" />
+            </button>
           </div>
         </div>
       )}
