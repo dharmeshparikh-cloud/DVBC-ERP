@@ -5,15 +5,19 @@ import { API, AuthContext } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { 
   Calendar, Clock, AlertTriangle, CheckCircle, Building2, 
-  ArrowRight, ChevronRight, Loader2, DollarSign, Bell
+  ArrowRight, ChevronRight, Loader2, DollarSign, Bell, Send, CreditCard
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, addDays } from 'date-fns';
 import ViewToggle from '../../components/ViewToggle';
 import ConsultingStageNav from '../../components/ConsultingStageNav';
 import { sanitizeDisplayText } from '../../utils/sanitize';
+import { formatINR } from '../../utils/currency';
 
 const PAYMENT_STATUS_CONFIG = {
   overdue: { label: 'Overdue', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle },
