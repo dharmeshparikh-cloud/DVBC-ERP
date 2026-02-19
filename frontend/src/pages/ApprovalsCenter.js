@@ -276,6 +276,20 @@ const ApprovalsCenter = () => {
           </Card>
         )}
 
+        {isAdmin && (
+          <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+            <CardContent className="p-3 md:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Permissions</p>
+                  <p className="text-xl md:text-2xl font-semibold text-indigo-600">{permissionApprovals.length}</p>
+                </div>
+                <User className="w-6 h-6 md:w-8 md:h-8 text-indigo-500/30" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {(isAdmin || isHR) && (
           <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
             <CardContent className="p-3 md:p-4">
