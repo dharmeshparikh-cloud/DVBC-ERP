@@ -34,6 +34,7 @@ const ApprovalsCenter = () => {
   const [ctcApprovals, setCtcApprovals] = useState([]);
   const [bankApprovals, setBankApprovals] = useState([]);
   const [goLiveApprovals, setGoLiveApprovals] = useState([]);
+  const [permissionApprovals, setPermissionApprovals] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [allApprovals, setAllApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,8 @@ const ApprovalsCenter = () => {
   const [selectedCtc, setSelectedCtc] = useState(null);
   const [bankDetailDialog, setBankDetailDialog] = useState(false);
   const [selectedBank, setSelectedBank] = useState(null);
+  const [permissionDetailDialog, setPermissionDetailDialog] = useState(false);
+  const [selectedPermission, setSelectedPermission] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const isAdmin = user?.role === 'admin';
