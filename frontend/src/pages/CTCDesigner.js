@@ -89,7 +89,7 @@ const CTCDesigner = () => {
 
   const fetchComponentMaster = async () => {
     try {
-      const res = await axios.get(`${API}/api/ctc/component-master`);
+      const res = await axios.get(`${API}/ctc/component-master`);
       const components = res.data.components || DEFAULT_COMPONENTS;
       setComponentMaster(components);
       // Initialize component config with enabled status
@@ -113,7 +113,7 @@ const CTCDesigner = () => {
 
   const fetchPendingApprovals = async () => {
     try {
-      const res = await axios.get(`${API}/api/ctc/pending-approvals`);
+      const res = await axios.get(`${API}/ctc/pending-approvals`);
       setPendingApprovals(res.data);
     } catch (err) {
       console.error('Failed to fetch pending approvals');
@@ -122,7 +122,7 @@ const CTCDesigner = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get(`${API}/api/ctc/stats`);
+      const res = await axios.get(`${API}/ctc/stats`);
       setStats(res.data);
     } catch (err) {
       console.error('Failed to fetch stats');
@@ -153,7 +153,7 @@ const CTCDesigner = () => {
     }
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/api/ctc/calculate-preview`, {
+      const res = await axios.post(`${API}/ctc/calculate-preview`, {
         annual_ctc: parseFloat(annualCTC),
         retention_bonus: parseFloat(retentionBonus) || 0,
         retention_vesting_months: vestingMonths,
@@ -183,7 +183,7 @@ const CTCDesigner = () => {
 
     setSubmitting(true);
     try {
-      await axios.post(`${API}/api/ctc/design`, {
+      await axios.post(`${API}/ctc/design`, {
         employee_id: selectedEmployee.id,
         annual_ctc: parseFloat(annualCTC),
         retention_bonus: parseFloat(retentionBonus) || 0,
@@ -215,7 +215,7 @@ const CTCDesigner = () => {
     if (!selectedApproval) return;
     setSubmitting(true);
     try {
-      await axios.post(`${API}/api/ctc/${selectedApproval.id}/approve`, {
+      await axios.post(`${API}/ctc/${selectedApproval.id}/approve`, {
         remarks: adminRemarks
       });
       toast.success('CTC structure approved successfully');
@@ -239,7 +239,7 @@ const CTCDesigner = () => {
     }
     setSubmitting(true);
     try {
-      await axios.post(`${API}/api/ctc/${selectedApproval.id}/reject`, {
+      await axios.post(`${API}/ctc/${selectedApproval.id}/reject`, {
         reason: rejectionReason
       });
       toast.success('CTC structure rejected');
