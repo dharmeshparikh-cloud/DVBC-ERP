@@ -328,13 +328,37 @@ const PaymentReminders = () => {
                       {getStatusBadge(payment.status)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/consulting/my-projects`)}
-                      >
-                        View Project <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        {/* Send Reminder - only within 7 days of due date */}
+                        {payment.days_until_due <= 7 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleSendReminder(payment); }}
+                            title="Send payment reminder"
+                            data-testid={`send-reminder-${payment.installment_number}`}
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {/* Record Payment */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); openRecordPayment(payment); }}
+                          title="Record payment"
+                          data-testid={`record-payment-${payment.installment_number}`}
+                        >
+                          <CreditCard className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/consulting/my-projects`)}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
