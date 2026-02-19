@@ -297,14 +297,15 @@ async def update_employee_department_access(
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
+    DEPARTMENTS = await get_departments_config()
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
     
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
-    # Validate departments
+    # Validate departments - allow both configured and default departments
     for dept in access_update.departments:
-        if dept not in DEPARTMENTS:
+        if dept not in DEPARTMENTS and dept not in DEFAULT_DEPARTMENTS:
             raise HTTPException(status_code=400, detail=f"Invalid department: {dept}")
     
     if access_update.primary_department not in access_update.departments:
