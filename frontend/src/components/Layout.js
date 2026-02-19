@@ -467,6 +467,24 @@ const Layout = () => {
           )}
 
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
+            {/* Global Search Button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              data-testid="global-search-btn"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 ${
+                isDark 
+                  ? 'bg-zinc-800 border-zinc-700 hover:border-zinc-600 text-zinc-400' 
+                  : 'bg-zinc-50 border-zinc-200 hover:border-zinc-300 text-zinc-500'
+              }`}
+              title="Search (Ctrl+K)"
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden md:inline text-sm">Search...</span>
+              <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono bg-zinc-200 dark:bg-zinc-700 rounded">
+                <Command className="w-3 h-3" />K
+              </kbd>
+            </button>
+            
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
