@@ -79,8 +79,9 @@ const CTCDesigner = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get(`${API}/api/employees`);
-      setEmployees(res.data.filter(e => e.is_active));
+      const res = await axios.get(`${API}/employees`);
+      // Include employees where is_active is true OR not set (null/undefined)
+      setEmployees(res.data.filter(e => e.is_active !== false));
     } catch (err) {
       toast.error('Failed to load employees');
     }
