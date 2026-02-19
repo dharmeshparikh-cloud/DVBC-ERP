@@ -26,7 +26,7 @@ const CONSULTING_ROLES_NAV = [
   'lean_consultant', 'lead_consultant', 'senior_consultant',
   'subject_matter_expert', 'manager'
 ];
-const ADMIN_ROLES = ['admin', 'manager'];
+const ADMIN_ROLES = ['admin', 'manager', 'hr_manager'];
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
