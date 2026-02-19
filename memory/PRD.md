@@ -2,6 +2,19 @@
 
 ## Last Updated: February 2025
 
+## Permission System: SIMPLIFIED (Feb 2025)
+**Only 2 things matter for permissions:**
+1. **Department** → What pages you can see
+2. **Has Reportees** → Auto-detected (if someone reports to you → team management)
+
+**Additional controls:**
+- `is_view_only` → Can view but not create/edit
+- `Special Permissions` → Admin/HR only for cross-department access
+
+**Removed:**
+- ~~Role~~ → No longer used for permissions
+- ~~Level~~ → No longer used for permissions
+
 ## DBAC System Status: ✅ VERIFIED WORKING (Feb 2025)
 - All login flows tested and working
 - Department-based navigation filtering working correctly
