@@ -9962,6 +9962,7 @@ api_router.include_router(role_management_router.router)
 api_router.include_router(letters_router.router)
 api_router.include_router(payments_router.router)
 api_router.include_router(project_payments_router.router)
+api_router.include_router(department_access_router.router)
 
 app.include_router(api_router)
 
