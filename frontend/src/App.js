@@ -17,7 +17,7 @@ import LeaveManagement from './pages/LeaveManagement';
 import Attendance from './pages/Attendance';
 import Payroll from './pages/Payroll';
 import CTCDesigner from './pages/CTCDesigner';
-import DocumentBuilder from './pages/DocumentBuilder';
+import DocumentCenter from './pages/DocumentCenter';
 import MyAttendance from './pages/MyAttendance';
 import MyLeaves from './pages/MyLeaves';
 import MySalarySlips from './pages/MySalarySlips';
@@ -69,7 +69,7 @@ import PermissionDashboard from './pages/PermissionDashboard';
 import DepartmentAccessManager from './pages/DepartmentAccessManager';
 import EmployeeScorecard from './pages/EmployeeScorecard';
 import RoleManagement from './pages/RoleManagement';
-import LetterManagement from './pages/LetterManagement';
+// DocumentCenter replaces both LetterManagement and DocumentBuilder
 import LetterheadSettings from './pages/LetterheadSettings';
 import AcceptOfferPage from './pages/AcceptOfferPage';
 import AdminDashboardMockups from './pages/admin/AdminDashboardMockups';
