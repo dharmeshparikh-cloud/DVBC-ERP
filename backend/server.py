@@ -9023,6 +9023,16 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # RULE: Employee must be Go-Live Active to generate salary slip
+    go_live_status = employee.get("go_live_status")
+    if go_live_status != "active":
+        emp_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot generate salary slip for {emp_name}. Employee is not Go-Live Active. Current status: {go_live_status or 'Not Started'}"
+        )
+    
     gross_salary = employee.get("salary", 0) or 0
     if gross_salary <= 0:
         raise HTTPException(status_code=400, detail="Employee salary not configured")
