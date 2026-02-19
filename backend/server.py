@@ -9715,7 +9715,7 @@ async def approve_reject_attendance(
         raise HTTPException(status_code=400, detail="Action must be 'approve' or 'reject'")
     
     new_status = "approved" if action == "approve" else "rejected"
-    approver_role = "Reporting Manager" if is_reporting_manager else current_user.role.replace("_", " ").title()
+    approver_role = "Reporting Manager" if is_reporting_manager else "HR Manager"
     
     await db.attendance.update_one(
         {"id": attendance_id},
