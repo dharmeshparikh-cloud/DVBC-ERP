@@ -136,17 +136,32 @@ async def grant_employee_access(employee_id: str, current_user: User = Depends(g
     if not employee.get("email"):
         raise HTTPException(status_code=400, detail="Employee must have an email to grant access")
     
+    # Get departments - use departments array or fallback to single department
+    departments = employee.get("departments", [])
+    if not departments and employee.get("department"):
+        departments = [employee.get("department")]
+    primary_department = employee.get("primary_department") or employee.get("department")
+    
     # Check if user already exists
     existing_user = await db.users.find_one({"email": employee["email"]})
     if existing_user:
-        # Link existing user
+        # Link existing user and update departments
         await db.employees.update_one(
             {"id": employee_id},
             {"$set": {"user_id": existing_user["id"], "has_portal_access": True}}
         )
+        # Update user with department info
+        await db.users.update_one(
+            {"id": existing_user["id"]},
+            {"$set": {
+                "departments": departments,
+                "primary_department": primary_department,
+                "department": primary_department
+            }}
+        )
         return {"message": "Linked to existing user account", "user_id": existing_user["id"]}
     
-    # Create new user
+    # Create new user with department-based access
     user_id = str(uuid.uuid4())
     temp_password = f"Welcome@{employee.get('employee_id', '123')}"
     
@@ -155,7 +170,10 @@ async def grant_employee_access(employee_id: str, current_user: User = Depends(g
         "email": employee["email"],
         "full_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
         "role": employee.get("role", "consultant"),
-        "department": employee.get("department"),
+        "department": primary_department,  # Legacy field
+        "departments": departments,  # NEW: Array for multi-department access
+        "primary_department": primary_department,  # NEW: Primary department
+        "level": employee.get("level", "executive"),  # Permission level
         "designation": employee.get("designation"),
         "reporting_manager_id": employee.get("reporting_manager_id"),
         "is_active": True,
@@ -176,7 +194,8 @@ async def grant_employee_access(employee_id: str, current_user: User = Depends(g
         "message": "Portal access granted",
         "user_id": user_id,
         "temp_password": temp_password,
-        "note": "User should change password on first login"
+        "departments": departments,
+        "note": f"User can access {', '.join(departments)} pages. Password should be changed on first login."
     }
 
 
