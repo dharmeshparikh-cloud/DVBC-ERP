@@ -90,14 +90,16 @@ const ProformaInvoice = () => {
 
   const fetchData = async () => {
     try {
-      const [invoicesRes, plansRes, leadsRes] = await Promise.all([
+      const [invoicesRes, plansRes, leadsRes, agreementsRes] = await Promise.all([
         axios.get(`${API}/quotations`, { params: leadId ? { lead_id: leadId } : {} }),
         axios.get(`${API}/pricing-plans`, { params: leadId ? { lead_id: leadId } : {} }),
-        axios.get(`${API}/leads`)
+        axios.get(`${API}/leads`),
+        axios.get(`${API}/agreements`).catch(() => ({ data: [] }))
       ]);
       setInvoices(invoicesRes.data);
       setPricingPlans(plansRes.data);
       setLeads(leadsRes.data);
+      setAgreements(agreementsRes.data);
       
       // Fetch SOW data if we have a pricing plan ID
       if (pricingPlanIdFromUrl) {
