@@ -939,20 +939,22 @@ const HROnboarding = () => {
                   <p className="font-medium">{formData.designation}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-500">Role</p>
-                  <p className="font-medium capitalize">{formData.role.replace('_', ' ')}</p>
-                </div>
-                <div>
-                  <p className="text-zinc-500">Level</p>
-                  <p className="font-medium capitalize">{formData.level}</p>
-                </div>
-                <div>
                   <p className="text-zinc-500">Joining Date</p>
                   <p className="font-medium">{formData.joining_date}</p>
                 </div>
                 <div>
                   <p className="text-zinc-500">Employment Type</p>
                   <p className="font-medium capitalize">{formData.employment_type.replace('_', ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-500">Access Type</p>
+                  <p className="font-medium">
+                    {formData.is_view_only ? (
+                      <Badge variant="secondary">View Only</Badge>
+                    ) : (
+                      <Badge variant="default">Full Access</Badge>
+                    )}
+                  </p>
                 </div>
               </CardContent>
             </Card>
