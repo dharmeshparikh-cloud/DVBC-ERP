@@ -230,15 +230,25 @@ async def get_my_department_access(current_user: User = Depends(get_current_user
     if not level:
         level = "leader" if current_user.role == "admin" else "executive"
     
+    # Get special permissions details
+    special_permissions = employee.get("special_permissions", []) if employee else []
+    can_approve_for = employee.get("can_approve_for_departments", []) if employee else []
+    
     return {
         "employee_id": employee.get("id") if employee else None,
         "employee_code": employee.get("employee_id") if employee else None,
         "departments": departments,
         "primary_department": primary_dept,
+        "additional_departments": additional_depts,
         "accessible_pages": accessible_pages,
         "level": level,
+        "role": employee.get("role") if employee else current_user.role,
+        "temporary_role": temporary_role,
         "custom_access": custom_access,
-        "restricted_pages": restricted
+        "additional_pages": additional_pages,
+        "restricted_pages": restricted,
+        "special_permissions": special_permissions,
+        "can_approve_for_departments": can_approve_for
     }
 
 
