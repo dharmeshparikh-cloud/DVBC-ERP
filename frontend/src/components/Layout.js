@@ -90,6 +90,9 @@ const Layout = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Global search state
+  const [searchOpen, setSearchOpen] = useState(false);
+
   // Track which sections are expanded
   const [expanded, setExpanded] = useState({
     workspace: true, hr: true, sales: true, consulting: true, admin: true
@@ -97,6 +100,18 @@ const Layout = () => {
 
   // Change Password Dialog state
   const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // Global search keyboard shortcut (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Detect mobile
   useEffect(() => {
