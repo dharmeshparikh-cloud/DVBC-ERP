@@ -109,7 +109,8 @@ class UserCreate(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    employee_id: Optional[str] = None  # New: Login with Employee ID
+    email: Optional[EmailStr] = None   # Legacy: Login with email (backward compatible)
     password: str
 
 
