@@ -12,8 +12,14 @@
 - `Special Permissions` → Admin/HR only for cross-department access
 
 **Removed:**
-- ~~Role~~ → No longer used for permissions
-- ~~Level~~ → No longer used for permissions
+- ~~Role~~ → No longer used for permissions (removed from onboarding)
+- ~~Level~~ → No longer used for permissions (removed from onboarding)
+
+**Onboarding Changes (Feb 2025):**
+- Employee ID auto-generates with EMP prefix (EMP001, EMP002, etc.)
+- All Step 1 and Step 2 fields are mandatory
+- Added "View Only Access" checkbox
+- Reporting Manager shows "(Determines team access)" helper text
 
 ## DBAC System Status: ✅ VERIFIED WORKING (Feb 2025)
 - All login flows tested and working
