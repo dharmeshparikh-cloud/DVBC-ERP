@@ -10474,6 +10474,297 @@ async def admin_reject_bank_change(
     return {"message": "Request rejected"}
 
 
+# ==================== EMPLOYEE GO-LIVE WORKFLOW ====================
+
+class GoLiveRequest(BaseModel):
+    """Model for Go-Live approval request"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    employee_name: str
+    employee_code: str
+    department: str
+    checklist: Dict[str, bool] = {}  # onboarding, ctc, bank, documents, access
+    status: str = "pending"  # pending, approved, rejected
+    submitted_by: str
+    submitted_by_name: str
+    submitted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    approved_by: Optional[str] = None
+    approved_by_name: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@api_router.get("/go-live/checklist/{employee_id}")
+async def get_go_live_checklist(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get Go-Live checklist status for an employee."""
+    db = get_db()
+    
+    # Find employee by employee_id field (EMP001) or id (uuid)
+    employee = await db.employees.find_one(
+        {"$or": [{"employee_id": employee_id}, {"id": employee_id}]},
+        {"_id": 0}
+    )
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    emp_id = employee.get("id") or employee.get("employee_id")
+    
+    # Check CTC status
+    ctc = await db.ctc_structures.find_one(
+        {"employee_id": emp_id, "status": {"$in": ["active", "approved"]}},
+        {"_id": 0}
+    )
+    
+    # Check bank details
+    bank_details = employee.get("bank_details", {})
+    bank_verified = bank_details.get("proof_verified", False) if bank_details else False
+    
+    # Check documents generated
+    documents = await db.document_history.count_documents({"employee_id": emp_id})
+    
+    # Check portal access
+    has_access = employee.get("has_portal_access", False)
+    
+    # Check existing go-live request
+    go_live_request = await db.go_live_requests.find_one(
+        {"employee_id": emp_id},
+        {"_id": 0}
+    )
+    
+    checklist = {
+        "onboarding_complete": employee.get("onboarding_status") == "completed" or bool(employee.get("first_name")),
+        "ctc_approved": bool(ctc),
+        "bank_details_added": bool(bank_details and bank_details.get("account_number")),
+        "bank_verified": bank_verified,
+        "documents_generated": documents > 0,
+        "portal_access_granted": has_access,
+        "go_live_status": go_live_request.get("status") if go_live_request else "not_submitted"
+    }
+    
+    return {
+        "employee": {
+            "id": emp_id,
+            "employee_id": employee.get("employee_id"),
+            "name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+            "department": employee.get("department") or employee.get("primary_department"),
+            "designation": employee.get("designation")
+        },
+        "checklist": checklist,
+        "ctc_details": {
+            "annual_ctc": ctc.get("annual_ctc") if ctc else None,
+            "effective_from": ctc.get("effective_from") if ctc else None
+        } if ctc else None,
+        "go_live_request": go_live_request
+    }
+
+
+@api_router.post("/go-live/submit/{employee_id}")
+async def submit_go_live_request(
+    employee_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """HR submits Go-Live request for Admin approval."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can submit Go-Live requests")
+    
+    # Get employee
+    employee = await db.employees.find_one(
+        {"$or": [{"employee_id": employee_id}, {"id": employee_id}]},
+        {"_id": 0}
+    )
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    emp_id = employee.get("id") or employee.get("employee_id")
+    
+    # Check if already submitted
+    existing = await db.go_live_requests.find_one({"employee_id": emp_id, "status": "pending"})
+    if existing:
+        raise HTTPException(status_code=400, detail="Go-Live request already pending for this employee")
+    
+    # Create Go-Live request
+    go_live_request = {
+        "id": str(uuid.uuid4()),
+        "employee_id": emp_id,
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "employee_code": employee.get("employee_id"),
+        "department": employee.get("department") or employee.get("primary_department", ""),
+        "checklist": data.get("checklist", {}),
+        "status": "pending",
+        "submitted_by": current_user.id,
+        "submitted_by_name": current_user.full_name,
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
+        "notes": data.get("notes")
+    }
+    
+    await db.go_live_requests.insert_one(go_live_request)
+    
+    # Notify admins
+    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(20)
+    for admin in admins:
+        notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": admin["id"],
+            "type": "go_live_request",
+            "title": "Go-Live Approval Required",
+            "message": f"Go-Live request submitted for {go_live_request['employee_name']} ({go_live_request['employee_code']})",
+            "link": "/approvals",
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+    
+    return {"message": "Go-Live request submitted for approval", "request_id": go_live_request["id"]}
+
+
+@api_router.get("/go-live/pending")
+async def get_pending_go_live_requests(current_user: User = Depends(get_current_user)):
+    """Get all pending Go-Live requests (Admin only)."""
+    db = get_db()
+    
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can view pending Go-Live requests")
+    
+    requests = await db.go_live_requests.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).sort("submitted_at", -1).to_list(100)
+    
+    return requests
+
+
+@api_router.post("/go-live/{request_id}/approve")
+async def approve_go_live(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Admin approves Go-Live request."""
+    db = get_db()
+    
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can approve Go-Live")
+    
+    request = await db.go_live_requests.find_one({"id": request_id, "status": "pending"})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Update request
+    await db.go_live_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update employee go_live_status
+    await db.employees.update_one(
+        {"$or": [{"id": request["employee_id"]}, {"employee_id": request["employee_id"]}]},
+        {"$set": {
+            "go_live_status": "active",
+            "go_live_approved_at": datetime.now(timezone.utc).isoformat(),
+            "go_live_approved_by": current_user.full_name,
+            "is_active": True
+        }}
+    )
+    
+    # Notify HR who submitted
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": request["submitted_by"],
+        "type": "go_live_approved",
+        "title": "Go-Live Approved",
+        "message": f"Go-Live approved for {request['employee_name']} ({request['employee_code']}). Employee is now active!",
+        "link": "/employees",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Go-Live approved. Employee is now active!"}
+
+
+@api_router.post("/go-live/{request_id}/reject")
+async def reject_go_live(
+    request_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Admin rejects Go-Live request."""
+    db = get_db()
+    
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can reject Go-Live")
+    
+    request = await db.go_live_requests.find_one({"id": request_id, "status": "pending"})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    await db.go_live_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "rejection_reason": data.get("reason", "")
+        }}
+    )
+    
+    # Notify HR
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": request["submitted_by"],
+        "type": "go_live_rejected",
+        "title": "Go-Live Rejected",
+        "message": f"Go-Live rejected for {request['employee_name']}. Reason: {data.get('reason', 'Not specified')}",
+        "link": "/employees",
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Go-Live request rejected"}
+
+
+@api_router.post("/bank-verify/{employee_id}")
+async def verify_bank_details(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Admin verifies employee bank details."""
+    db = get_db()
+    
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can verify bank details")
+    
+    result = await db.employees.update_one(
+        {"$or": [{"employee_id": employee_id}, {"id": employee_id}]},
+        {"$set": {
+            "bank_details.proof_verified": True,
+            "bank_details.verified_by": current_user.full_name,
+            "bank_details.verified_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    return {"message": "Bank details verified"}
+
+
 # ==================== DOCUMENT HISTORY (HR Documents) ====================
 
 class GeneratedDocument(BaseModel):
