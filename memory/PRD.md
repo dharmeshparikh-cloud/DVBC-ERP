@@ -1993,3 +1993,58 @@ Removed Admin from bank detail and document verification flows. HR now handles t
 - Frontend: 100% UI verification passed
 - Test file: `/app/backend/tests/test_hr_bank_approval_workflow.py`
 - Test report: `/app/test_reports/iteration_68.json`
+
+### Session 13 - Simplified Onboarding & Notification System
+
+**Changes Made:**
+
+1. **Simplified Approval Flow**
+   - Only **Go-Live approval** goes to Admin for final approval
+   - Everything else (Bank verification, Documents) handled directly by HR
+   - CTC approval still requires Admin (existing behavior)
+
+2. **Full Notifications Page** (`/notifications`)
+   - Filter tabs: All, Unread, Requires Action
+   - Shows notification count for each filter
+   - Two notification types:
+     - **Info notifications** - Read only, show "Info" badge
+     - **Actionable notifications** - Show "Action Required" badge, open dialog with Approve/Reject buttons
+
+3. **Notification Bell Updates**
+   - Shows "Action" badge on actionable items in dropdown
+   - Added "View All Notifications" link at bottom
+   - Clicking any notification routes to /notifications page
+
+4. **Onboarding Notifications**
+   - Employee creation sends notifications to:
+     - All HR users (hr_manager, hr_executive)
+     - All Admin users
+     - Assigned Reporting Manager
+   - Each notification includes employee name, code, and department
+
+5. **Backend API Updates**
+   - Added `PATCH /api/notifications/{id}/action` endpoint
+   - Updates notification status to "actioned" with action_taken and timestamp
+   - Fixed legacy notifications missing is_read field
+
+**Files Created/Updated:**
+- `/app/frontend/src/pages/Notifications.js` (NEW)
+- `/app/frontend/src/components/NotificationBell.js` (UPDATED)
+- `/app/frontend/src/App.js` (UPDATED - added route)
+- `/app/backend/server.py` (UPDATED - action endpoint)
+- `/app/backend/routers/employees.py` (UPDATED - send notifications on create)
+
+**Notification Types:**
+| Type | Badge | Actionable | On-Click |
+|------|-------|------------|----------|
+| go_live_approval | Go-Live | Yes | Open dialog |
+| ctc_approval | CTC | Yes | Open dialog |
+| permission_change | Permission | Yes | Open dialog |
+| employee_onboarded | New Employee | No | Navigate to /employees |
+| bank_change_approved | Bank | No | Navigate to /my-bank-details |
+
+**Testing Results:**
+- Backend: 13/13 tests passed
+- Frontend: All Playwright tests passed
+- Test file: `/app/backend/tests/test_notifications_page.py`
+- Test report: `/app/test_reports/iteration_69.json`
