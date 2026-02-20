@@ -32,7 +32,7 @@ class TestCustomAttendancePolicy:
         })
         
         if login_response.status_code == 200:
-            token = login_response.json().get("token")
+            token = login_response.json().get("access_token")
             self.session.headers.update({"Authorization": f"Bearer {token}"})
             self.hr_token = token
         else:
