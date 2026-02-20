@@ -227,20 +227,26 @@ const Layout = () => {
     { name: 'Agreements', href: '/agreements', icon: FileCheck },
     { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard },
     { name: 'Clients', href: '/clients', icon: Building2 },
+    { name: 'Lead Follow-ups', href: '/follow-ups', icon: CalendarCheck },
     { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3 },
   ];
 
-  // Removed dead links: Calendar, Mailbox, Follow-ups (no routes exist)
+  // Removed: Mailbox (no route needed)
   const salesOtherItems = [];
 
   const consultingItems = isConsultant
     ? [
         { name: 'My Projects', href: '/consulting/my-projects', icon: Briefcase },
+        { name: 'My Schedule', href: '/consulting-meetings', icon: Calendar },
+        { name: 'My Clients', href: '/clients', icon: Building2 },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
+        { name: 'Payment Follow-ups', href: '/follow-ups', icon: CalendarCheck },
       ]
     : [
         { name: 'Projects', href: '/projects', icon: Briefcase },
+        { name: 'Team Assignment', href: '/consultants', icon: Users },
+        { name: 'Meetings Calendar', href: '/consulting-meetings', icon: Calendar },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
         { name: 'Project Reports', href: '/reports?category=consulting', icon: BarChart3 },
