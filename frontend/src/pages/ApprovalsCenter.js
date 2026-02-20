@@ -9,7 +9,7 @@ import { Textarea } from '../components/ui/textarea';
 import { 
   CheckCircle, XCircle, Clock, AlertCircle, ChevronRight, 
   FileText, Calendar, User, MessageSquare, Send, DollarSign,
-  Building2, CreditCard, Eye, Loader2
+  Building2, CreditCard, Eye, Loader2, Rocket, Key, Wallet, Shield
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
