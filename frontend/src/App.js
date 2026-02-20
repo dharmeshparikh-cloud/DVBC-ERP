@@ -304,6 +304,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="permission-dashboard" element={<PermissionDashboard />} />
         <Route path="employee-permissions" element={<EmployeePermissions />} />
         <Route path="department-access" element={<DepartmentAccessManager />} />
+        <Route path="expense-approvals" element={<ExpenseApprovals />} />
         <Route path="employee-scorecard" element={<EmployeeScorecard />} />
         <Route path="role-management" element={<RoleManagement />} />
         <Route path="document-center" element={<DocumentCenter />} />
