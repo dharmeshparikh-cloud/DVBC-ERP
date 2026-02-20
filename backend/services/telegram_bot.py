@@ -886,3 +886,98 @@ async def handle_callback_query(db: AsyncIOMotorDatabase, callback_query: dict) 
     }
     
     return await handle_telegram_message(db, fake_message)
+
+
+async def notify_manager_telegram(db: AsyncIOMotorDatabase, employee: dict, notification_type: str, data: dict):
+    """Send notification to manager's Telegram if linked"""
+    try:
+        # Get reporting manager
+        rm_id = employee.get("reporting_manager_id")
+        if not rm_id:
+            return
+        
+        rm = await db.employees.find_one({"employee_id": rm_id})
+        if not rm or not rm.get("telegram_id"):
+            logger.info(f"Manager {rm_id} not linked to Telegram")
+            return
+        
+        manager_chat_id = rm.get("telegram_id")
+        emp_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}"
+        
+        if notification_type == "leave_request":
+            msg = f"""
+<b>🔔 New Leave Request</b>
+
+<b>{emp_name}</b> has requested leave:
+
+• <b>Type:</b> {data.get('leave_type', 'N/A').title()} Leave
+• <b>Dates:</b> {data.get('start_date', '')} to {data.get('end_date', '')}
+• <b>Reason:</b> {data.get('reason', 'Not provided')}
+
+<i>Open NETRA app to approve/reject</i>
+"""
+        elif notification_type == "expense_request":
+            msg = f"""
+<b>🔔 New Expense Claim</b>
+
+<b>{emp_name}</b> submitted an expense:
+
+• <b>Type:</b> {data.get('expense_type', 'N/A')}
+• <b>Amount:</b> ₹{data.get('amount', 0):,.0f}
+• <b>Details:</b> {data.get('description', 'Not provided')[:100]}
+
+<i>Open NETRA app to approve/reject</i>
+"""
+        else:
+            return
+        
+        keyboard = get_quick_reply_keyboard(["Pending approvals", "Log meeting"])
+        await send_telegram_message(manager_chat_id, msg, keyboard)
+        logger.info(f"Notification sent to manager {rm_id} via Telegram")
+        
+    except Exception as e:
+        logger.error(f"Failed to notify manager via Telegram: {e}")
+
+
+async def send_approval_notification(db: AsyncIOMotorDatabase, employee_id: str, notification_type: str, data: dict):
+    """Send approval result notification to employee via Telegram"""
+    try:
+        employee = await db.employees.find_one({"employee_id": employee_id})
+        if not employee or not employee.get("telegram_id"):
+            return
+        
+        chat_id = employee.get("telegram_id")
+        status = data.get("status", "unknown")
+        status_emoji = "✅" if status == "approved" else "❌"
+        
+        if notification_type == "leave":
+            msg = f"""
+<b>{status_emoji} Leave Request {status.title()}</b>
+
+Your leave request has been <b>{status}</b>:
+
+• <b>Type:</b> {data.get('leave_type', 'N/A')}
+• <b>Dates:</b> {data.get('start_date', '')} to {data.get('end_date', '')}
+"""
+            if data.get("comments"):
+                msg += f"• <b>Comments:</b> {data.get('comments')}"
+        
+        elif notification_type == "expense":
+            msg = f"""
+<b>{status_emoji} Expense Claim {status.title()}</b>
+
+Your expense claim has been <b>{status}</b>:
+
+• <b>Type:</b> {data.get('expense_type', 'N/A')}
+• <b>Amount:</b> ₹{data.get('amount', 0):,.0f}
+"""
+            if data.get("comments"):
+                msg += f"• <b>Comments:</b> {data.get('comments')}"
+        else:
+            return
+        
+        await send_telegram_message(chat_id, msg)
+        logger.info(f"Approval notification sent to {employee_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send approval notification: {e}")
