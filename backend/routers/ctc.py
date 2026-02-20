@@ -289,10 +289,13 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
         "summary": breakdown["summary"],
         "retention_bonus": request.retention_bonus or 0,
         "retention_vesting_months": request.retention_vesting_months or 12,
-        "status": "pending",
+        "status": "approved",  # Auto-approved - no admin approval needed
         "created_by": current_user.id,
         "created_by_name": current_user.full_name,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "approved_at": datetime.now(timezone.utc).isoformat(),
+        "approved_by": current_user.id,
+        "approved_by_name": current_user.full_name,
         "remarks": request.remarks,
         "version": version,
         "previous_ctc": employee.get("salary", 0)
