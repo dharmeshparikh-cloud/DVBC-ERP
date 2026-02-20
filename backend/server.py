@@ -10184,14 +10184,21 @@ async def get_my_salary_slips(current_user: User = Depends(get_current_user)):
 @api_router.get("/my/expenses")
 async def get_my_expenses(current_user: User = Depends(get_current_user)):
     emp = await _get_my_employee(current_user)
-    expenses = await db.expenses.find({"employee_id": emp["id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    # Query by both employee.id and user_id for backwards compatibility
+    expenses = await db.expenses.find({
+        "$or": [
+            {"employee_id": emp["id"]},
+            {"user_id": current_user.id},
+            {"created_by": current_user.id}
+        ]
+    }, {"_id": 0}).sort("created_at", -1).to_list(200)
     summary = {"draft": 0, "pending": 0, "approved": 0, "rejected": 0, "reimbursed": 0, "total_amount": 0, "reimbursed_amount": 0}
     for e in expenses:
         st = e.get("status", "draft")
         summary[st] = summary.get(st, 0) + 1
-        summary["total_amount"] += e.get("total_amount", 0)
+        summary["total_amount"] += e.get("total_amount", 0) or e.get("amount", 0)
         if st == "reimbursed":
-            summary["reimbursed_amount"] += e.get("total_amount", 0)
+            summary["reimbursed_amount"] += e.get("total_amount", 0) or e.get("amount", 0)
     return {"expenses": expenses, "summary": summary}
 
 
