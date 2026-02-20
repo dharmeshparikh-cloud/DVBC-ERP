@@ -6670,13 +6670,18 @@ async def get_reporting_chain(user_id: str, max_levels: int = 3) -> List[dict]:
     level = 1
     
     while current_manager_id and level <= max_levels:
-        manager = await db.employees.find_one({"id": current_manager_id}, {"_id": 0})
+        # Query by BOTH id (UUID) and employee_id (code) for backwards compatibility
+        manager = await db.employees.find_one(
+            {"$or": [{"id": current_manager_id}, {"employee_id": current_manager_id}]}, 
+            {"_id": 0}
+        )
         if not manager:
             break
         
         chain.append({
             "level": level,
             "employee_id": manager['id'],
+            "employee_code": manager.get('employee_id'),
             "user_id": manager.get('user_id'),
             "name": f"{manager['first_name']} {manager['last_name']}",
             "role": manager.get('role'),
