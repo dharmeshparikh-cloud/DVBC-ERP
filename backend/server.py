@@ -11637,36 +11637,6 @@ async def migrate_reporting_manager_ids(current_user: User = Depends(get_current
     }
 
 
-    if not req:
-        raise HTTPException(status_code=404, detail="Request not found")
-    
-    # Update request status
-    await db.permission_change_requests.update_one(
-        {"id": request_id},
-        {"$set": {
-            "status": "rejected",
-            "approved_by": current_user.email,
-            "processed_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-    
-    # Notify requester
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": req["requested_by"],
-        "type": "permission_request_rejected",
-        "title": f"Permission Change Rejected",
-        "message": f"Your permission change request for {req['employee_name']} has been rejected",
-        "reference_type": "permission_request",
-        "reference_id": request_id,
-        "read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.notifications.insert_one(notification)
-    
-    return {"message": "Request rejected"}
-
-
 @api_router.get("/document-history")
 async def get_document_history(
     employee_id: Optional[str] = None,
