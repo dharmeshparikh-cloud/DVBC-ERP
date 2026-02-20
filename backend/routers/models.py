@@ -220,7 +220,7 @@ class Project(BaseModel):
     project_value: Optional[float] = None
     pricing_plan_id: Optional[str] = None
     notes: Optional[str] = None
-    created_by: Optional[str] = None  # Made optional for legacy records
+    created_by: str  # Required - tracks project creator for accountability
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
