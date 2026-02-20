@@ -10,7 +10,31 @@
 
 ## Completed Work - February 2026
 
-### Employee Linking & Custom Attendance Policies - February 20, 2026 ✅ (Latest)
+### System Integration & Workflow Fixes - February 20, 2026 ✅ (Latest)
+- **CTC Flow Simplified**:
+  - CTC no longer requires Admin approval - saves and applies directly
+  - Auto-redirects to Document Center after CTC save
+- **PM Selection Filter**:
+  - Only Senior/Principal Consultants with reportees can be assigned as PM
+  - Endpoint: `GET /api/kickoff-requests/eligible-pms/list`
+- **My Clients Enhanced**:
+  - Shows agreement value (total, paid, pending)
+  - Kickoff status and project ID linked
+- **Unified Portal**:
+  - `/hr/login` and `/sales/login` redirect to `/login`
+  - Role-based routing after login
+- **Kickoff Approval Roles Updated**:
+  - `senior_consultant` + `principal_consultant` can approve kickoffs
+- **Duplicate Endpoints Removed**:
+  - Removed duplicate `/sow-categories` from server.py
+
+### Navigation Cleanup - February 20, 2026 ✅
+- Fixed dead links: `/sow-pricing` → `/sales-funnel/pricing-plans`
+- Created new pages: `/follow-ups` (Lead/Payment), `/invoices` (Proforma linked to employees)
+- Restored: Employee Permissions & Project Payments in Admin section
+- Updated Consulting nav: Team Assignment, Meetings Calendar
+
+### Employee Linking & Custom Attendance Policies - February 20, 2026 ✅
 - **Employee Selection Dropdowns**:
   - HR Attendance Input (`/hr-attendance-input`): Filter by specific employee
   - HR Leave Input (`/hr-leave-input`): Filter by employee, shows leave balance, pre-populates leave form
