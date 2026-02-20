@@ -197,9 +197,34 @@ const MyExpenses = () => {
                 <Input value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="rounded-sm border-zinc-200" placeholder="Optional" />
               </div>
-              <Button type="submit" data-testid="submit-expense" className="w-full bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                Save as Draft
-              </Button>
+              <div className="flex gap-2">
+                <Button type="submit" data-testid="save-draft-btn" variant="outline" className="flex-1 rounded-sm shadow-none">
+                  Save as Draft
+                </Button>
+                <Button type="button" data-testid="submit-expense" onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    const payload = {
+                      ...formData,
+                      line_items: formData.line_items.map(li => ({
+                        ...li, amount: parseFloat(li.amount) || 0,
+                        date: new Date(li.date).toISOString()
+                      }))
+                    };
+                    const res = await axios.post(`${API}/expenses`, payload);
+                    // Auto-submit for approval
+                    await axios.post(`${API}/expenses/${res.data.expense_id}/submit`);
+                    toast.success('Expense submitted for approval');
+                    setDialogOpen(false);
+                    setFormData({ client_id: '', client_name: '', project_id: '', project_name: '', is_office_expense: false, notes: '', line_items: [{ category: 'Travel', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }] });
+                    fetchData();
+                  } catch (error) {
+                    toast.error(error.response?.data?.detail || 'Failed to submit expense');
+                  }
+                }} className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+                  <Send className="w-4 h-4 mr-2" /> Submit for Approval
+                </Button>
+              </div>
             </form>
           </DialogContent>
         </Dialog>
