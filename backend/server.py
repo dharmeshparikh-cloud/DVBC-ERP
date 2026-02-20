@@ -7723,7 +7723,11 @@ async def create_leave_request(
     leave_data: LeaveRequestCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a leave request. Manager's own leave escalates to their reporting manager + admin."""
+    """
+    Create a leave request - Simplified flow:
+    - Only Reporting Manager approval required
+    - HR and Admin are notified (no approval action needed)
+    """
     employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
     if not employee:
         raise HTTPException(status_code=400, detail="Employee record not found. Please contact HR.")
@@ -7752,14 +7756,21 @@ async def create_leave_request(
     if days > available:
         raise HTTPException(status_code=400, detail=f"Insufficient leave balance. Available: {available} days, Requested: {days} days")
     
-    # Check if user is a manager/reporting manager — their leave must escalate to THEIR manager + admin
-    is_manager_role = current_user.role in ['manager', 'project_manager', 'hr_manager', 'principal_consultant']
-    has_reportees = len(await get_direct_reportee_ids(current_user.id)) > 0
-    requires_admin = is_manager_role or has_reportees  # Manager's own leave needs admin approval
+    # Get reporting manager info
+    reporting_manager_id = employee.get('reporting_manager_id')
+    rm_user_id = None
+    rm_name = None
+    if reporting_manager_id:
+        rm_emp = await db.employees.find_one({"employee_id": reporting_manager_id}, {"_id": 0})
+        if rm_emp:
+            rm_user_id = rm_emp.get("user_id")
+            rm_name = f"{rm_emp.get('first_name', '')} {rm_emp.get('last_name', '')}".strip()
     
+    now = datetime.now(timezone.utc).isoformat()
     leave_request = {
         "id": str(uuid.uuid4()),
         "employee_id": employee['id'],
+        "employee_code": employee.get('employee_id'),
         "employee_name": f"{employee['first_name']} {employee['last_name']}",
         "user_id": current_user.id,
         "leave_type": leave_data.leave_type,
@@ -7770,28 +7781,55 @@ async def create_leave_request(
         "half_day_type": leave_data.half_day_type if leave_data.is_half_day else None,
         "reason": leave_data.reason,
         "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "reporting_manager_id": reporting_manager_id,
+        "reporting_manager_name": rm_name,
+        "rm_user_id": rm_user_id,
+        "approval_type": "rm_only",  # New simplified flow
+        "created_at": now,
+        "updated_at": now
     }
     
     await db.leave_requests.insert_one(leave_request)
     
-    # Create approval request — manager's leave escalates to their RM + admin
     half_day_label = f" ({leave_data.half_day_type.replace('_', ' ').title()})" if leave_data.is_half_day else ""
-    approval = await create_approval_request(
-        approval_type=ApprovalType.LEAVE_REQUEST,
-        reference_id=leave_request['id'],
-        reference_title=f"{leave_data.leave_type.replace('_', ' ').title()} - {days} day(s){half_day_label}",
-        requester_id=current_user.id,
-        requires_hr_approval=True,
-        requires_admin_approval=requires_admin,
-        is_client_facing=False
-    )
+    leave_title = f"{leave_data.leave_type.replace('_', ' ').title()} - {days} day(s){half_day_label}"
     
-    await db.leave_requests.update_one(
-        {"id": leave_request['id']},
-        {"$set": {"approval_request_id": approval['id']}}
-    )
+    # Notify Reporting Manager for approval
+    if rm_user_id:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": rm_user_id,
+            "type": "leave_approval_required",
+            "title": "Leave Approval Required",
+            "message": f"{leave_request['employee_name']} requested {leave_title}. Please approve/reject.",
+            "reference_type": "leave_request",
+            "reference_id": leave_request['id'],
+            "is_read": False,
+            "action_required": True,
+            "created_at": now
+        })
+    
+    # Notify HR and Admin (informational only)
+    hr_admins = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"_id": 0, "id": 1}).to_list(20)
+    for user in hr_admins:
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "type": "leave_request_info",
+            "title": "Leave Request Submitted",
+            "message": f"{leave_request['employee_name']} applied for {leave_title}. Pending RM approval.",
+            "reference_type": "leave_request",
+            "reference_id": leave_request['id'],
+            "is_read": False,
+            "action_required": False,  # No action needed from HR/Admin
+            "created_at": now
+        })
+    
+    return {
+        "message": "Leave request submitted for RM approval",
+        "leave_request_id": leave_request['id'],
+        "approver": rm_name or "HR Manager (no RM assigned)"
+    }
     
     await notify_admins(
         notif_type="leave_request",
