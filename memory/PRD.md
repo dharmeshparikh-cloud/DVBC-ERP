@@ -2393,3 +2393,42 @@ All `reporting_manager_id` values are now employee_id codes:
 - `get_reportee_user_ids()` - uses $or pattern
 - `is_direct_reportee()` - uses $or pattern
 - `is_any_reportee()` - uses $or pattern
+
+### Session 76 (Feb 20, 2026) - Bulk HR Operations Testing
+
+#### Bulk Operations Tested & Verified
+
+##### Available Bulk Operations:
+1. **Bulk Add Departments** - Add one or more departments to multiple employees
+2. **Bulk Remove Departments** - Remove departments from multiple employees
+3. **Combined Add/Remove** - Add some departments while removing others in single operation
+
+##### UI Features (Department Access Manager):
+- **Bulk Edit Button** - Toggles bulk mode on/off
+- **Checkboxes** - Appear next to each employee in bulk mode
+- **Select All** - Header checkbox selects all visible employees
+- **Update X Selected** - Button shows count and opens dialog
+- **Bulk Update Dialog** - Shows Add/Remove department options with chips
+
+##### API Endpoint:
+```
+POST /api/department-access/bulk-update
+{
+  "employee_ids": ["uuid1", "uuid2"],
+  "add_departments": ["HR", "Finance"],
+  "remove_departments": ["Marketing"]
+}
+```
+
+##### Error Handling:
+- Empty employee list: Returns `{updated_count: 0, errors: []}`
+- Invalid employee ID: Returns error for that employee
+- Cannot remove all departments: Validation prevents leaving employee with 0 departments
+- Non-admin users: Returns 403 Forbidden
+
+##### Test Results:
+- Backend: 100% (10/10 tests passed)
+- Frontend: 100% (All Playwright tests passed)
+
+##### Minor Fix:
+- Added "Marketing" department to backend DEFAULT_DEPARTMENTS to match frontend config
