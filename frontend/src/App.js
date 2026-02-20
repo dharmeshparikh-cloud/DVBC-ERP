@@ -107,6 +107,11 @@ import './App.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
+// Re-export error handling utilities for easy access
+export { handleApiError, useApi } from './utils/useApi';
+export { parseError, ERROR_TYPES } from './utils/errorHandler';
+export { ErrorDisplay, InlineError } from './components/ErrorDisplay';
+
 export const AuthContext = React.createContext(null);
 
 // Setup axios interceptors once
