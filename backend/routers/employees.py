@@ -454,20 +454,52 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
             "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}",
             "requested_by": current_user.id,
             "requested_by_email": current_user.email,
+            "requested_by_name": current_user.full_name,
+            "requested_by_role": current_user.role,
             "requested_changes": {k: v for k, v in data.items() if k in protected_fields},
             "current_values": {k: employee.get(k) for k in data.keys() if k in protected_fields},
+            "all_changes": data,  # Store all changes for reference
             "status": "pending",
             "request_type": "employee_modification",
+            "is_go_live_employee": is_go_live,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         
         await db.modification_requests.insert_one(modification_request)
         
+        # Notify all Admin users about pending approval
+        admin_users = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(20)
+        for admin in admin_users:
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": admin["id"],
+                "type": "modification_approval_required",
+                "title": "Employee Modification Request",
+                "message": f"{current_user.full_name} requested changes to {employee.get('employee_id', '')} ({employee.get('first_name', '')} {employee.get('last_name', '')}). Review and approve/reject.",
+                "reference_type": "modification_request",
+                "reference_id": modification_request["id"],
+                "is_read": False,
+                "action_required": True,
+                "link": "/approvals",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+        
+        # Determine which fields were changed for the message
+        changed_fields = list(modification_request["requested_changes"].keys())
+        field_labels = {
+            "salary": "Salary", "ctc": "CTC", "ctc_details": "CTC Details",
+            "designation": "Designation", "department": "Department", "departments": "Departments",
+            "reporting_manager_id": "Reporting Manager", "employment_type": "Employment Type",
+            "bank_details": "Bank Details", "bank_account_number": "Bank Account", "bank_ifsc": "Bank IFSC"
+        }
+        changed_labels = [field_labels.get(f, f) for f in changed_fields]
+        
         return {
-            "message": "Modification request submitted for admin approval",
+            "message": "Modification request submitted for Admin approval",
             "request_id": modification_request["id"],
             "status": "pending_approval",
-            "note": "Changes to bank details, salary, and department require admin approval for onboarded employees."
+            "changed_fields": changed_labels,
+            "note": f"Changes to {', '.join(changed_labels)} require Admin approval for Go-Live employees. Admin has been notified."
         }
     
     # Sanitize text fields
