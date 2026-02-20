@@ -197,6 +197,8 @@ const Layout = () => {
     { name: 'Password Management', href: '/password-management', icon: Key, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
     { name: 'Leave & Attendance', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
+    { name: 'HR Leave Input', href: '/hr-leave-input', icon: Calendar, requiresHRorAdmin: true },
+    { name: 'HR Attendance Input', href: '/hr-attendance-input', icon: Clock, requiresHRorAdmin: true },
     { name: 'CTC & Payroll', href: '/ctc-designer', icon: Wallet, requiresApproval: true },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },
   ];
