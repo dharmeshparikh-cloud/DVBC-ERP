@@ -126,14 +126,27 @@ async def get_eligible_pms(current_user: User = Depends(get_current_user)):
     # Filter to only those who have reportees (are reporting managers for someone)
     eligible_pms = []
     for consultant in consultants:
-        # Check if anyone reports to this consultant
+        # Get employee record for this user to find their employee_id
+        employee = await db.employees.find_one(
+            {"user_id": consultant["id"]},
+            {"_id": 0, "id": 1, "employee_id": 1}
+        )
+        
+        if not employee:
+            continue
+            
+        # Check if anyone reports to this employee (by employee.id or employee_id code)
         reportee_count = await db.employees.count_documents({
-            "reporting_manager_id": consultant["id"],
+            "$or": [
+                {"reporting_manager_id": employee.get("id")},
+                {"reporting_manager_id": employee.get("employee_id")}
+            ],
             "is_active": True
         })
         
         if reportee_count > 0:
             consultant["reportee_count"] = reportee_count
+            consultant["employee_id"] = employee.get("employee_id")
             eligible_pms.append(consultant)
     
     return {
