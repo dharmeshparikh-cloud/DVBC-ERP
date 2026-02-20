@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>NETRA Telegram Bot - Conversation Mockups</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0e1621;
+      padding: 30px;
+      min-height: 100vh;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+    .subtitle {
+      color: #8b98a5;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .chat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .phone-frame {
+      background: #17212b;
+      border-radius: 30px;
+      padding: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+    .phone-screen {
+      background: #0e1621;
+      border-radius: 22px;
+      overflow: hidden;
+    }
+    .chat-header {
+      background: #17212b;
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #232e3c;
+    }
+    .back-arrow {
+      color: #8b98a5;
+      font-size: 20px;
+    }
+    .bot-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .bot-info h3 {
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .bot-info span {
+      color: #8b98a5;
+      font-size: 12px;
+    }
+    .chat-label {
+      background: #f59e0b;
+      color: #1a1a2e;
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-left: auto;
+    }
+    .chat-body {
+      padding: 15px;
+      height: 480px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .message {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      position: relative;
+    }
+    .message.bot {
+      background: #182533;
+      color: #f5f5f5;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .message.user {
+      background: #2b5278;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .message.success {
+      background: #1a3d2e;
+      border-left: 3px solid #10b981;
+    }
+    .message-time {
+      font-size: 10px;
+      color: #8b98a5;
+      margin-top: 4px;
+      text-align: right;
+    }
+    .quick-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .quick-btn {
+      background: #232e3c;
+      border: 1px solid #3a4a5c;
+      color: #7eb8f7;
+      padding: 6px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .quick-btn:hover {
+      background: #2b3a4c;
+    }
+    .divider {
+      text-align: center;
+      color: #8b98a5;
+      font-size: 11px;
+      margin: 10px 0;
+    }
+    .summary-card {
+      background: #232e3c;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 8px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 12px;
+      border-bottom: 1px dashed #3a4a5c;
+    }
+    .summary-row:last-child {
+      border-bottom: none;
+    }
+    .summary-label {
+      color: #8b98a5;
+    }
+    .summary-value {
+      color: #f5f5f5;
+      font-weight: 600;
+    }
+    .summary-value.highlight {
+      color: #f59e0b;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .action-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+    }
+    .action-btn.approve {
+      background: #10b981;
+      color: white;
+    }
+    .action-btn.reject {
+      background: #ef4444;
+      color: white;
+    }
+    .input-bar {
+      background: #17212b;
+      padding: 10px 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid #232e3c;
+    }
+    .input-field {
+      flex: 1;
+      background: #242f3d;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 15px;
+      color: white;
+      font-size: 13px;
+    }
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      background: #5eaeda;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+    }
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 8px 12px;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: #8b98a5;
+      border-radius: 50%;
+      animation: typing 1s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    .emoji { font-size: 16px; }
+    .check-icon { color: #10b981; }
+  </style>
+</head>
+<body>
+  <h1>🤖 NETRA Telegram Bot</h1>
+  <p class="subtitle">Consultant-friendly conversations for on-the-go updates</p>
+
+  <div class="chat-grid">
+    <!-- Chat 1: Log Meeting -->
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="chat-header">
+          <span class="back-arrow">←</span>
+          <div class="bot-avatar">🔶</div>
+          <div class="bot-info">
+            <h3>NETRA ERP Bot</h3>
+            <span>online</span>
+          </div>
+          <span class="chat-label">MEETING</span>
+        </div>
+        <div class="chat-body">
+          <div class="message user">
+            Log meeting
+            <div class="message-time">10:30 AM</div>
+          </div>
+          <div class="message bot">
+            <span class="emoji">📝</span> <strong>Log Client Meeting</strong>
+            <br><br>
+            Let's capture your meeting details.
+            <br><br>
+            <strong>Which client did you meet?</strong>
+            <div class="quick-buttons">
+              <span class="quick-btn">ABC Corp</span>
+              <span class="quick-btn">XYZ Ltd</span>
+              <span class="quick-btn">Tech Solutions</span>
+            </div>
+            <div class="message-time">10:30 AM</div>
+          </div>
+          <div class="message user">
+            ABC Corp
+            <div class="message-time">10:31 AM</div>
+          </div>
+          <div class="message bot">
+            <span class="emoji">⏱️</span> <strong>Meeting Duration?</strong>
+            <div class="quick-buttons">
+              <span class="quick-btn">30 min</span>
+              <span class="quick-btn">1 hour</span>
+              <span class="quick-btn">2 hours</span>
+              <span class="quick-btn">3+ hours</span>
+            </div>
+            <div class="message-time">10:31 AM</div>
+          </div>
+          <div class="message user">
+            2 hours
+            <div class="message-time">10:31 AM</div>
+          </div>
+          <div class="message bot">
+            <span class="emoji">📋</span> <strong>Brief notes/outcome?</strong>
+            <br><span style="color:#8b98a5;font-size:11px;">Type key points from the meeting</span>
+            <div class="message-time">10:31 AM</div>
+          </div>
+          <div class="message user">
+            Discussed Q1 strategy. They want proposal by Friday. Follow-up scheduled.
+            <div class="message-time">10:32 AM</div>
+          </div>
+          <div class="message bot success">
+            <span class="emoji">✅</span> <strong>Meeting Logged Successfully!</strong>
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="summary-label">Client</span>
+                <span class="summary-value">ABC Corp</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Duration</span>
+                <span class="summary-value highlight">2 hours</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Date</span>
+                <span class="summary-value">20 Dec 2025</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Logged By</span>
+                <span class="summary-value">Rahul Kumar</span>
+              </div>
+            </div>
+            <br>
+            <span style="color:#8b98a5;font-size:11px;">📊 Synced to NETRA ERP</span>
+            <div class="message-time">10:32 AM ✓✓</div>
+          </div>
+        </div>
+        <div class="input-bar">
+          <input class="input-field" placeholder="Type a message..." />
+          <div class="send-btn">➤</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat 2: Apply Leave -->
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="chat-header">
+          <span class="back-arrow">←</span>
+          <div class="bot-avatar">🔶</div>
+          <div class="bot-info">
+            <h3>NETRA ERP Bot</h3>
+            <span>online</span>
+          </div>
+          <span class="chat-label" style="background:#8b5cf6;color:white;">LEAVE</span>
+        </div>
+        <div class="chat-body">
+          <div class="message user">
+            Apply leave
+            <div class="message-time">2:15 PM</div>
+          </div>
+          <div class="message bot">
+            <span class="emoji">🏖️</span> <strong>Apply for Leave</strong>
+            <br><br>
+            Your current balance:
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="summary-label">Casual Leave</span>
+                <span class="summary-value" style="color:#10b981;">9 days</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Sick Leave</span>
+                <span class="summary-value" style="color:#10b981;">6 days</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Earned Leave</span>
+                <span class="summary-value" style="color:#10b981;">15 days</span>
+              </div>
+            </div>
+            <br>
+            <strong>Which type of leave?</strong>
+            <div class="quick-buttons">
+              <span class="quick-btn">Casual</span>
+              <span class="quick-btn">Sick</span>
+              <span class="quick-btn">Earned</span>
+            </div>
+            <div class="message-time">2:15 PM</div>
+          </div>
+          <div class="message user">
+            Casual
+            <div class="message-time">2:15 PM</div>
+          </div>
+          <div class="message bot">
+            <span class="emoji">📅</span> <strong>From which date?</strong>
+            <br><span style="color:#8b98a5;font-size:11px;">Format: 25 Dec or 25-27 Dec</span>
+            <div class="message-time">2:15 PM</div>
+          </div>
+          <div class="message user">
+            25-27 Dec
+            <div class="message-time">2:16 PM</div>
+          </div>
+          <div class="message bot">
+            <span class="emoji">✏️</span> <strong>Reason for leave?</strong>
+            <div class="message-time">2:16 PM</div>
+          </div>
+          <div class="message user">
+            Sister's wedding ceremony
+            <div class="message-time">2:16 PM</div>
+          </div>
+          <div class="message bot success">
+            <span class="emoji">✅</span> <strong>Leave Request Submitted!</strong>
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="summary-label">Type</span>
+                <span class="summary-value">Casual Leave</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Dates</span>
+                <span class="summary-value highlight">25 - 27 Dec 2025</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Days</span>
+                <span class="summary-value">3 days</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Status</span>
+                <span class="summary-value" style="color:#f59e0b;">⏳ Pending Approval</span>
+              </div>
+            </div>
+            <br>
+            <span style="color:#8b98a5;font-size:11px;">📩 Sent to: Dharmesh Patel (Manager)</span>
+            <div class="message-time">2:16 PM ✓✓</div>
+          </div>
+        </div>
+        <div class="input-bar">
+          <input class="input-field" placeholder="Type a message..." />
+          <div class="send-btn">➤</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat 3: Approval Request (Manager View) -->
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="chat-header">
+          <span class="back-arrow">←</span>
+          <div class="bot-avatar">🔶</div>
+          <div class="bot-info">
+            <h3>NETRA ERP Bot</h3>
+            <span>online</span>
+          </div>
+          <span class="chat-label" style="background:#10b981;color:white;">APPROVAL</span>
+        </div>
+        <div class="chat-body">
+          <div class="divider">── Today ──</div>
+          <div class="message bot">
+            <span class="emoji">🔔</span> <strong>New Leave Request</strong>
+            <br><br>
+            <strong>Rahul Kumar</strong> has requested leave:
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="summary-label">Employee</span>
+                <span class="summary-value">Rahul Kumar (EMP001)</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Type</span>
+                <span class="summary-value">Casual Leave</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Dates</span>
+                <span class="summary-value highlight">25 - 27 Dec 2025</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Days</span>
+                <span class="summary-value">3 days</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Reason</span>
+                <span class="summary-value">Sister's wedding</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Balance After</span>
+                <span class="summary-value" style="color:#10b981;">6 days</span>
+              </div>
+            </div>
+            <div class="action-buttons">
+              <div class="action-btn approve">✓ Approve</div>
+              <div class="action-btn reject">✕ Reject</div>
+            </div>
+            <div class="message-time">2:17 PM</div>
+          </div>
+          <div class="message user">
+            ✓ Approve
+            <div class="message-time">2:20 PM</div>
+          </div>
+          <div class="message bot success">
+            <span class="emoji">✅</span> <strong>Leave Approved!</strong>
+            <br><br>
+            Rahul Kumar's leave request has been approved.
+            <br><br>
+            <span style="color:#8b98a5;font-size:11px;">📩 Notification sent to employee</span>
+            <br>
+            <span style="color:#8b98a5;font-size:11px;">📊 Synced to NETRA ERP</span>
+            <div class="message-time">2:20 PM ✓✓</div>
+          </div>
+          <div class="divider">── 3:45 PM ──</div>
+          <div class="message bot">
+            <span class="emoji">🔔</span> <strong>Expense Approval</strong>
+            <br><br>
+            <strong>Amit Patel</strong> submitted an expense:
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="summary-label">Employee</span>
+                <span class="summary-value">Amit Patel (EMP015)</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Type</span>
+                <span class="summary-value">Travel</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Amount</span>
+                <span class="summary-value" style="color:#8b5cf6;">₹4,500</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Project</span>
+                <span class="summary-value">ABC Corp Audit</span>
+              </div>
+            </div>
+            <div class="action-buttons">
+              <div class="action-btn approve">✓ Approve</div>
+              <div class="action-btn reject">✕ Reject</div>
+            </div>
+            <div class="message-time">3:45 PM</div>
+          </div>
+        </div>
+        <div class="input-bar">
+          <input class="input-field" placeholder="Type a message..." />
+          <div class="send-btn">➤</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
