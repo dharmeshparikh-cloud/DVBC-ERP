@@ -9546,11 +9546,9 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
     }
     
     await db.attendance.insert_one(record)
-                "created_at": datetime.now(timezone.utc).isoformat()
-            })
     
     return {
-        "message": "Check-in successful" if approval_status == "approved" else "Check-in submitted for HR approval",
+        "message": "Check-in successful",
         "id": record["id"],
         "date": date_str,
         "status": "present",
@@ -9559,8 +9557,7 @@ async def self_check_in(data: dict, current_user: User = Depends(get_current_use
         "client_name": client_name,
         "project_id": project_id,
         "project_name": project_name,
-        "approval_status": approval_status,
-        "matched_location": location_validation.get("matched_location"),
+        "approval_status": "approved",
         "check_in_time": record["check_in_time"]
     }
 
