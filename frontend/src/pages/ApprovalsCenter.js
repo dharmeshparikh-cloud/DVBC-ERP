@@ -236,6 +236,39 @@ const ApprovalsCenter = () => {
     }
   };
 
+  // Go-Live handlers
+  const fetchGoLiveChecklist = async (employeeId) => {
+    try {
+      const res = await axios.get(`${API}/go-live/checklist/${employeeId}`);
+      setGoLiveChecklist(res.data);
+    } catch (error) {
+      toast.error('Failed to load checklist');
+      console.error(error);
+    }
+  };
+
+  const handleGoLiveAction = async (requestId, action) => {
+    setActionLoading(true);
+    try {
+      if (action === 'approve') {
+        await axios.post(`${API}/go-live/${requestId}/approve`);
+        toast.success('Go-Live approved! Employee is now active.');
+      } else {
+        await axios.post(`${API}/go-live/${requestId}/reject`, { reason: comments || 'Rejected by Admin' });
+        toast.success('Go-Live rejected');
+      }
+      setGoLiveDetailDialog(false);
+      setSelectedGoLive(null);
+      setGoLiveChecklist(null);
+      setComments('');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} Go-Live request`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Format currency
   const formatCurrency = (amount) => {
     if (!amount) return '₹0';
