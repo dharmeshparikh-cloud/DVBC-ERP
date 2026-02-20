@@ -2297,3 +2297,54 @@ User ID vs Employee ID:
 - Rahul Kumar: Sidebar shows only MY WORKSPACE + SALES (no Consulting)
 - Dhamresh Parikh (EMP110): has_reportees=true, reportee_count=2
 - "Dept" button in Department Access Manager: Working correctly
+
+### Session 74 (Feb 20, 2026) - Data Scoping & Attendance UI Consolidation
+
+#### Task 1: Data Scoping (P1) - COMPLETED
+Implemented employee hierarchy-based filtering for Leads.
+
+##### Implementation Details:
+- **GET /leads endpoint** (`/app/backend/routers/leads.py` lines 98-157):
+  - Admin/HR Manager: sees all leads
+  - Other users: sees leads where `created_by` or `assigned_to` is in their accessible user IDs
+  - Accessible user IDs = self + all reportees (employees who report to the user)
+  - Query uses `$or` pattern with `$in` for user ID matching
+
+- **GET /leads/{id} endpoint** (lines 159-202):
+  - Same access control - returns 403 if lead not accessible
+  - Admin/HR Manager bypass the check
+
+##### How Hierarchy Scoping Works:
+1. Get current user's employee record
+2. Find all employees where `reporting_manager_id` matches user's `employee_id`
+3. Include their `user_id` values in the accessible IDs list
+4. Query leads where `created_by` or `assigned_to` is in accessible IDs
+
+##### Test Results:
+- Admin sees: 18 leads (all)
+- Rahul Kumar (EMP001): 1 lead (own)
+- Dhamresh Parikh (EMP110, manager): 1 lead (Rahul's lead - team visibility)
+
+---
+
+#### Task 2: Merge Attendance UIs - COMPLETED
+Consolidated duplicate attendance flows into single QuickCheckInModal.
+
+##### Changes:
+- **MyAttendance.js** (`/app/frontend/src/pages/MyAttendance.js`):
+  - Removed duplicate check-in form
+  - Added "Quick Check-in" button that opens QuickCheckInModal
+  - Table now shows: Date, Status, Location, Check In, Check Out, Hours
+  - Uses AuthContext to get user for modal
+
+##### Single Entry Point:
+- Dashboard Quick Attendance widget → QuickCheckInModal
+- MyAttendance page button → QuickCheckInModal
+- Mobile bottom nav button → QuickCheckInModal
+- All lead to the SAME modal for consistent experience
+
+---
+
+#### Test Results
+- Backend: 100% (11/11 tests passed)
+- Frontend: 100% (All Playwright tests passed)
