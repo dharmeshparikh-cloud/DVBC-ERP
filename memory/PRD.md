@@ -2191,3 +2191,30 @@ User reported that the geo-fencing attendance feature was too complex and causin
 #### Files Unchanged
 - `/app/frontend/src/components/QuickCheckInModal.js` - Works correctly, no changes needed
 - `/app/backend/routers/attendance.py` - Not used for self-check-in (remains in server.py)
+
+### Session 71 (continued) - Mobile Quick Check-in Shortcut
+
+#### Feature Added
+Added a prominent **Quick Check-in button** to the mobile bottom navigation across all layouts:
+
+##### Implementation Details:
+- [x] **Layout.js (Main ERP)**: Green (emerald-600) centered button with CheckCircle2 icon
+- [x] **HRLayout.js (HR Portal)**: Same green style for consistency
+- [x] **SalesLayout.js (Sales Portal)**: Orange (orange-500) to match portal branding
+
+##### Design:
+- Button is **raised above the nav bar** (-mt-6) for prominence
+- **56x56px circular button** with shadow
+- White border to create floating effect
+- Icon + "Check-in" label
+- Opens QuickCheckInModal on tap
+
+##### Integration (Default Behavior):
+- ✅ **Payroll Integration**: Status automatically set to "present"
+- ✅ **Attendance Integration**: Record created with auto-approval
+- ✅ **2-tap flow**: Bottom nav button → Modal opens → Capture selfie/GPS → Check In
+
+##### Files Modified:
+- `/app/frontend/src/components/Layout.js` - Added QuickCheckInModal import and mobile button
+- `/app/frontend/src/components/HRLayout.js` - Added QuickCheckInModal import and mobile button
+- `/app/frontend/src/components/SalesLayout.js` - Added QuickCheckInModal import and mobile button
