@@ -131,7 +131,9 @@ async def generate_invoices_from_pricing_plan(
         }
         
         await db.invoices.insert_one(invoice)
-        invoices_created.append(invoice)
+        # Remove any potential ObjectId for response
+        invoice_copy = {k: v for k, v in invoice.items() if k != '_id'}
+        invoices_created.append(invoice_copy)
     
     # Update pricing plan to mark invoices generated
     await db.pricing_plans.update_one(
