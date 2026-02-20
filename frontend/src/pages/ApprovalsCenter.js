@@ -543,7 +543,7 @@ const ApprovalsCenter = () => {
         <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
           <CardHeader className="pb-3">
             <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <Send className="w-5 h-5 text-emerald-500" />
+              <Rocket className="w-5 h-5 text-emerald-500" />
               Pending Go-Live Approvals ({goLiveApprovals.length})
             </CardTitle>
           </CardHeader>
@@ -566,6 +566,8 @@ const ApprovalsCenter = () => {
                       </div>
                       <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                         <span>Department: {req.department || 'N/A'}</span>
+                        <span className="mx-2">•</span>
+                        <span>Designation: {req.designation || 'N/A'}</span>
                       </div>
                       <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                         Submitted by: {req.submitted_by_name} on {new Date(req.submitted_at).toLocaleDateString()}
@@ -573,32 +575,38 @@ const ApprovalsCenter = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
+                        variant="outline"
                         size="sm"
                         onClick={async () => {
-                          try {
-                            await axios.post(`${API}/go-live/${req.id}/approve`);
-                            toast.success('Go-Live approved!');
-                            fetchData();
-                          } catch (error) {
-                            toast.error('Failed to approve');
-                          }
+                          setSelectedGoLive(req);
+                          await fetchGoLiveChecklist(req.employee_id);
+                          setGoLiveDetailDialog(true);
                         }}
-                        className="bg-emerald-600 hover:bg-emerald-700"
+                        className={isDark ? 'border-zinc-600' : ''}
+                        data-testid={`view-golive-${req.id}`}
                       >
-                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                        <Eye className="w-4 h-4 mr-1" /> View Checklist
                       </Button>
                       <Button
                         size="sm"
-                        variant="destructive"
                         onClick={async () => {
-                          const reason = prompt('Enter rejection reason:');
-                          if (!reason) return;
-                          try {
-                            await axios.post(`${API}/go-live/${req.id}/reject`, { reason });
-                            toast.success('Go-Live rejected');
-                            fetchData();
-                          } catch (error) {
-                            toast.error('Failed to reject');
+                          setSelectedGoLive(req);
+                          await fetchGoLiveChecklist(req.employee_id);
+                          setGoLiveDetailDialog(true);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        data-testid={`approve-golive-${req.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" /> Review & Approve
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
                           }
                         }}
                       >
