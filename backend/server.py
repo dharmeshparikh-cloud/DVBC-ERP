@@ -9708,9 +9708,237 @@ async def get_pending_reimbursements(month: Optional[str] = None, current_user: 
     }
 
 
+# ==================== PAYROLL SUMMARY REPORTS ====================
+
+@api_router.get("/payroll/summary-report")
+async def get_payroll_summary_report(month: str, current_user: User = Depends(get_current_user)):
+    """Get payroll summary report for a month with department breakdown"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can view payroll reports")
+    
+    # Get all salary slips for the month
+    salary_slips = await db.salary_slips.find({"month": month}, {"_id": 0}).to_list(500)
+    
+    if not salary_slips:
+        return {
+            "month": month,
+            "total_employees": 0,
+            "total_gross_salary": 0,
+            "total_net_salary": 0,
+            "total_deductions": 0,
+            "total_reimbursements": 0,
+            "total_lop_deductions": 0,
+            "total_penalties": 0,
+            "total_leave_days": 0,
+            "avg_attendance_percent": 0,
+            "department_breakdown": {},
+            "employee_details": []
+        }
+    
+    # Get payroll inputs for attendance data
+    payroll_inputs = await db.payroll_inputs.find({"month": month}, {"_id": 0}).to_list(500)
+    inputs_by_emp = {p.get("employee_id"): p for p in payroll_inputs}
+    
+    # Get employee details
+    emp_ids = [s.get("employee_id") for s in salary_slips]
+    employees = await db.employees.find({"id": {"$in": emp_ids}}, {"_id": 0}).to_list(500)
+    emp_by_id = {e.get("id"): e for e in employees}
+    
+    # Calculate totals
+    total_gross = 0
+    total_net = 0
+    total_deductions = 0
+    total_reimbursements = 0
+    total_lop = 0
+    total_penalties = 0
+    total_leaves = 0
+    total_present = 0
+    total_working = 0
+    
+    department_breakdown = {}
+    employee_details = []
+    
+    for slip in salary_slips:
+        emp_id = slip.get("employee_id")
+        emp = emp_by_id.get(emp_id, {})
+        inputs = inputs_by_emp.get(emp_id, {})
+        
+        gross = slip.get("gross_salary") or slip.get("ctc_monthly", 0)
+        net = slip.get("net_salary", 0)
+        deductions = slip.get("total_deductions", 0)
+        reimbursements = sum(r.get("amount", 0) for r in slip.get("reimbursements", []))
+        lop = sum(d.get("amount", 0) for d in slip.get("loss_of_pay_deductions", []))
+        penalty = inputs.get("penalty", 0)
+        leaves = inputs.get("leaves", 0)
+        present = inputs.get("present_days", 0)
+        working = inputs.get("working_days", 30)
+        
+        total_gross += gross
+        total_net += net
+        total_deductions += deductions
+        total_reimbursements += reimbursements
+        total_lop += lop
+        total_penalties += penalty
+        total_leaves += leaves
+        total_present += present
+        total_working += working
+        
+        # Department breakdown
+        dept = emp.get("department") or "Unassigned"
+        if dept not in department_breakdown:
+            department_breakdown[dept] = {"employee_count": 0, "total_salary": 0}
+        department_breakdown[dept]["employee_count"] += 1
+        department_breakdown[dept]["total_salary"] += net
+        
+        # Employee detail
+        employee_details.append({
+            "employee_id": emp_id,
+            "employee_code": emp.get("employee_id", ""),
+            "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip() or slip.get("employee_name", ""),
+            "department": dept,
+            "gross_salary": gross,
+            "total_deductions": deductions,
+            "reimbursements": reimbursements,
+            "net_salary": net,
+            "present_days": present,
+            "leave_days": leaves,
+            "lop_days": sum(d.get("days", 0) for d in slip.get("loss_of_pay_deductions", []))
+        })
+    
+    avg_attendance = (total_present / total_working * 100) if total_working > 0 else 0
+    
+    return {
+        "month": month,
+        "total_employees": len(salary_slips),
+        "total_gross_salary": total_gross,
+        "total_net_salary": total_net,
+        "total_deductions": total_deductions,
+        "total_reimbursements": total_reimbursements,
+        "total_lop_deductions": total_lop,
+        "total_penalties": total_penalties,
+        "total_leave_days": total_leaves,
+        "avg_attendance_percent": round(avg_attendance, 1),
+        "department_breakdown": department_breakdown,
+        "employee_details": sorted(employee_details, key=lambda x: x["name"])
+    }
 
 
-# ==================== SELF-SERVICE (MY WORKSPACE) ====================
+@api_router.post("/payroll/generate-summary-report")
+async def generate_summary_report(data: dict, current_user: User = Depends(get_current_user)):
+    """Generate and save a payroll summary report"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can generate reports")
+    
+    month = data.get("month")
+    if not month:
+        raise HTTPException(status_code=400, detail="Month is required")
+    
+    # Get the summary data
+    summary = await get_payroll_summary_report(month, current_user)
+    
+    # Save as generated report
+    report = {
+        "id": str(uuid.uuid4()),
+        "month": month,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_by": current_user.id,
+        "generated_by_name": current_user.full_name,
+        "data": summary
+    }
+    
+    await db.payroll_reports.update_one(
+        {"month": month},
+        {"$set": report},
+        upsert=True
+    )
+    
+    return {"message": f"Payroll summary report generated for {month}", "report_id": report["id"]}
+
+
+@api_router.get("/payroll/generated-reports")
+async def get_generated_reports(current_user: User = Depends(get_current_user)):
+    """Get list of generated payroll reports"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can view reports")
+    
+    reports = await db.payroll_reports.find({}, {"_id": 0, "id": 1, "month": 1, "generated_at": 1, "generated_by_name": 1}).sort("month", -1).to_list(50)
+    return {"reports": reports}
+
+
+# ==================== SETTINGS ENDPOINTS ====================
+
+@api_router.get("/settings/leave-policy")
+async def get_leave_policy(current_user: User = Depends(get_current_user)):
+    """Get leave policy settings"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR can view leave policy")
+    
+    settings = await db.settings.find_one({"type": "leave_policy"}, {"_id": 0})
+    
+    if not settings:
+        # Return defaults
+        return {
+            "policy": {
+                "casual_leave": 12,
+                "sick_leave": 6,
+                "earned_leave": 15,
+                "carry_forward_enabled": False,
+                "max_carry_forward": 5,
+                "probation_leave_enabled": False,
+                "probation_leave_days": 0
+            }
+        }
+    
+    return {"policy": settings.get("policy", {})}
+
+
+@api_router.post("/settings/leave-policy")
+async def save_leave_policy(data: dict, current_user: User = Depends(get_current_user)):
+    """Save leave policy settings"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR can update leave policy")
+    
+    policy = data.get("policy", {})
+    
+    await db.settings.update_one(
+        {"type": "leave_policy"},
+        {"$set": {
+            "type": "leave_policy",
+            "policy": policy,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": current_user.id
+        }},
+        upsert=True
+    )
+    
+    return {"message": "Leave policy saved successfully"}
+
+
+@api_router.post("/settings/attendance-policy")
+async def save_attendance_policy(data: dict, current_user: User = Depends(get_current_user)):
+    """Save attendance policy settings"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR can update attendance policy")
+    
+    policy = data.get("policy", {})
+    consulting_roles = data.get("consulting_roles", [])
+    
+    await db.settings.update_one(
+        {"type": "attendance_policy"},
+        {"$set": {
+            "type": "attendance_policy",
+            "policy": policy,
+            "consulting_roles": consulting_roles,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": current_user.id
+        }},
+        upsert=True
+    )
+    
+    return {"message": "Attendance policy saved successfully"}
+
+
+
 
 async def _get_my_employee(current_user):
     emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
