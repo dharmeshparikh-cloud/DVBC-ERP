@@ -516,6 +516,141 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
     return {"message": "Employee updated"}
 
 
+
+# ============== Modification Request Endpoints ==============
+
+@router.get("/modification-requests/pending")
+async def get_pending_modification_requests(current_user: User = Depends(get_current_user)):
+    """Get all pending modification requests (Admin only)."""
+    db = get_db()
+    
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can view modification requests")
+    
+    requests = await db.modification_requests.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return requests
+
+
+@router.post("/modification-requests/{request_id}/approve")
+async def approve_modification_request(request_id: str, current_user: User = Depends(get_current_user)):
+    """Approve a modification request and apply changes (Admin only)."""
+    db = get_db()
+    
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can approve modification requests")
+    
+    mod_request = await db.modification_requests.find_one({"id": request_id}, {"_id": 0})
+    if not mod_request:
+        raise HTTPException(status_code=404, detail="Modification request not found")
+    
+    if mod_request.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Request is already {mod_request.get('status')}")
+    
+    # Apply the changes to the employee
+    employee_id = mod_request.get("employee_id")
+    changes = mod_request.get("requested_changes", {})
+    
+    now = datetime.now(timezone.utc).isoformat()
+    changes["updated_at"] = now
+    changes["updated_by"] = current_user.id
+    changes["last_modification_approved_at"] = now
+    changes["last_modification_approved_by"] = current_user.id
+    
+    await db.employees.update_one({"id": employee_id}, {"$set": changes})
+    
+    # Update the modification request status
+    await db.modification_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": now
+        }}
+    )
+    
+    # Notify the requester
+    if mod_request.get("requested_by"):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": mod_request["requested_by"],
+            "type": "modification_approved",
+            "title": "Modification Approved",
+            "message": f"Your modification request for {mod_request.get('employee_code', '')} ({mod_request.get('employee_name', '')}) has been approved by {current_user.full_name}.",
+            "reference_type": "modification_request",
+            "reference_id": request_id,
+            "is_read": False,
+            "created_at": now
+        })
+    
+    return {
+        "message": "Modification request approved and changes applied",
+        "employee_id": employee_id,
+        "employee_code": mod_request.get("employee_code"),
+        "applied_changes": list(changes.keys())
+    }
+
+
+@router.post("/modification-requests/{request_id}/reject")
+async def reject_modification_request(
+    request_id: str, 
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a modification request (Admin only)."""
+    db = get_db()
+    
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can reject modification requests")
+    
+    mod_request = await db.modification_requests.find_one({"id": request_id}, {"_id": 0})
+    if not mod_request:
+        raise HTTPException(status_code=404, detail="Modification request not found")
+    
+    if mod_request.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Request is already {mod_request.get('status')}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    reason = data.get("reason", "")
+    
+    # Update the modification request status
+    await db.modification_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
+            "rejected_at": now,
+            "rejection_reason": reason
+        }}
+    )
+    
+    # Notify the requester
+    if mod_request.get("requested_by"):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": mod_request["requested_by"],
+            "type": "modification_rejected",
+            "title": "Modification Rejected",
+            "message": f"Your modification request for {mod_request.get('employee_code', '')} was rejected. Reason: {reason or 'Not specified'}",
+            "reference_type": "modification_request",
+            "reference_id": request_id,
+            "is_read": False,
+            "created_at": now
+        })
+    
+    return {
+        "message": "Modification request rejected",
+        "employee_code": mod_request.get("employee_code"),
+        "reason": reason
+    }
+
+
+
 @router.delete("/{employee_id}")
 async def delete_employee(employee_id: str, current_user: User = Depends(get_current_user)):
     """Delete (soft delete) an employee."""
