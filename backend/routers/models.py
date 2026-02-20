@@ -218,8 +218,9 @@ class Project(BaseModel):
     assigned_team: List[str] = []
     budget: Optional[float] = None
     project_value: Optional[float] = None
+    pricing_plan_id: Optional[str] = None
     notes: Optional[str] = None
-    created_by: str
+    created_by: Optional[str] = None  # Made optional for legacy records
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
