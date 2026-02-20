@@ -196,7 +196,7 @@ class TestAutoValidateAttendance:
         })
         
         if login_response.status_code == 200:
-            token = login_response.json().get("token")
+            token = login_response.json().get("access_token")
             self.session.headers.update({"Authorization": f"Bearer {token}"})
         else:
             pytest.skip("HR Manager login failed")
@@ -278,7 +278,7 @@ class TestHRAttendanceInput:
         })
         
         if login_response.status_code == 200:
-            token = login_response.json().get("token")
+            token = login_response.json().get("access_token")
             self.session.headers.update({"Authorization": f"Bearer {token}"})
         else:
             pytest.skip("HR Manager login failed")
@@ -349,7 +349,7 @@ class TestHRLeaveInput:
         })
         
         if login_response.status_code == 200:
-            token = login_response.json().get("token")
+            token = login_response.json().get("access_token")
             self.session.headers.update({"Authorization": f"Bearer {token}"})
         else:
             pytest.skip("HR Manager login failed")
@@ -435,7 +435,7 @@ class TestPayrollSummaryReport:
         })
         
         if login_response.status_code == 200:
-            token = login_response.json().get("token")
+            token = login_response.json().get("access_token")
             self.session.headers.update({"Authorization": f"Bearer {token}"})
         else:
             pytest.skip("HR Manager login failed")
@@ -492,7 +492,7 @@ class TestEmployeeFilterFunctionality:
         })
         
         if login_response.status_code == 200:
-            token = login_response.json().get("token")
+            token = login_response.json().get("access_token")
             self.session.headers.update({"Authorization": f"Bearer {token}"})
         else:
             pytest.skip("HR Manager login failed")
