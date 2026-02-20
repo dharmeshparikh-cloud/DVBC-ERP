@@ -679,6 +679,7 @@ const DepartmentAccessManager = () => {
                     key={dept}
                     variant={bulkForm.add.includes(dept) ? 'default' : 'outline'}
                     size="sm"
+                    data-testid={`add-dept-${dept.toLowerCase()}`}
                     onClick={() => {
                       if (bulkForm.add.includes(dept)) {
                         setBulkForm({ ...bulkForm, add: bulkForm.add.filter(d => d !== dept) });
