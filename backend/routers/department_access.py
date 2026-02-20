@@ -236,8 +236,20 @@ async def get_my_department_access(current_user: User = Depends(get_current_user
     can_approve_for = employee.get("can_approve_for_departments", []) if employee else []
     
     # NEW: Check if user has reportees (for team management access)
-    reportee_count = await db.employees.count_documents({"reporting_manager_id": current_user.id})
-    has_team = reportee_count > 0
+    # Query by employee's employee_id since reporting_manager_id stores employee codes like "EMP110"
+    reportee_count = 0
+    has_team = False
+    if employee:
+        emp_id = employee.get("employee_id")
+        emp_internal_id = employee.get("id")
+        if emp_id or emp_internal_id:
+            reportee_count = await db.employees.count_documents({
+                "$or": [
+                    {"reporting_manager_id": emp_id},
+                    {"reporting_manager_id": emp_internal_id}
+                ]
+            })
+            has_team = reportee_count > 0
     
     # NEW: Check view-only flag
     is_view_only = employee.get("is_view_only", False) if employee else False
