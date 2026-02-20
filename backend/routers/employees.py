@@ -428,15 +428,24 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
-    # Check if employee is fully onboarded (has portal access)
+    # Check if employee is fully onboarded (has portal access) or Go-Live approved
     is_onboarded = employee.get("onboarding_status") == "completed" or employee.get("has_portal_access", False)
+    is_go_live = employee.get("go_live_status") == "active"
     
-    # Fields that require admin approval after onboarding
-    protected_fields = ["bank_details", "bank_account_number", "bank_ifsc", "salary", "designation", "department", "departments", "employment_type"]
+    # Fields that require admin approval after onboarding/Go-Live
+    # These are critical fields that affect payroll, reporting structure, and compensation
+    protected_fields = [
+        "bank_details", "bank_account_number", "bank_ifsc",  # Bank info
+        "salary", "ctc", "ctc_details",  # Compensation
+        "designation", "department", "departments",  # Position
+        "employment_type",  # Employment type
+        "reporting_manager_id"  # Reporting structure
+    ]
     has_protected_changes = any(field in data for field in protected_fields)
     
-    # If employee is onboarded and has protected field changes, require admin approval (unless user is admin)
-    if is_onboarded and has_protected_changes and current_user.role != "admin":
+    # If employee is Go-Live or onboarded and has protected field changes, require admin approval
+    # HR Manager can request, but Admin must approve
+    if (is_onboarded or is_go_live) and has_protected_changes and current_user.role != "admin":
         # Create modification request instead of direct update
         modification_request = {
             "id": str(uuid.uuid4()),
