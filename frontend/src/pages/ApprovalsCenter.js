@@ -607,19 +607,6 @@ const ApprovalsCenter = () => {
           </CardContent>
         </Card>
       )}
-                          }
-                        }}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" /> Reject
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Employee Modification Requests Section - For Admin */}
       {isAdmin && modificationApprovals.length > 0 && (
