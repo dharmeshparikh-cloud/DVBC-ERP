@@ -207,13 +207,12 @@ function AppRouter({ user, login, logout, loading }) {
       </Route>
       
       {/* HR Portal Routes - restricted to HR roles */}
-      <Route path="/hr/login" element={<HRLogin />} />
       <Route
         path="/hr"
         element={
           user 
-            ? (['hr_manager', 'hr_executive'].includes(user.role) ? <HRLayout /> : <Navigate to="/" />) 
-            : <Navigate to="/hr/login" />
+            ? (['hr_manager', 'hr_executive', 'admin'].includes(user.role) ? <HRLayout /> : <Navigate to="/" />) 
+            : <Navigate to="/login" />
         }
       >
         <Route index element={<HRPortalDashboard />} />
