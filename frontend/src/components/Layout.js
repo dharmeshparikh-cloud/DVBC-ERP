@@ -223,7 +223,7 @@ const Layout = () => {
   const salesFlowItems = [
     { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3 },
     { name: 'Leads', href: '/leads', icon: Users },
-    { name: 'SOW & Pricing', href: '/sow-pricing', icon: FileText },
+    { name: 'SOW & Pricing', href: '/sales-funnel/pricing-plans', icon: FileText },
     { name: 'Agreements', href: '/agreements', icon: FileCheck },
     { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard },
     { name: 'Clients', href: '/clients', icon: Building2 },
