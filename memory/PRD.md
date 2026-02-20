@@ -3,13 +3,6 @@
 ## Original Problem Statement
 Build a comprehensive business management ERP with modules for Sales, HR, Consulting, and Finance. The initial focus was on "Sales to Consulting" workflow, with recent priorities shifted to enhancing HR and authentication modules.
 
-## Core User Personas
-- **System Admin**: Full system access, user management, settings
-- **HR Manager**: Employee management, attendance, payroll, permissions
-- **Sales Executive**: Lead management, client interactions, invoicing
-- **Consultant**: Project work, timesheets, task management
-- **Employee**: Self-service (attendance, leaves, expenses, salary slips)
-
 ## Tech Stack
 - **Frontend**: React with Shadcn/UI components
 - **Backend**: FastAPI (Python)
@@ -21,102 +14,129 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 ## Completed Work
 
 ### December 2025 - Session 2
-- ✅ **Expense Approval Dashboard** (`/expense-approvals`) - Full UI for managers and HR
-- ✅ **Multi-level Approval Flow**: Employee → Reporting Manager → HR/Admin
-- ✅ **Payroll Integration**: Approved expenses auto-link to `payroll_reimbursements`
-- ✅ **Notifications**: Sent at each approval stage
-- ✅ Fixed Expense Submission Flow: Added "Submit for Approval" button
-- ✅ Enhanced expense creation with proper employee/manager linking
-- ✅ Verified bulk department update and "Dept"/"Special" buttons working
+
+#### Payroll Linkage Integration ✅
+- **Leave → Payroll**: LOP leaves auto-deducted from salary with `per_day_salary × LOP_days`
+- **Attendance → Payroll**: Present/absent/half-day counts auto-calculated from attendance records
+- **Expense Reimbursements → Salary Slips**: Approved expenses included in earnings, status updated to "reimbursed"
+
+#### Expense Approval System ✅
+- **Expense Approvals Dashboard** (`/expense-approvals`) - Full UI for managers and HR
+- **Multi-level Approval Flow**: Employee → Reporting Manager → HR/Admin
+- **Payroll Integration**: Approved expenses auto-link to `payroll_reimbursements`
+
+#### Previous Fixes ✅
+- Bulk department update and "Dept"/"Special" buttons verified working
+- Fixed Expense Submission Flow with "Submit for Approval" button
 
 ### December 2025 - Session 1
-- ✅ Attendance System Overhaul: Rolled back geo-fencing, implemented simplified Quick Check-in
-- ✅ Mobile UI Enhancement: Added Quick Check-in shortcut to mobile navigation
-- ✅ Permission/Role Sync: Fixed synchronization between `users` and `employees` collections
-- ✅ Sidebar Visibility Fix: Now controlled exclusively by `department_access` collection
-- ✅ ID Standardization: Migrated `reporting_manager_id` to use employee codes (e.g., "EMP110")
-- ✅ Data Scoping: Implemented hierarchy-based filtering for Leads module
-- ✅ UI Consolidation: Merged duplicate Attendance UIs
+- Attendance System Overhaul: Simplified Quick Check-in
+- ID Standardization: `reporting_manager_id` uses employee codes
+- Sidebar Visibility: Controlled by `department_access` collection
+- Data Scoping: Hierarchy-based filtering for Leads
 
 ---
 
-## Expense Approval Flow
+## Complete Workflow Flows
 
+### Expense Approval & Reimbursement Flow
 ```
-┌─────────────┐     ┌──────────────────┐     ┌─────────────┐     ┌────────────────┐
-│  Employee   │────▶│ Reporting Manager│────▶│  HR/Admin   │────▶│    Payroll     │
-│  Submits    │     │    Approves      │     │  Approves   │     │ Reimbursement  │
-│  (pending)  │     │(manager_approved)│     │ (approved)  │     │   (pending)    │
-└─────────────┘     └──────────────────┘     └─────────────┘     └────────────────┘
-                              │                     │
-                              ▼                     ▼
-                     Notifies HR/Admin      Creates payroll_reimbursements
-                                            Links to payroll period
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐     ┌────────────────┐     ┌─────────────┐
+│  Employee   │────▶│ Reporting Manager│────▶│  HR/Admin   │────▶│    Payroll     │────▶│ Salary Slip │
+│  Submits    │     │    Approves      │     │  Approves   │     │ Reimbursement  │     │ Generated   │
+│  (pending)  │     │(manager_approved)│     │ (approved)  │     │   (pending)    │     │(reimbursed) │
+└─────────────┘     └──────────────────┘     └─────────────┘     └────────────────┘     └─────────────┘
 ```
 
-**Status Flow:**
-- `draft` → `pending` → `manager_approved` → `approved` → (payroll processes) → `reimbursed`
+### Salary Slip Generation with Linkages
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           SALARY SLIP GENERATION                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  INPUTS:                                                                         │
+│    ├── CTC Structure (approved components)                                       │
+│    ├── Attendance Records (present/absent/half-day)                              │
+│    ├── Leave Requests (LOP leaves for deduction)                                 │
+│    ├── Expense Reimbursements (from payroll_reimbursements)                      │
+│    └── Payroll Inputs (incentives, overtime, advances, penalties)                │
+│                                                                                  │
+│  OUTPUTS:                                                                        │
+│    ├── Earnings (Basic, HRA, Allowances, Reimbursements, Incentives)            │
+│    ├── Deductions (PF, ESIC, PT, LOP, Advances, Penalties)                       │
+│    └── Net Salary                                                                │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Current Architecture
+## Key API Endpoints
 
-### Key Files
-```
-/app/
-├── backend/
-│   ├── routers/
-│   │   ├── department_access.py  # Bulk update, department management
-│   │   ├── expenses.py           # ENHANCED - Multi-level approval, payroll linkage
-│   │   ├── leads.py              # Hierarchy-based data scoping
-│   │   └── users.py              # Reporting manager logic
-│   └── server.py                 # Main server (NEEDS REFACTORING)
-└── frontend/
-    └── src/
-        ├── components/
-        │   └── Layout.js          # MODIFIED - Added Expense Approvals link
-        ├── pages/
-        │   ├── DepartmentAccessManager.js
-        │   ├── ExpenseApprovals.js   # NEW - Approval dashboard
-        │   └── MyExpenses.js         # MODIFIED - Submit for Approval button
-        └── App.js                    # MODIFIED - Added expense-approvals route
-```
+### Payroll Linkage APIs
+- `GET /api/payroll/linkage-summary?month=YYYY-MM` - Linkage dashboard data
+- `GET /api/payroll/pending-reimbursements` - Pending expense reimbursements
+- `POST /api/payroll/generate-slip` - Generate with all linkages
+- `POST /api/payroll/generate-bulk` - Bulk generation for all employees
 
-### Key Database Collections
-- **employees**: `reporting_manager_id` uses employee codes (e.g., "EMP110")
-- **users**: `role` synced with employee profile changes
-- **department_access**: Single source of truth for sidebar visibility
-- **expenses**: Multi-level approval with `approval_flow`, `current_approver`, payroll linkage
-- **payroll_reimbursements**: NEW - Tracks approved expenses for payroll processing
-- **notifications**: Expense notifications at each approval stage
-
-### Key API Endpoints
-- `POST /api/expenses` - Create expense with line_items
+### Expense APIs
+- `POST /api/expenses` - Create with line_items
 - `POST /api/expenses/{id}/submit` - Submit for approval
-- `POST /api/expenses/{id}/approve` - Multi-level approve (manager then HR)
-- `POST /api/expenses/{id}/reject` - Reject with reason
-- `GET /api/expenses/pending-approvals` - Get expenses pending user's approval
-- `GET /api/my/expenses` - Get employee's expenses
+- `POST /api/expenses/{id}/approve` - Multi-level approve
+- `GET /api/expenses/pending-approvals` - Pending for user
+
+---
+
+## Database Schema Updates
+
+### Salary Slips (Enhanced)
+```javascript
+{
+  // ... existing fields ...
+  lop_days: Number,                    // LOP days count
+  lop_deduction: Number,               // LOP deduction amount
+  expense_reimbursements: Array,       // List of reimbursed expenses
+  expense_reimbursement_total: Number, // Total reimbursement
+  attendance_linked: Boolean,          // Attendance data used
+  leave_requests_linked: Boolean,      // Leave data used
+  payroll_reimbursements_linked: Boolean // Expense data used
+}
+```
+
+### Leave Requests (Enhanced)
+```javascript
+{
+  // ... existing fields ...
+  payroll_deducted: Boolean,   // Deducted from salary
+  payroll_month: String,       // Which month's payroll
+  lop_amount: Number           // Deduction amount
+}
+```
+
+### Expenses (Enhanced)
+```javascript
+{
+  // ... existing fields ...
+  status: "reimbursed",
+  reimbursed_at: DateTime,
+  reimbursed_in_month: "2026-02"
+}
+```
 
 ---
 
 ## Prioritized Backlog
 
-### P0 (Critical) - None currently
-
 ### P1 (High Priority)
-- Add expense reimbursements to CTC/Payroll processing view
-- Mark as Reimbursed flow in Payroll
+- Timesheets → Project Billing/Invoicing linkage
+- Bank Details → Salary Disbursement/NEFT file generation
 
 ### P2 (Medium Priority)
-1. **Refactor server.py** - Break into domain-specific routers (recurring 13+ sessions)
-2. **Finance Module** - Payments, expenses overview, P&L reports
-3. **Project P&L Dashboards** - Project profitability tracking
-4. **Day 0 Onboarding Tour** - Guided tour for new users
+1. **Refactor server.py** - Break into domain-specific routers
+2. **Finance Module** - Complete P&L reports
+3. **Performance → Salary Increment** linkage
 
 ### P3 (Low Priority)
-1. **PWA Install Notification** - App install prompts
-2. **PWA Branding** - Custom icons, splash screens
+1. PWA Install Notification
+2. Day 0 Onboarding Tour
 
 ---
 
@@ -125,11 +145,3 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 - **HR Manager**: hr.manager@dvbc.com / hr123
 - **Manager (Dhamresh Parikh)**: dp@dvbc.com / Welcome@123
 - **Employee (Rahul Kumar)**: rahul.kumar@dvbc.com / Welcome@EMP001
-
----
-
-## Known Technical Debt
-1. `server.py` is monolithic and needs refactoring into routers
-2. HTML structure warnings in DepartmentAccessManager (span inside table elements)
-3. Some 404 errors for `/api/stats/consulting` and `/api/stats/hr` endpoints
-4. Old expense records missing new fields (`employee_code`, `approval_flow`)
