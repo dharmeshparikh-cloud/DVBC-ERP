@@ -10,7 +10,33 @@
 
 ## Completed Work - December 2025
 
-### Bug Fixes - February 20, 2026 ✅ (Latest)
+### HR Attendance & Leave Input Screens - February 20, 2026 ✅ (Latest)
+- **HR Attendance Input** (`/hr-attendance-input`):
+  - Attendance policy display (working days, hours, grace period)
+  - Auto-validate attendance for a month
+  - Apply penalties (Rs.100/day beyond 3 grace days)
+  - Bulk mark attendance for employees
+  - Employee attendance summary table
+- **HR Leave Input** (`/hr-leave-input`):
+  - Apply leave on behalf of employees (auto-approved)
+  - Bulk credit leaves to all employees
+  - View/approve/reject pending leave requests
+  - Summary cards: Pending, Approved, Rejected, Total Employees
+
+### Simplified Approval Flows - February 20, 2026 ✅
+- **Expense Approval**:
+  - < ₹2,000: HR directly approves (1 level)
+  - ≥ ₹2,000: HR → Admin (2 levels)
+- **Leave Approval**:
+  - RM only approval required
+  - HR/Admin get notifications only
+- **Attendance Policy**:
+  - Non-Consulting: 10 AM - 7 PM
+  - Consulting: 10:30 AM - 7:30 PM
+  - Grace: 3 days/month with ±30 min
+  - Penalty: Rs.100/day beyond grace
+
+### Bug Fixes - February 20, 2026 ✅
 - **Leave Application Bug**: Fixed validation that caused "zero balance" error despite available leaves
   - Added `DEFAULT_LEAVE_BALANCE = {'casual_leave': 12, 'sick_leave': 6, 'earned_leave': 15}` as fallback
   - Location: `backend/server.py` lines 7737-7750
