@@ -173,11 +173,45 @@ async def get_leads(
 
 @router.get("/{lead_id}", response_model=Lead)
 async def get_lead(lead_id: str, current_user: User = Depends(get_current_user)):
-    """Get a single lead by ID."""
+    """Get a single lead by ID.
+    
+    Access control:
+    - Admin/HR Manager: can access any lead
+    - Others: can only access own leads or team leads
+    """
     db = get_db()
     lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead_data:
         raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Check access based on hierarchy
+    if current_user.role not in ['admin', 'hr_manager']:
+        # Get accessible user IDs (self + reportees)
+        accessible_user_ids = [current_user.id]
+        
+        user_employee = await db.employees.find_one(
+            {"user_id": current_user.id}, 
+            {"id": 1, "employee_id": 1, "_id": 0}
+        )
+        
+        if user_employee:
+            emp_id = user_employee.get("employee_id")
+            emp_internal_id = user_employee.get("id")
+            if emp_id or emp_internal_id:
+                reportees = await db.employees.find(
+                    {
+                        "$or": [
+                            {"reporting_manager_id": emp_id},
+                            {"reporting_manager_id": emp_internal_id}
+                        ]
+                    },
+                    {"user_id": 1, "_id": 0}
+                ).to_list(1000)
+                accessible_user_ids.extend([r.get("user_id") for r in reportees if r.get("user_id")])
+        
+        # Check if lead belongs to accessible users
+        if lead_data.get('assigned_to') not in accessible_user_ids and lead_data.get('created_by') not in accessible_user_ids:
+            raise HTTPException(status_code=403, detail="You don't have access to this lead")
     
     if isinstance(lead_data.get('created_at'), str):
         lead_data['created_at'] = datetime.fromisoformat(lead_data['created_at'])
