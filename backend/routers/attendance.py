@@ -488,6 +488,9 @@ async def create_custom_policy(data: dict, current_user: User = Depends(get_curr
         await db.employee_attendance_policies.insert_one(policy_data)
         action = "created"
     
+    # Remove MongoDB _id before returning
+    policy_data.pop("_id", None)
+    
     return {
         "message": f"Custom policy {action} for {policy_data['employee_name']}",
         "policy": policy_data
