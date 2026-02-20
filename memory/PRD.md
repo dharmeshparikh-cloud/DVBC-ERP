@@ -1,8 +1,5 @@
 # DVBC - NETRA: Business Management ERP
 
-## Original Problem Statement
-Build a comprehensive business management ERP with modules for Sales, HR, Consulting, and Finance. The initial focus was on "Sales to Consulting" workflow, with recent priorities shifted to enhancing HR and authentication modules.
-
 ## Tech Stack
 - **Frontend**: React with Shadcn/UI components
 - **Backend**: FastAPI (Python)
@@ -11,137 +8,103 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 
 ---
 
-## Completed Work
+## Completed Work - December 2025
 
-### December 2025 - Session 2
+### Project P&L System ✅ (Latest)
+- **Invoice Generation**: From pricing plan installments with schedule_breakdown
+- **Payment Recording**: Track payments, update invoice status
+- **Incentive Eligibility**: Auto-create when invoice cleared (linked to sales employee)
+- **P&L Dashboard**: Revenue, costs, profitability metrics
+- **Project Costs**: Timesheet hours × hourly cost + expenses
 
-#### Payroll Linkage Integration ✅
-- **Leave → Payroll**: LOP leaves auto-deducted from salary with `per_day_salary × LOP_days`
-- **Attendance → Payroll**: Present/absent/half-day counts auto-calculated from attendance records
-- **Expense Reimbursements → Salary Slips**: Approved expenses included in earnings, status updated to "reimbursed"
+### Payroll Linkage Integration ✅
+- **Leave → Payroll**: LOP leaves auto-deducted from salary
+- **Attendance → Payroll**: Present/absent/half-day calculations
+- **Expense Reimbursements → Salary Slips**: Auto-included in earnings
 
-#### Expense Approval System ✅
-- **Expense Approvals Dashboard** (`/expense-approvals`) - Full UI for managers and HR
-- **Multi-level Approval Flow**: Employee → Reporting Manager → HR/Admin
-- **Payroll Integration**: Approved expenses auto-link to `payroll_reimbursements`
-
-#### Previous Fixes ✅
-- Bulk department update and "Dept"/"Special" buttons verified working
-- Fixed Expense Submission Flow with "Submit for Approval" button
-
-### December 2025 - Session 1
-- Attendance System Overhaul: Simplified Quick Check-in
-- ID Standardization: `reporting_manager_id` uses employee codes
-- Sidebar Visibility: Controlled by `department_access` collection
-- Data Scoping: Hierarchy-based filtering for Leads
+### Expense Approval System ✅
+- **Multi-level Approval**: Employee → Reporting Manager → HR/Admin
+- **Expense Approvals Dashboard**: `/expense-approvals`
+- **Payroll Integration**: Approved expenses linked to payroll_reimbursements
 
 ---
 
-## Complete Workflow Flows
+## Complete E2E Flows
 
-### Expense Approval & Reimbursement Flow
+### Sales → Billing → Collection Flow
 ```
-┌─────────────┐     ┌──────────────────┐     ┌─────────────┐     ┌────────────────┐     ┌─────────────┐
-│  Employee   │────▶│ Reporting Manager│────▶│  HR/Admin   │────▶│    Payroll     │────▶│ Salary Slip │
-│  Submits    │     │    Approves      │     │  Approves   │     │ Reimbursement  │     │ Generated   │
-│  (pending)  │     │(manager_approved)│     │ (approved)  │     │   (pending)    │     │(reimbursed) │
-└─────────────┘     └──────────────────┘     └─────────────┘     └────────────────┘     └─────────────┘
+Lead → Pricing Plan → Agreement → Invoice Generation → Payment → Incentive
+         │                              │                 │          │
+         └── rate_per_meeting          │                 │          │
+             consultants               └── installments  │          │
+             schedule_breakdown            linked to     │          │
+                                          sales_employee │          │
+                                                         └── updates collection
+                                                              creates incentive_eligibility
 ```
 
-### Salary Slip Generation with Linkages
+### Expense → Payroll Flow
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           SALARY SLIP GENERATION                                 │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│  INPUTS:                                                                         │
-│    ├── CTC Structure (approved components)                                       │
-│    ├── Attendance Records (present/absent/half-day)                              │
-│    ├── Leave Requests (LOP leaves for deduction)                                 │
-│    ├── Expense Reimbursements (from payroll_reimbursements)                      │
-│    └── Payroll Inputs (incentives, overtime, advances, penalties)                │
-│                                                                                  │
-│  OUTPUTS:                                                                        │
-│    ├── Earnings (Basic, HRA, Allowances, Reimbursements, Incentives)            │
-│    ├── Deductions (PF, ESIC, PT, LOP, Advances, Penalties)                       │
-│    └── Net Salary                                                                │
-└─────────────────────────────────────────────────────────────────────────────────┘
+Employee → Expense → Manager Approval → HR Approval → Payroll → Salary Slip
+                                                         │
+                                                         └── payroll_reimbursements
+                                                              status: processed
+```
+
+### Timesheet → Project Cost Flow
+```
+Consultant Assignment → Timesheet Entry → Approval → Project Cost Calculation
+       │                     │                              │
+       └── project_id       └── hours logged               └── hours × hourly_cost
+                                                               (from salary/176)
 ```
 
 ---
 
 ## Key API Endpoints
 
-### Payroll Linkage APIs
-- `GET /api/payroll/linkage-summary?month=YYYY-MM` - Linkage dashboard data
-- `GET /api/payroll/pending-reimbursements` - Pending expense reimbursements
-- `POST /api/payroll/generate-slip` - Generate with all linkages
-- `POST /api/payroll/generate-bulk` - Bulk generation for all employees
+### Project P&L
+- `POST /api/project-pnl/generate-invoices/{pricing_plan_id}` - Generate from installments
+- `POST /api/project-pnl/invoices/{id}/record-payment` - Record payment
+- `GET /api/project-pnl/dashboard` - Overall P&L dashboard
+- `GET /api/project-pnl/project/{id}/pnl` - Project P&L details
+- `GET /api/project-pnl/project/{id}/costs` - Project costs breakdown
+- `GET /api/project-pnl/invoices` - List all invoices
 
-### Expense APIs
-- `POST /api/expenses` - Create with line_items
-- `POST /api/expenses/{id}/submit` - Submit for approval
-- `POST /api/expenses/{id}/approve` - Multi-level approve
+### Payroll
+- `POST /api/payroll/generate-slip` - With all linkages (LOP, attendance, expenses)
+- `GET /api/payroll/linkage-summary` - Dashboard data
+
+### Expenses
+- `POST /api/expenses/{id}/approve` - Multi-level approval
 - `GET /api/expenses/pending-approvals` - Pending for user
 
 ---
 
-## Database Schema Updates
+## Database Collections
 
-### Salary Slips (Enhanced)
-```javascript
-{
-  // ... existing fields ...
-  lop_days: Number,                    // LOP days count
-  lop_deduction: Number,               // LOP deduction amount
-  expense_reimbursements: Array,       // List of reimbursed expenses
-  expense_reimbursement_total: Number, // Total reimbursement
-  attendance_linked: Boolean,          // Attendance data used
-  leave_requests_linked: Boolean,      // Leave data used
-  payroll_reimbursements_linked: Boolean // Expense data used
-}
-```
+### New Collections
+- **invoices**: Generated from pricing plan, linked to sales_employee
+- **incentive_eligibility**: Created when invoice cleared, pending HR review
+- **payroll_reimbursements**: Approved expenses for payroll
 
-### Leave Requests (Enhanced)
-```javascript
-{
-  // ... existing fields ...
-  payroll_deducted: Boolean,   // Deducted from salary
-  payroll_month: String,       // Which month's payroll
-  lop_amount: Number           // Deduction amount
-}
-```
-
-### Expenses (Enhanced)
-```javascript
-{
-  // ... existing fields ...
-  status: "reimbursed",
-  reimbursed_at: DateTime,
-  reimbursed_in_month: "2026-02"
-}
-```
+### Key Fields Added
+- **salary_slips**: `lop_days`, `lop_deduction`, `expense_reimbursements`, `attendance_linked`
+- **leave_requests**: `payroll_deducted`, `lop_amount`
+- **expenses**: `reimbursed_in_month`, `reimbursed_at`
 
 ---
 
-## Prioritized Backlog
-
-### P1 (High Priority)
-- Timesheets → Project Billing/Invoicing linkage
-- Bank Details → Salary Disbursement/NEFT file generation
-
-### P2 (Medium Priority)
-1. **Refactor server.py** - Break into domain-specific routers
-2. **Finance Module** - Complete P&L reports
-3. **Performance → Salary Increment** linkage
-
-### P3 (Low Priority)
-1. PWA Install Notification
-2. Day 0 Onboarding Tour
+## Upcoming: HR Incentive Module
+- Review incentive_eligibility records
+- Define incentive criteria/slabs
+- Approve and add to payroll
+- Link to cleared invoices and sales performance
 
 ---
 
 ## Test Credentials
 - **Admin**: admin@dvbc.com / admin123
 - **HR Manager**: hr.manager@dvbc.com / hr123
-- **Manager (Dhamresh Parikh)**: dp@dvbc.com / Welcome@123
-- **Employee (Rahul Kumar)**: rahul.kumar@dvbc.com / Welcome@EMP001
+- **Manager**: dp@dvbc.com / Welcome@123
+- **Employee**: rahul.kumar@dvbc.com / Welcome@EMP001
