@@ -227,26 +227,20 @@ const Layout = () => {
     { name: 'Agreements', href: '/agreements', icon: FileCheck },
     { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard },
     { name: 'Clients', href: '/clients', icon: Building2 },
-    { name: 'Invoices', href: '/invoices', icon: Receipt },
     { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3 },
   ];
 
-  const salesOtherItems = [
-    { name: 'Calendar', href: '/calendar', icon: Calendar },
-    { name: 'Mailbox', href: '/mailbox', icon: Mail },
-    { name: 'Follow-ups', href: '/follow-ups', icon: CalendarCheck },
-  ];
+  // Removed dead links: Calendar, Mailbox, Follow-ups (no routes exist)
+  const salesOtherItems = [];
 
   const consultingItems = isConsultant
     ? [
-        { name: 'My Schedule', href: '/my-schedule', icon: Calendar },
+        { name: 'My Projects', href: '/consulting/my-projects', icon: Briefcase },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
-        { name: 'My Clients', href: '/my-clients', icon: Building2 },
-        { name: 'My Payments', href: '/payments', icon: DollarSign },
+        { name: 'Payments', href: '/payments', icon: DollarSign },
       ]
     : [
         { name: 'Projects', href: '/projects', icon: Briefcase },
-        { name: 'Team Assignment', href: '/team-assignment', icon: Users },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
         { name: 'Project Reports', href: '/reports?category=consulting', icon: BarChart3 },
@@ -257,12 +251,10 @@ const Layout = () => {
     { name: 'Admin Masters', href: '/admin-masters', icon: Settings },
     { name: 'User Management', href: '/user-management', icon: UserCog },
     { name: 'Role Management', href: '/role-management', icon: Shield },
-    { name: 'Employee Permissions', href: '/employee-permissions', icon: UserCog },
     { name: 'Dept Access Manager', href: '/department-access', icon: Building2 },
     { name: 'Permission Dashboard', href: '/permission-dashboard', icon: Users },
     { name: 'Permission Config', href: '/permission-manager', icon: Lock },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
-    { name: 'Project Payments', href: '/payments', icon: DollarSign },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
     { name: 'Downloads', href: '/downloads', icon: Download },
