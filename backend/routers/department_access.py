@@ -191,7 +191,7 @@ async def get_my_department_access(current_user: User = Depends(get_current_user
                 expiry = datetime.fromisoformat(employee["temporary_role_expiry"].replace("Z", "+00:00"))
                 if datetime.now(timezone.utc) > expiry:
                     temporary_role = None
-            except:
+            except Exception:
                 pass
         
         # Add additional departments to the list
