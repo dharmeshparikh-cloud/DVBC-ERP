@@ -861,11 +861,14 @@ I didn't understand that. Try these commands:
 
 • <code>Log meeting</code> - Record client meeting
 • <code>Apply leave</code> - Submit leave request
+• <code>Log hours</code> - Add timesheet entry
+• <code>Add expense</code> - Submit expense claim
 • <code>My leaves</code> - Check leave balance
+• <code>Pending approvals</code> - View team requests (managers)
 
 Or tap a button below:
 """
-    keyboard = get_quick_reply_keyboard(["Log meeting", "Apply leave", "My leaves"])
+    keyboard = get_quick_reply_keyboard(["Log meeting", "Apply leave", "Log hours", "Add expense"])
     await send_telegram_message(chat_id, msg, keyboard)
     return "Showed help"
 
