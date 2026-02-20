@@ -1286,6 +1286,12 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                     <SelectValue placeholder="Select reporting manager" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Self option for first employee or admin role */}
+                    {(managers.length === 0 || formData.role === 'admin') && (
+                      <SelectItem value="SELF">
+                        Self (First Employee / Admin)
+                      </SelectItem>
+                    )}
                     {managers.map(mgr => (
                       <SelectItem key={mgr.id} value={mgr.id}>
                         {mgr.full_name} ({mgr.employee_id || mgr.id})
@@ -1294,7 +1300,9 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  This person will gain team approval rights for this employee
+                  {managers.length === 0 
+                    ? "No employees exist yet. Select 'Self' for the first employee."
+                    : "This person will gain team approval rights for this employee"}
                 </p>
               </div>
             </div>
