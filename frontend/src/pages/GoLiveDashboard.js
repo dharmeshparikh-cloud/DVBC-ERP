@@ -187,6 +187,21 @@ const GoLiveDashboard = () => {
           </div>
         </div>
 
+        {/* Error Display */}
+        {pageError && (
+          <ErrorDisplay 
+            error={pageError} 
+            onDismiss={() => setPageError(null)}
+            onRetry={() => {
+              if (selectedEmployee) {
+                fetchChecklist(selectedEmployee.employee_id || selectedEmployee.id);
+              } else {
+                fetchEmployees();
+              }
+            }}
+          />
+        )}
+
         {/* Admin: Pending Approvals */}
         {isAdmin && pendingRequests.length > 0 && (
           <div className={`mb-6 p-4 rounded-xl border-2 border-amber-400 ${
