@@ -252,32 +252,182 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
 
 @router.post("/{expense_id}/approve")
 async def approve_expense(expense_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Approve an expense."""
+    """
+    Multi-level expense approval:
+    - Step 1: Reporting Manager approves → moves to HR/Admin review
+    - Step 2: HR/Admin approves → approved for payroll
+    """
     db = get_db()
-    
-    if current_user.role not in ["admin", "manager", "hr_manager"]:
-        raise HTTPException(status_code=403, detail="Not authorized to approve expenses")
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
-    if expense["status"] != "pending":
-        raise HTTPException(status_code=400, detail="Expense is not pending approval")
+    current_status = expense.get("status")
+    approval_flow = expense.get("approval_flow", [])
     
-    await db.expenses.update_one(
-        {"id": expense_id},
-        {"$set": {
+    # Check if user is authorized to approve at this stage
+    is_manager_approval = current_status == "pending" and expense.get("current_approver_id") == current_user.id
+    is_hr_admin = current_user.role in ["admin", "hr_manager"]
+    is_any_manager = current_user.role in ["admin", "manager", "hr_manager", "principal_consultant"]
+    
+    # Also check if user is the reporting manager even if role doesn't match
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    is_reporting_manager = False
+    if employee:
+        emp_code = employee.get("employee_id")
+        if emp_code == expense.get("reporting_manager_id"):
+            is_reporting_manager = True
+    
+    if not (is_manager_approval or is_reporting_manager or is_any_manager):
+        raise HTTPException(status_code=403, detail="Not authorized to approve this expense")
+    
+    if current_status not in ["pending", "manager_approved"]:
+        raise HTTPException(status_code=400, detail=f"Expense cannot be approved in '{current_status}' status")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    employee_name = expense.get("employee_name", "Employee")
+    expense_amount = expense.get("total_amount") or expense.get("amount", 0)
+    
+    if current_status == "pending":
+        # Stage 1: Manager approval - move to HR review
+        # Update approval flow
+        for step in approval_flow:
+            if step.get("role") == "Reporting Manager" and step.get("status") == "pending":
+                step["status"] = "approved"
+                step["approved_by"] = current_user.full_name
+                step["approved_at"] = now
+                step["remarks"] = data.get("remarks", "")
+        
+        # Add HR approval step
+        approval_flow.append({
+            "step": 2,
+            "approver": "HR/Finance",
+            "role": "HR",
+            "status": "pending"
+        })
+        
+        await db.expenses.update_one(
+            {"id": expense_id},
+            {"$set": {
+                "status": "manager_approved",
+                "manager_approved_by": current_user.id,
+                "manager_approved_by_name": current_user.full_name,
+                "manager_approved_at": now,
+                "manager_remarks": data.get("remarks", ""),
+                "approval_flow": approval_flow,
+                "current_approver": "HR/Finance",
+                "current_approver_id": None,  # Any HR/Admin can approve
+                "updated_at": now
+            }}
+        )
+        
+        # Notify HR managers
+        hr_managers = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"_id": 0, "id": 1}).to_list(10)
+        for hr in hr_managers:
+            notification = {
+                "id": str(uuid.uuid4()),
+                "user_id": hr["id"],
+                "type": "expense_hr_approval",
+                "title": "Expense Ready for HR Approval",
+                "message": f"{employee_name}'s expense of ₹{expense_amount:,.0f} approved by manager, pending HR approval for payroll",
+                "reference_type": "expense",
+                "reference_id": expense_id,
+                "is_read": False,
+                "created_at": now
+            }
+            await db.notifications.insert_one(notification)
+        
+        # Notify employee
+        if expense.get("user_id"):
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": expense["user_id"],
+                "type": "expense_update",
+                "title": "Expense Approved by Manager",
+                "message": f"Your expense of ₹{expense_amount:,.0f} was approved by {current_user.full_name}. Pending HR approval.",
+                "reference_type": "expense",
+                "reference_id": expense_id,
+                "is_read": False,
+                "created_at": now
+            })
+        
+        return {
+            "message": "Expense approved by manager, sent to HR for final approval",
+            "status": "manager_approved",
+            "next_step": "HR/Finance approval"
+        }
+    
+    elif current_status == "manager_approved":
+        # Stage 2: HR/Admin final approval - approved for payroll
+        if not is_hr_admin:
+            raise HTTPException(status_code=403, detail="Only HR/Admin can give final approval")
+        
+        # Update approval flow
+        for step in approval_flow:
+            if step.get("role") == "HR" and step.get("status") == "pending":
+                step["status"] = "approved"
+                step["approved_by"] = current_user.full_name
+                step["approved_at"] = now
+                step["remarks"] = data.get("remarks", "")
+        
+        # Get payroll period (current month)
+        payroll_period = datetime.now(timezone.utc).strftime("%Y-%m")
+        
+        await db.expenses.update_one(
+            {"id": expense_id},
+            {"$set": {
+                "status": "approved",
+                "hr_approved_by": current_user.id,
+                "hr_approved_by_name": current_user.full_name,
+                "hr_approved_at": now,
+                "hr_remarks": data.get("remarks", ""),
+                "approval_flow": approval_flow,
+                "current_approver": None,
+                "current_approver_id": None,
+                "payroll_period": payroll_period,
+                "payroll_linked": True,
+                "updated_at": now
+            }}
+        )
+        
+        # Link to payroll - add to employee's pending reimbursements
+        if expense.get("employee_id"):
+            await db.payroll_reimbursements.insert_one({
+                "id": str(uuid.uuid4()),
+                "employee_id": expense["employee_id"],
+                "employee_code": expense.get("employee_code"),
+                "employee_name": expense.get("employee_name"),
+                "expense_id": expense_id,
+                "amount": expense_amount,
+                "category": expense.get("category") or "expense_reimbursement",
+                "description": expense.get("description") or expense.get("notes", ""),
+                "payroll_period": payroll_period,
+                "status": "pending",
+                "approved_by": current_user.id,
+                "approved_by_name": current_user.full_name,
+                "created_at": now
+            })
+        
+        # Notify employee
+        if expense.get("user_id"):
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": expense["user_id"],
+                "type": "expense_approved",
+                "title": "Expense Fully Approved",
+                "message": f"Your expense of ₹{expense_amount:,.0f} has been approved and will be included in {payroll_period} payroll.",
+                "reference_type": "expense",
+                "reference_id": expense_id,
+                "is_read": False,
+                "created_at": now
+            })
+        
+        return {
+            "message": "Expense fully approved and linked to payroll",
             "status": "approved",
-            "approved_by": current_user.id,
-            "approved_by_name": current_user.full_name,
-            "approved_at": datetime.now(timezone.utc).isoformat(),
-            "approval_remarks": data.get("remarks", ""),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
-    
-    return {"message": "Expense approved"}
+            "payroll_period": payroll_period
+        }
 
 
 @router.post("/{expense_id}/reject")
