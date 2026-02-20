@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Custom Time Input - Telegram Bot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0e1621;
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+    }
+    .phone-frame {
+      background: #17212b;
+      border-radius: 30px;
+      padding: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      width: 380px;
+    }
+    .phone-screen {
+      background: #0e1621;
+      border-radius: 22px;
+      overflow: hidden;
+    }
+    .chat-header {
+      background: #17212b;
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #232e3c;
+    }
+    .back-arrow { color: #8b98a5; font-size: 20px; }
+    .bot-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .bot-info h3 { color: white; font-size: 15px; font-weight: 600; }
+    .bot-info span { color: #8b98a5; font-size: 12px; }
+    .chat-label {
+      background: #f59e0b;
+      color: #1a1a2e;
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-left: auto;
+    }
+    .chat-body {
+      padding: 15px;
+      height: 550px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .message {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .message.bot {
+      background: #182533;
+      color: #f5f5f5;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .message.user {
+      background: #2b5278;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .message.success {
+      background: #1a3d2e;
+      border-left: 3px solid #10b981;
+    }
+    .message-time {
+      font-size: 10px;
+      color: #8b98a5;
+      margin-top: 4px;
+      text-align: right;
+    }
+    .quick-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .quick-btn {
+      background: #232e3c;
+      border: 1px solid #3a4a5c;
+      color: #7eb8f7;
+      padding: 6px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+    }
+    .or-text {
+      color: #8b98a5;
+      font-size: 11px;
+      margin-top: 10px;
+      font-style: italic;
+    }
+    .format-hint {
+      background: #232e3c;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+    .format-hint code {
+      background: #1a2633;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #7eb8f7;
+      font-family: monospace;
+    }
+    .summary-card {
+      background: #232e3c;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 8px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 12px;
+      border-bottom: 1px dashed #3a4a5c;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-label { color: #8b98a5; }
+    .summary-value { color: #f5f5f5; font-weight: 600; }
+    .summary-value.highlight { color: #f59e0b; }
+    .summary-value.calculated { color: #10b981; }
+    .input-bar {
+      background: #17212b;
+      padding: 10px 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid #232e3c;
+    }
+    .input-field {
+      flex: 1;
+      background: #242f3d;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 15px;
+      color: white;
+      font-size: 13px;
+    }
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      background: #5eaeda;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+    }
+    .title { color: white; text-align: center; margin-bottom: 20px; font-size: 14px; }
+    .accepted-formats {
+      background: #17212b;
+      border-radius: 12px;
+      padding: 20px;
+      width: 350px;
+      height: fit-content;
+    }
+    .accepted-formats h3 {
+      color: #f59e0b;
+      font-size: 16px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .format-section {
+      margin-bottom: 20px;
+    }
+    .format-section h4 {
+      color: white;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    .format-example {
+      background: #0e1621;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    .format-input {
+      color: #7eb8f7;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    .format-result {
+      color: #10b981;
+      font-size: 11px;
+      margin-top: 5px;
+    }
+    .arrow { color: #8b98a5; margin: 0 5px; }
+  </style>
+</head>
+<body>
+  <!-- Chat showing custom time input -->
+  <div>
+    <div class="title">📱 Custom Time Input Demo</div>
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="chat-header">
+          <span class="back-arrow">←</span>
+          <div class="bot-avatar">🔶</div>
+          <div class="bot-info">
+            <h3>NETRA ERP Bot</h3>
+            <span>online</span>
+          </div>
+          <span class="chat-label">MEETING</span>
+        </div>
+        <div class="chat-body">
+          <div class="message user">
+            Log meeting
+            <div class="message-time">11:30 AM</div>
+          </div>
+          <div class="message bot">
+            📝 <strong>Log Client Meeting</strong>
+            <br><br>
+            <strong>Which client?</strong>
+            <div class="quick-buttons">
+              <span class="quick-btn">ABC Corp</span>
+              <span class="quick-btn">XYZ Ltd</span>
+            </div>
+            <div class="message-time">11:30 AM</div>
+          </div>
+          <div class="message user">
+            TechNova Solutions
+            <div class="message-time">11:30 AM</div>
+          </div>
+          <div class="message bot">
+            ⏱️ <strong>Meeting Duration?</strong>
+            <div class="quick-buttons">
+              <span class="quick-btn">30 min</span>
+              <span class="quick-btn">1 hour</span>
+              <span class="quick-btn">2 hours</span>
+            </div>
+            <div class="or-text">Or type custom time:</div>
+            <div class="format-hint">
+              <code>11:45 to 18:45</code> or <code>2.5 hours</code>
+            </div>
+            <div class="message-time">11:30 AM</div>
+          </div>
+          <div class="message user">
+            11:45 to 18:45
+            <div class="message-time">11:31 AM</div>
+          </div>
+          <div class="message bot">
+            ✅ Got it! <strong>7 hours</strong> calculated.
+            <br><br>
+            📋 <strong>Meeting notes?</strong>
+            <div class="message-time">11:31 AM</div>
+          </div>
+          <div class="message user">
+            Full day workshop on Lean implementation. Covered 5S methodology, identified 12 improvement areas. Follow-up scheduled for next week.
+            <div class="message-time">11:32 AM</div>
+          </div>
+          <div class="message bot success">
+            ✅ <strong>Meeting Logged!</strong>
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="summary-label">Client</span>
+                <span class="summary-value">TechNova Solutions</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Time</span>
+                <span class="summary-value highlight">11:45 - 18:45</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Duration</span>
+                <span class="summary-value calculated">7 hours</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Date</span>
+                <span class="summary-value">20 Dec 2025</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Billable</span>
+                <span class="summary-value calculated">₹35,000</span>
+              </div>
+            </div>
+            <br>
+            <span style="color:#8b98a5;font-size:11px;">📊 Synced to NETRA ERP + Timesheet</span>
+            <div class="message-time">11:32 AM ✓✓</div>
+          </div>
+        </div>
+        <div class="input-bar">
+          <input class="input-field" placeholder="Type a message..." />
+          <div class="send-btn">➤</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accepted Formats Reference -->
+  <div class="accepted-formats">
+    <h3>⌨️ Accepted Time Formats</h3>
+    
+    <div class="format-section">
+      <h4>📍 Start & End Time</h4>
+      <div class="format-example">
+        <div class="format-input">11:45 to 18:45</div>
+        <div class="format-result">→ Calculates: 7 hours</div>
+      </div>
+      <div class="format-example">
+        <div class="format-input">9am - 5pm</div>
+        <div class="format-result">→ Calculates: 8 hours</div>
+      </div>
+      <div class="format-example">
+        <div class="format-input">10:30 - 14:00</div>
+        <div class="format-result">→ Calculates: 3.5 hours</div>
+      </div>
+      <div class="format-example">
+        <div class="format-input">2pm to 6:30pm</div>
+        <div class="format-result">→ Calculates: 4.5 hours</div>
+      </div>
+    </div>
+
+    <div class="format-section">
+      <h4>⏱️ Direct Duration</h4>
+      <div class="format-example">
+        <div class="format-input">2.5 hours</div>
+        <div class="format-result">→ 2 hours 30 min</div>
+      </div>
+      <div class="format-example">
+        <div class="format-input">45 mins</div>
+        <div class="format-result">→ 45 minutes</div>
+      </div>
+      <div class="format-example">
+        <div class="format-input">1h 15m</div>
+        <div class="format-result">→ 1 hour 15 min</div>
+      </div>
+      <div class="format-example">
+        <div class="format-input">90 minutes</div>
+        <div class="format-result">→ 1.5 hours</div>
+      </div>
+    </div>
+
+    <div class="format-section">
+      <h4>🎯 Quick Buttons (Tap)</h4>
+      <div class="quick-buttons" style="margin-top:10px;">
+        <span class="quick-btn">30 min</span>
+        <span class="quick-btn">1 hour</span>
+        <span class="quick-btn">2 hours</span>
+        <span class="quick-btn">Half day</span>
+        <span class="quick-btn">Full day</span>
+      </div>
+    </div>
+
+    <div style="background:#1a3d2e;border-radius:8px;padding:12px;margin-top:15px;">
+      <div style="color:#10b981;font-weight:600;font-size:12px;">💡 Smart Parsing</div>
+      <div style="color:#8b98a5;font-size:11px;margin-top:5px;">
+        Bot understands natural language. Just type however you prefer!
+      </div>
+    </div>
+  </div>
+</body>
+</html>
