@@ -63,32 +63,52 @@ async def set_reporting_manager(
     data: ReportingManagerUpdate,
     current_user: User = Depends(get_current_user)
 ):
-    """Set reporting manager for a user."""
+    """Set reporting manager for a user.
+    
+    Note: reporting_manager_id is stored as employee_id code (e.g., "EMP110") for consistency.
+    """
     db = get_db()
     
     if current_user.role not in ["admin", "hr_manager"]:
         raise HTTPException(status_code=403, detail="Only admin or HR manager can set reporting managers")
     
-    # Verify the user exists
-    user = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Verify the reporting manager exists
-    manager = await db.users.find_one({"id": data.reporting_manager_id}, {"_id": 0})
-    if not manager:
-        raise HTTPException(status_code=404, detail="Reporting manager not found")
+    # Get the employee record for this user
+    employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found for this user")
     
     # Prevent circular reporting
-    if data.reporting_manager_id == user_id:
+    if data.reporting_manager_id == user_id or data.reporting_manager_id == employee.get('employee_id'):
         raise HTTPException(status_code=400, detail="User cannot report to themselves")
     
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"reporting_manager_id": data.reporting_manager_id}}
+    # Find the manager - could be passed as employee_id code or UUID
+    manager_employee = await db.employees.find_one(
+        {"$or": [
+            {"employee_id": data.reporting_manager_id}, 
+            {"id": data.reporting_manager_id}, 
+            {"user_id": data.reporting_manager_id}
+        ]},
+        {"_id": 0, "employee_id": 1, "first_name": 1, "last_name": 1}
+    )
+    if not manager_employee:
+        raise HTTPException(status_code=404, detail="Manager employee not found")
+    
+    # Always store as employee_id code for consistency
+    manager_emp_code = manager_employee.get("employee_id")
+    if not manager_emp_code:
+        raise HTTPException(status_code=400, detail="Manager has no employee_id code")
+    
+    # Update the employee's reporting_manager_id with employee code
+    await db.employees.update_one(
+        {"user_id": user_id},
+        {"$set": {"reporting_manager_id": manager_emp_code}}
     )
     
-    return {"message": "Reporting manager updated"}
+    return {
+        "message": "Reporting manager updated",
+        "reporting_manager_id": manager_emp_code,
+        "reporting_manager_name": f"{manager_employee.get('first_name', '')} {manager_employee.get('last_name', '')}".strip()
+    }
 
 
 @router.get("/my-team")
