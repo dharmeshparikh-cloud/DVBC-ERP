@@ -2130,3 +2130,64 @@ Removed Admin from bank detail and document verification flows. HR now handles t
 - Frontend: 100% Playwright tests passed
 - Test file: `/app/backend/tests/test_geofence_attendance.py`
 - Test report: `/app/test_reports/iteration_70.json`
+
+### Session 71 (Feb 20, 2026) - Geo-Fencing Rollback & Quick Check-in Fix
+
+#### Problem Statement
+User reported that the geo-fencing attendance feature was too complex and causing issues:
+- Employee 'Rahul' could not use the Quick Check-in feature
+- Attendance data not linking correctly to dashboard and payroll
+- User explicitly requested to "remove geo-fencing structure and roll back with normal punching via quick check in only"
+
+#### Solution Implemented - Complete Geo-Fencing Rollback
+
+##### Backend Changes (`/app/backend/server.py`):
+- [x] **Simplified `/api/my/check-in` endpoint** (lines 9470-9565)
+  - Removed all geo-fence validation logic
+  - All check-ins now auto-approved with `approval_status: "approved"`
+  - Status set to `"present"` for payroll linkage
+  - Selfie and GPS still required (for record-keeping) but NOT validated against assigned locations
+  - Fixed corrupted/duplicate code from incomplete previous edit
+
+- [x] **Fixed `/api/my/check-status` endpoint** (lines 9769-9790)
+  - Changed field names from `is_checked_in/is_checked_out` to `has_checked_in/has_checked_out` (frontend compatibility)
+  - Added `check_in_time`, `check_out_time`, `work_location` fields to response
+
+##### Frontend Changes (`/app/frontend/src/pages/Employees.js`):
+- [x] **Removed Geo-Fence Management UI**
+  - Removed entire "Geo-Fence Locations" section from Edit Employee dialog (lines 1179-1329)
+  - Removed `assigned_locations` from form state initialization
+  - Removed `assigned_locations` from payload in `handleUpdateEmployee`
+  - Removed `assigned_locations` from `openEditDialog`
+  - Removed unused imports: `Navigation`, `X as XIcon`, `Target`
+
+##### Frontend Unchanged (`/app/frontend/src/components/QuickCheckInModal.js`):
+- [x] Modal still requires selfie capture and GPS location (for audit trail)
+- [x] No validation against assigned locations
+- [x] Auto-approved on submission
+
+#### What Was Achieved
+1. **Simple, reliable check-in** - Any employee can check-in without location validation
+2. **Auto-approval** - Check-ins immediately recorded as "present" (no pending approval queue)
+3. **Payroll linkage intact** - Status "present" correctly links to payroll calculations
+4. **Audit trail preserved** - Selfie and GPS still captured for records
+5. **UI cleanup** - Removed confusing geo-fence management from Employees page
+
+#### Testing Results
+- Backend: 100% (13/13 tests passed)
+- Frontend: 100% (All Playwright tests passed)
+- Test file: `/app/backend/tests/test_quick_checkin.py`
+- Test report: `/app/test_reports/iteration_71.json`
+
+#### Test Credentials Used
+- Employee: `dp@dvbc.com` / `Welcome@123` (Dhamresh Parikh, EMP110)
+- Admin: `admin@dvbc.com` / `admin123`
+- HR: `hr.manager@dvbc.com` / `hr123`
+
+#### Files Modified
+- `/app/backend/server.py` - Check-in and check-status endpoints simplified
+- `/app/frontend/src/pages/Employees.js` - Geo-fence UI removed
+
+#### Files Unchanged
+- `/app/frontend/src/components/QuickCheckInModal.js` - Works correctly, no changes needed
+- `/app/backend/routers/attendance.py` - Not used for self-check-in (remains in server.py)
