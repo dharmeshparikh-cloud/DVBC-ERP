@@ -11454,10 +11454,12 @@ async def get_go_live_checklist(
         "ctc_approved": bool(ctc),
         "bank_details_added": bool(bank_details and bank_details.get("account_number")),
         "bank_verified": bank_verified,
-        "documents_generated": documents > 0,
         "portal_access_granted": has_access,
         "go_live_status": go_live_request.get("status") if go_live_request else "not_submitted"
     }
+    
+    # Documents are optional - just track count for reference
+    documents_count = documents
     
     return {
         "employee": {
