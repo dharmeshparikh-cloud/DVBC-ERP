@@ -354,6 +354,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="notifications" element={<Notifications />} />
         <Route path="follow-ups" element={<FollowUps />} />
         <Route path="invoices" element={<Invoices />} />
+        <Route path="telegram-logs" element={<TelegramLogs />} />
       </Route>
     </Routes>
   );
