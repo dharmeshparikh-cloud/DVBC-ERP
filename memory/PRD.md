@@ -193,13 +193,18 @@ Consultant Assignment → Timesheet Entry → Approval → Project Cost Calculat
 
 ## Upcoming Tasks (P1)
 - Sales Incentive module (linking to `incentive_eligibility` records)
-- Refactor monolithic `server.py` into domain routers
+- Implement full pages for placeholder routes (`/invoices`, `/follow-ups`)
 
 ## Future Tasks (P2/P3)
+- Refactor monolithic `server.py` into domain routers
 - Email functionality for payroll reports
 - Finance Module & Project P&L Dashboards expansion
 - Day 0 guided onboarding tour
 - PWA Install Notification & Branding
+
+## Known Minor Issues
+- `/api/my/check-status` returns 400 for HR Manager (non-blocking)
+- React hydration warnings in Employees.js (cosmetic, doesn't affect functionality)
 
 ---
 
