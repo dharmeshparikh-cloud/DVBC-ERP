@@ -576,9 +576,15 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
         emp_name = f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip()
         role = emp.get("role", "")
         
-        # Determine policy times based on role
+        # Get employee-specific or role-based policy
+        emp_policy = await get_employee_policy(db, emp_id, role)
         is_consulting = role in CONSULTING_ROLES
-        policy = ATTENDANCE_POLICY["consulting" if is_consulting else "non_consulting"]
+        policy = {
+            "check_in": emp_policy["check_in"],
+            "check_out": emp_policy["check_out"]
+        }
+        grace_minutes = emp_policy.get("grace_period_minutes", DEFAULT_ATTENDANCE_POLICY["grace_period_minutes"])
+        grace_days = emp_policy.get("grace_days_per_month", DEFAULT_ATTENDANCE_POLICY["grace_days_per_month"])
         
         # Get attendance records for this employee this month
         attendance_records = await db.attendance.find(
@@ -609,7 +615,7 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
                 continue
             
             # Skip non-working days
-            if day_name not in ATTENDANCE_POLICY["working_days"]:
+            if day_name not in DEFAULT_ATTENDANCE_POLICY["working_days"]:
                 continue
             
             # Skip public holidays
