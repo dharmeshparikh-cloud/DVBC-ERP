@@ -724,11 +724,20 @@ You have <b>{len(pending_leaves)}</b> pending leave request(s):
     # Leave Flow - Dates
     if current_state == ConversationState.LEAVE_DATES:
         state_data["dates_raw"] = text
-        # Parse dates (simplified)
-        state_data["start_date"] = text.split("-")[0].strip() if "-" in text else text.split("to")[0].strip() if "to" in text else text
-        state_data["end_date"] = text.split("-")[-1].strip() if "-" in text else text.split("to")[-1].strip() if "to" in text else text
         
-        msg = """
+        # Parse dates properly
+        date_info = parse_date_input(text)
+        if not date_info:
+            await send_telegram_message(chat_id, "I couldn't parse those dates. Please try:\n• <code>25 Dec</code>\n• <code>25-27 Dec</code>\n• <code>25th Feb to 27th Feb</code>")
+            return "Invalid dates"
+        
+        state_data["start_date"] = date_info["start_date"]
+        state_data["end_date"] = date_info["end_date"]
+        state_data["days"] = date_info["days"]
+        
+        msg = f"""
+Got it! <b>{date_info['days']} day(s)</b> from {date_info['start_date']} to {date_info['end_date']}
+
 <b>Reason for leave?</b>
 <i>Brief description:</i>
 """
@@ -740,13 +749,14 @@ You have <b>{len(pending_leaves)}</b> pending leave request(s):
     if current_state == ConversationState.LEAVE_REASON:
         state_data["reason"] = text
         
-        # Create leave request
+        # Create leave request with proper dates
         leave_request = {
             "employee_id": state_data.get("employee_id"),
             "employee_name": state_data.get("employee_name"),
             "leave_type": f"{state_data.get('leave_type', 'casual')}_leave",
             "start_date": state_data.get("start_date"),
             "end_date": state_data.get("end_date"),
+            "days": state_data.get("days", 1),
             "reason": state_data.get("reason"),
             "status": "pending",
             "source": "telegram",
@@ -764,6 +774,7 @@ You have <b>{len(pending_leaves)}</b> pending leave request(s):
 
 <b>Type:</b> {state_data.get('leave_type', 'Casual').title()} Leave
 <b>Dates:</b> {state_data.get('start_date', '')} to {state_data.get('end_date', '')}
+<b>Days:</b> {state_data.get('days', 1)} day(s)
 <b>Reason:</b> {state_data.get('reason', '')}
 <b>Status:</b> Pending Approval
 
@@ -773,11 +784,12 @@ You have <b>{len(pending_leaves)}</b> pending leave request(s):
         clear_user_state(chat_id)
         await send_telegram_message(chat_id, msg, keyboard)
         
-        # TODO: Send notification to manager's Telegram if linked
+        # Send notification to manager's Telegram if linked
         await notify_manager_telegram(db, employee, "leave_request", {
             "leave_type": state_data.get('leave_type', 'casual'),
             "start_date": state_data.get('start_date', ''),
             "end_date": state_data.get('end_date', ''),
+            "days": state_data.get('days', 1),
             "reason": state_data.get('reason', '')
         })
         
