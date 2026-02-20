@@ -1,0 +1,135 @@
+{
+  "summary": "Bug Fix Verification Complete - Both leave application and payroll inputs bugs are FIXED. 1) Leave Application: Employee can apply for leaves with default balance (12 casual, 6 sick, 15 earned) shown correctly. 2) Payroll Inputs: HR Manager can see all 16 employees in the payroll inputs table.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_tested": {
+    "1_Leave_Balance_Display": {
+      "status": "PASSED",
+      "details": [
+        "Casual Leave: 12 available (0 used / 12 total)",
+        "Sick Leave: 6 available (0 used / 6 total)", 
+        "Earned Leave: 15 available (0 used / 15 total)",
+        "Default entitlements correctly applied when employee leave_balance not set"
+      ]
+    },
+    "2_Leave_Application": {
+      "status": "PASSED",
+      "details": [
+        "Employee can open Apply Leave dialog",
+        "Leave type dropdown shows available balance: 'Casual Leave (12 available)'",
+        "Half-day checkbox and date picker work correctly",
+        "Leave submission via API returns 200/201 (tested via pytest)"
+      ]
+    },
+    "3_Leave_Withdrawal": {
+      "status": "PASSED",
+      "details": [
+        "Pending leave requests show Withdraw button",
+        "Withdrawal API POST /api/leave-requests/{id}/withdraw works",
+        "Status changes to 'withdrawn' after withdrawal"
+      ]
+    },
+    "4_Payroll_Inputs_Visibility": {
+      "status": "PASSED",
+      "details": [
+        "HR Manager can login successfully",
+        "Payroll page loads with tabs: Salary Slips, Payroll Inputs, Components",
+        "Payroll Inputs tab shows 16 employees (BUG FIXED)",
+        "Rahul Kumar (EMP001) visible in the list",
+        "No 'No active employees' error message"
+      ]
+    }
+  },
+  "backend_tests": {
+    "file": "/app/backend/tests/test_bug_fixes_leave_payroll.py",
+    "results": "12/12 passed",
+    "xml_report": "/app/test_reports/pytest/pytest_leave_payroll_fix.xml",
+    "tests_passed": [
+      "TestLeaveApplication::test_employee_login",
+      "TestLeaveApplication::test_leave_balance_display",
+      "TestLeaveApplication::test_apply_casual_leave_success",
+      "TestLeaveApplication::test_apply_sick_leave_success",
+      "TestLeaveApplication::test_get_my_leave_requests",
+      "TestLeaveWithdrawal::test_get_pending_leave_requests",
+      "TestLeaveWithdrawal::test_withdraw_pending_leave",
+      "TestPayrollInputs::test_hr_login",
+      "TestPayrollInputs::test_payroll_inputs_shows_employees",
+      "TestPayrollInputs::test_payroll_inputs_with_admin",
+      "TestPayrollInputs::test_employee_count_consistency",
+      "TestEmployeesActiveStatus::test_get_all_employees"
+    ]
+  },
+  "frontend_tests": {
+    "playwright_results": "All critical flows passed",
+    "verified_elements": {
+      "my_leaves_page": [
+        "Leave balance cards visible (Casual, Sick, Earned)",
+        "Balance values correct: 12, 6, 15",
+        "Apply Leave button works",
+        "Leave application dialog opens",
+        "Leave type dropdown shows available balance",
+        "4 leave request rows displayed",
+        "2 withdraw buttons for pending requests"
+      ],
+      "payroll_page": [
+        "HR Manager can access payroll page",
+        "Salary Slips tab shows existing slip",
+        "Payroll Inputs tab accessible",
+        "16 employee rows in payroll inputs table",
+        "Download CSV and Upload CSV buttons present",
+        "Save All button available"
+      ]
+    }
+  },
+  "bug_fixes_verified": {
+    "bug_1_leave_zero_balance": {
+      "original_issue": "Employee leave application failing with 'zero balance' error despite having available leaves",
+      "fix_location": "backend/server.py lines 7737-7750",
+      "fix_description": "Added DEFAULT_LEAVE_BALANCE = {'casual_leave': 12, 'sick_leave': 6, 'earned_leave': 15} as fallback when employee leave_balance is not set",
+      "verification": "PASSED - Employee can now apply for leaves successfully"
+    },
+    "bug_2_payroll_inputs_empty": {
+      "original_issue": "HR Manager not seeing employees in payroll inputs table",
+      "fix_location": "backend/server.py lines 9041-9045",
+      "fix_description": "Changed employee query to use {'$or': [{'is_active': True}, {'is_active': {'$exists': False}}]} to include employees where is_active is True OR not set",
+      "verification": "PASSED - HR Manager can see all 16 employees in payroll inputs"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bug_fixes_leave_payroll.py",
+    "/app/test_reports/pytest/pytest_leave_payroll_fix.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GOOD: Leave balance validation now uses sensible defaults (12/6/15) instead of failing",
+    "GOOD: Payroll inputs query handles both is_active=True and missing is_active field",
+    "NOTE: DB migration was run to initialize leave_balance for 15 employees and is_active=True for 14 employees"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bug_fixes_leave_payroll.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (All Playwright tests passed)"
+  },
+  "test_credentials": {
+    "employee": "rahul.kumar@dvbc.com / Welcome@EMP001",
+    "hr_manager": "hr.manager@dvbc.com / hr123",
+    "admin": "admin@dvbc.com / admin123"
+  },
+  "seed_data_creation": "None - used existing employees with DB migration that set is_active=True for 14 employees",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fixes verified: 1) Leave balance uses defaults (12 casual, 6 sick, 15 earned) when not set. 2) Payroll inputs shows employees where is_active=True OR is_active not set. Test file test_bug_fixes_leave_payroll.py covers all scenarios.",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
