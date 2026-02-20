@@ -9430,6 +9430,14 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
         "public_holidays": public_holidays,
         "leaves": leaves_count,
         "half_day_leaves": half_day_leaves,
+        # New payroll linkage fields
+        "lop_days": lop_days,
+        "lop_deduction": lop_deduction,
+        "expense_reimbursements": expense_reimbursements_list if expense_reimb > 0 else [],
+        "expense_reimbursement_total": expense_reimb,
+        "attendance_linked": len(att_records) > 0,
+        "leave_requests_linked": len(leave_requests) > 0,
+        "payroll_reimbursements_linked": len(payroll_reimb_records) > 0,
         "bank_details": employee.get("bank_details"),
         "generated_by": current_user.id,
         "generated_at": datetime.now(timezone.utc).isoformat()
