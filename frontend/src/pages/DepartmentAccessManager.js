@@ -365,7 +365,11 @@ const DepartmentAccessManager = () => {
             <Button variant="outline" onClick={() => { setBulkMode(false); setSelectedIds([]); }}>
               Cancel
             </Button>
-            <Button onClick={() => setBulkDialog(true)} disabled={!selectedIds.length}>
+            <Button 
+              onClick={() => setBulkDialog(true)} 
+              disabled={!selectedIds.length}
+              data-testid="bulk-update-btn"
+            >
               Update {selectedIds.length} Selected
             </Button>
           </div>
