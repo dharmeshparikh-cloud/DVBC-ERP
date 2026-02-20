@@ -11861,7 +11861,7 @@ async def approve_permission_change(
         "id": str(uuid.uuid4()),
         "user_id": req["requested_by"],
         "type": "permission_request_approved",
-        "title": f"Permission Change Approved",
+        "title": "Permission Change Approved",
         "message": f"Your permission change request for {req['employee_name']} has been approved by {current_user.full_name}",
         "reference_type": "permission_request",
         "reference_id": request_id,
