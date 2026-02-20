@@ -1889,53 +1889,68 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
                   <span><strong>Notification sent</strong> (simulated): Welcome email with credentials sent to {onboardingSuccess.employee.email}</span>
                 </p>
               </div>
+
+              {/* Next Steps Guide */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                <h4 className="font-semibold text-blue-800 mb-3">Next Steps to Complete Onboarding</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                    <span>Design CTC Structure (Salary Breakdown)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+                    <span>Generate Documents (Offer Letter, Appointment Letter)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">3</span>
+                    <span>Submit for Go-Live Approval</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          <DialogFooter className="mt-4 flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowSuccessDialog(false);
-                navigate('/onboarding');
-                window.location.reload();
-              }}
-            >
-              Onboard Another
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowSuccessDialog(false);
-                navigate('/employees');
-              }}
-            >
-              View Employees
-            </Button>
+          <DialogFooter className="mt-4 flex flex-col gap-3">
+            {/* Primary Action - Step 1 */}
             <Button
               onClick={() => {
                 setShowSuccessDialog(false);
-                // Navigate to CTC Designer with employee pre-selected
                 navigate(`/ctc-designer?employee=${onboardingSuccess?.employee?.id}`);
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-blue-600 hover:bg-blue-700"
               data-testid="go-to-ctc-designer"
             >
+              <span className="mr-2 w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">1</span>
               <Wallet className="w-4 h-4 mr-2" />
               Design CTC Structure
+              <ChevronRight className="w-4 h-4 ml-auto" />
             </Button>
-            <Button
-              onClick={() => {
-                setShowSuccessDialog(false);
-                // Navigate to Document Center with employee pre-selected
-                navigate(`/document-center?employee=${onboardingSuccess?.employee?.id}`);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700"
-              data-testid="go-to-document-center"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Generate Documents
-            </Button>
+            
+            {/* Secondary Actions */}
+            <div className="flex gap-2 w-full">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowSuccessDialog(false);
+                  navigate('/onboarding');
+                  window.location.reload();
+                }}
+                className="flex-1"
+              >
+                Onboard Another
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowSuccessDialog(false);
+                  navigate('/employees');
+                }}
+                className="flex-1"
+              >
+                View Employees
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
