@@ -303,25 +303,22 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
     
     await db.ctc_structures.insert_one(ctc_structure)
     
-    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1, "full_name": 1}).to_list(50)
-    for admin in admins:
-        notification = {
-            "id": str(uuid.uuid4()),
-            "user_id": admin["id"],
-            "type": "ctc_approval_request",
-            "title": "CTC Structure Approval Required",
-            "message": f"{current_user.full_name} has submitted CTC structure for {employee.get('first_name')} {employee.get('last_name')} (₹{request.annual_ctc:,.0f}/year).",
-            "reference_type": "ctc_structure",
-            "reference_id": ctc_structure["id"],
-            "is_read": False,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.notifications.insert_one(notification)
+    # Update employee salary directly (no admin approval needed)
+    await db.employees.update_one(
+        {"id": request.employee_id},
+        {"$set": {
+            "salary": request.annual_ctc,
+            "ctc_designed": True,
+            "ctc_structure_id": ctc_structure["id"],
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
     
     return {
-        "message": "CTC structure submitted for admin approval",
+        "message": "CTC structure saved and applied to employee",
         "ctc_structure_id": ctc_structure["id"],
-        "status": "pending"
+        "status": "approved",
+        "redirect_to": "/document-center"  # Signal frontend to redirect
     }
 
 
