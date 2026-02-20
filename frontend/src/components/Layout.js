@@ -193,6 +193,7 @@ const Layout = () => {
     { name: 'Onboarding', href: '/onboarding', icon: UserCog, requiresTeamView: false },
     { name: 'Go-Live Dashboard', href: '/go-live', icon: Rocket, requiresHRorAdmin: true },
     { name: 'Employee Permissions', href: '/employee-permissions', icon: Shield, requiresHRorAdmin: true },
+    { name: 'Expense Approvals', href: '/expense-approvals', icon: Receipt, requiresApproval: true },
     { name: 'Password Management', href: '/password-management', icon: Key, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
     { name: 'Leave & Attendance', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
