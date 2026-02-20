@@ -563,14 +563,36 @@ async def get_user_departments(user_id: str) -> list:
 
 async def has_reportees(user_id: str) -> bool:
     """Check if user has any employees reporting to them"""
-    count = await db.employees.count_documents({"reporting_manager_id": user_id})
+    # First get the employee record for this user to get their employee_id
+    user_employee = await db.employees.find_one({"user_id": user_id}, {"id": 1, "employee_id": 1, "_id": 0})
+    if not user_employee:
+        return False
+    
+    # Check if anyone reports to this employee (by employee_id or id)
+    count = await db.employees.count_documents({
+        "$or": [
+            {"reporting_manager_id": user_employee.get("employee_id")},
+            {"reporting_manager_id": user_employee.get("id")}
+        ]
+    })
     return count > 0
 
 
 async def get_reportee_ids(user_id: str) -> list:
     """Get list of employee IDs who report to this user"""
+    # First get the employee record for this user
+    user_employee = await db.employees.find_one({"user_id": user_id}, {"id": 1, "employee_id": 1, "_id": 0})
+    if not user_employee:
+        return []
+    
+    # Find employees who report to this person
     employees = await db.employees.find(
-        {"reporting_manager_id": user_id},
+        {
+            "$or": [
+                {"reporting_manager_id": user_employee.get("employee_id")},
+                {"reporting_manager_id": user_employee.get("id")}
+            ]
+        },
         {"id": 1, "user_id": 1, "_id": 0}
     ).to_list(1000)
     return [e.get("user_id") or e.get("id") for e in employees]
