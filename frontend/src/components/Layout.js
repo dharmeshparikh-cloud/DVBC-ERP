@@ -21,13 +21,9 @@ import {
 
 // Legacy role-based access (kept for backward compatibility)
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
-const SALES_ROLES_NAV = ['admin', 'executive', 'account_manager', 'manager'];
-const CONSULTING_ROLES_NAV = [
-  'admin', 'project_manager', 'consultant', 'principal_consultant',
-  'lean_consultant', 'lead_consultant', 'senior_consultant',
-  'subject_matter_expert', 'manager'
-];
-const ADMIN_ROLES = ['admin', 'manager', 'hr_manager'];
+const SALES_ROLES_NAV = ['admin']; // Only admin gets all access by role
+const CONSULTING_ROLES_NAV = ['admin']; // Department-based access is primary
+const ADMIN_ROLES = ['admin', 'hr_manager'];
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
