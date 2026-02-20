@@ -101,12 +101,16 @@ import PasswordManagement from './pages/PasswordManagement';
 import GoLiveDashboard from './pages/GoLiveDashboard';
 import Notifications from './pages/Notifications';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import { setupAxiosInterceptors } from './utils/useApi';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
 export const AuthContext = React.createContext(null);
+
+// Setup axios interceptors once
+let interceptorsSetup = false;
 
 function AppRouter({ user, login, logout, loading }) {
   const location = useLocation();
