@@ -1655,7 +1655,7 @@ const ApprovalsCenter = () => {
                 </Button>
                 <Button 
                   onClick={() => handleGoLiveAction(selectedGoLive.id, 'approve')}
-                  disabled={actionLoading || !(goLiveChecklist?.checklist?.ctc_approved && goLiveChecklist?.checklist?.portal_access_granted)}
+                  disabled={actionLoading || !(goLiveChecklist?.checklist?.ctc_approved && goLiveChecklist?.checklist?.portal_access_granted && goLiveChecklist?.checklist?.onboarding_complete)}
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Rocket className="w-4 h-4 mr-1" /> Approve Go-Live</>}
