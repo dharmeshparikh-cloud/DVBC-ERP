@@ -104,6 +104,8 @@ import BankDetailsChangeRequest from './pages/BankDetailsChangeRequest';
 import PasswordManagement from './pages/PasswordManagement';
 import GoLiveDashboard from './pages/GoLiveDashboard';
 import Notifications from './pages/Notifications';
+import FollowUps from './pages/FollowUps';
+import Invoices from './pages/Invoices';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { setupAxiosInterceptors } from './utils/useApi';
 import './App.css';
