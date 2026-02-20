@@ -258,8 +258,7 @@ const Employees = () => {
         bank_name: '',
         branch: '',
         account_holder_name: ''
-      },
-      assigned_locations: emp.assigned_locations || []
+      }
     });
     setEditDialog(true);
   };
