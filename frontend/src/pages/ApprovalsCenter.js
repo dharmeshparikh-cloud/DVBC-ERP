@@ -73,6 +73,7 @@ const ApprovalsCenter = () => {
         requests.push(axios.get(`${API}/ctc/pending-approvals`).catch(() => ({ data: [] })));
         requests.push(axios.get(`${API}/go-live/pending`).catch(() => ({ data: [] })));
         requests.push(axios.get(`${API}/permission-change-requests`).catch(() => ({ data: [] })));
+        requests.push(axios.get(`${API}/employees/modification-requests/pending`).catch(() => ({ data: [] })));
       }
       
       // Fetch bank approvals for HR (HR handles bank changes directly)
