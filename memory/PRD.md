@@ -10,7 +10,25 @@
 
 ## Completed Work - February 2026
 
-### Success Dialog Flow & Post-Go-Live Approval - February 20, 2026 ✅ (Latest)
+### Consolidated Approvals Center & CTC Auto-Approval - February 20, 2026 ✅ (Latest)
+- **Approvals Center Enhanced**:
+  - Added Employee Modification Requests section for Admin
+  - Shows all pending modification requests with detailed change breakdown
+  - Displays current vs new values for each field
+  - Approve/Reject buttons with confirmation
+  - Stats cards show: Total Pending, CTC Approvals, Permissions, Modifications, My Requests
+- **CTC Auto-Approval Verified**:
+  - HR Manager can create CTC structures that are auto-approved (no Admin step needed)
+  - CTC goes directly to "approved" status when HR submits
+  - Employee salary is updated immediately
+  - Admin only involved for Go-Live approval (single approval checkpoint)
+- **Post-Go-Live Modification Workflow**:
+  - Protected fields: CTC, Salary, Designation, Department, Reporting Manager, Employment Type, Bank Details
+  - HR Manager changes create modification requests
+  - Admin receives notification and approves in Approvals Center
+  - Changes applied atomically on approval
+
+### Success Dialog Flow & Post-Go-Live Approval - February 20, 2026 ✅
 - **Onboarding Success Dialog Redesigned**:
   - Added "Next Steps to Complete Onboarding" section with numbered steps (1→CTC, 2→Documents, 3→Go-Live)
   - Primary CTA button: "Design CTC Structure" with step badge and arrow
