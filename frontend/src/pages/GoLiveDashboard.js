@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { AuthContext, API } from '../App';
+import { AuthContext, API, handleApiError } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { ErrorDisplay } from '../components/ErrorDisplay';
 import { 
   Rocket, CheckCircle, XCircle, Clock, User, Building2, 
   CreditCard, FileText, Key, AlertTriangle, ChevronRight,
@@ -23,6 +24,7 @@ const GoLiveDashboard = () => {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [filter, setFilter] = useState('all');
+  const [pageError, setPageError] = useState(null);
   const isAdmin = user?.role === 'admin';
   const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
   const canVerifyBank = isAdmin || user?.role === 'hr_manager';
