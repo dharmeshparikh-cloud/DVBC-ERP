@@ -7734,12 +7734,23 @@ async def create_leave_request(
     else:
         days = (leave_data.end_date - leave_data.start_date).days + 1
     
+    # Define default leave entitlements
+    DEFAULT_LEAVE_BALANCE = {
+        'casual_leave': 12,
+        'sick_leave': 6, 
+        'earned_leave': 15
+    }
+    
     leave_balance = employee.get('leave_balance', {})
     leave_type_key = leave_data.leave_type.replace('_leave', '')
-    available = leave_balance.get(leave_data.leave_type, 0) - leave_balance.get(f'used_{leave_type_key}', 0)
+    
+    # Use default entitlement if not set in employee record
+    total_entitled = leave_balance.get(leave_data.leave_type, DEFAULT_LEAVE_BALANCE.get(leave_data.leave_type, 0))
+    used = leave_balance.get(f'used_{leave_type_key}', 0)
+    available = total_entitled - used
     
     if days > available:
-        raise HTTPException(status_code=400, detail=f"Insufficient leave balance. Available: {available} days")
+        raise HTTPException(status_code=400, detail=f"Insufficient leave balance. Available: {available} days, Requested: {days} days")
     
     # Check if user is a manager/reporting manager — their leave must escalate to THEIR manager + admin
     is_manager_role = current_user.role in ['manager', 'project_manager', 'hr_manager', 'principal_consultant']
@@ -9027,7 +9038,11 @@ async def get_payroll_inputs(month: str, current_user: User = Depends(get_curren
         raise HTTPException(status_code=403, detail="Only HR can access payroll inputs")
     inputs = await db.payroll_inputs.find({"month": month}, {"_id": 0}).to_list(500)
     input_map = {i["employee_id"]: i for i in inputs}
-    employees = await db.employees.find({"is_active": True}, {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1, "salary": 1}).to_list(500)
+    # Include employees where is_active is True OR not set (default to active)
+    employees = await db.employees.find(
+        {"$or": [{"is_active": True}, {"is_active": {"$exists": False}}]},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1, "salary": 1}
+    ).to_list(500)
     result = []
     for emp in employees:
         existing = input_map.get(emp["id"], {})
