@@ -80,7 +80,7 @@ class TestLeadsDataScoping:
         if leads:
             lead = leads[0]
             assert 'id' in lead, "Lead should have an id"
-            assert 'company_name' in lead, "Lead should have company_name"
+            assert 'company' in lead, "Lead should have company field"
     
     def test_rahul_sees_only_own_leads(self, rahul_token):
         """Rahul (EMP001) should see only his own leads"""
