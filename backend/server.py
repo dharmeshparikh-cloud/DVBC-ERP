@@ -6695,9 +6695,21 @@ async def get_direct_reportee_ids(user_id: str) -> List[str]:
     employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
     if not employee:
         return []
-    mgr_emp_id = employee['id']
+    # Query by BOTH id (UUID) and employee_id (code) for backwards compatibility
+    mgr_internal_id = employee.get('id')
+    mgr_emp_code = employee.get('employee_id')
+    
+    query = {"is_active": True, "$or": []}
+    if mgr_internal_id:
+        query["$or"].append({"reporting_manager_id": mgr_internal_id})
+    if mgr_emp_code:
+        query["$or"].append({"reporting_manager_id": mgr_emp_code})
+    
+    if not query["$or"]:
+        return []
+        
     reportees = await db.employees.find(
-        {"reporting_manager_id": mgr_emp_id, "is_active": True},
+        query,
         {"_id": 0, "id": 1, "user_id": 1}
     ).to_list(200)
     return [r['id'] for r in reportees]
@@ -6708,20 +6720,35 @@ async def get_all_reportee_ids(user_id: str) -> List[str]:
     employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
     if not employee:
         return []
-    mgr_emp_id = employee['id']
+    
+    # Query by BOTH id and employee_id for backwards compatibility
+    mgr_internal_id = employee.get('id')
+    mgr_emp_code = employee.get('employee_id')
+    
+    query = {"is_active": True, "$or": []}
+    if mgr_internal_id:
+        query["$or"].append({"reporting_manager_id": mgr_internal_id})
+    if mgr_emp_code:
+        query["$or"].append({"reporting_manager_id": mgr_emp_code})
+    
+    if not query["$or"]:
+        return []
+    
     # Direct reportees
-    direct = await db.employees.find(
-        {"reporting_manager_id": mgr_emp_id, "is_active": True},
-        {"_id": 0, "id": 1}
-    ).to_list(200)
+    direct = await db.employees.find(query, {"_id": 0, "id": 1, "employee_id": 1}).to_list(200)
     direct_ids = [r['id'] for r in direct]
+    direct_emp_codes = [r['employee_id'] for r in direct if r.get('employee_id')]
+    
     # Second-line reportees (reportees of direct reportees)
     second_line = []
-    if direct_ids:
-        second = await db.employees.find(
-            {"reporting_manager_id": {"$in": direct_ids}, "is_active": True},
-            {"_id": 0, "id": 1}
-        ).to_list(500)
+    if direct_ids or direct_emp_codes:
+        second_query = {"is_active": True, "$or": []}
+        if direct_ids:
+            second_query["$or"].append({"reporting_manager_id": {"$in": direct_ids}})
+        if direct_emp_codes:
+            second_query["$or"].append({"reporting_manager_id": {"$in": direct_emp_codes}})
+        
+        second = await db.employees.find(second_query, {"_id": 0, "id": 1}).to_list(500)
         second_line = [r['id'] for r in second]
     return direct_ids + second_line
 
@@ -6731,29 +6758,55 @@ async def get_reportee_user_ids(user_id: str) -> List[str]:
     employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
     if not employee:
         return []
-    mgr_emp_id = employee['id']
-    direct = await db.employees.find(
-        {"reporting_manager_id": mgr_emp_id, "is_active": True},
-        {"_id": 0, "id": 1, "user_id": 1}
-    ).to_list(200)
+    
+    # Query by BOTH id and employee_id for backwards compatibility
+    mgr_internal_id = employee.get('id')
+    mgr_emp_code = employee.get('employee_id')
+    
+    query = {"is_active": True, "$or": []}
+    if mgr_internal_id:
+        query["$or"].append({"reporting_manager_id": mgr_internal_id})
+    if mgr_emp_code:
+        query["$or"].append({"reporting_manager_id": mgr_emp_code})
+    
+    if not query["$or"]:
+        return []
+    
+    direct = await db.employees.find(query, {"_id": 0, "id": 1, "employee_id": 1, "user_id": 1}).to_list(200)
     direct_ids = [r['id'] for r in direct]
+    direct_emp_codes = [r['employee_id'] for r in direct if r.get('employee_id')]
     direct_user_ids = [r['user_id'] for r in direct if r.get('user_id')]
+    
     second_line_user_ids = []
-    if direct_ids:
-        second = await db.employees.find(
-            {"reporting_manager_id": {"$in": direct_ids}, "is_active": True},
-            {"_id": 0, "user_id": 1}
-        ).to_list(500)
+    if direct_ids or direct_emp_codes:
+        second_query = {"is_active": True, "$or": []}
+        if direct_ids:
+            second_query["$or"].append({"reporting_manager_id": {"$in": direct_ids}})
+        if direct_emp_codes:
+            second_query["$or"].append({"reporting_manager_id": {"$in": direct_emp_codes}})
+        
+        second = await db.employees.find(second_query, {"_id": 0, "user_id": 1}).to_list(500)
         second_line_user_ids = [r['user_id'] for r in second if r.get('user_id')]
     return direct_user_ids + second_line_user_ids
 
 
 async def is_direct_reportee(manager_user_id: str, employee_id: str) -> bool:
     """Check if employee is a direct reportee of the manager"""
-    manager_emp = await db.employees.find_one({"user_id": manager_user_id}, {"_id": 0, "id": 1})
+    manager_emp = await db.employees.find_one({"user_id": manager_user_id}, {"_id": 0, "id": 1, "employee_id": 1})
     if not manager_emp:
         return False
-    reportee = await db.employees.find_one({"id": employee_id, "reporting_manager_id": manager_emp['id']}, {"_id": 0})
+    
+    # Query by BOTH id and employee_id
+    query = {"id": employee_id, "$or": []}
+    if manager_emp.get('id'):
+        query["$or"].append({"reporting_manager_id": manager_emp['id']})
+    if manager_emp.get('employee_id'):
+        query["$or"].append({"reporting_manager_id": manager_emp['employee_id']})
+    
+    if not query["$or"]:
+        return False
+        
+    reportee = await db.employees.find_one(query, {"_id": 0})
     return reportee is not None
 
 
