@@ -50,6 +50,9 @@ const ApprovalsCenter = () => {
   const [selectedBank, setSelectedBank] = useState(null);
   const [permissionDetailDialog, setPermissionDetailDialog] = useState(false);
   const [selectedPermission, setSelectedPermission] = useState(null);
+  const [goLiveDetailDialog, setGoLiveDetailDialog] = useState(false);
+  const [selectedGoLive, setSelectedGoLive] = useState(null);
+  const [goLiveChecklist, setGoLiveChecklist] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const isAdmin = user?.role === 'admin';
