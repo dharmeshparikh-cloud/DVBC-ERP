@@ -643,18 +643,18 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
             
             if check_in:
                 if not is_within_grace(check_in, policy["check_in"], 0):
-                    # Check if within 30 min grace
-                    if is_within_grace(check_in, policy["check_in"], 30):
+                    # Check if within employee's grace minutes
+                    if is_within_grace(check_in, policy["check_in"], grace_minutes):
                         is_late = True
                         late_count += 1
                     else:
-                        # More than 30 min late - auto penalty
+                        # More than grace period late - auto penalty
                         is_late = True
                         late_count += 1
             
             if check_out:
                 if not is_within_grace(check_out, policy["check_out"], 0):
-                    if is_within_grace(check_out, policy["check_out"], 30):
+                    if is_within_grace(check_out, policy["check_out"], grace_minutes):
                         is_early_leave = True
                         early_leave_count += 1
             
@@ -669,13 +669,13 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
             
             present_days += 1
         
-        # Calculate penalties (beyond 3 grace days)
+        # Calculate penalties (beyond grace days limit)
         total_grace_used = len(grace_violations)
-        penalty_days = max(0, total_grace_used - ATTENDANCE_POLICY["grace_days_per_month"])
-        penalty_amount = penalty_days * ATTENDANCE_POLICY["late_penalty_amount"]
+        penalty_days = max(0, total_grace_used - grace_days)
+        penalty_amount = penalty_days * DEFAULT_ATTENDANCE_POLICY["late_penalty_amount"]
         
         if penalty_days > 0:
-            penalties = grace_violations[ATTENDANCE_POLICY["grace_days_per_month"]:]
+            penalties = grace_violations[grace_days:]
         
         results.append({
             "employee_id": emp_id,
@@ -683,10 +683,13 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
             "name": emp_name,
             "role": role,
             "is_consulting": is_consulting,
+            "has_custom_policy": emp_policy.get("is_custom", False),
+            "policy_times": f"{policy['check_in']} - {policy['check_out']}",
             "present_days": present_days,
             "absent_days": absent_days,
             "leave_days": leave_days,
-            "grace_days_used": min(total_grace_used, ATTENDANCE_POLICY["grace_days_per_month"]),
+            "grace_days_used": min(total_grace_used, grace_days),
+            "grace_days_allowed": grace_days,
             "grace_violations": grace_violations,
             "penalty_days": penalty_days,
             "pending_penalty_amount": penalty_amount,
@@ -696,7 +699,7 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
     
     return {
         "month": month,
-        "policy": ATTENDANCE_POLICY,
+        "policy": DEFAULT_ATTENDANCE_POLICY,
         "employees": results,
         "summary": {
             "total_employees": len(results),
