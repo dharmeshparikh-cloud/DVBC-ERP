@@ -339,6 +339,19 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Setup axios interceptors once
+  useEffect(() => {
+    if (!interceptorsSetup) {
+      setupAxiosInterceptors(() => {
+        // On auth error, logout user
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
+        setUser(null);
+      });
+      interceptorsSetup = true;
+    }
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
