@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="14" skipped="0" tests="18" time="12.674" timestamp="2026-02-20T12:37:54.342272+00:00" hostname="agent-env-dda456ec-f7e3-44e6-adac-fde35026fc10"><testcase classname="tests.test_hr_attendance_leave_features.TestCustomAttendancePolicy" name="test_get_attendance_policy" time="1.183"><failure message="AssertionError: Expected 200, got 401: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:45: in test_get_attendance_policy
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 401: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestCustomAttendancePolicy" name="test_list_custom_policies" time="0.576"><failure message="AssertionError: Expected 200, got 401: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:60: in test_list_custom_policies
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 401: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestCustomAttendancePolicy" name="test_get_employees_for_dropdown" time="0.563"><failure message="AssertionError: Expected 200, got 401: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:77: in test_get_employees_for_dropdown
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 401: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestCustomAttendancePolicy" name="test_get_specific_employee_policy" time="0.619"><failure message="KeyError: 0">backend/tests/test_hr_attendance_leave_features.py:101: in test_get_specific_employee_policy
+    emp_id = employees[0]["id"]
+             ^^^^^^^^^^^^
+E   KeyError: 0</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestCustomAttendancePolicy" name="test_create_custom_policy" time="0.615"><failure message="KeyError: -1">backend/tests/test_hr_attendance_leave_features.py:120: in test_create_custom_policy
+    test_employee = employees[-1] if employees else None
+                    ^^^^^^^^^^^^^
+E   KeyError: -1</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestCustomAttendancePolicy" name="test_verify_custom_policy_exists" time="0.750"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:151: in test_verify_custom_policy_exists
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestCustomAttendancePolicy" name="test_delete_custom_policy" time="0.624" /><testcase classname="tests.test_hr_attendance_leave_features.TestAutoValidateAttendance" name="test_auto_validate_attendance" time="0.595"><failure message="AssertionError: Expected 200, got 401: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:210: in test_auto_validate_attendance
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 401: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestAutoValidateAttendance" name="test_auto_validate_with_custom_policies_indicator" time="0.581"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:245: in test_auto_validate_with_custom_policies_indicator
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestHRAttendanceInput" name="test_get_employee_attendance_input" time="0.588"><failure message="AssertionError: Expected 200, got 401: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:290: in test_get_employee_attendance_input
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 401: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestHRAttendanceInput" name="test_mark_bulk_attendance" time="0.782"><failure message="KeyError: 0">backend/tests/test_hr_attendance_leave_features.py:318: in test_mark_bulk_attendance
+    test_emp = employees[0]
+               ^^^^^^^^^^^^
+E   KeyError: 0</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestHRLeaveInput" name="test_get_all_leave_requests" time="0.663"><failure message="AssertionError: Expected 200, got 401: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:361: in test_get_all_leave_requests
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 401: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestHRLeaveInput" name="test_apply_leave_for_employee" time="0.618"><failure message="KeyError: 0">backend/tests/test_hr_attendance_leave_features.py:385: in test_apply_leave_for_employee
+    test_emp = employees[0]
+               ^^^^^^^^^^^^
+E   KeyError: 0</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestHRLeaveInput" name="test_bulk_credit_leaves" time="0.628" /><testcase classname="tests.test_hr_attendance_leave_features.TestPayrollSummaryReport" name="test_get_payroll_summary_report" time="0.640" /><testcase classname="tests.test_hr_attendance_leave_features.TestPayrollSummaryReport" name="test_get_generated_reports" time="0.766" /><testcase classname="tests.test_hr_attendance_leave_features.TestEmployeeFilterFunctionality" name="test_filter_attendance_by_employee" time="0.606"><failure message="KeyError: 0">backend/tests/test_hr_attendance_leave_features.py:510: in test_filter_attendance_by_employee
+    test_emp = employees[0]
+               ^^^^^^^^^^^^
+E   KeyError: 0</failure></testcase><testcase classname="tests.test_hr_attendance_leave_features.TestEmployeeFilterFunctionality" name="test_filter_leave_requests_by_employee" time="0.608"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_hr_attendance_leave_features.py:537: in test_filter_leave_requests_by_employee
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase></testsuite></testsuites>
