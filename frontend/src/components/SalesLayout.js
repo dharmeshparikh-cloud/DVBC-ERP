@@ -6,10 +6,11 @@ import { Button } from './ui/button';
 import NotificationBell from './NotificationBell';
 import { sanitizeDisplayText } from '../utils/sanitize';
 import { SalesNavigationProvider } from '../context/SalesNavigationContext';
+import QuickCheckInModal from './QuickCheckInModal';
 import {
   LayoutDashboard, Users, LogOut, DollarSign, FileText, FileCheck, 
   Building2, Calendar, BarChart3, ChevronDown, Send, Clock,
-  Umbrella, Receipt, CreditCard, Award, Sun, Moon, Key, Menu, X, Home, UserCircle
+  Umbrella, Receipt, CreditCard, Award, Sun, Moon, Key, Menu, X, Home, UserCircle, CheckCircle2
 } from 'lucide-react';
 import ChangePasswordDialog from './ChangePasswordDialog';
 
