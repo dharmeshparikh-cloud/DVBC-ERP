@@ -7830,32 +7830,127 @@ async def create_leave_request(
         "leave_request_id": leave_request['id'],
         "approver": rm_name or "HR Manager (no RM assigned)"
     }
+
+
+@api_router.post("/leave-requests/{leave_id}/rm-approve")
+async def rm_approve_leave_request(
+    leave_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reporting Manager approves/rejects leave request (Simplified flow - RM only)
+    """
+    leave_request = await db.leave_requests.find_one({"id": leave_id}, {"_id": 0})
+    if not leave_request:
+        raise HTTPException(status_code=404, detail="Leave request not found")
     
-    await notify_admins(
-        notif_type="leave_request",
-        title="New Leave Request",
-        message=f"{leave_request['employee_name']} requested {leave_data.leave_type.replace('_', ' ').title()} for {days} day(s).",
-        reference_type="leave_request",
-        reference_id=leave_request['id']
-    )
+    if leave_request.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Cannot approve leave in '{leave_request.get('status')}' status")
     
-    # Notify reporting manager (direct + second-line)
-    reporting_chain = await get_reporting_chain(current_user.id, max_levels=2)
-    for rm in reporting_chain:
-        if rm.get('user_id'):
+    # Verify approver is the RM or HR/Admin
+    is_rm = leave_request.get("rm_user_id") == current_user.id
+    is_hr_admin = current_user.role in ["admin", "hr_manager"]
+    
+    # Also check by employee_id for RM
+    if not is_rm:
+        approver_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+        if approver_emp and approver_emp.get("employee_id") == leave_request.get("reporting_manager_id"):
+            is_rm = True
+    
+    if not (is_rm or is_hr_admin):
+        raise HTTPException(status_code=403, detail="Only the Reporting Manager can approve this leave request")
+    
+    action = data.get("action", "approve")  # approve or reject
+    remarks = data.get("remarks", "")
+    now = datetime.now(timezone.utc).isoformat()
+    
+    if action == "approve":
+        # Update leave balance
+        leave_type = leave_request.get("leave_type", "casual_leave")
+        days = leave_request.get("days", 1)
+        employee_id = leave_request.get("employee_id")
+        
+        leave_type_key = leave_type.replace("_leave", "")
+        used_field = f"leave_balance.used_{leave_type_key}"
+        
+        await db.employees.update_one(
+            {"id": employee_id},
+            {"$inc": {used_field: days}}
+        )
+        
+        await db.leave_requests.update_one(
+            {"id": leave_id},
+            {"$set": {
+                "status": "approved",
+                "approved_by": current_user.id,
+                "approved_by_name": current_user.full_name,
+                "approved_at": now,
+                "approver_remarks": remarks,
+                "updated_at": now
+            }}
+        )
+        
+        # Notify employee
+        if leave_request.get("user_id"):
             await db.notifications.insert_one({
                 "id": str(uuid.uuid4()),
-                "user_id": rm['user_id'],
-                "type": "leave_request",
-                "title": "Reportee Leave Request",
-                "message": f"{leave_request['employee_name']} requested {leave_data.leave_type.replace('_', ' ').title()} for {days} day(s).",
+                "user_id": leave_request["user_id"],
+                "type": "leave_approved",
+                "title": "Leave Approved",
+                "message": f"Your {leave_type.replace('_', ' ').title()} ({leave_request.get('days')} days) has been approved by {current_user.full_name}.",
                 "reference_type": "leave_request",
-                "reference_id": leave_request['id'],
+                "reference_id": leave_id,
                 "is_read": False,
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "created_at": now
             })
+        
+        # Notify HR/Admin (informational)
+        hr_admins = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"_id": 0, "id": 1}).to_list(10)
+        for user in hr_admins:
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": user["id"],
+                "type": "leave_approved_info",
+                "title": "Leave Approved",
+                "message": f"{leave_request.get('employee_name')}'s {leave_type.replace('_', ' ').title()} ({leave_request.get('days')} days) approved by {current_user.full_name}.",
+                "reference_type": "leave_request",
+                "reference_id": leave_id,
+                "is_read": False,
+                "created_at": now
+            })
+        
+        return {"message": "Leave approved successfully", "status": "approved"}
     
-    return {"message": "Leave request submitted for approval", "leave_request_id": leave_request['id']}
+    else:  # reject
+        await db.leave_requests.update_one(
+            {"id": leave_id},
+            {"$set": {
+                "status": "rejected",
+                "rejected_by": current_user.id,
+                "rejected_by_name": current_user.full_name,
+                "rejected_at": now,
+                "rejection_reason": remarks,
+                "updated_at": now
+            }}
+        )
+        
+        # Notify employee
+        if leave_request.get("user_id"):
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": leave_request["user_id"],
+                "type": "leave_rejected",
+                "title": "Leave Rejected",
+                "message": f"Your {leave_request.get('leave_type', '').replace('_', ' ').title()} was rejected. Reason: {remarks or 'No reason provided'}",
+                "reference_type": "leave_request",
+                "reference_id": leave_id,
+                "is_read": False,
+                "created_at": now
+            })
+        
+        return {"message": "Leave rejected", "status": "rejected"}
+
 
 @api_router.get("/leave-requests")
 async def get_leave_requests(current_user: User = Depends(get_current_user)):
