@@ -2249,3 +2249,51 @@ The bug was in the role update logic at `/api/employee-permissions/{employee_id}
 - Admin: `admin@dvbc.com` / `admin123`
 - HR Manager: `hr.manager@dvbc.com` / `hr123`
 - Rahul Kumar: `rahul.kumar@dvbc.com` / `Welcome@EMP001`
+
+### Session 73 (Feb 20, 2026) - Department Access & Sidebar Visibility Fixes
+
+#### Issues Reported
+1. Rahul Kumar could see Consulting pages even though only Sales permission was given
+2. "Dept" button in Department Access Manager appeared not to work
+3. User ID vs Employee ID linkage concerns
+4. Sales department pages needed to include all sales-related routes
+
+#### Root Cause Analysis & Fixes
+
+##### Bug 1: Rahul sees Consulting pages
+- **Root Cause**: `Layout.js` had `CONSULTING_ROLES_NAV` array containing `senior_consultant`, which triggered role-based sidebar fallback
+- **Fix**: Changed `SALES_ROLES_NAV` and `CONSULTING_ROLES_NAV` to only contain `'admin'`
+- **File**: `/app/frontend/src/components/Layout.js` lines 24-25
+- **Result**: Sidebar now uses department-based access (`hasDepartment()`) as primary method
+
+##### Bug 2: has_reportees always false
+- **Root Cause**: `has_reportees()` function queried `employees.reporting_manager_id` using `user_id` (UUID), but `reporting_manager_id` stores employee codes like "EMP110"
+- **Fix**: Updated `has_reportees()` and `get_reportee_ids()` to:
+  1. First get manager's employee record to get their `employee_id`
+  2. Query employees where `reporting_manager_id` matches that `employee_id`
+- **Files**: 
+  - `/app/backend/server.py` lines 564-591
+  - `/app/backend/routers/department_access.py` lines 238-254
+
+##### Bug 3: Sales pages incomplete
+- **Fix**: Added all sales-related routes to `DEFAULT_DEPARTMENTS['Sales']['pages']`
+- **File**: `/app/backend/routers/department_access.py` lines 23-35
+- **Added**: `/sales-dashboard`, `/invoices`, `/sales-reports`, `/sow-pricing`, `/payment-schedules`, `/client-management`
+
+#### Key Schema Clarification
+```
+User ID vs Employee ID:
+- users.id = UUID (e.g., "7ed0105c-e5e5-4db4-a37b-18000f0851bd")
+- employees.user_id -> links to users.id (when employee has portal access)
+- employees.employee_id = human-readable code (e.g., "EMP001")
+- employees.reporting_manager_id = stores employee_id (e.g., "EMP110"), NOT UUID
+```
+
+#### Test Results
+- Backend: 100% (13/13 tests passed)
+- Frontend: 100% (All Playwright tests passed)
+
+#### Verified Outcomes
+- Rahul Kumar: Sidebar shows only MY WORKSPACE + SALES (no Consulting)
+- Dhamresh Parikh (EMP110): has_reportees=true, reportee_count=2
+- "Dept" button in Department Access Manager: Working correctly
