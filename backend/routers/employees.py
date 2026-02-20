@@ -57,10 +57,17 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
     if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
         raise HTTPException(status_code=403, detail="Only HR can create employees")
     
-    # Check for duplicate email
+    # Validate email format
+    import re
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if data.get("email") and not re.match(email_regex, data["email"]):
+        raise HTTPException(status_code=422, detail="Invalid email format")
+    
+    # Check for duplicate email in both employees and users collections
     if data.get("email"):
-        existing = await db.employees.find_one({"email": data["email"]})
-        if existing:
+        existing_emp = await db.employees.find_one({"email": data["email"]})
+        existing_user = await db.users.find_one({"email": data["email"]})
+        if existing_emp or existing_user:
             raise HTTPException(status_code=400, detail="Employee with this email already exists")
     
     # Check for duplicate phone number
