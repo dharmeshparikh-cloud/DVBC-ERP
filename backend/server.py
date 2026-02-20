@@ -11470,6 +11470,7 @@ async def get_go_live_checklist(
             "designation": employee.get("designation")
         },
         "checklist": checklist,
+        "documents_count": documents_count,  # For reference, not a blocker
         "ctc_details": {
             "annual_ctc": ctc.get("annual_ctc") if ctc else None,
             "effective_from": ctc.get("effective_from") if ctc else None
