@@ -5475,11 +5475,6 @@ class Notification(BaseModel):
 
 # SOW APIs
 
-@api_router.get("/sow-categories")
-async def get_sow_categories():
-    """Get available SOW categories"""
-    return SOW_CATEGORIES
-
 @api_router.post("/projects/{project_id}/sow")
 async def create_project_sow(
     project_id: str,
