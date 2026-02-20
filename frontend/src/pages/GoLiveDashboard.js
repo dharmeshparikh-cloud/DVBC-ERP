@@ -38,6 +38,7 @@ const GoLiveDashboard = () => {
 
   const fetchEmployees = async () => {
     try {
+      setPageError(null);
       const res = await axios.get(`${API}/employees`);
       // Filter employees who might need Go-Live
       const filtered = res.data.filter(emp => 
@@ -45,7 +46,8 @@ const GoLiveDashboard = () => {
       );
       setEmployees(res.data);
     } catch (error) {
-      toast.error('Failed to load employees');
+      const errorInfo = handleApiError(error, { operation: 'load employees' });
+      setPageError(errorInfo);
     } finally {
       setLoading(false);
     }
@@ -62,11 +64,13 @@ const GoLiveDashboard = () => {
 
   const fetchChecklist = async (employeeId) => {
     try {
+      setPageError(null);
       const res = await axios.get(`${API}/go-live/checklist/${employeeId}`);
       setChecklist(res.data);
       setSelectedEmployee(res.data.employee);
     } catch (error) {
-      toast.error('Failed to load checklist');
+      const errorInfo = handleApiError(error, { operation: 'load Go-Live checklist' });
+      setPageError(errorInfo);
     }
   };
 
@@ -74,6 +78,7 @@ const GoLiveDashboard = () => {
     if (!selectedEmployee) return;
     
     try {
+      setPageError(null);
       await axios.post(`${API}/go-live/submit/${selectedEmployee.id}`, {
         checklist: checklist?.checklist,
         notes
