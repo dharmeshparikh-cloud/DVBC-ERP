@@ -29,6 +29,7 @@ const HRLayout = () => {
     selfService: true
   });
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { pendingCounts } = useApprovals();
   const isDark = theme === 'dark';
