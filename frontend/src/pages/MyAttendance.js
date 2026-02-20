@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { API } from '../App';
+import { API, AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
-import { CheckCircle, XCircle, Clock, CalendarDays, Home, Coffee, MapPin, Building2, Navigation, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, CalendarDays, Home, Coffee, MapPin, Building2, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
+import QuickCheckInModal from '../components/QuickCheckInModal';
 
 const STATUS_STYLES = {
   present: { label: 'Present', color: 'bg-emerald-100 text-emerald-700' },
@@ -17,23 +17,14 @@ const STATUS_STYLES = {
   holiday: { label: 'Holiday', color: 'bg-zinc-100 text-zinc-700' }
 };
 
-const WORK_LOCATIONS = [
-  { value: 'in_office', label: 'In Office', icon: Building2, color: 'blue', description: 'Working from office premises' },
-  { value: 'onsite', label: 'On-Site', icon: MapPin, color: 'emerald', description: 'At client location' },
-  { value: 'wfh', label: 'Work from Home', icon: Home, color: 'amber', description: 'Working remotely' }
-];
-
 const MyAttendance = () => {
+  const { user } = useContext(AuthContext);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [checkInOpen, setCheckInOpen] = useState(false);
-  const [checkInLoading, setCheckInLoading] = useState(false);
-  const [location, setLocation] = useState(null);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState('in_office');
   const [todayCheckedIn, setTodayCheckedIn] = useState(false);
+  const [todayCheckedOut, setTodayCheckedOut] = useState(false);
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
 
   useEffect(() => { fetchData(); }, [month]);
 
@@ -42,108 +33,16 @@ const MyAttendance = () => {
     try {
       const res = await axios.get(`${API}/my/attendance?month=${month}`);
       setData(res.data);
-      // Check if already checked in today
+      // Check today's status
       const today = new Date().toISOString().split('T')[0];
       const todayRecord = res.data?.records?.find(r => r.date === today);
-      setTodayCheckedIn(!!todayRecord);
+      setTodayCheckedIn(!!todayRecord?.check_in_time);
+      setTodayCheckedOut(!!todayRecord?.check_out_time);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to fetch attendance');
     } finally {
       setLoading(false);
     }
-  };
-
-  const captureLocation = () => {
-    setLocationLoading(true);
-    setLocationError(null);
-    
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser');
-      setLocationLoading(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const coords = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        };
-        setLocation(coords);
-        
-        // Try to get address using reverse geocoding
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`
-          );
-          const data = await response.json();
-          if (data.display_name) {
-            setLocation(prev => ({ ...prev, address: data.display_name }));
-          }
-        } catch (e) {
-          console.log('Could not fetch address');
-        }
-        
-        setLocationLoading(false);
-      },
-      (error) => {
-        let errorMsg = 'Unable to retrieve location';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMsg = 'Location permission denied. Please enable location access.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMsg = 'Location information unavailable';
-            break;
-          case error.TIMEOUT:
-            errorMsg = 'Location request timed out';
-            break;
-        }
-        setLocationError(errorMsg);
-        setLocationLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  const handleCheckIn = async () => {
-    setCheckInLoading(true);
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const payload = {
-        date: today,
-        status: selectedLocation === 'wfh' ? 'work_from_home' : 'present',
-        work_location: selectedLocation,
-        remarks: 'Self check-in',
-        geo_location: location ? {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy,
-          address: location.address || null,
-          captured_at: new Date().toISOString()
-        } : null
-      };
-      
-      await axios.post(`${API}/my/check-in`, payload);
-      toast.success('Check-in successful!');
-      setCheckInOpen(false);
-      setTodayCheckedIn(true);
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Check-in failed');
-    } finally {
-      setCheckInLoading(false);
-    }
-  };
-
-  const openCheckIn = () => {
-    setCheckInOpen(true);
-    setLocation(null);
-    setLocationError(null);
-    setSelectedLocation('in_office');
-    // Auto-capture location when dialog opens
-    captureLocation();
   };
 
   const s = data?.summary || {};
@@ -157,24 +56,41 @@ const MyAttendance = () => {
           <p className="text-zinc-500 dark:text-zinc-400">{data?.employee?.name || ''} {data?.employee?.employee_id ? `(${data.employee.employee_id})` : ''}</p>
         </div>
         
-        {/* Check-In Status - Now use Quick Check-in from Dashboard */}
-        <div className="flex flex-col items-end gap-1">
-          <div 
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-              todayCheckedIn 
-                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-            }`}
-          >
-            {todayCheckedIn ? (
-              <><CheckCircle className="w-4 h-4" /> <span className="text-sm font-medium">Checked In Today</span></>
-            ) : (
-              <><Clock className="w-4 h-4" /> <span className="text-sm">Not checked in yet</span></>
-            )}
+        {/* Today's Status with Quick Check-in Button */}
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col items-end gap-1">
+            <div 
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                todayCheckedIn 
+                  ? todayCheckedOut 
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
+                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+              }`}
+            >
+              {todayCheckedIn ? (
+                todayCheckedOut ? (
+                  <><CheckCircle className="w-4 h-4" /> <span className="text-sm font-medium">Completed</span></>
+                ) : (
+                  <><Clock className="w-4 h-4" /> <span className="text-sm font-medium">Checked In</span></>
+                )
+              ) : (
+                <><Clock className="w-4 h-4" /> <span className="text-sm">Not checked in</span></>
+              )}
+            </div>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{today}</span>
           </div>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">{today}</span>
-          {!todayCheckedIn && (
-            <span className="text-xs text-blue-600 dark:text-blue-400">Use Quick Check-in from Dashboard</span>
+          
+          {/* Quick Check-in Button - Single entry point for attendance */}
+          {!todayCheckedOut && (
+            <Button 
+              onClick={() => setShowQuickCheckIn(true)}
+              className="bg-emerald-600 hover:bg-emerald-700"
+              data-testid="quick-checkin-btn"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              {todayCheckedIn ? 'Check Out' : 'Quick Check-in'}
+            </Button>
           )}
         </div>
       </div>
@@ -235,12 +151,16 @@ const MyAttendance = () => {
                 <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Date</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Status</th>
                 <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Location</th>
-                <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Remarks</th>
+                <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Check In</th>
+                <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Check Out</th>
+                <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400 font-medium">Hours</th>
               </tr>
             </thead>
             <tbody>
               {data.records.map((r, i) => {
                 const st = STATUS_STYLES[r.status] || STATUS_STYLES.present;
+                const checkIn = r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
+                const checkOut = r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
                 return (
                   <tr key={r.id || i} className="border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                     <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300 font-medium">{r.date}</td>
@@ -254,7 +174,9 @@ const MyAttendance = () => {
                         </span>
                       ) : <span className="text-zinc-400">-</span>}
                     </td>
-                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">{r.remarks || '-'}</td>
+                    <td className="px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">{checkIn}</td>
+                    <td className="px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">{checkOut}</td>
+                    <td className="px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">{r.work_hours ? `${r.work_hours.toFixed(1)}h` : '-'}</td>
                   </tr>
                 );
               })}
@@ -262,6 +184,16 @@ const MyAttendance = () => {
           </table>
         </div>
       )}
+
+      {/* Quick Check-in Modal - Single UI for all attendance */}
+      <QuickCheckInModal 
+        isOpen={showQuickCheckIn} 
+        onClose={() => {
+          setShowQuickCheckIn(false);
+          fetchData(); // Refresh data after check-in/out
+        }} 
+        user={user} 
+      />
     </div>
   );
 };
