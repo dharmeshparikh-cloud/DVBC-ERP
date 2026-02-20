@@ -264,6 +264,7 @@ const Layout = () => {
     { name: 'Permission Config', href: '/permission-manager', icon: Lock },
     { name: 'Approvals Center', href: '/approvals', icon: ClipboardCheck },
     { name: 'Project Payments', href: '/payments', icon: DollarSign },
+    { name: 'Telegram Bot Logs', href: '/telegram-logs', icon: MessageCircle },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
     { name: 'Downloads', href: '/downloads', icon: Download },
