@@ -101,7 +101,13 @@ async def get_leads(
     assigned_to: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all leads with optional filters."""
+    """Get all leads with optional filters.
+    
+    Data scoping by hierarchy:
+    - Admin: sees all leads
+    - HR Manager: sees all leads  
+    - Manager/Executive: sees own leads + team leads (reportees)
+    """
     db = get_db()
     query = {}
     if status:
@@ -109,9 +115,40 @@ async def get_leads(
     if assigned_to:
         query['assigned_to'] = assigned_to
     
-    if current_user.role == UserRole.MANAGER or current_user.role == UserRole.EXECUTIVE:
+    # Data scoping by role and hierarchy
+    if current_user.role not in ['admin', 'hr_manager']:
+        # Get current user's employee record
+        user_employee = await db.employees.find_one(
+            {"user_id": current_user.id}, 
+            {"id": 1, "employee_id": 1, "_id": 0}
+        )
+        
+        # Get IDs of reportees (employees who report to this user)
+        reportee_user_ids = []
+        if user_employee:
+            emp_id = user_employee.get("employee_id")
+            emp_internal_id = user_employee.get("id")
+            
+            # Find employees who report to this person
+            if emp_id or emp_internal_id:
+                reportees = await db.employees.find(
+                    {
+                        "$or": [
+                            {"reporting_manager_id": emp_id},
+                            {"reporting_manager_id": emp_internal_id}
+                        ]
+                    },
+                    {"user_id": 1, "_id": 0}
+                ).to_list(1000)
+                reportee_user_ids = [r.get("user_id") for r in reportees if r.get("user_id")]
+        
+        # Build scoped query: own leads + team leads
+        user_ids_to_include = [current_user.id] + reportee_user_ids
         if 'assigned_to' not in query:
-            query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+            query['$or'] = [
+                {"assigned_to": {"$in": user_ids_to_include}},
+                {"created_by": {"$in": user_ids_to_include}}
+            ]
     
     leads = await db.leads.find(query, {"_id": 0}).to_list(1000)
     
