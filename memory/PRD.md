@@ -10,7 +10,16 @@
 
 ## Completed Work - December 2025
 
-### Project P&L System ✅ (Latest)
+### Bug Fixes - February 20, 2026 ✅ (Latest)
+- **Leave Application Bug**: Fixed validation that caused "zero balance" error despite available leaves
+  - Added `DEFAULT_LEAVE_BALANCE = {'casual_leave': 12, 'sick_leave': 6, 'earned_leave': 15}` as fallback
+  - Location: `backend/server.py` lines 7737-7750
+- **Payroll Inputs Visibility**: HR Manager can now see all employees in payroll inputs
+  - Fixed query to include employees where `is_active=True` OR `is_active` not set
+  - Location: `backend/server.py` lines 9041-9045
+- **DB Migration**: Initialized leave_balance for 15 employees, set is_active=True for 14 employees
+
+### Project P&L System ✅
 - **Invoice Generation**: From pricing plan installments with schedule_breakdown
 - **Payment Recording**: Track payments, update invoice status
 - **Incentive Eligibility**: Auto-create when invoice cleared (linked to sales employee)
