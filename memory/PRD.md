@@ -10,7 +10,38 @@
 
 ## Completed Work - February 2026
 
-### Consolidated Approvals Center & CTC Auto-Approval - February 20, 2026 ✅ (Latest)
+### Go-Live Pre-Flight Checklist - February 20, 2026 ✅ (Latest)
+- **Go-Live Approval Flow Enhanced**:
+  - Admin sees "View Checklist" and "Review & Approve" buttons
+  - Pre-Flight Checklist Dialog shows complete onboarding status
+  - Checklist items with ✅/❌ indicators:
+    1. Onboarding Complete (personal info, employment details)
+    2. CTC Structure Approved (auto-approved by HR)
+    3. Bank Details Added
+    4. Documents Generated (offer letter, appointment letter)
+    5. Portal Access Granted
+  - Warning banner if checks are pending
+  - "Approve Go-Live" button DISABLED until critical checks pass (CTC + Portal Access)
+  - Shows HR notes and allows Admin comments
+
+**Complete Onboarding to Go-Live Flow:**
+1. HR creates employee (onboarding form) → Auto-creates employee record
+2. HR designs CTC → **Auto-approved** (no Admin step needed)
+3. HR adds bank details → Optional verification
+4. HR generates documents → Offer letter, appointment letter
+5. HR grants portal access → Creates user account
+6. HR submits Go-Live request → Goes to Admin for review
+7. **Admin approves Go-Live** with pre-flight checklist → Employee becomes active
+
+**Who Approves What:**
+- CTC Design: **HR only** (auto-approved, no Admin step)
+- Bank Details: **HR only** (verifies proof)
+- Documents: **HR generates** (no approval needed)
+- Portal Access: **HR grants** (no approval needed)
+- **Go-Live: ADMIN only** (single approval checkpoint with full checklist)
+- Post-Go-Live Modifications: **ADMIN only** (HR requests, Admin approves)
+
+### Consolidated Approvals Center & CTC Auto-Approval - February 20, 2026 ✅
 - **Approvals Center Enhanced**:
   - Added Employee Modification Requests section for Admin
   - Shows all pending modification requests with detailed change breakdown
