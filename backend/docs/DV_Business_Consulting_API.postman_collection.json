@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://payroll-fix-10.preview.emergentagent.com",
+      "value": "https://employee-hub-227.preview.emergentagent.com",
       "type": "string"
     },
     {
