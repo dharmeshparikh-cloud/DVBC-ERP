@@ -21,10 +21,12 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 ## Completed Work
 
 ### December 2025 - Session 2
-- ✅ Fixed Expense Submission Flow: Added "Submit for Approval" button to expense form
+- ✅ **Expense Approval Dashboard** (`/expense-approvals`) - Full UI for managers and HR
+- ✅ **Multi-level Approval Flow**: Employee → Reporting Manager → HR/Admin
+- ✅ **Payroll Integration**: Approved expenses auto-link to `payroll_reimbursements`
+- ✅ **Notifications**: Sent at each approval stage
+- ✅ Fixed Expense Submission Flow: Added "Submit for Approval" button
 - ✅ Enhanced expense creation with proper employee/manager linking
-- ✅ Implemented approval flow tracking with `approval_flow`, `current_approver` fields
-- ✅ Fixed notification routing to reporting manager
 - ✅ Verified bulk department update and "Dept"/"Special" buttons working
 
 ### December 2025 - Session 1
@@ -38,6 +40,25 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 
 ---
 
+## Expense Approval Flow
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐     ┌────────────────┐
+│  Employee   │────▶│ Reporting Manager│────▶│  HR/Admin   │────▶│    Payroll     │
+│  Submits    │     │    Approves      │     │  Approves   │     │ Reimbursement  │
+│  (pending)  │     │(manager_approved)│     │ (approved)  │     │   (pending)    │
+└─────────────┘     └──────────────────┘     └─────────────┘     └────────────────┘
+                              │                     │
+                              ▼                     ▼
+                     Notifies HR/Admin      Creates payroll_reimbursements
+                                            Links to payroll period
+```
+
+**Status Flow:**
+- `draft` → `pending` → `manager_approved` → `approved` → (payroll processes) → `reimbursed`
+
+---
+
 ## Current Architecture
 
 ### Key Files
@@ -46,45 +67,36 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 ├── backend/
 │   ├── routers/
 │   │   ├── department_access.py  # Bulk update, department management
-│   │   ├── expenses.py           # MODIFIED - Enhanced expense submission/approval
+│   │   ├── expenses.py           # ENHANCED - Multi-level approval, payroll linkage
 │   │   ├── leads.py              # Hierarchy-based data scoping
 │   │   └── users.py              # Reporting manager logic
 │   └── server.py                 # Main server (NEEDS REFACTORING)
 └── frontend/
     └── src/
-        ├── layouts/
-        │   ├── HRLayout.js       # Mobile check-in button
-        │   ├── Layout.js         # Sidebar logic, mobile check-in
-        │   └── SalesLayout.js    # Mobile check-in button
+        ├── components/
+        │   └── Layout.js          # MODIFIED - Added Expense Approvals link
         ├── pages/
-        │   ├── DepartmentAccessManager.js  # Bulk update UI
-        │   └── MyExpenses.js      # MODIFIED - Added Submit for Approval button
-        └── utils/
-            └── constants.js      # Department page lists
+        │   ├── DepartmentAccessManager.js
+        │   ├── ExpenseApprovals.js   # NEW - Approval dashboard
+        │   └── MyExpenses.js         # MODIFIED - Submit for Approval button
+        └── App.js                    # MODIFIED - Added expense-approvals route
 ```
 
 ### Key Database Collections
 - **employees**: `reporting_manager_id` uses employee codes (e.g., "EMP110")
 - **users**: `role` synced with employee profile changes
 - **department_access**: Single source of truth for sidebar visibility
-- **expenses**: Now includes `approval_flow`, `current_approver`, `employee_code`, `employee_name`
-- **notifications**: Expense approval notifications routed to reporting manager
+- **expenses**: Multi-level approval with `approval_flow`, `current_approver`, payroll linkage
+- **payroll_reimbursements**: NEW - Tracks approved expenses for payroll processing
+- **notifications**: Expense notifications at each approval stage
 
 ### Key API Endpoints
-- `POST /api/expenses` - Create expense with line_items, links to employee
-- `POST /api/expenses/{id}/submit` - Submit for approval, notifies reporting manager
-- `POST /api/expenses/{id}/approve` - Approve expense (manager/HR/admin)
-- `POST /api/expenses/{id}/reject` - Reject expense with reason
-- `GET /api/my/expenses` - Get employee's expenses with summary
-- `PUT /api/department-access/bulk-update` - Bulk department changes
-
-### Expense Approval Flow
-1. Employee creates expense → status: "draft"
-2. Employee clicks "Submit for Approval" → status: "pending"
-3. System identifies reporting manager via `employees.reporting_manager_id`
-4. Notification sent to reporting manager
-5. Manager approves/rejects → status: "approved"/"rejected"
-6. Finance processes reimbursement → status: "reimbursed"
+- `POST /api/expenses` - Create expense with line_items
+- `POST /api/expenses/{id}/submit` - Submit for approval
+- `POST /api/expenses/{id}/approve` - Multi-level approve (manager then HR)
+- `POST /api/expenses/{id}/reject` - Reject with reason
+- `GET /api/expenses/pending-approvals` - Get expenses pending user's approval
+- `GET /api/my/expenses` - Get employee's expenses
 
 ---
 
@@ -93,7 +105,8 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 ### P0 (Critical) - None currently
 
 ### P1 (High Priority)
-- Expense Approval Dashboard for managers
+- Add expense reimbursements to CTC/Payroll processing view
+- Mark as Reimbursed flow in Payroll
 
 ### P2 (Medium Priority)
 1. **Refactor server.py** - Break into domain-specific routers (recurring 13+ sessions)
