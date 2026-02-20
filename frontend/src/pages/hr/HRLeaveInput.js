@@ -10,19 +10,20 @@ import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
 import { 
   Calendar, Users, Plus, RefreshCw, Search, CheckCircle, 
-  XCircle, Clock, Gift, Briefcase, Heart
+  XCircle, Clock, Gift, Briefcase, Heart, Filter, User
 } from 'lucide-react';
 
 const HRLeaveInput = () => {
   const { user } = useContext(AuthContext);
   const [employees, setEmployees] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('all');
   const [showApplyDialog, setShowApplyDialog] = useState(false);
   const [showCreditDialog, setShowCreditDialog] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   // Form states
   const [leaveForm, setLeaveForm] = useState({
@@ -49,11 +50,17 @@ const HRLeaveInput = () => {
     fetchLeaveRequests();
   }, []);
 
+  useEffect(() => {
+    // Re-filter when employee filter changes
+    fetchLeaveRequests();
+  }, [selectedEmployeeFilter]);
+
   const fetchEmployees = async () => {
     try {
       const res = await fetch(`${API}/employees`, { headers });
       if (res.ok) {
         const data = await res.json();
+        setAllEmployees(data);
         setEmployees(data);
       }
     } catch (error) {
@@ -66,7 +73,13 @@ const HRLeaveInput = () => {
     try {
       const res = await fetch(`${API}/leave-requests/all`, { headers });
       if (res.ok) {
-        const data = await res.json();
+        let data = await res.json();
+        
+        // Filter by selected employee if not 'all'
+        if (selectedEmployeeFilter && selectedEmployeeFilter !== 'all') {
+          data = data.filter(req => req.employee_id === selectedEmployeeFilter);
+        }
+        
         setLeaveRequests(data);
       }
     } catch (error) {
@@ -167,32 +180,48 @@ const HRLeaveInput = () => {
     }
   };
 
+  // Get employee balance for selected employee
+  const getEmployeeBalance = (empId) => {
+    const emp = allEmployees.find(e => e.id === empId);
+    if (!emp || !emp.leave_balance) return null;
+    return emp.leave_balance;
+  };
+
   const filteredRequests = leaveRequests.filter(req => {
-    const matchesSearch = req.employee_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = req.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          req.employee_code?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const getLeaveIcon = (type) => {
     switch (type) {
-      case 'casual_leave': return <Calendar className="w-4 h-4 text-blue-400" />;
-      case 'sick_leave': return <Heart className="w-4 h-4 text-red-400" />;
-      case 'earned_leave': return <Gift className="w-4 h-4 text-green-400" />;
+      case 'casual_leave': return <Calendar className="w-4 h-4 text-blue-500" />;
+      case 'sick_leave': return <Heart className="w-4 h-4 text-red-500" />;
+      case 'earned_leave': return <Gift className="w-4 h-4 text-green-500" />;
       default: return <Briefcase className="w-4 h-4 text-zinc-600" />;
     }
   };
 
   const getStatusBadge = (status) => {
     const styles = {
-      pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      approved: 'bg-green-500/20 text-green-400 border-green-500/30',
-      rejected: 'bg-red-500/20 text-red-400 border-red-500/30'
+      pending: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+      approved: 'bg-green-100 text-green-700 border-green-300',
+      rejected: 'bg-red-100 text-red-700 border-red-300'
     };
     return (
       <span className={`px-2 py-1 text-xs rounded-full border ${styles[status] || styles.pending}`}>
         {status?.charAt(0).toUpperCase() + status?.slice(1)}
       </span>
     );
+  };
+
+  // Pre-select employee when opening apply dialog with filter
+  const openApplyDialog = () => {
+    if (selectedEmployeeFilter && selectedEmployeeFilter !== 'all') {
+      setLeaveForm(prev => ({ ...prev, employee_id: selectedEmployeeFilter }));
+    }
+    setShowApplyDialog(true);
   };
 
   return (
@@ -203,13 +232,26 @@ const HRLeaveInput = () => {
           <p className="text-zinc-600">Apply leave for employees and manage leave balances</p>
         </div>
         <div className="flex gap-3">
+          <Select value={selectedEmployeeFilter} onValueChange={setSelectedEmployeeFilter}>
+            <SelectTrigger className="w-52 bg-zinc-50 border-zinc-300" data-testid="employee-filter">
+              <SelectValue placeholder="All Employees" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Employees</SelectItem>
+              {allEmployees.map(emp => (
+                <SelectItem key={emp.id} value={emp.id}>
+                  {emp.first_name} {emp.last_name} ({emp.employee_id})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button 
-            onClick={() => setShowApplyDialog(true)}
+            onClick={openApplyDialog}
             className="bg-blue-600 hover:bg-blue-700"
             data-testid="apply-leave-btn"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Apply Leave for Employee
+            Apply Leave
           </Button>
           <Button 
             onClick={() => setShowCreditDialog(true)}
@@ -217,7 +259,7 @@ const HRLeaveInput = () => {
             data-testid="credit-leaves-btn"
           >
             <Gift className="w-4 h-4 mr-2" />
-            Bulk Credit Leaves
+            Bulk Credit
           </Button>
           <Button onClick={fetchLeaveRequests} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
@@ -226,13 +268,54 @@ const HRLeaveInput = () => {
         </div>
       </div>
 
+      {/* Selected Employee Info Card */}
+      {selectedEmployeeFilter && selectedEmployeeFilter !== 'all' && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <User className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-zinc-800">
+                    {allEmployees.find(e => e.id === selectedEmployeeFilter)?.first_name}{' '}
+                    {allEmployees.find(e => e.id === selectedEmployeeFilter)?.last_name}
+                  </p>
+                  <p className="text-sm text-zinc-600">
+                    {allEmployees.find(e => e.id === selectedEmployeeFilter)?.employee_id} | 
+                    {allEmployees.find(e => e.id === selectedEmployeeFilter)?.department || 'No Department'}
+                  </p>
+                </div>
+              </div>
+              {getEmployeeBalance(selectedEmployeeFilter) && (
+                <div className="flex gap-4">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-blue-600">{getEmployeeBalance(selectedEmployeeFilter).casual_leave || 0}</p>
+                    <p className="text-xs text-zinc-600">Casual</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-red-600">{getEmployeeBalance(selectedEmployeeFilter).sick_leave || 0}</p>
+                    <p className="text-xs text-zinc-600">Sick</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-green-600">{getEmployeeBalance(selectedEmployeeFilter).earned_leave || 0}</p>
+                    <p className="text-xs text-zinc-600">Earned</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-white border-zinc-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-yellow-500/20 rounded-lg">
-                <Clock className="w-6 h-6 text-yellow-400" />
+              <div className="p-3 bg-yellow-100 rounded-lg">
+                <Clock className="w-6 h-6 text-yellow-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-zinc-900">
@@ -246,8 +329,8 @@ const HRLeaveInput = () => {
         <Card className="bg-white border-zinc-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-500/20 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-400" />
+              <div className="p-3 bg-green-100 rounded-lg">
+                <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-zinc-900">
@@ -261,8 +344,8 @@ const HRLeaveInput = () => {
         <Card className="bg-white border-zinc-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-red-500/20 rounded-lg">
-                <XCircle className="w-6 h-6 text-red-400" />
+              <div className="p-3 bg-red-100 rounded-lg">
+                <XCircle className="w-6 h-6 text-red-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-zinc-900">
@@ -276,8 +359,8 @@ const HRLeaveInput = () => {
         <Card className="bg-white border-zinc-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-500/20 rounded-lg">
-                <Users className="w-6 h-6 text-blue-400" />
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Users className="w-6 h-6 text-blue-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-zinc-900">{employees.length}</p>
@@ -295,11 +378,16 @@ const HRLeaveInput = () => {
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
               Leave Requests
+              {selectedEmployeeFilter !== 'all' && (
+                <span className="text-sm font-normal text-zinc-500">
+                  (Filtered by employee)
+                </span>
+              )}
             </CardTitle>
           </div>
           <div className="flex gap-3 mt-3">
             <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <Input
                 placeholder="Search employee..."
                 value={searchTerm}
@@ -327,7 +415,7 @@ const HRLeaveInput = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-300">
+                  <tr className="border-b border-zinc-200">
                     <th className="text-left p-3 text-zinc-600">Employee</th>
                     <th className="text-left p-3 text-zinc-600">Leave Type</th>
                     <th className="text-left p-3 text-zinc-600">Duration</th>
@@ -339,7 +427,7 @@ const HRLeaveInput = () => {
                 </thead>
                 <tbody>
                   {filteredRequests.slice(0, 50).map(req => (
-                    <tr key={req.id} className="border-b border-zinc-200 hover:bg-zinc-50/50">
+                    <tr key={req.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                       <td className="p-3">
                         <p className="text-zinc-800 font-medium">{req.employee_name}</p>
                         <p className="text-xs text-zinc-500">{req.employee_code}</p>
@@ -356,7 +444,7 @@ const HRLeaveInput = () => {
                         {req.start_date?.slice(0, 10)} 
                         {req.end_date && req.end_date !== req.start_date && ` - ${req.end_date?.slice(0, 10)}`}
                       </td>
-                      <td className="p-3 text-center text-zinc-800">{req.days}</td>
+                      <td className="p-3 text-center text-zinc-800 font-medium">{req.days}</td>
                       <td className="p-3 text-zinc-600 max-w-[200px] truncate">{req.reason || '-'}</td>
                       <td className="p-3 text-center">{getStatusBadge(req.status)}</td>
                       <td className="p-3 text-center">
@@ -365,7 +453,7 @@ const HRLeaveInput = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              className="text-green-400 border-green-500/30 hover:bg-green-500/20"
+                              className="text-green-600 border-green-300 hover:bg-green-50"
                               onClick={() => approveLeave(req.id, 'approve')}
                             >
                               <CheckCircle className="w-4 h-4" />
@@ -373,7 +461,7 @@ const HRLeaveInput = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              className="text-red-400 border-red-500/30 hover:bg-red-500/20"
+                              className="text-red-600 border-red-300 hover:bg-red-50"
                               onClick={() => approveLeave(req.id, 'reject')}
                             >
                               <XCircle className="w-4 h-4" />
@@ -411,17 +499,24 @@ const HRLeaveInput = () => {
                 value={leaveForm.employee_id} 
                 onValueChange={(v) => setLeaveForm({...leaveForm, employee_id: v})}
               >
-                <SelectTrigger className="bg-zinc-50 border-zinc-300">
+                <SelectTrigger className="bg-zinc-50 border-zinc-300" data-testid="leave-employee-select">
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map(emp => (
+                  {allEmployees.map(emp => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.first_name} {emp.last_name} ({emp.employee_id})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {leaveForm.employee_id && getEmployeeBalance(leaveForm.employee_id) && (
+                <div className="mt-2 p-2 bg-zinc-50 rounded text-xs text-zinc-600 flex gap-3">
+                  <span>CL: {getEmployeeBalance(leaveForm.employee_id).casual_leave || 0}</span>
+                  <span>SL: {getEmployeeBalance(leaveForm.employee_id).sick_leave || 0}</span>
+                  <span>EL: {getEmployeeBalance(leaveForm.employee_id).earned_leave || 0}</span>
+                </div>
+              )}
             </div>
             <div>
               <Label>Leave Type *</Label>
@@ -481,7 +576,7 @@ const HRLeaveInput = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowApplyDialog(false)}>Cancel</Button>
-            <Button onClick={applyLeaveForEmployee} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={applyLeaveForEmployee} className="bg-blue-600 hover:bg-blue-700" data-testid="submit-leave-btn">
               Apply Leave (Auto-Approved)
             </Button>
           </DialogFooter>
