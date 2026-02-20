@@ -106,6 +106,7 @@ import GoLiveDashboard from './pages/GoLiveDashboard';
 import Notifications from './pages/Notifications';
 import FollowUps from './pages/FollowUps';
 import Invoices from './pages/Invoices';
+import TelegramLogs from './pages/TelegramLogs';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { setupAxiosInterceptors } from './utils/useApi';
 import './App.css';
