@@ -8,13 +8,29 @@
 
 ---
 
-## Completed Work - December 2025
+## Completed Work - February 2026
 
-### HR Attendance & Leave Input Screens - February 20, 2026 ✅ (Latest)
+### Employee Linking & Custom Attendance Policies - February 20, 2026 ✅ (Latest)
+- **Employee Selection Dropdowns**:
+  - HR Attendance Input (`/hr-attendance-input`): Filter by specific employee
+  - HR Leave Input (`/hr-leave-input`): Filter by employee, shows leave balance, pre-populates leave form
+- **Custom Attendance Policies** (per employee):
+  - Create custom timing rules for specific employees (e.g., remote workers)
+  - Configure: check_in, check_out, grace_period_minutes, grace_days_per_month, reason
+  - UI shows custom policies section with delete option
+  - Auto-validate respects per-employee custom policies
+- **CSV Export**: Payroll Summary Report exports to CSV with metrics, dept breakdown, employee details
+- **New Endpoints**:
+  - `GET /api/attendance/policy/custom` - List all custom policies
+  - `POST /api/attendance/policy/custom` - Create/update custom policy
+  - `DELETE /api/attendance/policy/custom/{employee_id}` - Delete custom policy
+  - `GET /api/attendance/policy/employee/{employee_id}` - Get specific employee's policy
+
+### HR Attendance & Leave Input Screens - February 20, 2026 ✅
 - **HR Attendance Input** (`/hr-attendance-input`):
   - Attendance policy display (working days, hours, grace period)
   - Auto-validate attendance for a month
-  - Apply penalties (Rs.100/day beyond 3 grace days)
+  - Apply penalties (Rs.100/day beyond grace days)
   - Bulk mark attendance for employees
   - Employee attendance summary table
 - **HR Leave Input** (`/hr-leave-input`):
@@ -30,11 +46,12 @@
 - **Leave Approval**:
   - RM only approval required
   - HR/Admin get notifications only
-- **Attendance Policy**:
+- **Attendance Policy** (Default):
   - Non-Consulting: 10 AM - 7 PM
   - Consulting: 10:30 AM - 7:30 PM
   - Grace: 3 days/month with ±30 min
   - Penalty: Rs.100/day beyond grace
+  - **Custom policies override defaults for specific employees**
 
 ### Bug Fixes - February 20, 2026 ✅
 - **Leave Application Bug**: Fixed validation that caused "zero balance" error despite available leaves
@@ -122,6 +139,7 @@ Consultant Assignment → Timesheet Entry → Approval → Project Cost Calculat
 - **invoices**: Generated from pricing plan, linked to sales_employee
 - **incentive_eligibility**: Created when invoice cleared, pending HR review
 - **payroll_reimbursements**: Approved expenses for payroll
+- **employee_attendance_policies**: Custom attendance policies per employee
 
 ### Key Fields Added
 - **salary_slips**: `lop_days`, `lop_deduction`, `expense_reimbursements`, `attendance_linked`
@@ -130,11 +148,15 @@ Consultant Assignment → Timesheet Entry → Approval → Project Cost Calculat
 
 ---
 
-## Upcoming: HR Incentive Module
-- Review incentive_eligibility records
-- Define incentive criteria/slabs
-- Approve and add to payroll
-- Link to cleared invoices and sales performance
+## Upcoming Tasks (P1)
+- Sales Incentive module (linking to `incentive_eligibility` records)
+- Refactor monolithic `server.py` into domain routers
+
+## Future Tasks (P2/P3)
+- Email functionality for payroll reports
+- Finance Module & Project P&L Dashboards expansion
+- Day 0 guided onboarding tour
+- PWA Install Notification & Branding
 
 ---
 
@@ -143,3 +165,7 @@ Consultant Assignment → Timesheet Entry → Approval → Project Cost Calculat
 - **HR Manager**: hr.manager@dvbc.com / hr123
 - **Manager**: dp@dvbc.com / Welcome@123
 - **Employee**: rahul.kumar@dvbc.com / Welcome@EMP001
+- **Test Employee**: kunal.malhotra@dvbc.com / Welcome@EMP114
+
+## Sample Custom Policy
+- **Rahul Kumar (EMP001)**: Custom timing 09:30 - 18:30, 5 grace days/month, reason: "Remote worker - flexible hours"
