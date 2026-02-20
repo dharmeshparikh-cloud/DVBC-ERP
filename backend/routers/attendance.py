@@ -234,7 +234,7 @@ async def get_attendance_analytics(
     
     return {
         "daily": daily_stats,
-        "by_location": {l["_id"]: l["count"] for l in location_stats if l["_id"]}
+        "by_location": {loc["_id"]: loc["count"] for loc in location_stats if loc["_id"]}
     }
 
 
@@ -325,7 +325,7 @@ def is_within_grace(actual_time: str, expected_time: str, grace_minutes: int = 3
         # For check-in: within grace if not more than grace_minutes late
         # For check-out: within grace if not more than grace_minutes early
         return abs(diff_minutes) <= grace_minutes
-    except:
+    except Exception:
         return False
 
 
@@ -393,7 +393,7 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
             while current <= end:
                 employee_leave_dates[emp_id].add(current.strftime("%Y-%m-%d"))
                 current += timedelta(days=1)
-        except:
+        except Exception:
             pass
     
     results = []
@@ -433,7 +433,7 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
             try:
                 date_obj = datetime(year, month_num, day)
                 day_name = date_obj.strftime("%A")
-            except:
+            except Exception:
                 continue
             
             # Skip non-working days
