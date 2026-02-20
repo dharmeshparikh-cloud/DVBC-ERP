@@ -611,13 +611,15 @@ async def get_department_access_stats(current_user: User = Depends(get_current_u
     
     total = await db.employees.count_documents({"status": {"$ne": "terminated"}})
     
+    DEPARTMENTS = await get_departments_config()
+    
     return {
         "total_employees": total,
         "with_portal_access": with_access,
         "without_portal_access": total - with_access,
         "multi_department_employees": multi_dept_count,
         "by_department": {d["_id"]: d["count"] for d in dept_stats if d["_id"]},
-        "by_level": {l["_id"]: l["count"] for l in level_stats if l["_id"]},
+        "by_level": {lvl["_id"]: lvl["count"] for lvl in level_stats if lvl["_id"]},
         "departments_available": list(DEPARTMENTS.keys())
     }
 
