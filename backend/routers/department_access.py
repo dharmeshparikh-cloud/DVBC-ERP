@@ -24,11 +24,12 @@ DEFAULT_DEPARTMENTS = {
     "Sales": {
         "id": "sales",
         "name": "Sales",
-        "description": "Lead management, pricing, SOW, agreements, kickoff",
+        "description": "Lead management, pricing, SOW, agreements, kickoff, clients, meetings, invoices",
         "pages": [
-            "/leads", "/meetings", "/sales", "/pricing", "/sow", 
+            "/leads", "/meetings", "/sales", "/pricing", "/sow", "/sales-dashboard",
             "/quotations", "/proforma", "/agreements", "/kickoff-requests",
-            "/payment-verification", "/clients"
+            "/payment-verification", "/clients", "/invoices", "/sales-reports",
+            "/sow-pricing", "/payment-schedules", "/client-management"
         ],
         "icon": "TrendingUp",
         "color": "#F97316"
