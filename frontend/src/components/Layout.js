@@ -227,6 +227,7 @@ const Layout = () => {
     { name: 'Agreements', href: '/agreements', icon: FileCheck },
     { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard },
     { name: 'Clients', href: '/clients', icon: Building2 },
+    { name: 'Invoices', href: '/invoices', icon: Receipt },
     { name: 'Lead Follow-ups', href: '/follow-ups', icon: CalendarCheck },
     { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3 },
   ];
