@@ -25,6 +25,7 @@ const SalesLayout = () => {
     funnel: true, other: true, workspace: true
   });
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
   
   // Mobile state
   const [isMobile, setIsMobile] = useState(false);
