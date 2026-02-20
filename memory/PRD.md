@@ -2348,3 +2348,48 @@ Consolidated duplicate attendance flows into single QuickCheckInModal.
 #### Test Results
 - Backend: 100% (11/11 tests passed)
 - Frontend: 100% (All Playwright tests passed)
+
+### Session 75 (Feb 20, 2026) - reporting_manager_id Standardization
+
+#### Migration Completed
+Standardized all `reporting_manager_id` values to use employee_id codes (e.g., "EMP110") instead of UUIDs.
+
+##### Changes Made:
+
+1. **Migration Endpoint** (`POST /api/admin/migrate-reporting-manager-ids`):
+   - Scans all employees with reporting_manager_id
+   - Converts UUID-format values to employee_id codes
+   - Preserves already-correct values
+   - Reports orphaned references (managers that don't exist)
+
+2. **Updated Endpoints** to always store employee_id codes:
+   - `PATCH /users/{user_id}/reporting-manager` in server.py
+   - `PATCH /users/{user_id}/reporting-manager` in routers/users.py
+   - Now accepts employee_id code, internal UUID, or user_id
+   - Always stores as employee_id code
+
+3. **Updated `/my-team` endpoint** (`routers/users.py`):
+   - Now queries employees collection (not users)
+   - Uses $or to match both id and employee_id for backwards compat
+
+##### Migration Results:
+- Total employees with reporting_manager: 4
+- Migrated (UUID → code): 1 (EMP111 → EMP009)
+- Already correct: 2 (EMP001 → EMP110, EMP112 → EMP110)
+- Orphaned (cleared): 1 (EMP110's manager was deleted)
+
+##### Final State:
+All `reporting_manager_id` values are now employee_id codes:
+- EMP001 → EMP110 ✅
+- EMP111 → EMP009 ✅
+- EMP112 → EMP110 ✅
+
+##### Helper Functions Updated (earlier in session):
+- `has_reportees()` - queries by employee_id
+- `get_reportee_ids()` - queries by employee_id
+- `get_reporting_chain()` - uses $or for id/employee_id
+- `get_direct_reportee_ids()` - uses $or pattern
+- `get_all_reportee_ids()` - uses $or pattern
+- `get_reportee_user_ids()` - uses $or pattern
+- `is_direct_reportee()` - uses $or pattern
+- `is_any_reportee()` - uses $or pattern
