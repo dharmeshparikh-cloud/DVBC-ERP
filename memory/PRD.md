@@ -20,6 +20,13 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 
 ## Completed Work
 
+### December 2025 - Session 2
+- ✅ Fixed Expense Submission Flow: Added "Submit for Approval" button to expense form
+- ✅ Enhanced expense creation with proper employee/manager linking
+- ✅ Implemented approval flow tracking with `approval_flow`, `current_approver` fields
+- ✅ Fixed notification routing to reporting manager
+- ✅ Verified bulk department update and "Dept"/"Special" buttons working
+
 ### December 2025 - Session 1
 - ✅ Attendance System Overhaul: Rolled back geo-fencing, implemented simplified Quick Check-in
 - ✅ Mobile UI Enhancement: Added Quick Check-in shortcut to mobile navigation
@@ -28,8 +35,6 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 - ✅ ID Standardization: Migrated `reporting_manager_id` to use employee codes (e.g., "EMP110")
 - ✅ Data Scoping: Implemented hierarchy-based filtering for Leads module
 - ✅ UI Consolidation: Merged duplicate Attendance UIs
-- ✅ Bulk HR Operations: Verified working (dialog, department selection, apply action)
-- ✅ "Dept" Button: Verified working in Department Access Manager
 
 ---
 
@@ -41,6 +46,7 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 ├── backend/
 │   ├── routers/
 │   │   ├── department_access.py  # Bulk update, department management
+│   │   ├── expenses.py           # MODIFIED - Enhanced expense submission/approval
 │   │   ├── leads.py              # Hierarchy-based data scoping
 │   │   └── users.py              # Reporting manager logic
 │   └── server.py                 # Main server (NEEDS REFACTORING)
@@ -51,7 +57,8 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
         │   ├── Layout.js         # Sidebar logic, mobile check-in
         │   └── SalesLayout.js    # Mobile check-in button
         ├── pages/
-        │   └── DepartmentAccessManager.js  # Bulk update UI
+        │   ├── DepartmentAccessManager.js  # Bulk update UI
+        │   └── MyExpenses.js      # MODIFIED - Added Submit for Approval button
         └── utils/
             └── constants.js      # Department page lists
 ```
@@ -60,11 +67,24 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 - **employees**: `reporting_manager_id` uses employee codes (e.g., "EMP110")
 - **users**: `role` synced with employee profile changes
 - **department_access**: Single source of truth for sidebar visibility
+- **expenses**: Now includes `approval_flow`, `current_approver`, `employee_code`, `employee_name`
+- **notifications**: Expense approval notifications routed to reporting manager
 
 ### Key API Endpoints
+- `POST /api/expenses` - Create expense with line_items, links to employee
+- `POST /api/expenses/{id}/submit` - Submit for approval, notifies reporting manager
+- `POST /api/expenses/{id}/approve` - Approve expense (manager/HR/admin)
+- `POST /api/expenses/{id}/reject` - Reject expense with reason
+- `GET /api/my/expenses` - Get employee's expenses with summary
 - `PUT /api/department-access/bulk-update` - Bulk department changes
-- `GET /api/leads` - Hierarchy-based data scoping
-- `PATCH /api/users/{user_id}/reporting-manager` - Uses employee codes
+
+### Expense Approval Flow
+1. Employee creates expense → status: "draft"
+2. Employee clicks "Submit for Approval" → status: "pending"
+3. System identifies reporting manager via `employees.reporting_manager_id`
+4. Notification sent to reporting manager
+5. Manager approves/rejects → status: "approved"/"rejected"
+6. Finance processes reimbursement → status: "reimbursed"
 
 ---
 
@@ -73,11 +93,11 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 ### P0 (Critical) - None currently
 
 ### P1 (High Priority)
-- None currently
+- Expense Approval Dashboard for managers
 
 ### P2 (Medium Priority)
 1. **Refactor server.py** - Break into domain-specific routers (recurring 13+ sessions)
-2. **Finance Module** - Payments, expenses, P&L reports
+2. **Finance Module** - Payments, expenses overview, P&L reports
 3. **Project P&L Dashboards** - Project profitability tracking
 4. **Day 0 Onboarding Tour** - Guided tour for new users
 
@@ -90,8 +110,8 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 ## Test Credentials
 - **Admin**: admin@dvbc.com / admin123
 - **HR Manager**: hr.manager@dvbc.com / hr123
-- **Manager**: dp@dvbc.com / Welcome@123
-- **Employee**: rahul.kumar@dvbc.com / Welcome@EMP001
+- **Manager (Dhamresh Parikh)**: dp@dvbc.com / Welcome@123
+- **Employee (Rahul Kumar)**: rahul.kumar@dvbc.com / Welcome@EMP001
 
 ---
 
@@ -99,3 +119,4 @@ Build a comprehensive business management ERP with modules for Sales, HR, Consul
 1. `server.py` is monolithic and needs refactoring into routers
 2. HTML structure warnings in DepartmentAccessManager (span inside table elements)
 3. Some 404 errors for `/api/stats/consulting` and `/api/stats/hr` endpoints
+4. Old expense records missing new fields (`employee_code`, `approval_flow`)
