@@ -11528,6 +11528,84 @@ async def reject_permission_change(
         raise HTTPException(status_code=403, detail="Only Admin can reject requests")
     
     req = await db.permission_change_requests.find_one({"id": request_id}, {"_id": 0})
+
+# ============== DATA MIGRATION ENDPOINTS ==============
+
+@api_router.post("/admin/migrate-reporting-manager-ids")
+async def migrate_reporting_manager_ids(current_user: User = Depends(get_current_user)):
+    """
+    Migrate reporting_manager_id from UUID format to employee_id code format.
+    
+    This ensures all reporting_manager_id values use the employee_id code (e.g., "EMP110")
+    instead of UUIDs for consistency.
+    
+    Admin only.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    # Find all employees with reporting_manager_id that looks like a UUID
+    all_employees = await db.employees.find(
+        {"reporting_manager_id": {"$exists": True, "$ne": None}},
+        {"_id": 0, "id": 1, "employee_id": 1, "reporting_manager_id": 1}
+    ).to_list(1000)
+    
+    migrated = []
+    skipped = []
+    errors = []
+    
+    for emp in all_employees:
+        rm_id = emp.get("reporting_manager_id")
+        if not rm_id:
+            continue
+            
+        # Check if it's already an employee code (not a UUID)
+        if not ('-' in rm_id and len(rm_id) > 20):
+            skipped.append({"employee_id": emp.get("employee_id"), "reporting_manager_id": rm_id, "reason": "Already employee code"})
+            continue
+        
+        # It's a UUID - find the manager's employee_id code
+        manager = await db.employees.find_one(
+            {"$or": [{"id": rm_id}, {"user_id": rm_id}]},
+            {"_id": 0, "employee_id": 1, "first_name": 1, "last_name": 1}
+        )
+        
+        if not manager:
+            errors.append({"employee_id": emp.get("employee_id"), "reporting_manager_uuid": rm_id, "error": "Manager not found"})
+            continue
+        
+        manager_emp_code = manager.get("employee_id")
+        if not manager_emp_code:
+            errors.append({"employee_id": emp.get("employee_id"), "reporting_manager_uuid": rm_id, "error": "Manager has no employee_id"})
+            continue
+        
+        # Update to use employee_id code
+        await db.employees.update_one(
+            {"id": emp.get("id")},
+            {"$set": {"reporting_manager_id": manager_emp_code}}
+        )
+        
+        migrated.append({
+            "employee_id": emp.get("employee_id"),
+            "old_value": rm_id,
+            "new_value": manager_emp_code,
+            "manager_name": f"{manager.get('first_name', '')} {manager.get('last_name', '')}".strip()
+        })
+    
+    return {
+        "message": "Migration complete",
+        "total_with_reporting_manager": len(all_employees),
+        "migrated": len(migrated),
+        "skipped": len(skipped),
+        "errors": len(errors),
+        "details": {
+            "migrated": migrated,
+            "skipped": skipped,
+            "errors": errors
+        }
+    }
+
+
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
     
