@@ -2218,3 +2218,34 @@ Added a prominent **Quick Check-in button** to the mobile bottom navigation acro
 - `/app/frontend/src/components/Layout.js` - Added QuickCheckInModal import and mobile button
 - `/app/frontend/src/components/HRLayout.js` - Added QuickCheckInModal import and mobile button
 - `/app/frontend/src/components/SalesLayout.js` - Added QuickCheckInModal import and mobile button
+
+### Session 72 (Feb 20, 2026) - Permission Update Bug Fix & Role Sync
+
+#### Problem Reported
+User reported "UNABLE TO UPDATE PERMISSIONS FROM ADMIN/HR FOR RAHUL KUMAR" and asked about verifying the complete onboarding to role activation flow.
+
+#### Root Cause Analysis
+The bug was in the role update logic at `/api/employee-permissions/{employee_id}` endpoint:
+- **Old code**: `db.users.update_one({"employee_id": employee_id}, ...)` - WRONG
+- The `users` collection doesn't have an `employee_id` field
+- The link is: `employees.user_id` → `users.id`
+
+#### Fix Applied (`/app/backend/server.py`):
+1. **Lines 11249-11263** (PUT /api/employee-permissions):
+   - Now finds employee first to get `user_id`
+   - Updates `users` collection using `{"id": employee["user_id"]}`
+   - Also updates `employees.role` for consistency
+
+2. **Lines 11364-11378** (POST /api/permission-change-requests/{id}/approve):
+   - Same fix applied to approval workflow
+
+#### Verification Results
+- All 8 features tested: 100% passed
+- Backend tests: 92% (11/12 passed)
+- Frontend tests: 100% passed
+- Rahul Kumar (EMP001): Can login, role synced, go_live_status active
+
+#### Test Credentials
+- Admin: `admin@dvbc.com` / `admin123`
+- HR Manager: `hr.manager@dvbc.com` / `hr123`
+- Rahul Kumar: `rahul.kumar@dvbc.com` / `Welcome@EMP001`
