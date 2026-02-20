@@ -91,6 +91,47 @@ async def create_quick_expense(data: dict, current_user: User = Depends(get_curr
     return {"message": "Quick expense created", "expense_id": expense["id"]}
 
 
+@router.get("/pending-approvals")
+async def get_pending_approvals(current_user: User = Depends(get_current_user)):
+    """Get expenses pending approval for the current user (managers/HR/admin)."""
+    db = get_db()
+    
+    is_hr_admin = current_user.role in ["admin", "hr_manager"]
+    is_manager = current_user.role in ["admin", "manager", "hr_manager", "principal_consultant"]
+    
+    # Get current user's employee record to check if they're a reporting manager
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "employee_id": 1})
+    emp_code = employee.get("employee_id") if employee else None
+    
+    expenses = []
+    
+    if is_hr_admin:
+        # HR/Admin can see all pending and manager_approved expenses
+        expenses = await db.expenses.find(
+            {"status": {"$in": ["pending", "manager_approved", "approved", "rejected"]}},
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(200)
+    elif is_manager:
+        # Managers see expenses where they are the approver
+        query = {
+            "$or": [
+                {"current_approver_id": current_user.id},
+                {"reporting_manager_id": emp_code} if emp_code else {"current_approver_id": current_user.id}
+            ],
+            "status": {"$in": ["pending", "approved", "rejected"]}
+        }
+        expenses = await db.expenses.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    else:
+        # Check if user is a reporting manager for anyone
+        if emp_code:
+            expenses = await db.expenses.find(
+                {"reporting_manager_id": emp_code, "status": {"$in": ["pending", "approved", "rejected"]}},
+                {"_id": 0}
+            ).sort("created_at", -1).to_list(200)
+    
+    return expenses
+
+
 @router.get("")
 async def get_expenses(
     employee_id: Optional[str] = None,
