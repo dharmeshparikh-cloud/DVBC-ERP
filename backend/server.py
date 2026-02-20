@@ -11363,7 +11363,15 @@ async def approve_permission_change(
     
     # Update user role
     if changes.get("role"):
-        await db.users.update_one(
+        # Find user by employee's user_id
+        employee = await db.employees.find_one({"employee_id": employee_id}, {"user_id": 1})
+        if employee and employee.get("user_id"):
+            await db.users.update_one(
+                {"id": employee["user_id"]},
+                {"$set": {"role": changes["role"]}}
+            )
+        # Also update role in employee record for consistency
+        await db.employees.update_one(
             {"employee_id": employee_id},
             {"$set": {"role": changes["role"]}}
         )
