@@ -10,7 +10,26 @@
 
 ## Completed Work - February 2026
 
-### System Integration & Workflow Fixes - February 20, 2026 ✅ (Latest)
+### Bootstrap Fix & E2E Testing - February 20, 2026 ✅ (Latest)
+- **First Employee Bootstrap Fix**:
+  - Employees can now select "SELF" as reporting manager when onboarding the first employee
+  - Backend: `POST /api/employees` handles `reporting_manager_id: "SELF"` by setting it to the employee's own ID
+  - Frontend: `HROnboarding.js` shows "Self (First Employee / Admin)" option when no managers exist or role is admin
+  - `is_self_reporting: true` flag set for audit tracking
+- **Update Reporting Manager Feature**:
+  - HR Manager + Admin can update reporting manager via employee edit dialog
+  - Uses `PATCH /api/employees/{id}` endpoint
+  - Also available: `PATCH /api/users/{user_id}/reporting-manager` for user-level updates
+- **Notification System Verified**:
+  - NotificationBell component present in all layouts (Layout.js, HRLayout.js, SalesLayout.js)
+  - Polls every 15 seconds for new notifications
+  - Browser push notifications enabled when permitted
+  - Notifications created for: employee onboarding, leave requests, leave approvals, expense approvals
+- **E2E Testing Completed**:
+  - 11/11 pytest tests passed (test_bootstrap_reporting_manager.py)
+  - Bootstrap SELF manager, Update RM, Notifications, Kickoff Approval, CTC flow all verified
+
+### System Integration & Workflow Fixes - February 20, 2026 ✅
 - **CTC Flow Simplified**:
   - CTC no longer requires Admin approval - saves and applies directly
   - Auto-redirects to Document Center after CTC save
