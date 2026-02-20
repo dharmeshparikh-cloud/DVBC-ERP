@@ -102,6 +102,9 @@ const Layout = () => {
   // Change Password Dialog state
   const [showChangePassword, setShowChangePassword] = useState(false);
 
+  // Quick Check-in Modal state
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
+
   // Global search keyboard shortcut (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e) => {
