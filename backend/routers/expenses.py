@@ -16,23 +16,44 @@ router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
 @router.post("")
 async def create_expense(data: dict, current_user: User = Depends(get_current_user)):
-    """Create a new expense entry."""
+    """Create a new expense entry with line items support."""
     db = get_db()
+    
+    # Get employee record for proper linking
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    employee_id = employee.get("id") if employee else current_user.id
+    employee_code = employee.get("employee_id") if employee else None
+    employee_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip() if employee else current_user.full_name
+    reporting_manager_id = employee.get("reporting_manager_id") if employee else None
+    
+    # Handle line_items format from frontend
+    line_items = data.get("line_items", [])
+    total_amount = sum(item.get("amount", 0) for item in line_items) if line_items else data.get("amount", 0)
     
     expense = {
         "id": str(uuid.uuid4()),
-        "employee_id": data.get("employee_id") or current_user.id,
+        "employee_id": employee_id,
+        "employee_code": employee_code,
+        "employee_name": employee_name,
+        "user_id": current_user.id,
+        "reporting_manager_id": reporting_manager_id,  # For approval flow
         "category": data.get("category"),
         "subcategory": data.get("subcategory"),
-        "amount": data.get("amount", 0),
+        "line_items": line_items,
+        "total_amount": total_amount,
+        "amount": total_amount,  # Keep for backwards compatibility
         "currency": data.get("currency", "INR"),
-        "description": sanitize_text(data.get("description", "")),
+        "description": sanitize_text(data.get("description", "") or data.get("notes", "")),
+        "notes": data.get("notes", ""),
         "expense_date": data.get("expense_date"),
         "vendor": data.get("vendor"),
         "receipts": [],
         "status": "draft",
         "project_id": data.get("project_id"),
+        "project_name": data.get("project_name", ""),
         "client_id": data.get("client_id"),
+        "client_name": data.get("client_name", ""),
+        "is_office_expense": data.get("is_office_expense", False),
         "is_billable": data.get("is_billable", False),
         "created_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
