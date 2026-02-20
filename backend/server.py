@@ -9587,7 +9587,9 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
         "attendance_linked": len(att_records) > 0,
         "leave_requests_linked": len(leave_requests) > 0,
         "payroll_reimbursements_linked": len(payroll_reimb_records) > 0,
-        "bank_details": employee.get("bank_details"),
+        "bank_account_number": employee.get("bank_account_number") or (employee.get("bank_details", {}) or {}).get("account_number"),
+        "bank_name": employee.get("bank_name") or (employee.get("bank_details", {}) or {}).get("bank_name"),
+        "ifsc_code": employee.get("ifsc_code") or (employee.get("bank_details", {}) or {}).get("ifsc_code"),
         "generated_by": current_user.id,
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
@@ -9595,6 +9597,9 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
         await db.salary_slips.update_one({"id": existing["id"]}, {"$set": slip})
     else:
         await db.salary_slips.insert_one(slip)
+    
+    # Remove _id if present before returning
+    slip.pop("_id", None)
     return slip
 
 @api_router.post("/payroll/generate-bulk")
