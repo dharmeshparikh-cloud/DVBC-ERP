@@ -234,10 +234,10 @@ async def preview_ctc_breakdown(data: dict, current_user: User = Depends(get_cur
 
 @router.post("/design")
 async def design_ctc_structure(request: CTCStructureRequest, current_user: User = Depends(get_current_user)):
-    """HR designs/submits CTC structure for an employee - requires Admin approval."""
+    """HR designs/saves CTC structure for an employee - No admin approval required."""
     db = get_db()
-    if current_user.role not in ["admin", "hr_manager"]:
-        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can design CTC structures")
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR can design CTC structures")
     
     employee = await db.employees.find_one({"id": request.employee_id}, {"_id": 0})
     if not employee:
