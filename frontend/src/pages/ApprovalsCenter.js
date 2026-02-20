@@ -563,6 +563,104 @@ const ApprovalsCenter = () => {
         </Card>
       )}
 
+      {/* Employee Modification Requests Section - For Admin */}
+      {isAdmin && modificationApprovals.length > 0 && (
+        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <User className="w-5 h-5 text-orange-500" />
+              Employee Modification Requests ({modificationApprovals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {modificationApprovals.map((req, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                          {req.employee_name || 'Unknown Employee'} ({req.employee_code})
+                        </span>
+                        <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                          {req.is_go_live_employee ? 'Go-Live Employee' : 'Modification'}
+                        </Badge>
+                      </div>
+                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        <span>Changes: <strong>{Object.keys(req.requested_changes || {}).join(', ')}</strong></span>
+                      </div>
+                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        Requested by: {req.requested_by_name || req.requested_by_email} on {new Date(req.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await axios.post(`${API}/employees/modification-requests/${req.id}/approve`);
+                            toast.success('Modification approved!');
+                            fetchData();
+                          } catch (error) {
+                            toast.error(error.response?.data?.detail || 'Failed to approve');
+                          }
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        data-testid={`approve-mod-${req.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={async () => {
+                          const reason = prompt('Enter rejection reason:');
+                          if (!reason) return;
+                          try {
+                            await axios.post(`${API}/employees/modification-requests/${req.id}/reject`, { reason });
+                            toast.success('Modification rejected');
+                            fetchData();
+                          } catch (error) {
+                            toast.error(error.response?.data?.detail || 'Failed to reject');
+                          }
+                        }}
+                        data-testid={`reject-mod-${req.id}`}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Show requested changes */}
+                  {req.requested_changes && Object.keys(req.requested_changes).length > 0 && (
+                    <div className={`mt-3 pt-3 border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className={`text-xs font-medium mb-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Requested Changes:</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                        {Object.entries(req.requested_changes).map(([key, value]) => (
+                          <div key={key} className={`p-2 rounded ${isDark ? 'bg-zinc-800' : 'bg-white border border-zinc-200'}`}>
+                            <span className={isDark ? 'text-zinc-500' : 'text-zinc-400'}>{key}:</span>
+                            <span className={`ml-1 font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                              {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                            </span>
+                            {req.current_values && req.current_values[key] !== undefined && (
+                              <span className={`block text-xs ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                                (was: {typeof req.current_values[key] === 'object' ? JSON.stringify(req.current_values[key]) : String(req.current_values[key])})
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Bank Change Approvals Section - For Admin and HR */}
       {(isAdmin || isHR) && bankApprovals.length > 0 && (
         <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
