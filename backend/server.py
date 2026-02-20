@@ -9779,8 +9779,11 @@ async def get_check_in_status(current_user: User = Depends(get_current_user)):
     
     return {
         "date": today,
-        "is_checked_in": record is not None,
-        "is_checked_out": record.get("check_out_time") is not None if record else False,
+        "has_checked_in": record is not None,
+        "has_checked_out": record.get("check_out_time") is not None if record else False,
+        "check_in_time": record.get("check_in_time") if record else None,
+        "check_out_time": record.get("check_out_time") if record else None,
+        "work_location": record.get("work_location") if record else None,
         "record": record
     }
 
