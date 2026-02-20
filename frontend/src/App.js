@@ -91,6 +91,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import PerformanceDashboard from './pages/PerformanceDashboard';
 import EmployeeMobileApp from './pages/EmployeeMobileApp';
 import HRAttendanceApprovals from './pages/hr/HRAttendanceApprovals';
+import HRAttendanceInput from './pages/hr/HRAttendanceInput';
+import HRLeaveInput from './pages/hr/HRLeaveInput';
 import OfficeLocationsSettings from './pages/OfficeLocationsSettings';
 import MobileAppDownload from './pages/MobileAppDownload';
 import TravelReimbursement from './pages/TravelReimbursement';
