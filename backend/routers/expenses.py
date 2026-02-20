@@ -264,7 +264,7 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
     # Notify HR managers
     hr_managers = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"_id": 0, "id": 1}).to_list(10)
     for hr in hr_managers:
-        threshold_note = f" (Requires Admin approval)" if requires_admin else " (HR can approve directly)"
+        threshold_note = " (Requires Admin approval)" if requires_admin else " (HR can approve directly)"
         notification = {
             "id": str(uuid.uuid4()),
             "user_id": hr["id"],
@@ -279,7 +279,7 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
         await db.notifications.insert_one(notification)
     
     return {
-        "message": f"Expense submitted for approval",
+        "message": "Expense submitted for approval",
         "approval_flow": approval_flow,
         "current_approver": current_approver,
         "requires_admin": requires_admin,
