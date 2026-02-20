@@ -330,12 +330,13 @@ I'm your NETRA ERP assistant. Here's what I can help with:
 • <code>Log meeting</code> - Record client meeting
 • <code>Apply leave</code> - Submit leave request
 • <code>Log hours</code> - Add timesheet entry
+• <code>Add expense</code> - Submit expense claim
 • <code>My leaves</code> - Check leave balance
-• <code>My tasks</code> - View assigned tasks
+• <code>Pending approvals</code> - View team requests
 
 Just type a command or tap a button below!
 """
-            keyboard = get_quick_reply_keyboard(["Log meeting", "Apply leave", "My leaves"])
+            keyboard = get_quick_reply_keyboard(["Log meeting", "Apply leave", "Log hours", "Add expense"])
         else:
             welcome_msg = f"""
 <b>Hello {first_name}!</b>
