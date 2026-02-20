@@ -675,8 +675,183 @@ You have <b>{len(pending_leaves)}</b> pending leave request(s):
         await send_telegram_message(chat_id, msg, keyboard)
         
         # TODO: Send notification to manager's Telegram if linked
+        await notify_manager_telegram(db, employee, "leave_request", {
+            "leave_type": state_data.get('leave_type', 'casual'),
+            "start_date": state_data.get('start_date', ''),
+            "end_date": state_data.get('end_date', ''),
+            "reason": state_data.get('reason', '')
+        })
         
         return "Leave request submitted"
+    
+    # === TIMESHEET FLOW ===
+    
+    # Timesheet - Project Selection
+    if current_state == ConversationState.TIMESHEET_PROJECT:
+        project_name = text
+        projects = state_data.get("projects", {})
+        project_id = projects.get(project_name) or projects.get(text.title())
+        
+        state_data["project_name"] = project_name
+        state_data["project_id"] = project_id
+        
+        msg = """
+<b>Hours worked?</b>
+
+<i>Enter hours:</i>
+• <code>8</code> (full day)
+• <code>4.5</code> (half day + extra)
+• <code>2h 30m</code>
+"""
+        keyboard = get_quick_reply_keyboard(["2 hours", "4 hours", "6 hours", "8 hours"])
+        set_user_state(chat_id, ConversationState.TIMESHEET_HOURS, state_data)
+        await send_telegram_message(chat_id, msg, keyboard)
+        return "Waiting for hours"
+    
+    # Timesheet - Hours
+    if current_state == ConversationState.TIMESHEET_HOURS:
+        duration = parse_time_duration(text)
+        if not duration:
+            # Try parsing as simple number
+            try:
+                hours = float(text.replace("hours", "").replace("h", "").strip())
+                duration = {"duration_hours": hours}
+            except:
+                await send_telegram_message(chat_id, "Please enter valid hours (e.g., 8, 4.5, or 2h 30m)")
+                return "Invalid hours"
+        
+        state_data["hours"] = duration.get("duration_hours", 0)
+        
+        msg = """
+<b>What did you work on?</b>
+
+<i>Brief description of tasks:</i>
+"""
+        set_user_state(chat_id, ConversationState.TIMESHEET_TASK, state_data)
+        await send_telegram_message(chat_id, msg)
+        return "Waiting for task description"
+    
+    # Timesheet - Task Description (Final)
+    if current_state == ConversationState.TIMESHEET_TASK:
+        state_data["task_description"] = text
+        
+        # Save timesheet
+        timesheet = {
+            "id": f"TS-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            "employee_id": state_data.get("employee_id"),
+            "employee_name": state_data.get("employee_name"),
+            "project_id": state_data.get("project_id"),
+            "project_name": state_data.get("project_name"),
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "hours": state_data.get("hours", 0),
+            "description": state_data.get("task_description"),
+            "source": "telegram",
+            "status": "pending",
+            "created_at": datetime.utcnow()
+        }
+        
+        await db.timesheets.insert_one(timesheet)
+        
+        msg = f"""
+<b>Timesheet Logged!</b>
+
+<b>Project:</b> {state_data.get('project_name', 'N/A')}
+<b>Hours:</b> {state_data.get('hours', 0)} hours
+<b>Date:</b> {timesheet['date']}
+<b>Task:</b> {state_data.get('task_description', '')[:50]}...
+
+<i>Synced to NETRA ERP</i>
+"""
+        keyboard = get_quick_reply_keyboard(["Log hours", "Log meeting", "My leaves"])
+        clear_user_state(chat_id)
+        await send_telegram_message(chat_id, msg, keyboard)
+        return "Timesheet logged"
+    
+    # === EXPENSE FLOW ===
+    
+    # Expense - Type Selection
+    if current_state == ConversationState.EXPENSE_TYPE:
+        state_data["expense_type"] = text
+        
+        msg = """
+<b>Expense Amount?</b>
+
+<i>Enter amount in rupees:</i>
+• <code>500</code>
+• <code>1500</code>
+• <code>2500</code>
+"""
+        keyboard = get_quick_reply_keyboard(["500", "1000", "1500", "2000", "2500", "5000"])
+        set_user_state(chat_id, ConversationState.EXPENSE_AMOUNT, state_data)
+        await send_telegram_message(chat_id, msg, keyboard)
+        return "Waiting for amount"
+    
+    # Expense - Amount
+    if current_state == ConversationState.EXPENSE_AMOUNT:
+        try:
+            amount = float(text.replace("₹", "").replace(",", "").strip())
+            state_data["amount"] = amount
+        except:
+            await send_telegram_message(chat_id, "Please enter a valid amount (e.g., 1500)")
+            return "Invalid amount"
+        
+        msg = """
+<b>Description?</b>
+
+<i>Brief details of the expense:</i>
+"""
+        set_user_state(chat_id, ConversationState.EXPENSE_DESCRIPTION, state_data)
+        await send_telegram_message(chat_id, msg)
+        return "Waiting for description"
+    
+    # Expense - Description (Final)
+    if current_state == ConversationState.EXPENSE_DESCRIPTION:
+        state_data["description"] = text
+        
+        # Save expense
+        expense = {
+            "id": f"EXP-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            "employee_id": state_data.get("employee_id"),
+            "employee_name": state_data.get("employee_name"),
+            "expense_type": state_data.get("expense_type"),
+            "amount": state_data.get("amount", 0),
+            "description": state_data.get("description"),
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "source": "telegram",
+            "status": "pending",
+            "created_at": datetime.utcnow()
+        }
+        
+        await db.expenses.insert_one(expense)
+        
+        # Get reporting manager
+        rm = await db.employees.find_one({"employee_id": employee.get("reporting_manager_id")})
+        rm_name = f"{rm.get('first_name', '')} {rm.get('last_name', '')}" if rm else "Manager"
+        
+        msg = f"""
+<b>Expense Submitted!</b>
+
+<b>Type:</b> {state_data.get('expense_type', 'N/A')}
+<b>Amount:</b> ₹{state_data.get('amount', 0):,.0f}
+<b>Description:</b> {state_data.get('description', '')[:50]}
+<b>Status:</b> Pending Approval
+
+<i>Sent to: {rm_name}</i>
+
+💡 <i>Tip: Send receipt photo to speed up approval</i>
+"""
+        keyboard = get_quick_reply_keyboard(["Add expense", "Log meeting", "My leaves"])
+        clear_user_state(chat_id)
+        await send_telegram_message(chat_id, msg, keyboard)
+        
+        # Notify manager
+        await notify_manager_telegram(db, employee, "expense_request", {
+            "expense_type": state_data.get('expense_type'),
+            "amount": state_data.get('amount'),
+            "description": state_data.get('description')
+        })
+        
+        return "Expense submitted"
     
     # === DEFAULT: Show help ===
     msg = f"""
