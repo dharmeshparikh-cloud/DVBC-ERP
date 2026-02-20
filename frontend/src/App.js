@@ -68,6 +68,7 @@ import PermissionManager from './pages/PermissionManager';
 import PermissionDashboard from './pages/PermissionDashboard';
 import EmployeePermissions from './pages/EmployeePermissions';
 import DepartmentAccessManager from './pages/DepartmentAccessManager';
+import ExpenseApprovals from './pages/ExpenseApprovals';
 import EmployeeScorecard from './pages/EmployeeScorecard';
 import RoleManagement from './pages/RoleManagement';
 // DocumentCenter replaces both LetterManagement and DocumentBuilder
