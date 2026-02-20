@@ -35,6 +35,7 @@ const ApprovalsCenter = () => {
   const [bankApprovals, setBankApprovals] = useState([]);
   const [goLiveApprovals, setGoLiveApprovals] = useState([]);
   const [permissionApprovals, setPermissionApprovals] = useState([]);
+  const [modificationApprovals, setModificationApprovals] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [allApprovals, setAllApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
