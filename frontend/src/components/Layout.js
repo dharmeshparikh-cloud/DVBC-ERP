@@ -7,6 +7,7 @@ import { usePermissions } from '../contexts/PermissionContext';
 import { Button } from './ui/button';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
+import QuickCheckInModal from './QuickCheckInModal';
 import { sanitizeDisplayText } from '../utils/sanitize';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import {
