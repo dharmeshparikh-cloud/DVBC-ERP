@@ -369,27 +369,79 @@ const HRLayout = () => {
           isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'
         }`}>
           <div className="flex justify-around items-center h-16 px-2">
-            {mobileNavItems.map(item => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`flex flex-col items-center justify-center flex-1 py-2 ${
-                    active 
-                      ? 'text-emerald-600' 
-                      : isDark ? 'text-zinc-500' : 'text-zinc-400'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.5} />
-                  <span className="text-[10px] mt-1 font-medium">{item.name}</span>
-                </Link>
-              );
-            })}
+            {/* Home */}
+            <Link
+              to="/hr"
+              className={`flex flex-col items-center justify-center flex-1 py-2 ${
+                isActive('/hr') 
+                  ? 'text-emerald-600' 
+                  : isDark ? 'text-zinc-500' : 'text-zinc-400'
+              }`}
+            >
+              <Home className="w-5 h-5" strokeWidth={isActive('/hr') ? 2 : 1.5} />
+              <span className="text-[10px] mt-1 font-medium">Home</span>
+            </Link>
+            
+            {/* Attendance */}
+            <Link
+              to="/hr/my-attendance"
+              className={`flex flex-col items-center justify-center flex-1 py-2 ${
+                isActive('/hr/my-attendance') 
+                  ? 'text-emerald-600' 
+                  : isDark ? 'text-zinc-500' : 'text-zinc-400'
+              }`}
+            >
+              <Clock className="w-5 h-5" strokeWidth={isActive('/hr/my-attendance') ? 2 : 1.5} />
+              <span className="text-[10px] mt-1 font-medium">Attendance</span>
+            </Link>
+            
+            {/* Quick Check-in - Center Button */}
+            <button
+              onClick={() => setShowQuickCheckIn(true)}
+              className="flex flex-col items-center justify-center -mt-6"
+              data-testid="mobile-quick-checkin-btn"
+            >
+              <div className="w-14 h-14 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg border-4 border-white dark:border-zinc-900">
+                <CheckCircle2 className="w-7 h-7 text-white" strokeWidth={2} />
+              </div>
+              <span className="text-[10px] mt-1 font-medium text-emerald-600">Check-in</span>
+            </button>
+            
+            {/* Leaves */}
+            <Link
+              to="/hr/my-leaves"
+              className={`flex flex-col items-center justify-center flex-1 py-2 ${
+                isActive('/hr/my-leaves') 
+                  ? 'text-emerald-600' 
+                  : isDark ? 'text-zinc-500' : 'text-zinc-400'
+              }`}
+            >
+              <Calendar className="w-5 h-5" strokeWidth={isActive('/hr/my-leaves') ? 2 : 1.5} />
+              <span className="text-[10px] mt-1 font-medium">Leaves</span>
+            </Link>
+            
+            {/* Profile */}
+            <Link
+              to="/hr/profile"
+              className={`flex flex-col items-center justify-center flex-1 py-2 ${
+                isActive('/hr/profile') 
+                  ? 'text-emerald-600' 
+                  : isDark ? 'text-zinc-500' : 'text-zinc-400'
+              }`}
+            >
+              <UserCircle className="w-5 h-5" strokeWidth={isActive('/hr/profile') ? 2 : 1.5} />
+              <span className="text-[10px] mt-1 font-medium">Profile</span>
+            </Link>
           </div>
         </nav>
       )}
+
+      {/* Quick Check-in Modal */}
+      <QuickCheckInModal 
+        isOpen={showQuickCheckIn} 
+        onClose={() => setShowQuickCheckIn(false)} 
+        user={user} 
+      />
     </div>
   );
 };
