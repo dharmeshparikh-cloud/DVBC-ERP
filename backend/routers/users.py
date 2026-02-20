@@ -166,12 +166,6 @@ async def get_my_team(current_user: User = Depends(get_current_user)):
         team_members.append(member)
     
     return team_members
-            {"_id": 0, "designation": 1, "department": 1, "date_of_joining": 1}
-        )
-        if employee:
-            member["employee_info"] = employee
-    
-    return team_members
 
 
 @router.get("/roles")
