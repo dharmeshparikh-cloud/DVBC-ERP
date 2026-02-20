@@ -336,6 +336,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="performance-dashboard" element={<PerformanceDashboard />} />
         <Route path="onboarding" element={<HROnboarding />} />
         <Route path="attendance-approvals" element={<HRAttendanceApprovals />} />
+        <Route path="hr-attendance-input" element={<HRAttendanceInput />} />
+        <Route path="hr-leave-input" element={<HRLeaveInput />} />
         <Route path="mobile-app" element={<MobileAppDownload />} />
         <Route path="go-live" element={<GoLiveDashboard />} />
         <Route path="notifications" element={<Notifications />} />
