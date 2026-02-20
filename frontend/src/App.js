@@ -93,6 +93,8 @@ import EmployeeMobileApp from './pages/EmployeeMobileApp';
 import HRAttendanceApprovals from './pages/hr/HRAttendanceApprovals';
 import HRAttendanceInput from './pages/hr/HRAttendanceInput';
 import HRLeaveInput from './pages/hr/HRLeaveInput';
+import PayrollSummaryReport from './pages/hr/PayrollSummaryReport';
+import AttendanceLeaveSettings from './pages/hr/AttendanceLeaveSettings';
 import OfficeLocationsSettings from './pages/OfficeLocationsSettings';
 import MobileAppDownload from './pages/MobileAppDownload';
 import TravelReimbursement from './pages/TravelReimbursement';
