@@ -12407,8 +12407,6 @@ api_router.include_router(project_payments_router.router)
 api_router.include_router(department_access_router.router)
 api_router.include_router(permission_config_router.router)
 api_router.include_router(project_pnl_router.router)
-api_router.include_router(telegram_router.router)
-telegram_router.set_db(db)
 
 app.include_router(api_router)
 
