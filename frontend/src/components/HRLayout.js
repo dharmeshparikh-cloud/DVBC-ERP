@@ -4,11 +4,12 @@ import { AuthContext } from '../App';
 import NotificationBell from './NotificationBell';
 import { useTheme } from '../contexts/ThemeContext';
 import { useApprovals } from '../contexts/ApprovalContext';
+import QuickCheckInModal from './QuickCheckInModal';
 import { 
   LayoutDashboard, Users, UsersRound, GitBranch, CalendarDays, 
   Clock, Wallet, Receipt, BarChart3, FileText, ChevronDown, ChevronRight,
   LogOut, Menu, X, Sun, Moon, UserPlus, ClipboardCheck, Briefcase,
-  AlertCircle, Bell, Key, Home, Calendar, UserCircle, Building2, FileSignature, Shield
+  AlertCircle, Bell, Key, Home, Calendar, UserCircle, Building2, FileSignature, Shield, CheckCircle2
 } from 'lucide-react';
 import { Button } from './ui/button';
 import ChangePasswordDialog from './ChangePasswordDialog';
