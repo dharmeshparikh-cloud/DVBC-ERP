@@ -74,6 +74,17 @@ DEFAULT_DEPARTMENTS = {
         "pages": ["*"],  # Access to all pages
         "icon": "Shield",
         "color": "#EF4444"
+    },
+    "Marketing": {
+        "id": "marketing",
+        "name": "Marketing",
+        "description": "Marketing campaigns, brand management, social media",
+        "pages": [
+            "/marketing", "/campaigns", "/brand", "/social-media",
+            "/content", "/analytics"
+        ],
+        "icon": "Megaphone",
+        "color": "#EC4899"
     }
 }
 
