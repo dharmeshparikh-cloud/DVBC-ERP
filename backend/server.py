@@ -9467,6 +9467,98 @@ async def generate_bulk_salary_slips(data: dict, current_user: User = Depends(ge
     return {"message": f"Generated {generated} salary slips for {month}", "count": generated}
 
 
+@api_router.get("/payroll/linkage-summary")
+async def get_payroll_linkage_summary(month: str, current_user: User = Depends(get_current_user)):
+    """Get summary of all payroll linkages for a month - attendance, leaves, expenses"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view payroll linkage summary")
+    
+    # Pending expense reimbursements for this month
+    pending_reimbursements = await db.payroll_reimbursements.find({
+        "payroll_period": month,
+        "status": "pending"
+    }, {"_id": 0}).to_list(500)
+    
+    # LOP/Unpaid leave requests for this month
+    lop_leaves = await db.leave_requests.find({
+        "status": "approved",
+        "leave_type": {"$in": ["loss_of_pay", "lop", "unpaid", "leave_without_pay"]},
+        "$or": [
+            {"start_date": {"$regex": f"^{month}"}},
+            {"end_date": {"$regex": f"^{month}"}}
+        ]
+    }, {"_id": 0}).to_list(500)
+    
+    # Attendance summary
+    attendance_records = await db.attendance.find({
+        "date": {"$regex": f"^{month}"}
+    }, {"_id": 0}).to_list(2000)
+    
+    attendance_by_employee = {}
+    for att in attendance_records:
+        emp_id = att.get("employee_id")
+        if emp_id not in attendance_by_employee:
+            attendance_by_employee[emp_id] = {"present": 0, "absent": 0, "half_day": 0, "wfh": 0}
+        status = att.get("status", "present")
+        if status == "present":
+            attendance_by_employee[emp_id]["present"] += 1
+        elif status == "absent":
+            attendance_by_employee[emp_id]["absent"] += 1
+        elif status == "half_day":
+            attendance_by_employee[emp_id]["half_day"] += 1
+        elif status == "work_from_home":
+            attendance_by_employee[emp_id]["wfh"] += 1
+    
+    # Generated salary slips for this month
+    generated_slips = await db.salary_slips.find({"month": month}, {"_id": 0, "employee_id": 1, "employee_name": 1, "net_salary": 1, "lop_days": 1, "expense_reimbursement_total": 1}).to_list(500)
+    
+    total_reimbursements = sum(r.get("amount", 0) for r in pending_reimbursements)
+    total_lop_days = sum(l.get("days", 0) for l in lop_leaves)
+    
+    return {
+        "month": month,
+        "pending_reimbursements": {
+            "count": len(pending_reimbursements),
+            "total_amount": total_reimbursements,
+            "items": pending_reimbursements[:20]  # First 20 for display
+        },
+        "lop_leaves": {
+            "count": len(lop_leaves),
+            "total_days": total_lop_days,
+            "items": lop_leaves[:20]
+        },
+        "attendance_summary": {
+            "employees_with_records": len(attendance_by_employee),
+            "total_records": len(attendance_records)
+        },
+        "salary_slips": {
+            "generated_count": len(generated_slips),
+            "slips": generated_slips
+        }
+    }
+
+
+@api_router.get("/payroll/pending-reimbursements")
+async def get_pending_reimbursements(month: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    """Get all pending expense reimbursements for payroll processing"""
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view pending reimbursements")
+    
+    query = {"status": "pending"}
+    if month:
+        query["payroll_period"] = month
+    
+    reimbursements = await db.payroll_reimbursements.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    total = sum(r.get("amount", 0) for r in reimbursements)
+    
+    return {
+        "reimbursements": reimbursements,
+        "total_amount": total,
+        "count": len(reimbursements)
+    }
+
+
 
 
 # ==================== SELF-SERVICE (MY WORKSPACE) ====================
