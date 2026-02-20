@@ -11528,6 +11528,37 @@ async def reject_permission_change(
         raise HTTPException(status_code=403, detail="Only Admin can reject requests")
     
     req = await db.permission_change_requests.find_one({"id": request_id}, {"_id": 0})
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if req.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Request is not pending")
+    
+    await db.permission_change_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "rejected_by": current_user.id
+        }}
+    )
+    
+    # Notify the requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": req.get("requested_by"),
+        "type": "permission_request_rejected",
+        "title": "Permission Request Rejected",
+        "message": f"Your permission change request for {req.get('employee_name', 'employee')} has been rejected.",
+        "reference_type": "permission_request",
+        "reference_id": request_id,
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Request rejected"}
+
 
 # ============== DATA MIGRATION ENDPOINTS ==============
 
