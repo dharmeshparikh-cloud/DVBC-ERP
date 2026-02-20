@@ -169,14 +169,17 @@ function AppRouter({ user, login, logout, loading }) {
       {/* Mobile Employee App - dedicated mobile view */}
       <Route path="/mobile" element={user ? <EmployeeMobileApp /> : <Navigate to="/login" />} />
       
+      {/* Unified Portal - Redirect HR and Sales logins to main login */}
+      <Route path="/sales/login" element={<Navigate to="/login" replace />} />
+      <Route path="/hr/login" element={<Navigate to="/login" replace />} />
+      
       {/* Sales Portal Routes - restricted to sales roles */}
-      <Route path="/sales/login" element={<SalesLogin />} />
       <Route
         path="/sales"
         element={
           user 
             ? (isSalesUser ? <SalesLayout /> : <Navigate to="/" />) 
-            : <Navigate to="/sales/login" />
+            : <Navigate to="/login" />
         }
       >
         <Route index element={<SalesDashboardEnhanced />} />
