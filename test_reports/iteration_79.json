@@ -1,0 +1,156 @@
+{
+  "summary": "Comprehensive testing of Bootstrap Fix (SELF as RM) and Update Reporting Manager features. All 11 backend tests PASSED. Frontend UI verified - Edit Employee dialog has Reporting Manager dropdown working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/my/check-status",
+        "issue": "Returns 400 error on dashboard load for HR Manager user (non-blocking)",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Employees.js table",
+        "issues": ["React hydration warnings: span cannot be child of tbody/tr/td/option - cosmetic dev warning, doesn't affect functionality"]
+      }
+    ]
+  },
+  "features_tested": {
+    "1_Bootstrap_SELF_Reporting_Manager_API": {
+      "status": "PASSED",
+      "details": [
+        "POST /api/employees with reporting_manager_id='SELF' creates employee correctly",
+        "is_self_reporting flag set to true",
+        "reporting_manager_id equals employee's own ID",
+        "Test employee created with unique email, then cleaned up"
+      ]
+    },
+    "2_Update_Reporting_Manager_PATCH_API": {
+      "status": "PASSED",
+      "details": [
+        "HR Manager can update reporting_manager_id via PATCH /api/employees/{id}",
+        "Admin can update reporting_manager_id via PATCH",
+        "Set reporting manager endpoint /api/users/{user_id}/reporting-manager works"
+      ]
+    },
+    "3_Employee_Creation_Notifications": {
+      "status": "PASSED",
+      "details": [
+        "Notifications created in DB when employee is onboarded",
+        "Notifications have correct type: employee_onboarded",
+        "GET /api/notifications/unread-count endpoint works"
+      ]
+    },
+    "4_Kickoff_Meetings_API": {
+      "status": "PASSED",
+      "details": [
+        "GET /api/kickoff-meetings returns list of meetings",
+        "Kickoff approval endpoint exists (returns 404 for non-existent kickoff - expected)"
+      ]
+    },
+    "5_CTC_Without_Admin_Approval": {
+      "status": "PASSED",
+      "details": [
+        "HR Manager can view CTC list via GET /api/ctc",
+        "CTC creation flow does not require admin approval"
+      ]
+    },
+    "6_Onboarding_UI_RM_Dropdown": {
+      "status": "PASSED",
+      "details": [
+        "data-testid='onboard-reporting-mgr' dropdown found on Employment Details step",
+        "Shows 19 employees in dropdown",
+        "SELF option appears only when: managers.length === 0 OR formData.role === 'admin'",
+        "Current system has 19 employees, so SELF only visible for admin role"
+      ]
+    },
+    "7_Employees_Edit_Dialog_RM_Update": {
+      "status": "PASSED",
+      "details": [
+        "Edit Employee dialog accessible via data-testid='edit-emp-{employee_id}'",
+        "Reporting Manager dropdown present in edit dialog",
+        "Shows 'No reporting manager' as default option",
+        "Shows all employees as potential managers",
+        "HR Manager can select different reporting manager and save"
+      ]
+    }
+  },
+  "backend_tests": {
+    "file": "/app/backend/tests/test_bootstrap_reporting_manager.py",
+    "results": "11/11 passed (100%)",
+    "xml_report": "/app/test_reports/pytest/pytest_bootstrap_rm.xml",
+    "tests_passed": [
+      "TestBootstrapSelfReportingManager::test_create_employee_with_self_as_manager",
+      "TestBootstrapSelfReportingManager::test_managers_list_shows_self_option_when_no_employees",
+      "TestUpdateReportingManager::test_hr_manager_can_update_reporting_manager_via_patch",
+      "TestUpdateReportingManager::test_admin_can_update_reporting_manager_via_patch",
+      "TestUpdateReportingManager::test_set_reporting_manager_endpoint",
+      "TestEmployeeCreationNotifications::test_notifications_created_on_employee_creation",
+      "TestEmployeeCreationNotifications::test_get_notifications_unread_count",
+      "TestKickoffApproval::test_get_kickoff_meetings_list",
+      "TestKickoffApproval::test_kickoff_approval_endpoint_exists",
+      "TestCTCWithoutAdminApproval::test_create_ctc_without_admin_approval",
+      "TestCTCWithoutAdminApproval::test_get_ctc_list"
+    ]
+  },
+  "frontend_tests": {
+    "playwright_results": "All critical flows verified",
+    "verified_elements": {
+      "onboarding_page": [
+        "Employee Onboarding page loads at /onboarding",
+        "6-step wizard: Quick Import → Personal Info → Employment Details → Documents → Bank Details → Review & Submit",
+        "data-testid='onboard-reporting-mgr' on Employment Details step",
+        "19 employees listed in RM dropdown"
+      ],
+      "employees_page": [
+        "Employees page loads at /employees",
+        "Table view with 19 employees",
+        "Edit button per employee: data-testid='edit-emp-{employee_id}'",
+        "Edit dialog has Reporting Manager dropdown with all employees",
+        "'No reporting manager' option available"
+      ]
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bootstrap_reporting_manager.py",
+    "/app/test_reports/pytest/pytest_bootstrap_rm.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GOOD: Bootstrap fix correctly handles SELF - sets is_self_reporting=true and reporting_manager_id=employee.id",
+    "GOOD: PATCH /api/employees/{id} properly allows HR Manager and Admin to update reporting_manager_id",
+    "GOOD: Notifications created for HR, Admin, and Reporting Manager on employee creation",
+    "NOTE: SELF option in UI only visible when managers.length===0 OR role==='admin' - this is intentional per HROnboarding.js:1295",
+    "NOTE: React hydration warnings in Employees.js (span inside table elements) - cosmetic, doesn't affect functionality"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bootstrap_reporting_manager.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (All UI flows verified)"
+  },
+  "test_credentials": {
+    "admin": "admin@dvbc.com / admin123",
+    "hr_manager": "hr.manager@dvbc.com / hr123",
+    "employee": "rahul.kumar@dvbc.com / Welcome@EMP001"
+  },
+  "seed_data_verified": {
+    "employees": 19,
+    "first_employee": "Rahul Kumar (EMP001)",
+    "test_employee_created": "TEST_Bootstrap Employee - cleaned up after test"
+  },
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bootstrap fix with SELF as reporting manager fully verified via API. SELF option in UI only appears when no employees exist OR when creating admin role employee. Update Reporting Manager feature working via Edit Employee dialog on Employees page. Notifications are created in DB but real-time delivery is NOT implemented (as noted by main agent). All 11 pytest tests passed.",
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  },
+  "note_on_self_option": "SELF option for first employee bootstrap is correctly implemented. In current state with 19 employees, SELF only appears when: (1) Creating first employee ever, OR (2) Creating an admin role employee. This is intentional design per HROnboarding.js line 1295."
+}
