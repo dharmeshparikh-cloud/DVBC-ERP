@@ -113,21 +113,59 @@ async def set_reporting_manager(
 
 @router.get("/my-team")
 async def get_my_team(current_user: User = Depends(get_current_user)):
-    """Get team members who report to the current user."""
+    """Get team members who report to the current user.
+    
+    Uses employees collection with reporting_manager_id matching current user's employee_id code.
+    """
     db = get_db()
     
-    team_members = await db.users.find(
-        {"reporting_manager_id": current_user.id},
-        {"_id": 0, "hashed_password": 0}
-    ).to_list(1000)
+    # Get current user's employee record to find their employee_id code
+    current_employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1, "employee_id": 1})
+    if not current_employee:
+        return []
     
-    for member in team_members:
-        if isinstance(member.get('created_at'), str):
-            member['created_at'] = datetime.fromisoformat(member['created_at'])
+    # Query employees who report to this user (by employee_id code or internal id)
+    emp_id = current_employee.get("employee_id")
+    emp_internal_id = current_employee.get("id")
+    
+    query = {"$or": []}
+    if emp_id:
+        query["$or"].append({"reporting_manager_id": emp_id})
+    if emp_internal_id:
+        query["$or"].append({"reporting_manager_id": emp_internal_id})
+    
+    if not query["$or"]:
+        return []
+    
+    team_employees = await db.employees.find(query, {"_id": 0}).to_list(1000)
+    
+    # Enrich with user info
+    team_members = []
+    for emp in team_employees:
+        member = {
+            "employee_id": emp.get("employee_id"),
+            "id": emp.get("id"),
+            "user_id": emp.get("user_id"),
+            "first_name": emp.get("first_name"),
+            "last_name": emp.get("last_name"),
+            "email": emp.get("email"),
+            "department": emp.get("department"),
+            "designation": emp.get("designation"),
+            "role": emp.get("role"),
+            "is_active": emp.get("is_active", True)
+        }
         
-        # Get employee info if exists
-        employee = await db.employees.find_one(
-            {"user_id": member["id"]},
+        # Get user info if linked
+        if emp.get("user_id"):
+            user = await db.users.find_one({"id": emp["user_id"]}, {"_id": 0, "hashed_password": 0})
+            if user:
+                member["full_name"] = user.get("full_name")
+                if isinstance(user.get('created_at'), str):
+                    member['created_at'] = datetime.fromisoformat(user['created_at'])
+        
+        team_members.append(member)
+    
+    return team_members
             {"_id": 0, "designation": 1, "department": 1, "date_of_joining": 1}
         )
         if employee:
