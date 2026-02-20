@@ -618,6 +618,11 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
           toast.error('Reporting Manager is required');
           return false;
         }
+        // Allow "SELF" for first employee or admin
+        if (formData.reporting_manager_id === 'SELF' && managers.length > 0 && formData.role !== 'admin') {
+          toast.error('Self-reporting is only allowed for the first employee or Admin role');
+          return false;
+        }
         return true;
         
       case 3: // Documents
