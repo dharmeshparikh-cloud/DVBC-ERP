@@ -163,7 +163,7 @@ async def update_expense(expense_id: str, data: dict, current_user: User = Depen
 
 @router.post("/{expense_id}/submit")
 async def submit_expense(expense_id: str, current_user: User = Depends(get_current_user)):
-    """Submit an expense for approval."""
+    """Submit an expense for approval - routes to reporting manager."""
     db = get_db()
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
@@ -176,32 +176,78 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
     if expense["status"] not in ["draft", "rejected"]:
         raise HTTPException(status_code=400, detail="Can only submit draft or rejected expenses")
     
+    # Get the employee record to find reporting manager
+    employee = await db.employees.find_one({"user_id": expense["created_by"]}, {"_id": 0})
+    reporting_manager_id = expense.get("reporting_manager_id") or (employee.get("reporting_manager_id") if employee else None)
+    
+    # Find the reporting manager's user_id for notification
+    manager_user_id = None
+    manager_name = None
+    if reporting_manager_id:
+        # reporting_manager_id is now an employee_id code like "EMP110"
+        manager_emp = await db.employees.find_one({"employee_id": reporting_manager_id}, {"_id": 0})
+        if manager_emp:
+            manager_user_id = manager_emp.get("user_id")
+            manager_name = f"{manager_emp.get('first_name', '')} {manager_emp.get('last_name', '')}".strip()
+    
+    # Build approval flow info
+    approval_flow = []
+    if manager_name:
+        approval_flow.append({"step": 1, "approver": manager_name, "role": "Reporting Manager", "status": "pending"})
+    else:
+        # If no reporting manager, route to HR
+        approval_flow.append({"step": 1, "approver": "HR Manager", "role": "HR", "status": "pending"})
+    
     await db.expenses.update_one(
         {"id": expense_id},
         {"$set": {
             "status": "pending",
             "submitted_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "approval_flow": approval_flow,
+            "current_approver": manager_name or "HR Manager",
+            "current_approver_id": manager_user_id
         }}
     )
     
-    # Notify manager
-    employee = await db.employees.find_one({"user_id": expense["created_by"]}, {"_id": 0})
-    if employee and employee.get("reporting_manager_id"):
+    # Notify the reporting manager
+    if manager_user_id:
+        employee_name = expense.get("employee_name") or current_user.full_name
+        expense_amount = expense.get("total_amount") or expense.get("amount", 0)
         notification = {
             "id": str(uuid.uuid4()),
-            "user_id": employee["reporting_manager_id"],
+            "user_id": manager_user_id,
             "type": "expense_approval",
             "title": "Expense Approval Required",
-            "message": f"New expense of ₹{expense['amount']} submitted for approval",
+            "message": f"{employee_name} submitted an expense of ₹{expense_amount:,.0f} for approval",
             "reference_type": "expense",
             "reference_id": expense_id,
             "is_read": False,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.notifications.insert_one(notification)
+    else:
+        # Notify HR managers if no reporting manager
+        hr_managers = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"_id": 0, "id": 1}).to_list(10)
+        for hr in hr_managers:
+            notification = {
+                "id": str(uuid.uuid4()),
+                "user_id": hr["id"],
+                "type": "expense_approval",
+                "title": "Expense Approval Required",
+                "message": f"{current_user.full_name} submitted an expense of ₹{expense.get('total_amount', 0):,.0f} for approval",
+                "reference_type": "expense",
+                "reference_id": expense_id,
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.notifications.insert_one(notification)
     
-    return {"message": "Expense submitted for approval"}
+    return {
+        "message": "Expense submitted for approval",
+        "approval_flow": approval_flow,
+        "current_approver": manager_name or "HR Manager"
+    }
 
 
 @router.post("/{expense_id}/approve")
