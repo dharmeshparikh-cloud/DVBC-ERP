@@ -470,3 +470,39 @@ async def reject_kickoff_request(
     await db.notifications.insert_one(notification)
     
     return {"message": "Kickoff request rejected"}
+
+
+
+@router.get("/eligible-pms/list")
+async def get_eligible_pms(current_user: User = Depends(get_current_user)):
+    """
+    Get list of consultants eligible to be assigned as PM for kickoff.
+    Only Senior Consultants and Principal Consultants with reportees (managers).
+    """
+    db = get_db()
+    
+    # Get all senior and principal consultants
+    eligible_roles = ["senior_consultant", "principal_consultant", "project_manager", "lead_consultant"]
+    
+    consultants = await db.users.find(
+        {"role": {"$in": eligible_roles}, "is_active": True},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "role": 1}
+    ).to_list(500)
+    
+    # Filter to only those who have reportees (are reporting managers for someone)
+    eligible_pms = []
+    for consultant in consultants:
+        # Check if anyone reports to this consultant
+        reportee_count = await db.employees.count_documents({
+            "reporting_manager_id": consultant["id"],
+            "is_active": True
+        })
+        
+        if reportee_count > 0:
+            consultant["reportee_count"] = reportee_count
+            eligible_pms.append(consultant)
+    
+    return {
+        "eligible_pms": eligible_pms,
+        "total": len(eligible_pms)
+    }
