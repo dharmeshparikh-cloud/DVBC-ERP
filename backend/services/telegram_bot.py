@@ -446,6 +446,93 @@ Let's capture your meeting details.
         await send_telegram_message(chat_id, msg, keyboard)
         return "Showed leave balance"
     
+    # === COMMAND: Log hours / Timesheet ===
+    if text_lower in ["log hours", "timesheet", "add hours", "log time"]:
+        # Get active projects
+        projects = await get_active_projects(db, employee_id)
+        
+        if not projects:
+            msg = """
+<b>Log Timesheet Hours</b>
+
+You don't have any active project assignments.
+
+Please contact your manager to get assigned to a project.
+"""
+            await send_telegram_message(chat_id, msg)
+            return "No projects"
+        
+        project_names = [p.get("name", "Unknown")[:20] for p in projects[:5]]
+        
+        msg = """
+<b>Log Timesheet Hours</b>
+
+<b>Select project:</b>
+<i>Or type the project name</i>
+"""
+        keyboard = get_quick_reply_keyboard(project_names)
+        set_user_state(chat_id, ConversationState.TIMESHEET_PROJECT, {
+            "employee_id": employee_id, 
+            "employee_name": employee_name,
+            "projects": {p.get("name"): p.get("id") for p in projects}
+        })
+        await send_telegram_message(chat_id, msg, keyboard)
+        return "Started timesheet flow"
+    
+    # === COMMAND: Add expense ===
+    if text_lower in ["add expense", "expense", "submit expense", "log expense"]:
+        msg = """
+<b>Submit Expense</b>
+
+<b>What type of expense?</b>
+"""
+        keyboard = get_quick_reply_keyboard(["Travel", "Food", "Accommodation", "Office Supplies", "Client Meeting", "Other"])
+        set_user_state(chat_id, ConversationState.EXPENSE_TYPE, {"employee_id": employee_id, "employee_name": employee_name})
+        await send_telegram_message(chat_id, msg, keyboard)
+        return "Started expense flow"
+    
+    # === COMMAND: Pending approvals (for managers) ===
+    if text_lower in ["pending approvals", "approvals", "my approvals"]:
+        # Check if user is a manager
+        reportees = await db.employees.find({"reporting_manager_id": employee_id}).to_list(100)
+        
+        if not reportees:
+            await send_telegram_message(chat_id, "You don't have any team members reporting to you.")
+            return "Not a manager"
+        
+        # Get pending leave requests
+        reportee_ids = [r.get("employee_id") for r in reportees]
+        pending_leaves = await db.leave_requests.find({
+            "employee_id": {"$in": reportee_ids},
+            "status": "pending"
+        }).to_list(10)
+        
+        if not pending_leaves:
+            msg = """
+<b>Pending Approvals</b>
+
+No pending approvals.
+
+Your team is all caught up!
+"""
+        else:
+            msg = f"""
+<b>Pending Approvals</b>
+
+You have <b>{len(pending_leaves)}</b> pending leave request(s):
+
+"""
+            for leave in pending_leaves[:5]:
+                emp = await db.employees.find_one({"employee_id": leave.get("employee_id")})
+                emp_name = f"{emp.get('first_name', '')} {emp.get('last_name', '')}" if emp else leave.get("employee_id")
+                msg += f"• <b>{emp_name}</b>: {leave.get('leave_type', 'Leave')} ({leave.get('start_date', '')} to {leave.get('end_date', '')})\n"
+            
+            msg += "\n<i>Open NETRA app to approve/reject</i>"
+        
+        keyboard = get_quick_reply_keyboard(["Log meeting", "My leaves"])
+        await send_telegram_message(chat_id, msg, keyboard)
+        return "Showed pending approvals"
+    
     # === CONVERSATION FLOWS ===
     
     # Meeting Flow - Client Selection
