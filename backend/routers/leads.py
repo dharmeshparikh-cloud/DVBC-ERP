@@ -83,6 +83,9 @@ async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_
     # Calculate lead score
     score, breakdown = calculate_lead_score(lead_dict)
     
+    # Get employee info for better tracking
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"employee_id": 1, "first_name": 1, "last_name": 1, "_id": 0})
+    
     lead = Lead(**lead_dict, created_by=current_user.id, lead_score=score, score_breakdown=breakdown)
     
     doc = lead.model_dump()
@@ -90,6 +93,11 @@ async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_
     doc['updated_at'] = doc['updated_at'].isoformat()
     if doc['enriched_at']:
         doc['enriched_at'] = doc['enriched_at'].isoformat()
+    
+    # Add employee tracking info
+    if employee:
+        doc['created_by_employee_id'] = employee.get('employee_id')
+        doc['created_by_name'] = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
     
     await db.leads.insert_one(doc)
     return lead
