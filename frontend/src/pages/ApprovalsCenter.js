@@ -1542,22 +1542,6 @@ const ApprovalsCenter = () => {
                         }
                       </div>
 
-                      {/* Documents Generated */}
-                      <div className={`flex items-center justify-between p-3 rounded-lg border ${
-                        goLiveChecklist.checklist.documents_generated 
-                          ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
-                          : isDark ? 'border-amber-800 bg-amber-900/20' : 'border-amber-200 bg-amber-50'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <FileText className={`w-5 h-5 ${goLiveChecklist.checklist.documents_generated ? 'text-emerald-500' : 'text-amber-500'}`} />
-                          <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>Documents Generated</span>
-                        </div>
-                        {goLiveChecklist.checklist.documents_generated 
-                          ? <CheckCircle className="w-5 h-5 text-emerald-500" />
-                          : <Clock className="w-5 h-5 text-amber-500" />
-                        }
-                      </div>
-
                       {/* Portal Access Granted */}
                       <div className={`flex items-center justify-between p-3 rounded-lg border ${
                         goLiveChecklist.checklist.portal_access_granted 
@@ -1572,6 +1556,32 @@ const ApprovalsCenter = () => {
                           ? <CheckCircle className="w-5 h-5 text-emerald-500" />
                           : <XCircle className="w-5 h-5 text-red-500" />
                         }
+                      </div>
+
+                      {/* Onboarding Documents - Not a blocker, just action link */}
+                      <div className={`flex items-center justify-between p-3 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200 bg-white'}`}>
+                        <div className="flex items-center gap-3">
+                          <FileText className={`w-5 h-5 ${(goLiveChecklist.documents_count || 0) > 0 ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                          <div>
+                            <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>Onboarding Documents</span>
+                            <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                              {(goLiveChecklist.documents_count || 0) > 0 
+                                ? `${goLiveChecklist.documents_count} document(s) generated`
+                                : 'Optional - Generate offer letter'}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            window.open(`/document-center?employee=${selectedGoLive.employee_id}`, '_blank');
+                          }}
+                          className={`${isDark ? 'border-zinc-600' : ''}`}
+                        >
+                          <FileText className="w-4 h-4 mr-1" />
+                          {(goLiveChecklist.documents_count || 0) > 0 ? 'View' : 'Generate'}
+                        </Button>
                       </div>
                     </>
                   ) : (
