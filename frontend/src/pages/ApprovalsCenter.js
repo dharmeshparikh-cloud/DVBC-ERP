@@ -90,6 +90,7 @@ const ApprovalsCenter = () => {
         setCtcApprovals(results[2]?.data || []);
         setGoLiveApprovals(results[3]?.data || []);
         setPermissionApprovals((results[4]?.data || []).filter(r => r.status === 'pending'));
+        setModificationApprovals(results[5]?.data || []);
       } else if (isHR) {
         setBankApprovals(results[2]?.data || []);
       }
