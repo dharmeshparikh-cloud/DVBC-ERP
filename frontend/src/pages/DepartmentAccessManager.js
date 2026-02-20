@@ -721,7 +721,13 @@ const DepartmentAccessManager = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkDialog(false)}>Cancel</Button>
-            <Button onClick={handleBulkUpdate}>Apply to {selectedIds.length} Employees</Button>
+            <Button 
+              onClick={handleBulkUpdate}
+              data-testid="bulk-apply-btn"
+              disabled={bulkForm.add.length === 0 && bulkForm.remove.length === 0}
+            >
+              Apply to {selectedIds.length} Employees
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
