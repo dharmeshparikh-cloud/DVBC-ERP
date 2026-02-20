@@ -1203,24 +1203,46 @@ async def set_reporting_manager(
     manager_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Set reporting manager for a user (Admin/HR only)"""
+    """Set reporting manager for a user (Admin/HR only)
+    
+    Args:
+        user_id: The user's UUID
+        manager_id: Can be either manager's employee_id code (EMP110) or UUID
+    
+    Note: reporting_manager_id is stored as employee_id code (e.g., "EMP110") for consistency
+    """
     if current_user.role not in ["admin", "hr_manager"]:
         raise HTTPException(status_code=403, detail="Only Admin/HR can set reporting managers")
     
-    user = await db.users.find_one({"id": user_id})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    # Get the employee record for this user
+    employee = await db.employees.find_one({"user_id": user_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found for this user")
     
-    manager = await db.users.find_one({"id": manager_id})
-    if not manager:
-        raise HTTPException(status_code=404, detail="Manager not found")
+    # Find the manager - could be passed as employee_id code or UUID
+    manager_employee = await db.employees.find_one(
+        {"$or": [{"employee_id": manager_id}, {"id": manager_id}, {"user_id": manager_id}]},
+        {"_id": 0, "employee_id": 1, "first_name": 1, "last_name": 1}
+    )
+    if not manager_employee:
+        raise HTTPException(status_code=404, detail="Manager employee not found")
     
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"reporting_manager_id": manager_id}}
+    # Always store as employee_id code for consistency
+    manager_emp_code = manager_employee.get("employee_id")
+    if not manager_emp_code:
+        raise HTTPException(status_code=400, detail="Manager has no employee_id code")
+    
+    # Update the employee's reporting_manager_id with employee code
+    await db.employees.update_one(
+        {"user_id": user_id},
+        {"$set": {"reporting_manager_id": manager_emp_code}}
     )
     
-    return {"message": "Reporting manager updated successfully"}
+    return {
+        "message": "Reporting manager updated successfully",
+        "reporting_manager_id": manager_emp_code,
+        "reporting_manager_name": f"{manager_employee.get('first_name', '')} {manager_employee.get('last_name', '')}".strip()
+    }
 
 
 # ============== My Clients Endpoint (Sales Person Specific) ==============
