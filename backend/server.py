@@ -66,6 +66,7 @@ from routers import project_payments as project_payments_router
 from routers import department_access as department_access_router
 from routers import permission_config as permission_config_router
 from routers import project_pnl as project_pnl_router
+from routers import telegram as telegram_router
 
 # Helper function to sanitize user input (prevent XSS)
 def sanitize_text(text: str) -> str:
