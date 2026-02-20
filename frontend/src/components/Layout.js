@@ -334,8 +334,12 @@ const Layout = () => {
             {expanded.sales && (
               <>
                 {salesFlowItems.map(item => <NavLink key={item.name} item={item} />)}
-                <div className={`my-0.5 mx-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`} />
-                {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
+                {salesOtherItems.length > 0 && (
+                  <>
+                    <div className={`my-0.5 mx-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`} />
+                    {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
+                  </>
+                )}
               </>
             )}
           </>
