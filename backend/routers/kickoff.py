@@ -439,8 +439,9 @@ async def reject_kickoff_request(
     """Reject a kickoff request (PM action)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "project_manager", "principal_consultant", "manager"]:
-        raise HTTPException(status_code=403, detail="Only PM roles can reject kickoff requests")
+    # Senior Consultant and Principal Consultant can reject kickoffs
+    if current_user.role not in ["admin", "project_manager", "principal_consultant", "senior_consultant", "manager"]:
+        raise HTTPException(status_code=403, detail="Only PM/Senior/Principal Consultant roles can reject kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
     if not kickoff:
