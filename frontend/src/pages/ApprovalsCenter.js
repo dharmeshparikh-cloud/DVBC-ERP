@@ -1596,12 +1596,12 @@ const ApprovalsCenter = () => {
               {/* Summary */}
               {goLiveChecklist?.checklist && (
                 <div className={`p-4 rounded-lg border-2 ${
-                  goLiveChecklist.checklist.ctc_approved && goLiveChecklist.checklist.portal_access_granted
+                  goLiveChecklist.checklist.ctc_approved && goLiveChecklist.checklist.portal_access_granted && goLiveChecklist.checklist.onboarding_complete
                     ? isDark ? 'border-emerald-600 bg-emerald-900/20' : 'border-emerald-500 bg-emerald-50'
                     : isDark ? 'border-amber-600 bg-amber-900/20' : 'border-amber-500 bg-amber-50'
                 }`}>
                   <div className="flex items-center gap-2">
-                    {goLiveChecklist.checklist.ctc_approved && goLiveChecklist.checklist.portal_access_granted ? (
+                    {goLiveChecklist.checklist.ctc_approved && goLiveChecklist.checklist.portal_access_granted && goLiveChecklist.checklist.onboarding_complete ? (
                       <>
                         <Shield className="w-5 h-5 text-emerald-500" />
                         <span className={`font-medium ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
@@ -1612,7 +1612,7 @@ const ApprovalsCenter = () => {
                       <>
                         <AlertCircle className="w-5 h-5 text-amber-500" />
                         <span className={`font-medium ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
-                          Some checks are pending. Review before approving.
+                          Critical checks pending: {!goLiveChecklist.checklist.onboarding_complete && 'Onboarding, '}{!goLiveChecklist.checklist.ctc_approved && 'CTC, '}{!goLiveChecklist.checklist.portal_access_granted && 'Portal Access'}
                         </span>
                       </>
                     )}
