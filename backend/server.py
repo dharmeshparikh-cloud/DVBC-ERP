@@ -9294,20 +9294,119 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
     # Track half-day leaves separately for payroll display
     half_day_leaves = auto_half_day_leaves
     
-    # Fetch approved/reimbursed expenses for this employee in this month
+    # ========== LOSS OF PAY (LOP) CALCULATION ==========
+    # Check for unpaid/LOP leaves
+    lop_leave_requests = await db.leave_requests.find({
+        "employee_id": employee_id,
+        "status": "approved",
+        "leave_type": {"$in": ["loss_of_pay", "lop", "unpaid", "leave_without_pay"]},
+        "$or": [
+            {"start_date": {"$regex": f"^{month}"}},
+            {"end_date": {"$regex": f"^{month}"}}
+        ]
+    }, {"_id": 0}).to_list(50)
+    
+    lop_days = 0
+    for lr in lop_leave_requests:
+        lop_days += lr.get("days", 0)
+    
+    # Calculate LOP deduction (per day salary * LOP days)
+    per_day_salary = round(gross_salary / working_days, 2) if working_days > 0 else 0
+    lop_deduction = round(per_day_salary * lop_days, 2)
+    
+    if lop_deduction > 0:
+        deductions.append({
+            "name": f"Loss of Pay ({lop_days} days)", 
+            "key": "lop_deduction", 
+            "amount": lop_deduction,
+            "lop_days": lop_days
+        })
+        total_deductions += lop_deduction
+        
+        # Mark leaves as payroll processed
+        for lr in lop_leave_requests:
+            await db.leave_requests.update_one(
+                {"id": lr["id"]},
+                {"$set": {"payroll_deducted": True, "payroll_month": month, "lop_amount": round(per_day_salary * lr.get("days", 0), 2)}}
+            )
+    
+    # ========== EXPENSE REIMBURSEMENTS FROM PAYROLL_REIMBURSEMENTS ==========
+    # Fetch approved expense reimbursements linked to this payroll period
     expense_reimb = 0
-    expense_query = {"employee_id": employee_id, "status": {"$in": ["approved", "reimbursed"]}}
-    all_expenses = await db.expenses.find(expense_query, {"_id": 0}).to_list(500)
-    for exp in all_expenses:
-        exp_date = exp.get("created_at", "")
-        if isinstance(exp_date, str) and exp_date.startswith(month):
-            expense_reimb += exp.get("total_amount", 0)
-        elif hasattr(exp_date, 'strftime') and exp_date.strftime("%Y-%m") == month:
-            expense_reimb += exp.get("total_amount", 0)
+    expense_reimbursements_list = []
+    
+    # Check payroll_reimbursements collection (linked from expense approvals)
+    payroll_reimb_records = await db.payroll_reimbursements.find({
+        "employee_id": employee_id,
+        "payroll_period": month,
+        "status": "pending"
+    }, {"_id": 0}).to_list(50)
+    
+    for pr in payroll_reimb_records:
+        expense_reimb += pr.get("amount", 0)
+        expense_reimbursements_list.append({
+            "expense_id": pr.get("expense_id"),
+            "amount": pr.get("amount", 0),
+            "category": pr.get("category", "expense"),
+            "description": pr.get("description", "")[:50]
+        })
+        # Mark as processed
+        await db.payroll_reimbursements.update_one(
+            {"id": pr["id"]},
+            {"$set": {"status": "processed", "processed_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        # Update expense status to reimbursed
+        if pr.get("expense_id"):
+            await db.expenses.update_one(
+                {"id": pr["expense_id"]},
+                {"$set": {"status": "reimbursed", "reimbursed_at": datetime.now(timezone.utc).isoformat(), "reimbursed_in_month": month}}
+            )
+    
+    # Also check direct expenses approved for this month (fallback)
+    expense_query = {"employee_id": employee_id, "status": "approved", "payroll_period": month}
+    direct_expenses = await db.expenses.find(expense_query, {"_id": 0}).to_list(100)
+    for exp in direct_expenses:
+        if exp.get("id") not in [r.get("expense_id") for r in payroll_reimb_records]:
+            exp_amount = exp.get("total_amount", 0) or exp.get("amount", 0)
+            expense_reimb += exp_amount
+            expense_reimbursements_list.append({
+                "expense_id": exp.get("id"),
+                "amount": exp_amount,
+                "category": exp.get("category", "expense"),
+                "description": (exp.get("description") or exp.get("notes", ""))[:50]
+            })
+            # Mark expense as reimbursed
+            await db.expenses.update_one(
+                {"id": exp["id"]},
+                {"$set": {"status": "reimbursed", "reimbursed_at": datetime.now(timezone.utc).isoformat(), "reimbursed_in_month": month}}
+            )
+    
     expense_reimb = round(expense_reimb, 2)
     if expense_reimb > 0:
-        earnings.append({"name": "Conveyance Reimbursement", "key": "expense_reimbursement", "amount": expense_reimb})
+        earnings.append({
+            "name": f"Expense Reimbursement ({len(expense_reimbursements_list)} claims)", 
+            "key": "expense_reimbursement", 
+            "amount": expense_reimb,
+            "details": expense_reimbursements_list
+        })
         total_earnings += expense_reimb
+    
+    # ========== ATTENDANCE-BASED ADJUSTMENTS ==========
+    # Calculate effective present days from attendance records
+    effective_present_days = present_days + (half_days * 0.5)
+    
+    # If attendance tracking is active and there are absences without approved leave
+    unexcused_absences = max(0, absent_days - leaves_count)
+    if unexcused_absences > 0 and not payroll_input:  # Don't double-deduct if manual input
+        absence_deduction = round(per_day_salary * unexcused_absences, 2)
+        if absence_deduction > 0:
+            deductions.append({
+                "name": f"Absent Days Deduction ({unexcused_absences} days)", 
+                "key": "absence_deduction", 
+                "amount": absence_deduction
+            })
+            total_deductions += absence_deduction
+    
     # Check existing
     existing = await db.salary_slips.find_one({"employee_id": employee_id, "month": month}, {"_id": 0})
     slip = {
