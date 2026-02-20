@@ -544,8 +544,9 @@ async def bulk_update_department_access(
             
             # Add departments
             if bulk_update.add_departments:
+                depts_config = await get_departments_config()
                 for dept in bulk_update.add_departments:
-                    if dept in DEPARTMENTS and dept not in current_depts:
+                    if dept in depts_config and dept not in current_depts:
                         current_depts.append(dept)
             
             # Remove departments
