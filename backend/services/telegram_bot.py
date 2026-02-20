@@ -134,6 +134,104 @@ def parse_time_duration(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def parse_date_input(text: str) -> Dict[str, Any]:
+    """
+    Parse various date formats and return standardized dates
+    Supports: "25 Dec", "25-27 Dec", "25th Feb to 27th Feb", "2026-02-25"
+    """
+    from datetime import datetime
+    import calendar
+    
+    text = text.lower().strip()
+    current_year = datetime.now().year
+    
+    # Month name mapping
+    month_map = {
+        'jan': 1, 'january': 1,
+        'feb': 2, 'february': 2,
+        'mar': 3, 'march': 3,
+        'apr': 4, 'april': 4,
+        'may': 5,
+        'jun': 6, 'june': 6,
+        'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8,
+        'sep': 9, 'sept': 9, 'september': 9,
+        'oct': 10, 'october': 10,
+        'nov': 11, 'november': 11,
+        'dec': 12, 'december': 12
+    }
+    
+    def extract_date(s):
+        """Extract day and month from string"""
+        # Remove ordinal suffixes
+        s = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', s)
+        
+        # Pattern: "25 dec" or "dec 25" or "25 december"
+        for month_name, month_num in month_map.items():
+            if month_name in s:
+                # Find the day number
+                day_match = re.search(r'(\d{1,2})', s)
+                if day_match:
+                    day = int(day_match.group(1))
+                    return datetime(current_year, month_num, day).strftime("%Y-%m-%d")
+        
+        # ISO format: 2026-02-25
+        iso_match = re.search(r'(\d{4})-(\d{2})-(\d{2})', s)
+        if iso_match:
+            return f"{iso_match.group(1)}-{iso_match.group(2)}-{iso_match.group(3)}"
+        
+        return None
+    
+    # Check for range: "25-27 Dec" or "25 to 27 Dec" or "25th Feb to 27th Feb"
+    range_separators = [' to ', '-', ' - ']
+    for sep in range_separators:
+        if sep in text:
+            parts = text.split(sep)
+            if len(parts) == 2:
+                # If second part has month, use it for both
+                start_part = parts[0].strip()
+                end_part = parts[1].strip()
+                
+                # Check if month is only in end part
+                has_month_in_end = any(m in end_part for m in month_map.keys())
+                has_month_in_start = any(m in start_part for m in month_map.keys())
+                
+                if has_month_in_end and not has_month_in_start:
+                    # Find month in end part and add to start
+                    for month_name in month_map.keys():
+                        if month_name in end_part:
+                            start_part = f"{start_part} {month_name}"
+                            break
+                
+                start_date = extract_date(start_part)
+                end_date = extract_date(end_part)
+                
+                if start_date and end_date:
+                    # Calculate days
+                    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                    days = (end_dt - start_dt).days + 1
+                    
+                    return {
+                        "start_date": start_date,
+                        "end_date": end_date,
+                        "days": days,
+                        "display": f"{start_date} to {end_date}"
+                    }
+    
+    # Single date
+    single_date = extract_date(text)
+    if single_date:
+        return {
+            "start_date": single_date,
+            "end_date": single_date,
+            "days": 1,
+            "display": single_date
+        }
+    
+    return None
+
+
 def format_duration(hours: float) -> str:
     """Format hours to human readable string"""
     if hours == int(hours):
