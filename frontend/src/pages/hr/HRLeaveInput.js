@@ -178,7 +178,7 @@ const HRLeaveInput = () => {
       case 'casual_leave': return <Calendar className="w-4 h-4 text-blue-400" />;
       case 'sick_leave': return <Heart className="w-4 h-4 text-red-400" />;
       case 'earned_leave': return <Gift className="w-4 h-4 text-green-400" />;
-      default: return <Briefcase className="w-4 h-4 text-zinc-400" />;
+      default: return <Briefcase className="w-4 h-4 text-zinc-600" />;
     }
   };
 
@@ -199,8 +199,8 @@ const HRLeaveInput = () => {
     <div className="p-6 space-y-6" data-testid="hr-leave-input">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">HR Leave Management</h1>
-          <p className="text-zinc-400">Apply leave for employees and manage leave balances</p>
+          <h1 className="text-2xl font-bold text-zinc-900">HR Leave Management</h1>
+          <p className="text-zinc-600">Apply leave for employees and manage leave balances</p>
         </div>
         <div className="flex gap-3">
           <Button 
@@ -228,60 +228,60 @@ const HRLeaveInput = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white border-zinc-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-yellow-500/20 rounded-lg">
                 <Clock className="w-6 h-6 text-yellow-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-zinc-100">
+                <p className="text-2xl font-bold text-zinc-900">
                   {leaveRequests.filter(r => r.status === 'pending').length}
                 </p>
-                <p className="text-sm text-zinc-400">Pending Requests</p>
+                <p className="text-sm text-zinc-600">Pending Requests</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white border-zinc-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-green-500/20 rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-zinc-100">
+                <p className="text-2xl font-bold text-zinc-900">
                   {leaveRequests.filter(r => r.status === 'approved').length}
                 </p>
-                <p className="text-sm text-zinc-400">Approved</p>
+                <p className="text-sm text-zinc-600">Approved</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white border-zinc-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-red-500/20 rounded-lg">
                 <XCircle className="w-6 h-6 text-red-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-zinc-100">
+                <p className="text-2xl font-bold text-zinc-900">
                   {leaveRequests.filter(r => r.status === 'rejected').length}
                 </p>
-                <p className="text-sm text-zinc-400">Rejected</p>
+                <p className="text-sm text-zinc-600">Rejected</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white border-zinc-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-blue-500/20 rounded-lg">
                 <Users className="w-6 h-6 text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-zinc-100">{employees.length}</p>
-                <p className="text-sm text-zinc-400">Total Employees</p>
+                <p className="text-2xl font-bold text-zinc-900">{employees.length}</p>
+                <p className="text-sm text-zinc-600">Total Employees</p>
               </div>
             </div>
           </CardContent>
@@ -289,7 +289,7 @@ const HRLeaveInput = () => {
       </div>
 
       {/* Leave Requests Table */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-zinc-200">
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
@@ -299,16 +299,16 @@ const HRLeaveInput = () => {
           </div>
           <div className="flex gap-3 mt-3">
             <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
               <Input
                 placeholder="Search employee..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-800 border-zinc-700"
+                className="pl-10 bg-zinc-50 border-zinc-300"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 bg-zinc-800 border-zinc-700">
+              <SelectTrigger className="w-40 bg-zinc-50 border-zinc-300">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -322,42 +322,42 @@ const HRLeaveInput = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-zinc-400">Loading...</div>
+            <div className="text-center py-8 text-zinc-600">Loading...</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-700">
-                    <th className="text-left p-3 text-zinc-400">Employee</th>
-                    <th className="text-left p-3 text-zinc-400">Leave Type</th>
-                    <th className="text-left p-3 text-zinc-400">Duration</th>
-                    <th className="text-center p-3 text-zinc-400">Days</th>
-                    <th className="text-left p-3 text-zinc-400">Reason</th>
-                    <th className="text-center p-3 text-zinc-400">Status</th>
-                    <th className="text-center p-3 text-zinc-400">Actions</th>
+                  <tr className="border-b border-zinc-300">
+                    <th className="text-left p-3 text-zinc-600">Employee</th>
+                    <th className="text-left p-3 text-zinc-600">Leave Type</th>
+                    <th className="text-left p-3 text-zinc-600">Duration</th>
+                    <th className="text-center p-3 text-zinc-600">Days</th>
+                    <th className="text-left p-3 text-zinc-600">Reason</th>
+                    <th className="text-center p-3 text-zinc-600">Status</th>
+                    <th className="text-center p-3 text-zinc-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRequests.slice(0, 50).map(req => (
-                    <tr key={req.id} className="border-b border-zinc-800 hover:bg-zinc-800/50">
+                    <tr key={req.id} className="border-b border-zinc-200 hover:bg-zinc-50/50">
                       <td className="p-3">
-                        <p className="text-zinc-200 font-medium">{req.employee_name}</p>
+                        <p className="text-zinc-800 font-medium">{req.employee_name}</p>
                         <p className="text-xs text-zinc-500">{req.employee_code}</p>
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           {getLeaveIcon(req.leave_type)}
-                          <span className="text-zinc-300">
+                          <span className="text-zinc-700">
                             {req.leave_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </span>
                         </div>
                       </td>
-                      <td className="p-3 text-zinc-400">
+                      <td className="p-3 text-zinc-600">
                         {req.start_date?.slice(0, 10)} 
                         {req.end_date && req.end_date !== req.start_date && ` - ${req.end_date?.slice(0, 10)}`}
                       </td>
-                      <td className="p-3 text-center text-zinc-200">{req.days}</td>
-                      <td className="p-3 text-zinc-400 max-w-[200px] truncate">{req.reason || '-'}</td>
+                      <td className="p-3 text-center text-zinc-800">{req.days}</td>
+                      <td className="p-3 text-zinc-600 max-w-[200px] truncate">{req.reason || '-'}</td>
                       <td className="p-3 text-center">{getStatusBadge(req.status)}</td>
                       <td className="p-3 text-center">
                         {req.status === 'pending' && (
@@ -391,7 +391,7 @@ const HRLeaveInput = () => {
                 </tbody>
               </table>
               {filteredRequests.length === 0 && (
-                <div className="text-center py-8 text-zinc-400">No leave requests found</div>
+                <div className="text-center py-8 text-zinc-600">No leave requests found</div>
               )}
             </div>
           )}
@@ -400,7 +400,7 @@ const HRLeaveInput = () => {
 
       {/* Apply Leave Dialog */}
       <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
+        <DialogContent className="bg-white border-zinc-200 max-w-md">
           <DialogHeader>
             <DialogTitle>Apply Leave for Employee</DialogTitle>
           </DialogHeader>
@@ -411,7 +411,7 @@ const HRLeaveInput = () => {
                 value={leaveForm.employee_id} 
                 onValueChange={(v) => setLeaveForm({...leaveForm, employee_id: v})}
               >
-                <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                <SelectTrigger className="bg-zinc-50 border-zinc-300">
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
@@ -429,7 +429,7 @@ const HRLeaveInput = () => {
                 value={leaveForm.leave_type} 
                 onValueChange={(v) => setLeaveForm({...leaveForm, leave_type: v})}
               >
-                <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                <SelectTrigger className="bg-zinc-50 border-zinc-300">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -446,7 +446,7 @@ const HRLeaveInput = () => {
                   type="date"
                   value={leaveForm.start_date}
                   onChange={(e) => setLeaveForm({...leaveForm, start_date: e.target.value})}
-                  className="bg-zinc-800 border-zinc-700"
+                  className="bg-zinc-50 border-zinc-300"
                 />
               </div>
               <div>
@@ -455,7 +455,7 @@ const HRLeaveInput = () => {
                   type="date"
                   value={leaveForm.end_date}
                   onChange={(e) => setLeaveForm({...leaveForm, end_date: e.target.value})}
-                  className="bg-zinc-800 border-zinc-700"
+                  className="bg-zinc-50 border-zinc-300"
                 />
               </div>
             </div>
@@ -465,7 +465,7 @@ const HRLeaveInput = () => {
                 id="half_day"
                 checked={leaveForm.is_half_day}
                 onChange={(e) => setLeaveForm({...leaveForm, is_half_day: e.target.checked})}
-                className="rounded border-zinc-600"
+                className="rounded border-zinc-300"
               />
               <Label htmlFor="half_day">Half Day</Label>
             </div>
@@ -475,7 +475,7 @@ const HRLeaveInput = () => {
                 value={leaveForm.reason}
                 onChange={(e) => setLeaveForm({...leaveForm, reason: e.target.value})}
                 placeholder="Enter reason..."
-                className="bg-zinc-800 border-zinc-700"
+                className="bg-zinc-50 border-zinc-300"
               />
             </div>
           </div>
@@ -490,7 +490,7 @@ const HRLeaveInput = () => {
 
       {/* Bulk Credit Dialog */}
       <Dialog open={showCreditDialog} onOpenChange={setShowCreditDialog}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
+        <DialogContent className="bg-white border-zinc-200 max-w-md">
           <DialogHeader>
             <DialogTitle>Bulk Credit Leaves</DialogTitle>
           </DialogHeader>
@@ -501,7 +501,7 @@ const HRLeaveInput = () => {
                 value={creditForm.leave_type} 
                 onValueChange={(v) => setCreditForm({...creditForm, leave_type: v})}
               >
-                <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                <SelectTrigger className="bg-zinc-50 border-zinc-300">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -518,7 +518,7 @@ const HRLeaveInput = () => {
                 min="0"
                 value={creditForm.credit_days}
                 onChange={(e) => setCreditForm({...creditForm, credit_days: parseInt(e.target.value) || 0})}
-                className="bg-zinc-800 border-zinc-700"
+                className="bg-zinc-50 border-zinc-300"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -527,11 +527,11 @@ const HRLeaveInput = () => {
                 id="reset_used"
                 checked={creditForm.reset_used}
                 onChange={(e) => setCreditForm({...creditForm, reset_used: e.target.checked})}
-                className="rounded border-zinc-600"
+                className="rounded border-zinc-300"
               />
               <Label htmlFor="reset_used">Reset Used Count to 0</Label>
             </div>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-600">
               This will update leave balance for all active employees.
             </p>
           </div>

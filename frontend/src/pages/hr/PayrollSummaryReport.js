@@ -153,7 +153,7 @@ const PayrollSummaryReport = () => {
   };
 
   const getChangeIndicator = (current, previous, inverse = false) => {
-    if (!previous || previous === 0) return { icon: Minus, color: 'text-zinc-400', value: 'N/A' };
+    if (!previous || previous === 0) return { icon: Minus, color: 'text-zinc-600', value: 'N/A' };
     const change = ((current - previous) / previous * 100).toFixed(1);
     const isPositive = change > 0;
     const isGood = inverse ? !isPositive : isPositive;
@@ -177,15 +177,15 @@ const PayrollSummaryReport = () => {
     <div className="p-6 space-y-6" data-testid="payroll-summary-report">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Payroll Summary Report</h1>
-          <p className="text-zinc-400">Monthly payroll overview with comparison to previous month</p>
+          <h1 className="text-2xl font-bold text-zinc-900">Payroll Summary Report</h1>
+          <p className="text-zinc-600">Monthly payroll overview with comparison to previous month</p>
         </div>
         <div className="flex items-center gap-3">
           <Input
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="w-40 bg-zinc-800 border-zinc-700"
+            className="w-40 bg-zinc-50 border-zinc-300"
             data-testid="month-selector"
           />
           <Button onClick={fetchReport} variant="outline" size="sm" disabled={loading}>
@@ -204,17 +204,17 @@ const PayrollSummaryReport = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-zinc-400">Loading report data...</div>
+        <div className="text-center py-12 text-zinc-600">Loading report data...</div>
       ) : report ? (
         <>
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm text-zinc-400">Total Employees</p>
-                    <p className="text-3xl font-bold text-zinc-100">{report.total_employees}</p>
+                    <p className="text-sm text-zinc-600">Total Employees</p>
+                    <p className="text-3xl font-bold text-zinc-900">{report.total_employees}</p>
                     {prevReport && (
                       <div className={`flex items-center gap-1 mt-1 text-sm ${getChangeIndicator(report.total_employees, prevReport.total_employees).color}`}>
                         {React.createElement(getChangeIndicator(report.total_employees, prevReport.total_employees).icon, { className: 'w-4 h-4' })}
@@ -229,12 +229,12 @@ const PayrollSummaryReport = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm text-zinc-400">Total Net Salary</p>
-                    <p className="text-3xl font-bold text-zinc-100">{formatCurrency(report.total_net_salary)}</p>
+                    <p className="text-sm text-zinc-600">Total Net Salary</p>
+                    <p className="text-3xl font-bold text-zinc-900">{formatCurrency(report.total_net_salary)}</p>
                     {prevReport && (
                       <div className={`flex items-center gap-1 mt-1 text-sm ${getChangeIndicator(report.total_net_salary, prevReport.total_net_salary).color}`}>
                         {React.createElement(getChangeIndicator(report.total_net_salary, prevReport.total_net_salary).icon, { className: 'w-4 h-4' })}
@@ -249,12 +249,12 @@ const PayrollSummaryReport = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm text-zinc-400">Total Deductions</p>
-                    <p className="text-3xl font-bold text-zinc-100">{formatCurrency(report.total_deductions)}</p>
+                    <p className="text-sm text-zinc-600">Total Deductions</p>
+                    <p className="text-3xl font-bold text-zinc-900">{formatCurrency(report.total_deductions)}</p>
                     {prevReport && (
                       <div className={`flex items-center gap-1 mt-1 text-sm ${getChangeIndicator(report.total_deductions, prevReport.total_deductions, true).color}`}>
                         {React.createElement(getChangeIndicator(report.total_deductions, prevReport.total_deductions, true).icon, { className: 'w-4 h-4' })}
@@ -269,12 +269,12 @@ const PayrollSummaryReport = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardContent className="pt-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm text-zinc-400">Avg Attendance</p>
-                    <p className="text-3xl font-bold text-zinc-100">{report.avg_attendance_percent?.toFixed(1) || 0}%</p>
+                    <p className="text-sm text-zinc-600">Avg Attendance</p>
+                    <p className="text-3xl font-bold text-zinc-900">{report.avg_attendance_percent?.toFixed(1) || 0}%</p>
                     {prevReport && (
                       <div className={`flex items-center gap-1 mt-1 text-sm ${getChangeIndicator(report.avg_attendance_percent, prevReport.avg_attendance_percent).color}`}>
                         {React.createElement(getChangeIndicator(report.avg_attendance_percent, prevReport.avg_attendance_percent).icon, { className: 'w-4 h-4' })}
@@ -292,46 +292,46 @@ const PayrollSummaryReport = () => {
 
           {/* Secondary Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardContent className="py-4">
                 <div className="flex items-center gap-3">
                   <Gift className="w-5 h-5 text-orange-400" />
                   <div>
-                    <p className="text-xs text-zinc-400">Total Reimbursements</p>
-                    <p className="text-lg font-semibold text-zinc-100">{formatCurrency(report.total_reimbursements)}</p>
+                    <p className="text-xs text-zinc-600">Total Reimbursements</p>
+                    <p className="text-lg font-semibold text-zinc-900">{formatCurrency(report.total_reimbursements)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardContent className="py-4">
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 text-yellow-400" />
                   <div>
-                    <p className="text-xs text-zinc-400">Total Leave Days</p>
-                    <p className="text-lg font-semibold text-zinc-100">{report.total_leave_days || 0}</p>
+                    <p className="text-xs text-zinc-600">Total Leave Days</p>
+                    <p className="text-lg font-semibold text-zinc-900">{report.total_leave_days || 0}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardContent className="py-4">
                 <div className="flex items-center gap-3">
                   <TrendingDown className="w-5 h-5 text-red-400" />
                   <div>
-                    <p className="text-xs text-zinc-400">LOP Deductions</p>
-                    <p className="text-lg font-semibold text-zinc-100">{formatCurrency(report.total_lop_deductions)}</p>
+                    <p className="text-xs text-zinc-600">LOP Deductions</p>
+                    <p className="text-lg font-semibold text-zinc-900">{formatCurrency(report.total_lop_deductions)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardContent className="py-4">
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5 text-orange-400" />
                   <div>
-                    <p className="text-xs text-zinc-400">Attendance Penalties</p>
-                    <p className="text-lg font-semibold text-zinc-100">{formatCurrency(report.total_penalties)}</p>
+                    <p className="text-xs text-zinc-600">Attendance Penalties</p>
+                    <p className="text-lg font-semibold text-zinc-900">{formatCurrency(report.total_penalties)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -340,7 +340,7 @@ const PayrollSummaryReport = () => {
 
           {/* Department Breakdown */}
           {report.department_breakdown && Object.keys(report.department_breakdown).length > 0 && (
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="w-5 h-5" />
@@ -350,9 +350,9 @@ const PayrollSummaryReport = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {Object.entries(report.department_breakdown).map(([dept, data]) => (
-                    <div key={dept} className="bg-zinc-800 p-4 rounded-lg">
-                      <p className="text-sm text-zinc-400">{dept || 'Unassigned'}</p>
-                      <p className="text-xl font-bold text-zinc-100">{formatCurrency(data.total_salary)}</p>
+                    <div key={dept} className="bg-zinc-50 p-4 rounded-lg">
+                      <p className="text-sm text-zinc-600">{dept || 'Unassigned'}</p>
+                      <p className="text-xl font-bold text-zinc-900">{formatCurrency(data.total_salary)}</p>
                       <p className="text-xs text-zinc-500">{data.employee_count} employees</p>
                     </div>
                   ))}
@@ -363,7 +363,7 @@ const PayrollSummaryReport = () => {
 
           {/* Employee Details Table */}
           {report.employee_details && report.employee_details.length > 0 && (
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
@@ -375,30 +375,30 @@ const PayrollSummaryReport = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-zinc-700">
-                        <th className="text-left p-3 text-zinc-400">Employee</th>
-                        <th className="text-left p-3 text-zinc-400">Department</th>
-                        <th className="text-right p-3 text-zinc-400">Gross Salary</th>
-                        <th className="text-right p-3 text-zinc-400">Deductions</th>
-                        <th className="text-right p-3 text-zinc-400">Reimbursements</th>
-                        <th className="text-right p-3 text-zinc-400">Net Salary</th>
-                        <th className="text-center p-3 text-zinc-400">Present</th>
-                        <th className="text-center p-3 text-zinc-400">Leave</th>
-                        <th className="text-center p-3 text-zinc-400">LOP</th>
+                      <tr className="border-b border-zinc-300">
+                        <th className="text-left p-3 text-zinc-600">Employee</th>
+                        <th className="text-left p-3 text-zinc-600">Department</th>
+                        <th className="text-right p-3 text-zinc-600">Gross Salary</th>
+                        <th className="text-right p-3 text-zinc-600">Deductions</th>
+                        <th className="text-right p-3 text-zinc-600">Reimbursements</th>
+                        <th className="text-right p-3 text-zinc-600">Net Salary</th>
+                        <th className="text-center p-3 text-zinc-600">Present</th>
+                        <th className="text-center p-3 text-zinc-600">Leave</th>
+                        <th className="text-center p-3 text-zinc-600">LOP</th>
                       </tr>
                     </thead>
                     <tbody>
                       {report.employee_details.map((emp, idx) => (
-                        <tr key={idx} className="border-b border-zinc-800 hover:bg-zinc-800/50">
+                        <tr key={idx} className="border-b border-zinc-200 hover:bg-zinc-50/50">
                           <td className="p-3">
-                            <p className="text-zinc-200 font-medium">{emp.name}</p>
+                            <p className="text-zinc-800 font-medium">{emp.name}</p>
                             <p className="text-xs text-zinc-500">{emp.employee_code}</p>
                           </td>
-                          <td className="p-3 text-zinc-400">{emp.department || '-'}</td>
-                          <td className="p-3 text-right text-zinc-200">{formatCurrency(emp.gross_salary)}</td>
+                          <td className="p-3 text-zinc-600">{emp.department || '-'}</td>
+                          <td className="p-3 text-right text-zinc-800">{formatCurrency(emp.gross_salary)}</td>
                           <td className="p-3 text-right text-red-400">{formatCurrency(emp.total_deductions)}</td>
                           <td className="p-3 text-right text-green-400">{formatCurrency(emp.reimbursements)}</td>
-                          <td className="p-3 text-right text-zinc-100 font-medium">{formatCurrency(emp.net_salary)}</td>
+                          <td className="p-3 text-right text-zinc-900 font-medium">{formatCurrency(emp.net_salary)}</td>
                           <td className="p-3 text-center text-green-400">{emp.present_days}</td>
                           <td className="p-3 text-center text-yellow-400">{emp.leave_days}</td>
                           <td className="p-3 text-center text-red-400">{emp.lop_days}</td>
@@ -406,12 +406,12 @@ const PayrollSummaryReport = () => {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-zinc-800/50 font-semibold">
-                        <td className="p-3 text-zinc-200" colSpan={2}>Total</td>
-                        <td className="p-3 text-right text-zinc-200">{formatCurrency(report.total_gross_salary)}</td>
+                      <tr className="bg-zinc-50/50 font-semibold">
+                        <td className="p-3 text-zinc-800" colSpan={2}>Total</td>
+                        <td className="p-3 text-right text-zinc-800">{formatCurrency(report.total_gross_salary)}</td>
                         <td className="p-3 text-right text-red-400">{formatCurrency(report.total_deductions)}</td>
                         <td className="p-3 text-right text-green-400">{formatCurrency(report.total_reimbursements)}</td>
-                        <td className="p-3 text-right text-zinc-100">{formatCurrency(report.total_net_salary)}</td>
+                        <td className="p-3 text-right text-zinc-900">{formatCurrency(report.total_net_salary)}</td>
                         <td className="p-3" colSpan={3}></td>
                       </tr>
                     </tfoot>
@@ -423,7 +423,7 @@ const PayrollSummaryReport = () => {
 
           {/* Month Comparison */}
           {prevReport && (
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card className="bg-white border-zinc-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" />
@@ -434,11 +434,11 @@ const PayrollSummaryReport = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-zinc-700">
-                        <th className="text-left p-3 text-zinc-400">Metric</th>
-                        <th className="text-right p-3 text-zinc-400">Previous Month</th>
-                        <th className="text-right p-3 text-zinc-400">Current Month</th>
-                        <th className="text-right p-3 text-zinc-400">Change</th>
+                      <tr className="border-b border-zinc-300">
+                        <th className="text-left p-3 text-zinc-600">Metric</th>
+                        <th className="text-right p-3 text-zinc-600">Previous Month</th>
+                        <th className="text-right p-3 text-zinc-600">Current Month</th>
+                        <th className="text-right p-3 text-zinc-600">Change</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -451,12 +451,12 @@ const PayrollSummaryReport = () => {
                         { label: 'Leave Days', prev: prevReport.total_leave_days, curr: report.total_leave_days, inverse: true },
                         { label: 'Avg Attendance %', prev: prevReport.avg_attendance_percent, curr: report.avg_attendance_percent, suffix: '%' },
                       ].map((row, idx) => (
-                        <tr key={idx} className="border-b border-zinc-800">
-                          <td className="p-3 text-zinc-200">{row.label}</td>
-                          <td className="p-3 text-right text-zinc-400">
+                        <tr key={idx} className="border-b border-zinc-200">
+                          <td className="p-3 text-zinc-800">{row.label}</td>
+                          <td className="p-3 text-right text-zinc-600">
                             {row.currency ? formatCurrency(row.prev) : `${row.prev?.toFixed?.(1) || row.prev || 0}${row.suffix || ''}`}
                           </td>
-                          <td className="p-3 text-right text-zinc-200">
+                          <td className="p-3 text-right text-zinc-800">
                             {row.currency ? formatCurrency(row.curr) : `${row.curr?.toFixed?.(1) || row.curr || 0}${row.suffix || ''}`}
                           </td>
                           <td className={`p-3 text-right ${getChangeIndicator(row.curr, row.prev, row.inverse).color}`}>
@@ -472,10 +472,10 @@ const PayrollSummaryReport = () => {
           )}
         </>
       ) : (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white border-zinc-200">
           <CardContent className="py-12 text-center">
             <FileText className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-zinc-400">No payroll data available for {month}</p>
+            <p className="text-zinc-600">No payroll data available for {month}</p>
             <p className="text-sm text-zinc-500 mt-2">Generate salary slips first to see the summary report</p>
           </CardContent>
         </Card>
@@ -483,7 +483,7 @@ const PayrollSummaryReport = () => {
 
       {/* Generated Reports History */}
       {generatedReports.length > 0 && (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white border-zinc-200">
           <CardHeader>
             <CardTitle>Generated Reports</CardTitle>
             <CardDescription>Previously generated payroll summary reports</CardDescription>
@@ -491,9 +491,9 @@ const PayrollSummaryReport = () => {
           <CardContent>
             <div className="space-y-2">
               {generatedReports.slice(0, 5).map((rpt, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 bg-zinc-800 rounded-lg">
+                <div key={idx} className="flex justify-between items-center p-3 bg-zinc-50 rounded-lg">
                   <div>
-                    <p className="text-zinc-200 font-medium">{rpt.month}</p>
+                    <p className="text-zinc-800 font-medium">{rpt.month}</p>
                     <p className="text-xs text-zinc-500">Generated: {new Date(rpt.generated_at).toLocaleString()}</p>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => setMonth(rpt.month)}>

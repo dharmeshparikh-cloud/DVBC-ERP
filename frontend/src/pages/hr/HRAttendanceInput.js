@@ -168,15 +168,15 @@ const HRAttendanceInput = () => {
     <div className="p-6 space-y-6" data-testid="hr-attendance-input">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100">HR Attendance Input</h1>
-          <p className="text-zinc-400">Manage attendance, validate policies, and apply penalties</p>
+          <h1 className="text-2xl font-bold text-zinc-900">HR Attendance Input</h1>
+          <p className="text-zinc-600">Manage attendance, validate policies, and apply penalties</p>
         </div>
         <div className="flex items-center gap-3">
           <Input
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="w-40 bg-zinc-800 border-zinc-700"
+            className="w-40 bg-zinc-50 border-zinc-300"
             data-testid="month-selector"
           />
           <Button onClick={fetchAttendanceInput} variant="outline" size="sm">
@@ -188,7 +188,7 @@ const HRAttendanceInput = () => {
 
       {/* Policy Summary */}
       {policy && (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white border-zinc-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="w-5 h-5 text-blue-400" />
@@ -198,20 +198,20 @@ const HRAttendanceInput = () => {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="text-zinc-400">Working Days:</span>
-                <p className="text-zinc-200">{policy.working_days?.join(', ')}</p>
+                <span className="text-zinc-600">Working Days:</span>
+                <p className="text-zinc-800">{policy.working_days?.join(', ')}</p>
               </div>
               <div>
-                <span className="text-zinc-400">Non-Consulting:</span>
-                <p className="text-zinc-200">{policy.non_consulting?.check_in} - {policy.non_consulting?.check_out}</p>
+                <span className="text-zinc-600">Non-Consulting:</span>
+                <p className="text-zinc-800">{policy.non_consulting?.check_in} - {policy.non_consulting?.check_out}</p>
               </div>
               <div>
-                <span className="text-zinc-400">Consulting:</span>
-                <p className="text-zinc-200">{policy.consulting?.check_in} - {policy.consulting?.check_out}</p>
+                <span className="text-zinc-600">Consulting:</span>
+                <p className="text-zinc-800">{policy.consulting?.check_in} - {policy.consulting?.check_out}</p>
               </div>
               <div>
-                <span className="text-zinc-400">Grace Period:</span>
-                <p className="text-zinc-200">{policy.grace_days_per_month} days/month, {policy.grace_period_minutes} min</p>
+                <span className="text-zinc-600">Grace Period:</span>
+                <p className="text-zinc-800">{policy.grace_days_per_month} days/month, {policy.grace_period_minutes} min</p>
               </div>
             </div>
           </CardContent>
@@ -220,7 +220,7 @@ const HRAttendanceInput = () => {
 
       {/* Actions Row */}
       <div className="flex flex-wrap gap-4">
-        <Card className="bg-zinc-900 border-zinc-800 flex-1 min-w-[300px]">
+        <Card className="bg-white border-zinc-200 flex-1 min-w-[300px]">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Auto-Validate Attendance</CardTitle>
             <CardDescription>Run policy validation for the selected month</CardDescription>
@@ -248,7 +248,7 @@ const HRAttendanceInput = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900 border-zinc-800 flex-1 min-w-[300px]">
+        <Card className="bg-white border-zinc-200 flex-1 min-w-[300px]">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bulk Mark Attendance</CardTitle>
             <CardDescription>Mark attendance for selected employees</CardDescription>
@@ -258,7 +258,7 @@ const HRAttendanceInput = () => {
               type="date"
               value={bulkDate}
               onChange={(e) => setBulkDate(e.target.value)}
-              className="w-40 bg-zinc-800 border-zinc-700"
+              className="w-40 bg-zinc-50 border-zinc-300"
             />
             <Button 
               onClick={() => markBulkAttendance('present')}
@@ -283,7 +283,7 @@ const HRAttendanceInput = () => {
 
       {/* Validation Results */}
       {validationResults && (
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white border-zinc-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-yellow-400" />
@@ -292,35 +292,35 @@ const HRAttendanceInput = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-4 gap-4 mb-4">
-              <div className="bg-zinc-800 p-3 rounded-lg text-center">
-                <p className="text-2xl font-bold text-zinc-100">{validationResults.summary.total_employees}</p>
-                <p className="text-xs text-zinc-400">Total Employees</p>
+              <div className="bg-zinc-50 p-3 rounded-lg text-center">
+                <p className="text-2xl font-bold text-zinc-900">{validationResults.summary.total_employees}</p>
+                <p className="text-xs text-zinc-600">Total Employees</p>
               </div>
               <div className="bg-green-900/30 p-3 rounded-lg text-center">
                 <p className="text-2xl font-bold text-green-400">{validationResults.summary.clean}</p>
-                <p className="text-xs text-zinc-400">Clean (No Penalty)</p>
+                <p className="text-xs text-zinc-600">Clean (No Penalty)</p>
               </div>
               <div className="bg-orange-900/30 p-3 rounded-lg text-center">
                 <p className="text-2xl font-bold text-orange-400">{validationResults.summary.penalty_pending}</p>
-                <p className="text-xs text-zinc-400">Penalty Pending</p>
+                <p className="text-xs text-zinc-600">Penalty Pending</p>
               </div>
               <div className="bg-red-900/30 p-3 rounded-lg text-center">
                 <p className="text-2xl font-bold text-red-400">Rs.{validationResults.summary.total_pending_penalties}</p>
-                <p className="text-xs text-zinc-400">Total Penalties</p>
+                <p className="text-xs text-zinc-600">Total Penalties</p>
               </div>
             </div>
             
             {validationResults.employees.filter(e => e.status === 'penalty_pending').length > 0 && (
               <div className="mt-4">
-                <h4 className="text-sm font-medium text-zinc-300 mb-2">Employees with Penalties:</h4>
+                <h4 className="text-sm font-medium text-zinc-700 mb-2">Employees with Penalties:</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {validationResults.employees
                     .filter(e => e.status === 'penalty_pending')
                     .map(emp => (
-                      <div key={emp.employee_id} className="bg-zinc-800 p-3 rounded-lg flex justify-between items-center">
+                      <div key={emp.employee_id} className="bg-zinc-50 p-3 rounded-lg flex justify-between items-center">
                         <div>
-                          <p className="text-zinc-200 font-medium">{emp.name}</p>
-                          <p className="text-xs text-zinc-400">
+                          <p className="text-zinc-800 font-medium">{emp.name}</p>
+                          <p className="text-xs text-zinc-600">
                             {emp.employee_code} | Grace used: {emp.grace_days_used}/{policy?.grace_days_per_month || 3} | 
                             Penalty days: {emp.penalty_days}
                           </p>
@@ -336,7 +336,7 @@ const HRAttendanceInput = () => {
       )}
 
       {/* Employee List */}
-      <Card className="bg-zinc-900 border-zinc-800">
+      <Card className="bg-white border-zinc-200">
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
@@ -350,16 +350,16 @@ const HRAttendanceInput = () => {
           </div>
           <div className="flex gap-3 mt-3">
             <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
               <Input
                 placeholder="Search employee..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-800 border-zinc-700"
+                className="pl-10 bg-zinc-50 border-zinc-300"
               />
             </div>
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger className="w-40 bg-zinc-800 border-zinc-700">
+              <SelectTrigger className="w-40 bg-zinc-50 border-zinc-300">
                 <SelectValue placeholder="Department" />
               </SelectTrigger>
               <SelectContent>
@@ -373,45 +373,45 @@ const HRAttendanceInput = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-zinc-400">Loading...</div>
+            <div className="text-center py-8 text-zinc-600">Loading...</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-700">
-                    <th className="text-left p-3 text-zinc-400">
+                  <tr className="border-b border-zinc-300">
+                    <th className="text-left p-3 text-zinc-600">
                       <input 
                         type="checkbox"
                         checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
                         onChange={() => selectedEmployees.length === filteredEmployees.length ? deselectAll() : selectAll()}
-                        className="rounded border-zinc-600"
+                        className="rounded border-zinc-300"
                       />
                     </th>
-                    <th className="text-left p-3 text-zinc-400">Employee</th>
-                    <th className="text-left p-3 text-zinc-400">Department</th>
-                    <th className="text-center p-3 text-zinc-400">Present</th>
-                    <th className="text-center p-3 text-zinc-400">Absent</th>
-                    <th className="text-center p-3 text-zinc-400">Half Day</th>
-                    <th className="text-center p-3 text-zinc-400">WFH</th>
-                    <th className="text-center p-3 text-zinc-400">Leaves</th>
+                    <th className="text-left p-3 text-zinc-600">Employee</th>
+                    <th className="text-left p-3 text-zinc-600">Department</th>
+                    <th className="text-center p-3 text-zinc-600">Present</th>
+                    <th className="text-center p-3 text-zinc-600">Absent</th>
+                    <th className="text-center p-3 text-zinc-600">Half Day</th>
+                    <th className="text-center p-3 text-zinc-600">WFH</th>
+                    <th className="text-center p-3 text-zinc-600">Leaves</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredEmployees.map(emp => (
-                    <tr key={emp.employee_id} className="border-b border-zinc-800 hover:bg-zinc-800/50">
+                    <tr key={emp.employee_id} className="border-b border-zinc-200 hover:bg-zinc-50/50">
                       <td className="p-3">
                         <input 
                           type="checkbox"
                           checked={selectedEmployees.includes(emp.employee_id)}
                           onChange={() => toggleEmployeeSelection(emp.employee_id)}
-                          className="rounded border-zinc-600"
+                          className="rounded border-zinc-300"
                         />
                       </td>
                       <td className="p-3">
-                        <p className="text-zinc-200 font-medium">{emp.name}</p>
+                        <p className="text-zinc-800 font-medium">{emp.name}</p>
                         <p className="text-xs text-zinc-500">{emp.employee_code}</p>
                       </td>
-                      <td className="p-3 text-zinc-400">{emp.department || '-'}</td>
+                      <td className="p-3 text-zinc-600">{emp.department || '-'}</td>
                       <td className="p-3 text-center text-green-400">{emp.present_days}</td>
                       <td className="p-3 text-center text-red-400">{emp.absent_days}</td>
                       <td className="p-3 text-center text-yellow-400">{emp.half_days}</td>
@@ -422,7 +422,7 @@ const HRAttendanceInput = () => {
                 </tbody>
               </table>
               {filteredEmployees.length === 0 && (
-                <div className="text-center py-8 text-zinc-400">No employees found</div>
+                <div className="text-center py-8 text-zinc-600">No employees found</div>
               )}
             </div>
           )}
