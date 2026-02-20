@@ -218,8 +218,9 @@ async def return_kickoff_request(
     """Return a kickoff request to sales (PM action)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "project_manager", "principal_consultant", "manager"]:
-        raise HTTPException(status_code=403, detail="Only PM roles can return kickoff requests")
+    # Senior Consultant and Principal Consultant can approve kickoffs
+    if current_user.role not in ["admin", "project_manager", "principal_consultant", "senior_consultant", "manager"]:
+        raise HTTPException(status_code=403, detail="Only PM/Senior/Principal Consultant roles can return kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
     if not kickoff:
@@ -314,8 +315,9 @@ async def accept_kickoff_request(
     """Accept a kickoff request and create a project (PM action)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "project_manager", "principal_consultant", "manager"]:
-        raise HTTPException(status_code=403, detail="Only PM roles can accept kickoff requests")
+    # Senior Consultant and Principal Consultant can approve kickoffs
+    if current_user.role not in ["admin", "project_manager", "principal_consultant", "senior_consultant", "manager"]:
+        raise HTTPException(status_code=403, detail="Only PM/Senior/Principal Consultant roles can accept kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
     if not kickoff:
