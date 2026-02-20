@@ -1250,17 +1250,50 @@ async def set_reporting_manager(
 
 @api_router.get("/my-clients")
 async def get_my_clients(current_user: User = Depends(get_current_user)):
-    """Get clients belonging to the current sales person"""
+    """Get clients belonging to the current sales person with agreement values"""
     clients = await db.clients.find(
         {"sales_person_id": current_user.id, "is_active": True},
         {"_id": 0}
     ).to_list(500)
     
+    # Enrich with agreement and kickoff data
     for client in clients:
         if isinstance(client.get('created_at'), str):
             client['created_at'] = datetime.fromisoformat(client['created_at'])
         if isinstance(client.get('updated_at'), str):
             client['updated_at'] = datetime.fromisoformat(client['updated_at'])
+        
+        # Get agreement value for this client
+        agreements = await db.agreements.find(
+            {"client_id": client.get("id")},
+            {"_id": 0, "total_value": 1, "status": 1, "project_name": 1}
+        ).to_list(100)
+        
+        total_agreement_value = sum(a.get("total_value", 0) for a in agreements)
+        active_agreements = [a for a in agreements if a.get("status") in ["signed", "active"]]
+        
+        # Get payment info
+        payments = await db.payment_verifications.find(
+            {"client_id": client.get("id"), "status": "verified"},
+            {"_id": 0, "amount": 1}
+        ).to_list(100)
+        total_paid = sum(p.get("amount", 0) for p in payments)
+        
+        # Get kickoff/project status
+        kickoff = await db.kickoff_requests.find_one(
+            {"client_id": client.get("id")},
+            {"_id": 0, "status": 1, "project_id": 1}
+        )
+        
+        client["agreement_summary"] = {
+            "total_value": total_agreement_value,
+            "total_paid": total_paid,
+            "pending_amount": total_agreement_value - total_paid,
+            "active_agreements": len(active_agreements),
+            "total_agreements": len(agreements)
+        }
+        client["kickoff_status"] = kickoff.get("status") if kickoff else None
+        client["project_id"] = kickoff.get("project_id") if kickoff else None
     
     return clients
 
