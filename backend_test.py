@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 class ConsultingWorkflowTester:
     def __init__(self):
-        self.base_url = "https://hr-management-53.preview.emergentagent.com/api"
+        self.base_url = "https://leave-manager-93.preview.emergentagent.com/api"
         self.token = None
         self.user_id = None
         self.tests_run = 0

@@ -2,85 +2,73 @@
 The user is developing a comprehensive business management ERP. The initial focus has shifted from the Sales to Consulting workflow to enhancing the HR, Authentication, Expense, Payroll, and Finance modules.
 
 **Recent User Requirements:**
-1.  **(P0) Fix Expense Submission:** Users were unable to submit expenses, only save them as drafts. This required implementing a full approval workflow. **(COMPLETED)**
-2.  **(P0) Implement Multi-Level Expense Approval:** Create an E2E expense flow where an employee submits, their reporting manager approves, and then HR/Admin gives final approval for payroll linkage. **(COMPLETED)**
-3.  **(P0) Create Expense Approval Dashboard:** Build a dashboard for managers and HR to view and manage pending, approved, and rejected expenses. **(COMPLETED)**
-4.  **(P0) Implement Critical Data Linkages:**
-    *   **Leave → Payroll:** Ensure unpaid leaves are automatically deducted from salary (Loss of Pay). **(COMPLETED)**
-    *   **Attendance → Payroll:** Link attendance data for accurate salary calculations. **(COMPLETED)**
-    *   **Expense Reimbursements → Salary Slips:** Ensure approved expenses are automatically added to the employee's next salary slip. **(COMPLETED)**
-5.  **(P1) Implement Timesheet → Billing & Project P&L:** Create a system to track project revenue from client invoices and costs from employee timesheets and expenses, culminating in a Project P&L view. This should also link to a future sales incentive module. **(COMPLETED)**
-6.  **(P0) Investigate Go-Live Blocker:** The HR manager reported being unable to complete the onboarding Go-Live process for an employee. **(INVESTIGATED & RESOLVED - a data prerequisite issue, not a bug).**
-7.  **(P0) Improve Frontend Error Handling:** Implement a system to show detailed technical error messages in the frontend to aid debugging. **(COMPLETED)**
-8.  **(P0) Fix Leave Application:** An employee is unable to apply for leave, receiving a zero balance error despite the UI showing sufficient available leaves. **(IN PROGRESS)**
+1.  **(P0) Simplify Expense Approval:** Implement single-level approval by HR for expenses under ₹2000; require Admin approval for amounts above.
+2.  **(P0) Simplify Leave Approval:** Require only Reporting Manager (RM) approval, with HR and Admin being notified.
+3.  **(P0) Implement Auto-Attendance:** Create a system to auto-approve attendance based on configurable policies (working hours, grace periods, penalties for lateness).
+4.  **(P0) Provide HR Input Screens:** Create frontend pages for HR to manage leave and attendance on behalf of employees.
+5.  **(P0) Payroll Summary Report:** Build a dashboard for HR/Admin to view a monthly payroll summary with comparisons to the previous month and an option to export to CSV.
+6.  **(P0) E2E Test & UI Fix:** Perform an end-to-end test for a new employee (Kunal Malhotra) from attendance punching to payroll linkage, and fix the UI theme of new pages from dark to light.
+7.  **(P0) Add Employee Linking:** Allow HR to select or link specific employees on the new attendance and leave input pages.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack ERP with a React frontend, FastAPI backend, and MongoDB database. In this session, the agent has built a complete, end-to-end expense management system, from employee submission to a multi-level approval workflow (Manager -> HR) and final reimbursement via payroll. This includes a new Expense Approval Dashboard.
+The application is a full-stack ERP with a React frontend, FastAPI backend, and MongoDB database. In this session, the agent fixed two critical bugs: one preventing leave applications (zero balance error) and another hiding employees from the HR payroll view.
 
-Crucially, the agent implemented several vital data linkages that form the core of an integrated ERP: approved expenses are added to salary slips, and unpaid leaves are automatically calculated as Loss of Pay deductions. A foundational Project P&L module was also created, which can generate client invoices from sales plans and will serve as the basis for a future sales incentive system.
+Following the bug fixes, the agent implemented a major simplification of the core HR workflows based on user feedback. The expense approval flow is now amount-based (HR for < ₹2000, Admin for > ₹2000), and leave approvals now only require the Reporting Manager. A new backend system for auto-validating attendance based on configurable policies has been created.
 
-Finally, a robust global error-handling mechanism was added to the frontend, which displays detailed API error messages in toast notifications, greatly improving debuggability for the user.
+To support these changes, several new frontend pages were built for HR:
+1.  **HR Attendance & Leave Input:** For bulk management.
+2.  **Attendance & Leave Settings:** To configure the new policies.
+3.  **Payroll Summary Report:** A dashboard showing key payroll metrics, breakdowns, and month-over-month comparisons.
+
+Finally, the agent performed a full end-to-end test for a new employee, Kunal Malhotra, covering attendance, leave, go-live activation, and salary slip generation, while also fixing the UI theme of all new pages to a consistent light mode.
 
 **Last working item**:
--   **Last item agent was working:** The agent was investigating a new critical bug reported by the user. An employee is unable to apply for leave, receiving an error that their balance is zero, despite the UI in the user-provided screenshot showing a sufficient leave balance. The agent was just beginning to analyze the screenshot.
--   **Status:** IN PROGRESS
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** backend testing agent. The agent should first query the  and  collections for the specific employee to verify the actual stored leave balance versus any pending/approved leaves that might affect the calculation. Then, use  to call the leave application endpoint directly to reproduce the backend validation error.
+-   **Last item agent was working:** The agent just completed a full end-to-end test for employee Kunal Malhotra as requested by the user. This included fixing an  serialization bug during salary slip generation and correcting the UI theme on all newly created pages from dark to light. The final step was taking screenshots to verify the employee and HR views.
+-   **Status:** USER VERIFICATION PENDING
+-   **Agent Testing Done:** Y
+-   **Which testing method agent to use?** manual testing by curl/ python -c / screenshot tool. The user should be asked to verify the latest changes, specifically the Kunal Malhotra flow and the light theme on the new HR pages.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Employee unable to apply for leave due to incorrect zero-balance error.**
-
-**Issues Detail:**
--   **Issue 1: Employee unable to apply for leave due to incorrect zero-balance error.**
-    -   **Attempted fixes:** The agent has only analyzed the user-provided screenshot () to understand the user's view of the problem. No code investigation has started.
-    -   **Next debug checklist:**
-        1.  Analyze the screenshot content: note the employee, the available balance shown, the leave type being applied for, and the exact error message.
-        2.  Query the  collection in MongoDB for that employee to check the source-of-truth  field.
-        3.  Query the  collection for any  or  leaves for that employee which might be consuming the balance in a way the UI is not reflecting.
-        4.  Examine the backend leave application endpoint (likely in  or ). Focus on the validation logic that checks the employee's available leave balance before creating a new leave request.
-        5.  Examine the frontend component for applying leave (e.g., ) to see how the balance is fetched and how the error from the backend is handled and displayed.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical bug blocking a core HR function. Fixing it will restore the ability for employees to request time off.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both.
-    -   **Blocked on other issue:** No.
+-   None.
 
 **In progress Task List**:
 -   None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) Implement the Sales Incentive module. This involves creating the logic to calculate incentives based on different criteria (time-bound, multi-variable) and linking it to the  records created when client invoices are paid.
-    -   (P2) Refactor the monolithic  file into smaller, domain-specific routers (e.g., , , etc.).
+    -   (P0) Add employee selection/linking functionality to the  and  pages as requested by the user.
+    -   (P0) Implement the Export to CSV functionality on the  page.
+    -   (P1) Implement the Sales Incentive module, linking it to the existing  records.
 -   **Future Tasks:**
+    -   (P2) Refactor the monolithic  file by moving endpoints into domain-specific routers (e.g., , , ).
+    -   (P2) Implement email functionality for sending the payroll reports to Admin and HR.
     -   (P2) Expand the Finance Module and Project P&L Dashboards.
     -   (P2) Implement a Day 0 guided onboarding tour for new users.
     -   (P3) Implement PWA Install Notification and Branding.
 
 **Completed work in this session**
--   **E2E Expense Management System:**
-    -   Fixed expense submission and implemented a multi-level approval flow (Employee → Manager → HR/Admin).
-    -   Created an Expense Approval Dashboard for managers/HR.
-    -   Linked approved expenses to the payroll module for automatic reimbursement.
--   **Critical ERP Data Linkages:**
-    -   **Leave → Payroll:** Implemented Loss of Pay (LOP) deductions for unpaid leaves.
-    -   **Expense → Payroll:** Integrated approved reimbursements directly into salary slips.
--   **Project P&L & Sales Flow:**
-    -   Created a backend and API for Project Profit & Loss tracking.
-    -   Implemented invoice generation from  schedules.
-    -   Created  records upon invoice payment, setting the stage for the incentive module.
--   **Robust Frontend Error Handling:**
-    -   Implemented a global axios interceptor to catch API errors.
-    -   Created a reusable  component to display user-friendly but detailed error messages, improving diagnostics.
--   **Go-Live Issue Resolution:**
-    -   Investigated a reported bug in the Go-Live onboarding flow.
-    -   Determined it was not a bug but correct behavior blocking progress due to missing prerequisites (CTC & Bank Details), and improved the UI to make this clear.
+-   **Bug Fixes:**
+    -   Fixed the critical zero balance error on leave applications by correctly initializing default leave balances for employees.
+    -   Resolved the issue where HR managers could not see all employees in the payroll view by fixing the  filter logic.
+    -   Fixed a  serialization error that crashed the salary slip generation endpoint.
+-   **Workflow Simplification:**
+    -   **Expense:** Re-architected the approval flow to be single-level (HR for < ₹2000, Admin for > ₹2000).
+    -   **Leave:** Simplified the approval flow to require only the Reporting Manager's approval, with notifications to others.
+    -   **Attendance:** Created a new backend system for auto-validating attendance against configurable policies.
+-   **New Features & UI:**
+    -   Created  and  pages for HR administration.
+    -   Created an  page for HR to configure attendance policies.
+    -   Built a  dashboard with metrics and comparisons.
+    -   Added all corresponding backend endpoints in  and a new  router.
+-   **UI & E2E Verification:**
+    -   Corrected the theme of all new pages from a hardcoded dark mode to the app's standard light mode.
+    -   Successfully executed a complete E2E test for Kunal Malhotra (attendance, leave, go-live, payroll).
 
 **Earlier issues found/mentioned but not fixed**
--   The monolithic  file remains a significant piece of technical debt. (Tracked in Upcoming Tasks).
+-   The monolithic  file remains a significant piece of technical debt. (Tracked in Future Tasks).
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** The monolithic  file.
@@ -91,75 +79,81 @@ Finally, a robust global error-handling mechanism was added to the frontend, whi
 
 
 **Key Technical Concepts**
--   **Multi-Level Approval Workflow:** Implemented a state machine-like process for expenses ( ->  -> ).
--   **E2E Data Linkage:** Connected disparate modules (Leave, Expense, Payroll) to create automated financial workflows, a core ERP concept.
--   **Global API Error Handling:** Used Axios Interceptors on the frontend to create a centralized system for catching and displaying API errors, improving robustness and user feedback.
--   **Project Profit & Loss (P&L) Calculation:** Established the foundation for financial reporting by tracking project revenue (invoices) and costs.
+-   **Configurable Workflow Logic:** Shifted business rules (expense thresholds, attendance policies) from hardcoded logic to settings managed via a UI, stored in a new  collection.
+-   **Dynamic Approval Routing:** Modified backend logic to route approvals based on data attributes (e.g., expense amount).
+-   **E2E User Scenario Testing:** Manually stepped through a complete user journey (attendance -> leave -> go-live -> payroll) to ensure cross-module integration.
+-   **UI Theming Consistency:** Refactored new components to remove hardcoded styles and adhere to the application-wide theme.
 
 **key DB schema**
--   ****: New fields  (, , , etc.),  (array of approver steps), .
--   ****: New collection to bridge the gap between expense approval and payroll processing. Tracks amount, employee, and status (, ).
--   ****: Schema enhanced to include  and .
--   ****: New collection to store client invoices generated from sales plans, linked to .
--   ****: New collection to log cleared payments, linking the invoice, amount, and sales employee, for future incentive calculations.
-
-**changes in tech stack**
--   None.
+-   ****: New collection to store settings for auto-approval (working days, hours, grace period, penalty).
+-   ****: Data migration script was run to initialize  and set  for all existing employees to fix data consistency bugs.
+-   ****: Generation logic in  was patched to correctly handle BSON s by converting nested documents to dicts before returning JSON.
 
 **All files of reference**
--   : The user-provided screenshot of the leave application bug.
--    (or ): Likely contains the buggy validation logic.
--   : Frontend component for leave application.
--   : Contains the recently added logic for Loss of Pay, which might have affected leave calculations.
+-   **Created:**
+    -   
+    -   
+    -   
+    -   
+    -   
+-   **Modified:**
+    -   : Major changes to implement simplified leave/expense approvals and add new endpoints for settings and payroll reports.
+    -   : To add routes for the new HR pages.
+    -   : To add navigation links to the new HR pages in the sidebar.
 
 **Areas that need refactoring**:
--    is the top priority for refactoring to improve modularity and maintainability.
--   The salary slip generation logic in  is now quite complex with all the new linkages and could be simplified into smaller, more testable functions.
+-   ** is the top priority.** The new endpoints for payroll reports and settings should be extracted from  and moved into more appropriate routers like  and a new .
 
 **key api endpoints**
--   : The core multi-step approval endpoint for expenses.
--   : Feeds the Expense Approval Dashboard.
--   : The enhanced salary slip endpoint that now includes expense reimbursements and LOP deductions.
--   : Provides data for the project P&L overview.
--   : Creates client invoices.
--   : Records a client payment and creates an incentive eligibility record.
+-   : New endpoint for amount-based expense approval.
+-   : New endpoint for RM-only leave approval.
+-   , : To manage attendance policies.
+-   : Provides data for the new Payroll Summary Report dashboard.
+-   : For HR to add attendance records.
+-   : For HR to apply for leave on behalf of an employee.
 
 **Critical Info for New Agent**
--   **Your immediate priority is to fix the critical bug preventing employees from applying for leave.** The user has provided a screenshot showing the error. The root cause is likely in the backend validation logic, possibly an unintended side effect of the recently added Loss of Pay feature that also touches the leave system.
--   Use the new global error handler. Any API call that fails should now produce a detailed error toast, which will be invaluable for debugging this issue.
--   After fixing the leave bug, the user's next priority is to build the Sales Incentive calculation module. The data foundation for this ( collection) has already been laid.
+-   The user's immediate priorities are adding **employee linking** to the new HR pages and implementing **CSV export** for the payroll report. These were requested but not yet implemented.
+-   The last session concluded with a successful E2E test for a new employee, fixing several bugs and UI inconsistencies along the way. The codebase is in a stable, verified state.
+-   Start by proposing a plan to tackle the two pending P0 features (employee linking and CSV export).
 
 **documents and test reports created in this job**
--   /app/memory/PRD.md (updated)
+-    (updated)
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asks to implement Project P&L, linking revenue (invoices) and costs (timesheets/expenses), and to prepare for a sales incentive module. Chooses Option C (Both A + B). **(COMPLETED)**
-2.  **User:** Asks how the incentive will be calculated, mentioning complex, time-bound, multi-variable criteria. **(Agent acknowledged, User decided to backlog it).**
-3.  **User:** Reports a new issue: HR manager cannot complete the Go-Live process for an employee and sees no errors. **(INVESTIGATED)**
-4.  **Agent:** Investigates the Go-Live flow, finds the feature is working but blocked by missing data (CTC and bank details), which is correct behavior. **(RESOLVED)**
-5.  **User:** Asks for better frontend error messages with technical details to avoid confusion like the Go-Live issue. **(Agent agrees to implement).**
-6.  **Agent:** Implements a global, detailed frontend error handling system using axios interceptors and toast notifications. **(COMPLETED)**
-7.  **User:** Reports a new critical bug: an employee cannot apply for leave due to a zero balance error, and provides a screenshot showing they have a sufficient balance. **(IN PROGRESS)**
-8.  **Agent:** Acknowledges the new bug and begins analysis of the screenshot. **(IN PROGRESS)**
+1.  **User:** Requests simplified approval flows for expenses, leaves, and attendance. (IMPLEMENTED)
+2.  **User:** Asks for frontend components for HR to manage leave/attendance. (IMPLEMENTED)
+3.  **Agent:** Implements the backend logic and new frontend pages for all simplified flows.
+4.  **User:** Asks for automated payroll summary reports with month-over-month comparison and CSV export, plus a way to configure the new attendance/leave rules. (PARTIALLY IMPLEMENTED - Dashboard/Settings UI is done, CSV export is pending).
+5.  **Agent:** Implements the Payroll Summary Report dashboard and the Attendance/Leave Settings page.
+6.  **User:** Asks to add employee linking to the new HR pages. (PENDING)
+7.  **User:** Requests an E2E test for a new employee, Kunal Malhotra. (COMPLETED)
+8.  **User:** Points out that the new pages have a dark UI, which should be light. (FIXED)
+9.  **Agent:** Fixes the UI theme and successfully completes the E2E test for Kunal Malhotra, including debugging a salary slip generation error.
+10. **Agent:** Provides screenshots confirming the E2E test completion and the light theme fix. (AWAITING USER VERIFICATION)
 
 **Project Health Check:**
--   **Broken:** The employee leave application feature is non-functional due to an incorrect balance validation error.
--   **Mocked / Not Started:** Sales Incentive calculation module, Day 0 Onboarding Tour, PWA notifications.
+-   **Broken:** None.
+-   **Mocked / Not Started:** Sales Incentive module, Day 0 Onboarding Tour, PWA notifications, CSV Export for Payroll Report, Employee linking on HR pages.
 
 **3rd Party Integrations**
 -   None.
 
 **Testing status**
--   **Testing agent used after significant changes:** NO (Agent self-tested E2E flows with ).
+-   **Testing agent used after significant changes:** YES, two separate  runs were executed and passed successfully.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None
--   **Known regressions:** The new leave application bug might be a regression caused by recent changes to the payroll/leave linkage.
+-   **Known regressions:** None. The leave application bug that was a potential regression has been fixed.
 
 **Credentials to test flow:**
 -   **Admin:**  / 
 -   **HR Manager:**  / 
 -   **Employee (Manager):**  / 
 -   **Employee (Reportee):**  / 
+-   **Employee (Test):**  / 
 
 **What agent forgot to execute**
--   The agent correctly identified the next task (incentive module) but was interrupted by a critical bug report, which must be prioritized first. Nothing was forgotten.</analysis>
+-   The user requested the ability to select/link an employee on the new HR attendance and leave input pages. The agent acknowledged this but prioritized the E2E test and UI fix. This task is still pending.
+-   The user requested CSV export functionality on the payroll report page. The agent built the dashboard but did not implement the export button's logic. This is also pending.</analysis>
