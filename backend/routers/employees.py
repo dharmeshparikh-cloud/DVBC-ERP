@@ -72,16 +72,29 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
                 raise HTTPException(status_code=400, detail="Employee with this phone number already exists")
     
     # Generate employee ID if not provided
-    if not data.get("employee_id"):
+    employee_id = data.get("employee_id")
+    if not employee_id:
         count = await db.employees.count_documents({})
-        data["employee_id"] = f"EMP{str(count + 1).zfill(3)}"
+        employee_id = f"EMP{str(count + 1).zfill(3)}"
+        data["employee_id"] = employee_id
+    
+    # Handle SELF reporting manager (for first employee or admin)
+    reporting_manager_id = data.get("reporting_manager_id")
+    is_self_reporting = reporting_manager_id == "SELF"
     
     # Set up departments array - department determines page access
     primary_department = data.get("department")
     departments = data.get("departments", [primary_department] if primary_department else [])
     
+    # Create employee ID first
+    new_employee_id = str(uuid.uuid4())
+    
+    # If SELF, reporting manager will be set to own ID after creation
+    if is_self_reporting:
+        reporting_manager_id = new_employee_id
+    
     employee = {
-        "id": str(uuid.uuid4()),
+        "id": new_employee_id,
         "employee_id": data.get("employee_id"),
         "first_name": sanitize_text(data.get("first_name", "")),
         "last_name": sanitize_text(data.get("last_name", "")),
@@ -93,7 +106,8 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
         "designation": data.get("designation"),
         "role": data.get("role", "consultant"),
         "level": data.get("level", "executive"),  # Employee hierarchy level
-        "reporting_manager_id": data.get("reporting_manager_id"),
+        "reporting_manager_id": reporting_manager_id,
+        "is_self_reporting": is_self_reporting,  # Flag for first employee
         "date_of_joining": data.get("date_of_joining"),
         "date_of_birth": data.get("date_of_birth"),
         "gender": data.get("gender"),
