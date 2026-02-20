@@ -7,7 +7,7 @@ import os
 import re
 import httpx
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
@@ -30,6 +30,10 @@ class ConversationState:
     TIMESHEET_PROJECT = "timesheet_project"
     TIMESHEET_HOURS = "timesheet_hours"
     TIMESHEET_TASK = "timesheet_task"
+    EXPENSE_TYPE = "expense_type"
+    EXPENSE_AMOUNT = "expense_amount"
+    EXPENSE_DESCRIPTION = "expense_description"
+    EXPENSE_RECEIPT = "expense_receipt"
 
 
 def parse_time_duration(text: str) -> Optional[Dict[str, Any]]:
