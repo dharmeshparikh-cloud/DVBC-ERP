@@ -284,7 +284,7 @@ async def get_mobile_attendance_stats(current_user: User = Depends(get_current_u
 
 
 # ==================== ATTENDANCE POLICY CONFIGURATION ====================
-ATTENDANCE_POLICY = {
+DEFAULT_ATTENDANCE_POLICY = {
     "working_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
     "non_consulting": {
         "check_in": "10:00",
@@ -299,7 +299,45 @@ ATTENDANCE_POLICY = {
     "late_penalty_amount": 100  # Rs. 100 penalty
 }
 
+# Keep ATTENDANCE_POLICY for backward compatibility
+ATTENDANCE_POLICY = DEFAULT_ATTENDANCE_POLICY
+
 CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant"]
+
+
+async def get_employee_policy(db, employee_id: str, employee_role: str = None) -> dict:
+    """
+    Get attendance policy for an employee.
+    First checks for custom policy, then falls back to default.
+    """
+    # Check for employee-specific custom policy
+    custom_policy = await db.employee_attendance_policies.find_one(
+        {"employee_id": employee_id, "is_active": True},
+        {"_id": 0}
+    )
+    
+    if custom_policy:
+        return {
+            "check_in": custom_policy.get("check_in", DEFAULT_ATTENDANCE_POLICY["non_consulting"]["check_in"]),
+            "check_out": custom_policy.get("check_out", DEFAULT_ATTENDANCE_POLICY["non_consulting"]["check_out"]),
+            "grace_period_minutes": custom_policy.get("grace_period_minutes", DEFAULT_ATTENDANCE_POLICY["grace_period_minutes"]),
+            "grace_days_per_month": custom_policy.get("grace_days_per_month", DEFAULT_ATTENDANCE_POLICY["grace_days_per_month"]),
+            "is_custom": True,
+            "reason": custom_policy.get("reason", "")
+        }
+    
+    # Fall back to role-based policy
+    is_consulting = employee_role in CONSULTING_ROLES if employee_role else False
+    base_policy = DEFAULT_ATTENDANCE_POLICY["consulting" if is_consulting else "non_consulting"]
+    
+    return {
+        "check_in": base_policy["check_in"],
+        "check_out": base_policy["check_out"],
+        "grace_period_minutes": DEFAULT_ATTENDANCE_POLICY["grace_period_minutes"],
+        "grace_days_per_month": DEFAULT_ATTENDANCE_POLICY["grace_days_per_month"],
+        "is_custom": False,
+        "reason": ""
+    }
 
 
 def parse_time(time_str: str) -> tuple:
@@ -332,10 +370,144 @@ def is_within_grace(actual_time: str, expected_time: str, grace_minutes: int = 3
 @router.get("/policy")
 async def get_attendance_policy(current_user: User = Depends(get_current_user)):
     """Get current attendance policy configuration"""
+    db = get_db()
+    
+    # Get custom policies count
+    custom_count = await db.employee_attendance_policies.count_documents({"is_active": True})
+    
     return {
-        "policy": ATTENDANCE_POLICY,
-        "consulting_roles": CONSULTING_ROLES
+        "policy": DEFAULT_ATTENDANCE_POLICY,
+        "consulting_roles": CONSULTING_ROLES,
+        "custom_policies_count": custom_count
     }
+
+
+@router.get("/policy/employee/{employee_id}")
+async def get_employee_attendance_policy(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Get attendance policy for a specific employee"""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        # Non-HR can only see their own policy
+        employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
+        if not employee or employee["id"] != employee_id:
+            raise HTTPException(status_code=403, detail="Can only view your own policy")
+    
+    # Get employee details
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "role": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    policy = await get_employee_policy(db, employee_id, employee.get("role"))
+    
+    return {
+        "employee_id": employee_id,
+        "employee_code": employee.get("employee_id"),
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "policy": policy
+    }
+
+
+@router.get("/policy/custom")
+async def list_custom_policies(current_user: User = Depends(get_current_user)):
+    """List all custom employee attendance policies"""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can view custom policies")
+    
+    policies = await db.employee_attendance_policies.find(
+        {"is_active": True},
+        {"_id": 0}
+    ).to_list(500)
+    
+    # Enrich with employee details
+    result = []
+    for policy in policies:
+        employee = await db.employees.find_one(
+            {"id": policy["employee_id"]},
+            {"_id": 0, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1}
+        )
+        if employee:
+            policy["employee_code"] = employee.get("employee_id")
+            policy["employee_name"] = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
+            policy["department"] = employee.get("department")
+        result.append(policy)
+    
+    return {"policies": result}
+
+
+@router.post("/policy/custom")
+async def create_custom_policy(data: dict, current_user: User = Depends(get_current_user)):
+    """Create or update custom attendance policy for an employee"""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can set custom policies")
+    
+    employee_id = data.get("employee_id")
+    if not employee_id:
+        raise HTTPException(status_code=400, detail="employee_id required")
+    
+    # Verify employee exists
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    policy_data = {
+        "employee_id": employee_id,
+        "employee_code": employee.get("employee_id"),
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "check_in": data.get("check_in", DEFAULT_ATTENDANCE_POLICY["non_consulting"]["check_in"]),
+        "check_out": data.get("check_out", DEFAULT_ATTENDANCE_POLICY["non_consulting"]["check_out"]),
+        "grace_period_minutes": data.get("grace_period_minutes", DEFAULT_ATTENDANCE_POLICY["grace_period_minutes"]),
+        "grace_days_per_month": data.get("grace_days_per_month", DEFAULT_ATTENDANCE_POLICY["grace_days_per_month"]),
+        "reason": data.get("reason", ""),
+        "effective_from": data.get("effective_from", now[:10]),
+        "effective_to": data.get("effective_to"),
+        "is_active": True,
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "updated_at": now
+    }
+    
+    # Check if policy already exists
+    existing = await db.employee_attendance_policies.find_one({"employee_id": employee_id})
+    
+    if existing:
+        await db.employee_attendance_policies.update_one(
+            {"employee_id": employee_id},
+            {"$set": policy_data}
+        )
+        action = "updated"
+    else:
+        policy_data["id"] = str(uuid.uuid4())
+        policy_data["created_at"] = now
+        await db.employee_attendance_policies.insert_one(policy_data)
+        action = "created"
+    
+    return {
+        "message": f"Custom policy {action} for {policy_data['employee_name']}",
+        "policy": policy_data
+    }
+
+
+@router.delete("/policy/custom/{employee_id}")
+async def delete_custom_policy(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Delete custom attendance policy for an employee (reverts to default)"""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can delete custom policies")
+    
+    result = await db.employee_attendance_policies.delete_one({"employee_id": employee_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="No custom policy found for this employee")
+    
+    return {"message": "Custom policy deleted, employee reverted to default policy"}
 
 
 @router.post("/auto-validate")
