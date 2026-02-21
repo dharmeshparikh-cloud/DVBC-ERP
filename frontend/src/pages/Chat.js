@@ -96,18 +96,22 @@ const Chat = () => {
       }
     };
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
+    ws.onclose = (event) => {
+      console.log('Chat WebSocket disconnected', event.code);
       setWsConnected(false);
+      wsRef.current = null;
       
-      // Attempt to reconnect after 3 seconds
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connectWebSocket();
-      }, 3000);
+      // Only reconnect if not a normal closure
+      if (event.code !== 1000 && !reconnectTimeoutRef.current) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = null;
+          connectWebSocket();
+        }, 10000);
+      }
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error('Chat WebSocket error:', error);
     };
 
     wsRef.current = ws;
@@ -115,14 +119,19 @@ const Chat = () => {
 
   // Connect WebSocket on mount
   useEffect(() => {
-    connectWebSocket();
+    const timeout = setTimeout(() => {
+      connectWebSocket();
+    }, 300);
     
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
+      clearTimeout(timeout);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close(1000, 'Component unmounting');
+        wsRef.current = null;
       }
     };
   }, [connectWebSocket]);
