@@ -4503,6 +4503,130 @@ async def check_pricing_access(
     return {"can_access": True, "meeting_count": meeting_count}
 
 
+@api_router.get("/leads/{lead_id}/funnel-progress")
+async def get_lead_funnel_progress(
+    lead_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get complete sales funnel progress for a lead - 9 steps"""
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    completed_steps = []
+    
+    # Step 1: Lead - always complete if lead exists
+    completed_steps.append("lead")
+    
+    # Step 2: Meeting
+    meeting_count = await db.meeting_records.count_documents({"lead_id": lead_id})
+    last_meeting = await db.meeting_records.find_one(
+        {"lead_id": lead_id}, 
+        {"_id": 0, "meeting_date": 1},
+        sort=[("meeting_date", -1)]
+    )
+    if meeting_count > 0:
+        completed_steps.append("meeting")
+    
+    # Step 3: Pricing Plan
+    pricing_plan = await db.pricing_plans.find_one(
+        {"lead_id": lead_id}, 
+        {"_id": 0, "id": 1, "total_investment": 1, "sow_id": 1}
+    )
+    pricing_plan_id = pricing_plan.get("id") if pricing_plan else None
+    pricing_plan_total = pricing_plan.get("total_investment", 0) if pricing_plan else 0
+    if pricing_plan:
+        completed_steps.append("pricing")
+    
+    # Step 4: SOW
+    sow = None
+    sow_id = None
+    sow_items_count = 0
+    if pricing_plan and pricing_plan.get("sow_id"):
+        sow = await db.enhanced_sow.find_one(
+            {"id": pricing_plan.get("sow_id")}, 
+            {"_id": 0, "id": 1, "scopes": 1}
+        )
+        if sow:
+            sow_id = sow.get("id")
+            sow_items_count = len(sow.get("scopes", []))
+            completed_steps.append("sow")
+    
+    # Step 5: Quotation
+    quotation = await db.quotations.find_one(
+        {"lead_id": lead_id}, 
+        {"_id": 0, "id": 1, "quotation_number": 1}
+    )
+    quotation_id = quotation.get("id") if quotation else None
+    quotation_number = quotation.get("quotation_number") if quotation else None
+    if quotation:
+        completed_steps.append("quotation")
+    
+    # Step 6: Agreement (must be signed)
+    agreement = await db.agreements.find_one(
+        {"lead_id": lead_id}, 
+        {"_id": 0, "id": 1, "agreement_number": 1, "status": 1, "total_value": 1}
+    )
+    agreement_id = agreement.get("id") if agreement else None
+    agreement_number = agreement.get("agreement_number") if agreement else None
+    agreement_status = agreement.get("status") if agreement else None
+    if agreement and agreement.get("status") == "signed":
+        completed_steps.append("agreement")
+    
+    # Step 7: Payment
+    total_paid = 0
+    payment_count = 0
+    if agreement_id:
+        payments = await db.agreement_payments.find(
+            {"agreement_id": agreement_id}, 
+            {"_id": 0, "amount": 1}
+        ).to_list(100)
+        payment_count = len(payments)
+        total_paid = sum(p.get("amount", 0) for p in payments)
+        if payment_count > 0:
+            completed_steps.append("payment")
+    
+    # Step 8: Kickoff Request
+    kickoff = await db.kickoff_requests.find_one(
+        {"lead_id": lead_id}, 
+        {"_id": 0, "id": 1, "status": 1, "project_id": 1}
+    )
+    kickoff_status = kickoff.get("status") if kickoff else None
+    if kickoff:
+        completed_steps.append("kickoff")
+    
+    # Step 9: Project Created (kickoff accepted)
+    project_id = None
+    project_name = None
+    if kickoff and kickoff.get("status") == "accepted":
+        project_id = kickoff.get("project_id")
+        if project_id:
+            project = await db.projects.find_one({"id": project_id}, {"_id": 0, "project_name": 1})
+            project_name = project.get("project_name") if project else None
+            completed_steps.append("complete")
+    
+    return {
+        "lead_id": lead_id,
+        "completed_steps": completed_steps,
+        "meeting_count": meeting_count,
+        "last_meeting_date": last_meeting.get("meeting_date") if last_meeting else None,
+        "pricing_plan_id": pricing_plan_id,
+        "pricing_plan_total": pricing_plan_total,
+        "sow_id": sow_id,
+        "sow_items_count": sow_items_count,
+        "quotation_id": quotation_id,
+        "quotation_number": quotation_number,
+        "agreement_id": agreement_id,
+        "agreement_number": agreement_number,
+        "agreement_status": agreement_status,
+        "total_paid": total_paid,
+        "payment_count": payment_count,
+        "kickoff_status": kickoff_status,
+        "project_id": project_id,
+        "project_name": project_name
+    }
+
+
 @api_router.post("/leads/bulk-upload")
 async def bulk_upload_leads(
     leads_data: List[LeadCreate],
