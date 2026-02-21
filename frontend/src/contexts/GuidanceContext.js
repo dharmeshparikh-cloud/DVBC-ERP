@@ -280,75 +280,101 @@ export const GuidanceProvider = ({ children }) => {
       try {
         const headers = { Authorization: `Bearer ${token}` };
         
-        // Fetch pending counts in parallel
-        const [leaveRes, expenseRes, attendanceRes, ctcRes, bankRes] = await Promise.allSettled([
-          axios.get(`${API}/leave-requests?status=pending`, { headers }),
-          axios.get(`${API}/expenses?status=pending`, { headers }),
-          axios.get(`${API}/hr/pending-attendance-approvals`, { headers }),
-          axios.get(`${API}/ctc/pending-approvals`, { headers }),
-          axios.get(`${API}/hr/bank-change-requests`, { headers })
+        // Use the unified approvals endpoint for pending items user needs to action
+        const [approvalsRes, expenseApprovalsRes] = await Promise.allSettled([
+          axios.get(`${API}/approvals/pending`, { headers }),
+          axios.get(`${API}/expenses/pending-approvals`, { headers })
         ]);
 
-        const leaveCount = leaveRes.status === 'fulfilled' ? (leaveRes.value.data?.length || 0) : 0;
-        const expenseCount = expenseRes.status === 'fulfilled' ? (expenseRes.value.data?.length || 0) : 0;
-        const attendanceCount = attendanceRes.status === 'fulfilled' ? (attendanceRes.value.data?.length || 0) : 0;
-        const ctcCount = ctcRes.status === 'fulfilled' ? (ctcRes.value.data?.length || 0) : 0;
-        const bankCount = bankRes.status === 'fulfilled' ? (bankRes.value.data?.length || 0) : 0;
+        const approvals = approvalsRes.status === 'fulfilled' ? (approvalsRes.value.data || []) : [];
+        const expenseApprovals = expenseApprovalsRes.status === 'fulfilled' ? (expenseApprovalsRes.value.data || []) : [];
+
+        // Group approvals by type
+        const groupedApprovals = {};
+        approvals.forEach(approval => {
+          const type = approval.approval_type || 'general';
+          if (!groupedApprovals[type]) {
+            groupedApprovals[type] = [];
+          }
+          groupedApprovals[type].push(approval);
+        });
 
         const items = [];
         
-        if (leaveCount > 0) {
-          items.push({
+        // Map approval types to display cards
+        const typeConfig = {
+          'leave_request': {
             icon: 'leaves',
             title: 'Leave Requests',
-            description: `${leaveCount} leave request${leaveCount > 1 ? 's' : ''} awaiting approval`,
-            count: leaveCount,
             route: '/approvals',
-            priority: leaveCount > 3 ? 'high' : 'medium'
+            priorityThreshold: 3
+          },
+          'ctc_approval': {
+            icon: 'ctc',
+            title: 'CTC Approvals',
+            route: '/approvals',
+            priorityThreshold: 1
+          },
+          'bank_change': {
+            icon: 'bank',
+            title: 'Bank Change Requests',
+            route: '/approvals',
+            priorityThreshold: 2
+          },
+          'attendance_regularization': {
+            icon: 'attendance',
+            title: 'Attendance Regularization',
+            route: '/approvals',
+            priorityThreshold: 5
+          },
+          'go_live': {
+            icon: 'ctc',
+            title: 'Go-Live Approvals',
+            route: '/approvals',
+            priorityThreshold: 1
+          },
+          'kickoff': {
+            icon: 'attendance',
+            title: 'Kickoff Requests',
+            route: '/approvals',
+            priorityThreshold: 2
+          },
+          'permission_change': {
+            icon: 'bank',
+            title: 'Permission Changes',
+            route: '/approvals',
+            priorityThreshold: 3
+          }
+        };
+
+        Object.entries(groupedApprovals).forEach(([type, typeApprovals]) => {
+          const config = typeConfig[type] || {
+            icon: 'attendance',
+            title: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            route: '/approvals',
+            priorityThreshold: 5
+          };
+          
+          const count = typeApprovals.length;
+          items.push({
+            icon: config.icon,
+            title: config.title,
+            description: `${count} ${count > 1 ? 'items' : 'item'} awaiting your approval`,
+            count: count,
+            route: config.route,
+            priority: count >= config.priorityThreshold ? 'high' : 'medium'
           });
-        }
-        
-        if (expenseCount > 0) {
+        });
+
+        // Add expense approvals if any
+        if (expenseApprovals.length > 0) {
           items.push({
             icon: 'expenses',
             title: 'Expense Claims',
-            description: `${expenseCount} expense${expenseCount > 1 ? 's' : ''} pending review`,
-            count: expenseCount,
+            description: `${expenseApprovals.length} expense${expenseApprovals.length > 1 ? 's' : ''} pending review`,
+            count: expenseApprovals.length,
             route: '/expense-approvals',
-            priority: expenseCount > 5 ? 'high' : 'medium'
-          });
-        }
-        
-        if (attendanceCount > 0) {
-          items.push({
-            icon: 'attendance',
-            title: 'Attendance Regularization',
-            description: `${attendanceCount} attendance request${attendanceCount > 1 ? 's' : ''} pending`,
-            count: attendanceCount,
-            route: '/approvals',
-            priority: 'medium'
-          });
-        }
-        
-        if (ctcCount > 0) {
-          items.push({
-            icon: 'ctc',
-            title: 'CTC Approvals',
-            description: `${ctcCount} CTC structure${ctcCount > 1 ? 's' : ''} need approval`,
-            count: ctcCount,
-            route: '/approvals',
-            priority: 'high'
-          });
-        }
-        
-        if (bankCount > 0) {
-          items.push({
-            icon: 'bank',
-            title: 'Bank Change Requests',
-            description: `${bankCount} bank detail change${bankCount > 1 ? 's' : ''} pending`,
-            count: bankCount,
-            route: '/approvals',
-            priority: 'medium'
+            priority: expenseApprovals.length > 5 ? 'high' : 'medium'
           });
         }
 
@@ -359,7 +385,7 @@ export const GuidanceProvider = ({ children }) => {
         });
 
         setSmartRecommendations({
-          totalPending: leaveCount + expenseCount + attendanceCount + ctcCount + bankCount,
+          totalPending: items.reduce((sum, item) => sum + item.count, 0),
           items
         });
       } catch (error) {
