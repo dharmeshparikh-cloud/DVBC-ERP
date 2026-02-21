@@ -226,6 +226,7 @@ const Layout = () => {
     { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3 },
     { name: 'Leads', href: '/leads', icon: Users },
     { name: 'Team Leads', href: '/manager-leads', icon: Users, managerOnly: true },
+    { name: 'Target Management', href: '/target-management', icon: Target, managerOnly: true },
     { name: 'SOW & Pricing', href: '/sales-funnel/pricing-plans', icon: FileText },
     { name: 'Agreements', href: '/agreements', icon: FileCheck },
     { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard },
