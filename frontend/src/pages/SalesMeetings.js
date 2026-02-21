@@ -283,8 +283,8 @@ const SalesMeetings = () => {
                         onChange={(e) => updateFormData('duration_minutes', e.target.value)} className="rounded-sm border-zinc-200" />
                     </div>
                   </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-zinc-950">Agenda Items</Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-zinc-950">Agenda Items</Label>
                   {formData.agenda.map((item, idx) => (
                     <div key={idx} className="flex gap-2">
                       <Input value={item} onChange={(e) => updateArrayItem('agenda', idx, e.target.value, setFormData, formData)}
