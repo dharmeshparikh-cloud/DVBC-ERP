@@ -11,7 +11,30 @@
 
 ## Completed Work - February 2026
 
-### Agreements Page Crash Fix & Validation Error Handling - February 21, 2026 ✅ (Latest)
+### PM Selection & Auto-Save Enhancements - February 21, 2026 ✅ (Latest)
+
+**1. PM Selection for Signed Agreements**
+- ✅ Fixed SelectItem dropdown issue (removed nested `<div>` inside SelectItem)
+- ✅ Added "Create Project Kickoff" button for signed agreements
+- ✅ Consultants can now be selected as Project Managers
+
+**2. Approval Cards - Show Approver Information**
+- ✅ Approval cards now display "Pending approval from: [Role]"
+- ✅ Bank detail changes show "Pending approval from: HR Manager" or "Admin"
+- ✅ Profile changes show "Pending approval from: HR Manager"
+- ✅ Modification requests show "Pending approval from: Admin (Go-Live Employee)"
+
+**3. Gmail-like Auto-Save on Page Leave**
+- ✅ Updated `useDraft` hook with `registerFormDataGetter` callback
+- ✅ Drafts auto-save when:
+  - User switches browser tabs (`visibilitychange` event)
+  - User closes/navigates away (`beforeunload` event)
+  - Component unmounts
+- ✅ Implemented in Leads.js and HROnboarding.js
+
+---
+
+### Agreements Page Crash Fix & Validation Error Handling - February 21, 2026 ✅
 **Fixed critical crash when backend returns Pydantic validation errors**
 
 **Issue:** The Agreements page crashed when the backend returned validation errors in Pydantic format (array of objects with `{type, loc, msg}` structure). The frontend tried to render this object directly as a React child, causing the crash.
