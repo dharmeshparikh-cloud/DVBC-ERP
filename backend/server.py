@@ -59,6 +59,7 @@ from routers import employees as employees_router
 from routers import attendance as attendance_router
 from routers import expenses as expenses_router
 from websocket_manager import get_manager as get_ws_manager
+from services.approval_notifications import send_approval_notification, notify_requester_on_action
 from routers import hr as hr_router
 from routers import role_management as role_management_router
 from routers import letters as letters_router
