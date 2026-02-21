@@ -155,6 +155,7 @@ const ApprovalsCenter = () => {
       
       if (isHR) {
         requests.push(axios.get(`${API}/hr/bank-change-requests`).catch(() => ({ data: [] })));
+        requests.push(axios.get(`${API}/hr/employee-change-requests`).catch(() => ({ data: [] })));
       }
       
       const results = await Promise.all(requests);
