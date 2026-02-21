@@ -70,7 +70,7 @@ const ClientOnboarding = () => {
     setLoading(true);
     try {
       const [agrRes, paymentsRes, consultantsRes] = await Promise.all([
-        axios.get(`${API}/agreements/${agreementId}`),
+        axios.get(`${API}/agreements/${agreementId}/full`),
         axios.get(`${API}/agreements/${agreementId}/payments`),
         axios.get(`${API}/consultants`)
       ]);
