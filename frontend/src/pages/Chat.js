@@ -35,21 +35,21 @@ const Chat = () => {
 
   // WebSocket connection
   const connectWebSocket = useCallback(() => {
-    if (!currentUser?.id || wsRef.current?.readyState === WebSocket.OPEN) return;
+    // Prevent duplicate connections
+    if (!currentUser?.id) return;
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (wsRef.current?.readyState === WebSocket.CONNECTING) return;
+
+    // Close any existing connection first
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
 
     const ws = new WebSocket(`${WS_URL}/api/chat/ws/${currentUser.id}`);
     
     ws.onopen = () => {
-      console.log('WebSocket connected');
+      console.log('Chat WebSocket connected');
       setWsConnected(true);
-      
-      // Subscribe to current conversation if any
-      if (selectedConversation) {
-        ws.send(JSON.stringify({
-          type: 'subscribe',
-          conversation_id: selectedConversation.id
-        }));
-      }
     };
 
     ws.onmessage = (event) => {
