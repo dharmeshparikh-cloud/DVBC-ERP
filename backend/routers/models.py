@@ -21,7 +21,7 @@ class UserRole(str):
     SENIOR_CONSULTANT = "senior_consultant"
     HR_EXECUTIVE = "hr_executive"
     HR_MANAGER = "hr_manager"
-    ACCOUNT_MANAGER = "account_manager"
+    SALES_MANAGER = "sales_manager"
     SUBJECT_MATTER_EXPERT = "subject_matter_expert"
 
 
@@ -59,19 +59,19 @@ DEFAULT_ROLES = [
     {"id": "principal_consultant", "name": "Principal Consultant", "description": "Principal consultant with freeze authority", "is_system_role": True, "can_delete": False},
     {"id": "hr_executive", "name": "HR Executive", "description": "HR team member", "is_system_role": False, "can_delete": True},
     {"id": "hr_manager", "name": "HR Manager", "description": "HR team manager", "is_system_role": False, "can_delete": True},
-    {"id": "account_manager", "name": "Account Manager", "description": "Handles client accounts and sales", "is_system_role": False, "can_delete": True},
+    {"id": "sales_manager", "name": "Sales Manager", "description": "Handles client accounts and sales", "is_system_role": False, "can_delete": True},
     {"id": "subject_matter_expert", "name": "Subject Matter Expert", "description": "Domain expert for consulting", "is_system_role": False, "can_delete": True},
     {"id": "manager", "name": "Manager", "description": "View/Download access, approve agreements", "is_system_role": True, "can_delete": False},
     {"id": "executive", "name": "Executive", "description": "Sales team - create leads, SOW, quotations", "is_system_role": True, "can_delete": False},
 ]
 
 # Role categories for SOW access control
-SALES_ROLES = ["admin", "executive", "account_manager"]
+SALES_ROLES = ["admin", "executive", "sales_manager"]
 CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert"]
 PM_ROLES = ["admin", "project_manager", "manager"]
 
 # Meeting role access constants
-SALES_MEETING_ROLES = ["admin", "executive", "account_manager"]
+SALES_MEETING_ROLES = ["admin", "executive", "sales_manager"]
 CONSULTING_MEETING_ROLES = ["admin", "project_manager", "consultant", "principal_consultant",
     "lean_consultant", "lead_consultant", "senior_consultant", "subject_matter_expert", "manager"]
 
