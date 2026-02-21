@@ -43,6 +43,7 @@ const AgreementView = lazy(() => import('./pages/sales-funnel/AgreementView'));
 const PaymentVerification = lazy(() => import('./pages/sales-funnel/PaymentVerification'));
 const ManagerApprovals = lazy(() => import('./pages/sales-funnel/ManagerApprovals'));
 const ClientOnboarding = lazy(() => import('./pages/ClientOnboarding'));
+const SalesFunnelOnboarding = lazy(() => import('./pages/SalesFunnelOnboarding'));
 const ConsultingSOWList = lazy(() => import('./pages/consulting/ConsultingSOWList'));
 const ConsultingProjectTasks = lazy(() => import('./pages/consulting/ConsultingProjectTasks'));
 const MyProjects = lazy(() => import('./pages/consulting/MyProjects'));
