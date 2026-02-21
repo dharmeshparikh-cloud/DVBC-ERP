@@ -66,6 +66,9 @@ from routers import project_payments as project_payments_router
 from routers import department_access as department_access_router
 from routers import permission_config as permission_config_router
 from routers import project_pnl as project_pnl_router
+from routers import chat as chat_router
+from routers import ai_assistant as ai_assistant_router
+from routers import email_actions as email_actions_router
 
 # Helper function to sanitize user input (prevent XSS)
 def sanitize_text(text: str) -> str:
