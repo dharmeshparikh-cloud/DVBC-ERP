@@ -356,6 +356,9 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="notifications" element={<Notifications />} />
         <Route path="follow-ups" element={<FollowUps />} />
         <Route path="invoices" element={<Invoices />} />
+        <Route path="chat" element={<Chat />} />
+        <Route path="ai-assistant" element={<AIAssistant />} />
+        <Route path="email-settings" element={<EmailSettings />} />
       </Route>
     </Routes>
   );
