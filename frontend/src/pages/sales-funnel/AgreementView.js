@@ -478,6 +478,16 @@ const AgreementView = () => {
                 E-Sign Agreement
               </Button>
             )}
+            {agreement?.status === 'signed' && (
+              <Button
+                onClick={() => setPmSelectionDialogOpen(true)}
+                className="bg-orange-500 text-white hover:bg-orange-600 rounded-sm shadow-none"
+                data-testid="create-kickoff-from-signed-btn"
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                Create Project Kickoff
+              </Button>
+            )}
           </div>
         </div>
       </div>
