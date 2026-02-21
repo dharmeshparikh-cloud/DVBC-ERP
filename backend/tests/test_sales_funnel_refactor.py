@@ -27,7 +27,7 @@ class TestAuth:
             "password": "admin123"
         })
         assert response.status_code == 200, f"Admin login failed: {response.text}"
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture(scope="class")
     def manager_token(self):
@@ -37,7 +37,7 @@ class TestAuth:
             "password": "Welcome@123"
         })
         assert response.status_code == 200, f"Manager login failed: {response.text}"
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture(scope="class")
     def hr_token(self):
@@ -47,7 +47,7 @@ class TestAuth:
             "password": "hr123"
         })
         assert response.status_code == 200, f"HR login failed: {response.text}"
-        return response.json().get("token")
+        return response.json().get("access_token")
 
     def test_admin_login(self):
         """Test admin can login"""
@@ -57,7 +57,7 @@ class TestAuth:
         })
         assert response.status_code == 200
         data = response.json()
-        assert "token" in data
+        assert "access_token" in data
         assert "user" in data
         print("Admin login successful")
 
@@ -69,7 +69,7 @@ class TestAuth:
         })
         assert response.status_code == 200
         data = response.json()
-        assert "token" in data
+        assert "access_token" in data
         print("Manager login successful")
 
 
