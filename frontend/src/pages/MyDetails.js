@@ -75,6 +75,65 @@ const MyDetails = () => {
     setEditSection(null);
     setEditData({});
     setChangeReason('');
+    setProofFile(null);
+    setProofPreview(null);
+    setIfscVerified(false);
+  };
+
+  // IFSC Verification
+  const verifyIfsc = async (ifscCode) => {
+    if (!ifscCode || ifscCode.length !== 11) return;
+    
+    const ifscPattern = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    if (!ifscPattern.test(ifscCode.toUpperCase())) {
+      toast.error('Invalid IFSC code format');
+      return;
+    }
+    
+    setVerifyingIfsc(true);
+    try {
+      const response = await axios.get(`https://ifsc.razorpay.com/${ifscCode.toUpperCase()}`);
+      if (response.data) {
+        setEditData(prev => ({
+          ...prev,
+          bank_name: response.data.BANK || prev.bank_name,
+          branch: response.data.BRANCH || prev.branch,
+          ifsc_code: ifscCode.toUpperCase()
+        }));
+        setIfscVerified(true);
+        toast.success(`Verified: ${response.data.BANK} - ${response.data.BRANCH}`);
+      }
+    } catch (error) {
+      setIfscVerified(false);
+      if (error.response?.status === 404) {
+        toast.error('Invalid IFSC code. Please check and try again.');
+      } else {
+        toast.error('Could not verify IFSC. Please enter bank details manually.');
+      }
+    } finally {
+      setVerifyingIfsc(false);
+    }
+  };
+
+  // Handle bank proof file
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      setProofFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setProofPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeFile = () => {
+    setProofFile(null);
+    setProofPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const submitChangeRequest = async () => {
@@ -83,13 +142,34 @@ const MyDetails = () => {
       return;
     }
 
+    // Bank section requires proof document
+    if (editSection === 'bank' && !proofFile) {
+      toast.error('Please upload a cancelled cheque or bank statement as proof');
+      return;
+    }
+
     setSaving(true);
     try {
-      await axios.post(`${API}/my/change-request`, {
+      let requestData = {
         section: editSection,
         changes: editData,
         reason: changeReason
-      });
+      };
+
+      // If bank section, include proof document
+      if (editSection === 'bank' && proofFile) {
+        const reader = new FileReader();
+        reader.readAsDataURL(proofFile);
+        await new Promise((resolve) => {
+          reader.onloadend = async () => {
+            requestData.proof_document = reader.result;
+            requestData.proof_filename = proofFile.name;
+            resolve();
+          };
+        });
+      }
+
+      await axios.post(`${API}/my/change-request`, requestData);
       toast.success('Change request submitted for HR approval');
       closeEditDialog();
       fetchPendingRequests();
