@@ -250,7 +250,7 @@ const ApprovalsCenter = () => {
   }
 
   // Calculate total pending for current user
-  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length;
+  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length + profileChangeApprovals.length;
 
   // Permission Change Action handlers
   const handlePermissionAction = async (requestId, action) => {
