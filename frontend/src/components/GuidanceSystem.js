@@ -219,7 +219,7 @@ export const HelpPanel = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-orange-500 text-orange-600'
                   : `border-transparent ${isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-500 hover:text-zinc-700'}`
@@ -227,6 +227,11 @@ export const HelpPanel = () => {
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
+              {tab.badge > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
+                  {tab.badge > 9 ? '9+' : tab.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -234,6 +239,115 @@ export const HelpPanel = () => {
         {/* Content */}
         <div className="flex-1 overflow-y-auto py-4 -mx-6 px-6">
           
+          {/* Smart Suggestions Tab */}
+          {activeTab === 'smart' && (
+            <div className="space-y-4">
+              {smartRecommendations?.totalPending > 0 ? (
+                <>
+                  {/* Summary Banner */}
+                  <div className={`p-4 rounded-lg ${isDark ? 'bg-orange-900/30 border border-orange-700' : 'bg-orange-50 border border-orange-200'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center">
+                        <AlertCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className={`font-semibold ${isDark ? 'text-orange-200' : 'text-orange-800'}`}>
+                          {smartRecommendations.totalPending} items need your attention
+                        </p>
+                        <p className={`text-sm ${isDark ? 'text-orange-300' : 'text-orange-600'}`}>
+                          Review and take action on pending items
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pending Items List */}
+                  <div className="space-y-3">
+                    {smartRecommendations.items.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => handleNavigateTo(item.route)}
+                        className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                          isDark 
+                            ? 'bg-zinc-800 border-zinc-700 hover:border-orange-600' 
+                            : 'bg-white border-zinc-200 hover:border-orange-400'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                              item.priority === 'high' 
+                                ? 'bg-red-100 text-red-600' 
+                                : item.priority === 'medium'
+                                  ? 'bg-amber-100 text-amber-600'
+                                  : 'bg-blue-100 text-blue-600'
+                            }`}>
+                              {item.icon === 'leaves' && <Calendar className="w-5 h-5" />}
+                              {item.icon === 'expenses' && <Receipt className="w-5 h-5" />}
+                              {item.icon === 'attendance' && <Clock className="w-5 h-5" />}
+                              {item.icon === 'ctc' && <Users className="w-5 h-5" />}
+                              {item.icon === 'bank' && <ClipboardCheck className="w-5 h-5" />}
+                              {!['leaves', 'expenses', 'attendance', 'ctc', 'bank'].includes(item.icon) && <ClipboardCheck className="w-5 h-5" />}
+                            </div>
+                            <div>
+                              <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                                {item.title}
+                              </p>
+                              <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                                {item.description}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              item.priority === 'high'
+                                ? 'bg-red-100 text-red-700'
+                                : item.priority === 'medium'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {item.count} pending
+                            </span>
+                            <ChevronRight className={`w-5 h-5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Quick Action */}
+                  <Button
+                    onClick={() => handleNavigateTo('/approvals')}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <ClipboardCheck className="w-4 h-4 mr-2" />
+                    Go to Approval Center
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </>
+              ) : (
+                /* All caught up state */
+                <div className={`text-center py-12 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <p className={`text-lg font-medium ${isDark ? 'text-zinc-200' : 'text-zinc-700'}`}>
+                    You're all caught up!
+                  </p>
+                  <p className="mt-1">No pending items need your attention.</p>
+                  <Button
+                    onClick={() => setActiveTab('ai')}
+                    variant="outline"
+                    className="mt-4"
+                  >
+                    <Bot className="w-4 h-4 mr-2" />
+                    Ask AI for help
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* AI Tab */}
           {activeTab === 'ai' && (
             <div className="space-y-4">
