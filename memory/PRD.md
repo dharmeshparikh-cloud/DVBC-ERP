@@ -12,26 +12,33 @@
 ## Completed Work - February 2026
 
 ### AI-Powered Hybrid Guidance System - February 21, 2026 ✅ (Latest)
-**Contextual help system with AI-powered navigation suggestions**
+**Contextual help system with AI-powered navigation suggestions and Smart Recommendations**
 
 **Features:**
 - ✅ **Floating Help Button** - Orange circular button at bottom-right corner
   - Pulse animation for first-time users
+  - **Red badge showing pending items count** when user has actionable items
   - `data-testid="floating-help-btn"` for testing
   - Fixed position (bottom-6 right-6) with z-50
-- ✅ **Help Panel Modal** with 3 tabs:
-  1. **Ask AI Tab** - GPT-4o powered contextual help
+- ✅ **Help Panel Modal** with 4 tabs:
+  1. **Smart Suggestions Tab** (NEW - Default tab)
+     - Shows pending approvals grouped by type (Leave, Expenses, CTC, Bank Changes, etc.)
+     - Priority-based sorting (high priority items first)
+     - Color-coded badges (red=high, amber=medium)
+     - Click to navigate directly to approval page
+     - "You're all caught up!" state when no pending items
+  2. **Ask AI Tab** - GPT-4o powered contextual help
      - Quick action buttons based on user role
      - Natural language queries ("How do I apply for leave?")
      - Navigation suggestions extracted from AI response
      - Auto-navigate feature takes user directly to relevant page
-  2. **Step-by-Step Guides Tab** - Workflow checklists
+  3. **Step-by-Step Guides Tab** - Workflow checklists
      - Daily Tasks: Check-in, Regularize Attendance, Apply Leave, Submit Expense
      - Sales Flow: Lead to Quotation, Quotation to Agreement, Agreement to Kickoff
      - HR & Onboarding: Employee Onboarding, Permission Change, Approval Process
      - Meetings & Tasks: Schedule Meeting, Create Task, Create Follow-up
      - Administration: Manage Masters
-  3. **Page Tips Tab** - Contextual tips for current page
+  4. **Page Tips Tab** - Contextual tips for current page
      - "About this page" descriptions
      - Pro tips specific to each page
 
@@ -41,16 +48,19 @@
   - Response: `{response, suggested_route, auto_navigate}`
 - `GET /api/my/guidance-state` - Fetch user's guidance preferences
 - `POST /api/my/guidance-state` - Save user's guidance preferences
+- `GET /api/approvals/pending` - Get pending approvals for smart recommendations
+- `GET /api/expenses/pending-approvals` - Get pending expense approvals
 
 **Files:**
-- `/app/frontend/src/components/GuidanceSystem.js` - FloatingHelpButton, HelpPanel, WorkflowOverlay
-- `/app/frontend/src/contexts/GuidanceContext.js` - WORKFLOWS, PAGE_TIPS, GuidanceProvider
+- `/app/frontend/src/components/GuidanceSystem.js` - FloatingHelpButton with badge, HelpPanel, WorkflowOverlay
+- `/app/frontend/src/contexts/GuidanceContext.js` - WORKFLOWS, PAGE_TIPS, smartRecommendations, GuidanceProvider
 - `/app/backend/server.py` - Lines 11315-11414 for AI guidance endpoint
 - `/app/backend/tests/test_guidance_system.py` - Comprehensive test suite
 
 **Integration:**
 - Uses `emergentintegrations.llm.chat.LlmChat` with GPT-4o model
 - Navigation parsing via `[NAVIGATE:/route-path]` format in AI response
+- Smart Recommendations auto-refreshes every 60 seconds
 
 ---
 
