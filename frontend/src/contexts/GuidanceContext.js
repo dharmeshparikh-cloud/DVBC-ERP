@@ -266,6 +266,113 @@ export const GuidanceProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [activeWorkflow, setActiveWorkflow] = useState(null);
   const [showHelpPanel, setShowHelpPanel] = useState(false);
+  const [smartRecommendations, setSmartRecommendations] = useState({
+    totalPending: 0,
+    items: []
+  });
+
+  // Load smart recommendations from pending approvals
+  useEffect(() => {
+    const loadSmartRecommendations = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        // Fetch pending counts in parallel
+        const [leaveRes, expenseRes, attendanceRes, ctcRes, bankRes] = await Promise.allSettled([
+          axios.get(`${API}/leave-requests?status=pending`, { headers }),
+          axios.get(`${API}/expenses?status=pending`, { headers }),
+          axios.get(`${API}/hr/pending-attendance-approvals`, { headers }),
+          axios.get(`${API}/ctc/pending-approvals`, { headers }),
+          axios.get(`${API}/hr/bank-change-requests`, { headers })
+        ]);
+
+        const leaveCount = leaveRes.status === 'fulfilled' ? (leaveRes.value.data?.length || 0) : 0;
+        const expenseCount = expenseRes.status === 'fulfilled' ? (expenseRes.value.data?.length || 0) : 0;
+        const attendanceCount = attendanceRes.status === 'fulfilled' ? (attendanceRes.value.data?.length || 0) : 0;
+        const ctcCount = ctcRes.status === 'fulfilled' ? (ctcRes.value.data?.length || 0) : 0;
+        const bankCount = bankRes.status === 'fulfilled' ? (bankRes.value.data?.length || 0) : 0;
+
+        const items = [];
+        
+        if (leaveCount > 0) {
+          items.push({
+            icon: 'leaves',
+            title: 'Leave Requests',
+            description: `${leaveCount} leave request${leaveCount > 1 ? 's' : ''} awaiting approval`,
+            count: leaveCount,
+            route: '/approvals',
+            priority: leaveCount > 3 ? 'high' : 'medium'
+          });
+        }
+        
+        if (expenseCount > 0) {
+          items.push({
+            icon: 'expenses',
+            title: 'Expense Claims',
+            description: `${expenseCount} expense${expenseCount > 1 ? 's' : ''} pending review`,
+            count: expenseCount,
+            route: '/expense-approvals',
+            priority: expenseCount > 5 ? 'high' : 'medium'
+          });
+        }
+        
+        if (attendanceCount > 0) {
+          items.push({
+            icon: 'attendance',
+            title: 'Attendance Regularization',
+            description: `${attendanceCount} attendance request${attendanceCount > 1 ? 's' : ''} pending`,
+            count: attendanceCount,
+            route: '/approvals',
+            priority: 'medium'
+          });
+        }
+        
+        if (ctcCount > 0) {
+          items.push({
+            icon: 'ctc',
+            title: 'CTC Approvals',
+            description: `${ctcCount} CTC structure${ctcCount > 1 ? 's' : ''} need approval`,
+            count: ctcCount,
+            route: '/approvals',
+            priority: 'high'
+          });
+        }
+        
+        if (bankCount > 0) {
+          items.push({
+            icon: 'bank',
+            title: 'Bank Change Requests',
+            description: `${bankCount} bank detail change${bankCount > 1 ? 's' : ''} pending`,
+            count: bankCount,
+            route: '/approvals',
+            priority: 'medium'
+          });
+        }
+
+        // Sort by priority (high first)
+        items.sort((a, b) => {
+          const priorityOrder = { high: 0, medium: 1, low: 2 };
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        });
+
+        setSmartRecommendations({
+          totalPending: leaveCount + expenseCount + attendanceCount + ctcCount + bankCount,
+          items
+        });
+      } catch (error) {
+        console.error('Failed to load smart recommendations:', error);
+      }
+    };
+
+    loadSmartRecommendations();
+    
+    // Refresh every 60 seconds
+    const interval = setInterval(loadSmartRecommendations, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load guidance state from backend
   useEffect(() => {
