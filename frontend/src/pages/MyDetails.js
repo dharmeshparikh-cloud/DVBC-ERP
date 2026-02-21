@@ -329,10 +329,10 @@ const MyDetails = () => {
                 size="sm" 
                 variant="outline"
                 onClick={() => openEditDialog('bank', {
-                  bank_name: profile.bank_name || '',
-                  account_number: profile.account_number || '',
-                  ifsc_code: profile.ifsc_code || '',
-                  branch: profile.bank_branch || ''
+                  bank_name: profile.bank_name || profile.bank_details?.bank_name || '',
+                  account_number: profile.account_number || profile.bank_details?.account_number || '',
+                  ifsc_code: profile.ifsc_code || profile.bank_details?.ifsc_code || '',
+                  branch: profile.bank_branch || profile.bank_details?.branch || profile.bank_details?.branch_name || ''
                 })}
               >
                 <Edit2 className="w-4 h-4 mr-1" /> Edit
