@@ -45,7 +45,14 @@ const ManagerApprovals = () => {
       toast.success('Agreement approved successfully');
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to approve agreement');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to approve agreement');
+      }
     }
   };
 
@@ -68,7 +75,14 @@ const ManagerApprovals = () => {
       setSelectedAgreement(null);
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to reject agreement');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to reject agreement');
+      }
     }
   };
 
