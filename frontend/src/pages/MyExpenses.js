@@ -130,11 +130,22 @@ const MyExpenses = () => {
       };
       await axios.post(`${API}/expenses`, payload);
       toast.success('Expense created as draft');
+      convertDraft(); // Mark draft as converted
+      clearDraft(); // Clear the draft
       setDialogOpen(false);
       setFormData({ client_id: '', client_name: '', project_id: '', project_name: '', is_office_expense: false, notes: '', line_items: [{ category: 'Travel', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }] });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create expense');
+    }
+  };
+
+  // Load a saved draft
+  const handleLoadDraft = async (draft) => {
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft) {
+      setFormData(loadedDraft.data);
+      toast.success('Draft loaded');
     }
   };
 
