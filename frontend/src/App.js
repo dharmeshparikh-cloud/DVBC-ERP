@@ -317,6 +317,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/agreement" element={<AgreementView />} />
         <Route path="sales-funnel/payment-verification" element={<PaymentVerification />} />
         <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
+        <Route path="client-onboarding" element={<ClientOnboarding />} />
         <Route path="consulting/projects" element={<ConsultingSOWList />} />
         <Route path="consulting/my-projects" element={<MyProjects />} />
         <Route path="consulting/assign-team/:projectId" element={<AssignTeam />} />
