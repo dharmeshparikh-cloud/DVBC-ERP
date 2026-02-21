@@ -19,6 +19,10 @@ const HRDashboard = () => {
   // Quick Check-in state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
   const [attendanceStatus, setAttendanceStatus] = useState(null);
+  
+  // Documentation generation state
+  const [generatingDocs, setGeneratingDocs] = useState(false);
+  const [docResult, setDocResult] = useState(null);
 
   useEffect(() => {
     fetchStats();
