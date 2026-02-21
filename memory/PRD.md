@@ -11,7 +11,33 @@
 
 ## Completed Work - February 2026
 
-### Communication & AI Features - February 21, 2026 ✅ (Latest)
+### Centralized Approval Notification System - February 21, 2026 ✅ (Latest)
+**Auto-trigger real-time email + WebSocket notifications for ALL approval workflows**
+
+**Integrated Workflows:**
+- ✅ **Leave Requests** → Email to Reporting Manager
+- ✅ **Expense Submissions** → Email to HR Manager
+- ✅ **Kickoff Requests** → Email to assigned PM
+- ✅ **Go-Live Requests** → Email to Admin
+- ✅ **Bank Change Requests** → Email to HR
+- ✅ **SOW Approvals** → Email to approver chain
+
+**Features:**
+- One-click Approve/Reject buttons in email (24hr expiry)
+- Real-time WebSocket notifications to approvers
+- Real-time notifications to requester when action is taken
+- All emails logged in `email_logs` collection
+- Secure tokens in `email_action_tokens` collection
+- SMTP configured with Google Workspace (dharmesh.parikh@dvconsulting.co.in)
+
+**Files:**
+- Service: `/app/backend/services/approval_notifications.py`
+- Email Actions: `/app/backend/routers/email_actions.py`
+- WebSocket: `/app/backend/websocket_manager.py`
+
+---
+
+### Communication & AI Features - February 21, 2026 ✅
 **Built 3 major features together:**
 
 1. **💬 Internal Chat System** (`/chat`):
