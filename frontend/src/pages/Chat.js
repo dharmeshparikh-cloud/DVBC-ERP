@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
-import { Send, Search, Plus, Users, MessageCircle, Pin, Check, CheckCheck, Paperclip, MoreVertical, X, FileText, ExternalLink } from 'lucide-react';
+import { Send, Search, Plus, Users, MessageCircle, Pin, Check, CheckCheck, Paperclip, MoreVertical, X, FileText, Wifi, WifiOff } from 'lucide-react';
 import { AuthContext } from '../App';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
 const Chat = () => {
   const { user: currentUser } = useContext(AuthContext);
@@ -17,7 +18,12 @@ const Chat = () => {
   const [groupName, setGroupName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [typingUsers, setTypingUsers] = useState({});
   const messagesEndRef = useRef(null);
+  const wsRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -26,6 +32,137 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // WebSocket connection
+  const connectWebSocket = useCallback(() => {
+    if (!currentUser?.id || wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    const ws = new WebSocket(`${WS_URL}/api/chat/ws/${currentUser.id}`);
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setWsConnected(true);
+      
+      // Subscribe to current conversation if any
+      if (selectedConversation) {
+        ws.send(JSON.stringify({
+          type: 'subscribe',
+          conversation_id: selectedConversation.id
+        }));
+      }
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'new_message') {
+        // Add new message to the list if we're in that conversation
+        if (data.conversation_id === selectedConversation?.id) {
+          setMessages(prev => [...prev, data.message]);
+        }
+        // Update conversation list
+        fetchConversations();
+      }
+      
+      if (data.type === 'typing') {
+        setTypingUsers(prev => ({
+          ...prev,
+          [data.conversation_id]: {
+            user_id: data.user_id,
+            user_name: data.user_name,
+            timestamp: Date.now()
+          }
+        }));
+        
+        // Clear typing indicator after 3 seconds
+        setTimeout(() => {
+          setTypingUsers(prev => {
+            const updated = { ...prev };
+            if (updated[data.conversation_id]?.timestamp < Date.now() - 2900) {
+              delete updated[data.conversation_id];
+            }
+            return updated;
+          });
+        }, 3000);
+      }
+      
+      if (data.type === 'read') {
+        // Update read status for message
+        setMessages(prev => prev.map(msg => 
+          msg.id === data.message_id 
+            ? { ...msg, read_by: [...(msg.read_by || []), data.user_id] }
+            : msg
+        ));
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setWsConnected(false);
+      
+      // Attempt to reconnect after 3 seconds
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connectWebSocket();
+      }, 3000);
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    wsRef.current = ws;
+  }, [currentUser?.id, selectedConversation]);
+
+  // Connect WebSocket on mount
+  useEffect(() => {
+    connectWebSocket();
+    
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [connectWebSocket]);
+
+  // Subscribe to conversation when selected
+  useEffect(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN && selectedConversation) {
+      wsRef.current.send(JSON.stringify({
+        type: 'subscribe',
+        conversation_id: selectedConversation.id
+      }));
+    }
+  }, [selectedConversation]);
+
+  // Send typing indicator
+  const sendTypingIndicator = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN && selectedConversation) {
+      wsRef.current.send(JSON.stringify({
+        type: 'typing',
+        conversation_id: selectedConversation.id,
+        user_name: currentUser?.full_name || 'Someone',
+        participant_ids: selectedConversation.participant_ids
+      }));
+    }
+  }, [selectedConversation, currentUser]);
+
+  // Handle typing with debounce
+  const handleTyping = (e) => {
+    setNewMessage(e.target.value);
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    sendTypingIndicator();
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      // Stop typing indicator
+    }, 2000);
+  };
 
   const fetchConversations = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -49,10 +186,19 @@ const Chat = () => {
       await fetch(`${API_URL}/api/chat/conversations/${conversationId}/read-all?user_id=${currentUser.id}`, {
         method: 'POST'
       });
+      
+      // Broadcast read receipt via WebSocket
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'read',
+          conversation_id: conversationId,
+          participant_ids: selectedConversation?.participant_ids || []
+        }));
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, selectedConversation]);
 
   const fetchUsers = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -67,17 +213,23 @@ const Chat = () => {
 
   useEffect(() => {
     fetchConversations();
-    const interval = setInterval(fetchConversations, 10000);
-    return () => clearInterval(interval);
-  }, [fetchConversations]);
+    // Only poll if WebSocket is not connected
+    if (!wsConnected) {
+      const interval = setInterval(fetchConversations, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchConversations, wsConnected]);
 
   useEffect(() => {
     if (selectedConversation) {
       fetchMessages(selectedConversation.id);
-      const interval = setInterval(() => fetchMessages(selectedConversation.id), 5000);
-      return () => clearInterval(interval);
+      // Only poll if WebSocket is not connected
+      if (!wsConnected) {
+        const interval = setInterval(() => fetchMessages(selectedConversation.id), 5000);
+        return () => clearInterval(interval);
+      }
     }
-  }, [selectedConversation, fetchMessages]);
+  }, [selectedConversation, fetchMessages, wsConnected]);
 
   useEffect(() => {
     if (showNewChat || showNewGroup) {
@@ -143,8 +295,10 @@ const Chat = () => {
       });
       
       if (res.ok) {
+        const sentMessage = await res.json();
+        // Add message locally immediately for instant feedback
+        setMessages(prev => [...prev, sentMessage]);
         setNewMessage('');
-        fetchMessages(selectedConversation.id);
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -170,7 +324,7 @@ const Chat = () => {
 
   const getConversationName = (conv) => {
     if (conv.type === 'group') return conv.name;
-    const other = conv.participants?.find(p => p.id !== currentUser.id);
+    const other = conv.participants?.find(p => p.id !== currentUser?.id);
     return other?.name || 'Unknown';
   };
 
@@ -182,7 +336,7 @@ const Chat = () => {
         </div>
       );
     }
-    const other = conv.participants?.find(p => p.id !== currentUser.id);
+    const other = conv.participants?.find(p => p.id !== currentUser?.id);
     const initials = other?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?';
     return (
       <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-pink-500 rounded-full flex items-center justify-center">
@@ -205,6 +359,8 @@ const Chat = () => {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
+  const typingIndicator = typingUsers[selectedConversation?.id];
+
   return (
     <div className="h-[calc(100vh-120px)] flex bg-gray-50 rounded-xl overflow-hidden shadow-lg" data-testid="chat-container">
       {/* Sidebar */}
@@ -212,7 +368,14 @@ const Chat = () => {
         {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Messages</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-gray-800">Messages</h2>
+              {wsConnected ? (
+                <Wifi className="w-4 h-4 text-green-500" title="Real-time connected" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-gray-400" title="Connecting..." />
+              )}
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowNewChat(true)}
@@ -296,7 +459,7 @@ const Chat = () => {
                   <p className="text-sm text-gray-500">
                     {selectedConversation.type === 'group' 
                       ? `${selectedConversation.participants?.length || 0} members`
-                      : 'Direct Message'}
+                      : wsConnected ? 'Connected' : 'Connecting...'}
                   </p>
                 </div>
               </div>
@@ -308,7 +471,7 @@ const Chat = () => {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((msg) => {
-                const isOwn = msg.sender_id === currentUser.id;
+                const isOwn = msg.sender_id === currentUser?.id;
                 return (
                   <div
                     key={msg.id}
@@ -394,6 +557,18 @@ const Chat = () => {
                   </div>
                 );
               })}
+              
+              {/* Typing Indicator */}
+              {typingIndicator && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 px-4 py-2 rounded-2xl rounded-tl-sm">
+                    <span className="text-sm text-gray-500 italic">
+                      {typingIndicator.user_name} is typing...
+                    </span>
+                  </div>
+                </div>
+              )}
+              
               <div ref={messagesEndRef} />
             </div>
 
@@ -406,7 +581,7 @@ const Chat = () => {
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleTyping}
                   placeholder="Type a message..."
                   className="flex-1 px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500"
                   data-testid="message-input"
