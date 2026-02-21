@@ -1015,71 +1015,144 @@ def can_see_all_data(user: User) -> bool:
 
 
 # ===== SALES TARGETS ENDPOINTS =====
+
+# New yearly target endpoints for Target Management UI
 @api_router.post("/sales-targets")
-async def create_sales_target(
-    target: SalesTargetCreate,
+async def create_yearly_sales_target(
+    target: YearlySalesTargetCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Create sales target for a team member (by reporting manager)"""
-    # Verify current user is the reporting manager of target user
-    target_user = await db.users.find_one({"id": target.user_id})
-    if not target_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    """Create/Update yearly sales target for a team member (Manager Target Assignment UI)"""
+    # Get employee to verify relationship
+    employee = await db.employees.find_one({"employee_id": target.employee_id}, {"_id": 0})
+    if not employee:
+        # Try finding by id
+        employee = await db.employees.find_one({"id": target.employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
     
-    if target_user.get('reporting_manager_id') != current_user.id and current_user.role not in ALL_DATA_ACCESS_ROLES:
-        raise HTTPException(status_code=403, detail="You can only set targets for your team members")
+    # Verify manager relationship (optional for admins)
+    if current_user.role not in ALL_DATA_ACCESS_ROLES:
+        user = await db.users.find_one({"id": employee.get('user_id')}, {"_id": 0})
+        if not user or user.get('reporting_manager_id') != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only set targets for your team members")
     
-    # Check for existing target
-    existing = await db.sales_targets.find_one({
-        "user_id": target.user_id,
-        "month": target.month,
-        "year": target.year
+    # Check for existing target for this employee/year/type
+    existing = await db.yearly_sales_targets.find_one({
+        "employee_id": target.employee_id,
+        "year": target.year,
+        "target_type": target.target_type
     })
-    if existing:
-        raise HTTPException(status_code=400, detail="Target already exists for this month")
     
+    if existing:
+        # Update existing
+        await db.yearly_sales_targets.update_one(
+            {"id": existing['id']},
+            {"$set": {
+                "monthly_targets": target.monthly_targets,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_by": current_user.id
+            }}
+        )
+        return {"message": "Target updated successfully", "id": existing['id']}
+    
+    # Create new
     target_dict = target.model_dump()
     target_dict['id'] = str(uuid.uuid4())
     target_dict['set_by'] = current_user.id
-    target_dict['approval_status'] = "pending"
     target_dict['created_at'] = datetime.now(timezone.utc).isoformat()
     
-    await db.sales_targets.insert_one(target_dict)
+    await db.yearly_sales_targets.insert_one(target_dict)
     return {"message": "Target created successfully", "id": target_dict['id']}
 
 
 @api_router.get("/sales-targets")
-async def get_sales_targets(
-    user_id: Optional[str] = None,
-    month: Optional[int] = None,
+async def get_yearly_sales_targets(
+    employee_id: Optional[str] = None,
     year: Optional[int] = None,
+    target_type: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get sales targets"""
+    """Get yearly sales targets for Target Management UI"""
     query = {}
     
-    if user_id:
-        query['user_id'] = user_id
-    elif current_user.role not in ALL_DATA_ACCESS_ROLES:
-        # Show own targets or targets of team members
-        team_ids = await get_team_member_ids(current_user.id)
-        query['user_id'] = {"$in": [current_user.id] + team_ids}
+    if employee_id:
+        query['employee_id'] = employee_id
     
-    if month:
-        query['month'] = month
     if year:
         query['year'] = year
     
-    targets = await db.sales_targets.find(query, {"_id": 0}).to_list(100)
+    if target_type:
+        query['target_type'] = target_type
     
-    # Enrich with user names
-    for t in targets:
-        user = await db.users.find_one({"id": t['user_id']}, {"full_name": 1})
-        t['user_name'] = user.get('full_name') if user else 'Unknown'
+    # For non-admins, filter to subordinates only
+    if current_user.role not in ALL_DATA_ACCESS_ROLES:
+        # Get subordinate employee IDs
+        subordinates = await db.users.find(
+            {"reporting_manager_id": current_user.id, "is_active": True},
+            {"_id": 0, "id": 1}
+        ).to_list(100)
+        sub_user_ids = [s['id'] for s in subordinates]
+        
+        # Get employee IDs for these users
+        employees = await db.employees.find(
+            {"user_id": {"$in": sub_user_ids}},
+            {"_id": 0, "employee_id": 1, "id": 1}
+        ).to_list(100)
+        emp_ids = [e.get('employee_id') or e.get('id') for e in employees]
+        
+        if not employee_id:
+            query['employee_id'] = {"$in": emp_ids}
+    
+    targets = await db.yearly_sales_targets.find(query, {"_id": 0}).to_list(100)
     
     return targets
 
 
+@api_router.patch("/sales-targets/{target_id}")
+async def update_yearly_sales_target(
+    target_id: str,
+    target_update: YearlySalesTargetCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a yearly sales target"""
+    existing = await db.yearly_sales_targets.find_one({"id": target_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Target not found")
+    
+    await db.yearly_sales_targets.update_one(
+        {"id": target_id},
+        {"$set": {
+            "monthly_targets": target_update.monthly_targets,
+            "target_type": target_update.target_type,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": current_user.id
+        }}
+    )
+    
+    return {"message": "Target updated successfully"}
+
+
+@api_router.delete("/sales-targets/{target_id}")
+async def delete_yearly_sales_target(
+    target_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a yearly sales target"""
+    existing = await db.yearly_sales_targets.find_one({"id": target_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Target not found")
+    
+    # Verify ownership (set_by or admin)
+    if existing.get('set_by') != current_user.id and current_user.role not in ALL_DATA_ACCESS_ROLES:
+        raise HTTPException(status_code=403, detail="You can only delete targets you created")
+    
+    await db.yearly_sales_targets.delete_one({"id": target_id})
+    
+    return {"message": "Target deleted successfully"}
+
+
+# Legacy endpoints for backward compatibility
 @api_router.patch("/sales-targets/{target_id}/approve")
 async def approve_sales_target(
     target_id: str,
