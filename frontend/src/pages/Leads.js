@@ -368,12 +368,21 @@ const Leads = () => {
   const getStatusBadge = (status) => {
     const statusStyles = {
       new: 'bg-zinc-100 text-zinc-600',
+      meeting: 'bg-blue-50 text-blue-700',
+      pricing_plan: 'bg-indigo-50 text-indigo-700',
+      sow: 'bg-purple-50 text-purple-700',
+      quotation: 'bg-yellow-50 text-yellow-700',
+      agreement: 'bg-orange-50 text-orange-700',
+      payment: 'bg-cyan-50 text-cyan-700',
+      kickoff_request: 'bg-pink-50 text-pink-700',
+      kick_accept: 'bg-teal-50 text-teal-700',
+      closed: 'bg-emerald-50 text-emerald-700',
+      paused: 'bg-amber-100 text-amber-800',
+      lost: 'bg-red-50 text-red-700',
+      // Legacy statuses for backward compatibility
       contacted: 'bg-blue-50 text-blue-700',
       qualified: 'bg-purple-50 text-purple-700',
       proposal: 'bg-yellow-50 text-yellow-700',
-      agreement: 'bg-orange-50 text-orange-700',
-      closed: 'bg-emerald-50 text-emerald-700',
-      lost: 'bg-red-50 text-red-700',
     };
     return statusStyles[status] || statusStyles.new;
   };
