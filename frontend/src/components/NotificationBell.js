@@ -114,7 +114,15 @@ const NotificationBell = () => {
 
   // WebSocket connection for real-time notifications
   const connectWebSocket = useCallback(() => {
-    if (!user?.id || wsRef.current?.readyState === WebSocket.OPEN) return;
+    // Prevent duplicate connections
+    if (!user?.id) return;
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (wsRef.current?.readyState === WebSocket.CONNECTING) return;
+
+    // Close any existing connection first
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
 
     const ws = new WebSocket(`${WS_URL}/api/chat/ws/${user.id}`);
     
