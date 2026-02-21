@@ -422,11 +422,13 @@ function App() {
       <AuthContext.Provider value={{ user, login, logout }}>
         <PermissionProvider>
           <ApprovalProvider>
-            <Toaster position="top-right" />
-            <PWAInstallPrompt />
-            <BrowserRouter>
-              <AppRouter user={user} login={login} logout={logout} loading={loading} />
-            </BrowserRouter>
+            <GuidanceProvider>
+              <Toaster position="top-right" />
+              <PWAInstallPrompt />
+              <BrowserRouter>
+                <AppRouter user={user} login={login} logout={logout} loading={loading} />
+              </BrowserRouter>
+            </GuidanceProvider>
           </ApprovalProvider>
         </PermissionProvider>
       </AuthContext.Provider>
