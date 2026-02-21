@@ -4538,15 +4538,23 @@ async def get_lead_funnel_progress(
     if pricing_plan:
         completed_steps.append("pricing")
     
-    # Step 4: SOW
+    # Step 4: SOW - Check both pricing_plan.sow_id AND enhanced_sow.pricing_plan_id
     sow = None
     sow_id = None
     sow_items_count = 0
-    if pricing_plan and pricing_plan.get("sow_id"):
-        sow = await db.enhanced_sow.find_one(
-            {"id": pricing_plan.get("sow_id")}, 
-            {"_id": 0, "id": 1, "scopes": 1}
-        )
+    if pricing_plan:
+        # First try pricing_plan.sow_id
+        if pricing_plan.get("sow_id"):
+            sow = await db.enhanced_sow.find_one(
+                {"id": pricing_plan.get("sow_id")}, 
+                {"_id": 0, "id": 1, "scopes": 1}
+            )
+        # If not found, check enhanced_sow by pricing_plan_id (reverse lookup)
+        if not sow:
+            sow = await db.enhanced_sow.find_one(
+                {"pricing_plan_id": pricing_plan_id}, 
+                {"_id": 0, "id": 1, "scopes": 1}
+            )
         if sow:
             sow_id = sow.get("id")
             sow_items_count = len(sow.get("scopes", []))
