@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../../App';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -7,9 +7,17 @@ import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, History, Star, Building2 } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, History, Star, Building2, Save, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
+import useDraft from '../../hooks/useDraft';
+import DraftIndicator from '../../components/DraftIndicator';
+import DraftSelector from '../../components/DraftSelector';
+
+// Generate draft title from quotation data
+const generateQuotationDraftTitle = (data) => {
+  return `Quotation - ₹${data.base_rate_per_meeting?.toLocaleString() || '0'}/meeting`;
+};
 
 const Quotations = () => {
   const { user } = useContext(AuthContext);
@@ -28,7 +36,22 @@ const Quotations = () => {
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [selectedPlanDetails, setSelectedPlanDetails] = useState(null);
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
-  const [activeView, setActiveView] = useState('list'); // 'list' or 'history'
+  const [activeView, setActiveView] = useState('list');
+  
+  // Draft support
+  const {
+    drafts,
+    loadingDrafts,
+    saving: savingDraft,
+    lastSaved,
+    loadDraft,
+    saveDraft,
+    autoSave,
+    deleteDraft,
+    convertDraft,
+    clearDraft,
+    registerFormDataGetter
+  } = useDraft('quotation', generateQuotationDraftTitle);
   
   const [formData, setFormData] = useState({
     pricing_plan_id: pricingPlanIdFromUrl || '',
@@ -37,6 +60,28 @@ const Quotations = () => {
     validity_days: 30,
     terms_and_conditions: 'Standard terms and conditions apply.\n\n1. Payment due within 15 days of invoice.\n2. Services subject to availability.\n3. This quotation is valid for 30 days.'
   });
+  
+  // Register form data getter for save-on-leave
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+  
+  useEffect(() => {
+    if (dialogOpen) {
+      registerFormDataGetter(() => formDataRef.current);
+    }
+    return () => {
+      registerFormDataGetter(null);
+    };
+  }, [dialogOpen, registerFormDataGetter]);
+  
+  // Auto-save when form data changes
+  useEffect(() => {
+    if (dialogOpen && formData.pricing_plan_id) {
+      autoSave(formData);
+    }
+  }, [formData, dialogOpen, autoSave]);
 
   useEffect(() => {
     fetchData();
