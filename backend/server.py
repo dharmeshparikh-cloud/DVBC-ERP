@@ -7889,25 +7889,41 @@ async def create_leave_request(
     half_day_label = f" ({leave_data.half_day_type.replace('_', ' ').title()})" if leave_data.is_half_day else ""
     leave_title = f"{leave_data.leave_type.replace('_', ' ').title()} - {days} day(s){half_day_label}"
     
-    # Notify Reporting Manager for approval
-    if rm_user_id:
-        await db.notifications.insert_one({
-            "id": str(uuid.uuid4()),
-            "user_id": rm_user_id,
-            "type": "leave_approval_required",
-            "title": "Leave Approval Required",
-            "message": f"{leave_request['employee_name']} requested {leave_title}. Please approve/reject.",
-            "reference_type": "leave_request",
-            "reference_id": leave_request['id'],
-            "is_read": False,
-            "action_required": True,
-            "created_at": now
-        })
+    # Get requester email
+    requester_user = await db.users.find_one({"id": current_user.id})
+    requester_email = requester_user.get("email", "") if requester_user else ""
     
-    # Notify HR and Admin (informational only)
+    # Send real-time approval notification to Reporting Manager
+    if rm_user_id:
+        rm_user = await db.users.find_one({"id": rm_user_id})
+        rm_email = rm_user.get("email", "") if rm_user else ""
+        
+        await send_approval_notification(
+            db=db,
+            ws_manager=get_ws_manager(),
+            record_type="leave_request",
+            record_id=leave_request['id'],
+            requester_id=current_user.id,
+            requester_name=leave_request['employee_name'],
+            requester_email=requester_email,
+            approver_id=rm_user_id,
+            approver_name=rm_name,
+            approver_email=rm_email,
+            details={
+                "Leave Type": leave_data.leave_type.replace('_', ' ').title(),
+                "Start Date": leave_data.start_date,
+                "End Date": leave_data.end_date,
+                "Duration": f"{days} day(s){half_day_label}",
+                "Reason": leave_data.reason or "Not specified"
+            },
+            link="/leave-management"
+        )
+    
+    # Notify HR and Admin (informational - real-time WebSocket only, no email)
     hr_admins = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"_id": 0, "id": 1}).to_list(20)
+    ws_manager = get_ws_manager()
     for user in hr_admins:
-        await db.notifications.insert_one({
+        notif = {
             "id": str(uuid.uuid4()),
             "user_id": user["id"],
             "type": "leave_request_info",
@@ -7916,9 +7932,14 @@ async def create_leave_request(
             "reference_type": "leave_request",
             "reference_id": leave_request['id'],
             "is_read": False,
-            "action_required": False,  # No action needed from HR/Admin
+            "action_required": False,
             "created_at": now
-        })
+        }
+        await db.notifications.insert_one(notif)
+        try:
+            await ws_manager.send_notification(user["id"], {**notif, "created_at": now.isoformat()})
+        except:
+            pass
     
     return {
         "message": "Leave request submitted for RM approval",
