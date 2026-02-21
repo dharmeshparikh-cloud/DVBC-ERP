@@ -73,8 +73,6 @@ def get_db():
 @router.post("/conversations", response_model=dict)
 async def create_conversation(data: ConversationCreate, db=Depends(get_db)):
     """Create a new DM or group conversation"""
-    from server import get_current_user_from_token
-    
     conversation_id = str(uuid.uuid4())
     
     # For DMs, check if conversation already exists between these two users
