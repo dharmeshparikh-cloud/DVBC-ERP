@@ -12081,7 +12081,7 @@ async def get_subordinate_leads(current_user: User = Depends(get_current_user)):
 @api_router.get("/manager/today-stats")
 async def get_manager_today_stats(current_user: User = Depends(get_current_user)):
     """Get today's stats for manager dashboard"""
-    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager"]:
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "account_manager", "senior_consultant"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     today = datetime.now(timezone.utc).date()
