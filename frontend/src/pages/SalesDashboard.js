@@ -570,6 +570,143 @@ const SalesDashboard = () => {
               </Card>
             )}
           </div>
+
+          {/* Advanced Analytics Row */}
+          <div className="grid grid-cols-3 gap-6">
+            {/* Time-in-Stage */}
+            {timeInStageData && (
+              <Card className="border-zinc-200 dark:border-zinc-800">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-500" />
+                      Time in Stage
+                    </CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {timeInStageData.overall_metrics?.avg_total_days || 0} days avg
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {timeInStageData.stages?.filter(s => s.avg_days !== null).slice(0, 6).map((stage, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <span className="text-xs text-zinc-600 dark:text-zinc-400">{stage.name}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full ${stage.avg_days <= 5 ? 'bg-emerald-500' : stage.avg_days <= 10 ? 'bg-amber-500' : 'bg-red-500'}`}
+                              style={{ width: `${Math.min((stage.avg_days / 14) * 100, 100)}%` }}
+                            />
+                          </div>
+                          <span className={`text-xs font-medium w-14 text-right ${stage.is_slow ? 'text-red-600' : 'text-zinc-600'}`}>
+                            {stage.avg_days} days
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {timeInStageData.overall_metrics?.slowest_stage && (
+                    <p className="text-xs text-amber-600 mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                      Slowest: {timeInStageData.overall_metrics.slowest_stage} ({timeInStageData.overall_metrics.slowest_stage_days} days)
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Win/Loss Analysis */}
+            {winLossData && (
+              <Card className="border-zinc-200 dark:border-zinc-800">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <PieChart className="w-4 h-4 text-purple-500" />
+                      Win/Loss Analysis
+                    </CardTitle>
+                    <Badge className={winLossData.summary?.win_rate >= 50 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
+                      {winLossData.summary?.win_rate || 0}% Win Rate
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+                      <p className="text-lg font-bold text-emerald-600">{winLossData.summary?.won || 0}</p>
+                      <p className="text-[10px] text-emerald-500">Won</p>
+                    </div>
+                    <div className="text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                      <p className="text-lg font-bold text-red-600">{winLossData.summary?.lost || 0}</p>
+                      <p className="text-[10px] text-red-500">Lost</p>
+                    </div>
+                    <div className="text-center p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                      <p className="text-lg font-bold text-amber-600">{winLossData.summary?.stale_30_days || 0}</p>
+                      <p className="text-[10px] text-amber-500">Stale</p>
+                    </div>
+                    <div className="text-center p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                      <p className="text-lg font-bold text-blue-600">{winLossData.summary?.active || 0}</p>
+                      <p className="text-[10px] text-blue-500">Active</p>
+                    </div>
+                  </div>
+                  
+                  {winLossData.at_risk?.count > 0 && (
+                    <div className="p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-1">
+                        ⚠️ {winLossData.at_risk.count} leads at risk (30+ days stale)
+                      </p>
+                      {winLossData.at_risk.leads?.slice(0, 2).map((lead, i) => (
+                        <p key={i} className="text-[10px] text-amber-600">
+                          • {lead.company} (stuck at {lead.stale_at_stage})
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Velocity Metrics */}
+            {velocityData && (
+              <Card className="border-zinc-200 dark:border-zinc-800">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-cyan-500" />
+                      Sales Velocity
+                    </CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {velocityData.summary?.completed_deals || 0} deals
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center mb-4">
+                    <p className="text-3xl font-bold text-cyan-600">
+                      {velocityData.summary?.avg_days_to_close || '-'}
+                    </p>
+                    <p className="text-xs text-zinc-500">Avg Days to Close</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+                      <p className="text-sm font-bold text-emerald-600">{velocityData.summary?.min_days || '-'}</p>
+                      <p className="text-[10px] text-emerald-500">Fastest</p>
+                    </div>
+                    <div className="text-center p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                      <p className="text-sm font-bold text-red-600">{velocityData.summary?.max_days || '-'}</p>
+                      <p className="text-[10px] text-red-500">Slowest</p>
+                    </div>
+                  </div>
+                  
+                  {velocityData.fastest_deal && (
+                    <p className="text-xs text-zinc-500">
+                      ⚡ Fastest: {velocityData.fastest_deal.company} ({velocityData.fastest_deal.days} days)
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </>
       )}
 
