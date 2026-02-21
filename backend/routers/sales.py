@@ -14,8 +14,6 @@ from .models import User, UserRole
 
 router = APIRouter(tags=["Sales"])
 
-db = get_db()
-
 # Role definitions
 ALL_DATA_ACCESS_ROLES = [UserRole.ADMIN, UserRole.SALES_MANAGER, UserRole.HR_MANAGER, UserRole.PRINCIPAL_CONSULTANT]
 SALES_MEETING_ROLES = [UserRole.ADMIN, UserRole.SALES_MANAGER, UserRole.EMPLOYEE, "sales_executive", "business_development"]
