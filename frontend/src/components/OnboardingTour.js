@@ -317,7 +317,7 @@ const CompletionDialog = ({ open, onClose, isDark }) => {
 
 // Main OnboardingTour component
 const OnboardingTour = () => {
-  const { user, token } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   
@@ -330,8 +330,14 @@ const OnboardingTour = () => {
 
   // Check if user needs onboarding - check when user state changes
   useEffect(() => {
-    // Don't run if user/token not ready
-    if (!user || !token) {
+    // Don't run if user not ready
+    if (!user) {
+      return;
+    }
+    
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    if (!token) {
       return;
     }
     
@@ -359,7 +365,7 @@ const OnboardingTour = () => {
     // Delay to let the page render
     const timer = setTimeout(checkOnboarding, 500);
     return () => clearTimeout(timer);
-  }, [user, token]);
+  }, [user]);
 
   // Set up tour steps based on role
   useEffect(() => {
