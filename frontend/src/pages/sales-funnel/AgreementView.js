@@ -69,19 +69,6 @@ const AgreementView = () => {
   const [clientEmail, setClientEmail] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  // Payment Recording
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [paymentData, setPaymentData] = useState({
-    amount: '',
-    payment_date: new Date().toISOString().split('T')[0],
-    payment_mode: '',
-    cheque_number: '',
-    utr_number: '',
-    remarks: ''
-  });
-  const [recordingPayment, setRecordingPayment] = useState(false);
-  const [agreementPayments, setAgreementPayments] = useState([]);
-
   useEffect(() => {
     if (agreementId) {
       fetchAgreementData();
