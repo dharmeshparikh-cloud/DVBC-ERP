@@ -51,7 +51,7 @@ const Quotations = () => {
     convertDraft,
     clearDraft,
     registerFormDataGetter
-  } = useDraft('quotation', generateQuotationDraftTitle);
+  } = useDraft('quotation', generateQuotationDraftTitle, 3000, leadId);  // Filter by lead_id
   
   const [formData, setFormData] = useState({
     pricing_plan_id: pricingPlanIdFromUrl || '',
