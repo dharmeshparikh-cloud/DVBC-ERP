@@ -7057,7 +7057,8 @@ async def create_approval_request(
             approval_request_id=approval_request['id'],
             approval_type=approval_type,
             reference_title=reference_title,
-            requester_name=requester_name
+            requester_name=requester_name,
+            requester_id=requester_id
         )
     
     return approval_request
