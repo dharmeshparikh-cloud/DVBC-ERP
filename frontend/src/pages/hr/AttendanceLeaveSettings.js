@@ -445,22 +445,140 @@ const AttendanceLeaveSettings = () => {
             </div>
           </div>
 
-          {/* Consulting Roles */}
-          <div>
-            <Label className="text-zinc-800 mb-2 block">Consulting Roles</Label>
-            <p className="text-xs text-zinc-500 mb-2">These roles follow consulting timing (10:30 AM - 7:30 PM)</p>
-            <Input
-              value={consultingRoles.join(', ')}
-              onChange={(e) => setConsultingRoles(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-              placeholder="consultant, senior_consultant, ..."
-              className="bg-zinc-50 border-zinc-300"
-            />
+          {/* Consulting Roles - Read Only */}
+          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Badge className="w-5 h-5 text-purple-600" />
+                <Label className="text-zinc-800 font-medium">Consulting Roles</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-purple-500" />
+                <span className="text-xs text-purple-600">Inherited from Employee Master</span>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-600 mb-3">These roles follow consulting timing ({attendancePolicy.consulting.check_in} - {attendancePolicy.consulting.check_out})</p>
+            
+            {/* Role badges */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {consultingRoles.map(role => (
+                <span 
+                  key={role}
+                  className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium flex items-center gap-1"
+                >
+                  {role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  {consultingRoleCounts[role] > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded-full text-xs">
+                      {consultingRoleCounts[role]}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
+            
+            {consultingEmployees.length > 0 && (
+              <p className="text-sm text-purple-700">
+                <strong>{consultingEmployees.length}</strong> employees follow consulting timing
+              </p>
+            )}
           </div>
 
           <Button onClick={saveAttendancePolicy} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
             <Save className="w-4 h-4 mr-2" />
             Save Attendance Policy
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Employee-wise Custom Policies */}
+      <Card className="bg-white border-zinc-200">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5 text-orange-400" />
+                Employee-wise Configuration
+              </CardTitle>
+              <CardDescription>Set custom attendance policies for specific employees</CardDescription>
+            </div>
+            <Button onClick={openAddPolicyModal} className="bg-orange-500 hover:bg-orange-600">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Custom Policy
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {customPolicies.length === 0 ? (
+            <div className="text-center py-8 text-zinc-500">
+              <User className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
+              <p className="text-sm">No custom policies configured</p>
+              <p className="text-xs mt-1">All employees follow the default attendance policy</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {customPolicies.map((policy) => (
+                <div 
+                  key={policy.employee_id}
+                  className="p-4 bg-zinc-50 rounded-lg border border-zinc-200 hover:border-orange-300 transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-medium text-zinc-900">{policy.employee_name}</span>
+                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
+                          {policy.employee_code}
+                        </span>
+                        {policy.department && (
+                          <span className="text-xs text-zinc-500">{policy.department}</span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-zinc-500">Check-in:</span>{' '}
+                          <span className="font-medium">{policy.check_in}</span>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Check-out:</span>{' '}
+                          <span className="font-medium">{policy.check_out}</span>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Grace:</span>{' '}
+                          <span className="font-medium">{policy.grace_period_minutes} min</span>
+                        </div>
+                        <div>
+                          <span className="text-zinc-500">Grace Days:</span>{' '}
+                          <span className="font-medium">{policy.grace_days_per_month}/month</span>
+                        </div>
+                      </div>
+                      {policy.reason && (
+                        <p className="mt-2 text-xs text-zinc-600 italic">
+                          Reason: {policy.reason}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => openEditPolicyModal(policy)}
+                        className="h-8 px-2"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => deleteCustomPolicy(policy.employee_id)}
+                        className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
