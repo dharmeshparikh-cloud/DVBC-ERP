@@ -875,12 +875,13 @@ const Leads = () => {
           {filteredLeads.map((lead) => {
             const scoreBadge = getScoreBadge(lead.lead_score || 0);
             const leadSuggestions = suggestions[lead.id] || [];
+            const progress = leadProgress[lead.id] || {};
             return (
               <Card
                 key={lead.id}
                 data-testid={`lead-card-${lead.id}`}
                 className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
-                onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
+                onClick={() => handleLeadClick(lead)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -912,6 +913,25 @@ const Leads = () => {
                         </span>
                         <span className="text-xs text-zinc-500 data-text">{scoreBadge.label}</span>
                       </div>
+                    </div>
+                  </div>
+                  
+                  {/* Sales Funnel Progress Indicator */}
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${progress.pricing ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`} title="Pricing Plan">
+                      {progress.pricing ? '✓' : '1'}
+                    </div>
+                    <div className={`flex-1 h-0.5 ${progress.sow ? 'bg-emerald-500' : 'bg-zinc-200'}`} />
+                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${progress.sow ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`} title="SOW">
+                      {progress.sow ? '✓' : '2'}
+                    </div>
+                    <div className={`flex-1 h-0.5 ${progress.invoice ? 'bg-emerald-500' : 'bg-zinc-200'}`} />
+                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${progress.invoice ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`} title="Invoice">
+                      {progress.invoice ? '✓' : '3'}
+                    </div>
+                    <div className={`flex-1 h-0.5 ${progress.agreement ? 'bg-emerald-500' : 'bg-zinc-200'}`} />
+                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${progress.agreement ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`} title="Agreement">
+                      {progress.agreement ? '✓' : '4'}
                     </div>
                   </div>
                 </CardHeader>
