@@ -191,7 +191,7 @@ const TargetManagement = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -220,9 +220,21 @@ const TargetManagement = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-xs text-zinc-500 uppercase">Total Clients in Funnel</p>
+                <p className="text-2xl font-semibold text-blue-600">{totalClients}</p>
+              </div>
+              <BarChart3 className="w-8 h-8 text-blue-500/30" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-xs text-zinc-500 uppercase">Total Annual Target</p>
                 <p className="text-2xl font-semibold text-emerald-600">
-                  {formatCurrency(targets.reduce((sum, t) => sum + getYearTotal(t), 0))}
+                  {formatCurrency(targets.filter(t => t.target_type === 'revenue').reduce((sum, t) => sum + getYearTotal(t), 0))}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-emerald-500/30" />
