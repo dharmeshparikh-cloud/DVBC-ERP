@@ -638,6 +638,9 @@ const Layout = () => {
 
       {/* Global Search Modal */}
       <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      {/* Onboarding Tour (for first-time users) */}
+      <OnboardingTour />
     </div>
   );
 };
