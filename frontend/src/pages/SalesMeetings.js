@@ -129,6 +129,7 @@ const SalesMeetings = () => {
       });
       toast.success('Sales meeting scheduled');
       setDialogOpen(false);
+      await convertDraft();
       setFormData({ title: '', meeting_date: '', meeting_time: '10:00', meeting_type: 'discovery', mode: 'online', duration_minutes: '60', notes: '', lead_id: '', attendees: [], attendee_names: [], agenda: [''] });
       fetchData();
     } catch (error) {
