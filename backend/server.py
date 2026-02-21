@@ -11303,6 +11303,7 @@ async def create_draft(draft: DraftCreate, current_user: User = Depends(get_curr
         "data": draft.data,
         "step": draft.step,
         "metadata": draft.metadata or {},
+        "entity_id": draft.entity_id,  # Store entity_id for filtering
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "is_deleted": False
