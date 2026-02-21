@@ -58,6 +58,7 @@ from routers import ctc as ctc_router
 from routers import employees as employees_router
 from routers import attendance as attendance_router
 from routers import expenses as expenses_router
+from websocket_manager import get_manager as get_ws_manager
 from routers import hr as hr_router
 from routers import role_management as role_management_router
 from routers import letters as letters_router
