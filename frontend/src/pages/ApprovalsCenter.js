@@ -114,10 +114,13 @@ const ApprovalsCenter = () => {
           }
         };
         
-        wsRef.current.onclose = () => {
+        wsRef.current.onclose = (event) => {
           setWsConnected(false);
-          console.log('Approvals WebSocket disconnected, reconnecting...');
-          setTimeout(connectWebSocket, 3000);
+          console.log('Approvals WebSocket disconnected', event.code);
+          // Only reconnect if not a normal closure
+          if (event.code !== 1000) {
+            setTimeout(connectWebSocket, 10000);
+          }
         };
         
         wsRef.current.onerror = (error) => {
