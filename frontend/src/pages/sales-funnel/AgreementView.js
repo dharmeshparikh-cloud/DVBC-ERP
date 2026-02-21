@@ -524,7 +524,7 @@ const AgreementView = () => {
               {agreement?.agreement_number || 'Draft Agreement'} • {lead?.company || 'Client'}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               onClick={handleDownloadPDF}
               variant="outline"
@@ -533,6 +533,34 @@ const AgreementView = () => {
               <Download className="w-4 h-4 mr-2" />
               Download PDF
             </Button>
+            
+            {/* Send to Client button - available for draft/created agreements */}
+            {agreement && !['signed', 'sent'].includes(agreement.status) && (
+              <Button
+                onClick={() => {
+                  setClientEmail(lead?.email || '');
+                  setSendDialogOpen(true);
+                }}
+                variant="outline"
+                className="rounded-sm border-blue-200 text-blue-600 hover:bg-blue-50"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Send to Client
+              </Button>
+            )}
+
+            {/* Upload Signed Agreement - for sent agreements */}
+            {agreement?.status === 'sent' && (
+              <Button
+                onClick={() => setUploadDialogOpen(true)}
+                variant="outline"
+                className="rounded-sm border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Upload Signed Copy
+              </Button>
+            )}
+
             {agreement?.status !== 'signed' && (
               <Button
                 onClick={() => setSignatureDialogOpen(true)}
