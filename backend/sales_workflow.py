@@ -265,7 +265,7 @@ class Agreement(BaseModel):
     signed_date: Optional[datetime] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    status: str = 'pending_approval'  # 'pending_approval', 'approved', 'rejected', 'sent', 'signed'
+    status: str = 'draft'  # 'draft', 'sent', 'signed' - No manager approval needed, approval at kickoff
     approved_by: Optional[str] = None
     approved_at: Optional[datetime] = None
     rejection_reason: Optional[str] = None
