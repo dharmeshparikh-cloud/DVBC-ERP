@@ -88,6 +88,19 @@ class ConnectionManager:
             if user_id != exclude_user:
                 await self.send_personal_message(message, user_id)
     
+    async def send_notification(self, user_id: str, notification: dict):
+        """Send a real-time notification to a user"""
+        message = {
+            "type": "notification",
+            "notification": notification
+        }
+        await self.send_personal_message(message, user_id)
+    
+    async def broadcast_notification(self, user_ids: List[str], notification: dict):
+        """Broadcast a notification to multiple users"""
+        for user_id in user_ids:
+            await self.send_notification(user_id, notification)
+    
     def is_user_online(self, user_id: str) -> bool:
         """Check if a user is currently online"""
         return user_id in self.active_connections and len(self.active_connections[user_id]) > 0
