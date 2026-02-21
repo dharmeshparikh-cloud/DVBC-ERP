@@ -11250,6 +11250,117 @@ async def download_postman_collection():
         media_type="application/json")
 
 
+# ==================== DRAFTS SYSTEM ====================
+# Save and retrieve drafts for multi-step forms (Onboarding, Leads, Meetings, etc.)
+
+class DraftCreate(BaseModel):
+    draft_type: str  # 'onboarding', 'lead', 'meeting', 'sow', etc.
+    title: str  # Display name for the draft
+    data: Dict[str, Any]  # Form data
+    step: Optional[int] = 0  # Current step in multi-step flow
+    metadata: Optional[Dict[str, Any]] = None  # Additional context
+
+
+@api_router.get("/drafts")
+async def get_user_drafts(
+    draft_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all drafts for the current user, optionally filtered by type"""
+    query = {"user_id": current_user.id, "is_deleted": {"$ne": True}}
+    if draft_type:
+        query["draft_type"] = draft_type
+    
+    drafts = await db.drafts.find(query, {"_id": 0}).sort("updated_at", -1).to_list(length=50)
+    return drafts
+
+
+@api_router.get("/drafts/{draft_id}")
+async def get_draft(draft_id: str, current_user: User = Depends(get_current_user)):
+    """Get a specific draft"""
+    draft = await db.drafts.find_one(
+        {"id": draft_id, "user_id": current_user.id, "is_deleted": {"$ne": True}},
+        {"_id": 0}
+    )
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return draft
+
+
+@api_router.post("/drafts")
+async def create_draft(draft: DraftCreate, current_user: User = Depends(get_current_user)):
+    """Create a new draft"""
+    draft_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user.id,
+        "user_name": current_user.full_name,
+        "draft_type": draft.draft_type,
+        "title": draft.title,
+        "data": draft.data,
+        "step": draft.step,
+        "metadata": draft.metadata or {},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "is_deleted": False
+    }
+    await db.drafts.insert_one(draft_doc)
+    draft_doc.pop("_id", None)
+    return {"message": "Draft saved", "draft": draft_doc}
+
+
+@api_router.put("/drafts/{draft_id}")
+async def update_draft(
+    draft_id: str,
+    draft: DraftCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing draft (auto-save or manual save)"""
+    existing = await db.drafts.find_one(
+        {"id": draft_id, "user_id": current_user.id, "is_deleted": {"$ne": True}}
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    
+    update_data = {
+        "title": draft.title,
+        "data": draft.data,
+        "step": draft.step,
+        "metadata": draft.metadata or existing.get("metadata", {}),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.drafts.update_one({"id": draft_id}, {"$set": update_data})
+    return {"message": "Draft updated", "draft_id": draft_id}
+
+
+@api_router.delete("/drafts/{draft_id}")
+async def delete_draft(draft_id: str, current_user: User = Depends(get_current_user)):
+    """Soft delete a draft"""
+    result = await db.drafts.update_one(
+        {"id": draft_id, "user_id": current_user.id},
+        {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return {"message": "Draft deleted"}
+
+
+@api_router.post("/drafts/{draft_id}/convert")
+async def convert_draft(draft_id: str, current_user: User = Depends(get_current_user)):
+    """Mark a draft as converted (when the actual record is created)"""
+    result = await db.drafts.update_one(
+        {"id": draft_id, "user_id": current_user.id},
+        {"$set": {
+            "is_converted": True,
+            "converted_at": datetime.now(timezone.utc).isoformat(),
+            "is_deleted": True  # Hide from drafts list after conversion
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    return {"message": "Draft marked as converted"}
+
+
 # ============== ONBOARDING TOUR ==============
 
 @api_router.get("/my/onboarding-status")
