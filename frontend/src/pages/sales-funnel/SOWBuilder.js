@@ -80,7 +80,7 @@ const SOWBuilder = () => {
     saveDraft,
     autoSave,
     registerFormDataGetter
-  } = useDraft(`sow_${pricingPlanId}`, generateSOWDraftTitle);
+  } = useDraft('sow', generateSOWDraftTitle, 3000, pricingPlanId);  // Filter by pricing_plan_id
   
   // Register form data getter for save-on-leave
   const newRowsRef = useRef(newRows);
