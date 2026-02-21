@@ -1038,6 +1038,110 @@ const ApprovalsCenter = () => {
         </Card>
       )}
 
+      {/* Agreement Approvals Section - For Managers and Admins */}
+      {(isManager || isAdmin) && agreementApprovals.length > 0 && (
+        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`} data-testid="agreement-approvals-section">
+          <CardHeader className="pb-3">
+            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <FileText className="w-5 h-5 text-blue-500" />
+              Pending Agreement Approvals ({agreementApprovals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {agreementApprovals.map((agreement, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
+                  data-testid={`agreement-approval-${agreement.id}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                          {agreement.party_name || agreement.project_name || 'Unnamed Agreement'}
+                        </span>
+                        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                          Agreement
+                        </Badge>
+                        {agreement.agreement_number && (
+                          <Badge variant="outline" className={`text-xs ${isDark ? 'border-zinc-600 text-zinc-400' : ''}`}>
+                            {agreement.agreement_number}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        {agreement.project_name && <span>Project: <strong>{agreement.project_name}</strong></span>}
+                        {agreement.total_value && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <span>Value: <strong className="text-emerald-600">{formatCurrency(agreement.total_value)}</strong></span>
+                          </>
+                        )}
+                        {agreement.project_duration_months && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <span>Duration: {agreement.project_duration_months} months</span>
+                          </>
+                        )}
+                      </div>
+                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        Created: {agreement.created_at ? new Date(agreement.created_at).toLocaleDateString() : 'N/A'}
+                        {agreement.start_date && ` • Start: ${new Date(agreement.start_date).toLocaleDateString()}`}
+                      </div>
+                      <div className={`text-xs mt-1 font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Pending approval from: <strong>Manager / Admin</strong>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { 
+                          setSelectedAgreement(agreement); 
+                          setAgreementDetailDialog(true); 
+                        }}
+                        className={isDark ? 'border-zinc-600' : ''}
+                        data-testid={`view-agreement-${agreement.id}`}
+                      >
+                        <Eye className="w-4 h-4 mr-1" /> View
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAgreementAction(agreement.id, 'approve')}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        disabled={actionLoading}
+                        data-testid={`approve-agreement-${agreement.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          const reason = prompt('Enter rejection reason:');
+                          if (reason) {
+                            setRejectReason(reason);
+                            handleAgreementAction(agreement.id, 'reject');
+                          }
+                        }}
+                        disabled={actionLoading}
+                        data-testid={`reject-agreement-${agreement.id}`}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Bank Change Approvals Section - For Admin and HR */}
       {(isAdmin || isHR) && bankApprovals.length > 0 && (
         <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
