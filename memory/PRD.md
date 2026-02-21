@@ -11,7 +11,29 @@
 
 ## Completed Work - February 2026
 
-### Centralized Approval Notification System - February 21, 2026 ✅ (Latest)
+### Enhanced Approvals Center - February 21, 2026 ✅ (Latest)
+**Major UX improvements to the Approval Center**
+
+**New Features:**
+- ✅ **Real-time WebSocket Refresh** - Auto-refresh when new approvals arrive
+  - Live/Offline indicator shows connection status
+  - Toast notification on new approval activity
+- ✅ **Bulk Actions** - Select multiple approvals for batch processing
+  - Select All / Deselect All functionality
+  - Approve All / Reject All buttons with confirmation dialog
+  - Visual selection feedback (orange border on selected items)
+- ✅ **Mobile Optimization** - Responsive design for all screen sizes
+  - Compact stats cards (2-column grid on mobile)
+  - Stacked action buttons on mobile
+  - Horizontally scrollable tabs
+  - Approval chain hidden on mobile (shown on tablet+)
+
+**Files Modified:**
+- `/app/frontend/src/pages/ApprovalsCenter.js`
+
+---
+
+### Centralized Approval Notification System - February 21, 2026 ✅
 **Auto-trigger real-time email + WebSocket notifications for ALL approval workflows**
 
 **Integrated Workflows:**
