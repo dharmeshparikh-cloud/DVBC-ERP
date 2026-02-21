@@ -11318,8 +11318,10 @@ async def ai_guidance_help(
     current_user: User = Depends(get_current_user)
 ):
     """AI-powered contextual help with navigation suggestions"""
-    from emergentintegrations.llm.chat import chat, ModelType
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
     import os
+    import re
+    import uuid
     
     query = request.get("query", "")
     current_page = request.get("current_page", "/")
@@ -11378,13 +11380,18 @@ Format: If suggesting navigation, end your response with: [NAVIGATE:/route-path]
 Keep responses under 100 words. Be direct and helpful."""
 
     try:
-        response = await chat(
+        # Initialize chat with LlmChat class
+        chat = LlmChat(
             api_key=emergent_key,
-            prompt=f"User question: {query}",
-            system=system_prompt,
-            model=ModelType.GPT_4O,
-            conversation_history=[]
-        )
+            session_id=f"guidance-{str(uuid.uuid4())[:8]}",
+            system_message=system_prompt
+        ).with_model("openai", "gpt-4o")
+        
+        # Create user message
+        user_message = UserMessage(text=f"User question: {query}")
+        
+        # Send message and get response
+        response = await chat.send_message(user_message)
         
         response_text = response.strip()
         suggested_route = None
@@ -11392,7 +11399,6 @@ Keep responses under 100 words. Be direct and helpful."""
         
         # Extract navigation suggestion
         if "[NAVIGATE:" in response_text:
-            import re
             match = re.search(r'\[NAVIGATE:(.*?)\]', response_text)
             if match:
                 suggested_route = match.group(1)
