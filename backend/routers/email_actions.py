@@ -483,6 +483,26 @@ async def execute_action(
             success = result.modified_count > 0
             message = "Bank change request has been rejected."
     
+    elif record_type == "sow":
+        # Handle SOW approval requests
+        approval_req = await db.approval_requests.find_one({"id": record_id}, {"_id": 0})
+        requester_id = approval_req.get("requester_id") if approval_req else None
+        
+        if action == "approve":
+            result = await db.approval_requests.update_one(
+                {"id": record_id},
+                {"$set": {"overall_status": "approved", "approved_at": datetime.now(timezone.utc), "approved_via": "email"}}
+            )
+            success = result.modified_count > 0
+            message = "SOW has been approved!"
+        elif action == "reject":
+            result = await db.approval_requests.update_one(
+                {"id": record_id},
+                {"$set": {"overall_status": "rejected", "rejected_at": datetime.now(timezone.utc), "rejected_via": "email"}}
+            )
+            success = result.modified_count > 0
+            message = "SOW has been rejected."
+    
     # Mark token as used
     await db.email_action_tokens.update_one(
         {"token": token},
