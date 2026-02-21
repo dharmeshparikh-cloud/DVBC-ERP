@@ -11,7 +11,28 @@
 
 ## Completed Work - February 2026
 
-### PM Selection & Auto-Save Enhancements - February 21, 2026 ✅ (Latest)
+### Agreement Approvals in Approvals Center - February 21, 2026 ✅ (Latest)
+**Fixed: System Admin could not see agreement approvals in the Approvals Center**
+
+**Issue:** Agreements marked as "awaiting manager approval" (status: `pending_approval`) were not visible in the central Approvals Center, even though the backend endpoint `/api/agreements/pending-approval` was working correctly.
+
+**Fix Applied:**
+- ✅ **Updated `fetchData` function** in ApprovalsCenter.js to fetch `/api/agreements/pending-approval` for managers and admins
+- ✅ **Added `handleAgreementAction` function** for approve/reject actions
+- ✅ **Added "AGRMT" stat card** showing count of pending agreement approvals
+- ✅ **Added "Pending Agreement Approvals" section** with:
+  - Party name, agreement number, duration
+  - Created date, start date
+  - "Pending approval from: Manager / Admin" indicator
+  - View, Approve, Reject buttons with proper test IDs
+- ✅ **Approval flow tested** - Successfully approved an agreement and verified lead status update
+
+**Files Modified:**
+- `/app/frontend/src/pages/ApprovalsCenter.js`
+
+---
+
+### PM Selection & Auto-Save Enhancements - February 21, 2026 ✅
 
 **1. PM Selection for Signed Agreements**
 - ✅ Fixed SelectItem dropdown issue (removed nested `<div>` inside SelectItem)
