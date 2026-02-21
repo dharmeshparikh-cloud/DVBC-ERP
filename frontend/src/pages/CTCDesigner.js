@@ -36,6 +36,7 @@ const CTCDesigner = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const isAdmin = user?.role === 'admin';
+  const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
 
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -47,6 +48,9 @@ const CTCDesigner = () => {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Mode: 'revision' (existing employees) or 'onboarding' (from URL param)
+  const [mode, setMode] = useState('revision');
 
   // Component configuration
   const [componentMaster, setComponentMaster] = useState([]);
@@ -64,6 +68,18 @@ const CTCDesigner = () => {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
+    // Check if coming from onboarding flow
+    const urlParams = new URLSearchParams(window.location.search);
+    const employeeId = urlParams.get('employee');
+    
+    if (employeeId) {
+      setMode('onboarding');
+      // Pre-select the employee from onboarding
+      fetchEmployeeById(employeeId);
+    } else {
+      setMode('revision');
+    }
+    
     fetchEmployees();
     fetchComponentMaster();
     if (isAdmin) {
@@ -75,11 +91,28 @@ const CTCDesigner = () => {
     setEffectiveMonth(nextMonth.toISOString().slice(0, 7));
   }, [isAdmin]);
 
+  const fetchEmployeeById = async (empId) => {
+    try {
+      const res = await axios.get(`${API}/employees/${empId}`);
+      setSelectedEmployee(res.data);
+    } catch (err) {
+      console.error('Failed to load employee:', err);
+    }
+  };
+
   const fetchEmployees = async () => {
     try {
       const res = await axios.get(`${API}/employees`);
-      // Include employees where is_active is true OR not set (null/undefined)
-      setEmployees(res.data.filter(e => e.is_active !== false));
+      // For revision mode: Only show employees who have completed onboarding AND have existing CTC
+      // For onboarding mode: Show the specific employee from URL param
+      const activeEmployees = res.data.filter(e => e.is_active !== false);
+      
+      // Employees eligible for CTC revision (already have CTC set)
+      const eligibleForRevision = activeEmployees.filter(e => 
+        e.onboarding_complete === true && e.current_ctc && e.current_ctc > 0
+      );
+      
+      setEmployees(eligibleForRevision);
     } catch (err) {
       toast.error('Failed to load employees');
     }
