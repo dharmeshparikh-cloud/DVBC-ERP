@@ -11,7 +11,59 @@
 
 ## Completed Work - February 2026
 
-### Agreement Approvals in Approvals Center - February 21, 2026 ✅ (Latest)
+### Phase 1: Lead Stage Filter & List View + Single Approval Flow - February 21, 2026 ✅ (Latest)
+
+**1. Lead Stage Dropdown Filter (Replaced Buttons)**
+- ✅ Replaced button-based status filter with dropdown
+- ✅ New stages: All, New, Meeting, Pricing Plan, SOW, Quotation, Agreement, Payment, Kickoff Request, Kick Accept, Closed, Paused, Lost
+- ✅ Shows total count for "All Leads"
+- ✅ "Clear" button to reset filter
+
+**2. List View as Default**
+- ✅ Changed default viewMode from 'card' to 'list'
+- ✅ List view shows: Name, Company, Email, Score, Progress, Status, Actions
+
+**3. Manager Pause/Resume Lead Functionality**
+- ✅ Pause button (orange) visible for managers in Actions column
+- ✅ Resume button (green) shows for paused leads
+- ✅ Paused leads show "PAUSED" badge and grayed-out row
+- ✅ Status dropdown disabled for paused leads
+- ✅ Clicking paused lead shows info toast
+- ✅ Backend endpoints: `/api/leads/{id}/pause`, `/api/leads/{id}/resume`
+
+**4. Single Approval Point at Kickoff Request**
+- ✅ Removed agreement `pending_approval` status (now starts as `draft`)
+- ✅ Created Kickoff Request endpoints:
+  - `POST /api/kickoff-requests` - Create kickoff request
+  - `GET /api/kickoff-requests/pending` - Get pending for approval
+  - `POST /api/kickoff-requests/{id}/approve` - Approve (Sr. Manager/Principal only)
+  - `POST /api/kickoff-requests/{id}/reject` - Reject
+  - `POST /api/kickoff-requests/{id}/close` - Mark deal closed
+- ✅ Lead status flow: `kickoff_request` → `kick_accept` → `closed`
+- ✅ Notifications sent to Sr. Managers and requestor
+
+**5. Manager Dashboard APIs**
+- ✅ `GET /api/manager/subordinate-leads` - All subordinate leads with progress
+- ✅ `GET /api/manager/today-stats` - Today's meetings, calls, closures, absents
+- ✅ `GET /api/manager/performance` - Monthly/YTD closure count and agreement value
+
+**New Lead Statuses:**
+```
+new → meeting → pricing_plan → sow → quotation → agreement → payment → kickoff_request → kick_accept → closed
+                                                                                            ↓
+                                                                                         paused (manager can pause/resume)
+                                                                                            ↓
+                                                                                          lost
+```
+
+**Files Modified:**
+- `/app/backend/server.py` - Added LeadStatus enum, Pause/Resume, Manager APIs, Kickoff Request endpoints
+- `/app/backend/sales_workflow.py` - Changed Agreement default status from 'pending_approval' to 'draft'
+- `/app/frontend/src/pages/Leads.js` - Dropdown filter, list view default, pause/resume buttons, new status options
+
+---
+
+### Agreement Approvals in Approvals Center - February 21, 2026 ✅
 **Fixed: System Admin could not see agreement approvals in the Approvals Center**
 
 **Issue:** Agreements marked as "awaiting manager approval" (status: `pending_approval`) were not visible in the central Approvals Center, even though the backend endpoint `/api/agreements/pending-approval` was working correctly.
