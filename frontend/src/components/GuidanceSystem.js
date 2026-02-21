@@ -670,12 +670,15 @@ const WorkflowCard = ({ workflow, onStart, isDark, highlighted = false }) => (
   </div>
 );
 
-// Active Workflow Overlay
+// Active Workflow Overlay - Now Draggable
 export const WorkflowOverlay = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { activeWorkflow, closeWorkflow, guidanceState, completeWorkflowStep } = useGuidance();
+  
+  // Draggable functionality
+  const { position, isDragging, dragRef, handleMouseDown, handleTouchStart, resetPosition } = useDraggable();
 
   if (!activeWorkflow) return null;
 
@@ -706,16 +709,31 @@ export const WorkflowOverlay = () => {
     }
   };
 
+  // Calculate position styles
+  const positionStyle = position.x !== null && position.y !== null
+    ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' }
+    : { right: 24, bottom: 96 };
+
   return (
-    <div className={`
-      fixed bottom-24 right-6 z-50 w-80
-      rounded-xl shadow-2xl border overflow-hidden
-      ${isDark ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-zinc-200'}
-    `}>
-      {/* Header */}
-      <div className={`px-4 py-3 ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+    <div 
+      ref={dragRef}
+      style={positionStyle}
+      className={`
+        fixed z-50 w-80
+        rounded-xl shadow-2xl border overflow-hidden
+        ${isDark ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-zinc-200'}
+        ${isDragging ? 'shadow-[0_20px_50px_rgba(0,0,0,0.3)]' : ''}
+      `}
+    >
+      {/* Draggable Header */}
+      <div 
+        className={`px-4 py-3 ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'} ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <Move className={`w-4 h-4 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
             <List className="w-4 h-4 text-orange-500" />
             <span className={`text-sm font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
               {activeWorkflow.title}
