@@ -11282,6 +11282,129 @@ async def reset_onboarding(current_user: User = Depends(get_current_user)):
     return {"message": "Onboarding reset", "has_completed_onboarding": False}
 
 
+# ============== GUIDANCE SYSTEM ==============
+
+@api_router.get("/my/guidance-state")
+async def get_guidance_state(current_user: User = Depends(get_current_user)):
+    """Get user's guidance preferences and progress"""
+    user_doc = await db.users.find_one(
+        {"id": current_user.id}, 
+        {"_id": 0, "guidance_state": 1}
+    )
+    default_state = {
+        "dismissed_tips": [],
+        "seen_features": [],
+        "workflow_progress": {},
+        "dont_show_tips": False
+    }
+    return user_doc.get("guidance_state", default_state) if user_doc else default_state
+
+@api_router.post("/my/guidance-state")
+async def update_guidance_state(
+    state: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update user's guidance preferences and progress"""
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {"guidance_state": state}}
+    )
+    return {"message": "Guidance state updated", "guidance_state": state}
+
+
+@api_router.post("/ai/guidance-help")
+async def ai_guidance_help(
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """AI-powered contextual help with navigation suggestions"""
+    from emergentintegrations.llm.chat import chat, ModelType
+    
+    query = request.get("query", "")
+    current_page = request.get("current_page", "/")
+    user_role = request.get("user_role", "employee")
+    
+    # Build context about available routes and actions
+    route_context = """
+    Available routes and their purposes:
+    - /: Dashboard (overview)
+    - /my-attendance: View/check attendance
+    - /my-leaves: Apply for leave, view balance
+    - /my-expenses: Submit expense claims
+    - /my-salary-slips: View salary slips
+    - /my-bank-details: View/update bank details
+    - /chat: Team chat messaging
+    - /ai-assistant: AI data assistant
+    - /leads: Manage sales leads
+    - /quotation-builder: Create quotations
+    - /quotations: View all quotations
+    - /agreements: View agreements
+    - /kickoff-requests: Project kickoff requests
+    - /onboarding: Employee onboarding (HR)
+    - /employees: Employee directory (HR)
+    - /ctc-designer: CTC structure design (HR)
+    - /go-live-dashboard: Go-live requests (HR)
+    - /approvals: Approval center
+    - /expense-approvals: Expense approvals
+    - /employee-permissions: Manage permissions (Admin)
+    - /masters: Master data management (Admin)
+    - /meetings: Schedule meetings
+    - /tasks: Task management
+    - /follow-ups: Follow-up reminders
+    - /profile: User profile settings
+    """
+    
+    system_prompt = f"""You are a helpful ERP assistant. The user is on page '{current_page}' and has role '{user_role}'.
+
+{route_context}
+
+Your job is to:
+1. Answer their question concisely
+2. If they need to go somewhere, suggest the route
+3. Provide step-by-step guidance if needed
+
+IMPORTANT: If you suggest a navigation, include EXACTLY one of these routes in your response.
+Format: If suggesting navigation, end your response with: [NAVIGATE:/route-path]
+
+Keep responses under 100 words. Be direct and helpful."""
+
+    try:
+        response = await chat(
+            api_key=EMERGENT_LLM_KEY,
+            prompt=f"User question: {query}",
+            system=system_prompt,
+            model=ModelType.GPT_4O,
+            conversation_history=[]
+        )
+        
+        response_text = response.strip()
+        suggested_route = None
+        auto_navigate = False
+        
+        # Extract navigation suggestion
+        if "[NAVIGATE:" in response_text:
+            import re
+            match = re.search(r'\[NAVIGATE:(.*?)\]', response_text)
+            if match:
+                suggested_route = match.group(1)
+                response_text = response_text.replace(match.group(0), "").strip()
+                auto_navigate = True  # Auto-navigate when AI suggests a route
+        
+        return {
+            "response": response_text,
+            "suggested_route": suggested_route,
+            "auto_navigate": auto_navigate
+        }
+        
+    except Exception as e:
+        print(f"AI guidance error: {e}")
+        return {
+            "response": "I'm having trouble processing that. Please try rephrasing or navigate manually using the sidebar.",
+            "suggested_route": None,
+            "auto_navigate": False
+        }
+
+
 # ============== EMPLOYEE BANK DETAILS CHANGE REQUEST ==============
 
 @api_router.get("/my/profile")
