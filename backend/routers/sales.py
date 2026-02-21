@@ -16,7 +16,7 @@ router = APIRouter(tags=["Sales"])
 
 # Role definitions
 ALL_DATA_ACCESS_ROLES = [UserRole.ADMIN, UserRole.SALES_MANAGER, UserRole.HR_MANAGER, UserRole.PRINCIPAL_CONSULTANT]
-SALES_MEETING_ROLES = [UserRole.ADMIN, UserRole.SALES_MANAGER, UserRole.EMPLOYEE, "sales_executive", "business_development"]
+SALES_MEETING_ROLES = [UserRole.ADMIN, UserRole.SALES_MANAGER, UserRole.EXECUTIVE, UserRole.MANAGER, "employee", "sales_executive", "business_development"]
 
 
 # ===== PYDANTIC MODELS =====
