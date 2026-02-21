@@ -3411,11 +3411,13 @@ async def record_project_payment(
     """
     Record a payment for a project installment with transaction ID.
     Required fields: project_id, installment_number, transaction_id, received_amount
+    Payment modes: cheque, utr, cash, bank_transfer
     """
     project_id = payment_data.get('project_id')
     installment_number = payment_data.get('installment_number')
     transaction_id = payment_data.get('transaction_id')
     received_amount = payment_data.get('received_amount')
+    payment_mode = payment_data.get('payment_mode', 'bank_transfer')
     
     if not all([project_id, installment_number, transaction_id, received_amount]):
         raise HTTPException(status_code=400, detail="Missing required fields: project_id, installment_number, transaction_id, received_amount")
@@ -3438,17 +3440,27 @@ async def record_project_payment(
     if existing_payment:
         raise HTTPException(status_code=400, detail=f"Installment #{installment_number} was already recorded")
     
-    # Create payment record
+    # Create payment record with Cheque/UTR support
     payment_record = {
         "id": str(uuid.uuid4()),
         "project_id": project_id,
         "agreement_id": payment_data.get('agreement_id'),
         "pricing_plan_id": payment_data.get('pricing_plan_id'),
+        "lead_id": payment_data.get('lead_id'),  # Link to lead for tracking
         "installment_number": installment_number,
         "transaction_id": transaction_id,
         "received_amount": float(received_amount),
         "payment_date": payment_data.get('payment_date', datetime.now(timezone.utc).isoformat()),
-        "payment_mode": payment_data.get('payment_mode', 'bank_transfer'),
+        "payment_mode": payment_mode,
+        # Cheque specific fields
+        "cheque_number": payment_data.get('cheque_number'),
+        "cheque_date": payment_data.get('cheque_date'),
+        "cheque_bank": payment_data.get('cheque_bank'),
+        # UTR/Bank transfer specific fields
+        "utr_number": payment_data.get('utr_number') or transaction_id,
+        "sender_bank": payment_data.get('sender_bank'),
+        "sender_account": payment_data.get('sender_account'),
+        # Common fields
         "notes": payment_data.get('notes', ''),
         "recorded_by": current_user.id,
         "recorded_by_name": current_user.full_name,
@@ -3457,6 +3469,17 @@ async def record_project_payment(
     }
     
     await db.project_payments.insert_one(payment_record)
+    
+    # Update lead status to payment if lead_id provided
+    lead_id = payment_data.get('lead_id')
+    if lead_id:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "status": LeadStatus.PAYMENT,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
     
     # Return without _id
     if '_id' in payment_record:
