@@ -3,21 +3,26 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { useGuidance, WORKFLOWS, PAGE_TIPS } from '../contexts/GuidanceContext';
+import { useApprovals } from '../contexts/ApprovalContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { 
   HelpCircle, X, ChevronRight, ChevronLeft, CheckCircle2, 
   Circle, ArrowRight, Sparkles, MessageSquare, Lightbulb,
-  Navigation, List, Send, Loader2, Bot
+  Navigation, List, Send, Loader2, Bot, Bell, AlertCircle,
+  ClipboardCheck, Calendar, Receipt, Users, Clock
 } from 'lucide-react';
 
-// Floating Help Button Component
+// Floating Help Button Component with Smart Badge
 export const FloatingHelpButton = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const { setShowHelpPanel, showHelpPanel } = useGuidance();
+  const { setShowHelpPanel, showHelpPanel, smartRecommendations } = useGuidance();
   const [pulse, setPulse] = useState(true);
+
+  // Calculate total pending items for badge
+  const totalPending = smartRecommendations?.totalPending || 0;
 
   // Stop pulsing after first interaction
   useEffect(() => {
@@ -39,14 +44,21 @@ export const FloatingHelpButton = () => {
           ? 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500' 
           : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500'
         }
-        ${pulse ? 'animate-pulse' : ''}
+        ${pulse && totalPending === 0 ? 'animate-pulse' : ''}
       `}
-      title="Need help? Click here!"
+      title={totalPending > 0 ? `${totalPending} items need attention` : "Need help? Click here!"}
     >
       <HelpCircle className="w-7 h-7 text-white" />
       
-      {/* Ripple effect */}
-      {pulse && (
+      {/* Smart Badge - shows pending items count */}
+      {totalPending > 0 && (
+        <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md animate-bounce">
+          {totalPending > 9 ? '9+' : totalPending}
+        </span>
+      )}
+      
+      {/* Ripple effect when no pending items */}
+      {pulse && totalPending === 0 && (
         <span className="absolute inset-0 rounded-full bg-orange-400 animate-ping opacity-30" />
       )}
     </button>
