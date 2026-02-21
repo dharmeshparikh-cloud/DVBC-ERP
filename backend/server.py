@@ -7067,31 +7067,73 @@ async def create_approval_notification(
     approval_request_id: str,
     approval_type: str,
     reference_title: str,
-    requester_name: str
+    requester_name: str,
+    requester_id: str = None
 ):
-    """Create notification for approver"""
-    notification = {
-        "id": str(uuid.uuid4()),
-        "user_id": approver_id,
-        "type": "approval_request",
-        "title": f"Approval Required: {approval_type.replace('_', ' ').title()}",
-        "message": f"{requester_name} has submitted '{reference_title}' for your approval.",
-        "reference_type": approval_type,
-        "reference_id": approval_request_id,
-        "is_read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
+    """Create notification for approver with real-time email + WebSocket delivery"""
+    
+    # Get approver info for email
+    approver_user = await db.users.find_one({"id": approver_id}, {"_id": 0, "full_name": 1, "email": 1})
+    approver_name = approver_user.get("full_name", "Approver") if approver_user else "Approver"
+    approver_email = approver_user.get("email", "") if approver_user else ""
+    
+    # Get requester email if we have requester_id
+    requester_email = ""
+    if requester_id:
+        requester_user = await db.users.find_one({"id": requester_id}, {"_id": 0, "email": 1})
+        requester_email = requester_user.get("email", "") if requester_user else ""
+    
+    ws_manager = get_ws_manager()
+    
+    # Map approval types to appropriate record types for the centralized service
+    record_type_map = {
+        "sow_item": "sow",
+        "agreement": "sow",
+        "leave_request": "leave_request",
+        "expense": "expense",
+        "kickoff": "kickoff",
+        "go_live": "go_live",
+        "ctc": "ctc",
+        "bank_change": "bank_change"
     }
-    await db.notifications.insert_one(notification)
+    record_type = record_type_map.get(approval_type, "sow")
     
-    # Send real-time notification via WebSocket
+    details = {
+        "Title": reference_title,
+        "Submitted By": requester_name,
+        "Type": approval_type.replace("_", " ").title()
+    }
+    
     try:
-        ws_manager = get_ws_manager()
-        await ws_manager.send_notification(approver_id, notification)
+        await send_approval_notification(
+            db=db,
+            ws_manager=ws_manager,
+            record_type=record_type,
+            record_id=approval_request_id,
+            requester_id=requester_id or "unknown",
+            requester_name=requester_name,
+            requester_email=requester_email,
+            approver_id=approver_id,
+            approver_name=approver_name,
+            approver_email=approver_email,
+            details=details,
+            link="/approvals"
+        )
     except Exception as e:
-        print(f"WebSocket notification failed: {e}")
-    
-    # Log email notification (MOCKED)
-    print(f"[EMAIL NOTIFICATION] Approval request sent to user {approver_id} for {reference_title}")
+        print(f"Error sending approval notification: {e}")
+        # Fallback to basic notification
+        notification = {
+            "id": str(uuid.uuid4()),
+            "user_id": approver_id,
+            "type": "approval_request",
+            "title": f"Approval Required: {approval_type.replace('_', ' ').title()}",
+            "message": f"{requester_name} has submitted '{reference_title}' for your approval.",
+            "reference_type": approval_type,
+            "reference_id": approval_request_id,
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
 
     # Also notify all admins (if approver is not already admin)
     await notify_admins(
