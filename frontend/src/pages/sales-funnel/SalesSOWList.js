@@ -32,7 +32,7 @@ const SalesSOWList = () => {
   const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('card');
+  const [viewMode, setViewMode] = useState('list');
 
   useEffect(() => {
     fetchData();
