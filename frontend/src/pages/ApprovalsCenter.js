@@ -528,26 +528,26 @@ const ApprovalsCenter = () => {
       {/* Stats - Mobile optimized grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 mb-6">
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
-          <CardContent className="p-3 md:p-4">
+          <CardContent className="p-2.5 md:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Total Pending</p>
-                <p className="text-xl md:text-2xl font-semibold text-yellow-600">{totalPending}</p>
+              <div className="min-w-0">
+                <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Pending</p>
+                <p className="text-lg md:text-2xl font-semibold text-yellow-600">{totalPending}</p>
               </div>
-              <Clock className="w-6 h-6 md:w-8 md:h-8 text-yellow-500/30" />
+              <Clock className="w-5 h-5 md:w-8 md:h-8 text-yellow-500/30 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
         {isAdmin && (
           <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
-            <CardContent className="p-3 md:p-4">
+            <CardContent className="p-2.5 md:p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>CTC Approvals</p>
-                  <p className="text-xl md:text-2xl font-semibold text-purple-600">{ctcApprovals.length}</p>
+                <div className="min-w-0">
+                  <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>CTC</p>
+                  <p className="text-lg md:text-2xl font-semibold text-purple-600">{ctcApprovals.length}</p>
                 </div>
-                <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-purple-500/30" />
+                <DollarSign className="w-5 h-5 md:w-8 md:h-8 text-purple-500/30 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -555,13 +555,13 @@ const ApprovalsCenter = () => {
 
         {isAdmin && (
           <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
-            <CardContent className="p-3 md:p-4">
+            <CardContent className="p-2.5 md:p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Permissions</p>
-                  <p className="text-xl md:text-2xl font-semibold text-indigo-600">{permissionApprovals.length}</p>
+                <div className="min-w-0">
+                  <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Perms</p>
+                  <p className="text-lg md:text-2xl font-semibold text-indigo-600">{permissionApprovals.length}</p>
                 </div>
-                <User className="w-6 h-6 md:w-8 md:h-8 text-indigo-500/30" />
+                <User className="w-5 h-5 md:w-8 md:h-8 text-indigo-500/30 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -569,13 +569,13 @@ const ApprovalsCenter = () => {
 
         {isAdmin && (
           <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
-            <CardContent className="p-3 md:p-4">
+            <CardContent className="p-2.5 md:p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Modifications</p>
-                  <p className="text-xl md:text-2xl font-semibold text-orange-600">{modificationApprovals.length}</p>
+                <div className="min-w-0">
+                  <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Mods</p>
+                  <p className="text-lg md:text-2xl font-semibold text-orange-600">{modificationApprovals.length}</p>
                 </div>
-                <FileText className="w-6 h-6 md:w-8 md:h-8 text-orange-500/30" />
+                <FileText className="w-5 h-5 md:w-8 md:h-8 text-orange-500/30 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -583,54 +583,54 @@ const ApprovalsCenter = () => {
 
         {isHR && (
           <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
-            <CardContent className="p-3 md:p-4">
+            <CardContent className="p-2.5 md:p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Bank Changes</p>
-                  <p className="text-xl md:text-2xl font-semibold text-rose-600">{bankApprovals.length}</p>
+                <div className="min-w-0">
+                  <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Bank</p>
+                  <p className="text-lg md:text-2xl font-semibold text-rose-600">{bankApprovals.length}</p>
                 </div>
-                <Building2 className="w-6 h-6 md:w-8 md:h-8 text-rose-500/30" />
+                <Building2 className="w-5 h-5 md:w-8 md:h-8 text-rose-500/30 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
         )}
 
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
-          <CardContent className="p-3 md:p-4">
+          <CardContent className="p-2.5 md:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>My Requests</p>
-                <p className="text-xl md:text-2xl font-semibold text-blue-600">{myRequests.length}</p>
+              <div className="min-w-0">
+                <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>My Req</p>
+                <p className="text-lg md:text-2xl font-semibold text-blue-600">{myRequests.length}</p>
               </div>
-              <Send className="w-6 h-6 md:w-8 md:h-8 text-blue-500/30" />
+              <Send className="w-5 h-5 md:w-8 md:h-8 text-blue-500/30 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
-          <CardContent className="p-3 md:p-4">
+          <CardContent className="p-2.5 md:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Approved</p>
-                <p className="text-xl md:text-2xl font-semibold text-emerald-600">
+              <div className="min-w-0">
+                <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Done</p>
+                <p className="text-lg md:text-2xl font-semibold text-emerald-600">
                   {myRequests.filter(r => r.overall_status === 'approved').length}
                 </p>
               </div>
-              <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-emerald-500/30" />
+              <CheckCircle className="w-5 h-5 md:w-8 md:h-8 text-emerald-500/30 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
-          <CardContent className="p-3 md:p-4">
+        <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg hidden sm:block`}>
+          <CardContent className="p-2.5 md:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-[10px] md:text-xs uppercase ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Rejected</p>
-                <p className="text-xl md:text-2xl font-semibold text-red-600">
+              <div className="min-w-0">
+                <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Rejected</p>
+                <p className="text-lg md:text-2xl font-semibold text-red-600">
                   {myRequests.filter(r => r.overall_status === 'rejected').length}
                 </p>
               </div>
-              <XCircle className="w-6 h-6 md:w-8 md:h-8 text-red-500/30" />
+              <XCircle className="w-5 h-5 md:w-8 md:h-8 text-red-500/30 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
