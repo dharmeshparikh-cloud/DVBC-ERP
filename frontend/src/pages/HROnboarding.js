@@ -1762,12 +1762,49 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
 
   return (
     <div className="max-w-4xl mx-auto space-y-6" data-testid="hr-onboarding">
+      {/* Draft Selector Dialog */}
+      <DraftSelector
+        drafts={drafts}
+        loading={loadingDrafts}
+        onSelect={handleLoadDraft}
+        onDelete={deleteDraft}
+        onNewDraft={handleNewDraft}
+        isOpen={showDraftSelector}
+        onClose={() => setShowDraftSelector(false)}
+        title="Onboarding Drafts"
+        description="Continue a previous onboarding or start a new one"
+      />
+
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Employee Onboarding</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Complete all steps to onboard a new employee
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Employee Onboarding</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Complete all steps to onboard a new employee
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* Draft Indicator */}
+          <DraftIndicator 
+            saving={savingDraft} 
+            lastSaved={lastSaved}
+            onSave={handleSaveDraft}
+          />
+          
+          {/* View Drafts Button */}
+          {drafts.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDraftSelector(true)}
+              className="gap-2"
+            >
+              <FolderOpen className="w-4 h-4" />
+              Drafts ({drafts.length})
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Progress */}
