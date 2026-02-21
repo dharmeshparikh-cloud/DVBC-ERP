@@ -71,7 +71,7 @@ const AIAssistant = () => {
 
   const sendQuery = async (e) => {
     e?.preventDefault();
-    if (!query.trim() || loading) return;
+    if (!query.trim() || loading || !currentUser?.id) return;
 
     const userMessage = { role: 'user', content: query, timestamp: new Date().toISOString() };
     setChatHistory(prev => [...prev, userMessage]);
