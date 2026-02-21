@@ -11331,6 +11331,7 @@ async def update_draft(
         "data": draft.data,
         "step": draft.step,
         "metadata": draft.metadata or existing.get("metadata", {}),
+        "entity_id": draft.entity_id or existing.get("entity_id"),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
