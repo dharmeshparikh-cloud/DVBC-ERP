@@ -157,18 +157,23 @@ const NotificationBell = () => {
       }
     };
 
-    ws.onclose = () => {
-      console.log('Notification WebSocket disconnected');
+    ws.onclose = (event) => {
+      console.log('Notification WebSocket disconnected', event.code);
       setWsConnected(false);
+      wsRef.current = null;
       
-      // Attempt to reconnect after 5 seconds
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connectWebSocket();
-      }, 5000);
+      // Only reconnect if not a normal closure and not already reconnecting
+      if (event.code !== 1000 && !reconnectTimeoutRef.current) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = null;
+          connectWebSocket();
+        }, 10000); // Increased to 10 seconds
+      }
     };
 
     ws.onerror = (error) => {
       console.error('Notification WebSocket error:', error);
+      // Don't set wsRef to null here - let onclose handle it
     };
 
     wsRef.current = ws;
@@ -177,22 +182,29 @@ const NotificationBell = () => {
   useEffect(() => {
     requestBrowserPermission();
     fetchUnreadCount();
-    connectWebSocket();
     
-    // Fallback polling every 30s if WebSocket fails
+    // Delay WebSocket connection slightly to avoid race conditions
+    const connectTimeout = setTimeout(() => {
+      connectWebSocket();
+    }, 500);
+    
+    // Fallback polling every 60s if WebSocket fails
     const interval = setInterval(() => {
       if (!wsConnected) {
         fetchUnreadCount();
       }
-    }, 30000);
+    }, 60000);
     
     return () => {
+      clearTimeout(connectTimeout);
       clearInterval(interval);
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close(1000, 'Component unmounting');
+        wsRef.current = null;
       }
     };
   }, [fetchUnreadCount, connectWebSocket]);
