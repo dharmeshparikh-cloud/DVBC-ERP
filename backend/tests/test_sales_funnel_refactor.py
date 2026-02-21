@@ -84,7 +84,7 @@ class TestSalesTargetsAPI:
             "password": "admin123"
         })
         assert response.status_code == 200
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture(scope="class")
     def admin_headers(self, admin_token):
@@ -237,7 +237,7 @@ class TestAgreementESign:
             "password": "admin123"
         })
         assert response.status_code == 200
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture(scope="class")
     def admin_headers(self, admin_token):
@@ -333,7 +333,7 @@ class TestKickoffRequests:
             "password": "admin123"
         })
         assert response.status_code == 200
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture(scope="class")
     def admin_headers(self, admin_token):
@@ -415,7 +415,7 @@ class TestManagerDashboard:
             "password": "Welcome@123"
         })
         assert response.status_code == 200
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture(scope="class")
     def manager_headers(self, manager_token):
@@ -448,7 +448,7 @@ class TestLeadsAndAgreementsListView:
             "password": "admin123"
         })
         assert response.status_code == 200
-        return response.json().get("token")
+        return response.json().get("access_token")
     
     @pytest.fixture(scope="class")
     def admin_headers(self, admin_token):
@@ -490,7 +490,7 @@ class TestCleanup:
             "email": "admin@dvbc.com",
             "password": "admin123"
         })
-        token = response.json().get("token")
+        token = response.json().get("access_token")
         return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     
     def test_cleanup_test_data(self, admin_headers):
