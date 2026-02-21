@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Send, Search, Plus, Users, MessageCircle, Pin, Check, CheckCheck, Paperclip, MoreVertical, X, FileText, ExternalLink } from 'lucide-react';
+import { AuthContext } from '../App';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const Chat = () => {
+  const { user: currentUser } = useContext(AuthContext);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -16,8 +18,6 @@ const Chat = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
