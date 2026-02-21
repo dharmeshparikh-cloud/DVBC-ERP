@@ -347,6 +347,70 @@ const ApprovalsCenter = () => {
     }
   };
 
+  // Bulk action helpers
+  const toggleItemSelection = (id) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const selectAllPending = () => {
+    const allIds = pendingApprovals.map(a => a.id);
+    setSelectedItems(new Set(allIds));
+  };
+
+  const clearSelection = () => {
+    setSelectedItems(new Set());
+  };
+
+  const handleBulkAction = async () => {
+    if (selectedItems.size === 0) return;
+    
+    setBulkLoading(true);
+    const results = { success: 0, failed: 0 };
+    
+    for (const id of selectedItems) {
+      try {
+        await axios.post(`${API}/approvals/${id}/action`, {
+          action: bulkActionType,
+          comments: bulkComments || `Bulk ${bulkActionType} action`
+        });
+        results.success++;
+      } catch (error) {
+        console.error(`Failed to ${bulkActionType} approval ${id}:`, error);
+        results.failed++;
+      }
+    }
+    
+    setBulkLoading(false);
+    setBulkActionDialog(false);
+    setBulkComments('');
+    setSelectedItems(new Set());
+    
+    if (results.success > 0) {
+      toast.success(`Successfully ${bulkActionType}d ${results.success} item(s)`);
+    }
+    if (results.failed > 0) {
+      toast.error(`Failed to process ${results.failed} item(s)`);
+    }
+    
+    fetchData();
+  };
+
+  const openBulkActionDialog = (action) => {
+    if (selectedItems.size === 0) {
+      toast.error('Please select at least one item');
+      return;
+    }
+    setBulkActionType(action);
+    setBulkComments('');
+    setBulkActionDialog(true);
+  };
+
   // Format currency
   const formatCurrency = (amount) => {
     if (!amount) return '₹0';
