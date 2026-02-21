@@ -107,7 +107,14 @@ const MyExpenses = () => {
       toast.success('Expense deleted');
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to delete expense');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to delete expense');
+      }
     }
   };
 
