@@ -475,7 +475,7 @@ async def accept_kickoff_request(
         "type": "kickoff_accepted",
         "recipient_id": kickoff.get("requested_by"),
         "title": f"Kickoff Request Accepted: {kickoff.get('project_name')}",
-        "message": f"Project created and ready for team assignment",
+        "message": "Project created and ready for team assignment",
         "kickoff_request_id": request_id,
         "project_id": project.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
