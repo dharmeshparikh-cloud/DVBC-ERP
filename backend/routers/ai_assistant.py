@@ -4,6 +4,7 @@ AI-Powered ERP Assistant Router
 - Natural Language Queries
 - Trend Insights & Predictions
 - Actionable Suggestions
+- Hierarchical Role-Based Access Control (RBAC)
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
@@ -47,6 +48,267 @@ class ChatMessage(BaseModel):
 def get_db():
     from server import db
     return db
+
+
+# ==================== RBAC HELPERS ====================
+
+async def get_user_access_level(db, user_id: str) -> dict:
+    """
+    Determine user's access level based on role hierarchy:
+    - admin: Full access to everything
+    - department_head: Department-wide access
+    - manager: Team's data (direct reports)
+    - consultant/employee: Own data only
+    """
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return {"level": "none", "user": None}
+    
+    role = user.get("role", "").lower()
+    department = user.get("department", "")
+    
+    # Check if user is restricted from AI
+    if user.get("ai_restricted", False):
+        return {"level": "restricted", "user": user, "reason": "AI access has been restricted by admin"}
+    
+    # Admin has full access
+    if role == "admin":
+        return {
+            "level": "admin",
+            "user": user,
+            "can_access": ["all"],
+            "filter": None
+        }
+    
+    # Check if user is a department head
+    employee = await db.employees.find_one({"email": user.get("email")})
+    is_department_head = employee.get("is_department_head", False) if employee else False
+    
+    # Get direct reports for managers
+    direct_reports = []
+    if employee:
+        reports = await db.employees.find({"reporting_manager_id": employee.get("id")}).to_list(100)
+        direct_reports = [r.get("id") for r in reports]
+    
+    if is_department_head:
+        return {
+            "level": "department_head",
+            "user": user,
+            "department": department,
+            "can_access": [department.lower()],
+            "filter": {"department": department}
+        }
+    
+    if direct_reports:
+        return {
+            "level": "manager",
+            "user": user,
+            "department": department,
+            "team_ids": direct_reports + [employee.get("id")] if employee else direct_reports,
+            "can_access": ["team"],
+            "filter": {"team_ids": direct_reports}
+        }
+    
+    # Regular employee/consultant - own data only
+    return {
+        "level": "employee",
+        "user": user,
+        "employee_id": employee.get("id") if employee else None,
+        "department": department,
+        "can_access": ["self"],
+        "filter": {"employee_id": employee.get("id") if employee else user_id}
+    }
+
+
+async def get_filtered_erp_context(db, context_type: str, access: dict, date_range: dict = None) -> dict:
+    """Gather ERP data filtered by user's access level"""
+    data = {}
+    level = access.get("level")
+    
+    if level == "restricted":
+        return {"error": access.get("reason", "Access restricted")}
+    
+    now = datetime.now(timezone.utc)
+    start_date = datetime.fromisoformat(date_range["start"]) if date_range and date_range.get("start") else now - timedelta(days=30)
+    end_date = datetime.fromisoformat(date_range["end"]) if date_range and date_range.get("end") else now
+    
+    # Build access info for AI context
+    data["_access_info"] = {
+        "level": level,
+        "message": _get_access_message(level, access)
+    }
+    
+    # SALES DATA
+    if context_type in ["sales", "all"]:
+        if level == "admin" or (level == "department_head" and access.get("department", "").lower() == "sales"):
+            # Full sales access
+            leads = await db.leads.find({
+                "created_at": {"$gte": start_date, "$lte": end_date}
+            }).to_list(1000)
+            agreements = await db.agreements.find({
+                "created_at": {"$gte": start_date, "$lte": end_date}
+            }).to_list(1000)
+        elif level == "manager" and access.get("department", "").lower() == "sales":
+            # Team's sales only
+            team_ids = access.get("team_ids", [])
+            leads = await db.leads.find({
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "$or": [{"assigned_to": {"$in": team_ids}}, {"created_by": {"$in": team_ids}}]
+            }).to_list(1000)
+            agreements = await db.agreements.find({
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "created_by": {"$in": team_ids}
+            }).to_list(1000)
+        elif level == "employee" and access.get("department", "").lower() == "sales":
+            # Own sales only
+            emp_id = access.get("employee_id")
+            leads = await db.leads.find({
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "$or": [{"assigned_to": emp_id}, {"created_by": emp_id}]
+            }).to_list(1000)
+            agreements = await db.agreements.find({
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "created_by": emp_id
+            }).to_list(1000)
+        else:
+            # No sales access for non-sales users (except admin)
+            leads = []
+            agreements = []
+            if context_type == "sales":
+                data["sales"] = {"message": "You don't have access to sales data"}
+        
+        if leads or agreements or level == "admin":
+            total_leads = len(leads)
+            won_leads = len([l for l in leads if l.get("status") == "Won"])
+            conversion_rate = (won_leads / total_leads * 100) if total_leads > 0 else 0
+            total_revenue = sum(a.get("total_value", 0) for a in agreements)
+            
+            data["sales"] = {
+                "total_leads": total_leads,
+                "won_leads": won_leads,
+                "conversion_rate": round(conversion_rate, 1),
+                "total_revenue": total_revenue,
+                "access_level": level
+            }
+    
+    # HR DATA
+    if context_type in ["hr", "all"]:
+        if level == "admin" or (level == "department_head" and access.get("department", "").lower() == "hr"):
+            # Full HR access
+            employees = await db.employees.find({"is_active": True}).to_list(1000)
+            leave_requests = await db.leave_requests.find({
+                "created_at": {"$gte": start_date, "$lte": end_date}
+            }).to_list(1000)
+        elif level == "manager":
+            # Team's HR data
+            team_ids = access.get("team_ids", [])
+            employees = await db.employees.find({"id": {"$in": team_ids}, "is_active": True}).to_list(100)
+            leave_requests = await db.leave_requests.find({
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "employee_id": {"$in": team_ids}
+            }).to_list(1000)
+        elif level == "department_head":
+            # Department HR data
+            dept = access.get("department")
+            employees = await db.employees.find({"department": dept, "is_active": True}).to_list(1000)
+            emp_ids = [e.get("id") for e in employees]
+            leave_requests = await db.leave_requests.find({
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "employee_id": {"$in": emp_ids}
+            }).to_list(1000)
+        else:
+            # Own HR data only
+            emp_id = access.get("employee_id")
+            employees = await db.employees.find({"id": emp_id}).to_list(1)
+            leave_requests = await db.leave_requests.find({
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "employee_id": emp_id
+            }).to_list(100)
+        
+        total_employees = len(employees)
+        pending_leaves = len([l for l in leave_requests if l.get("status") == "pending"])
+        approved_leaves = len([l for l in leave_requests if l.get("status") == "approved"])
+        
+        data["hr"] = {
+            "total_employees": total_employees,
+            "pending_leave_requests": pending_leaves,
+            "approved_leaves": approved_leaves,
+            "access_level": level
+        }
+    
+    # FINANCE DATA (Restricted - Admin and Finance dept only)
+    if context_type in ["finance", "all"]:
+        if level == "admin" or (level == "department_head" and access.get("department", "").lower() == "finance"):
+            expenses = await db.expenses.find({
+                "created_at": {"$gte": start_date, "$lte": end_date}
+            }).to_list(1000)
+            payments = await db.project_payments.find({
+                "created_at": {"$gte": start_date, "$lte": end_date}
+            }).to_list(1000)
+            
+            data["finance"] = {
+                "total_expenses": sum(e.get("amount", 0) for e in expenses),
+                "pending_expenses": sum(e.get("amount", 0) for e in expenses if e.get("status") == "pending"),
+                "total_collected": sum(p.get("amount", 0) for p in payments if p.get("status") == "verified"),
+                "access_level": level
+            }
+        elif level == "employee":
+            # Own expenses only
+            emp_id = access.get("employee_id")
+            expenses = await db.expenses.find({
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "employee_id": emp_id
+            }).to_list(100)
+            
+            data["finance"] = {
+                "my_expenses": sum(e.get("amount", 0) for e in expenses),
+                "my_pending": sum(e.get("amount", 0) for e in expenses if e.get("status") == "pending"),
+                "access_level": "self_only"
+            }
+        else:
+            data["finance"] = {"message": "Finance data is restricted to Finance department and Admin"}
+    
+    # PROJECTS/CONSULTING DATA
+    if context_type in ["projects", "consulting", "all"]:
+        if level == "admin":
+            projects = await db.projects.find({}).to_list(1000)
+        elif level == "department_head" and access.get("department", "").lower() == "consulting":
+            projects = await db.projects.find({}).to_list(1000)
+        elif level == "manager":
+            team_ids = access.get("team_ids", [])
+            projects = await db.projects.find({
+                "$or": [{"pm_id": {"$in": team_ids}}, {"team_members": {"$in": team_ids}}]
+            }).to_list(100)
+        else:
+            # Own projects only
+            emp_id = access.get("employee_id")
+            projects = await db.projects.find({
+                "$or": [{"pm_id": emp_id}, {"team_members": emp_id}]
+            }).to_list(50)
+        
+        active_projects = len([p for p in projects if p.get("status") in ["active", "in_progress"]])
+        
+        data["projects"] = {
+            "total_projects": len(projects),
+            "active_projects": active_projects,
+            "access_level": level
+        }
+    
+    return data
+
+
+def _get_access_message(level: str, access: dict) -> str:
+    """Generate a message explaining the user's access level"""
+    if level == "admin":
+        return "You have full access to all ERP data."
+    elif level == "department_head":
+        return f"You have access to all {access.get('department', 'department')} data."
+    elif level == "manager":
+        return "You have access to your team's data (direct reports)."
+    elif level == "employee":
+        return "You have access to your own data only."
+    else:
+        return "Limited access."
 
 
 async def get_erp_context(db, context_type: str, date_range: dict = None) -> dict:
