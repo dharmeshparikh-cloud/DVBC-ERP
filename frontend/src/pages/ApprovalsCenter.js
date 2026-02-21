@@ -421,15 +421,112 @@ const ApprovalsCenter = () => {
 
   return (
     <div data-testid="approvals-center" className={isDark ? 'text-zinc-100' : ''}>
-      <div className="mb-8">
-        <h1 className={`text-2xl md:text-3xl font-semibold tracking-tight mb-2 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
-          Approvals Center
-        </h1>
-        <p className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>Review and manage approval requests</p>
+      {/* Header with real-time indicator and mobile menu */}
+      <div className="mb-6 md:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className={`text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight mb-1 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
+              Approvals Center
+            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                Review and manage approval requests
+              </p>
+              {/* Real-time indicator */}
+              <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs ${
+                wsConnected 
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                  : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
+                {wsConnected ? 'Live' : 'Offline'}
+              </div>
+            </div>
+          </div>
+          
+          {/* Action buttons - Desktop */}
+          <div className="hidden sm:flex items-center gap-2">
+            <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+              Updated {lastRefresh.toLocaleTimeString()}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchData()}
+              className={`${isDark ? 'border-zinc-600' : ''}`}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+          
+          {/* Mobile menu toggle */}
+          <div className="sm:hidden flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchData()}
+              className={`${isDark ? 'border-zinc-600' : ''} flex-1`}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className={`${isDark ? 'border-zinc-600' : ''}`}
+            >
+              <Menu className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Bulk Actions Bar - Shows when items are selected */}
+        {selectedItems.size > 0 && (
+          <div className={`mt-4 p-3 rounded-lg border-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${
+            isDark ? 'bg-orange-900/20 border-orange-600' : 'bg-orange-50 border-orange-300'
+          }`}>
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-orange-500" />
+              <span className={`font-medium ${isDark ? 'text-orange-400' : 'text-orange-700'}`}>
+                {selectedItems.size} item{selectedItems.size > 1 ? 's' : ''} selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                size="sm"
+                onClick={() => openBulkActionDialog('approve')}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                Approve All
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => openBulkActionDialog('reject')}
+                className="border-red-300 text-red-600 hover:bg-red-50"
+              >
+                <XCircle className="w-4 h-4 mr-1" />
+                Reject All
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearSelection}
+                className={isDark ? 'text-zinc-400' : 'text-zinc-500'}
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Stats - Updated to include CTC and Bank approvals */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+      {/* Stats - Mobile optimized grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 mb-6">
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
