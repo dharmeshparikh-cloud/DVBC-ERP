@@ -225,12 +225,14 @@ const Layout = () => {
   const salesFlowItems = [
     { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3 },
     { name: 'Leads', href: '/leads', icon: Users },
+    { name: 'Team Leads', href: '/manager-leads', icon: Users, managerOnly: true },
     { name: 'SOW & Pricing', href: '/sales-funnel/pricing-plans', icon: FileText },
     { name: 'Agreements', href: '/agreements', icon: FileCheck },
     { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard },
     { name: 'Clients', href: '/clients', icon: Building2 },
     { name: 'Invoices', href: '/invoices', icon: Receipt },
     { name: 'Lead Follow-ups', href: '/follow-ups', icon: CalendarCheck },
+    { name: 'Kickoff Requests', href: '/kickoff-requests', icon: Briefcase },
     { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3 },
   ];
 
