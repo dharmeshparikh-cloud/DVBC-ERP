@@ -377,7 +377,6 @@ Consultant Assignment → Timesheet Entry → Approval → Project Cost Calculat
 ## Known Minor Issues
 - `/api/my/check-status` returns 400 for HR Manager (non-blocking)
 - React hydration warnings in Employees.js (cosmetic, doesn't affect functionality)
-- Email notifications are MOCKED (stored in DB, not sent via SMTP)
 
 ---
 
