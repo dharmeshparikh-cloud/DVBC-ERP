@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Send, Bot, User, Sparkles, TrendingUp, BarChart3, Lightbulb, RefreshCw, Trash2, Clock, ChevronRight } from 'lucide-react';
+import { AuthContext } from '../App';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const AIAssistant = () => {
+  const { user: currentUser } = useContext(AuthContext);
   const [query, setQuery] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,8 +14,7 @@ const AIAssistant = () => {
   const [activeContext, setActiveContext] = useState('all');
   const messagesEndRef = useRef(null);
   
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const sessionId = `ai_${currentUser.id}_${new Date().toISOString().split('T')[0]}`;
+  const sessionId = `ai_${currentUser?.id || 'anon'}_${new Date().toISOString().split('T')[0]}`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
