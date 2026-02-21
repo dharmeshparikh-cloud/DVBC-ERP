@@ -268,22 +268,21 @@ const SalesMeetings = () => {
                       <Input type="datetime-local" value={formData.meeting_date} onChange={(e) => updateFormData('meeting_date', e.target.value)}
                         required className="rounded-sm border-zinc-200" data-testid="sales-meeting-date" />
                     </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-zinc-950">Mode *</Label>
+                      <select value={formData.mode} onChange={(e) => updateFormData('mode', e.target.value)}
+                        required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="sales-meeting-mode">
+                        <option value="online">Online</option>
+                        <option value="offline">In-person</option>
+                        <option value="tele_call">Tele Call</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-zinc-950">Duration (mins)</Label>
+                      <Input type="number" min="0" value={formData.duration_minutes}
+                        onChange={(e) => updateFormData('duration_minutes', e.target.value)} className="rounded-sm border-zinc-200" />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Mode *</Label>
-                    <select value={formData.mode} onChange={(e) => updateFormData('mode', e.target.value)}
-                      required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="sales-meeting-mode">
-                      <option value="online">Online</option>
-                      <option value="offline">In-person</option>
-                      <option value="tele_call">Tele Call</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Duration (mins)</Label>
-                    <Input type="number" min="0" value={formData.duration_minutes}
-                      onChange={(e) => updateFormData('duration_minutes', e.target.value)} className="rounded-sm border-zinc-200" />
-                  </div>
-                </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-zinc-950">Agenda Items</Label>
                   {formData.agenda.map((item, idx) => (
