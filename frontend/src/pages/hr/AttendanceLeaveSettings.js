@@ -752,6 +752,111 @@ const AttendanceLeaveSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Custom Policy Modal */}
+      <Dialog open={showPolicyModal} onOpenChange={setShowPolicyModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPolicy ? 'Edit Custom Policy' : 'Add Custom Policy'}
+            </DialogTitle>
+            <DialogDescription>
+              Set a custom attendance policy for an employee. This overrides the default policy.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Employee Selection */}
+            <div>
+              <Label className="mb-2 block">Employee</Label>
+              {editingPolicy ? (
+                <div className="px-3 py-2 bg-zinc-100 rounded-md text-sm">
+                  {editingPolicy.employee_name} ({editingPolicy.employee_code})
+                </div>
+              ) : (
+                <Select 
+                  value={policyForm.employee_id} 
+                  onValueChange={(value) => setPolicyForm(prev => ({ ...prev, employee_id: value }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select an employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableEmployees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name} ({emp.employee_id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Working Hours */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-2 block text-sm">Check-in Time</Label>
+                <Input
+                  type="time"
+                  value={policyForm.check_in}
+                  onChange={(e) => setPolicyForm(prev => ({ ...prev, check_in: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-sm">Check-out Time</Label>
+                <Input
+                  type="time"
+                  value={policyForm.check_out}
+                  onChange={(e) => setPolicyForm(prev => ({ ...prev, check_out: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Grace Settings */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-2 block text-sm">Grace Period (min)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={policyForm.grace_period_minutes}
+                  onChange={(e) => setPolicyForm(prev => ({ ...prev, grace_period_minutes: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-sm">Grace Days/Month</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={policyForm.grace_days_per_month}
+                  onChange={(e) => setPolicyForm(prev => ({ ...prev, grace_days_per_month: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+            </div>
+
+            {/* Reason */}
+            <div>
+              <Label className="mb-2 block text-sm">Reason for Custom Policy</Label>
+              <Input
+                value={policyForm.reason}
+                onChange={(e) => setPolicyForm(prev => ({ ...prev, reason: e.target.value }))}
+                placeholder="e.g., Remote worker, Medical condition, etc."
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPolicyModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveCustomPolicy} disabled={saving} className="bg-orange-500 hover:bg-orange-600">
+              {saving ? 'Saving...' : editingPolicy ? 'Update Policy' : 'Create Policy'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
