@@ -1,5 +1,5 @@
 """
-WebSocket Manager for Real-time Chat
+WebSocket Manager for Real-time Chat & Notifications
 Handles connections, broadcasting, and message delivery
 """
 from fastapi import WebSocket
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
-    """Manages WebSocket connections for real-time chat"""
+    """Manages WebSocket connections for real-time chat and notifications"""
     
     def __init__(self):
         # Map of user_id -> list of WebSocket connections (user can have multiple tabs)
