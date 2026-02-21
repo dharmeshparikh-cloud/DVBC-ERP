@@ -757,23 +757,28 @@ const Leads = () => {
           </div>
         </div>
 
-        {/* Status Filters */}
-        <div className="flex gap-2 flex-wrap">
-          {['', 'new', 'contacted', 'qualified', 'proposal', 'agreement', 'closed', 'lost'].map(
-            (status) => (
-              <button
-                key={status}
-                data-testid={`filter-${status || 'all'}`}
-                onClick={() => setSelectedStatus(status)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${
-                  selectedStatus === status
-                    ? 'bg-zinc-950 text-white'
-                    : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
-                }`}
-              >
-                {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'All'}
-              </button>
-            )
+        {/* Status Filter Dropdown */}
+        <div className="flex items-center gap-3">
+          <Label className="text-xs text-zinc-500 whitespace-nowrap">Stage:</Label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            data-testid="lead-status-filter"
+            className="px-3 py-1.5 text-sm border border-zinc-200 rounded-sm bg-white focus:outline-none focus:ring-1 focus:ring-zinc-400 min-w-[160px]"
+          >
+            {leadStatusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} {option.value === '' && filteredLeads ? `(${leads.length})` : ''}
+              </option>
+            ))}
+          </select>
+          {selectedStatus && (
+            <button
+              onClick={() => setSelectedStatus('')}
+              className="text-xs text-zinc-400 hover:text-zinc-600 underline"
+            >
+              Clear
+            </button>
           )}
         </div>
       </div>
