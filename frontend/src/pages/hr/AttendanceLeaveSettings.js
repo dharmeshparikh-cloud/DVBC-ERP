@@ -72,6 +72,9 @@ const AttendanceLeaveSettings = () => {
 
   useEffect(() => {
     fetchSettings();
+    fetchConsultingEmployees();
+    fetchCustomPolicies();
+    fetchAllEmployees();
   }, []);
 
   const fetchSettings = async () => {
@@ -95,6 +98,44 @@ const AttendanceLeaveSettings = () => {
       console.error('Error fetching settings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchConsultingEmployees = async () => {
+    try {
+      const res = await fetch(`${API}/attendance/consulting-employees`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setConsultingEmployees(data.employees || []);
+        setConsultingRoleCounts(data.role_counts || {});
+        if (data.consulting_roles) setConsultingRoles(data.consulting_roles);
+      }
+    } catch (error) {
+      console.error('Error fetching consulting employees:', error);
+    }
+  };
+
+  const fetchCustomPolicies = async () => {
+    try {
+      const res = await fetch(`${API}/attendance/policy/custom`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setCustomPolicies(data.policies || []);
+      }
+    } catch (error) {
+      console.error('Error fetching custom policies:', error);
+    }
+  };
+
+  const fetchAllEmployees = async () => {
+    try {
+      const res = await fetch(`${API}/employees`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setAllEmployees(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
     }
   };
 
