@@ -195,9 +195,25 @@ const MyExpenses = () => {
           </DialogTrigger>
           <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">New Expense</DialogTitle>
-              <DialogDescription className="text-zinc-500">Add expense items for reimbursement</DialogDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">New Expense</DialogTitle>
+                  <DialogDescription className="text-zinc-500">Add expense items for reimbursement</DialogDescription>
+                </div>
+                <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={() => saveDraft(formData)} />
+              </div>
             </DialogHeader>
+            
+            {/* Draft Selector */}
+            {drafts.length > 0 && (
+              <DraftSelector 
+                drafts={drafts}
+                onLoadDraft={handleLoadDraft}
+                onDeleteDraft={deleteDraft}
+                loadingDrafts={loadingDrafts}
+              />
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
