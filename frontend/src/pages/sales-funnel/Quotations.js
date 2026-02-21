@@ -129,12 +129,27 @@ const Quotations = () => {
     setSelectedPlanDetails(plan);
     setFormData({ ...formData, pricing_plan_id: planId });
   };
+  
+  // Load a saved draft
+  const handleLoadDraft = async (draft) => {
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft) {
+      setFormData(loadedDraft.data);
+      if (loadedDraft.data.pricing_plan_id) {
+        const plan = pricingPlans.find(p => p.id === loadedDraft.data.pricing_plan_id);
+        setSelectedPlanDetails(plan);
+      }
+      toast.success('Draft loaded');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await axios.post(`${API}/quotations`, formData);
       toast.success('Quotation created successfully');
+      convertDraft();
+      clearDraft();
       setDialogOpen(false);
       setSelectedPlanDetails(null);
       fetchData();
