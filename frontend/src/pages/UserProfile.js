@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { 
   User, Mail, Phone, Building, Briefcase, Shield, 
-  Check, X, Edit2, Save, Eye, EyeOff
+  Check, X, Edit2, Save, Eye, EyeOff, Sparkles, RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
