@@ -187,7 +187,7 @@ const NotificationBell = () => {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [fetchUnreadCount, connectWebSocket, wsConnected]);
+  }, [fetchUnreadCount, connectWebSocket]);
 
   useEffect(() => {
     if (open) fetchNotifications();
