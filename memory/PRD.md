@@ -18,10 +18,13 @@
    - Direct Messages (DMs) between users
    - Group Channels with member management
    - Actionable buttons with ERP record sync (Approve/Reject inline)
-   - Real-time message updates, read receipts, @mentions
+   - **Real-time WebSocket support** - messages appear instantly without polling
+   - Typing indicators and read receipts via WebSocket
+   - Connection status indicator (green Wifi icon when connected)
+   - Auto-reconnect on disconnect
    - File/image sharing support
    - New Collections: `chat_conversations`, `chat_messages`
-   - Backend: `/app/backend/routers/chat.py`
+   - Backend: `/app/backend/routers/chat.py`, `/app/backend/websocket_manager.py`
    - Frontend: `/app/frontend/src/pages/Chat.js`
 
 2. **🤖 AI-Powered ERP Assistant** (`/ai-assistant`):
