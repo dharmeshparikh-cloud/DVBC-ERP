@@ -732,12 +732,18 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, ONBOARDING_STEPS.length - 1));
+      const nextStepNum = Math.min(currentStep + 1, ONBOARDING_STEPS.length - 1);
+      setCurrentStep(nextStepNum);
+      // Save draft when moving to next step
+      saveDraft(formData, nextStepNum, {}, false);
     }
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 0));
+    const prevStepNum = Math.max(currentStep - 1, 0);
+    setCurrentStep(prevStepNum);
+    // Save draft when moving to previous step
+    saveDraft(formData, prevStepNum, {}, false);
   };
 
   const handleSubmit = async () => {
