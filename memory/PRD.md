@@ -22,18 +22,26 @@
    - Typing indicators and read receipts via WebSocket
    - Connection status indicator (green Wifi icon when connected)
    - Auto-reconnect on disconnect
+   - **Admin Audit**: View all conversations and messages
+   - **User Restrictions**: Admin can restrict users from chat
    - File/image sharing support
-   - New Collections: `chat_conversations`, `chat_messages`
+   - New Collections: `chat_conversations`, `chat_messages`, `admin_audit_logs`
    - Backend: `/app/backend/routers/chat.py`, `/app/backend/websocket_manager.py`
    - Frontend: `/app/frontend/src/pages/Chat.js`
 
 2. **🤖 AI-Powered ERP Assistant** (`/ai-assistant`):
    - GPT-4o integration via Emergent LLM Key
+   - **Hierarchical RBAC**:
+     - Consultants: Own projects only
+     - Managers: Team's data (direct reports)
+     - Department Heads: Department-wide data
+     - Admins: Full access to everything
    - Natural language queries: "Show me employees with pending leaves"
    - Report analysis & summaries across Sales, HR, Finance, Projects
    - Trend insights & predictions
    - Quick Reports sidebar for instant analysis
    - AI Suggestions based on current ERP state
+   - **Admin can restrict users from AI access**
    - Chat history persistence
    - New Collection: `ai_chat_history`
    - Backend: `/app/backend/routers/ai_assistant.py`
