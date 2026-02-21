@@ -11,7 +11,31 @@
 
 ## Completed Work - February 2026
 
-### Phase 4: P2 Features Implementation - February 21, 2026 ✅ (Latest)
+### Phase 5: Client Onboarding Flow - February 21, 2026 ✅ (Latest)
+
+**Client Onboarding Page with Step-Based UI (Similar to HR Onboarding)**
+- ✅ Created `/client-onboarding` page with 4-step wizard:
+  1. **Agreement Review** - View signed agreement details
+  2. **Record Payment** - Record payments with Cheque/NEFT/UPI/RTGS
+  3. **Project Kickoff** - Select PM and create kickoff request
+  4. **Onboarding Complete** - Success confirmation with project link
+- ✅ Progress bar with clickable step indicators
+- ✅ Payment recording form with validation (Cheque # or UTR required)
+- ✅ Payment history sidebar with running total
+- ✅ PM selection dropdown for kickoff
+- ✅ "Client Onboarding" button added to AgreementView (replaces Record Payment button)
+- ✅ Removed payment dialog from AgreementView (now in separate flow)
+
+**Files Created:**
+- `/app/frontend/src/pages/ClientOnboarding.js` - Step-based client onboarding UI
+
+**Files Modified:**
+- `/app/frontend/src/pages/sales-funnel/AgreementView.js` - Replaced Record Payment with Client Onboarding button
+- `/app/frontend/src/App.js` - Added ClientOnboarding route
+
+---
+
+### Phase 4: P2 Features Implementation - February 21, 2026 ✅
 
 **1. Payment Recording (after Agreement Signed)**
 - ✅ `POST /api/agreements/{id}/record-payment` - Records payment with amount, date, mode
