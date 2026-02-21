@@ -54,6 +54,28 @@ const HRDashboard = () => {
     }
   };
 
+  const generateDocumentation = async (emailTo = null) => {
+    setGeneratingDocs(true);
+    try {
+      let url = `${API}/documentation/generate-hr-docs`;
+      if (emailTo) {
+        url += `?email_to=${encodeURIComponent(emailTo)}`;
+      }
+      const response = await axios.post(url);
+      setDocResult(response.data);
+      if (response.data.email_status === 'sent') {
+        toast.success('Documentation generated and emailed successfully!');
+      } else {
+        toast.success('Documentation generated successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to generate documentation:', error);
+      toast.error('Failed to generate documentation');
+    } finally {
+      setGeneratingDocs(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
