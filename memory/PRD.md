@@ -11,7 +11,29 @@
 
 ## Completed Work - February 2026
 
-### Attendance & Leave Settings Enhancements - February 21, 2026 ✅ (Latest)
+### Draggable Help Panel & Workflow Overlay - February 21, 2026 ✅ (Latest)
+**Made floating help button and workflow overlay draggable to avoid blocking page content**
+
+**Changes:**
+- ✅ **Floating Help Button now draggable** 
+  - Click and drag to reposition anywhere on screen
+  - Stays within viewport bounds
+  - Touch-friendly (works on mobile/tablet)
+- ✅ **Workflow Overlay now draggable**
+  - Move icon (⋮⋮) in header indicates draggability
+  - Drag header to reposition panel
+  - Prevents blocking page content
+  - Enhanced shadow when dragging for visual feedback
+
+**Technical Implementation:**
+- Custom `useDraggable` hook for drag functionality
+- Supports both mouse and touch events
+- Viewport bounds checking to keep elements visible
+- Position persists until page reload
+
+---
+
+### Attendance & Leave Settings Enhancements - February 21, 2026 ✅
 **Improved attendance policy configuration with employee-wise customization**
 
 **Changes:**
