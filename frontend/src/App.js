@@ -32,6 +32,7 @@ const ProjectRoadmap = lazy(() => import('./pages/ProjectRoadmap'));
 const ConsultantPerformance = lazy(() => import('./pages/ConsultantPerformance'));
 const EmailTemplates = lazy(() => import('./pages/EmailTemplates'));
 const PricingPlanBuilder = lazy(() => import('./pages/sales-funnel/PricingPlanBuilder'));
+const MeetingRecord = lazy(() => import('./pages/sales-funnel/MeetingRecord'));
 const SOWBuilder = lazy(() => import('./pages/sales-funnel/SOWBuilder'));
 const SalesScopeSelection = lazy(() => import('./pages/sales-funnel/SalesScopeSelection'));
 const ConsultingScopeView = lazy(() => import('./pages/sales-funnel/ConsultingScopeView'));
