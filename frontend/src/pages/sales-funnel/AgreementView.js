@@ -657,6 +657,18 @@ const AgreementView = () => {
                 Create Project Kickoff
               </Button>
             )}
+            
+            {/* Record Payment Button - for signed agreements */}
+            {agreement?.status === 'signed' && (
+              <Button
+                onClick={() => setPaymentDialogOpen(true)}
+                className="bg-green-600 text-white hover:bg-green-700 rounded-sm shadow-none"
+                data-testid="record-payment-btn"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Record Payment
+              </Button>
+            )}
           </div>
         </div>
       </div>
