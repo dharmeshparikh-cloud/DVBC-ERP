@@ -12541,6 +12541,146 @@ async def get_manager_performance(
     }
 
 
+@api_router.get("/manager/target-vs-achievement")
+async def get_target_vs_achievement(
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get employee-wise Target vs Achievement for Meetings and Closures"""
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "account_manager", "senior_consultant"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    now = datetime.now(timezone.utc)
+    target_month = month or now.month
+    target_year = year or now.year
+    
+    # Get subordinates
+    user_employee = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    subordinates = []
+    if current_user.role == "admin":
+        subordinates = await db.employees.find(
+            {"is_active": True},
+            {"_id": 0, "user_id": 1, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}
+        ).to_list(500)
+    elif user_employee:
+        manager_id = user_employee.get("employee_id") or user_employee.get("id")
+        subordinates = await db.employees.find(
+            {"$or": [{"reporting_manager_id": manager_id}, {"reporting_manager_id": user_employee.get("id")}], "is_active": True},
+            {"_id": 0, "user_id": 1, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}
+        ).to_list(100)
+    
+    # Get targets and achievements for each subordinate
+    employee_stats = []
+    month_start = datetime(target_year, target_month, 1).isoformat()
+    if target_month == 12:
+        month_end = datetime(target_year + 1, 1, 1).isoformat()
+    else:
+        month_end = datetime(target_year, target_month + 1, 1).isoformat()
+    
+    # Get total clients (leads in funnel) 
+    total_clients = await db.leads.count_documents({"status": {"$nin": ["lost", "closed"]}})
+    
+    for sub in subordinates:
+        emp_id = sub.get("employee_id") or sub.get("id")
+        user_id = sub.get("user_id") or sub.get("id")
+        name = f"{sub.get('first_name', '')} {sub.get('last_name', '')}".strip()
+        
+        # Get targets from yearly_sales_targets collection
+        targets = await db.yearly_sales_targets.find({
+            "employee_id": emp_id,
+            "year": target_year
+        }, {"_id": 0}).to_list(10)
+        
+        revenue_target = 0
+        meeting_target = 0
+        closure_target = 0
+        
+        for t in targets:
+            if t.get("target_type") == "revenue":
+                revenue_target = t.get("monthly_targets", {}).get(str(target_month), 0)
+            elif t.get("target_type") == "meetings":
+                meeting_target = t.get("monthly_targets", {}).get(str(target_month), 0)
+            elif t.get("target_type") == "closures":
+                closure_target = t.get("monthly_targets", {}).get(str(target_month), 0)
+        
+        # Get actual meetings for this employee in this month
+        meeting_count = await db.meeting_records.count_documents({
+            "created_by": {"$in": [user_id, emp_id]},
+            "meeting_date": {"$gte": month_start[:10], "$lt": month_end[:10]}
+        })
+        
+        # Get actual closures for this employee in this month
+        closure_query = {
+            "status": LeadStatus.CLOSED,
+            "updated_at": {"$gte": month_start, "$lt": month_end},
+            "$or": [{"created_by": user_id}, {"assigned_to": user_id}, {"created_by": emp_id}, {"assigned_to": emp_id}]
+        }
+        closure_count = await db.leads.count_documents(closure_query)
+        
+        # Get agreement values for closures
+        closed_leads = await db.leads.find(closure_query, {"_id": 0, "id": 1}).to_list(100)
+        lead_ids = [l["id"] for l in closed_leads]
+        agreements = await db.agreements.find(
+            {"lead_id": {"$in": lead_ids}, "status": {"$in": ["approved", "signed"]}},
+            {"_id": 0, "total_value": 1}
+        ).to_list(100)
+        revenue_achieved = sum(a.get("total_value", 0) for a in agreements)
+        
+        employee_stats.append({
+            "employee_id": emp_id,
+            "employee_name": name,
+            "meetings": {
+                "target": meeting_target,
+                "achieved": meeting_count,
+                "percentage": (meeting_count / meeting_target * 100) if meeting_target > 0 else 0
+            },
+            "closures": {
+                "target": closure_target,
+                "achieved": closure_count,
+                "percentage": (closure_count / closure_target * 100) if closure_target > 0 else 0
+            },
+            "revenue": {
+                "target": revenue_target,
+                "achieved": revenue_achieved,
+                "percentage": (revenue_achieved / revenue_target * 100) if revenue_target > 0 else 0
+            }
+        })
+    
+    # Calculate team totals
+    team_totals = {
+        "meetings": {
+            "target": sum(e["meetings"]["target"] for e in employee_stats),
+            "achieved": sum(e["meetings"]["achieved"] for e in employee_stats)
+        },
+        "closures": {
+            "target": sum(e["closures"]["target"] for e in employee_stats),
+            "achieved": sum(e["closures"]["achieved"] for e in employee_stats)
+        },
+        "revenue": {
+            "target": sum(e["revenue"]["target"] for e in employee_stats),
+            "achieved": sum(e["revenue"]["achieved"] for e in employee_stats)
+        }
+    }
+    
+    for metric in ["meetings", "closures", "revenue"]:
+        target = team_totals[metric]["target"]
+        achieved = team_totals[metric]["achieved"]
+        team_totals[metric]["percentage"] = (achieved / target * 100) if target > 0 else 0
+    
+    return {
+        "month": target_month,
+        "year": target_year,
+        "total_clients": total_clients,
+        "employee_stats": employee_stats,
+        "team_totals": team_totals
+    }
+
+
 # ============== LEAD PROGRESS TRACKING ==============
 
 @api_router.get("/leads/{lead_id}/progress")
