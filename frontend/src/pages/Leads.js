@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
@@ -8,9 +8,11 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign, Eye, Search, Calendar, Upload, FileSpreadsheet, Download, X } from 'lucide-react';
+import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign, Eye, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
+import useDraft from '../hooks/useDraft';
+import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 
 const Leads = () => {
   const { user } = useContext(AuthContext);
