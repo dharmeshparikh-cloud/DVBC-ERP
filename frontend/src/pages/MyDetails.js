@@ -627,22 +627,60 @@ const MyDetails = () => {
             {/* Bank Section */}
             {editSection === 'bank' && (
               <>
-                <div>
-                  <Label>Bank Name</Label>
-                  <Input
-                    value={editData.bank_name || ''}
-                    onChange={e => setEditData({...editData, bank_name: e.target.value})}
-                    placeholder="HDFC Bank"
-                  />
+                <div className={`p-3 rounded-lg mb-2 ${isDark ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} border`}>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Bank changes require proof document (cancelled cheque / bank statement)
+                  </p>
                 </div>
+                
                 <div>
-                  <Label>Branch</Label>
-                  <Input
-                    value={editData.branch || ''}
-                    onChange={e => setEditData({...editData, branch: e.target.value})}
-                    placeholder="Mumbai Main Branch"
-                  />
+                  <Label>IFSC Code</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={editData.ifsc_code || ''}
+                      onChange={e => setEditData({...editData, ifsc_code: e.target.value.toUpperCase()})}
+                      placeholder="HDFC0001234"
+                      maxLength={11}
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => verifyIfsc(editData.ifsc_code)}
+                      disabled={verifyingIfsc || !editData.ifsc_code || editData.ifsc_code.length !== 11}
+                    >
+                      {verifyingIfsc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      {verifyingIfsc ? 'Verifying' : 'Verify'}
+                    </Button>
+                  </div>
+                  {ifscVerified && (
+                    <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" /> IFSC Verified
+                    </p>
+                  )}
                 </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Bank Name</Label>
+                    <Input
+                      value={editData.bank_name || ''}
+                      onChange={e => setEditData({...editData, bank_name: e.target.value})}
+                      placeholder="HDFC Bank"
+                    />
+                  </div>
+                  <div>
+                    <Label>Branch</Label>
+                    <Input
+                      value={editData.branch || ''}
+                      onChange={e => setEditData({...editData, branch: e.target.value})}
+                      placeholder="Mumbai Main Branch"
+                    />
+                  </div>
+                </div>
+                
                 <div>
                   <Label>Account Number</Label>
                   <Input
@@ -651,13 +689,65 @@ const MyDetails = () => {
                     placeholder="1234567890123"
                   />
                 </div>
+                
                 <div>
-                  <Label>IFSC Code</Label>
+                  <Label>Confirm Account Number</Label>
                   <Input
-                    value={editData.ifsc_code || ''}
-                    onChange={e => setEditData({...editData, ifsc_code: e.target.value.toUpperCase()})}
-                    placeholder="HDFC0001234"
+                    value={editData.confirm_account_number || ''}
+                    onChange={e => setEditData({...editData, confirm_account_number: e.target.value})}
+                    placeholder="Re-enter account number"
                   />
+                  {editData.account_number && editData.confirm_account_number && 
+                   editData.account_number !== editData.confirm_account_number && (
+                    <p className="text-xs text-red-500 mt-1">Account numbers do not match</p>
+                  )}
+                </div>
+
+                {/* Proof Document Upload */}
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-900' : 'bg-zinc-50'}`}>
+                  <Label className="text-orange-600 flex items-center gap-1 mb-2">
+                    <Upload className="w-4 h-4" /> Proof Document *
+                  </Label>
+                  <p className="text-xs text-zinc-500 mb-2">Upload cancelled cheque or bank statement (Max 5MB)</p>
+                  
+                  {!proofFile ? (
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors
+                        ${isDark ? 'border-zinc-700 hover:border-zinc-500' : 'border-zinc-300 hover:border-zinc-400'}`}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-zinc-400" />
+                      <p className="text-sm text-zinc-500">Click to upload</p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </div>
+                  ) : (
+                    <div className={`relative rounded-lg overflow-hidden border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      {proofPreview && proofFile.type.startsWith('image/') ? (
+                        <img src={proofPreview} alt="Proof" className="w-full h-32 object-cover" />
+                      ) : (
+                        <div className="p-4 flex items-center gap-3">
+                          <FileText className="w-8 h-8 text-orange-500" />
+                          <span className="text-sm truncate">{proofFile.name}</span>
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        {proofPreview && proofFile.type.startsWith('image/') && (
+                          <Button size="sm" variant="secondary" onClick={() => window.open(proofPreview, '_blank')}>
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="destructive" onClick={removeFile}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
