@@ -11473,7 +11473,7 @@ async def get_lead_progress(lead_id: str, current_user: User = Depends(get_curre
     elif stages["sow"] or stages["quotation"]:
         current_stage = 3
         if pricing_plans:
-            next_url = f"/sales-funnel/proforma-invoices?leadId={lead_id}"
+            next_url = f"/sales-funnel/quotations?leadId={lead_id}"
         else:
             next_url = f"/sales-funnel/pricing-plans?leadId={lead_id}"
     elif stages["pricing"]:
