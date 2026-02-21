@@ -852,15 +852,21 @@ const Leads = () => {
               {filteredLeads.map((lead) => {
                 const scoreBadge = getScoreBadge(lead.lead_score || 0);
                 const progress = leadProgress[lead.id] || {};
+                const isPaused = lead.status === 'paused';
                 return (
                   <tr 
                     key={lead.id} 
-                    className="hover:bg-zinc-50 cursor-pointer transition-colors"
+                    className={`hover:bg-zinc-50 cursor-pointer transition-colors ${isPaused ? 'opacity-60 bg-zinc-100' : ''}`}
                     onClick={() => handleLeadClick(lead)}
                     data-testid={`lead-row-${lead.id}`}
                   >
                     <td className="px-4 py-3">
-                      <span className="font-medium text-zinc-900">{lead.first_name} {lead.last_name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-zinc-900">{lead.first_name} {lead.last_name}</span>
+                        {isPaused && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 rounded">PAUSED</span>
+                        )}
+                      </div>
                       {lead.job_title && <p className="text-xs text-zinc-500">{lead.job_title}</p>}
                     </td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{lead.company}</td>
@@ -886,19 +892,45 @@ const Leads = () => {
                         onChange={(e) => handleStatusChange(lead.id, e.target.value)}
                         className={`px-2 py-1 text-xs font-medium rounded-sm border-0 cursor-pointer ${getStatusBadge(lead.status)}`}
                         data-testid={`status-select-${lead.id}`}
+                        disabled={isPaused}
                       >
-                        {['new', 'contacted', 'qualified', 'proposal', 'agreement', 'closed', 'lost'].map(s => (
-                          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                        {leadStatusOptions.filter(o => o.value).map(o => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                       </select>
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
+                        {/* Pause/Resume for managers */}
+                        {isManagerOrAbove && (
+                          isPaused ? (
+                            <Button
+                              onClick={(e) => handleResumeLead(lead.id, e)}
+                              size="sm"
+                              variant="outline"
+                              className="rounded-sm h-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                              title="Resume Lead"
+                            >
+                              <Play className="w-3 h-3" />
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={(e) => handlePauseLead(lead.id, e)}
+                              size="sm"
+                              variant="outline"
+                              className="rounded-sm h-8 text-orange-600 border-orange-200 hover:bg-orange-50"
+                              title="Pause Lead"
+                            >
+                              <Pause className="w-3 h-3" />
+                            </Button>
+                          )
+                        )}
                         <Button
                           onClick={() => handleLeadClick(lead)}
                           size="sm"
                           variant="outline"
                           className="rounded-sm h-8"
+                          disabled={isPaused}
                         >
                           <TrendingUp className="w-3 h-3" />
                         </Button>
