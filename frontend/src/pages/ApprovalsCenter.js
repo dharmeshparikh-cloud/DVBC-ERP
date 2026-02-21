@@ -739,6 +739,21 @@ const ApprovalsCenter = () => {
           </Card>
         )}
 
+        {/* Kickoff Request Approvals stat */}
+        {(isAdmin || user?.role === 'sr_manager' || user?.role === 'principal_consultant') && (
+          <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+            <CardContent className="p-2.5 md:p-4">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Kickoff</p>
+                  <p className="text-lg md:text-2xl font-semibold text-pink-600">{kickoffApprovals.length}</p>
+                </div>
+                <Briefcase className="w-5 h-5 md:w-8 md:h-8 text-pink-500/30 flex-shrink-0" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
           <CardContent className="p-2.5 md:p-4">
             <div className="flex items-center justify-between">
