@@ -167,9 +167,25 @@ const MyLeaves = () => {
           </DialogTrigger>
           <DialogContent className="border-zinc-200 rounded-sm max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Apply for Leave</DialogTitle>
-              <DialogDescription className="text-zinc-500">Routed: You → Reporting Manager → HR Manager</DialogDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Apply for Leave</DialogTitle>
+                  <DialogDescription className="text-zinc-500">Routed: You → Reporting Manager → HR Manager</DialogDescription>
+                </div>
+                <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={() => saveDraft(formData)} />
+              </div>
             </DialogHeader>
+            
+            {/* Draft Selector */}
+            {drafts.length > 0 && (
+              <DraftSelector 
+                drafts={drafts}
+                onLoadDraft={handleLoadDraft}
+                onDeleteDraft={deleteDraft}
+                loadingDrafts={loadingDrafts}
+              />
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-zinc-950">Leave Type</Label>
