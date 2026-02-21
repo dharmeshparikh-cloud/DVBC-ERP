@@ -861,16 +861,21 @@ def calculate_lead_score(lead_data: dict) -> tuple[int, dict]:
     breakdown['contact_score'] = contact_score
     score += contact_score
     
-    # Engagement/Status (0-30 points)
+    # Engagement/Status (0-30 points) - Updated for new flow
     status = lead_data.get('status', LeadStatus.NEW)
     status_score = {
         LeadStatus.NEW: 5,
-        LeadStatus.CONTACTED: 10,
-        LeadStatus.QUALIFIED: 20,
-        LeadStatus.PROPOSAL: 25,
-        LeadStatus.AGREEMENT: 30,
+        LeadStatus.MEETING: 10,
+        LeadStatus.PRICING_PLAN: 15,
+        LeadStatus.SOW: 18,
+        LeadStatus.QUOTATION: 20,
+        LeadStatus.AGREEMENT: 25,
+        LeadStatus.PAYMENT: 27,
+        LeadStatus.KICKOFF_REQUEST: 28,
+        LeadStatus.KICK_ACCEPT: 29,
         LeadStatus.CLOSED: 30,
-        LeadStatus.LOST: 0
+        LeadStatus.LOST: 0,
+        LeadStatus.PAUSED: 5
     }.get(status, 5)
     
     breakdown['engagement_score'] = status_score
