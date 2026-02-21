@@ -177,12 +177,18 @@ const ApprovalsCenter = () => {
         requests.push(axios.get(`${API}/agreements/pending-approval`).catch(() => ({ data: [] })));
       }
       
+      // Fetch kickoff request approvals for Sr. Managers/Principals/Admins
+      if (isAdmin || user?.role === 'sr_manager' || user?.role === 'principal_consultant') {
+        requests.push(axios.get(`${API}/kickoff-requests/pending`).catch(() => ({ data: [] })));
+      }
+      
       const results = await Promise.all(requests);
       
       setPendingApprovals(results[0]?.data || []);
       setMyRequests(results[1]?.data || []);
       
       let agreementApprovalIndex = null;
+      let kickoffApprovalIndex = null;
       
       if (isAdmin) {
         setCtcApprovals(results[2]?.data || []);
@@ -190,12 +196,15 @@ const ApprovalsCenter = () => {
         setPermissionApprovals((results[4]?.data || []).filter(r => r.status === 'pending'));
         setModificationApprovals(results[5]?.data || []);
         agreementApprovalIndex = 6; // After the admin-specific requests
+        kickoffApprovalIndex = 7; // After agreement approvals
       } else if (isHR) {
         setBankApprovals(results[2]?.data || []);
         setProfileChangeApprovals((results[3]?.data || []).filter(r => r.status === 'pending'));
         agreementApprovalIndex = isManager ? 4 : null; // HR managers get agreement approvals after HR requests
+        kickoffApprovalIndex = isManager ? 5 : null;
       } else if (isManager) {
         agreementApprovalIndex = 2; // For non-admin managers, right after the basic requests
+        kickoffApprovalIndex = 3;
       }
       
       // Set agreement approvals if user has permission
@@ -203,6 +212,11 @@ const ApprovalsCenter = () => {
         const agreementData = results[agreementApprovalIndex]?.data || [];
         // Extract the agreement objects from the response
         setAgreementApprovals(agreementData.map(item => item.agreement || item));
+      }
+      
+      // Set kickoff approvals if user has permission
+      if (kickoffApprovalIndex !== null && results[kickoffApprovalIndex]) {
+        setKickoffApprovals(results[kickoffApprovalIndex]?.data || []);
       }
       
       if (isManager) {
