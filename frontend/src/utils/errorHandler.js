@@ -272,9 +272,47 @@ export function getErrorIcon(type) {
   }
 }
 
+/**
+ * Simple helper to extract a user-readable error message from API errors.
+ * Handles Pydantic validation errors (array format) and string errors.
+ * 
+ * @param {Object} error - The error object from axios catch block
+ * @param {string} defaultMessage - Default message if extraction fails
+ * @returns {string} Human-readable error message
+ */
+export const getApiErrorMessage = (error, defaultMessage = 'An error occurred') => {
+  const detail = error?.response?.data?.detail;
+  
+  // Handle Pydantic validation errors (array of objects with msg property)
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map(e => e.msg || e.message || 'Validation error')
+      .filter(Boolean);
+    return messages.length > 0 ? messages.join(', ') : defaultMessage;
+  }
+  
+  // Handle string errors
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  
+  // Handle object errors with message property
+  if (detail && typeof detail === 'object' && detail.message) {
+    return detail.message;
+  }
+  
+  // Handle error.message (network errors, etc.)
+  if (error?.message) {
+    return error.message;
+  }
+  
+  return defaultMessage;
+};
+
 export default {
   parseError,
   formatErrorForToast,
   getErrorIcon,
+  getApiErrorMessage,
   ERROR_TYPES
 };
