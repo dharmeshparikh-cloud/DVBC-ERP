@@ -1046,84 +1046,142 @@ const ApprovalsCenter = () => {
 
       {/* Pending Approvals Tab */}
       {activeTab === 'pending' && (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
+          {/* Select All / Bulk Actions Header */}
+          {pendingApprovals.length > 0 && (
+            <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-lg ${isDark ? 'bg-zinc-800/50' : 'bg-zinc-50'}`}>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => selectedItems.size === pendingApprovals.length ? clearSelection() : selectAllPending()}
+                  className={`flex items-center gap-2 text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}
+                >
+                  {selectedItems.size === pendingApprovals.length ? (
+                    <CheckSquare className="w-5 h-5 text-orange-500" />
+                  ) : selectedItems.size > 0 ? (
+                    <div className="w-5 h-5 border-2 border-orange-500 rounded flex items-center justify-center">
+                      <div className="w-2 h-2 bg-orange-500 rounded-sm" />
+                    </div>
+                  ) : (
+                    <Square className="w-5 h-5" />
+                  )}
+                  {selectedItems.size === pendingApprovals.length ? 'Deselect All' : 'Select All'}
+                </button>
+                <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  ({pendingApprovals.length} items)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-yellow-500" />
+                <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                  Tip: Select multiple items for bulk actions
+                </span>
+              </div>
+            </div>
+          )}
+          
           {pendingApprovals.length === 0 ? (
-            <Card className="border-zinc-200 shadow-none rounded-sm">
-              <CardContent className="p-12 text-center">
+            <Card className={`shadow-none rounded-lg ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
+              <CardContent className="p-8 md:p-12 text-center">
                 <CheckCircle className="w-12 h-12 text-emerald-300 mx-auto mb-4" />
-                <p className="text-zinc-500">No pending approvals. You're all caught up!</p>
+                <p className={isDark ? 'text-zinc-400' : 'text-zinc-500'}>No pending approvals. You're all caught up!</p>
               </CardContent>
             </Card>
           ) : (
             pendingApprovals.map(approval => (
-              <Card key={approval.id} className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getStatusBadge(approval.overall_status)}`}>
+              <Card 
+                key={approval.id} 
+                className={`shadow-none rounded-lg transition-all ${
+                  selectedItems.has(approval.id)
+                    ? isDark ? 'border-orange-500 bg-orange-900/10' : 'border-orange-400 bg-orange-50/50'
+                    : isDark ? 'border-zinc-700 hover:border-zinc-600' : 'border-zinc-200 hover:border-zinc-300'
+                }`}
+              >
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Selection Checkbox */}
+                    <button
+                      onClick={() => toggleItemSelection(approval.id)}
+                      className="mt-1 flex-shrink-0"
+                    >
+                      {selectedItems.has(approval.id) ? (
+                        <CheckSquare className="w-5 h-5 text-orange-500" />
+                      ) : (
+                        <Square className={`w-5 h-5 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
+                      )}
+                    </button>
+                    
+                    <div className="flex-1 min-w-0">
+                      {/* Mobile-friendly header */}
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded border ${getStatusBadge(approval.overall_status)}`}>
                           {APPROVAL_TYPE_LABELS[approval.approval_type] || approval.approval_type}
                         </span>
                         {approval.is_client_facing && (
-                          <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded">Client Facing</span>
+                          <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded dark:bg-purple-900/30 dark:text-purple-400">Client</span>
                         )}
                         {approval.requires_hr_approval && (
-                          <span className="px-2 py-1 text-xs bg-pink-100 text-pink-700 rounded">HR Required</span>
+                          <span className="px-2 py-0.5 text-xs bg-pink-100 text-pink-700 rounded dark:bg-pink-900/30 dark:text-pink-400">HR</span>
                         )}
                       </div>
-                      <h3 className="font-medium text-zinc-950 text-lg">{approval.reference_title}</h3>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-zinc-500">
+                      
+                      <h3 className={`font-medium text-base md:text-lg truncate ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
+                        {approval.reference_title}
+                      </h3>
+                      
+                      {/* Meta info - stacked on mobile */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs md:text-sm text-zinc-500">
                         <span className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
-                          {approval.requester_name}
+                          <User className="w-3.5 h-3.5" />
+                          <span className="truncate max-w-[120px]">{approval.requester_name}</span>
                         </span>
                         <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
+                          <Calendar className="w-3.5 h-3.5" />
                           {new Date(approval.created_at).toLocaleDateString()}
                         </span>
-                        <span className="flex items-center gap-1">
-                          Level {approval.current_level} of {approval.max_level}
+                        <span className="hidden sm:flex items-center gap-1">
+                          Level {approval.current_level}/{approval.max_level}
                         </span>
                       </div>
                       
-                      {/* Approval Chain */}
-                      <div className="mt-4 flex items-center gap-2 text-xs">
+                      {/* Approval Chain - Hidden on mobile, shown on tablet+ */}
+                      <div className="hidden md:flex mt-3 items-center gap-2 text-xs flex-wrap">
                         {approval.approval_levels?.map((level, idx) => (
                           <React.Fragment key={idx}>
                             <div className={`flex items-center gap-1 px-2 py-1 rounded ${
-                              level.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
-                              level.status === 'rejected' ? 'bg-red-50 text-red-700' :
-                              level.level === approval.current_level ? 'bg-yellow-50 text-yellow-700 border border-yellow-300' :
-                              'bg-zinc-50 text-zinc-500'
+                              level.status === 'approved' ? isDark ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-700' :
+                              level.status === 'rejected' ? isDark ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-700' :
+                              level.level === approval.current_level ? isDark ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-600' : 'bg-yellow-50 text-yellow-700 border border-yellow-300' :
+                              isDark ? 'bg-zinc-800 text-zinc-500' : 'bg-zinc-50 text-zinc-500'
                             }`}>
                               {getStatusIcon(level.status)}
-                              <span>{level.approver_name}</span>
-                              <span className="text-xs opacity-60">({level.approver_type?.replace('_', ' ')})</span>
+                              <span className="truncate max-w-[80px]">{level.approver_name}</span>
                             </div>
                             {idx < approval.approval_levels.length - 1 && (
-                              <ChevronRight className="w-4 h-4 text-zinc-300" />
+                              <ChevronRight className="w-4 h-4 text-zinc-300 flex-shrink-0" />
                             )}
                           </React.Fragment>
                         ))}
                       </div>
                     </div>
                     
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 ml-4">
+                    {/* Action Buttons - Stacked on mobile */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-shrink-0">
                       <Button
                         onClick={() => openActionDialog(approval, 'approve')}
-                        className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
+                        size="sm"
+                        className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-md shadow-none text-xs md:text-sm"
                       >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
+                        <CheckCircle className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Approve</span>
                       </Button>
                       <Button
                         onClick={() => openActionDialog(approval, 'reject')}
+                        size="sm"
                         variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50 rounded-sm"
+                        className="border-red-300 text-red-600 hover:bg-red-50 rounded-md text-xs md:text-sm"
                       >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Reject
+                        <XCircle className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Reject</span>
                       </Button>
                     </div>
                   </div>
