@@ -92,7 +92,7 @@ const Layout = () => {
 
   // Track which sections are expanded
   const [expanded, setExpanded] = useState({
-    workspace: true, communication: true, hr: true, sales: true, consulting: true, admin: true
+    workspace: true, hr: true, sales: true, consulting: true, admin: true
   });
 
   // Change Password Dialog state
