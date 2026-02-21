@@ -11319,10 +11319,19 @@ async def ai_guidance_help(
 ):
     """AI-powered contextual help with navigation suggestions"""
     from emergentintegrations.llm.chat import chat, ModelType
+    import os
     
     query = request.get("query", "")
     current_page = request.get("current_page", "/")
     user_role = request.get("user_role", "employee")
+    
+    emergent_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not emergent_key:
+        return {
+            "response": "AI help is not configured. Please contact your administrator.",
+            "suggested_route": None,
+            "auto_navigate": False
+        }
     
     # Build context about available routes and actions
     route_context = """
@@ -11370,7 +11379,7 @@ Keep responses under 100 words. Be direct and helpful."""
 
     try:
         response = await chat(
-            api_key=EMERGENT_LLM_KEY,
+            api_key=emergent_key,
             prompt=f"User question: {query}",
             system=system_prompt,
             model=ModelType.GPT_4O,
