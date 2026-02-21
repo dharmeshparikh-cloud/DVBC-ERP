@@ -317,6 +317,26 @@ const ApprovalsCenter = () => {
     }
   };
 
+  // Profile Change Request handlers
+  const handleProfileChangeAction = async (requestId, action) => {
+    setActionLoading(true);
+    try {
+      if (action === 'approve') {
+        await axios.post(`${API}/hr/employee-change-request/${requestId}/approve`);
+        toast.success('Profile change approved! Employee profile updated.');
+      } else {
+        await axios.post(`${API}/hr/employee-change-request/${requestId}/reject`, { reason: comments || 'Rejected by HR' });
+        toast.success('Profile change request rejected');
+      }
+      setComments('');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} profile change request`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Go-Live handlers
   const fetchGoLiveChecklist = async (employeeId) => {
     try {
