@@ -278,6 +278,7 @@ const Layout = () => {
     { name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet },
     { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
     { name: 'My Bank Details', href: '/my-bank-details', icon: Building2 },
+    { name: 'My Details', href: '/my-details', icon: UserCog },
     { name: 'Mobile App', href: '/mobile-app', icon: Download },
   ];
 
