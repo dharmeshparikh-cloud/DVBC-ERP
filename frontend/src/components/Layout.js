@@ -374,7 +374,15 @@ const Layout = () => {
             </div>
             {expanded.sales && (
               <>
-                {salesFlowItems.map(item => <NavLink key={item.name} item={item} />)}
+                {salesFlowItems
+                  .filter(item => {
+                    // Hide managerOnly items for non-managers
+                    if (item.managerOnly && !isManagerOrAbove) return false;
+                    // Hide adminOnly items for non-admins
+                    if (item.adminOnly && user?.role !== 'admin') return false;
+                    return true;
+                  })
+                  .map(item => <NavLink key={item.name} item={item} />)}
                 {salesOtherItems.length > 0 && (
                   <>
                     <div className={`my-0.5 mx-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`} />
