@@ -13640,6 +13640,418 @@ async def get_sales_forecasting(
     }
 
 
+@api_router.get("/analytics/time-in-stage")
+async def get_time_in_stage_analytics(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calculate average time leads spend at each funnel stage.
+    Uses stage_timestamps from leads collection and created_at from stage collections.
+    """
+    from dateutil import parser as date_parser
+    
+    # Get all leads with stage timestamps
+    leads = await db.leads.find(
+        {"stage_timestamps": {"$exists": True}},
+        {"_id": 0, "id": 1, "stage_timestamps": 1, "company": 1, "status": 1}
+    ).to_list(500)
+    
+    # Also get leads without explicit timestamps - calculate from collections
+    leads_without_timestamps = await db.leads.find(
+        {"stage_timestamps": {"$exists": False}},
+        {"_id": 0, "id": 1, "created_at": 1, "company": 1}
+    ).to_list(500)
+    
+    # Stage order for calculations
+    stage_order = ["lead", "meeting", "pricing", "sow", "quotation", "agreement", "signed", "payment", "kickoff", "complete"]
+    
+    # Collect time durations for each stage transition
+    stage_durations = {stage: [] for stage in stage_order[:-1]}  # Exclude 'complete' as it's the end
+    
+    # Process leads with timestamps
+    for lead in leads:
+        timestamps = lead.get("stage_timestamps", {})
+        
+        for i in range(len(stage_order) - 1):
+            current_stage = stage_order[i]
+            next_stage = stage_order[i + 1]
+            
+            current_ts = timestamps.get(current_stage)
+            next_ts = timestamps.get(next_stage)
+            
+            if current_ts and next_ts:
+                try:
+                    current_dt = date_parser.parse(current_ts) if isinstance(current_ts, str) else current_ts
+                    next_dt = date_parser.parse(next_ts) if isinstance(next_ts, str) else next_ts
+                    days = (next_dt - current_dt).days
+                    if days >= 0:  # Valid duration
+                        stage_durations[current_stage].append(days)
+                except:
+                    pass
+    
+    # For leads without timestamps, try to calculate from collection created_at
+    for lead in leads_without_timestamps:
+        lead_id = lead.get("id")
+        lead_created = lead.get("created_at")
+        
+        if not lead_created:
+            continue
+        
+        try:
+            lead_dt = date_parser.parse(lead_created) if isinstance(lead_created, str) else lead_created
+        except:
+            continue
+        
+        # Get meeting date
+        meeting = await db.meeting_records.find_one({"lead_id": lead_id}, {"_id": 0, "created_at": 1, "meeting_date": 1})
+        if meeting:
+            try:
+                meeting_ts = meeting.get("created_at") or meeting.get("meeting_date")
+                meeting_dt = date_parser.parse(meeting_ts) if isinstance(meeting_ts, str) else meeting_ts
+                days = (meeting_dt - lead_dt).days
+                if days >= 0:
+                    stage_durations["lead"].append(days)
+            except:
+                pass
+    
+    # Calculate averages
+    stage_analytics = []
+    for stage in stage_order[:-1]:
+        durations = stage_durations.get(stage, [])
+        if durations:
+            avg_days = round(sum(durations) / len(durations), 1)
+            min_days = min(durations)
+            max_days = max(durations)
+            count = len(durations)
+        else:
+            avg_days = None
+            min_days = None
+            max_days = None
+            count = 0
+        
+        # Determine if this is slow (benchmark: 7 days per stage)
+        is_slow = avg_days is not None and avg_days > 7
+        
+        stage_analytics.append({
+            "stage": stage,
+            "name": stage.replace("_", " ").title(),
+            "avg_days": avg_days,
+            "min_days": min_days,
+            "max_days": max_days,
+            "sample_count": count,
+            "is_slow": is_slow,
+            "benchmark": 7  # Expected days per stage
+        })
+    
+    # Calculate overall velocity
+    total_avg = sum(s["avg_days"] for s in stage_analytics if s["avg_days"] is not None)
+    stages_with_data = sum(1 for s in stage_analytics if s["avg_days"] is not None)
+    
+    # Find slowest stage
+    slowest = max([s for s in stage_analytics if s["avg_days"] is not None], key=lambda x: x["avg_days"], default=None)
+    
+    return {
+        "stages": stage_analytics,
+        "total_leads_analyzed": len(leads) + len(leads_without_timestamps),
+        "leads_with_timestamps": len(leads),
+        "overall_metrics": {
+            "avg_total_days": round(total_avg, 1) if total_avg else None,
+            "stages_with_data": stages_with_data,
+            "slowest_stage": slowest["stage"] if slowest else None,
+            "slowest_stage_days": slowest["avg_days"] if slowest else None
+        },
+        "insights": [
+            f"Average total journey time: {round(total_avg, 0)} days" if total_avg else "Insufficient data for total time",
+            f"Slowest stage: {slowest['name']} ({slowest['avg_days']} days)" if slowest else None,
+            f"Data from {len(leads)} leads with full timestamps"
+        ]
+    }
+
+
+@api_router.get("/analytics/win-loss")
+async def get_win_loss_analysis(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Analyze won vs lost deals by stage.
+    Lost = explicitly marked as lost OR no progress in 30+ days (stale).
+    """
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = (now - timedelta(days=30)).isoformat()
+    
+    # Get all leads
+    all_leads = await db.leads.find({}, {"_id": 0}).to_list(1000)
+    lead_ids = [l["id"] for l in all_leads]
+    
+    # Categorize leads
+    won_leads = []
+    lost_leads = []
+    stale_leads = []
+    active_leads = []
+    
+    # Get stage data for all leads
+    meetings = {m["lead_id"]: m for m in await db.meeting_records.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "created_at": 1}).to_list(1000)}
+    pricing = {p["lead_id"]: p for p in await db.pricing_plans.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "id": 1}).to_list(1000)}
+    sows = {s["lead_id"]: s for s in await db.enhanced_sow.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)}
+    quotations = {q["lead_id"]: q for q in await db.quotations.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)}
+    agreements = {a["lead_id"]: a for a in await db.agreements.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "status": 1}).to_list(1000)}
+    kickoffs = {k["lead_id"]: k for k in await db.kickoff_requests.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "status": 1}).to_list(1000)}
+    
+    # Stage-wise loss tracking
+    lost_at_stage = {
+        "lead": 0, "meeting": 0, "pricing": 0, "sow": 0,
+        "quotation": 0, "agreement": 0, "signed": 0, "payment": 0, "kickoff": 0
+    }
+    stale_at_stage = {
+        "lead": 0, "meeting": 0, "pricing": 0, "sow": 0,
+        "quotation": 0, "agreement": 0, "signed": 0, "payment": 0, "kickoff": 0
+    }
+    
+    for lead in all_leads:
+        lead_id = lead.get("id")
+        status = lead.get("status", "")
+        updated_at = lead.get("updated_at", "")
+        lost_reason = lead.get("lost_reason")
+        
+        # Determine current stage
+        current_stage = "lead"
+        if lead_id in meetings:
+            current_stage = "meeting"
+        if lead_id in pricing:
+            current_stage = "pricing"
+        if lead_id in sows:
+            current_stage = "sow"
+        if lead_id in quotations:
+            current_stage = "quotation"
+        if lead_id in agreements:
+            agr = agreements[lead_id]
+            current_stage = "agreement"
+            if agr.get("status") == "signed":
+                current_stage = "signed"
+        if lead_id in kickoffs:
+            kf = kickoffs[lead_id]
+            current_stage = "kickoff"
+            if kf.get("status") == "accepted":
+                # Won!
+                won_leads.append({
+                    "lead_id": lead_id,
+                    "company": lead.get("company") or lead.get("last_name"),
+                    "final_stage": "complete"
+                })
+                continue
+        
+        # Check if lost
+        if status == "lost":
+            lost_leads.append({
+                "lead_id": lead_id,
+                "company": lead.get("company") or lead.get("last_name"),
+                "lost_at_stage": current_stage,
+                "reason": lost_reason or "Not specified"
+            })
+            lost_at_stage[current_stage] += 1
+        # Check if stale (no update in 30+ days)
+        elif updated_at and updated_at < thirty_days_ago:
+            stale_leads.append({
+                "lead_id": lead_id,
+                "company": lead.get("company") or lead.get("last_name"),
+                "stale_at_stage": current_stage,
+                "last_update": updated_at
+            })
+            stale_at_stage[current_stage] += 1
+        else:
+            active_leads.append({
+                "lead_id": lead_id,
+                "company": lead.get("company") or lead.get("last_name"),
+                "current_stage": current_stage
+            })
+    
+    total_leads = len(all_leads)
+    total_won = len(won_leads)
+    total_lost = len(lost_leads)
+    total_stale = len(stale_leads)
+    total_active = len(active_leads)
+    
+    # Calculate win rate
+    closed_leads = total_won + total_lost
+    win_rate = round((total_won / closed_leads * 100) if closed_leads > 0 else 0, 1)
+    
+    # Find worst loss stage
+    worst_loss_stage = max(lost_at_stage.items(), key=lambda x: x[1]) if any(lost_at_stage.values()) else (None, 0)
+    worst_stale_stage = max(stale_at_stage.items(), key=lambda x: x[1]) if any(stale_at_stage.values()) else (None, 0)
+    
+    return {
+        "summary": {
+            "total_leads": total_leads,
+            "won": total_won,
+            "lost": total_lost,
+            "stale_30_days": total_stale,
+            "active": total_active,
+            "win_rate": win_rate
+        },
+        "lost_at_stage": lost_at_stage,
+        "stale_at_stage": stale_at_stage,
+        "lost_leads": lost_leads[:10],  # Top 10 recent
+        "stale_leads": stale_leads[:10],  # Top 10
+        "insights": [
+            f"Win rate: {win_rate}% ({total_won} won, {total_lost} lost)",
+            f"Most losses at: {worst_loss_stage[0]} stage ({worst_loss_stage[1]} leads)" if worst_loss_stage[0] else None,
+            f"Most stale at: {worst_stale_stage[0]} stage ({worst_stale_stage[1]} leads)" if worst_stale_stage[0] else None,
+            f"{total_stale} leads haven't progressed in 30+ days" if total_stale > 0 else None
+        ],
+        "at_risk": {
+            "count": total_stale,
+            "leads": stale_leads[:5]
+        }
+    }
+
+
+@api_router.get("/analytics/velocity")
+async def get_velocity_metrics(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calculate sales velocity metrics:
+    - Average time from lead to close
+    - Win velocity (won deals only)
+    - Stage-by-stage velocity
+    """
+    from dateutil import parser as date_parser
+    
+    # Get completed deals (leads with accepted kickoffs)
+    kickoffs = await db.kickoff_requests.find(
+        {"status": "accepted"},
+        {"_id": 0, "lead_id": 1, "created_at": 1, "updated_at": 1}
+    ).to_list(500)
+    
+    completed_lead_ids = [k["lead_id"] for k in kickoffs]
+    
+    # Get lead creation dates for completed deals
+    completed_leads = await db.leads.find(
+        {"id": {"$in": completed_lead_ids}},
+        {"_id": 0, "id": 1, "created_at": 1, "stage_timestamps": 1, "company": 1}
+    ).to_list(500)
+    
+    velocities = []
+    stage_velocities = {
+        "lead_to_meeting": [], "meeting_to_pricing": [], "pricing_to_sow": [],
+        "sow_to_quotation": [], "quotation_to_agreement": [], "agreement_to_signed": [],
+        "signed_to_payment": [], "payment_to_kickoff": [], "kickoff_to_complete": []
+    }
+    
+    for lead in completed_leads:
+        lead_id = lead.get("id")
+        lead_created = lead.get("created_at")
+        stage_ts = lead.get("stage_timestamps", {})
+        
+        # Find kickoff completion date
+        kickoff = next((k for k in kickoffs if k["lead_id"] == lead_id), None)
+        if not kickoff:
+            continue
+        
+        kickoff_date = kickoff.get("updated_at") or kickoff.get("created_at")
+        
+        if not lead_created or not kickoff_date:
+            continue
+        
+        try:
+            lead_dt = date_parser.parse(lead_created) if isinstance(lead_created, str) else lead_created
+            kickoff_dt = date_parser.parse(kickoff_date) if isinstance(kickoff_date, str) else kickoff_date
+            total_days = (kickoff_dt - lead_dt).days
+            
+            if total_days >= 0:
+                velocities.append({
+                    "lead_id": lead_id,
+                    "company": lead.get("company"),
+                    "days": total_days,
+                    "lead_date": lead_created,
+                    "close_date": kickoff_date
+                })
+        except:
+            continue
+        
+        # Calculate stage-by-stage velocity if timestamps available
+        if stage_ts:
+            stage_pairs = [
+                ("lead", "meeting", "lead_to_meeting"),
+                ("meeting", "pricing", "meeting_to_pricing"),
+                ("pricing", "sow", "pricing_to_sow"),
+                ("sow", "quotation", "sow_to_quotation"),
+                ("quotation", "agreement", "quotation_to_agreement"),
+                ("agreement", "signed", "agreement_to_signed"),
+                ("signed", "payment", "signed_to_payment"),
+                ("payment", "kickoff", "payment_to_kickoff"),
+                ("kickoff", "complete", "kickoff_to_complete")
+            ]
+            
+            for from_stage, to_stage, key in stage_pairs:
+                from_ts = stage_ts.get(from_stage)
+                to_ts = stage_ts.get(to_stage)
+                
+                if from_ts and to_ts:
+                    try:
+                        from_dt = date_parser.parse(from_ts) if isinstance(from_ts, str) else from_ts
+                        to_dt = date_parser.parse(to_ts) if isinstance(to_ts, str) else to_ts
+                        days = (to_dt - from_dt).days
+                        if days >= 0:
+                            stage_velocities[key].append(days)
+                    except:
+                        pass
+    
+    # Calculate averages
+    avg_velocity = round(sum(v["days"] for v in velocities) / len(velocities), 1) if velocities else None
+    min_velocity = min(v["days"] for v in velocities) if velocities else None
+    max_velocity = max(v["days"] for v in velocities) if velocities else None
+    
+    # Stage velocity averages
+    stage_velocity_summary = []
+    for key, values in stage_velocities.items():
+        stage_name = key.replace("_to_", " → ").replace("_", " ").title()
+        if values:
+            avg = round(sum(values) / len(values), 1)
+            stage_velocity_summary.append({
+                "transition": key,
+                "name": stage_name,
+                "avg_days": avg,
+                "count": len(values)
+            })
+        else:
+            stage_velocity_summary.append({
+                "transition": key,
+                "name": stage_name,
+                "avg_days": None,
+                "count": 0
+            })
+    
+    # Find fastest and slowest deals
+    fastest = min(velocities, key=lambda x: x["days"]) if velocities else None
+    slowest = max(velocities, key=lambda x: x["days"]) if velocities else None
+    
+    return {
+        "summary": {
+            "completed_deals": len(velocities),
+            "avg_days_to_close": avg_velocity,
+            "min_days": min_velocity,
+            "max_days": max_velocity
+        },
+        "stage_velocity": stage_velocity_summary,
+        "deals": velocities[:10],  # Top 10 recent
+        "fastest_deal": {
+            "company": fastest["company"],
+            "days": fastest["days"]
+        } if fastest else None,
+        "slowest_deal": {
+            "company": slowest["company"],
+            "days": slowest["days"]
+        } if slowest else None,
+        "insights": [
+            f"Average time to close: {avg_velocity} days" if avg_velocity else "No completed deals to analyze",
+            f"Fastest deal: {fastest['company']} ({fastest['days']} days)" if fastest else None,
+            f"Slowest deal: {slowest['company']} ({slowest['days']} days)" if slowest else None,
+            f"Based on {len(velocities)} completed deals"
+        ]
+    }
+
+
 # ============== LEAD PROGRESS TRACKING ==============
 
 @api_router.get("/leads/{lead_id}/progress")
