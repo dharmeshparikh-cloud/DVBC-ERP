@@ -934,14 +934,20 @@ const Leads = () => {
                             </Button>
                           )
                         )}
+                        {/* Start Onboarding Button */}
                         <Button
-                          onClick={() => handleLeadClick(lead)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/sales-funnel-onboarding?leadId=${lead.id}`);
+                          }}
                           size="sm"
-                          variant="outline"
-                          className="rounded-sm h-8"
+                          className="rounded-sm h-8 bg-blue-600 hover:bg-blue-700 text-white"
                           disabled={isPaused}
+                          title="Start Sales Funnel"
+                          data-testid={`start-onboarding-${lead.id}`}
                         >
-                          <TrendingUp className="w-3 h-3" />
+                          <TrendingUp className="w-3 h-3 mr-1" />
+                          <span className="text-xs">Funnel</span>
                         </Button>
                         {lead.linkedin_url && (
                           <Button
