@@ -627,3 +627,222 @@ async def get_online_users():
     ws_manager = get_manager()
     return {"online_users": ws_manager.get_online_users()}
 
+
+# ==================== ADMIN AUDIT & CONTROL ====================
+
+@router.get("/admin/all-conversations")
+async def admin_get_all_conversations(
+    admin_id: str = Query(...),
+    limit: int = Query(100, le=500),
+    db=Depends(get_db)
+):
+    """Admin only: Get all conversations for audit purposes"""
+    # Verify admin role
+    admin = await db.users.find_one({"id": admin_id})
+    if not admin or admin.get("role", "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    conversations = await db.chat_conversations.find({}).sort("last_activity", -1).limit(limit).to_list(limit)
+    
+    result = []
+    for conv in conversations:
+        conv["id"] = conv.get("id", str(conv["_id"]))
+        if "_id" in conv:
+            del conv["_id"]
+        
+        # Get message count
+        msg_count = await db.chat_messages.count_documents({"conversation_id": conv["id"]})
+        conv["message_count"] = msg_count
+        result.append(conv)
+    
+    return result
+
+
+@router.get("/admin/conversation/{conversation_id}/messages")
+async def admin_get_conversation_messages(
+    conversation_id: str,
+    admin_id: str = Query(...),
+    limit: int = Query(100, le=500),
+    db=Depends(get_db)
+):
+    """Admin only: View all messages in a conversation"""
+    # Verify admin role
+    admin = await db.users.find_one({"id": admin_id})
+    if not admin or admin.get("role", "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    messages = await db.chat_messages.find(
+        {"conversation_id": conversation_id}
+    ).sort("created_at", 1).limit(limit).to_list(limit)
+    
+    result = []
+    for msg in messages:
+        msg["id"] = msg.get("id", str(msg["_id"]))
+        if "_id" in msg:
+            del msg["_id"]
+        result.append(msg)
+    
+    # Log audit action
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "admin_id": admin_id,
+        "action": "view_chat_messages",
+        "conversation_id": conversation_id,
+        "timestamp": datetime.now(timezone.utc)
+    }
+    await db.admin_audit_logs.insert_one(audit_log)
+    
+    return result
+
+
+@router.post("/admin/restrict-user")
+async def admin_restrict_user(
+    admin_id: str = Query(...),
+    target_user_id: str = Query(...),
+    restrict_chat: bool = Query(True),
+    restrict_ai: bool = Query(True),
+    reason: str = Query(...),
+    db=Depends(get_db)
+):
+    """Admin only: Restrict a user from chat and/or AI features"""
+    # Verify admin role
+    admin = await db.users.find_one({"id": admin_id})
+    if not admin or admin.get("role", "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Update user restrictions
+    update_data = {
+        "chat_restricted": restrict_chat,
+        "ai_restricted": restrict_ai,
+        "restriction_reason": reason,
+        "restricted_by": admin_id,
+        "restricted_at": datetime.now(timezone.utc)
+    }
+    
+    result = await db.users.update_one(
+        {"id": target_user_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Log audit action
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "admin_id": admin_id,
+        "action": "restrict_user",
+        "target_user_id": target_user_id,
+        "restrict_chat": restrict_chat,
+        "restrict_ai": restrict_ai,
+        "reason": reason,
+        "timestamp": datetime.now(timezone.utc)
+    }
+    await db.admin_audit_logs.insert_one(audit_log)
+    
+    # Disconnect user from WebSocket if chat restricted
+    if restrict_chat:
+        ws_manager = get_manager()
+        if target_user_id in ws_manager.active_connections:
+            for conn in ws_manager.active_connections[target_user_id]:
+                try:
+                    await conn.send_json({
+                        "type": "restricted",
+                        "message": "Your chat access has been restricted by admin."
+                    })
+                    await conn.close()
+                except:
+                    pass
+            ws_manager.disconnect(None, target_user_id)
+    
+    return {
+        "status": "restricted",
+        "user_id": target_user_id,
+        "chat_restricted": restrict_chat,
+        "ai_restricted": restrict_ai
+    }
+
+
+@router.post("/admin/unrestrict-user")
+async def admin_unrestrict_user(
+    admin_id: str = Query(...),
+    target_user_id: str = Query(...),
+    db=Depends(get_db)
+):
+    """Admin only: Remove restrictions from a user"""
+    # Verify admin role
+    admin = await db.users.find_one({"id": admin_id})
+    if not admin or admin.get("role", "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    result = await db.users.update_one(
+        {"id": target_user_id},
+        {"$set": {
+            "chat_restricted": False,
+            "ai_restricted": False,
+            "restriction_reason": None,
+            "unrestricted_by": admin_id,
+            "unrestricted_at": datetime.now(timezone.utc)
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Log audit action
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "admin_id": admin_id,
+        "action": "unrestrict_user",
+        "target_user_id": target_user_id,
+        "timestamp": datetime.now(timezone.utc)
+    }
+    await db.admin_audit_logs.insert_one(audit_log)
+    
+    return {"status": "unrestricted", "user_id": target_user_id}
+
+
+@router.get("/admin/restricted-users")
+async def admin_get_restricted_users(
+    admin_id: str = Query(...),
+    db=Depends(get_db)
+):
+    """Admin only: Get list of all restricted users"""
+    # Verify admin role
+    admin = await db.users.find_one({"id": admin_id})
+    if not admin or admin.get("role", "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    restricted = await db.users.find({
+        "$or": [
+            {"chat_restricted": True},
+            {"ai_restricted": True}
+        ]
+    }, {"_id": 0, "password": 0, "hashed_password": 0}).to_list(100)
+    
+    return restricted
+
+
+@router.get("/admin/audit-logs")
+async def admin_get_audit_logs(
+    admin_id: str = Query(...),
+    limit: int = Query(100, le=500),
+    db=Depends(get_db)
+):
+    """Admin only: Get admin audit logs"""
+    # Verify admin role
+    admin = await db.users.find_one({"id": admin_id})
+    if not admin or admin.get("role", "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    logs = await db.admin_audit_logs.find({}).sort("timestamp", -1).limit(limit).to_list(limit)
+    
+    result = []
+    for log in logs:
+        if "_id" in log:
+            del log["_id"]
+        result.append(log)
+    
+    return result
+
+
