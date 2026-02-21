@@ -704,6 +704,40 @@ const PricingPlanBuilder = () => {
     );
   }
 
+  // Block access if no meeting recorded
+  if (meetingAccessBlocked) {
+    return (
+      <div className="max-w-2xl mx-auto py-16">
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-zinc-800 mb-2">Meeting Required</h2>
+            <p className="text-zinc-600 mb-6">{meetingAccessReason}</p>
+            <p className="text-sm text-zinc-500 mb-6">
+              Please record at least one meeting with this lead before creating a pricing plan.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/leads')}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Leads
+              </Button>
+              <Button
+                onClick={() => leadId && navigate(`/sales-funnel/meeting/record?leadId=${leadId}`)}
+                className="bg-amber-500 hover:bg-amber-600"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Record Meeting
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto" data-testid="pricing-plan-builder">
       {/* Draft Selector */}
