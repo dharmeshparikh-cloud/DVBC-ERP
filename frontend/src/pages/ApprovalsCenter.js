@@ -38,6 +38,7 @@ const ApprovalsCenter = () => {
   const [goLiveApprovals, setGoLiveApprovals] = useState([]);
   const [permissionApprovals, setPermissionApprovals] = useState([]);
   const [modificationApprovals, setModificationApprovals] = useState([]);
+  const [profileChangeApprovals, setProfileChangeApprovals] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [allApprovals, setAllApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
