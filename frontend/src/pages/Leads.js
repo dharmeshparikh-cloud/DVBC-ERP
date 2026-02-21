@@ -799,11 +799,12 @@ const Leads = () => {
             <tbody className="divide-y divide-zinc-100">
               {filteredLeads.map((lead) => {
                 const scoreBadge = getScoreBadge(lead.lead_score || 0);
+                const progress = leadProgress[lead.id] || {};
                 return (
                   <tr 
                     key={lead.id} 
                     className="hover:bg-zinc-50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
+                    onClick={() => handleLeadClick(lead)}
                     data-testid={`lead-row-${lead.id}`}
                   >
                     <td className="px-4 py-3">
@@ -816,6 +817,16 @@ const Leads = () => {
                       <span className={`px-2 py-1 text-xs font-medium rounded-sm ${scoreBadge.color} ${scoreBadge.text}`}>
                         {lead.lead_score || 0} - {scoreBadge.label}
                       </span>
+                    </td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      {/* Progress Indicator */}
+                      <div className="flex items-center gap-1">
+                        <div className={`w-2 h-2 rounded-full ${progress.pricing ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="Pricing" />
+                        <div className={`w-2 h-2 rounded-full ${progress.sow ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="SOW" />
+                        <div className={`w-2 h-2 rounded-full ${progress.invoice ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="Invoice" />
+                        <div className={`w-2 h-2 rounded-full ${progress.agreement ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="Agreement" />
+                        <span className="text-xs text-zinc-400 ml-1">{progress.current_stage || 1}/5</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <select
@@ -832,7 +843,7 @@ const Leads = () => {
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
                         <Button
-                          onClick={() => navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`)}
+                          onClick={() => handleLeadClick(lead)}
                           size="sm"
                           variant="outline"
                           className="rounded-sm h-8"
