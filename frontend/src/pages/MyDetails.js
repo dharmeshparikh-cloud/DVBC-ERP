@@ -343,24 +343,24 @@ const MyDetails = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-zinc-500">Bank Name</Label>
-                <p className="font-medium">{profile.bank_name || 'Not set'}</p>
+                <p className="font-medium">{profile.bank_name || profile.bank_details?.bank_name || 'Not set'}</p>
               </div>
               <div>
                 <Label className="text-xs text-zinc-500">Branch</Label>
-                <p className="font-medium">{profile.bank_branch || 'Not set'}</p>
+                <p className="font-medium">{profile.bank_branch || profile.bank_details?.branch || profile.bank_details?.branch_name || 'Not set'}</p>
               </div>
               <div>
                 <Label className="text-xs text-zinc-500">Account Number</Label>
                 <p className="font-medium">
-                  {profile.account_number 
-                    ? `****${profile.account_number.slice(-4)}` 
+                  {(profile.account_number || profile.bank_details?.account_number)
+                    ? `****${(profile.account_number || profile.bank_details?.account_number).slice(-4)}` 
                     : 'Not set'
                   }
                 </p>
               </div>
               <div>
                 <Label className="text-xs text-zinc-500">IFSC Code</Label>
-                <p className="font-medium">{profile.ifsc_code || 'Not set'}</p>
+                <p className="font-medium">{profile.ifsc_code || profile.bank_details?.ifsc_code || 'Not set'}</p>
               </div>
             </div>
             {hasPendingRequest('bank') && (
