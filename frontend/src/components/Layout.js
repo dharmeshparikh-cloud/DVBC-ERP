@@ -323,13 +323,9 @@ const Layout = () => {
       <nav className="flex-1 px-2 py-1.5 overflow-y-auto scrollbar-thin" data-testid="nav-container">
         <NavLink item={{ name: isConsultant ? 'My Dashboard' : 'Dashboard', href: '/', icon: LayoutDashboard }} />
 
-        {/* MY WORKSPACE */}
+        {/* MY WORKSPACE (includes Communication) */}
         <SectionHeader label="My Workspace" sectionKey="workspace" />
-        {expanded.workspace && workspaceItems.map(item => <NavLink key={item.name} item={item} />)}
-
-        {/* COMMUNICATION */}
-        <SectionHeader label="Communication" sectionKey="communication" />
-        {expanded.communication && communicationItems.map(item => <NavLink key={item.name} item={item} />)}
+        {expanded.workspace && workspaceWithCommunication.map(item => <NavLink key={item.name} item={item} />)}
 
         {/* HR */}
         {showHR && (
