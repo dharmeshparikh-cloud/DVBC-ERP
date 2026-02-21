@@ -109,7 +109,6 @@ const MobileAppDownload = lazy(() => import('./pages/MobileAppDownload'));
 const TravelReimbursement = lazy(() => import('./pages/TravelReimbursement'));
 const WorkflowPage = lazy(() => import('./pages/WorkflowPage'));
 const OnboardingTutorial = lazy(() => import('./pages/OnboardingTutorial'));
-const BankDetailsChangeRequest = lazy(() => import('./pages/BankDetailsChangeRequest'));
 const PasswordManagement = lazy(() => import('./pages/PasswordManagement'));
 const GoLiveDashboard = lazy(() => import('./pages/GoLiveDashboard'));
 const Notifications = lazy(() => import('./pages/Notifications'));
