@@ -11,7 +11,32 @@
 
 ## Completed Work - February 2026
 
-### Employee Self-Service ("My Details") - February 21, 2026 ✅ (Latest)
+### Agreements Page Crash Fix & Validation Error Handling - February 21, 2026 ✅ (Latest)
+**Fixed critical crash when backend returns Pydantic validation errors**
+
+**Issue:** The Agreements page crashed when the backend returned validation errors in Pydantic format (array of objects with `{type, loc, msg}` structure). The frontend tried to render this object directly as a React child, causing the crash.
+
+**Fix Applied:**
+- ✅ **Updated error handling in all sales-funnel pages** to properly extract human-readable messages from Pydantic validation error arrays
+- ✅ **Files Fixed:**
+  - `Agreements.js` - handleSubmit, handleSendEmail
+  - `AgreementView.js` - handleSaveAgreement, handleESignature, handleCreateKickoffRequest
+  - `PricingPlanBuilder.js` - handleSubmit
+  - `ProformaInvoice.js` - handleCreateInvoice
+  - `PaymentVerification.js` - handleSubmit
+  - `ManagerApprovals.js` - handleApprove, handleReject
+  - `MyExpenses.js` - handleDeleteExpense
+- ✅ **Added `getApiErrorMessage` utility** to `/app/frontend/src/utils/errorHandler.js` for consistent error handling
+- ✅ **Validation errors now show as toast messages** instead of crashing the app
+
+**Technical Details:**
+- Backend returns validation errors as: `{detail: [{type, loc, msg, input, ctx, url}]}`
+- Frontend now checks if `detail` is an array and extracts `msg` fields to display
+- Pattern: `detail.map(e => e.msg || 'Validation error').join(', ')`
+
+---
+
+### Employee Self-Service ("My Details") - February 21, 2026 ✅
 **Empowers employees to manage their own profile data with HR approval workflow**
 
 **Features:**
