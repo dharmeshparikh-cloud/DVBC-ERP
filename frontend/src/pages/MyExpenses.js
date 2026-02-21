@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
@@ -6,9 +6,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Receipt, Clock, CheckCircle, XCircle, DollarSign, Trash2, Send } from 'lucide-react';
+import { Plus, Receipt, Clock, CheckCircle, XCircle, DollarSign, Trash2, Send, Save, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import useDraft from '../hooks/useDraft';
+import DraftIndicator from '../components/DraftIndicator';
+import DraftSelector from '../components/DraftSelector';
 
 const CATEGORIES = ['Travel', 'Local Conveyance', 'Food', 'Accommodation', 'Office Supplies', 'Communication', 'Client Entertainment', 'Other'];
 
@@ -20,6 +23,13 @@ const STATUS_STYLES = {
   reimbursed: 'bg-blue-50 text-blue-700 border-blue-200'
 };
 
+// Generate draft title from expense data
+const generateExpenseDraftTitle = (data) => {
+  const total = data.line_items?.reduce((s, i) => s + (i.amount || 0), 0) || 0;
+  const category = data.line_items?.[0]?.category || 'Expense';
+  return `${category} - ₹${total.toLocaleString()}`;
+};
+
 const MyExpenses = () => {
   const { user } = useContext(AuthContext);
   const [data, setData] = useState({ expenses: [], summary: {} });
@@ -27,11 +37,49 @@ const MyExpenses = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Draft support
+  const {
+    drafts,
+    loadingDrafts,
+    saving: savingDraft,
+    lastSaved,
+    loadDraft,
+    saveDraft,
+    autoSave,
+    deleteDraft,
+    convertDraft,
+    clearDraft,
+    registerFormDataGetter
+  } = useDraft('expense', generateExpenseDraftTitle);
+  
   const [formData, setFormData] = useState({
     client_id: '', client_name: '', project_id: '', project_name: '',
     is_office_expense: false, notes: '',
     line_items: [{ category: 'Travel', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }]
   });
+  
+  // Register form data getter for save-on-leave
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+  
+  useEffect(() => {
+    if (dialogOpen) {
+      registerFormDataGetter(() => formDataRef.current);
+    }
+    return () => {
+      registerFormDataGetter(null);
+    };
+  }, [dialogOpen, registerFormDataGetter]);
+  
+  // Auto-save when form data changes
+  useEffect(() => {
+    if (dialogOpen && formData.line_items?.some(li => li.description || li.amount > 0)) {
+      autoSave(formData);
+    }
+  }, [formData, dialogOpen, autoSave]);
 
   useEffect(() => { fetchData(); }, []);
 
