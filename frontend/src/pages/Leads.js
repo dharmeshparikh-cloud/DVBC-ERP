@@ -31,6 +31,30 @@ const Leads = () => {
   const [timelineFilter, setTimelineFilter] = useState('all');
   const [suggestions, setSuggestions] = useState({});
   const [viewMode, setViewMode] = useState('card');
+  const [showDraftSelector, setShowDraftSelector] = useState(false);
+  
+  // Draft system for leads
+  const generateLeadDraftTitle = useCallback((data) => {
+    if (data.first_name || data.last_name || data.company) {
+      return `${data.first_name || ''} ${data.last_name || ''} - ${data.company || 'New Lead'}`.trim();
+    }
+    return 'New Lead Draft';
+  }, []);
+  
+  const {
+    draftId,
+    drafts,
+    loadingDrafts,
+    saving: savingDraft,
+    lastSaved,
+    loadDraft,
+    saveDraft,
+    autoSave,
+    deleteDraft,
+    convertDraft,
+    clearDraft
+  } = useDraft('lead', generateLeadDraftTitle);
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
