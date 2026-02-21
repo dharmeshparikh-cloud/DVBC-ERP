@@ -68,6 +68,42 @@ const SOWBuilder = () => {
   const [newRows, setNewRows] = useState([]);
   const [savingRows, setSavingRows] = useState({});
   
+  // Draft support for new unsaved rows
+  const generateSOWDraftTitle = (data) => {
+    const itemCount = data.newRows?.length || 0;
+    return `SOW Items (${itemCount} unsaved)`;
+  };
+  
+  const {
+    saving: savingDraft,
+    lastSaved,
+    saveDraft,
+    autoSave,
+    registerFormDataGetter
+  } = useDraft(`sow_${pricingPlanId}`, generateSOWDraftTitle);
+  
+  // Register form data getter for save-on-leave
+  const newRowsRef = useRef(newRows);
+  useEffect(() => {
+    newRowsRef.current = newRows;
+  }, [newRows]);
+  
+  useEffect(() => {
+    if (newRows.length > 0) {
+      registerFormDataGetter(() => ({ newRows: newRowsRef.current }));
+    }
+    return () => {
+      registerFormDataGetter(null);
+    };
+  }, [newRows.length, registerFormDataGetter]);
+  
+  // Auto-save unsaved rows
+  useEffect(() => {
+    if (newRows.length > 0) {
+      autoSave({ newRows });
+    }
+  }, [newRows, autoSave]);
+  
   // Dialogs
   const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const [versions, setVersions] = useState([]);
