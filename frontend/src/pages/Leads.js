@@ -157,6 +157,10 @@ const Leads = () => {
       await axios.post(`${API}/leads`, formData);
       toast.success('Lead created successfully');
       setDialogOpen(false);
+      
+      // Mark draft as converted
+      await convertDraft();
+      
       setFormData({
         first_name: '',
         last_name: '',
