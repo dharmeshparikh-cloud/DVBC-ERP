@@ -12,7 +12,7 @@ import { Mail, Lock, TrendingUp, Users, FileText, DollarSign } from 'lucide-reac
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png";
 
 // Sales-related roles that can access the Sales Portal
-const SALES_ROLES = ['executive', 'account_manager', 'manager'];
+const SALES_ROLES = ['executive', 'sales_manager', 'manager'];
 
 const SalesLogin = () => {
   const [email, setEmail] = useState('');

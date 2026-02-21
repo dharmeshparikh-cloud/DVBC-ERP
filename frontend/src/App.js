@@ -157,7 +157,7 @@ function AppRouter({ user, login, logout, loading }) {
   }
 
   // Sales roles check for portal access
-  const SALES_ROLES = ['executive', 'account_manager', 'manager'];
+  const SALES_ROLES = ['executive', 'sales_manager', 'manager'];
   const isSalesUser = user && SALES_ROLES.includes(user.role);
 
   const getDefaultDashboard = () => {

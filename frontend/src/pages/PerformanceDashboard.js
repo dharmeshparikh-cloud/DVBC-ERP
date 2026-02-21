@@ -81,7 +81,7 @@ const PerformanceDashboard = () => {
       if (canSeeFinancials) {
         const usersRes = await fetch(`${API}/users`, { headers });
         const users = usersRes.ok ? await usersRes.json() : [];
-        const salesUsers = users.filter(u => ['executive', 'account_manager'].includes(u.role));
+        const salesUsers = users.filter(u => ['executive', 'sales_manager'].includes(u.role));
         
         salesPerformance = salesUsers.map(s => ({
           id: s.id,

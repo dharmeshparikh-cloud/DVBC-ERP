@@ -295,7 +295,7 @@ export const HelpPanel = () => {
       );
     }
 
-    if (['admin', 'manager', 'account_manager', 'executive'].includes(user?.role)) {
+    if (['admin', 'manager', 'sales_manager', 'executive'].includes(user?.role)) {
       baseActions.push(
         { label: 'Create a quotation', query: 'How do I create a quotation?' },
         { label: 'Convert lead to client', query: 'How do I convert a lead to quotation?' }

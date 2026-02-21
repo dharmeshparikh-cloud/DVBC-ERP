@@ -926,7 +926,7 @@ const Employees = () => {
                 <option value="project_manager">Project Manager</option>
                 <option value="hr_executive">HR Executive</option>
                 <option value="hr_manager">HR Manager</option>
-                <option value="account_manager">Account Manager</option>
+                <option value="sales_manager">Sales Manager</option>
                 <option value="executive">Sales Executive</option>
                 <option value="manager">Manager</option>
                 <option value="admin">Admin</option>

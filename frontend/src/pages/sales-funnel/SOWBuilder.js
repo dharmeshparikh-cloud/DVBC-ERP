@@ -119,11 +119,11 @@ const SOWBuilder = () => {
   const [downloadingSOW, setDownloadingSOW] = useState({});
 
   // Role-based access control
-  // Sales Team (create/edit SOW): admin, executive, account_manager
+  // Sales Team (create/edit SOW): admin, executive, sales_manager
   // Consulting Team (view, update progress): consultant, lean_consultant, lead_consultant, senior_consultant, principal_consultant, subject_matter_expert
   // PM/Audit (approve, authorize): admin, project_manager, manager
   
-  const salesRoles = ['admin', 'executive', 'account_manager'];
+  const salesRoles = ['admin', 'executive', 'sales_manager'];
   const consultingRoles = ['consultant', 'lean_consultant', 'lead_consultant', 'senior_consultant', 'principal_consultant', 'subject_matter_expert'];
   const pmRoles = ['admin', 'project_manager', 'manager'];
   

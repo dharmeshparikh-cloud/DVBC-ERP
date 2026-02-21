@@ -52,7 +52,7 @@ const ROLES = [
   { value: 'subject_matter_expert', label: 'Subject Matter Expert', department: 'Consulting' },
   // Sales roles
   { value: 'executive', label: 'Sales Executive', department: 'Sales' },
-  { value: 'account_manager', label: 'Account Manager', department: 'Sales' },
+  { value: 'sales_manager', label: 'Sales Manager', department: 'Sales' },
   // HR roles
   { value: 'hr_executive', label: 'HR Executive', department: 'HR' },
   { value: 'hr_manager', label: 'HR Manager', department: 'HR' },

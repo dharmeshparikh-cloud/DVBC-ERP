@@ -70,7 +70,7 @@ const Clients = () => {
     notes: ''
   });
 
-  const canManage = ['admin', 'project_manager', 'account_manager', 'executive', 'manager'].includes(user?.role);
+  const canManage = ['admin', 'project_manager', 'sales_manager', 'executive', 'manager'].includes(user?.role);
 
   useEffect(() => {
     fetchData();
@@ -552,7 +552,7 @@ const Clients = () => {
                     className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
                   >
                     <option value="">Select sales person...</option>
-                    {users.filter(u => ['executive', 'account_manager', 'admin'].includes(u.role)).map(u => (
+                    {users.filter(u => ['executive', 'sales_manager', 'admin'].includes(u.role)).map(u => (
                       <option key={u.id} value={u.id}>{u.full_name}</option>
                     ))}
                   </select>

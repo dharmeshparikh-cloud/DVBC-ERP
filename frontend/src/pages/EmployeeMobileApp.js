@@ -84,7 +84,7 @@ const EmployeeMobileApp = () => {
   const [selectingFor, setSelectingFor] = useState(null); // 'start' or 'end'
 
   // Check if user is Sales team (can enter manual travel claims)
-  const isSalesTeam = ['admin', 'executive', 'account_manager', 'manager'].includes(user?.role);
+  const isSalesTeam = ['admin', 'executive', 'sales_manager', 'manager'].includes(user?.role);
   
   // Client selection for On-Site check-in
   const [assignedClients, setAssignedClients] = useState([]);

@@ -66,7 +66,7 @@ const QuickCheckInModal = ({ isOpen, onClose, user }) => {
         dept.includes('consulting') || 
         dept.includes('delivery') || 
         dept.includes('sales') ||
-        ['admin', 'executive', 'account_manager', 'manager'].includes(role)
+        ['admin', 'executive', 'sales_manager', 'manager'].includes(role)
       );
     } catch (error) {
       console.error('Failed to fetch status');

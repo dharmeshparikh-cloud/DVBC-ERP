@@ -893,7 +893,7 @@ const DepartmentAccessManager = () => {
                           <SelectItem value="lead_consultant">Acting Lead Consultant</SelectItem>
                           <SelectItem value="project_manager">Acting Project Manager</SelectItem>
                           <SelectItem value="hr_manager">Acting HR Manager</SelectItem>
-                          <SelectItem value="account_manager">Acting Account Manager</SelectItem>
+                          <SelectItem value="sales_manager">Acting Sales Manager</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

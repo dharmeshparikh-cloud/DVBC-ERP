@@ -23,7 +23,7 @@ import {
 
 // Legacy role-based access (kept for backward compatibility)
 const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
-const SALES_ROLES_NAV = ['admin', 'account_manager', 'senior_consultant', 'sr_manager', 'principal_consultant', 'manager']; // Roles that can see Sales section
+const SALES_ROLES_NAV = ['admin', 'sales_manager', 'senior_consultant', 'sr_manager', 'principal_consultant', 'manager']; // Roles that can see Sales section
 const CONSULTING_ROLES_NAV = ['admin']; // Department-based access is primary
 const ADMIN_ROLES = ['admin', 'hr_manager'];
 

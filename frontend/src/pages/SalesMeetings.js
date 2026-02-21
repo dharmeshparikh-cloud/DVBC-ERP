@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 
-const SALES_ROLES = ['admin', 'executive', 'account_manager'];
+const SALES_ROLES = ['admin', 'executive', 'sales_manager'];
 
 const SalesMeetings = () => {
   const { user } = useContext(AuthContext);

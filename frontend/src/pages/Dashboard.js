@@ -29,7 +29,7 @@ const getUserDomain = (user) => {
   
   // Check role if department not set
   if (role.includes('hr') || role === 'hr_manager' || role === 'hr_executive') return 'hr';
-  if (role === 'executive' || role === 'account_manager') return 'sales';
+  if (role === 'executive' || role === 'sales_manager') return 'sales';
   if (role === 'consultant' || role.includes('consultant') || role === 'project_manager') return 'consulting';
   if (role === 'admin' || role === 'manager') return 'admin';
   

@@ -201,7 +201,7 @@ const UserManagement = () => {
       senior_consultant: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',
       hr_executive: 'bg-pink-100 text-pink-700 border-pink-200',
       hr_manager: 'bg-rose-100 text-rose-700 border-rose-200',
-      account_manager: 'bg-orange-100 text-orange-700 border-orange-200',
+      sales_manager: 'bg-orange-100 text-orange-700 border-orange-200',
       subject_matter_expert: 'bg-teal-100 text-teal-700 border-teal-200'
     };
     return colors[role] || 'bg-zinc-100 text-zinc-700 border-zinc-200';

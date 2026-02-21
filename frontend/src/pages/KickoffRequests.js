@@ -55,7 +55,7 @@ const KickoffRequests = () => {
     notes: ''
   });
 
-  const isSalesRole = ['executive', 'account_manager', 'admin', 'manager'].includes(user?.role);
+  const isSalesRole = ['executive', 'sales_manager', 'admin', 'manager'].includes(user?.role);
   const isPMRole = ['project_manager', 'admin', 'manager'].includes(user?.role);
 
   useEffect(() => {

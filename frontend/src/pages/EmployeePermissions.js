@@ -500,7 +500,7 @@ const EmployeePermissions = () => {
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="hr_manager">HR Manager</SelectItem>
                         <SelectItem value="hr_executive">HR Executive</SelectItem>
-                        <SelectItem value="account_manager">Account Manager</SelectItem>
+                        <SelectItem value="sales_manager">Sales Manager</SelectItem>
                         <SelectItem value="sales_executive">Sales Executive</SelectItem>
                         <SelectItem value="consultant">Consultant</SelectItem>
                         <SelectItem value="senior_consultant">Senior Consultant</SelectItem>
