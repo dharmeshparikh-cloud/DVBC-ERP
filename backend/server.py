@@ -6218,7 +6218,9 @@ async def approve_kickoff_request(
     request_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Approve kickoff request - SINGLE APPROVAL POINT in the flow"""
+    """Approve kickoff request - SINGLE APPROVAL POINT in the flow
+    Also creates a Project with SOW items, team deployment, and assigned PM
+    """
     if current_user.role not in ["admin", "sr_manager", "principal_consultant"]:
         raise HTTPException(status_code=403, detail="Only Sr. Managers and Principal Consultants can approve kickoff requests")
     
@@ -6236,6 +6238,61 @@ async def approve_kickoff_request(
     )
     approver_name = f"{approver.get('first_name', '')} {approver.get('last_name', '')}".strip() if approver else current_user.full_name
     
+    # Get agreement for this kickoff
+    agreement = await db.agreements.find_one({"id": kickoff.get("agreement_id")}, {"_id": 0})
+    
+    # Get SOW items if exists
+    sow_items = []
+    sow = None
+    if agreement:
+        # Find pricing plan linked to agreement
+        quotation = await db.quotations.find_one({"id": agreement.get("quotation_id")}, {"_id": 0})
+        if quotation:
+            pricing_plan = await db.pricing_plans.find_one({"id": quotation.get("pricing_plan_id")}, {"_id": 0})
+            if pricing_plan and pricing_plan.get("sow_id"):
+                sow = await db.enhanced_sow.find_one({"id": pricing_plan.get("sow_id")}, {"_id": 0})
+                if sow:
+                    sow_items = sow.get("scopes", []) or sow.get("items", [])
+    
+    # Get team deployment from agreement
+    team_deployment = agreement.get("team_deployment", []) if agreement else []
+    
+    # Create Project record
+    project_id = str(uuid.uuid4())
+    project = {
+        "id": project_id,
+        "project_name": kickoff.get("project_name") or f"{kickoff.get('client_name')} Project",
+        "client_name": kickoff.get("client_name"),
+        "client_id": kickoff.get("lead_id"),
+        "lead_id": kickoff.get("lead_id"),
+        "agreement_id": kickoff.get("agreement_id"),
+        "kickoff_request_id": request_id,
+        "project_type": kickoff.get("project_type", "mixed"),
+        "status": "active",
+        "start_date": kickoff.get("expected_start_date") or datetime.now(timezone.utc).isoformat(),
+        "tenure_months": kickoff.get("project_tenure_months") or agreement.get("project_tenure_months") if agreement else 12,
+        "meeting_frequency": kickoff.get("meeting_frequency") or agreement.get("meeting_frequency") if agreement else "Monthly",
+        "total_meetings": kickoff.get("total_meetings", 0),
+        # PM Assignment
+        "project_manager_id": kickoff.get("assigned_pm_id"),
+        "project_manager_name": kickoff.get("assigned_pm_name"),
+        "assigned_consultants": [kickoff.get("assigned_pm_id")] if kickoff.get("assigned_pm_id") else [],
+        # SOW Inheritance
+        "sow_items": sow_items,
+        "sow_id": sow.get("id") if sow else None,
+        # Team Deployment Inheritance
+        "team_deployment": team_deployment,
+        # Agreement Value
+        "contract_value": agreement.get("total_value") or agreement.get("grand_total") if agreement else 0,
+        # Metadata
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "approved_by": current_user.id,
+        "approved_by_name": approver_name
+    }
+    
+    await db.projects.insert_one(project)
+    
     # Update kickoff request status
     await db.kickoff_requests.update_one(
         {"id": request_id},
@@ -6244,6 +6301,7 @@ async def approve_kickoff_request(
             "accepted_at": datetime.now(timezone.utc).isoformat(),
             "accepted_by": current_user.id,
             "accepted_by_name": approver_name,
+            "project_id": project_id,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
@@ -6255,7 +6313,18 @@ async def approve_kickoff_request(
             {"id": lead_id},
             {"$set": {
                 "status": LeadStatus.KICK_ACCEPT,
+                "project_id": project_id,
                 "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # Also update agreement with project linkage
+    if kickoff.get("agreement_id"):
+        await db.agreements.update_one(
+            {"id": kickoff.get("agreement_id")},
+            {"$set": {
+                "project_id": project_id,
+                "kickoff_approved_at": datetime.now(timezone.utc).isoformat()
             }}
         )
     
@@ -6265,12 +6334,26 @@ async def approve_kickoff_request(
         "recipient_id": kickoff.get("requested_by"),
         "type": "kickoff_approved",
         "title": f"Kickoff Approved: {kickoff.get('project_name')}",
-        "message": f"Your kickoff request for '{kickoff.get('project_name')}' has been approved by {approver_name}.",
-        "link": f"/kickoff-requests/{request_id}",
+        "message": f"Your kickoff request for '{kickoff.get('project_name')}' has been approved by {approver_name}. Project created!",
+        "link": f"/projects/{project_id}",
         "is_read": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.notifications.insert_one(notification)
+    
+    # Notify the assigned PM
+    if kickoff.get("assigned_pm_id"):
+        pm_notification = {
+            "id": str(uuid.uuid4()),
+            "recipient_id": kickoff.get("assigned_pm_id"),
+            "type": "project_assigned",
+            "title": f"New Project Assigned: {kickoff.get('project_name')}",
+            "message": f"You have been assigned as Project Manager for '{kickoff.get('project_name')}'.",
+            "link": f"/projects/{project_id}",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(pm_notification)
     
     # Also notify the sales manager
     sales_employee = await db.employees.find_one(
@@ -6288,7 +6371,12 @@ async def approve_kickoff_request(
             notification["message"] = f"Kickoff for '{kickoff.get('project_name')}' approved. Team member's deal closed!"
             await db.notifications.insert_one(notification)
     
-    return {"message": "Kickoff request approved successfully"}
+    return {
+        "message": "Kickoff request approved successfully",
+        "project_id": project_id,
+        "sow_items_copied": len(sow_items),
+        "team_members_copied": len(team_deployment)
+    }
 
 
 @api_router.post("/kickoff-requests/{request_id}/reject")
