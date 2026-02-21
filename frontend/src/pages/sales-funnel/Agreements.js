@@ -842,17 +842,6 @@ const Agreements = () => {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-zinc-500">Rate/Meeting (₹)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={newTeamMember.base_rate_per_meeting}
-                    onChange={(e) => setNewTeamMember({ ...newTeamMember, base_rate_per_meeting: parseFloat(e.target.value) || 0 })}
-                    className="h-9 text-sm rounded-sm border-zinc-200"
-                    data-testid="team-rate-input"
-                  />
-                </div>
-                <div className="space-y-1">
                   <Label className="text-xs text-zinc-500">Mode</Label>
                   <select
                     value={newTeamMember.mode}
@@ -865,36 +854,36 @@ const Agreements = () => {
                     ))}
                   </select>
                 </div>
+                {/* Rate/Meeting hidden - kept in backend for calculations */}
+                <input type="hidden" value={newTeamMember.base_rate_per_meeting} />
                 <Button type="button" onClick={addTeamMember} size="sm" className="h-9" data-testid="add-team-member-btn">
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
 
-              {/* Preview of committed meetings */}
+              {/* Preview of committed meetings - without rate info */}
               {newTeamMember.frequency && (
                 <div className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-sm">
-                  Preview: <span className="font-semibold">{calculateCommittedMeetings(newTeamMember.frequency, formData.project_tenure_months)}</span> committed meetings for {formData.project_tenure_months} months @ {formatINR(newTeamMember.base_rate_per_meeting)}/meeting = <span className="font-semibold">{formatINR(calculateCommittedMeetings(newTeamMember.frequency, formData.project_tenure_months) * newTeamMember.base_rate_per_meeting)}</span>
+                  Preview: <span className="font-semibold">{calculateCommittedMeetings(newTeamMember.frequency, formData.project_tenure_months)}</span> committed meetings for {formData.project_tenure_months} months
                 </div>
               )}
 
-              {/* Team Members List */}
+              {/* Team Members List - Rate column hidden */}
               {formData.team_deployment.length > 0 && (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-7 gap-2 text-xs font-medium text-zinc-500 px-2">
+                  <div className="grid grid-cols-6 gap-2 text-xs font-medium text-zinc-500 px-2">
                     <div>Role</div>
                     <div>Meeting Type</div>
                     <div>Frequency</div>
-                    <div>Rate (₹)</div>
                     <div>Committed</div>
                     <div>Subtotal</div>
                     <div></div>
                   </div>
                   {formData.team_deployment.map((member, index) => (
-                    <div key={member.id || index} className="grid grid-cols-7 gap-2 items-center p-2 bg-white border border-zinc-100 rounded-sm text-sm" data-testid={`team-member-${index}`}>
+                    <div key={member.id || index} className="grid grid-cols-6 gap-2 items-center p-2 bg-white border border-zinc-100 rounded-sm text-sm" data-testid={`team-member-${index}`}>
                       <div className="font-medium truncate" title={member.role}>{member.role}</div>
                       <div className="truncate" title={member.meeting_type}>{member.meeting_type}</div>
                       <div className="truncate">{member.frequency}</div>
-                      <div>{formatINR(member.base_rate_per_meeting || 12500)}</div>
                       <div className="font-semibold text-blue-600">{member.committed_meetings || 0}</div>
                       <div className="font-semibold text-emerald-600">{formatINR((member.committed_meetings || 0) * (member.base_rate_per_meeting || 12500))}</div>
                       <Button
