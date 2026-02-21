@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
@@ -6,9 +6,11 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle, Calendar, Trash2, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle, Calendar, Trash2, ChevronDown, ChevronUp, FileText, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import useDraft from '../hooks/useDraft';
+import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 
 const SALES_ROLES = ['admin', 'executive', 'account_manager'];
 
@@ -22,12 +24,66 @@ const SalesMeetings = () => {
   const [momDialogOpen, setMomDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [expandedMeetings, setExpandedMeetings] = useState({});
+  const [showDraftSelector, setShowDraftSelector] = useState(false);
+
+  // Draft system for meetings
+  const generateMeetingDraftTitle = useCallback((data) => {
+    if (data.title) return data.title;
+    const lead = leads.find(l => l.id === data.lead_id);
+    return lead ? `Meeting with ${lead.company || lead.first_name}` : 'New Meeting Draft';
+  }, [leads]);
+
+  const {
+    draftId,
+    drafts,
+    loadingDrafts,
+    saving: savingDraft,
+    lastSaved,
+    loadDraft,
+    saveDraft,
+    autoSave,
+    deleteDraft,
+    convertDraft,
+    clearDraft
+  } = useDraft('sales_meeting', generateMeetingDraftTitle);
 
   const [formData, setFormData] = useState({
     title: '', meeting_date: '', meeting_time: '10:00', meeting_type: 'discovery',
     mode: 'online', duration_minutes: '60', notes: '', lead_id: '', 
     attendees: [], attendee_names: [], agenda: ['']
   });
+
+  // Update form with auto-save
+  const updateFormData = (field, value) => {
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      if (dialogOpen) autoSave(updated);
+      return updated;
+    });
+  };
+
+  // Load draft
+  const handleLoadDraft = async (draft) => {
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft) {
+      setFormData(loadedDraft.data);
+      setShowDraftSelector(false);
+      setDialogOpen(true);
+      toast.success('Draft loaded');
+    }
+  };
+
+  // New meeting
+  const handleNewMeeting = () => {
+    clearDraft();
+    setFormData({
+      title: '', meeting_date: '', meeting_time: '10:00', meeting_type: 'discovery',
+      mode: 'online', duration_minutes: '60', notes: '', lead_id: '', 
+      attendees: [], attendee_names: [], agenda: ['']
+    });
+    setShowDraftSelector(false);
+    setDialogOpen(true);
+  };
 
   const [momData, setMomData] = useState({
     summary: '', discussion_points: [''], 
