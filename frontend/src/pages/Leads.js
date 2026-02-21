@@ -339,6 +339,19 @@ const Leads = () => {
 
   return (
     <div data-testid="leads-page">
+      {/* Draft Selector Dialog */}
+      <DraftSelector
+        drafts={drafts}
+        loading={loadingDrafts}
+        onSelect={handleLoadDraft}
+        onDelete={deleteDraft}
+        onNewDraft={handleNewLead}
+        isOpen={showDraftSelector}
+        onClose={() => setShowDraftSelector(false)}
+        title="Lead Drafts"
+        description="Continue editing a lead or start a new one"
+      />
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
@@ -350,6 +363,18 @@ const Leads = () => {
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
           {canEdit && (
             <>
+              {/* Drafts Button */}
+              {drafts.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDraftSelector(true)}
+                  className="border-zinc-200 gap-2"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  Drafts ({drafts.length})
+                </Button>
+              )}
+              
               {/* CSV Upload Button */}
               <Button
                 variant="outline"
@@ -374,8 +399,9 @@ const Leads = () => {
                 </DialogTrigger>
               <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
-                    Add New Lead
+                  <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 flex items-center justify-between">
+                    <span>Add New Lead</span>
+                    <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={handleSaveDraft} />
                   </DialogTitle>
                   <DialogDescription className="text-zinc-500">
                     Enter lead information to add to your pipeline
