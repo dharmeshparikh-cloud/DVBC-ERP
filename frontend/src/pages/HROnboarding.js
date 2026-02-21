@@ -307,9 +307,59 @@ const HROnboarding = () => {
         }
       }
       
+      // Trigger auto-save (debounced)
+      autoSave(updated, currentStep);
+      
       return updated;
     });
   };
+
+  // Load draft data into form
+  const handleLoadDraft = async (draft) => {
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft) {
+      setFormData(loadedDraft.data);
+      setCurrentStep(loadedDraft.step || 0);
+      setShowDraftSelector(false);
+      toast.success('Draft loaded');
+    }
+  };
+
+  // Handle manual save draft
+  const handleSaveDraft = () => {
+    saveDraft(formData, currentStep);
+  };
+
+  // Start fresh (clear draft)
+  const handleNewDraft = () => {
+    clearDraft();
+    setFormData({
+      // Reset to initial state
+      first_name: '', last_name: '', email: '', personal_email: '', phone: '',
+      emergency_contact_no: '', emergency_contact_name: '', emergency_contact_relation: '',
+      date_of_birth: '', gender: '', blood_group: '', address: '',
+      aadhar_number: '', pan_number: '', driving_license: '', uan_number: '', esic_number: '',
+      employee_id: '', department: '', departments: [], primary_department: '',
+      designation: '', employment_type: 'full_time', joining_date: '',
+      probation_period: 6, confirmation_date: '', reporting_manager_id: '', is_view_only: false,
+      bank_account_number: '', bank_ifsc: '', bank_name: '', bank_branch: '',
+      bank_account_holder: '', bank_proof_uploaded: false,
+      prev_company_name: '', prev_designation: '', prev_from_date: '', prev_to_date: '',
+      verification_contact_1_name: '', verification_contact_1_designation: '', verification_contact_1_phone: '',
+      verification_contact_2_name: '', verification_contact_2_designation: '', verification_contact_2_phone: '',
+      ctc_annual: '', ctc_monthly: '', basic_salary: '', hra: '', special_allowance: '',
+      create_user_account: true, portal_access_type: 'full', send_welcome_email: true
+    });
+    setCurrentStep(0);
+    setShowDraftSelector(false);
+  };
+
+  // Show draft selector if drafts exist on mount
+  useEffect(() => {
+    if (drafts.length > 0 && !draftId) {
+      setShowDraftSelector(true);
+    }
+  }, [drafts, draftId]);
 
   // CSV Template download
   const downloadCSVTemplate = () => {
