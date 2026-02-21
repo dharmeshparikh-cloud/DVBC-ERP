@@ -25,6 +25,7 @@ const AIAssistant = () => {
   }, [chatHistory]);
 
   const fetchChatHistory = useCallback(async () => {
+    if (!currentUser?.id) return;
     try {
       const res = await fetch(`${API_URL}/api/ai/chat-history?user_id=${currentUser.id}&limit=20`);
       const data = await res.json();
@@ -39,9 +40,10 @@ const AIAssistant = () => {
     } catch (error) {
       console.error('Error fetching history:', error);
     }
-  }, [currentUser.id]);
+  }, [currentUser?.id]);
 
   const fetchQuickInsights = useCallback(async () => {
+    if (!currentUser?.id) return;
     try {
       const res = await fetch(`${API_URL}/api/ai/quick-insights?user_id=${currentUser.id}`);
       const data = await res.json();
@@ -49,9 +51,10 @@ const AIAssistant = () => {
     } catch (error) {
       console.error('Error fetching insights:', error);
     }
-  }, [currentUser.id]);
+  }, [currentUser?.id]);
 
   const fetchSuggestions = useCallback(async () => {
+    if (!currentUser?.id) return;
     try {
       const res = await fetch(`${API_URL}/api/ai/suggestions?user_id=${currentUser.id}&context=${activeContext}`);
       const data = await res.json();
@@ -59,7 +62,7 @@ const AIAssistant = () => {
     } catch (error) {
       console.error('Error fetching suggestions:', error);
     }
-  }, [currentUser.id, activeContext]);
+  }, [currentUser?.id, activeContext]);
 
   useEffect(() => {
     fetchChatHistory();
