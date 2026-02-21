@@ -12410,6 +12410,9 @@ api_router.include_router(project_payments_router.router)
 api_router.include_router(department_access_router.router)
 api_router.include_router(permission_config_router.router)
 api_router.include_router(project_pnl_router.router)
+api_router.include_router(chat_router.router)
+api_router.include_router(ai_assistant_router.router)
+api_router.include_router(email_actions_router.router)
 
 app.include_router(api_router)
 
