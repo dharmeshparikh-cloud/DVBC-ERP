@@ -328,6 +328,95 @@ const ManagerLeadsDashboard = () => {
         </div>
       )}
 
+      {/* Target vs Achievement by Employee */}
+      {targetVsAchievement && targetVsAchievement.employee_stats?.length > 0 && (
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Target className="w-5 h-5 text-orange-500" />
+              Target vs Achievement (Month: {targetVsAchievement.month}/{targetVsAchievement.year})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Team Totals */}
+            <div className="grid grid-cols-3 gap-4 mb-4 p-4 bg-zinc-50 rounded-sm">
+              <div className="text-center">
+                <p className="text-xs text-zinc-500 uppercase">Meetings</p>
+                <p className="text-lg font-semibold">
+                  {targetVsAchievement.team_totals.meetings.achieved} / {targetVsAchievement.team_totals.meetings.target}
+                </p>
+                <p className={`text-xs ${targetVsAchievement.team_totals.meetings.percentage >= 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {targetVsAchievement.team_totals.meetings.percentage.toFixed(0)}%
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-zinc-500 uppercase">Closures</p>
+                <p className="text-lg font-semibold">
+                  {targetVsAchievement.team_totals.closures.achieved} / {targetVsAchievement.team_totals.closures.target}
+                </p>
+                <p className={`text-xs ${targetVsAchievement.team_totals.closures.percentage >= 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  {targetVsAchievement.team_totals.closures.percentage.toFixed(0)}%
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-zinc-500 uppercase">Revenue</p>
+                <p className="text-lg font-semibold text-emerald-600">
+                  {formatCurrency(targetVsAchievement.team_totals.revenue.achieved)}
+                </p>
+                <p className={`text-xs ${targetVsAchievement.team_totals.revenue.percentage >= 100 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  of {formatCurrency(targetVsAchievement.team_totals.revenue.target)} ({targetVsAchievement.team_totals.revenue.percentage.toFixed(0)}%)
+                </p>
+              </div>
+            </div>
+
+            {/* Employee-wise breakdown */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200">
+                    <th className="text-left py-2 font-medium text-zinc-600">Employee</th>
+                    <th className="text-center py-2 font-medium text-zinc-600">Meetings</th>
+                    <th className="text-center py-2 font-medium text-zinc-600">Closures</th>
+                    <th className="text-right py-2 font-medium text-zinc-600">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {targetVsAchievement.employee_stats.filter(e => e.employee_name.trim()).map((emp, idx) => (
+                    <tr key={idx} className="border-b border-zinc-100 hover:bg-zinc-50">
+                      <td className="py-2 font-medium">{emp.employee_name}</td>
+                      <td className="py-2 text-center">
+                        <span className={emp.meetings.percentage >= 100 ? 'text-emerald-600' : ''}>
+                          {emp.meetings.achieved}/{emp.meetings.target}
+                        </span>
+                        {emp.meetings.target > 0 && (
+                          <span className="text-xs text-zinc-400 ml-1">({emp.meetings.percentage.toFixed(0)}%)</span>
+                        )}
+                      </td>
+                      <td className="py-2 text-center">
+                        <span className={emp.closures.percentage >= 100 ? 'text-emerald-600' : ''}>
+                          {emp.closures.achieved}/{emp.closures.target}
+                        </span>
+                        {emp.closures.target > 0 && (
+                          <span className="text-xs text-zinc-400 ml-1">({emp.closures.percentage.toFixed(0)}%)</span>
+                        )}
+                      </td>
+                      <td className="py-2 text-right">
+                        <span className={emp.revenue.percentage >= 100 ? 'text-emerald-600' : ''}>
+                          {formatCurrency(emp.revenue.achieved)}
+                        </span>
+                        {emp.revenue.target > 0 && (
+                          <span className="text-xs text-zinc-400 ml-1">/ {formatCurrency(emp.revenue.target)}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
