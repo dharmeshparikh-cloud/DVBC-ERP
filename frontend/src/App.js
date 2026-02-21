@@ -379,6 +379,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="email-settings" element={<EmailSettings />} />
       </Route>
     </Routes>
+    </Suspense>
   );
 }
 
