@@ -52,7 +52,8 @@ const Leads = () => {
     autoSave,
     deleteDraft,
     convertDraft,
-    clearDraft
+    clearDraft,
+    registerFormDataGetter
   } = useDraft('lead', generateLeadDraftTitle);
   
   const [formData, setFormData] = useState({
@@ -66,6 +67,21 @@ const Leads = () => {
     source: '',
     notes: '',
   });
+
+  // Register form data getter for save-on-leave
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
+  useEffect(() => {
+    if (dialogOpen) {
+      registerFormDataGetter(() => formDataRef.current);
+    }
+    return () => {
+      registerFormDataGetter(null);
+    };
+  }, [dialogOpen, registerFormDataGetter]);
 
   useEffect(() => {
     fetchLeads();
