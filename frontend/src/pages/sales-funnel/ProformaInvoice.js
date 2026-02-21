@@ -36,7 +36,7 @@ const ProformaInvoice = () => {
   const [selectedPlanDetails, setSelectedPlanDetails] = useState(null);
   const [selectedLead, setSelectedLead] = useState(null);
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
-  const [viewMode, setViewMode] = useState('card');
+  const [viewMode, setViewMode] = useState('list');
   const [activeView, setActiveView] = useState('list'); // 'list' or 'history'
   const [agreements, setAgreements] = useState([]);
   
