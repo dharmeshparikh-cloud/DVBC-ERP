@@ -137,7 +137,51 @@ const PricingPlanBuilder = () => {
       ...prev,
       start_date: new Date().toISOString().split('T')[0]
     }));
-  }, [leadId]);
+    // Show draft selector if drafts exist
+    if (drafts.length > 0 && !draftId) {
+      setShowDraftSelector(true);
+    }
+  }, [leadId, drafts.length, draftId]);
+
+  // Auto-save draft when key fields change
+  useEffect(() => {
+    if (totalInvestment > 0 || teamDeployment.length > 0) {
+      autoSave({
+        totalInvestment,
+        teamDeployment,
+        formData,
+        paymentPlan,
+        leadId
+      });
+    }
+  }, [totalInvestment, teamDeployment, formData, paymentPlan]);
+
+  // Load draft
+  const handleLoadDraft = async (draft) => {
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft?.data) {
+      if (loadedDraft.data.totalInvestment) setTotalInvestment(loadedDraft.data.totalInvestment);
+      if (loadedDraft.data.teamDeployment) setTeamDeployment(loadedDraft.data.teamDeployment);
+      if (loadedDraft.data.formData) setFormData(loadedDraft.data.formData);
+      if (loadedDraft.data.paymentPlan) setPaymentPlan(loadedDraft.data.paymentPlan);
+      setShowDraftSelector(false);
+      toast.success('Draft loaded');
+    }
+  };
+
+  // Start new pricing plan
+  const handleNewPlan = () => {
+    clearDraft();
+    setTotalInvestment(0);
+    setTeamDeployment([]);
+    setFormData({
+      project_duration_type: 'yearly',
+      project_duration_months: 12,
+      payment_schedule: 'monthly',
+      discount_percentage: 0
+    });
+    setShowDraftSelector(false);
+  };
 
   // Recalculate allocations when total investment or team changes
   useEffect(() => {
