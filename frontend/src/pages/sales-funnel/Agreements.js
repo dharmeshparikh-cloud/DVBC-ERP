@@ -289,7 +289,16 @@ const Agreements = () => {
       });
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create agreement');
+      const detail = error.response?.data?.detail;
+      // Handle Pydantic validation errors (array format)
+      if (Array.isArray(detail)) {
+        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        toast.error(msg);
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to create agreement');
+      }
     }
   };
 
@@ -308,7 +317,15 @@ const Agreements = () => {
       setSelectedAgreement(null);
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to send email');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        toast.error(msg);
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to send email');
+      }
     }
   };
 
