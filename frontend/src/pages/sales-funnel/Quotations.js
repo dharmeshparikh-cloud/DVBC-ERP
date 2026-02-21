@@ -542,13 +542,29 @@ const Quotations = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
-              Create Quotation
-            </DialogTitle>
-            <DialogDescription className="text-zinc-500">
-              Generate a quotation from a pricing plan
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+                  Create Quotation
+                </DialogTitle>
+                <DialogDescription className="text-zinc-500">
+                  Generate a quotation from a pricing plan
+                </DialogDescription>
+              </div>
+              <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={() => saveDraft(formData)} />
+            </div>
           </DialogHeader>
+          
+          {/* Draft Selector */}
+          {drafts.length > 0 && (
+            <DraftSelector 
+              drafts={drafts}
+              onLoadDraft={handleLoadDraft}
+              onDeleteDraft={deleteDraft}
+              loadingDrafts={loadingDrafts}
+            />
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
