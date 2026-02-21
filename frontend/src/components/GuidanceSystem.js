@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
@@ -11,15 +11,111 @@ import {
   HelpCircle, X, ChevronRight, ChevronLeft, CheckCircle2, 
   Circle, ArrowRight, Sparkles, MessageSquare, Lightbulb,
   Navigation, List, Send, Loader2, Bot, Bell, AlertCircle,
-  ClipboardCheck, Calendar, Receipt, Users, Clock
+  ClipboardCheck, Calendar, Receipt, Users, Clock, GripVertical, Move
 } from 'lucide-react';
 
-// Floating Help Button Component with Smart Badge
+// Custom hook for drag functionality
+const useDraggable = (initialPosition = { x: null, y: null }) => {
+  const [position, setPosition] = useState(initialPosition);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef(null);
+  const offsetRef = useRef({ x: 0, y: 0 });
+
+  const handleMouseDown = useCallback((e) => {
+    if (!dragRef.current) return;
+    
+    const rect = dragRef.current.getBoundingClientRect();
+    offsetRef.current = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+    setIsDragging(true);
+    e.preventDefault();
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    
+    const newX = e.clientX - offsetRef.current.x;
+    const newY = e.clientY - offsetRef.current.y;
+    
+    // Keep within viewport bounds
+    const maxX = window.innerWidth - (dragRef.current?.offsetWidth || 0);
+    const maxY = window.innerHeight - (dragRef.current?.offsetHeight || 0);
+    
+    setPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY))
+    });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleTouchStart = useCallback((e) => {
+    if (!dragRef.current) return;
+    
+    const touch = e.touches[0];
+    const rect = dragRef.current.getBoundingClientRect();
+    offsetRef.current = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
+    };
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isDragging) return;
+    
+    const touch = e.touches[0];
+    const newX = touch.clientX - offsetRef.current.x;
+    const newY = touch.clientY - offsetRef.current.y;
+    
+    const maxX = window.innerWidth - (dragRef.current?.offsetWidth || 0);
+    const maxY = window.innerHeight - (dragRef.current?.offsetHeight || 0);
+    
+    setPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY))
+    });
+  }, [isDragging]);
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleMouseUp);
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove]);
+
+  return {
+    position,
+    isDragging,
+    dragRef,
+    handleMouseDown,
+    handleTouchStart,
+    resetPosition: () => setPosition(initialPosition)
+  };
+};
+
+// Floating Help Button Component with Smart Badge - Now Draggable
 export const FloatingHelpButton = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { setShowHelpPanel, showHelpPanel, smartRecommendations } = useGuidance();
   const [pulse, setPulse] = useState(true);
+  
+  // Draggable functionality
+  const { position, isDragging, dragRef, handleMouseDown, handleTouchStart } = useDraggable();
 
   // Calculate total pending items for badge
   const totalPending = smartRecommendations?.totalPending || 0;
@@ -31,37 +127,53 @@ export const FloatingHelpButton = () => {
     }
   }, [showHelpPanel]);
 
+  // Calculate position styles
+  const positionStyle = position.x !== null && position.y !== null
+    ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' }
+    : { right: 24, bottom: 24 };
+
   return (
-    <button
-      onClick={() => setShowHelpPanel(true)}
-      data-testid="floating-help-btn"
+    <div
+      ref={dragRef}
+      style={positionStyle}
       className={`
-        fixed bottom-6 right-6 z-50
-        w-14 h-14 rounded-full shadow-lg
-        flex items-center justify-center
-        transition-all duration-300 hover:scale-110
-        ${isDark 
-          ? 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500' 
-          : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500'
-        }
-        ${pulse && totalPending === 0 ? 'animate-pulse' : ''}
+        fixed z-50
+        ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
       `}
-      title={totalPending > 0 ? `${totalPending} items need attention` : "Need help? Click here!"}
     >
-      <HelpCircle className="w-7 h-7 text-white" />
-      
-      {/* Smart Badge - shows pending items count */}
-      {totalPending > 0 && (
-        <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md animate-bounce">
-          {totalPending > 9 ? '9+' : totalPending}
-        </span>
-      )}
-      
-      {/* Ripple effect when no pending items */}
-      {pulse && totalPending === 0 && (
-        <span className="absolute inset-0 rounded-full bg-orange-400 animate-ping opacity-30" />
-      )}
-    </button>
+      <button
+        onClick={() => !isDragging && setShowHelpPanel(true)}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        data-testid="floating-help-btn"
+        className={`
+          w-14 h-14 rounded-full shadow-lg
+          flex items-center justify-center
+          transition-all duration-300 hover:scale-110
+          ${isDark 
+            ? 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500' 
+            : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500'
+          }
+          ${pulse && totalPending === 0 ? 'animate-pulse' : ''}
+          ${isDragging ? 'scale-105 shadow-2xl' : ''}
+        `}
+        title={totalPending > 0 ? `${totalPending} items need attention - Drag to move` : "Need help? Click here! Drag to move"}
+      >
+        <HelpCircle className="w-7 h-7 text-white" />
+        
+        {/* Smart Badge - shows pending items count */}
+        {totalPending > 0 && (
+          <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md animate-bounce">
+            {totalPending > 9 ? '9+' : totalPending}
+          </span>
+        )}
+        
+        {/* Ripple effect when no pending items */}
+        {pulse && totalPending === 0 && (
+          <span className="absolute inset-0 rounded-full bg-orange-400 animate-ping opacity-30" />
+        )}
+      </button>
+    </div>
   );
 };
 
