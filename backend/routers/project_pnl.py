@@ -29,7 +29,7 @@ async def generate_invoices_from_pricing_plan(
     """
     db = get_db()
     
-    if current_user.role not in ["admin", "sales_manager", "account_manager"]:
+    if current_user.role not in ["admin", "sales_manager", "sales_manager"]:
         raise HTTPException(status_code=403, detail="Only Admin/Sales can generate invoices")
     
     # Get pricing plan with payment schedule
@@ -164,7 +164,7 @@ async def record_invoice_payment(
     """
     db = get_db()
     
-    if current_user.role not in ["admin", "sales_manager", "account_manager", "hr_manager"]:
+    if current_user.role not in ["admin", "sales_manager", "sales_manager", "hr_manager"]:
         raise HTTPException(status_code=403, detail="Not authorized to record payments")
     
     invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})

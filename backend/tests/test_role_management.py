@@ -49,7 +49,7 @@ class TestRoleManagement:
         expected_roles = [
             'admin', 'consultant', 'lean_consultant', 'lead_consultant', 
             'senior_consultant', 'project_manager', 'principal_consultant',
-            'hr_executive', 'hr_manager', 'account_manager', 
+            'hr_executive', 'hr_manager', 'sales_manager', 
             'subject_matter_expert', 'manager', 'executive'
         ]
         
@@ -355,7 +355,7 @@ class TestSOWRoleCategories:
         assert 'sales_roles' in data, "Should have sales_roles"
         assert 'admin' in data['sales_roles']
         assert 'executive' in data['sales_roles']
-        assert 'account_manager' in data['sales_roles']
+        assert 'sales_manager' in data['sales_roles']
         
         # Verify consulting roles
         assert 'consulting_roles' in data, "Should have consulting_roles"

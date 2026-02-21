@@ -25,19 +25,19 @@ REPORT_DEFINITIONS = {
         "name": "Lead Summary Report",
         "description": "Overview of all leads with status and source breakdown",
         "category": "Sales",
-        "roles": ["admin", "manager", "executive", "account_manager"]
+        "roles": ["admin", "manager", "executive", "sales_manager"]
     },
     "lead_conversion_funnel": {
         "name": "Lead Conversion Funnel",
         "description": "Lead progression from new to converted",
         "category": "Sales",
-        "roles": ["admin", "manager", "executive", "account_manager"]
+        "roles": ["admin", "manager", "executive", "sales_manager"]
     },
     "lead_source_analysis": {
         "name": "Lead Source Analysis",
         "description": "Lead distribution by source channel",
         "category": "Sales",
-        "roles": ["admin", "manager", "executive", "account_manager"]
+        "roles": ["admin", "manager", "executive", "sales_manager"]
     },
     
     # Client Analytics
@@ -45,19 +45,19 @@ REPORT_DEFINITIONS = {
         "name": "Client Overview Report",
         "description": "All clients with industry, location, and revenue",
         "category": "Sales",
-        "roles": ["admin", "manager", "executive", "account_manager", "project_manager"]
+        "roles": ["admin", "manager", "executive", "sales_manager", "project_manager"]
     },
     "client_revenue_analysis": {
         "name": "Client Revenue Analysis",
         "description": "Revenue breakdown by client and time period",
         "category": "Finance",
-        "roles": ["admin", "manager", "account_manager"]
+        "roles": ["admin", "manager", "sales_manager"]
     },
     "client_industry_breakdown": {
         "name": "Client Industry Breakdown",
         "description": "Client distribution across industries",
         "category": "Sales",
-        "roles": ["admin", "manager", "executive", "account_manager"]
+        "roles": ["admin", "manager", "executive", "sales_manager"]
     },
     
     # Sales Pipeline
@@ -65,19 +65,19 @@ REPORT_DEFINITIONS = {
         "name": "Sales Pipeline Status",
         "description": "Pricing plans, quotations, and agreements status",
         "category": "Sales",
-        "roles": ["admin", "manager", "executive", "account_manager"]
+        "roles": ["admin", "manager", "executive", "sales_manager"]
     },
     "quotation_analysis": {
         "name": "Quotation Analysis",
         "description": "Quotation to agreement conversion metrics",
         "category": "Sales",
-        "roles": ["admin", "manager", "executive", "account_manager"]
+        "roles": ["admin", "manager", "executive", "sales_manager"]
     },
     "agreement_status": {
         "name": "Agreement Status Report",
         "description": "All agreements with approval status",
         "category": "Sales",
-        "roles": ["admin", "manager", "executive", "account_manager", "project_manager"]
+        "roles": ["admin", "manager", "executive", "sales_manager", "project_manager"]
     },
     
     # HR Analytics

@@ -28,7 +28,7 @@ async def verify_installment_payment(
     db = get_db()
     
     # Only sales roles can verify payments
-    if current_user.role not in ["admin", "executive", "account_manager", "manager"]:
+    if current_user.role not in ["admin", "executive", "sales_manager", "manager"]:
         raise HTTPException(status_code=403, detail="Only sales roles can verify payments")
     
     # Verify agreement exists

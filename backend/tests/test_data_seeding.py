@@ -78,7 +78,7 @@ class TestUserCreation:
         """TC004: Verify all predefined roles are created"""
         expected_roles = [
             "admin", "principal_consultant", "lead_consultant", "senior_consultant",
-            "consultant", "lean_consultant", "project_manager", "account_manager",
+            "consultant", "lean_consultant", "project_manager", "sales_manager",
             "hr_manager", "hr_executive", "executive", "manager"
         ]
         

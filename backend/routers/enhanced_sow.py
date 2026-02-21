@@ -24,7 +24,7 @@ def set_db(database):
 
 # ============== Role Check Helpers ==============
 
-SALES_ROLES = ["admin", "executive", "account_manager"]
+SALES_ROLES = ["admin", "executive", "sales_manager"]
 CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert", "project_manager"]
 CAN_ADD_SCOPES_ROLES = ["project_manager", "consultant", "principal_consultant", "admin"]  # Can add but not delete
 

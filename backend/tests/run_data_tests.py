@@ -84,7 +84,7 @@ def run_tests():
     
     # TC004: All roles created
     expected_roles = ["admin", "principal_consultant", "lead_consultant", "senior_consultant",
-                     "consultant", "lean_consultant", "project_manager", "account_manager"]
+                     "consultant", "lean_consultant", "project_manager", "sales_manager"]
     roles_exist = all(db.users.count_documents({"role": r}) >= 1 for r in expected_roles)
     test("TC004", "All predefined roles have at least 1 user", roles_exist)
     

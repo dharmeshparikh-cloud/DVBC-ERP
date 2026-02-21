@@ -301,7 +301,7 @@ async def seed_users(db):
         # Project Managers
         {"role": "project_manager", "department": "Delivery", "count": 3},
         # Account Managers / Sales
-        {"role": "account_manager", "department": "Sales", "count": 4},
+        {"role": "sales_manager", "department": "Sales", "count": 4},
         {"role": "executive", "department": "Sales", "count": 3},
         # HR Team
         {"role": "hr_manager", "department": "HR", "count": 1},
@@ -435,7 +435,7 @@ async def seed_employees(db):
             "consultant": (50000, 80000),
             "lean_consultant": (35000, 50000),
             "project_manager": (100000, 150000),
-            "account_manager": (70000, 100000),
+            "sales_manager": (70000, 100000),
             "executive": (40000, 70000),
             "hr_manager": (80000, 120000),
             "hr_executive": (35000, 50000),
@@ -449,7 +449,7 @@ async def seed_employees(db):
             "consultant": "Consultant",
             "lean_consultant": "Lean Consultant",
             "project_manager": "Project Manager",
-            "account_manager": "Account Manager",
+            "sales_manager": "Account Manager",
             "executive": "Sales Executive",
             "hr_manager": "HR Manager",
             "hr_executive": "HR Executive",
@@ -512,7 +512,7 @@ async def seed_leads(db):
     print("Seeding Leads...")
     
     sales_users = await db.users.find(
-        {"role": {"$in": ["executive", "account_manager", "admin"]}},
+        {"role": {"$in": ["executive", "sales_manager", "admin"]}},
         {"_id": 0}
     ).to_list(20)
     
@@ -656,7 +656,7 @@ async def seed_clients(db):
     
     closed_leads = await db.leads.find({"status": "closed"}, {"_id": 0}).to_list(50)
     admin_user = await db.users.find_one({"role": "admin"}, {"_id": 0})
-    sales_users = await db.users.find({"role": {"$in": ["executive", "account_manager"]}}, {"_id": 0}).to_list(10)
+    sales_users = await db.users.find({"role": {"$in": ["executive", "sales_manager"]}}, {"_id": 0}).to_list(10)
     
     clients = []
     
@@ -1193,7 +1193,7 @@ async def seed_meetings(db):
     
     # Create some sales meetings
     leads = await db.leads.find({"status": {"$in": ["contacted", "qualified", "proposal"]}}, {"_id": 0}).to_list(20)
-    sales_users = await db.users.find({"role": {"$in": ["executive", "account_manager"]}}, {"_id": 0}).to_list(10)
+    sales_users = await db.users.find({"role": {"$in": ["executive", "sales_manager"]}}, {"_id": 0}).to_list(10)
     
     for lead in leads[:10]:
         sales_person = random.choice(sales_users) if sales_users else admin_user
@@ -1587,7 +1587,7 @@ async def seed_communication_logs(db):
     print("Seeding Communication Logs...")
     
     leads = await db.leads.find({}, {"_id": 0}).to_list(50)
-    sales_users = await db.users.find({"role": {"$in": ["executive", "account_manager"]}}, {"_id": 0}).to_list(10)
+    sales_users = await db.users.find({"role": {"$in": ["executive", "sales_manager"]}}, {"_id": 0}).to_list(10)
     admin_user = await db.users.find_one({"role": "admin"}, {"_id": 0})
     
     comm_logs = []

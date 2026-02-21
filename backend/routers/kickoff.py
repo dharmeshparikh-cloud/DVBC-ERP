@@ -30,7 +30,7 @@ async def create_kickoff_request(
     db = get_db()
     
     # Only sales roles can create kickoff requests
-    if current_user.role not in ["admin", "executive", "account_manager", "manager"]:
+    if current_user.role not in ["admin", "executive", "sales_manager", "manager"]:
         raise HTTPException(status_code=403, detail="Only sales roles can create kickoff requests")
     
     # Verify agreement exists
@@ -121,7 +121,7 @@ async def get_kickoff_requests(
         query["status"] = status
     
     # Filter based on role
-    if current_user.role in ["executive", "account_manager"]:
+    if current_user.role in ["executive", "sales_manager"]:
         query["requested_by"] = current_user.id
     elif current_user.role in ["project_manager"]:
         query["assigned_pm_id"] = current_user.id

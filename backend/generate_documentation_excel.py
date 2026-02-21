@@ -57,7 +57,7 @@ roles_data = [
     ["senior_consultant", "Senior Consultant", "Senior consultant with advanced permissions", False, True, "Consulting", "Manager"],
     ["hr_executive", "HR Executive", "HR team member - no consulting data access", False, True, "HR", "Executive"],
     ["hr_manager", "HR Manager", "HR team manager - full HR access, limited consulting view", False, True, "HR", "Manager"],
-    ["account_manager", "Account Manager", "Handles client accounts and sales", False, True, "Sales", "Manager"],
+    ["sales_manager", "Account Manager", "Handles client accounts and sales", False, True, "Sales", "Manager"],
     ["subject_matter_expert", "Subject Matter Expert", "Domain expert for consulting", False, True, "Consulting", "Leader"],
 ]
 

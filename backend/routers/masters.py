@@ -138,7 +138,7 @@ DEFAULT_CONSULTANT_ROLES = [
     {"name": "Sales Trainer", "code": "sales_trainer", "min_rate_per_meeting": 15000, "max_rate_per_meeting": 40000, "default_rate": 20000, "seniority_level": 3},
     {"name": "Data Analyst", "code": "data_analyst", "min_rate_per_meeting": 10000, "max_rate_per_meeting": 25000, "default_rate": 12500, "seniority_level": 2},
     {"name": "Digital Marketing Manager", "code": "digital_marketing_manager", "min_rate_per_meeting": 12000, "max_rate_per_meeting": 30000, "default_rate": 15000, "seniority_level": 3},
-    {"name": "Account Manager", "code": "account_manager", "min_rate_per_meeting": 10000, "max_rate_per_meeting": 25000, "default_rate": 12500, "seniority_level": 2},
+    {"name": "Account Manager", "code": "sales_manager", "min_rate_per_meeting": 10000, "max_rate_per_meeting": 25000, "default_rate": 12500, "seniority_level": 2},
 ]
 
 DEFAULT_MEETING_TYPES = [

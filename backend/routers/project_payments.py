@@ -538,7 +538,7 @@ async def send_payment_reminder(
     await db.payment_reminders.insert_one(reminder_record)
     
     # Create notifications for Finance, Sales, Admin, Reporting Manager, HR
-    notification_roles = ["admin", "finance", "account_manager", "hr_manager"]
+    notification_roles = ["admin", "finance", "sales_manager", "hr_manager"]
     notification_users = await db.users.find(
         {"role": {"$in": notification_roles}, "is_active": True},
         {"_id": 0, "id": 1, "full_name": 1}
@@ -635,7 +635,7 @@ async def record_installment_payment(
     await db.installment_payments.insert_one(payment_record)
     
     # Create notifications for Finance, Sales, Admin, Reporting Manager, HR
-    notification_roles = ["admin", "finance", "account_manager", "hr_manager", "principal_consultant"]
+    notification_roles = ["admin", "finance", "sales_manager", "hr_manager", "principal_consultant"]
     notification_users = await db.users.find(
         {"role": {"$in": notification_roles}, "is_active": True},
         {"_id": 0, "id": 1, "full_name": 1}

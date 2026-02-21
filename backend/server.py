@@ -571,7 +571,7 @@ class KickoffRequestCreate(BaseModel):
     notes: Optional[str] = None
 
 # Meeting role access constants
-SALES_MEETING_ROLES = ["admin", "executive", "account_manager"]
+SALES_MEETING_ROLES = ["admin", "executive", "sales_manager"]
 CONSULTING_MEETING_ROLES = ["admin", "project_manager", "consultant", "principal_consultant",
     "lean_consultant", "lead_consultant", "senior_consultant", "subject_matter_expert", "manager"]
 
@@ -7155,7 +7155,7 @@ DEFAULT_ROLE_PERMISSIONS = {
         "payroll": {"create": True, "read": True, "update": True, "delete": False},
         "reports": {"view": True, "export": True}
     },
-    "account_manager": {
+    "sales_manager": {
         "leads": {"create": True, "read": True, "update": True, "delete": False},
         "pricing_plans": {"create": True, "read": True, "update": True, "delete": False},
         "sow": {"create": True, "read": True, "update": True, "delete": False, "freeze": False},
@@ -9998,7 +9998,7 @@ REPORT_ROLE_ACCESS = {
     "executive": ["lead_summary", "lead_conversion_funnel", "lead_source_analysis",
                   "client_overview", "client_industry_breakdown", "sales_pipeline_status",
                   "quotation_analysis", "agreement_status"],
-    "account_manager": ["lead_summary", "lead_conversion_funnel", "lead_source_analysis",
+    "sales_manager": ["lead_summary", "lead_conversion_funnel", "lead_source_analysis",
                         "client_overview", "client_revenue_analysis", "client_industry_breakdown",
                         "sales_pipeline_status", "quotation_analysis", "agreement_status"],
     "principal_consultant": ["sow_status_report", "project_summary", "consultant_allocation"],
@@ -12387,7 +12387,7 @@ async def resume_lead(lead_id: str, current_user: User = Depends(get_current_use
 async def get_subordinate_leads(current_user: User = Depends(get_current_user)):
     """Get all leads assigned to subordinates for manager view"""
     # Check if user is manager or above
-    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "account_manager", "senior_consultant"]:
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "sales_manager", "senior_consultant"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Get current user's employee record
@@ -12487,7 +12487,7 @@ async def get_subordinate_leads(current_user: User = Depends(get_current_user)):
 @api_router.get("/manager/today-stats")
 async def get_manager_today_stats(current_user: User = Depends(get_current_user)):
     """Get today's stats for manager dashboard"""
-    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "account_manager", "senior_consultant"]:
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "sales_manager", "senior_consultant"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     today = datetime.now(timezone.utc).date()
@@ -12568,7 +12568,7 @@ async def get_manager_performance(
     current_user: User = Depends(get_current_user)
 ):
     """Get monthly/YTD performance with closure count and agreement value"""
-    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "account_manager", "senior_consultant"]:
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "sales_manager", "senior_consultant"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     now = datetime.now(timezone.utc)
@@ -12672,7 +12672,7 @@ async def get_target_vs_achievement(
     current_user: User = Depends(get_current_user)
 ):
     """Get employee-wise Target vs Achievement for Meetings and Closures"""
-    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "account_manager", "senior_consultant"]:
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "sales_manager", "senior_consultant"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     now = datetime.now(timezone.utc)
