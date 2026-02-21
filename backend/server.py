@@ -11721,6 +11721,281 @@ async def admin_reject_bank_change(
     return {"message": "Request rejected"}
 
 
+# ==================== EMPLOYEE SELF-SERVICE CHANGE REQUESTS ====================
+
+@api_router.get("/my/change-requests")
+async def get_my_change_requests(current_user: User = Depends(get_current_user)):
+    """Get all change requests for current employee"""
+    employee = await db.employees.find_one({"user_id": current_user.id})
+    if not employee:
+        employee = await db.employees.find_one({"work_email": current_user.email})
+    if not employee:
+        return []
+    
+    emp_id = employee.get("id") or str(employee.get("_id"))
+    
+    requests = await db.employee_change_requests.find(
+        {"employee_id": emp_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(20).to_list(length=20)
+    return requests
+
+
+@api_router.post("/my/change-request")
+async def submit_change_request(
+    request_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit a profile change request for HR approval"""
+    employee = await db.employees.find_one({"user_id": current_user.id})
+    if not employee:
+        employee = await db.employees.find_one({"work_email": current_user.email})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee profile not found")
+    
+    section = request_data.get("section")
+    changes = request_data.get("changes", {})
+    reason = request_data.get("reason", "")
+    
+    valid_sections = ["contact", "address", "bank", "emergency"]
+    if section not in valid_sections:
+        raise HTTPException(status_code=400, detail=f"Invalid section. Must be one of: {valid_sections}")
+    
+    emp_id = employee.get("id") or str(employee.get("_id"))
+    
+    # Check for existing pending request for this section
+    existing = await db.employee_change_requests.find_one({
+        "employee_id": emp_id,
+        "section": section,
+        "status": "pending"
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail=f"You already have a pending {section} change request")
+    
+    request_id = str(uuid.uuid4())
+    
+    # Get current values for this section
+    current_values = {}
+    if section == "contact":
+        current_values = {
+            "personal_email": employee.get("personal_email"),
+            "phone": employee.get("phone"),
+            "alternate_phone": employee.get("alternate_phone")
+        }
+    elif section == "address":
+        current_values = {
+            "current_address": employee.get("current_address"),
+            "permanent_address": employee.get("permanent_address"),
+            "city": employee.get("city"),
+            "state": employee.get("state"),
+            "pincode": employee.get("pincode")
+        }
+    elif section == "bank":
+        current_values = {
+            "bank_name": employee.get("bank_name"),
+            "account_number": employee.get("account_number"),
+            "ifsc_code": employee.get("ifsc_code"),
+            "branch": employee.get("bank_branch")
+        }
+    elif section == "emergency":
+        current_values = {
+            "emergency_contact_name": employee.get("emergency_contact_name"),
+            "emergency_contact_phone": employee.get("emergency_contact_phone"),
+            "emergency_contact_relation": employee.get("emergency_contact_relation")
+        }
+    
+    new_request = {
+        "id": request_id,
+        "employee_id": emp_id,
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}",
+        "employee_code": employee.get("employee_id", ""),
+        "section": section,
+        "current_values": current_values,
+        "requested_values": changes,
+        "reason": reason,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.employee_change_requests.insert_one(new_request)
+    
+    # Create notification for HR
+    section_label = section.replace("_", " ").title()
+    notification_data = {
+        "id": str(uuid.uuid4()),
+        "user_id": None,  # Will be sent to HR
+        "type": "employee_modification",
+        "title": f"Profile Change Request: {section_label}",
+        "message": f"{new_request['employee_name']} requested changes to their {section_label}. Reason: {reason[:50]}...",
+        "link": "/approvals",
+        "is_read": False,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Notify all HR users
+    hr_users = await db.users.find(
+        {"role": {"$in": ["hr_manager", "hr_executive"]}},
+        {"_id": 0, "id": 1}
+    ).to_list(100)
+    
+    for hr in hr_users:
+        notif = {**notification_data, "id": str(uuid.uuid4()), "user_id": hr["id"]}
+        await db.notifications.insert_one(notif)
+    
+    return {"message": "Change request submitted for HR approval", "request_id": request_id}
+
+
+@api_router.get("/hr/employee-change-requests")
+async def get_hr_employee_change_requests(
+    status: str = "pending",
+    current_user: User = Depends(get_current_user)
+):
+    """Get employee change requests for HR review"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {"status": status}
+    
+    requests = await db.employee_change_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(length=50)
+    return requests
+
+
+@api_router.post("/hr/employee-change-request/{request_id}/approve")
+async def hr_approve_employee_change(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """HR approves employee change request - updates employee profile"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can approve")
+    
+    request = await db.employee_change_requests.find_one({"id": request_id, "status": "pending"})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Prepare update data based on section
+    update_data = {}
+    section = request["section"]
+    changes = request["requested_values"]
+    
+    if section == "contact":
+        if changes.get("personal_email"):
+            update_data["personal_email"] = changes["personal_email"]
+        if changes.get("phone"):
+            update_data["phone"] = changes["phone"]
+        if changes.get("alternate_phone"):
+            update_data["alternate_phone"] = changes["alternate_phone"]
+    elif section == "address":
+        if changes.get("current_address"):
+            update_data["current_address"] = changes["current_address"]
+        if changes.get("permanent_address"):
+            update_data["permanent_address"] = changes["permanent_address"]
+        if changes.get("city"):
+            update_data["city"] = changes["city"]
+        if changes.get("state"):
+            update_data["state"] = changes["state"]
+        if changes.get("pincode"):
+            update_data["pincode"] = changes["pincode"]
+    elif section == "bank":
+        if changes.get("bank_name"):
+            update_data["bank_name"] = changes["bank_name"]
+        if changes.get("account_number"):
+            update_data["account_number"] = changes["account_number"]
+        if changes.get("ifsc_code"):
+            update_data["ifsc_code"] = changes["ifsc_code"]
+        if changes.get("branch"):
+            update_data["bank_branch"] = changes["branch"]
+    elif section == "emergency":
+        if changes.get("emergency_contact_name"):
+            update_data["emergency_contact_name"] = changes["emergency_contact_name"]
+        if changes.get("emergency_contact_phone"):
+            update_data["emergency_contact_phone"] = changes["emergency_contact_phone"]
+        if changes.get("emergency_contact_relation"):
+            update_data["emergency_contact_relation"] = changes["emergency_contact_relation"]
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Update employee profile
+    await db.employees.update_one(
+        {"id": request["employee_id"]},
+        {"$set": update_data}
+    )
+    
+    # Update request status
+    await db.employee_change_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.email,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify employee
+    emp = await db.employees.find_one({"id": request["employee_id"]}, {"_id": 0, "user_id": 1})
+    if emp and emp.get("user_id"):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": emp["user_id"],
+            "type": "approval_completed",
+            "title": f"{section.title()} Change Approved",
+            "message": f"Your {section} change request has been approved by HR.",
+            "link": "/my-details",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {"message": "Change request approved and profile updated"}
+
+
+@api_router.post("/hr/employee-change-request/{request_id}/reject")
+async def hr_reject_employee_change(
+    request_id: str,
+    rejection_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """HR rejects employee change request"""
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can reject")
+    
+    request = await db.employee_change_requests.find_one({"id": request_id, "status": "pending"})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Update request status
+    await db.employee_change_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": rejection_data.get("reason", "Rejected by HR"),
+            "rejected_by": current_user.email,
+            "rejected_by_name": current_user.full_name,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify employee
+    emp = await db.employees.find_one({"id": request["employee_id"]}, {"_id": 0, "user_id": 1})
+    if emp and emp.get("user_id"):
+        await db.notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": emp["user_id"],
+            "type": "approval_rejected",
+            "title": f"{request['section'].title()} Change Rejected",
+            "message": f"Your {request['section']} change request was rejected. Reason: {rejection_data.get('reason', 'Not specified')}",
+            "link": "/my-details",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {"message": "Change request rejected"}
+
+
 # ==================== EMPLOYEE GO-LIVE WORKFLOW ====================
 
 class GoLiveRequest(BaseModel):
