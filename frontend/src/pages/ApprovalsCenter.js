@@ -277,7 +277,30 @@ const ApprovalsCenter = () => {
   }
 
   // Calculate total pending for current user
-  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length + profileChangeApprovals.length;
+  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length + profileChangeApprovals.length + agreementApprovals.length;
+  
+  // Handle agreement approval/rejection
+  const handleAgreementAction = async (agreementId, action) => {
+    setActionLoading(true);
+    try {
+      if (action === 'approve') {
+        await axios.patch(`${API}/agreements/${agreementId}/approve`);
+        toast.success('Agreement approved successfully! Lead marked as closed.');
+      } else {
+        const reason = rejectReason || 'Rejected by Manager';
+        await axios.patch(`${API}/agreements/${agreementId}/reject`, { rejection_reason: reason });
+        toast.success('Agreement rejected');
+      }
+      setAgreementDetailDialog(false);
+      setSelectedAgreement(null);
+      setRejectReason('');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} agreement`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Permission Change Action handlers
   const handlePermissionAction = async (requestId, action) => {
