@@ -279,8 +279,9 @@ const Layout = () => {
     { name: 'Mobile App', href: '/mobile-app', icon: Download },
   ];
 
-  // Communication items (Chat & AI)
-  const communicationItems = [
+  // Communication items merged into workspace (visible for all users)
+  const workspaceWithCommunication = [
+    ...workspaceItems,
     { name: 'Team Chat', href: '/chat', icon: MessageCircle },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
   ];
