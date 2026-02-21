@@ -329,11 +329,20 @@ const CTCDesigner = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Calculator className="w-6 h-6 text-emerald-600" />
-            CTC Structure Designer
+            {mode === 'onboarding' ? 'CTC Structure - New Employee' : 'CTC Revision Designer'}
           </h1>
           <p className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-            Design and manage employee compensation structures with configurable components
+            {mode === 'onboarding' 
+              ? 'Set initial CTC structure for the new employee'
+              : 'Revise compensation structures for existing employees'
+            }
           </p>
+          {mode === 'revision' && employees.length === 0 && (
+            <p className={`text-sm mt-2 px-3 py-2 rounded-md ${isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
+              <AlertCircle className="w-4 h-4 inline mr-1" />
+              No employees eligible for CTC revision. New employee CTCs are set during the onboarding process.
+            </p>
+          )}
         </div>
       </div>
 
