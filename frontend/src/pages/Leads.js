@@ -30,8 +30,25 @@ const Leads = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState('all');
   const [suggestions, setSuggestions] = useState({});
-  const [viewMode, setViewMode] = useState('card');
+  const [viewMode, setViewMode] = useState('list'); // Default to list view
   const [showDraftSelector, setShowDraftSelector] = useState(false);
+  
+  // Lead status options for dropdown filter
+  const leadStatusOptions = [
+    { value: '', label: 'All Leads' },
+    { value: 'new', label: 'New' },
+    { value: 'meeting', label: 'Meeting' },
+    { value: 'pricing_plan', label: 'Pricing Plan' },
+    { value: 'sow', label: 'SOW' },
+    { value: 'quotation', label: 'Quotation' },
+    { value: 'agreement', label: 'Agreement' },
+    { value: 'payment', label: 'Payment' },
+    { value: 'kickoff_request', label: 'Kickoff Request' },
+    { value: 'kick_accept', label: 'Kick Accept' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'paused', label: 'Paused' },
+    { value: 'lost', label: 'Lost' }
+  ];
   
   // Draft system for leads
   const generateLeadDraftTitle = useCallback((data) => {
