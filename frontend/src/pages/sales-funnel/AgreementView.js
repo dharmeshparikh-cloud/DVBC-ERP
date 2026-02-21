@@ -200,7 +200,15 @@ const AgreementView = () => {
         navigate(`/sales-funnel/agreement/${response.data.id}`);
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save agreement');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        toast.error(msg);
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to save agreement');
+      }
     } finally {
       setSaving(false);
     }
@@ -339,7 +347,15 @@ const AgreementView = () => {
       // Open PM selection dialog after successful signing
       setPmSelectionDialogOpen(true);
     } catch (error) {
-      toast.error('Failed to sign agreement');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        toast.error(msg);
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to sign agreement');
+      }
     } finally {
       setSaving(false);
     }
