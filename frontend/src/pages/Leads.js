@@ -188,6 +188,11 @@ const Leads = () => {
 
   // Navigate to current stage when clicking on lead
   const handleLeadClick = async (lead) => {
+    // Don't navigate if lead is paused
+    if (lead.status === 'paused') {
+      toast.info('This lead is paused. Resume it to continue the sales flow.');
+      return;
+    }
     try {
       const progressRes = await axios.get(`${API}/leads/${lead.id}/progress`);
       if (progressRes.data.next_url) {
@@ -198,6 +203,29 @@ const Leads = () => {
     } catch (error) {
       // Fallback to pricing plans if progress API fails
       navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`);
+    }
+  };
+
+  // Pause/Resume lead functions (for managers)
+  const handlePauseLead = async (leadId, e) => {
+    e?.stopPropagation();
+    try {
+      await axios.post(`${API}/leads/${leadId}/pause`);
+      toast.success('Lead paused successfully');
+      fetchLeads();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to pause lead');
+    }
+  };
+
+  const handleResumeLead = async (leadId, e) => {
+    e?.stopPropagation();
+    try {
+      await axios.post(`${API}/leads/${leadId}/resume`);
+      toast.success('Lead resumed successfully');
+      fetchLeads();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to resume lead');
     }
   };
 
