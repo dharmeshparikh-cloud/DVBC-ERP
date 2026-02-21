@@ -302,8 +302,18 @@ const MyExpenses = () => {
                   <div className="flex items-center gap-3">
                     <span className="font-semibold text-zinc-950">{fmt(exp.total_amount)}</span>
                     {exp.status === 'draft' && (
-                      <Button onClick={() => handleSubmitForApproval(exp.id)} variant="outline" size="sm" className="rounded-sm" data-testid={`submit-exp-${exp.id}`}>
-                        <Send className="w-3 h-3 mr-1" /> Submit
+                      <>
+                        <Button onClick={() => handleSubmitForApproval(exp.id)} variant="outline" size="sm" className="rounded-sm" data-testid={`submit-exp-${exp.id}`}>
+                          <Send className="w-3 h-3 mr-1" /> Submit
+                        </Button>
+                        <Button onClick={() => handleDeleteExpense(exp.id)} variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" data-testid={`delete-exp-${exp.id}`}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                    {(exp.status === 'pending' || exp.status === 'rejected') && (
+                      <Button onClick={() => handleDeleteExpense(exp.id)} variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" data-testid={`delete-exp-${exp.id}`}>
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
                   </div>
