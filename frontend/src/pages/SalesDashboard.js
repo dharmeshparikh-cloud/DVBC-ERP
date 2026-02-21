@@ -25,6 +25,9 @@ const SalesDashboard = () => {
   const [trendsData, setTrendsData] = useState(null);
   const [bottleneckData, setBottleneckData] = useState(null);
   const [forecastData, setForecastData] = useState(null);
+  const [timeInStageData, setTimeInStageData] = useState(null);
+  const [winLossData, setWinLossData] = useState(null);
+  const [velocityData, setVelocityData] = useState(null);
 
   const isManager = ['admin', 'manager', 'sr_manager', 'principal_consultant', 'sales_manager'].includes(user?.role);
 
@@ -44,6 +47,9 @@ const SalesDashboard = () => {
         promises.push(axios.get(`${API}/analytics/funnel-trends?period=${period}`));
         promises.push(axios.get(`${API}/analytics/bottleneck-analysis`));
         promises.push(axios.get(`${API}/analytics/forecasting`));
+        promises.push(axios.get(`${API}/analytics/time-in-stage`));
+        promises.push(axios.get(`${API}/analytics/win-loss`));
+        promises.push(axios.get(`${API}/analytics/velocity`));
       }
       
       const results = await Promise.all(promises);
@@ -54,6 +60,9 @@ const SalesDashboard = () => {
         setTrendsData(results[2].data);
         setBottleneckData(results[3].data);
         setForecastData(results[4].data);
+        setTimeInStageData(results[5].data);
+        setWinLossData(results[6].data);
+        setVelocityData(results[7].data);
       }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
