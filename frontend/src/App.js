@@ -282,6 +282,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="my-salary-slips" element={<MySalarySlips />} />
         <Route path="my-expenses" element={<MyExpenses />} />
         <Route path="my-bank-details" element={<BankDetailsChangeRequest />} />
+        <Route path="my-details" element={<MyDetails />} />
         <Route path="project-roadmap" element={<ProjectRoadmap />} />
         <Route path="consultant-performance" element={<ConsultantPerformance />} />
         <Route path="email-templates" element={<EmailTemplates />} />
