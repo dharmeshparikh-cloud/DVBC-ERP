@@ -11429,6 +11429,28 @@ async def get_my_profile(current_user: User = Depends(get_current_user)):
     if not employee:
         # Try finding by email
         employee = await db.employees.find_one({"work_email": current_user.email}, {"_id": 0})
+    
+    if employee:
+        # Normalize bank details - merge both formats for consistency
+        # Priority: individual fields > bank_details object (individual fields are from newer updates)
+        bd = employee.get("bank_details", {}) or {}
+        employee["bank_name"] = employee.get("bank_name") or bd.get("bank_name") or ""
+        employee["account_number"] = employee.get("account_number") or bd.get("account_number") or ""
+        employee["ifsc_code"] = employee.get("ifsc_code") or bd.get("ifsc_code") or ""
+        employee["bank_branch"] = employee.get("bank_branch") or bd.get("branch") or bd.get("branch_name") or ""
+        
+        # Also update bank_details object for consistency
+        employee["bank_details"] = {
+            "bank_name": employee["bank_name"],
+            "account_number": employee["account_number"],
+            "ifsc_code": employee["ifsc_code"],
+            "branch": employee["bank_branch"],
+            "branch_name": employee["bank_branch"],
+            "account_holder_name": bd.get("account_holder_name") or f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+            "proof_uploaded": bd.get("proof_uploaded", False),
+            "proof_verified": bd.get("proof_verified", False)
+        }
+    
     return employee or {}
 
 
