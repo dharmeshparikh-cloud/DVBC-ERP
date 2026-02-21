@@ -11487,6 +11487,290 @@ async def resume_lead(lead_id: str, current_user: User = Depends(get_current_use
     return {"message": "Lead resumed successfully", "current_status": previous_status}
 
 
+# ============== MANAGER LEADS DASHBOARD ==============
+
+@api_router.get("/manager/subordinate-leads")
+async def get_subordinate_leads(current_user: User = Depends(get_current_user)):
+    """Get all leads assigned to subordinates for manager view"""
+    # Check if user is manager or above
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get current user's employee record
+    user_employee = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    if not user_employee and current_user.role != "admin":
+        raise HTTPException(status_code=404, detail="Employee record not found")
+    
+    # Find all subordinates
+    subordinate_query = {}
+    if current_user.role == "admin":
+        # Admin sees all
+        subordinate_query = {}
+    else:
+        manager_id = user_employee.get("employee_id") or user_employee.get("id")
+        subordinate_query = {
+            "$or": [
+                {"reporting_manager_id": manager_id},
+                {"reporting_manager_id": user_employee.get("id")}
+            ]
+        }
+    
+    subordinates = await db.employees.find(subordinate_query, {"_id": 0, "id": 1, "user_id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}).to_list(100)
+    subordinate_ids = [s.get("user_id") or s.get("id") for s in subordinates]
+    subordinate_emp_ids = [s.get("employee_id") for s in subordinates if s.get("employee_id")]
+    
+    # Get leads assigned to subordinates
+    lead_query = {}
+    if current_user.role != "admin":
+        lead_query = {
+            "$or": [
+                {"assigned_to": {"$in": subordinate_ids}},
+                {"created_by": {"$in": subordinate_ids}},
+                {"assigned_to": {"$in": subordinate_emp_ids}},
+                {"created_by": {"$in": subordinate_emp_ids}}
+            ]
+        }
+    
+    leads = await db.leads.find(lead_query, {"_id": 0}).to_list(500)
+    
+    # Get progress for each lead
+    lead_ids = [l["id"] for l in leads]
+    
+    # Bulk fetch related data
+    pricing_plans = await db.pricing_plans.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "id": 1}).to_list(1000)
+    sows = await db.enhanced_sow.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "id": 1}).to_list(1000)
+    agreements = await db.agreements.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "id": 1, "status": 1, "total_value": 1}).to_list(1000)
+    
+    # Build lookup maps
+    pp_map = {}
+    for pp in pricing_plans:
+        if pp["lead_id"] not in pp_map:
+            pp_map[pp["lead_id"]] = []
+        pp_map[pp["lead_id"]].append(pp)
+    
+    sow_map = {}
+    for s in sows:
+        if s["lead_id"] not in sow_map:
+            sow_map[s["lead_id"]] = []
+        sow_map[s["lead_id"]].append(s)
+    
+    agr_map = {}
+    for a in agreements:
+        if a["lead_id"] not in agr_map:
+            agr_map[a["lead_id"]] = []
+        agr_map[a["lead_id"]].append(a)
+    
+    # Enrich leads with progress and subordinate info
+    subordinate_map = {s.get("user_id") or s.get("id"): s for s in subordinates}
+    subordinate_map.update({s.get("employee_id"): s for s in subordinates if s.get("employee_id")})
+    
+    enriched_leads = []
+    for lead in leads:
+        assigned_to = lead.get("assigned_to") or lead.get("created_by")
+        sub_info = subordinate_map.get(assigned_to, {})
+        
+        enriched_leads.append({
+            **lead,
+            "assigned_employee_name": f"{sub_info.get('first_name', '')} {sub_info.get('last_name', '')}".strip() or "Unassigned",
+            "assigned_employee_id": sub_info.get("employee_id"),
+            "has_pricing_plan": lead["id"] in pp_map,
+            "has_sow": lead["id"] in sow_map,
+            "has_agreement": lead["id"] in agr_map,
+            "agreement_value": sum(a.get("total_value", 0) for a in agr_map.get(lead["id"], []))
+        })
+    
+    return {
+        "leads": enriched_leads,
+        "subordinates": subordinates,
+        "total_leads": len(enriched_leads)
+    }
+
+
+@api_router.get("/manager/today-stats")
+async def get_manager_today_stats(current_user: User = Depends(get_current_user)):
+    """Get today's stats for manager dashboard"""
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    today = datetime.now(timezone.utc).date()
+    today_start = datetime.combine(today, datetime.min.time()).isoformat()
+    today_end = datetime.combine(today, datetime.max.time()).isoformat()
+    
+    # Get subordinates
+    user_employee = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    subordinate_ids = []
+    subordinate_names = {}
+    
+    if current_user.role == "admin":
+        # Admin sees all employees
+        all_employees = await db.employees.find({"is_active": True}, {"_id": 0, "id": 1, "user_id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}).to_list(500)
+        subordinate_ids = [e.get("user_id") or e.get("id") for e in all_employees]
+        subordinate_names = {e.get("user_id") or e.get("id"): f"{e.get('first_name', '')} {e.get('last_name', '')}".strip() for e in all_employees}
+    elif user_employee:
+        manager_id = user_employee.get("employee_id") or user_employee.get("id")
+        subordinates = await db.employees.find(
+            {"$or": [{"reporting_manager_id": manager_id}, {"reporting_manager_id": user_employee.get("id")}], "is_active": True},
+            {"_id": 0, "id": 1, "user_id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}
+        ).to_list(100)
+        subordinate_ids = [s.get("user_id") or s.get("id") for s in subordinates]
+        subordinate_names = {s.get("user_id") or s.get("id"): f"{s.get('first_name', '')} {s.get('last_name', '')}".strip() for s in subordinates}
+    
+    # Today's meetings
+    meetings_today = await db.sales_meetings.count_documents({
+        "scheduled_date": {"$gte": today_start, "$lte": today_end},
+        "$or": [{"created_by": {"$in": subordinate_ids}}, {"assigned_to": {"$in": subordinate_ids}}]
+    }) if subordinate_ids else 0
+    
+    # Today's completed meetings (calls)
+    calls_today = await db.sales_meetings.count_documents({
+        "status": "completed",
+        "completed_at": {"$gte": today_start, "$lte": today_end},
+        "$or": [{"created_by": {"$in": subordinate_ids}}, {"assigned_to": {"$in": subordinate_ids}}]
+    }) if subordinate_ids else 0
+    
+    # Today's closures
+    closures_today = await db.leads.count_documents({
+        "status": LeadStatus.CLOSED,
+        "updated_at": {"$gte": today_start, "$lte": today_end},
+        "$or": [{"created_by": {"$in": subordinate_ids}}, {"assigned_to": {"$in": subordinate_ids}}]
+    }) if subordinate_ids else 0
+    
+    # Today's absent employees
+    absent_employees = []
+    if subordinate_ids:
+        # Check leave requests for today
+        leave_requests = await db.leave_requests.find({
+            "status": "approved",
+            "start_date": {"$lte": today.isoformat()},
+            "end_date": {"$gte": today.isoformat()},
+            "user_id": {"$in": subordinate_ids}
+        }, {"_id": 0, "user_id": 1}).to_list(100)
+        
+        absent_ids = [lr["user_id"] for lr in leave_requests]
+        absent_employees = [{"id": aid, "name": subordinate_names.get(aid, "Unknown")} for aid in absent_ids]
+    
+    return {
+        "today_meetings": meetings_today,
+        "today_calls": calls_today,
+        "today_closures": closures_today,
+        "today_absent": len(absent_employees),
+        "absent_employees": absent_employees,
+        "subordinate_count": len(subordinate_ids)
+    }
+
+
+@api_router.get("/manager/performance")
+async def get_manager_performance(
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get monthly/YTD performance with closure count and agreement value"""
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    now = datetime.now(timezone.utc)
+    target_month = month or now.month
+    target_year = year or now.year
+    
+    # Get subordinates
+    user_employee = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    subordinate_ids = []
+    if current_user.role == "admin":
+        all_employees = await db.employees.find({"is_active": True}, {"_id": 0, "user_id": 1, "id": 1}).to_list(500)
+        subordinate_ids = [e.get("user_id") or e.get("id") for e in all_employees]
+    elif user_employee:
+        manager_id = user_employee.get("employee_id") or user_employee.get("id")
+        subordinates = await db.employees.find(
+            {"$or": [{"reporting_manager_id": manager_id}, {"reporting_manager_id": user_employee.get("id")}], "is_active": True},
+            {"_id": 0, "user_id": 1, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}
+        ).to_list(100)
+        subordinate_ids = [s.get("user_id") or s.get("id") for s in subordinates]
+    
+    # Monthly stats
+    month_start = datetime(target_year, target_month, 1).isoformat()
+    if target_month == 12:
+        month_end = datetime(target_year + 1, 1, 1).isoformat()
+    else:
+        month_end = datetime(target_year, target_month + 1, 1).isoformat()
+    
+    # YTD stats
+    ytd_start = datetime(target_year, 1, 1).isoformat()
+    ytd_end = datetime(target_year + 1, 1, 1).isoformat()
+    
+    # Monthly closures and agreement values
+    monthly_query = {
+        "status": LeadStatus.CLOSED,
+        "updated_at": {"$gte": month_start, "$lt": month_end}
+    }
+    if subordinate_ids and current_user.role != "admin":
+        monthly_query["$or"] = [{"created_by": {"$in": subordinate_ids}}, {"assigned_to": {"$in": subordinate_ids}}]
+    
+    monthly_closed_leads = await db.leads.find(monthly_query, {"_id": 0, "id": 1}).to_list(500)
+    monthly_lead_ids = [l["id"] for l in monthly_closed_leads]
+    
+    monthly_agreements = await db.agreements.find(
+        {"lead_id": {"$in": monthly_lead_ids}, "status": {"$in": ["approved", "signed"]}},
+        {"_id": 0, "total_value": 1}
+    ).to_list(500)
+    monthly_value = sum(a.get("total_value", 0) for a in monthly_agreements)
+    
+    # YTD closures and agreement values
+    ytd_query = {
+        "status": LeadStatus.CLOSED,
+        "updated_at": {"$gte": ytd_start, "$lt": ytd_end}
+    }
+    if subordinate_ids and current_user.role != "admin":
+        ytd_query["$or"] = [{"created_by": {"$in": subordinate_ids}}, {"assigned_to": {"$in": subordinate_ids}}]
+    
+    ytd_closed_leads = await db.leads.find(ytd_query, {"_id": 0, "id": 1}).to_list(1000)
+    ytd_lead_ids = [l["id"] for l in ytd_closed_leads]
+    
+    ytd_agreements = await db.agreements.find(
+        {"lead_id": {"$in": ytd_lead_ids}, "status": {"$in": ["approved", "signed"]}},
+        {"_id": 0, "total_value": 1}
+    ).to_list(1000)
+    ytd_value = sum(a.get("total_value", 0) for a in ytd_agreements)
+    
+    # Get targets
+    targets = await db.sales_targets.find({
+        "year": target_year,
+        "$or": [{"employee_id": {"$in": subordinate_ids}}, {"created_by": current_user.id}]
+    }, {"_id": 0}).to_list(100)
+    
+    monthly_target = sum(t.get("monthly_targets", {}).get(str(target_month), 0) for t in targets)
+    ytd_target = sum(sum(t.get("monthly_targets", {}).values()) for t in targets)
+    
+    return {
+        "month": target_month,
+        "year": target_year,
+        "monthly": {
+            "closures": len(monthly_closed_leads),
+            "agreement_value": monthly_value,
+            "target": monthly_target,
+            "achievement_percentage": (monthly_value / monthly_target * 100) if monthly_target > 0 else 0
+        },
+        "ytd": {
+            "closures": len(ytd_closed_leads),
+            "agreement_value": ytd_value,
+            "target": ytd_target,
+            "achievement_percentage": (ytd_value / ytd_target * 100) if ytd_target > 0 else 0
+        }
+    }
+
+
 # ============== LEAD PROGRESS TRACKING ==============
 
 @api_router.get("/leads/{lead_id}/progress")
