@@ -59,6 +59,16 @@ const AgreementView = () => {
   const [kickoffNotes, setKickoffNotes] = useState('');
   const [creatingKickoff, setCreatingKickoff] = useState(false);
 
+  // Upload Signed Agreement
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Send to Client
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [clientEmail, setClientEmail] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   useEffect(() => {
     if (agreementId) {
       fetchAgreementData();
