@@ -270,7 +270,7 @@ const SalesMeetings = () => {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Mode *</Label>
-                    <select value={formData.mode} onChange={(e) => setFormData({ ...formData, mode: e.target.value })}
+                    <select value={formData.mode} onChange={(e) => updateFormData('mode', e.target.value)}
                       required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="sales-meeting-mode">
                       <option value="online">Online</option>
                       <option value="offline">In-person</option>
@@ -280,7 +280,7 @@ const SalesMeetings = () => {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Duration (mins)</Label>
                     <Input type="number" min="0" value={formData.duration_minutes}
-                      onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })} className="rounded-sm border-zinc-200" />
+                      onChange={(e) => updateFormData('duration_minutes', e.target.value)} className="rounded-sm border-zinc-200" />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -302,7 +302,7 @@ const SalesMeetings = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-zinc-950">Notes</Label>
-                  <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  <textarea value={formData.notes} onChange={(e) => updateFormData('notes', e.target.value)}
                     rows={2} className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="sales-meeting-notes" />
                 </div>
                 <div className="space-y-2">
