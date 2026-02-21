@@ -6,7 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { 
   Users, Calendar, Clock, DollarSign, FileText,
-  UserCheck, UserX, Briefcase, CheckCircle, AlertCircle, LogIn
+  UserCheck, UserX, Briefcase, CheckCircle, AlertCircle, LogIn, Book, Download, Mail
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
