@@ -11,7 +11,7 @@ import {
   CheckCircle, XCircle, Clock, AlertCircle, ChevronRight, 
   FileText, Calendar, User, MessageSquare, Send, DollarSign,
   Building2, CreditCard, Eye, Loader2, Rocket, Key, Wallet, Shield,
-  RefreshCw, CheckSquare, Square, Zap, Bell, Menu
+  RefreshCw, CheckSquare, Square, Zap, Bell, Menu, Briefcase, Play
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
