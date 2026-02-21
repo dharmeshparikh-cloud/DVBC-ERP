@@ -1095,6 +1095,12 @@ const ApprovalsCenter = () => {
                       <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                         Reason: {req.reason || 'Not specified'} • Requested on {new Date(req.created_at).toLocaleDateString()}
                       </div>
+                      <div className={`text-xs mt-1 font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Pending approval from: <strong>HR Manager</strong>
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
