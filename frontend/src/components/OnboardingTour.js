@@ -328,19 +328,17 @@ const OnboardingTour = () => {
   const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Check if user needs onboarding
+  // Check if user needs onboarding - check when user state changes
   useEffect(() => {
+    // Don't run if user/token not ready
+    if (!user || !token) {
+      return;
+    }
+    
     const checkOnboarding = async () => {
-      if (!user || !token) {
-        console.log('OnboardingTour: No user or token yet');
-        setLoading(false);
-        return;
-      }
-      
       console.log('OnboardingTour: Checking onboarding status for', user.email);
       
       try {
-        // Ensure axios has the token set
         const res = await axios.get(`${API}/my/onboarding-status`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -358,8 +356,8 @@ const OnboardingTour = () => {
       }
     };
     
-    // Delay to let the page render and auth state stabilize
-    const timer = setTimeout(checkOnboarding, 1500);
+    // Delay to let the page render
+    const timer = setTimeout(checkOnboarding, 500);
     return () => clearTimeout(timer);
   }, [user, token]);
 
