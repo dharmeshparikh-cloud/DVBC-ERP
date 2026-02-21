@@ -204,6 +204,28 @@ async def update_expense(expense_id: str, data: dict, current_user: User = Depen
     return {"message": "Expense updated"}
 
 
+@router.delete("/{expense_id}")
+async def delete_expense(expense_id: str, current_user: User = Depends(get_current_user)):
+    """Delete an expense (only draft, pending, or rejected)."""
+    db = get_db()
+    
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # Only owner or admin can delete
+    if expense["created_by"] != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to delete this expense")
+    
+    # Cannot delete approved expenses
+    if expense["status"] == "approved":
+        raise HTTPException(status_code=400, detail="Cannot delete approved expenses")
+    
+    await db.expenses.delete_one({"id": expense_id})
+    
+    return {"message": "Expense deleted"}
+
+
 # Expense approval threshold - below this HR approves directly, above needs Admin
 EXPENSE_HR_THRESHOLD = 2000  # ₹2000
 
