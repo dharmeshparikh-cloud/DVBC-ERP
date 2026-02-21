@@ -11,7 +11,61 @@
 
 ## Completed Work - February 2026
 
-### Draggable Help Panel & Workflow Overlay - February 21, 2026 ✅ (Latest)
+### Employee Self-Service ("My Details") - February 21, 2026 ✅ (Latest)
+**Empowers employees to manage their own profile data with HR approval workflow**
+
+**Features:**
+- ✅ **My Details Page** (`/my-details`) under My Workspace sidebar
+  - Personal Information (Read-only)
+  - Contact Information (Editable via change request)
+  - Address (Editable via change request)
+  - Bank Details (Editable via change request)
+  - Emergency Contact (Editable via change request)
+  - Employment Information (Read-only)
+- ✅ **Change Request Workflow**
+  - Employee clicks Edit → Modal opens with form fields
+  - "Reason for Change" is required
+  - Submit creates pending request for HR approval
+  - Pending Request Banner shows all awaiting requests
+  - Edit button hidden for sections with pending requests
+- ✅ **HR Approval in Approvals Center**
+  - New "Employee Profile Changes" section in Approvals Center
+  - Stats card showing pending profile change count
+  - Displays employee name, section type, changes, and reason
+  - Approve/Reject buttons with confirmation
+  - On approval, employee profile is automatically updated
+
+**Backend Endpoints:**
+- `GET /api/my/profile` - Get employee profile data
+- `GET /api/my/change-requests` - Get employee's pending requests
+- `POST /api/my/change-request` - Submit profile change request
+- `GET /api/hr/employee-change-requests` - Get pending requests for HR
+- `POST /api/hr/employee-change-request/{id}/approve` - Approve and update profile
+- `POST /api/hr/employee-change-request/{id}/reject` - Reject with reason
+
+**Files:**
+- `/app/frontend/src/pages/MyDetails.js` - Employee self-service page
+- `/app/frontend/src/pages/ApprovalsCenter.js` - Added profile change approvals
+- `/app/backend/server.py` - Lines 11425-11990 for endpoints
+
+**Database:**
+- `employee_change_requests` collection with fields: id, employee_id, employee_name, employee_code, section, current_values, requested_values, reason, status, created_at, approved_by, approved_at
+
+---
+
+### Anupam Chandra (EMP1003) Onboarding Fix - February 21, 2026 ✅
+**Fixed data mismatch issue causing login failure for newly onboarded employee**
+
+**Issue:** Employee email `anupam.chandra@dvbv.co.in` didn't match user email `anupam.chandra@dvconsulting.co.in` (typo), and user was deactivated.
+
+**Fix Applied:**
+- ✅ Corrected employee email to `anupam.chandra@dvconsulting.co.in`
+- ✅ Activated user account (`is_active: true`)
+- ✅ Password set to `Welcome@EMP001`
+
+---
+
+### Draggable Help Panel & Workflow Overlay - February 21, 2026 ✅
 **Made floating help button and workflow overlay draggable to avoid blocking page content**
 
 **Changes:**
