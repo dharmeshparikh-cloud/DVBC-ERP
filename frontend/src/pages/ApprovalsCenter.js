@@ -40,6 +40,7 @@ const ApprovalsCenter = () => {
   const [modificationApprovals, setModificationApprovals] = useState([]);
   const [profileChangeApprovals, setProfileChangeApprovals] = useState([]);
   const [agreementApprovals, setAgreementApprovals] = useState([]); // NEW: Manager Agreement Approvals
+  const [kickoffApprovals, setKickoffApprovals] = useState([]); // NEW: Kickoff Request Approvals
   const [myRequests, setMyRequests] = useState([]);
   const [allApprovals, setAllApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +64,10 @@ const ApprovalsCenter = () => {
   const [agreementDetailDialog, setAgreementDetailDialog] = useState(false);
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  
+  // Kickoff approval states
+  const [kickoffDetailDialog, setKickoffDetailDialog] = useState(false);
+  const [selectedKickoff, setSelectedKickoff] = useState(null);
   
   // New states for bulk actions and real-time
   const [selectedItems, setSelectedItems] = useState(new Set());
