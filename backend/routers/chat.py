@@ -237,6 +237,19 @@ async def send_message(
                 await db.notifications.insert_one(notification)
     
     del message["_id"]
+    
+    # Broadcast message via WebSocket to all conversation participants
+    ws_manager = get_manager()
+    ws_message = {
+        "type": "new_message",
+        "conversation_id": conversation_id,
+        "message": {
+            **message,
+            "created_at": message["created_at"].isoformat() if isinstance(message["created_at"], datetime) else message["created_at"]
+        }
+    }
+    await ws_manager.broadcast_to_users(ws_message, conv.get("participant_ids", []), exclude_user=sender_id)
+    
     return message
 
 
