@@ -1,34 +1,48 @@
-import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../App';
 import { AuthContext } from '../App';
-import { Bell, Check, CheckCheck, X, ExternalLink, Wifi, WifiOff } from 'lucide-react';
+import { Bell, Check, CheckCheck, X, ExternalLink, Wifi, WifiOff, Filter } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
 const NOTIF_ICONS = {
   // Actionable notifications
-  go_live_approval: { color: 'bg-emerald-500', label: 'Go-Live', actionable: true },
-  ctc_approval: { color: 'bg-purple-500', label: 'CTC', actionable: true },
-  permission_change: { color: 'bg-indigo-500', label: 'Permission', actionable: true },
-  approval_request: { color: 'bg-amber-500', label: 'Approval', actionable: true },
+  go_live_approval: { color: 'bg-emerald-500', label: 'Go-Live', actionable: true, category: 'go_live' },
+  ctc_approval: { color: 'bg-purple-500', label: 'CTC', actionable: true, category: 'ctc' },
+  permission_change: { color: 'bg-indigo-500', label: 'Permission', actionable: true, category: 'permission' },
+  approval_request: { color: 'bg-amber-500', label: 'Approval', actionable: true, category: 'approval' },
+  employee_modification: { color: 'bg-orange-500', label: 'Employee', actionable: true, category: 'employee' },
   
   // Information notifications
-  employee_onboarded: { color: 'bg-blue-500', label: 'New Employee', actionable: false },
-  approval_completed: { color: 'bg-emerald-500', label: 'Approved', actionable: false },
-  approval_rejected: { color: 'bg-red-500', label: 'Rejected', actionable: false },
-  leave_request: { color: 'bg-blue-500', label: 'Leave', actionable: false },
-  expense_submitted: { color: 'bg-purple-500', label: 'Expense', actionable: false },
-  sow_completion: { color: 'bg-teal-500', label: 'SOW', actionable: false },
-  bank_change_approved: { color: 'bg-emerald-500', label: 'Bank', actionable: false },
-  go_live_approved: { color: 'bg-emerald-500', label: 'Go-Live', actionable: false },
-  go_live_rejected: { color: 'bg-red-500', label: 'Rejected', actionable: false },
-  chat_mention: { color: 'bg-orange-500', label: 'Chat', actionable: false },
-  action_taken: { color: 'bg-green-500', label: 'Action', actionable: false },
-  default: { color: 'bg-zinc-400', label: 'Info', actionable: false },
+  employee_onboarded: { color: 'bg-blue-500', label: 'New Employee', actionable: false, category: 'employee' },
+  approval_completed: { color: 'bg-emerald-500', label: 'Approved', actionable: false, category: 'approval' },
+  approval_rejected: { color: 'bg-red-500', label: 'Rejected', actionable: false, category: 'approval' },
+  leave_request: { color: 'bg-blue-500', label: 'Leave', actionable: false, category: 'leave' },
+  expense_submitted: { color: 'bg-purple-500', label: 'Expense', actionable: false, category: 'expense' },
+  sow_completion: { color: 'bg-teal-500', label: 'SOW', actionable: false, category: 'sow' },
+  bank_change_approved: { color: 'bg-emerald-500', label: 'Bank', actionable: false, category: 'bank' },
+  bank_change: { color: 'bg-amber-500', label: 'Bank', actionable: true, category: 'bank' },
+  go_live_approved: { color: 'bg-emerald-500', label: 'Go-Live', actionable: false, category: 'go_live' },
+  go_live_rejected: { color: 'bg-red-500', label: 'Rejected', actionable: false, category: 'go_live' },
+  chat_mention: { color: 'bg-orange-500', label: 'Chat', actionable: false, category: 'chat' },
+  action_taken: { color: 'bg-green-500', label: 'Action', actionable: false, category: 'other' },
+  default: { color: 'bg-zinc-400', label: 'Info', actionable: false, category: 'other' },
 };
+
+// Category tabs configuration
+const CATEGORY_TABS = [
+  { id: 'all', label: 'All' },
+  { id: 'go_live', label: 'Go-Live' },
+  { id: 'permission', label: 'Permission' },
+  { id: 'employee', label: 'Employee' },
+  { id: 'leave', label: 'Leave' },
+  { id: 'expense', label: 'Expense' },
+  { id: 'ctc', label: 'CTC' },
+  { id: 'other', label: 'Other' },
+];
 
 const timeAgo = (dateStr) => {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -48,6 +62,7 @@ const NotificationBell = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
   const dropdownRef = useRef(null);
   const lastCountRef = useRef(0);
   const wsRef = useRef(null);
@@ -115,7 +130,7 @@ const NotificationBell = () => {
         // Real-time notification received
         const notif = data.notification;
         
-        // Add to notifications list
+        // Add to notifications list (at the beginning for newest first)
         setNotifications(prev => [notif, ...prev]);
         
         // Increment unread count
@@ -199,6 +214,36 @@ const NotificationBell = () => {
     setUnreadCount(0);
   };
 
+  // Sort notifications by newest first and filter by category
+  const filteredNotifications = useMemo(() => {
+    // Sort by created_at descending (newest first)
+    const sorted = [...notifications].sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+    
+    // Filter by active tab
+    if (activeTab === 'all') return sorted;
+    
+    return sorted.filter(notif => {
+      const notifType = notif.type || notif.notification_type || 'default';
+      const meta = NOTIF_ICONS[notifType] || NOTIF_ICONS.default;
+      return meta.category === activeTab;
+    });
+  }, [notifications, activeTab]);
+
+  // Get counts per category for badges
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    notifications.forEach(notif => {
+      if (!notif.is_read) {
+        const notifType = notif.type || notif.notification_type || 'default';
+        const meta = NOTIF_ICONS[notifType] || NOTIF_ICONS.default;
+        counts[meta.category] = (counts[meta.category] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [notifications]);
+
   return (
     <div className="relative" ref={dropdownRef} data-tour="notification-bell">
       <button
@@ -221,7 +266,7 @@ const NotificationBell = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[380px] bg-white border border-zinc-200 rounded-lg shadow-lg z-50 overflow-hidden" data-testid="notification-dropdown" data-tour="notification-panel">
+        <div className="absolute right-0 top-full mt-2 w-[420px] bg-white border border-zinc-200 rounded-lg shadow-lg z-50 overflow-hidden" data-testid="notification-dropdown" data-tour="notification-panel">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50">
             <div className="flex items-center gap-2">
@@ -244,17 +289,50 @@ const NotificationBell = () => {
             </div>
           </div>
 
-          {/* List */}
-          <div className="max-h-[400px] overflow-y-auto">
+          {/* Category Tabs */}
+          <div className="flex overflow-x-auto border-b border-zinc-100 bg-zinc-50/30 px-2 py-1.5 gap-1 scrollbar-hide">
+            {CATEGORY_TABS.map(tab => {
+              const count = tab.id === 'all' ? unreadCount : (categoryCounts[tab.id] || 0);
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    px-2.5 py-1 text-[11px] font-medium rounded-md whitespace-nowrap transition-all flex items-center gap-1
+                    ${isActive 
+                      ? 'bg-orange-500 text-white shadow-sm' 
+                      : 'text-zinc-600 hover:bg-zinc-100'
+                    }
+                  `}
+                >
+                  {tab.label}
+                  {count > 0 && (
+                    <span className={`
+                      px-1 py-0.5 text-[9px] rounded-full min-w-[16px] text-center
+                      ${isActive ? 'bg-orange-600 text-white' : 'bg-zinc-200 text-zinc-600'}
+                    `}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* List - Sorted newest first */}
+          <div className="max-h-[350px] overflow-y-auto">
             {loading ? (
               <div className="p-6 text-center text-xs text-zinc-400">Loading...</div>
-            ) : notifications.length === 0 ? (
+            ) : filteredNotifications.length === 0 ? (
               <div className="p-8 text-center">
                 <Bell className="w-8 h-8 text-zinc-200 mx-auto mb-2" />
-                <p className="text-xs text-zinc-400">No notifications yet</p>
+                <p className="text-xs text-zinc-400">
+                  {activeTab === 'all' ? 'No notifications yet' : `No ${activeTab.replace('_', ' ')} notifications`}
+                </p>
               </div>
             ) : (
-              notifications.slice(0, 10).map(notif => {
+              filteredNotifications.slice(0, 15).map(notif => {
                 const notifType = notif.type || notif.notification_type || 'default';
                 const meta = NOTIF_ICONS[notifType] || NOTIF_ICONS.default;
                 const isActioned = notif.status === 'actioned';
@@ -278,13 +356,16 @@ const NotificationBell = () => {
                     <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${meta.color}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-xs font-medium text-zinc-900 leading-snug">{notif.title}</p>
                           {meta.actionable && !isActioned && (
                             <span className="px-1.5 py-0.5 text-[9px] font-medium bg-amber-100 text-amber-700 rounded">
                               Action
                             </span>
                           )}
+                          <span className={`px-1.5 py-0.5 text-[9px] font-medium rounded ${meta.color} text-white`}>
+                            {meta.label}
+                          </span>
                         </div>
                         {!notif.is_read && (
                           <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
