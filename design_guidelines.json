@@ -1,149 +1,140 @@
 {
-  "identity": {
-    "name": "E1 - The Anti-AI Designer",
-    "style": "Swiss High-Contrast / Brutalist Utility",
-    "description": "A hyper-functional, density-optimized aesthetic that prioritizes data clarity over decoration. It rejects 'SaaS soft' roundness in favor of architectural precision.",
+  "project_name": "NETRA - Sales Funnel & Client Onboarding",
+  "design_philosophy": {
+    "identity": "E1 - The Anti-AI Designer",
     "core_principles": [
-      "Density is Clarity: If it can fit in 1 page, don't make it 2.",
-      "Black & White is Colorful: Use 10 shades of grey to create depth.",
-      "The Grid is God: Align everything. Visible grid lines are encouraged.",
-      "No Rounded Corners (mostly): Sharp edges = Sharp consulting."
-    ]
+      "Fusion over Imitation: ERP structure + Fintech polish",
+      "Emotion First: The user should feel 'In Control' and 'Progressing'",
+      "Content is King: Every step explains 'Why'",
+      "Negative Space: High density data needs room to breathe"
+    ],
+    "theme": "Premium Light (Corporate/Consulting)",
+    "visual_style": "Clean, structured, vertical-timeline driven, with subtle glassmorphic accents."
   },
   "typography": {
-    "primary_font": "Inter",
-    "secondary_font": "JetBrains Mono",
-    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap",
-    "usage": {
-      "headings": {
-        "family": "Inter, sans-serif",
-        "weight": "600",
-        "tracking": "-0.02em",
-        "style": "uppercase_labels"
-      },
-      "body": {
-        "family": "Inter, sans-serif",
-        "weight": "400",
-        "leading": "relaxed"
-      },
-      "data": {
-        "family": "'JetBrains Mono', monospace",
-        "size": "text-xs",
-        "usage": "IDs, Financials, Dates"
-      }
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "installation_command": "npm install @fontsource/manrope @fontsource/inter",
+    "scale": {
+      "h1": "text-4xl font-bold tracking-tight text-slate-900",
+      "h2": "text-3xl font-semibold tracking-tight text-slate-900",
+      "h3": "text-2xl font-semibold text-slate-800",
+      "h4": "text-xl font-medium text-slate-800",
+      "body_lg": "text-lg leading-relaxed text-slate-600",
+      "body_base": "text-base leading-relaxed text-slate-600",
+      "body_sm": "text-sm text-slate-500",
+      "caption": "text-xs font-medium uppercase tracking-wider text-slate-400"
     }
   },
   "colors": {
     "palette": {
-      "background": "#FFFFFF",
-      "surface": "#FAFAFA",
-      "surface_hover": "#F4F4F5",
-      "foreground": "#09090B",
-      "muted": "#71717A",
-      "border": "#E4E4E7",
-      "primary": "#18181B",
-      "primary_foreground": "#FAFAFA",
-      "accent_functional": "#2563EB", 
-      "accent_alert": "#DC2626"
+      "primary": {
+        "DEFAULT": "#1e1b4b",
+        "foreground": "#ffffff",
+        "hover": "#312e81"
+      },
+      "secondary": {
+        "DEFAULT": "#f8fafc",
+        "foreground": "#0f172a"
+      },
+      "accent": {
+        "DEFAULT": "#4f46e5",
+        "foreground": "#ffffff",
+        "glow": "rgba(79, 70, 229, 0.5)"
+      },
+      "success": {
+        "DEFAULT": "#10b981",
+        "subtle": "#d1fae5"
+      },
+      "background": {
+        "page": "#f1f5f9",
+        "card": "#ffffff",
+        "sidebar": "#ffffff"
+      },
+      "border": {
+        "DEFAULT": "#e2e8f0",
+        "subtle": "#f1f5f9"
+      }
     },
-    "theme_strategy": {
-      "mode": "light", 
-      "dark_mode_support": false,
-      "note": "Strictly Light Mode for 'Paper/Report' feel as per Consulting aesthetic. Dark mode optional but secondary."
-    },
-    "utility_classes": {
-      "bg_app": "bg-white",
-      "bg_panel": "bg-zinc-50/50",
-      "text_main": "text-zinc-950",
-      "text_secondary": "text-zinc-500",
-      "border_subtle": "border-zinc-200"
-    }
+    "usage_rules": [
+      "Use Primary (Deep Indigo) for main actions and active states.",
+      "Use Accent (Electric Indigo/Violet) for focus rings and active step indicators.",
+      "Backgrounds should never be pure white (#ffffff) for the main page canvas; use #f1f5f9 (Slate-100).",
+      "Sidebar and Cards should be pure white to pop against the grey background."
+    ]
   },
-  "layout_system": {
-    "grid_strategy": "Bento Mode B (High Density)",
-    "spacing": {
-      "container_padding": "p-6 md:p-12",
-      "component_gap": "gap-4",
-      "section_gap": "gap-12"
+  "layout_structure": {
+    "type": "Split View (Sidebar + Main Content)",
+    "sidebar": {
+      "width": "w-80 (20rem) or w-96 (24rem)",
+      "position": "fixed left-0 top-0 h-full",
+      "style": "bg-white border-r border-slate-200 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
+      "content": "Vertical Step Timeline"
     },
-    "navigation": {
-      "style": "Sidebar Fixed",
-      "width": "w-64",
-      "visual": "Border-right only. No background color change. Minimalist list."
+    "main_content": {
+      "margin": "ml-80 or ml-96",
+      "width": "calc(100% - 20rem)",
+      "padding": "p-8 md:p-12",
+      "style": "bg-slate-100 min-h-screen"
     }
   },
   "components": {
-    "buttons": {
-      "radius": "rounded-sm",
-      "styles": {
-        "primary": "bg-zinc-950 text-white hover:bg-zinc-800 shadow-none border border-transparent",
-        "secondary": "bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 shadow-sm",
-        "ghost": "hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900"
+    "StepTimeline": {
+      "description": "Vertical list of steps with connecting lines.",
+      "visuals": {
+        "line": "w-0.5 bg-slate-200 absolute left-4 top-10 bottom-0",
+        "node_active": "w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 ring-4 ring-indigo-50 z-10 relative",
+        "node_completed": "w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center z-10 relative",
+        "node_pending": "w-8 h-8 rounded-full bg-white border-2 border-slate-200 text-slate-400 flex items-center justify-center z-10 relative",
+        "text_active": "font-bold text-slate-900",
+        "text_pending": "font-medium text-slate-500"
       }
     },
-    "cards": {
-      "radius": "rounded-sm",
-      "style": "border border-zinc-200 bg-white shadow-none hover:border-zinc-300 transition-colors"
+    "WorkspacePanel": {
+      "description": "The active area where the user works.",
+      "container": "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden",
+      "header": "px-8 py-6 border-b border-slate-100 bg-white sticky top-0 z-10",
+      "body": "p-8 space-y-6",
+      "footer": "px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center"
     },
-    "inputs": {
-      "radius": "rounded-sm",
-      "style": "border-zinc-200 bg-transparent focus:ring-1 focus:ring-zinc-950 focus:border-zinc-950"
-    },
-    "tables": {
-      "density": "compact",
-      "style": "w-full text-sm caption-bottom",
-      "header": "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
-      "row": "border-b transition-colors hover:bg-zinc-50/50 data-[state=selected]:bg-muted",
-      "cell": "p-2 align-middle [&:has([role=checkbox])]:pr-0"
-    },
-    "custom_modifications": {
-      "shadcn_overrides": [
-        "Remove all rounded-lg, replace with rounded-sm or rounded-none",
-        "Remove all ring-offset-background",
-        "Set all border colors to border-zinc-200"
-      ]
+    "ProgressBar": {
+      "location": "Top of Sidebar or Top of Main Content",
+      "style": "h-1.5 bg-slate-100 rounded-full overflow-hidden",
+      "fill": "h-full bg-primary transition-all duration-500 ease-out"
     }
   },
-  "visual_enhancers": {
-    "textures": {
-      "noise": "Use a subtle SVG noise overlay at 2% opacity on the main background to kill the digital flatness.",
-      "grid_lines": "Use 'bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]' for dashboard backgrounds."
-    },
-    "icons": {
-      "library": "lucide-react",
-      "style": "Stroke width 1.5px (Thin/Elegant)",
-      "size": "w-4 h-4 (Small/Dense)"
-    }
+  "interactive_states": {
+    "hover": "All clickable cards/items must have `hover:bg-slate-50` and `transition-colors duration-200`.",
+    "focus": "All inputs must have `focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500`.",
+    "step_transition": "Use Framer Motion `AnimatePresence` for smooth cross-fading between step content."
   },
-  "specific_modules": {
-    "lead_pipeline": {
-      "view": "Kanban or Dense List Toggle",
-      "status_colors": {
-        "new": "bg-zinc-100 text-zinc-600",
-        "contacted": "bg-blue-50 text-blue-700",
-        "proposal": "bg-purple-50 text-purple-700",
-        "closed": "bg-emerald-50 text-emerald-700"
-      }
-    },
-    "time_tracking": {
-      "visual": "Timeline View (Horizontal Gantt-lite)",
-      "component": "Stacked bar chart for daily activity visualization."
-    }
+  "assets": {
+    "icons_library": "lucide-react",
+    "logo_placeholder": "Use a text placeholder 'NETRA' with font-bold if no logo image is available."
   },
-  "image_strategy": {
-    "use_images": false,
-    "fallback": "Use Initials for User Avatars (e.g., 'JD' in a circle). Use Abstract Geometric Patterns for empty states.",
-    "login_hero": "CSS Pattern: Radial Gradient from Zinc-100 to White, with a Grid Overlay."
-  },
-  "instructions_to_main_agent": [
-    "1. THEME SETUP: Go to /app/frontend/src/index.css. Override the root variables to remove all 'blue-ish' tints. Make them pure gray (Zinc/Neutral). Set radius to 0.2rem.",
-    "2. COMPONENT CLEANUP: Open /app/frontend/src/components/ui/button.jsx (and card, input, etc). Search for 'rounded-md' or 'rounded-lg' and REPLACE with 'rounded-sm'.",
-    "3. DENSITY CHECK: In layout.jsx (or equivalent), ensure the Sidebar width is fixed (w-64) and the Main Content has 'p-8'.",
-    "4. NO GRADIENTS: Do not use gradients for buttons or backgrounds. Use solid colors or subtle borders.",
-    "5. DATA-TESTID: Ensure every interactive element has a data-testid attributes."
+  "steps_config": [
+    { "id": 1, "label": "Lead Details", "description": "Review & qualify", "icon": "User" },
+    { "id": 2, "label": "Meeting Record", "description": "Log initial discussion", "icon": "Video" },
+    { "id": 3, "label": "Pricing Plan", "description": "Configure services", "icon": "CreditCard" },
+    { "id": 4, "label": "Scope of Work", "description": "Define deliverables", "icon": "FileText" },
+    { "id": 5, "label": "Quotation", "description": "Generate quote", "icon": "FileOutput" },
+    { "id": 6, "label": "Agreement", "description": "Legal contract", "icon": "Scale" },
+    { "id": 7, "label": "Record Payment", "description": "Advance received", "icon": "Banknote" },
+    { "id": 8, "label": "Kickoff Request", "description": "Internal handover", "icon": "Rocket" },
+    { "id": 9, "label": "Project Created", "description": "Success!", "icon": "CheckCircle" }
   ],
-  "accessibility": {
-    "contrast": "APCA preferred. Ensure Gray-500 text is only used on White, never on Gray-100.",
-    "focus_states": "Visible 2px outline in Black (#000) for keyboard navigation."
-  }
+  "universal_guidelines": [
+    "Do not use generic centered layouts.",
+    "Dark colors look good when used independently without gradients.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) for sticky headers/footers.",
+    "Every interaction needs micro-animations.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "NEVER use AI assistant Emoji characters.",
+    "Components MUST use named exports.",
+    "Use 'sonner' for toasts."
+  ],
+  "instructions_to_main_agent": "Create a main layout file (e.g., `SalesFunnelLayout.jsx`) that manages the state of the wizard. Use a 'currentStep' state to render the appropriate sub-component in the right panel. Mock the sub-components (PricingBuilder, SOWBuilder) with simple placeholder cards if they don't exist, but ensure the routing/logic is ready to connect. Ensure the Sidebar is responsive (collapses to a top bar on mobile)."
 }
