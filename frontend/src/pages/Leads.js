@@ -126,6 +126,9 @@ const Leads = () => {
     setDialogOpen(true);
   };
 
+  // Lead progress state
+  const [leadProgress, setLeadProgress] = useState({});
+
   const fetchLeads = async () => {
     try {
       const params = selectedStatus ? { status: selectedStatus } : {};
@@ -133,6 +136,14 @@ const Leads = () => {
       // Sort by lead score descending
       const sortedLeads = response.data.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0));
       setLeads(sortedLeads);
+      
+      // Fetch progress for all leads
+      try {
+        const progressRes = await axios.get(`${API}/leads/progress/bulk`);
+        setLeadProgress(progressRes.data || {});
+      } catch (err) {
+        console.error('Failed to fetch lead progress:', err);
+      }
       
       // Fetch suggestions for high-scoring leads
       sortedLeads.forEach(async (lead) => {
@@ -154,6 +165,21 @@ const Leads = () => {
       toast.error('Failed to fetch leads');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Navigate to current stage when clicking on lead
+  const handleLeadClick = async (lead) => {
+    try {
+      const progressRes = await axios.get(`${API}/leads/${lead.id}/progress`);
+      if (progressRes.data.next_url) {
+        navigate(progressRes.data.next_url);
+      } else {
+        navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`);
+      }
+    } catch (error) {
+      // Fallback to pricing plans if progress API fails
+      navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`);
     }
   };
 
