@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../../App';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -9,9 +9,11 @@ import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
 import { Textarea } from '../../components/ui/textarea';
-import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell, HelpCircle, FileText, Settings, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Users, Calculator, IndianRupee, AlertCircle, Info, Lock, Calendar, Receipt, Bell, HelpCircle, FileText, Settings, Eye, EyeOff, FolderOpen, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
+import useDraft from '../../hooks/useDraft';
+import DraftSelector, { DraftIndicator } from '../../components/DraftSelector';
 
 // Duration type to months mapping
 const DURATION_TYPE_MONTHS = {
