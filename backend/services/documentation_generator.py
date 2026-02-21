@@ -937,69 +937,115 @@ Working Hours Support: 10 AM - 7 PM (Mon-Sat)"""
         return output_path
     
     def generate_pdf(self, output_path: str):
-        """Generate PDF documentation"""
-        pdf = FPDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        pdf.set_left_margin(15)
-        pdf.set_right_margin(15)
+        """Generate PDF documentation using reportlab"""
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        
         content = self.get_hr_documentation_content()
         
+        # Create PDF document
+        doc = SimpleDocTemplate(output_path, pagesize=A4, 
+                               rightMargin=72, leftMargin=72,
+                               topMargin=72, bottomMargin=72)
+        
+        # Create styles
+        styles = getSampleStyleSheet()
+        
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            alignment=TA_CENTER,
+            spaceAfter=12,
+            textColor=colors.HexColor('#1f2937')
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Normal'],
+            fontSize=14,
+            alignment=TA_CENTER,
+            spaceAfter=6,
+            textColor=colors.HexColor('#6b7280')
+        )
+        
+        section_style = ParagraphStyle(
+            'SectionTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=12,
+            spaceBefore=20,
+            textColor=colors.HexColor('#1f2937')
+        )
+        
+        heading_style = ParagraphStyle(
+            'SubHeading',
+            parent=styles['Heading2'],
+            fontSize=12,
+            spaceAfter=8,
+            spaceBefore=12,
+            textColor=colors.HexColor('#374151')
+        )
+        
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['Normal'],
+            fontSize=10,
+            spaceAfter=6,
+            leading=14
+        )
+        
+        # Build document content
+        elements = []
+        
         # Title page
-        pdf.add_page()
-        pdf.set_font('Helvetica', 'B', 24)
-        pdf.ln(50)  # Spacing
-        pdf.cell(0, 10, content["title"], 0, 1, 'C')
-        
-        pdf.set_font('Helvetica', '', 14)
-        pdf.ln(15)
-        pdf.cell(0, 8, content["subtitle"], 0, 1, 'C')
-        
-        pdf.ln(15)
-        pdf.set_font('Helvetica', 'I', 10)
-        pdf.cell(0, 6, f"Generated: {self.generated_date}", 0, 1, 'C')
-        pdf.cell(0, 6, self.company_name, 0, 1, 'C')
+        elements.append(Spacer(1, 2*inch))
+        elements.append(Paragraph(content["title"], title_style))
+        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Paragraph(content["subtitle"], subtitle_style))
+        elements.append(Spacer(1, 0.5*inch))
+        elements.append(Paragraph(f"Generated: {self.generated_date}", subtitle_style))
+        elements.append(Paragraph(self.company_name, subtitle_style))
+        elements.append(PageBreak())
         
         # Table of Contents
-        pdf.add_page()
-        pdf.set_font('Helvetica', 'B', 18)
-        pdf.cell(0, 10, 'Table of Contents', 0, 1)
-        pdf.ln(5)
-        
-        pdf.set_font('Helvetica', '', 12)
+        elements.append(Paragraph("Table of Contents", section_style))
         for section in content["sections"]:
-            pdf.cell(0, 8, section['title'], 0, 1)
+            elements.append(Paragraph(f"&bull; {section['title']}", body_style))
+        elements.append(PageBreak())
         
         # Add sections
         for section in content["sections"]:
-            pdf.add_page()
-            pdf.set_font('Helvetica', 'B', 16)
-            pdf.cell(0, 10, section["title"], 0, 1)
-            pdf.ln(5)
+            elements.append(Paragraph(section["title"], section_style))
             
             for item in section["content"]:
-                pdf.set_font('Helvetica', 'B', 12)
-                pdf.cell(0, 8, item["heading"], 0, 1)
+                elements.append(Paragraph(item["heading"], heading_style))
                 
-                pdf.set_font('Helvetica', '', 10)
-                # Clean and encode text properly
+                # Clean and process text
                 text = item["text"].strip()
-                # Replace special characters
-                text = text.replace('\u2019', "'").replace('\u2018', "'")
-                text = text.replace('\u201c', '"').replace('\u201d', '"')
-                text = text.replace('\u2013', '-').replace('\u2014', '-')
-                text = text.encode('latin-1', 'replace').decode('latin-1')
+                text = text.replace('&', '&amp;')
+                text = text.replace('<', '&lt;')
+                text = text.replace('>', '&gt;')
                 
-                # Split text into paragraphs and add them
-                paragraphs = text.split('\n')
+                # Split by double newlines for paragraphs
+                paragraphs = text.split('\n\n')
                 for para in paragraphs:
                     para = para.strip()
                     if para:
-                        pdf.multi_cell(0, 5, para)
-                    else:
-                        pdf.ln(2)
-                pdf.ln(5)
+                        # Replace single newlines with breaks
+                        para = para.replace('\n', '<br/>')
+                        elements.append(Paragraph(para, body_style))
+                
+                elements.append(Spacer(1, 0.2*inch))
+            
+            elements.append(PageBreak())
         
-        pdf.output(output_path)
+        # Build PDF
+        doc.build(elements)
         return output_path
 
 
