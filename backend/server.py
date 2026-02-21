@@ -4472,11 +4472,11 @@ async def create_meeting_record(
 
 
 @api_router.get("/meetings/lead/{lead_id}")
-async def get_lead_meetings(
+async def get_lead_meeting_records(
     lead_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all meetings for a lead"""
+    """Get all meeting records for a lead"""
     meetings = await db.meeting_records.find(
         {"lead_id": lead_id},
         {"_id": 0}
