@@ -24,13 +24,19 @@
 - ✅ Profile changes show "Pending approval from: HR Manager"
 - ✅ Modification requests show "Pending approval from: Admin (Go-Live Employee)"
 
-**3. Gmail-like Auto-Save on Page Leave**
+**3. Gmail-like Auto-Save on Page Leave (Everywhere in ERP)**
+- ✅ Created `DraftIndicator` component for save status display
 - ✅ Updated `useDraft` hook with `registerFormDataGetter` callback
-- ✅ Drafts auto-save when:
-  - User switches browser tabs (`visibilitychange` event)
-  - User closes/navigates away (`beforeunload` event)
-  - Component unmounts
-- ✅ Implemented in Leads.js and HROnboarding.js
+- ✅ Drafts auto-save on: tab switch, page close, component unmount
+- ✅ **Implemented in:**
+  - Leads.js - Lead creation
+  - HROnboarding.js - Employee onboarding
+  - SalesMeetings.js - Sales meeting scheduling
+  - PricingPlanBuilder.js - Pricing plan creation
+  - MyExpenses.js - Expense submission
+  - MyLeaves.js - Leave requests
+  - Quotations.js - Quotation creation
+  - SOWBuilder.js - SOW item editing
 
 ---
 
