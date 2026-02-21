@@ -1181,6 +1181,115 @@ const AgreementView = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upload Signed Agreement Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-emerald-500" />
+              Upload Signed Agreement
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-zinc-600">
+              Upload the signed agreement document received from the client.
+            </p>
+            <div className="border-2 border-dashed border-zinc-200 rounded-lg p-6 text-center">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                className="hidden"
+                id="signed-agreement-file"
+              />
+              <label htmlFor="signed-agreement-file" className="cursor-pointer">
+                <FileText className="w-10 h-10 text-zinc-400 mx-auto mb-2" />
+                <p className="text-sm text-zinc-600">
+                  {uploadFile ? uploadFile.name : 'Click to select file'}
+                </p>
+                <p className="text-xs text-zinc-400 mt-1">PDF, DOC, DOCX, PNG, JPG</p>
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUploadSignedAgreement}
+              disabled={!uploadFile || uploading}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send to Client Dialog */}
+      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-blue-500" />
+              Send Agreement to Client
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-zinc-600">
+              Send this agreement to the client for review and signature.
+            </p>
+            <div className="space-y-2">
+              <Label>Client Email</Label>
+              <Input
+                type="email"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                placeholder="client@company.com"
+                className="rounded-sm"
+              />
+            </div>
+            <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+              <p className="font-medium">Email Preview:</p>
+              <p className="mt-1">Subject: Agreement for Review - {agreement?.agreement_number}</p>
+              <p className="mt-1">The client will receive a professional email with the agreement PDF attached.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendToClient}
+              disabled={!clientEmail || sendingEmail}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {sendingEmail ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
