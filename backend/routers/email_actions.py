@@ -364,7 +364,15 @@ async def execute_action(
     if token_doc.get("used"):
         return HTMLResponse(content=_get_error_page("Already Used", "This action has already been completed."), status_code=400)
     
-    if token_doc.get("expires_at") < datetime.now(timezone.utc):
+    # Handle datetime comparison - ensure both are timezone aware
+    expires_at = token_doc.get("expires_at")
+    now = datetime.now(timezone.utc)
+    
+    # If expires_at is naive, make it aware (assume UTC)
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    
+    if expires_at and expires_at < now:
         return HTMLResponse(content=_get_error_page("Link Expired", "This action link has expired. Please log in to NETRA to take action."), status_code=400)
     
     # Execute the action
