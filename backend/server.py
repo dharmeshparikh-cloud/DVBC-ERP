@@ -5706,6 +5706,298 @@ async def delete_project_sow_item(
     
     return {"message": "SOW item deleted"}
 
+# ============== KICKOFF REQUEST APIs (Single Approval Point) ==============
+
+@api_router.post("/kickoff-requests")
+async def create_kickoff_request(
+    request: KickoffRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a kickoff request - this triggers the ONLY approval in the sales flow"""
+    # Verify agreement exists
+    agreement = await db.agreements.find_one({"id": request.agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Get requester name
+    requester = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0, "first_name": 1, "last_name": 1}
+    )
+    requester_name = f"{requester.get('first_name', '')} {requester.get('last_name', '')}".strip() if requester else current_user.full_name
+    
+    kickoff = KickoffRequest(
+        **request.model_dump(),
+        requested_by=current_user.id,
+        requested_by_name=requester_name,
+        status="pending"
+    )
+    
+    doc = kickoff.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc.get('expected_start_date'):
+        doc['expected_start_date'] = doc['expected_start_date'].isoformat()
+    
+    await db.kickoff_requests.insert_one(doc)
+    
+    # Update lead status to kickoff_request
+    lead_id = request.lead_id or agreement.get('lead_id')
+    if lead_id:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "status": LeadStatus.KICKOFF_REQUEST,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # Notify Sr. Managers and Principal Consultants
+    approvers = await db.users.find(
+        {"role": {"$in": ["sr_manager", "principal_consultant", "admin"]}, "is_active": True},
+        {"_id": 0, "id": 1, "email": 1, "full_name": 1}
+    ).to_list(20)
+    
+    for approver in approvers:
+        notification = {
+            "id": str(uuid.uuid4()),
+            "recipient_id": approver["id"],
+            "type": "kickoff_request",
+            "title": f"Kickoff Request: {request.project_name}",
+            "message": f"New kickoff request from {requester_name} for project '{request.project_name}'. Please review and approve.",
+            "link": f"/kickoff-requests/{kickoff.id}",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+    
+    return {"id": kickoff.id, "message": "Kickoff request created and sent for approval"}
+
+
+@api_router.get("/kickoff-requests")
+async def get_kickoff_requests(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get kickoff requests - Sr. Managers/Principals see pending, others see their own"""
+    query = {}
+    
+    # Filter by status if provided
+    if status:
+        query["status"] = status
+    
+    # Non-approvers only see their own requests
+    if current_user.role not in ["admin", "sr_manager", "principal_consultant"]:
+        query["requested_by"] = current_user.id
+    
+    requests = await db.kickoff_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return requests
+
+
+@api_router.get("/kickoff-requests/pending")
+async def get_pending_kickoff_requests(current_user: User = Depends(get_current_user)):
+    """Get pending kickoff requests for approval (Sr. Manager/Principal only)"""
+    if current_user.role not in ["admin", "sr_manager", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only Sr. Managers and Principal Consultants can view pending requests")
+    
+    requests = await db.kickoff_requests.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich with agreement and lead info
+    for req in requests:
+        if req.get("agreement_id"):
+            agreement = await db.agreements.find_one(
+                {"id": req["agreement_id"]},
+                {"_id": 0, "agreement_number": 1, "total_value": 1, "party_name": 1}
+            )
+            req["agreement"] = agreement
+        if req.get("lead_id"):
+            lead = await db.leads.find_one(
+                {"id": req["lead_id"]},
+                {"_id": 0, "first_name": 1, "last_name": 1, "company": 1}
+            )
+            req["lead"] = lead
+    
+    return requests
+
+
+@api_router.post("/kickoff-requests/{request_id}/approve")
+async def approve_kickoff_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve kickoff request - SINGLE APPROVAL POINT in the flow"""
+    if current_user.role not in ["admin", "sr_manager", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only Sr. Managers and Principal Consultants can approve kickoff requests")
+    
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    if kickoff.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Request already {kickoff.get('status')}")
+    
+    # Get approver name
+    approver = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0, "first_name": 1, "last_name": 1}
+    )
+    approver_name = f"{approver.get('first_name', '')} {approver.get('last_name', '')}".strip() if approver else current_user.full_name
+    
+    # Update kickoff request status
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "accepted",
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+            "accepted_by": current_user.id,
+            "accepted_by_name": approver_name,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update lead status to kick_accept
+    lead_id = kickoff.get("lead_id")
+    if lead_id:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "status": LeadStatus.KICK_ACCEPT,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # Notify the sales executive who created the request
+    notification = {
+        "id": str(uuid.uuid4()),
+        "recipient_id": kickoff.get("requested_by"),
+        "type": "kickoff_approved",
+        "title": f"Kickoff Approved: {kickoff.get('project_name')}",
+        "message": f"Your kickoff request for '{kickoff.get('project_name')}' has been approved by {approver_name}.",
+        "link": f"/kickoff-requests/{request_id}",
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    # Also notify the sales manager
+    sales_employee = await db.employees.find_one(
+        {"$or": [{"user_id": kickoff.get("requested_by")}, {"id": kickoff.get("requested_by")}]},
+        {"_id": 0, "reporting_manager_id": 1}
+    )
+    if sales_employee and sales_employee.get("reporting_manager_id"):
+        manager = await db.employees.find_one(
+            {"employee_id": sales_employee.get("reporting_manager_id")},
+            {"_id": 0, "user_id": 1}
+        )
+        if manager and manager.get("user_id"):
+            notification["id"] = str(uuid.uuid4())
+            notification["recipient_id"] = manager.get("user_id")
+            notification["message"] = f"Kickoff for '{kickoff.get('project_name')}' approved. Team member's deal closed!"
+            await db.notifications.insert_one(notification)
+    
+    return {"message": "Kickoff request approved successfully"}
+
+
+@api_router.post("/kickoff-requests/{request_id}/reject")
+async def reject_kickoff_request(
+    request_id: str,
+    rejection_data: RejectionRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject kickoff request"""
+    if current_user.role not in ["admin", "sr_manager", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only Sr. Managers and Principal Consultants can reject kickoff requests")
+    
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "return_reason": rejection_data.rejection_reason,
+            "returned_by": current_user.id,
+            "returned_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify the requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "recipient_id": kickoff.get("requested_by"),
+        "type": "kickoff_rejected",
+        "title": f"Kickoff Rejected: {kickoff.get('project_name')}",
+        "message": f"Your kickoff request was rejected. Reason: {rejection_data.rejection_reason}",
+        "link": f"/kickoff-requests/{request_id}",
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {"message": "Kickoff request rejected"}
+
+
+@api_router.post("/kickoff-requests/{request_id}/close")
+async def close_deal(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Mark deal as closed after kickoff is accepted"""
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    if kickoff.get("status") != "accepted":
+        raise HTTPException(status_code=400, detail="Kickoff must be accepted before closing the deal")
+    
+    # Update kickoff status
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "converted",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update lead status to closed
+    lead_id = kickoff.get("lead_id")
+    if lead_id:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "status": LeadStatus.CLOSED,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # Copy SOW items to project SOW if project exists
+    if kickoff.get("project_id"):
+        # Get agreement SOW
+        agreement = await db.agreements.find_one({"id": kickoff.get("agreement_id")}, {"_id": 0})
+        if agreement and agreement.get("sow_id"):
+            original_sow = await db.enhanced_sow.find_one({"id": agreement.get("sow_id")}, {"_id": 0})
+            if original_sow:
+                # Create project SOW with inherited items
+                project_sow = {
+                    "id": str(uuid.uuid4()),
+                    "project_id": kickoff.get("project_id"),
+                    "agreement_id": kickoff.get("agreement_id"),
+                    "inherited_from_sow_id": original_sow.get("id"),
+                    "items": original_sow.get("items", []),
+                    "overall_status": "in_progress",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.project_sow.insert_one(project_sow)
+    
+    return {"message": "Deal closed successfully"}
+
+
 # Kick-off Meeting APIs
 
 @api_router.post("/kickoff-meetings")
