@@ -4309,6 +4309,200 @@ async def upload_signed_agreement(
     return {"message": "Signed agreement uploaded successfully", "status": "signed"}
 
 
+# ===== AGREEMENT PAYMENT RECORDING =====
+class AgreementPaymentRecord(BaseModel):
+    amount: float
+    payment_date: str
+    payment_mode: str  # Cheque, NEFT, UPI
+    cheque_number: Optional[str] = None  # If payment mode is Cheque
+    utr_number: Optional[str] = None  # If payment mode is NEFT/UPI
+    remarks: Optional[str] = None
+
+
+@api_router.post("/agreements/{agreement_id}/record-payment")
+async def record_agreement_payment(
+    agreement_id: str,
+    payment: AgreementPaymentRecord,
+    current_user: User = Depends(get_current_user)
+):
+    """Record a payment for an agreement (after signing)"""
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    if agreement.get("status") != "signed":
+        raise HTTPException(status_code=400, detail="Agreement must be signed before recording payment")
+    
+    # Validate payment mode and required fields
+    if payment.payment_mode == "Cheque" and not payment.cheque_number:
+        raise HTTPException(status_code=400, detail="Cheque number is required for Cheque payments")
+    if payment.payment_mode in ["NEFT", "UPI"] and not payment.utr_number:
+        raise HTTPException(status_code=400, detail="UTR number is required for NEFT/UPI payments")
+    
+    # Create payment record
+    payment_record = {
+        "id": str(uuid.uuid4()),
+        "agreement_id": agreement_id,
+        "lead_id": agreement.get("lead_id"),
+        "amount": payment.amount,
+        "payment_date": payment.payment_date,
+        "payment_mode": payment.payment_mode,
+        "cheque_number": payment.cheque_number,
+        "utr_number": payment.utr_number,
+        "remarks": payment.remarks,
+        "recorded_by": current_user.id,
+        "recorded_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.agreement_payments.insert_one(payment_record)
+    
+    # Update agreement with payment info
+    existing_payments = agreement.get("payments", [])
+    existing_payments.append({
+        "id": payment_record["id"],
+        "amount": payment.amount,
+        "payment_date": payment.payment_date,
+        "payment_mode": payment.payment_mode
+    })
+    
+    total_paid = sum(p.get("amount", 0) for p in existing_payments)
+    
+    await db.agreements.update_one(
+        {"id": agreement_id},
+        {"$set": {
+            "payments": existing_payments,
+            "total_paid": total_paid,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update lead status to payment
+    if agreement.get("lead_id"):
+        await db.leads.update_one(
+            {"id": agreement.get("lead_id")},
+            {"$set": {
+                "status": LeadStatus.PAYMENT,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    return {
+        "message": "Payment recorded successfully",
+        "payment_id": payment_record["id"],
+        "total_paid": total_paid
+    }
+
+
+@api_router.get("/agreements/{agreement_id}/payments")
+async def get_agreement_payments(
+    agreement_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all payments for an agreement"""
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    payments = await db.agreement_payments.find(
+        {"agreement_id": agreement_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Calculate totals
+    total_paid = sum(p.get("amount", 0) for p in payments)
+    agreement_value = agreement.get("total_value", 0) or agreement.get("grand_total", 0)
+    remaining = agreement_value - total_paid
+    
+    return {
+        "payments": payments,
+        "total_paid": total_paid,
+        "agreement_value": agreement_value,
+        "remaining": remaining
+    }
+
+
+# ===== MEETING RECORDS WITH LEAD LINKAGE =====
+class MeetingRecordCreate(BaseModel):
+    lead_id: str
+    meeting_date: str
+    meeting_time: str
+    meeting_type: str  # Online, Offline
+    attendees: List[str] = []
+    notes: Optional[str] = None
+    mom: Optional[str] = None  # Minutes of Meeting
+
+
+@api_router.post("/meetings/record")
+async def create_meeting_record(
+    meeting: MeetingRecordCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a meeting record linked to a lead"""
+    # Verify lead exists
+    lead = await db.leads.find_one({"id": meeting.lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    meeting_record = {
+        "id": str(uuid.uuid4()),
+        "lead_id": meeting.lead_id,
+        "meeting_date": meeting.meeting_date,
+        "meeting_time": meeting.meeting_time,
+        "meeting_type": meeting.meeting_type,
+        "attendees": meeting.attendees,
+        "notes": meeting.notes,
+        "mom": meeting.mom,
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.meeting_records.insert_one(meeting_record)
+    
+    # Update lead status to 'meeting' if still 'new'
+    if lead.get("status") == "new":
+        await db.leads.update_one(
+            {"id": meeting.lead_id},
+            {"$set": {
+                "status": LeadStatus.MEETING,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    return {"message": "Meeting recorded successfully", "meeting_id": meeting_record["id"]}
+
+
+@api_router.get("/meetings/lead/{lead_id}")
+async def get_lead_meetings(
+    lead_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all meetings for a lead"""
+    meetings = await db.meeting_records.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("meeting_date", -1).to_list(100)
+    
+    return meetings
+
+
+@api_router.get("/leads/{lead_id}/can-access-pricing")
+async def check_pricing_access(
+    lead_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Check if user can access pricing plan for a lead (requires meeting record)"""
+    # Check if any meeting exists for this lead
+    meeting_count = await db.meeting_records.count_documents({"lead_id": lead_id})
+    
+    if meeting_count == 0:
+        return {
+            "can_access": False,
+            "reason": "At least one meeting must be recorded before creating a pricing plan"
+        }
+    
+    return {"can_access": True, "meeting_count": meeting_count}
+
+
 @api_router.post("/leads/bulk-upload")
 async def bulk_upload_leads(
     leads_data: List[LeadCreate],
