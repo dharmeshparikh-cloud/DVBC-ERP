@@ -11981,7 +11981,7 @@ async def resume_lead(lead_id: str, current_user: User = Depends(get_current_use
 async def get_subordinate_leads(current_user: User = Depends(get_current_user)):
     """Get all leads assigned to subordinates for manager view"""
     # Check if user is manager or above
-    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager"]:
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "account_manager", "senior_consultant"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Get current user's employee record
