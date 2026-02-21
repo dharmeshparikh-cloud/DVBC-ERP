@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { AuthContext, API } from '../App';
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { 
   User, Mail, Phone, MapPin, Building2, Briefcase, Calendar,
   CreditCard, Edit2, Save, X, Clock, CheckCircle, AlertCircle,
-  FileText, Upload, Send, UserCog, Shield
+  FileText, Upload, Send, UserCog, Shield, Search, Loader2, Trash2, Eye
 } from 'lucide-react';
 
 const MyDetails = () => {
