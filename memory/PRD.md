@@ -11,6 +11,40 @@
 
 ## Completed Work - February 2026
 
+
+### Phase 7: Role Cleanup & Sales Funnel UI Redesign - February 21, 2026 ✅ (Latest)
+
+**1. Role System Update: account_manager → sales_manager**
+- ✅ Removed all `account_manager` role references from codebase
+- ✅ Replaced with `sales_manager` in all backend files (server.py, routers/, models.py)
+- ✅ Replaced with `sales_manager` in all frontend files (Layout.js, pages/)
+- ✅ Updated database: 3 users migrated from account_manager to sales_manager
+- ✅ Updated DEFAULT_ROLES, SALES_ROLES, SALES_MEETING_ROLES constants
+- ✅ Display name "Account Manager" updated to "Sales Manager"
+
+**Users Updated:**
+- dp@dvbc.com (Dhamresh Parikh) - now sales_manager
+- sales.manager@dvbc.com - now sales_manager
+- myhr@dvconsulting.co.in - now sales_manager
+
+**2. Sales Funnel UI Redesign**
+- ✅ Redesigned `/sales-funnel-onboarding` page with two-column layout
+- ✅ Left sidebar (w-80): Vertical step list with status indicators
+- ✅ Right content area: Current step details and actions
+- ✅ Progress indicator "X of 9" at top right with progress bar
+- ✅ Step states: Completed (green checkmark), Current (blue border), Pending (gray), Locked (lock icon)
+- ✅ Dark mode support throughout
+- ✅ Responsive design with proper spacing
+
+**Files Modified:**
+- `/app/frontend/src/pages/SalesFunnelOnboarding.js` - Complete UI redesign
+- `/app/frontend/src/components/Layout.js` - Updated SALES_ROLES_NAV
+- `/app/backend/server.py` - Updated all role references
+- `/app/backend/routers/*.py` - Updated role references
+- Multiple frontend pages - Updated role references
+
+---
+
 ### Phase 6: Complete 9-Step Sales Funnel Onboarding - February 21, 2026 ✅ (Latest)
 
 **Full Sales Funnel Flow with 9 Steps:**
