@@ -843,6 +843,9 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
           });
           setShowSuccessDialog(true);
           
+          // Mark draft as converted (cleanup)
+          await convertDraft();
+          
           // Simulate email notification (mock)
           console.log('📧 Mock Email Sent to:', formData.email, '- Welcome email with credentials');
           console.log('📧 Mock Email Sent to HR/Admin - New employee onboarded notification');
