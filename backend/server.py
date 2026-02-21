@@ -12162,7 +12162,7 @@ async def get_manager_performance(
     current_user: User = Depends(get_current_user)
 ):
     """Get monthly/YTD performance with closure count and agreement value"""
-    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager"]:
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant", "hr_manager", "account_manager", "senior_consultant"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     now = datetime.now(timezone.utc)
