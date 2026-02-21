@@ -21,6 +21,7 @@ const ManagerLeadsDashboard = () => {
   const [subordinates, setSubordinates] = useState([]);
   const [todayStats, setTodayStats] = useState(null);
   const [performance, setPerformance] = useState(null);
+  const [targetVsAchievement, setTargetVsAchievement] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
