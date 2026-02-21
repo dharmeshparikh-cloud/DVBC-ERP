@@ -7104,9 +7104,11 @@ async def create_approval_notification(
 
 
 async def notify_admins(notif_type: str, title: str, message: str, reference_type: str = None, reference_id: str = None, exclude_user_id: str = None):
-    """Send a notification to all admin-role users"""
+    """Send a notification to all admin-role users with real-time delivery"""
     query = {"role": "admin", "is_active": {"$ne": False}}
     admins = await db.users.find(query, {"_id": 0, "id": 1}).to_list(50)
+    ws_manager = get_ws_manager()
+    
     for admin in admins:
         if exclude_user_id and admin['id'] == exclude_user_id:
             continue
@@ -7122,6 +7124,12 @@ async def notify_admins(notif_type: str, title: str, message: str, reference_typ
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.notifications.insert_one(notif)
+        
+        # Real-time WebSocket notification
+        try:
+            await ws_manager.send_notification(admin['id'], notif)
+        except Exception as e:
+            print(f"WebSocket notification to admin failed: {e}")
 
 # API: Get pending approvals for current user
 @api_router.get("/approvals/pending")
