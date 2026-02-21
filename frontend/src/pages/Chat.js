@@ -28,7 +28,7 @@ const Chat = () => {
   }, [messages]);
 
   const fetchConversations = useCallback(async () => {
-    if (!currentUser.id) return;
+    if (!currentUser?.id) return;
     try {
       const res = await fetch(`${API_URL}/api/chat/conversations?user_id=${currentUser.id}`);
       const data = await res.json();
@@ -36,9 +36,10 @@ const Chat = () => {
     } catch (error) {
       console.error('Error fetching conversations:', error);
     }
-  }, [currentUser.id]);
+  }, [currentUser?.id]);
 
   const fetchMessages = useCallback(async (conversationId) => {
+    if (!currentUser?.id) return;
     try {
       const res = await fetch(`${API_URL}/api/chat/conversations/${conversationId}/messages`);
       const data = await res.json();
@@ -51,9 +52,10 @@ const Chat = () => {
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
-  }, [currentUser.id]);
+  }, [currentUser?.id]);
 
   const fetchUsers = useCallback(async () => {
+    if (!currentUser?.id) return;
     try {
       const res = await fetch(`${API_URL}/api/chat/users?search=${searchUsers}`);
       const data = await res.json();
@@ -61,7 +63,7 @@ const Chat = () => {
     } catch (error) {
       console.error('Error fetching users:', error);
     }
-  }, [searchUsers, currentUser.id]);
+  }, [searchUsers, currentUser?.id]);
 
   useEffect(() => {
     fetchConversations();
