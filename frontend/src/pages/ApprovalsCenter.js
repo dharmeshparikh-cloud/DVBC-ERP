@@ -1025,6 +1025,12 @@ const ApprovalsCenter = () => {
                       <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                         Reason: {bank.reason || 'Not specified'}
                       </div>
+                      <div className={`text-xs mt-1 font-medium ${bank.status === 'pending_hr' ? (isDark ? 'text-amber-400' : 'text-amber-600') : (isDark ? 'text-blue-400' : 'text-blue-600')}`}>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Pending approval from: <strong>{bank.status === 'pending_hr' ? 'HR Manager' : 'Admin'}</strong>
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
