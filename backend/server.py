@@ -11259,17 +11259,21 @@ class DraftCreate(BaseModel):
     data: Dict[str, Any]  # Form data
     step: Optional[int] = 0  # Current step in multi-step flow
     metadata: Optional[Dict[str, Any]] = None  # Additional context
+    entity_id: Optional[str] = None  # Related entity ID for filtering (e.g., lead_id, pricing_plan_id)
 
 
 @api_router.get("/drafts")
 async def get_user_drafts(
     draft_type: Optional[str] = None,
+    entity_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all drafts for the current user, optionally filtered by type"""
+    """Get all drafts for the current user, optionally filtered by type and entity"""
     query = {"user_id": current_user.id, "is_deleted": {"$ne": True}}
     if draft_type:
         query["draft_type"] = draft_type
+    if entity_id:
+        query["entity_id"] = entity_id
     
     drafts = await db.drafts.find(query, {"_id": 0}).sort("updated_at", -1).to_list(length=50)
     return drafts
