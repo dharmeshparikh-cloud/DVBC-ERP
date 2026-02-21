@@ -11250,6 +11250,38 @@ async def download_postman_collection():
         media_type="application/json")
 
 
+# ============== ONBOARDING TOUR ==============
+
+@api_router.get("/my/onboarding-status")
+async def get_onboarding_status(current_user: User = Depends(get_current_user)):
+    """Check if user has completed the onboarding tour"""
+    user_doc = await db.users.find_one({"id": current_user.id}, {"_id": 0, "has_completed_onboarding": 1})
+    return {
+        "has_completed_onboarding": user_doc.get("has_completed_onboarding", False) if user_doc else False
+    }
+
+@api_router.post("/my/complete-onboarding")
+async def complete_onboarding(current_user: User = Depends(get_current_user)):
+    """Mark onboarding tour as completed"""
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {
+            "has_completed_onboarding": True,
+            "onboarding_completed_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"message": "Onboarding completed", "has_completed_onboarding": True}
+
+@api_router.post("/my/reset-onboarding")
+async def reset_onboarding(current_user: User = Depends(get_current_user)):
+    """Reset onboarding status to replay the tour"""
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {"has_completed_onboarding": False}}
+    )
+    return {"message": "Onboarding reset", "has_completed_onboarding": False}
+
+
 # ============== EMPLOYEE BANK DETAILS CHANGE REQUEST ==============
 
 @api_router.get("/my/profile")
