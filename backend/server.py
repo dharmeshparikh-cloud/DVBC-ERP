@@ -215,12 +215,17 @@ CONSULTANT_BANDWIDTH_LIMITS = {
 
 class LeadStatus(str):
     NEW = "new"
-    CONTACTED = "contacted"
-    QUALIFIED = "qualified"
-    PROPOSAL = "proposal"
+    MEETING = "meeting"
+    PRICING_PLAN = "pricing_plan"
+    SOW = "sow"
+    QUOTATION = "quotation"
     AGREEMENT = "agreement"
+    PAYMENT = "payment"
+    KICKOFF_REQUEST = "kickoff_request"
+    KICK_ACCEPT = "kick_accept"
     CLOSED = "closed"
     LOST = "lost"
+    PAUSED = "paused"  # For manager pause/resume functionality
 
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
