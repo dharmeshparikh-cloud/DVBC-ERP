@@ -417,6 +417,60 @@ const AgreementView = () => {
     }
   };
 
+  // Upload signed agreement document
+  const handleUploadSignedAgreement = async () => {
+    if (!uploadFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('agreement_id', agreementId);
+
+      await axios.post(`${API}/agreements/${agreementId}/upload-signed`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      toast.success('Signed agreement uploaded successfully');
+      setUploadDialogOpen(false);
+      setUploadFile(null);
+      await fetchAgreementData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Send agreement to client via email
+  const handleSendToClient = async () => {
+    if (!clientEmail) {
+      toast.error('Please enter client email');
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      await axios.post(`${API}/agreements/${agreementId}/send-to-client`, {
+        client_email: clientEmail,
+        client_name: lead?.first_name || 'Client'
+      });
+
+      toast.success('Agreement sent to client successfully');
+      setSendDialogOpen(false);
+      
+      // Update agreement status to 'sent'
+      await fetchAgreementData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to send agreement');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return 'TBD';
     return new Date(dateStr).toLocaleDateString('en-IN', {
