@@ -196,6 +196,15 @@ const HROnboarding = () => {
     generateEmployeeId();
   }, []);
 
+  // Register form data getter for save-on-leave (Gmail-like behavior)
+  useEffect(() => {
+    formDataRef.current = formData;
+    registerFormDataGetter(() => formDataRef.current);
+    return () => {
+      registerFormDataGetter(null);
+    };
+  }, [formData, registerFormDataGetter]);
+
   // Auto-generate Employee ID with EMP prefix
   const generateEmployeeId = async () => {
     try {
