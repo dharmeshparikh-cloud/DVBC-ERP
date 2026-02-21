@@ -10,6 +10,8 @@ import uuid
 from .models import User, UserRole
 from .deps import get_db, sanitize_text
 from .auth import get_current_user
+from services.approval_notifications import send_approval_notification
+from websocket_manager import get_manager as get_ws_manager
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
