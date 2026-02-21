@@ -111,6 +111,52 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 ALLOWED_DOMAIN = os.environ.get('ALLOWED_DOMAIN', 'dvconsulting.co.in')
 EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
 
+
+# ==================== REAL-TIME NOTIFICATION HELPER ====================
+async def create_and_broadcast_notification(
+    user_id: str,
+    notification_type: str,
+    title: str,
+    message: str,
+    link: str = None,
+    metadata: dict = None
+):
+    """
+    Create a notification in the database and broadcast it via WebSocket
+    for real-time delivery.
+    """
+    notification = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": notification_type,
+        "title": title,
+        "message": message,
+        "link": link,
+        "metadata": metadata or {},
+        "is_read": False,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc)
+    }
+    
+    # Save to database
+    await db.notifications.insert_one(notification)
+    
+    # Broadcast via WebSocket for real-time delivery
+    try:
+        ws_manager = get_ws_manager()
+        # Prepare notification for JSON serialization
+        notif_json = {
+            **notification,
+            "created_at": notification["created_at"].isoformat()
+        }
+        await ws_manager.send_notification(user_id, notif_json)
+    except Exception as e:
+        # WebSocket broadcast failed, notification is still in DB
+        print(f"WebSocket notification broadcast failed: {e}")
+    
+    return notification
+
+
 class UserRole(str):
     ADMIN = "admin"
     MANAGER = "manager"
