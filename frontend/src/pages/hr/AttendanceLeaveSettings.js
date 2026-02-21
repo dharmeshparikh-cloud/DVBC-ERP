@@ -46,10 +46,26 @@ const AttendanceLeaveSettings = () => {
     probation_leave_days: 0
   });
 
-  // Consulting Roles
-  const [consultingRoles, setConsultingRoles] = useState([
-    'consultant', 'lean_consultant', 'lead_consultant', 'senior_consultant', 'principal_consultant'
-  ]);
+  // Consulting Employees (read-only from employee master)
+  const [consultingEmployees, setConsultingEmployees] = useState([]);
+  const [consultingRoleCounts, setConsultingRoleCounts] = useState({});
+  const [consultingRoles, setConsultingRoles] = useState([]);
+
+  // Employee-wise Custom Policies
+  const [customPolicies, setCustomPolicies] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
+  
+  // Modal state for adding/editing custom policy
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState(null);
+  const [policyForm, setPolicyForm] = useState({
+    employee_id: '',
+    check_in: '10:00',
+    check_out: '19:00',
+    grace_period_minutes: 30,
+    grace_days_per_month: 3,
+    reason: ''
+  });
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
