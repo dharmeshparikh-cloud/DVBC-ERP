@@ -72,16 +72,18 @@ export const HelpPanel = () => {
   const { user } = useContext(AuthContext);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { pendingCounts } = useApprovals();
   
   const { 
     showHelpPanel, 
     setShowHelpPanel, 
     startWorkflow,
     getWorkflowsForPage,
-    PAGE_TIPS
+    PAGE_TIPS,
+    smartRecommendations
   } = useGuidance();
 
-  const [activeTab, setActiveTab] = useState('workflows');
+  const [activeTab, setActiveTab] = useState('smart');
   const [aiQuery, setAiQuery] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState(null);
@@ -160,6 +162,12 @@ export const HelpPanel = () => {
     }
   };
 
+  // Navigate and close panel
+  const handleNavigateTo = (route) => {
+    navigate(route);
+    setShowHelpPanel(false);
+  };
+
   // Quick action suggestions based on role
   const getQuickActions = () => {
     const baseActions = [
@@ -185,6 +193,9 @@ export const HelpPanel = () => {
     return baseActions.slice(0, 5);
   };
 
+  // Determine which tabs to show based on role and pending items
+  const hasPendingItems = smartRecommendations?.totalPending > 0;
+
   return (
     <Dialog open={showHelpPanel} onOpenChange={setShowHelpPanel}>
       <DialogContent className={`${isDark ? 'bg-zinc-900 border-zinc-700' : ''} max-w-2xl max-h-[85vh] overflow-hidden flex flex-col`}>
@@ -198,11 +209,12 @@ export const HelpPanel = () => {
         </DialogHeader>
 
         {/* Tabs */}
-        <div className={`flex border-b ${isDark ? 'border-zinc-700' : 'border-zinc-200'} -mx-6 px-6`}>
+        <div className={`flex border-b ${isDark ? 'border-zinc-700' : 'border-zinc-200'} -mx-6 px-6 overflow-x-auto`}>
           {[
+            { id: 'smart', label: 'Smart Suggestions', icon: Bell, badge: smartRecommendations?.totalPending },
             { id: 'ai', label: 'Ask AI', icon: Bot },
-            { id: 'workflows', label: 'Step-by-Step Guides', icon: List },
-            { id: 'tips', label: 'Page Tips', icon: Lightbulb }
+            { id: 'workflows', label: 'Guides', icon: List },
+            { id: 'tips', label: 'Tips', icon: Lightbulb }
           ].map(tab => (
             <button
               key={tab.id}
