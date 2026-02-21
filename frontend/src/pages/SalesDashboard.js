@@ -2,36 +2,87 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { 
-  TrendingUp, Users, FileText, CheckCircle, Clock, 
-  DollarSign, Target, ArrowRight, Send, Building2
+  TrendingUp, Users, Target, DollarSign, ArrowRight, Calendar,
+  CheckCircle, Clock, AlertCircle, BarChart3, PieChart, ArrowUpRight,
+  ChevronRight, Filter, RefreshCw, User, Briefcase
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 const SalesDashboard = () => {
   const { user } = useContext(AuthContext);
-  const [stats, setStats] = useState(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('month');
+  const [funnelData, setFunnelData] = useState(null);
+  const [myFunnelData, setMyFunnelData] = useState(null);
+  const [trendsData, setTrendsData] = useState(null);
+
+  const isManager = ['admin', 'manager', 'sr_manager', 'principal_consultant', 'sales_manager'].includes(user?.role);
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    fetchAllData();
+  }, [period]);
 
-  const fetchStats = async () => {
+  const fetchAllData = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(`${API}/stats/sales-dashboard`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+      const promises = [
+        axios.get(`${API}/analytics/my-funnel-summary?period=${period}`),
+      ];
+      
+      if (isManager) {
+        promises.push(axios.get(`${API}/analytics/funnel-summary?period=${period}`));
+        promises.push(axios.get(`${API}/analytics/funnel-trends?period=${period}`));
+      }
+      
+      const results = await Promise.all(promises);
+      setMyFunnelData(results[0].data);
+      
+      if (isManager) {
+        setFunnelData(results[1].data);
+        setTrendsData(results[2].data);
       }
     } catch (error) {
-      console.error('Failed to fetch sales stats:', error);
+      console.error('Failed to fetch analytics:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatCurrency = (amount) => {
+    if (amount >= 100000) {
+      return `₹${(amount / 100000).toFixed(1)}L`;
+    }
+    return `₹${amount?.toLocaleString() || 0}`;
+  };
+
+  const getStageColor = (stage) => {
+    const colors = {
+      lead: 'bg-gray-100 text-gray-700 border-gray-200',
+      meeting: 'bg-blue-100 text-blue-700 border-blue-200',
+      pricing: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+      sow: 'bg-purple-100 text-purple-700 border-purple-200',
+      quotation: 'bg-pink-100 text-pink-700 border-pink-200',
+      agreement: 'bg-orange-100 text-orange-700 border-orange-200',
+      payment: 'bg-amber-100 text-amber-700 border-amber-200',
+      kickoff: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+      complete: 'bg-emerald-100 text-emerald-700 border-emerald-200'
+    };
+    return colors[stage] || 'bg-zinc-100 text-zinc-700';
+  };
+
+  const getProgressColor = (percentage) => {
+    if (percentage >= 100) return 'bg-emerald-500';
+    if (percentage >= 75) return 'bg-blue-500';
+    if (percentage >= 50) return 'bg-amber-500';
+    return 'bg-red-500';
   };
 
   if (loading) {
@@ -42,173 +93,354 @@ const SalesDashboard = () => {
     );
   }
 
-  const pipeline = stats?.pipeline || {};
-  const clients = stats?.clients || {};
-
   return (
     <div className="space-y-6" data-testid="sales-dashboard">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Sales Dashboard</h1>
-          <p className="text-sm text-zinc-500">Track your pipeline, conversions and revenue</p>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Sales Dashboard</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {isManager ? 'Team funnel analytics and performance' : 'Your sales funnel progress'}
+          </p>
         </div>
-        <Badge className="bg-blue-100 text-blue-700">
-          {stats?.conversion_rate || 0}% Conversion Rate
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-32" data-testid="period-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="quarter">This Quarter</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={fetchAllData}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Pipeline Funnel */}
-      <Card className="border-zinc-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            Sales Pipeline
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-6 gap-2">
-            {[
-              { label: 'New', count: pipeline.new, color: 'bg-gray-100 text-gray-700' },
-              { label: 'Contacted', count: pipeline.contacted, color: 'bg-blue-100 text-blue-700' },
-              { label: 'Qualified', count: pipeline.qualified, color: 'bg-indigo-100 text-indigo-700' },
-              { label: 'Proposal', count: pipeline.proposal, color: 'bg-purple-100 text-purple-700' },
-              { label: 'Closed', count: pipeline.closed, color: 'bg-green-100 text-green-700' },
-              { label: 'Total', count: pipeline.total, color: 'bg-zinc-900 text-white' },
-            ].map((stage, i) => (
-              <div key={i} className="text-center">
-                <div className={`rounded-lg py-3 px-2 ${stage.color}`}>
-                  <p className="text-2xl font-bold">{stage.count || 0}</p>
-                  <p className="text-xs mt-1">{stage.label}</p>
-                </div>
-                {i < 5 && (
-                  <ArrowRight className="w-4 h-4 mx-auto mt-2 text-zinc-300" />
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-4">
-        {/* My Clients */}
-        <Card className="border-zinc-200 hover:border-zinc-300 transition-colors">
-          <Link to="/clients" className="block">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-zinc-500">My Clients</p>
-                  <p className="text-3xl font-bold text-zinc-900 mt-1">{clients.my_clients || 0}</p>
-                  <p className="text-xs text-zinc-400 mt-1">of {clients.total_clients || 0} total</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-emerald-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Link>
-        </Card>
-
-        {/* Pending Quotations */}
-        <Card className="border-zinc-200 hover:border-zinc-300 transition-colors">
-          <Link to="/quotations" className="block">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-zinc-500">Pending Quotations</p>
-                  <p className="text-3xl font-bold text-zinc-900 mt-1">{stats?.quotations?.pending || 0}</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-amber-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Link>
-        </Card>
-
-        {/* Pending Agreements */}
-        <Card className="border-zinc-200 hover:border-zinc-300 transition-colors">
-          <Link to="/agreements" className="block">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-zinc-500">Pending Agreements</p>
-                  <p className="text-3xl font-bold text-zinc-900 mt-1">{stats?.agreements?.pending || 0}</p>
-                  <p className="text-xs text-green-600 mt-1">{stats?.agreements?.approved || 0} approved</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Link>
-        </Card>
-
-        {/* Revenue */}
-        <Card className="border-zinc-200">
-          <CardContent className="pt-6">
+      {/* Target vs Achievement - My Performance */}
+      {myFunnelData?.targets && (
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-500">Total Revenue</p>
-                <p className="text-3xl font-bold text-zinc-900 mt-1">
-                  ₹{((stats?.revenue?.total || 0) / 100000).toFixed(1)}L
+              <CardTitle className="text-base flex items-center gap-2">
+                <Target className="w-4 h-4 text-blue-600" />
+                My Target vs Achievement
+              </CardTitle>
+              <Badge variant="outline" className="text-xs">
+                {period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : period === 'quarter' ? 'This Quarter' : 'This Year'}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-6">
+              {/* Meetings */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">Meetings</span>
+                  <span className="text-sm font-medium">
+                    {myFunnelData.targets.meetings.achieved} / {myFunnelData.targets.meetings.target || '-'}
+                  </span>
+                </div>
+                <Progress 
+                  value={Math.min(myFunnelData.targets.meetings.percentage, 100)} 
+                  className="h-2"
+                />
+                <p className="text-xs text-zinc-500 text-right">
+                  {myFunnelData.targets.meetings.percentage}%
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              
+              {/* Closures */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">Closures</span>
+                  <span className="text-sm font-medium">
+                    {myFunnelData.targets.closures.achieved} / {myFunnelData.targets.closures.target || '-'}
+                  </span>
+                </div>
+                <Progress 
+                  value={Math.min(myFunnelData.targets.closures.percentage, 100)} 
+                  className="h-2"
+                />
+                <p className="text-xs text-zinc-500 text-right">
+                  {myFunnelData.targets.closures.percentage}%
+                </p>
+              </div>
+              
+              {/* Revenue */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-zinc-600 dark:text-zinc-400">Revenue</span>
+                  <span className="text-sm font-medium">
+                    {formatCurrency(myFunnelData.targets.revenue.achieved)} / {formatCurrency(myFunnelData.targets.revenue.target) || '-'}
+                  </span>
+                </div>
+                <Progress 
+                  value={Math.min(myFunnelData.targets.revenue.percentage, 100)} 
+                  className="h-2"
+                />
+                <p className="text-xs text-zinc-500 text-right">
+                  {myFunnelData.targets.revenue.percentage}%
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
-      {/* Kickoff Requests */}
-      <Card className="border-zinc-200">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Send className="w-4 h-4" />
-              Kickoff Requests
-            </CardTitle>
-            <Link to="/kickoff-requests" className="text-sm text-blue-600 hover:underline">
-              View All
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="font-medium text-zinc-900">Pending Handoffs</p>
-                <p className="text-sm text-zinc-500">Awaiting PM acceptance</p>
+      {/* My Funnel Summary */}
+      {myFunnelData && (
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-indigo-600" />
+                My Funnel Progress
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                  {myFunnelData.total_leads} Leads
+                </Badge>
+                <Badge className="bg-emerald-100 text-emerald-700">
+                  {myFunnelData.conversion_rate}% Conversion
+                </Badge>
               </div>
             </div>
-            <Badge className="bg-orange-100 text-orange-700 text-lg px-4">
-              {stats?.kickoffs?.pending || 0}
-            </Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-9 gap-1">
+              {Object.entries(myFunnelData.stage_counts).map(([stage, count], index) => (
+                <div key={stage} className="text-center relative">
+                  <div className={`rounded-lg py-3 px-1 border ${getStageColor(stage)}`}>
+                    <p className="text-xl font-bold">{count}</p>
+                    <p className="text-[10px] mt-1 capitalize truncate">{stage}</p>
+                  </div>
+                  {index < 8 && (
+                    <ArrowRight className="w-3 h-3 absolute -right-2 top-1/2 -translate-y-1/2 text-zinc-300 z-10" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Manager View: Team Summary */}
+      {isManager && funnelData && (
+        <>
+          {/* Team Overview Cards */}
+          <div className="grid grid-cols-4 gap-4">
+            <Card className="border-zinc-200 dark:border-zinc-800">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Leads</p>
+                    <p className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mt-1">
+                      {funnelData.summary.total_leads}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-zinc-200 dark:border-zinc-800">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">In Progress</p>
+                    <p className="text-3xl font-bold text-amber-600 mt-1">
+                      {funnelData.summary.in_progress}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-zinc-200 dark:border-zinc-800">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Completed</p>
+                    <p className="text-3xl font-bold text-emerald-600 mt-1">
+                      {funnelData.summary.completed}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-zinc-200 dark:border-zinc-800">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Conversion Rate</p>
+                    <p className="text-3xl font-bold text-indigo-600 mt-1">
+                      {funnelData.summary.conversion_rate}%
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Team Funnel Stages */}
+          <Card className="border-zinc-200 dark:border-zinc-800">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-purple-600" />
+                Team Funnel - Stage Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-9 gap-2">
+                {funnelData.funnel_stages.map((stage, index) => {
+                  const count = funnelData.stage_counts[stage.id] || 0;
+                  const percentage = funnelData.summary.total_leads > 0 
+                    ? Math.round((count / funnelData.summary.total_leads) * 100) 
+                    : 0;
+                  
+                  return (
+                    <div key={stage.id} className="text-center relative">
+                      <div className={`rounded-xl py-4 px-2 border-2 ${getStageColor(stage.id)} hover:scale-105 transition-transform cursor-pointer`}>
+                        <p className="text-2xl font-bold">{count}</p>
+                        <p className="text-xs mt-1 font-medium">{stage.name}</p>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">{percentage}%</p>
+                      </div>
+                      {index < 8 && (
+                        <ChevronRight className="w-4 h-4 absolute -right-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Employee Breakdown */}
+          {funnelData.employee_breakdown?.length > 0 && (
+            <Card className="border-zinc-200 dark:border-zinc-800">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <User className="w-4 h-4 text-cyan-600" />
+                    Employee-wise Funnel Summary
+                  </CardTitle>
+                  <Link to="/manager-leads-dashboard">
+                    <Button variant="outline" size="sm">
+                      View Detailed <ArrowUpRight className="w-3 h-3 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                        <th className="text-left py-3 px-2 font-medium text-zinc-600 dark:text-zinc-400">Employee</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Lead</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Meet</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Price</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">SOW</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Quote</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Agree</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Pay</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Kick</th>
+                        <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Done</th>
+                        <th className="text-center py-3 px-2 font-medium text-zinc-600 dark:text-zinc-400">Total</th>
+                        <th className="text-center py-3 px-2 font-medium text-zinc-600 dark:text-zinc-400">Conv%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {funnelData.employee_breakdown.slice(0, 10).map((emp, index) => (
+                        <tr key={emp.employee_id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                          <td className="py-3 px-2 font-medium text-zinc-900 dark:text-zinc-100">{emp.employee_name}</td>
+                          <td className="text-center py-3 px-1">{emp.stages.lead}</td>
+                          <td className="text-center py-3 px-1">{emp.stages.meeting}</td>
+                          <td className="text-center py-3 px-1">{emp.stages.pricing}</td>
+                          <td className="text-center py-3 px-1">{emp.stages.sow}</td>
+                          <td className="text-center py-3 px-1">{emp.stages.quotation}</td>
+                          <td className="text-center py-3 px-1">{emp.stages.agreement}</td>
+                          <td className="text-center py-3 px-1">{emp.stages.payment}</td>
+                          <td className="text-center py-3 px-1">{emp.stages.kickoff}</td>
+                          <td className="text-center py-3 px-1">
+                            <span className="text-emerald-600 font-medium">{emp.stages.complete}</span>
+                          </td>
+                          <td className="text-center py-3 px-2 font-bold">{emp.total_leads}</td>
+                          <td className="text-center py-3 px-2">
+                            <Badge className={emp.conversion_rate >= 20 ? 'bg-emerald-100 text-emerald-700' : emp.conversion_rate >= 10 ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-700'}>
+                              {emp.conversion_rate}%
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Trends Chart */}
+          {trendsData?.trends?.length > 0 && (
+            <Card className="border-zinc-200 dark:border-zinc-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-green-600" />
+                  Funnel Trends
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-6 gap-4">
+                  {trendsData.trends.map((trend, index) => (
+                    <div key={index} className="text-center p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">{trend.period}</p>
+                      <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{trend.leads_created}</p>
+                      <p className="text-xs text-zinc-500">New Leads</p>
+                      <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                        <p className="text-sm font-medium text-emerald-600">{trend.completed} closed</p>
+                        <p className="text-xs text-zinc-500">{trend.conversion_rate}% conv.</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'New Lead', href: '/leads', icon: Users, color: 'bg-blue-600' },
-          { label: 'Create Quotation', href: '/quotations', icon: FileText, color: 'bg-purple-600' },
-          { label: 'View Pipeline', href: '/sales-funnel', icon: TrendingUp, color: 'bg-indigo-600' },
-          { label: 'Send Kickoff', href: '/kickoff-requests', icon: Send, color: 'bg-green-600' },
+          { label: 'New Lead', href: '/leads', icon: Users, color: 'bg-blue-600 hover:bg-blue-700' },
+          { label: 'View Pipeline', href: '/leads', icon: TrendingUp, color: 'bg-indigo-600 hover:bg-indigo-700' },
+          { label: 'Kickoff Requests', href: '/kickoff-requests', icon: Briefcase, color: 'bg-amber-600 hover:bg-amber-700' },
+          { label: isManager ? 'Team Dashboard' : 'My Leads', href: isManager ? '/manager-leads-dashboard' : '/leads', icon: BarChart3, color: 'bg-emerald-600 hover:bg-emerald-700' },
         ].map((action, i) => (
           <Link key={i} to={action.href}>
-            <Card className="border-zinc-200 hover:border-zinc-300 transition-colors cursor-pointer">
+            <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer">
               <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center`}>
+                <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center transition-colors`}>
                   <action.icon className="w-5 h-5 text-white" />
                 </div>
-                <span className="font-medium text-zinc-700">{action.label}</span>
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">{action.label}</span>
               </CardContent>
             </Card>
           </Link>
