@@ -673,15 +673,38 @@ const PricingPlanBuilder = () => {
 
   return (
     <div className="max-w-6xl mx-auto" data-testid="pricing-plan-builder">
+      {/* Draft Selector */}
+      <DraftSelector
+        drafts={drafts}
+        loading={loadingDrafts}
+        onSelect={handleLoadDraft}
+        onDelete={deleteDraft}
+        onNewDraft={handleNewPlan}
+        isOpen={showDraftSelector}
+        onClose={() => setShowDraftSelector(false)}
+        title="Pricing Plan Drafts"
+        description="Continue editing a pricing plan or start a new one"
+      />
+
       <div className="mb-6">
-        <Button
-          onClick={() => navigate('/leads')}
-          variant="ghost"
-          className="mb-4 hover:bg-zinc-100 rounded-sm"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
-          Back to Leads
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button
+            onClick={() => navigate('/leads')}
+            variant="ghost"
+            className="hover:bg-zinc-100 rounded-sm"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
+            Back to Leads
+          </Button>
+          <div className="flex items-center gap-3">
+            <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={() => saveDraft({ totalInvestment, teamDeployment, formData, paymentPlan, leadId })} />
+            {drafts.length > 0 && (
+              <Button variant="outline" onClick={() => setShowDraftSelector(true)} className="gap-2">
+                <FolderOpen className="w-4 h-4" /> Drafts ({drafts.length})
+              </Button>
+            )}
+          </div>
+        </div>
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
           Create Pricing Plan
         </h1>
