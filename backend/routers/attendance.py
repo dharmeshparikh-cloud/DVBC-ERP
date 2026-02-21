@@ -513,6 +513,45 @@ async def delete_custom_policy(employee_id: str, current_user: User = Depends(ge
     return {"message": "Custom policy deleted, employee reverted to default policy"}
 
 
+@router.get("/consulting-employees")
+async def get_consulting_employees(current_user: User = Depends(get_current_user)):
+    """Get list of employees with consulting roles from employee master"""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+        raise HTTPException(status_code=403, detail="Only HR can view consulting employees")
+    
+    # Get the configured consulting roles from settings
+    settings = await db.settings.find_one({"type": "attendance_policy"}, {"_id": 0})
+    consulting_roles = settings.get("consulting_roles", []) if settings else []
+    
+    # If no roles configured, use default consulting roles
+    if not consulting_roles:
+        consulting_roles = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant"]
+    
+    # Find all active employees with consulting roles
+    employees = await db.employees.find(
+        {
+            "$or": [{"is_active": True}, {"is_active": {"$exists": False}}],
+            "role": {"$in": consulting_roles}
+        },
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "role": 1, "department": 1}
+    ).to_list(500)
+    
+    # Get count by role
+    role_counts = {}
+    for emp in employees:
+        role = emp.get("role", "unknown")
+        role_counts[role] = role_counts.get(role, 0) + 1
+    
+    return {
+        "employees": employees,
+        "consulting_roles": consulting_roles,
+        "role_counts": role_counts,
+        "total_consulting_employees": len(employees)
+    }
+
+
 @router.post("/auto-validate")
 async def auto_validate_attendance(data: dict, current_user: User = Depends(get_current_user)):
     """
