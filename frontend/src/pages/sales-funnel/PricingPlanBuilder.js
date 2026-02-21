@@ -45,6 +45,8 @@ const PricingPlanBuilder = () => {
   const [loading, setLoading] = useState(false);
   const [mastersLoading, setMastersLoading] = useState(true);
   const [showDraftSelector, setShowDraftSelector] = useState(false);
+  const [meetingAccessBlocked, setMeetingAccessBlocked] = useState(false);
+  const [meetingAccessReason, setMeetingAccessReason] = useState('');
   
   // Draft system
   const generatePricingDraftTitle = useCallback((data) => {
