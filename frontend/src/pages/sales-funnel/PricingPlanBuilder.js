@@ -219,6 +219,30 @@ const PricingPlanBuilder = () => {
     }
   };
 
+  // Check if user can access pricing plan (requires meeting record)
+  const checkMeetingAccess = async () => {
+    if (!leadId) return;
+    try {
+      const response = await axios.get(`${API}/leads/${leadId}/can-access-pricing`);
+      if (!response.data.can_access) {
+        setMeetingAccessBlocked(true);
+        setMeetingAccessReason(response.data.reason);
+      } else {
+        setMeetingAccessBlocked(false);
+        setMeetingAccessReason('');
+      }
+    } catch (error) {
+      console.error('Error checking meeting access:', error);
+    }
+  };
+
+  // Check meeting access on mount
+  useEffect(() => {
+    if (leadId) {
+      checkMeetingAccess();
+    }
+  }, [leadId]);
+
   // Handle duration type change
   const handleDurationTypeChange = (type) => {
     const months = DURATION_TYPE_MONTHS[type];
