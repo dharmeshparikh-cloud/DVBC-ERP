@@ -71,7 +71,8 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
         title,
         data: formData,
         step,
-        metadata
+        metadata,
+        entity_id: entityId // Include entity_id for filtering
       };
 
       let response;
