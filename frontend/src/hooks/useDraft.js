@@ -154,14 +154,73 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000) => {
     }
   }, []);
 
-  // Cleanup on unmount
+  // Register a callback to get current form data for save-on-leave
+  const formDataGetterRef = useRef(null);
+  const registerFormDataGetter = useCallback((getter) => {
+    formDataGetterRef.current = getter;
+  }, []);
+
+  // Save on page leave (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // Only save if we have a draft ID and form data getter
+      if (formDataGetterRef.current && lastDataRef.current) {
+        const formData = formDataGetterRef.current();
+        if (formData && Object.keys(formData).length > 0) {
+          // Use sendBeacon for reliable save on page unload
+          const title = generateTitle ? generateTitle(formData) : `${draftType} Draft`;
+          const draftData = {
+            draft_type: draftType,
+            title,
+            data: formData,
+            step: 0,
+            metadata: {}
+          };
+          
+          // Try sendBeacon first (more reliable for unload)
+          const blob = new Blob([JSON.stringify(draftData)], { type: 'application/json' });
+          const endpoint = draftId ? `${API}/drafts/${draftId}` : `${API}/drafts`;
+          
+          // Note: sendBeacon only works with POST, so this is best effort
+          navigator.sendBeacon && navigator.sendBeacon(endpoint, blob);
+        }
+      }
+    };
+
+    // Handle visibility change (user switching tabs)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && formDataGetterRef.current) {
+        const formData = formDataGetterRef.current();
+        if (formData && Object.keys(formData).length > 0) {
+          saveDraft(formData, 0, {}, false); // Silent save
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [draftId, draftType, generateTitle, saveDraft]);
+
+  // Cleanup on unmount - save final state
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
+      // Save on unmount if there's data
+      if (formDataGetterRef.current) {
+        const formData = formDataGetterRef.current();
+        if (formData && Object.keys(formData).length > 0) {
+          saveDraft(formData, 0, {}, false);
+        }
+      }
     };
-  }, []);
+  }, [saveDraft]);
 
   return {
     draftId,
@@ -176,7 +235,8 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000) => {
     deleteDraft,
     convertDraft,
     clearDraft,
-    setDraftId
+    setDraftId,
+    registerFormDataGetter
   };
 };
 
