@@ -23,6 +23,7 @@ import MyAttendance from './pages/MyAttendance';
 import MyLeaves from './pages/MyLeaves';
 import MySalarySlips from './pages/MySalarySlips';
 import MyExpenses from './pages/MyExpenses';
+import MyDetails from './pages/MyDetails';
 import ProjectRoadmap from './pages/ProjectRoadmap';
 import ConsultantPerformance from './pages/ConsultantPerformance';
 import EmailTemplates from './pages/EmailTemplates';
