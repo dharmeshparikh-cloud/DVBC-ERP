@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../App';
-import { Bell, Check, CheckCheck, X, ExternalLink } from 'lucide-react';
+import { AuthContext } from '../App';
+import { Bell, Check, CheckCheck, X, ExternalLink, Wifi, WifiOff } from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
 const NOTIF_ICONS = {
   // Actionable notifications
@@ -21,6 +25,8 @@ const NOTIF_ICONS = {
   bank_change_approved: { color: 'bg-emerald-500', label: 'Bank', actionable: false },
   go_live_approved: { color: 'bg-emerald-500', label: 'Go-Live', actionable: false },
   go_live_rejected: { color: 'bg-red-500', label: 'Rejected', actionable: false },
+  chat_mention: { color: 'bg-orange-500', label: 'Chat', actionable: false },
+  action_taken: { color: 'bg-green-500', label: 'Action', actionable: false },
   default: { color: 'bg-zinc-400', label: 'Info', actionable: false },
 };
 
@@ -36,12 +42,16 @@ const timeAgo = (dateStr) => {
 };
 
 const NotificationBell = () => {
+  const { user } = useContext(AuthContext);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
   const dropdownRef = useRef(null);
   const lastCountRef = useRef(0);
+  const wsRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
   const navigate = useNavigate();
 
   const fetchUnreadCount = useCallback(async () => {
@@ -72,10 +82,10 @@ const NotificationBell = () => {
     }
   };
 
-  const triggerBrowserNotification = (count) => {
+  const triggerBrowserNotification = (count, title = null, body = null) => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('DVBC - NETRA', {
-        body: `You have ${count} new notification${count > 1 ? 's' : ''}`,
+      new Notification(title || 'DVBC - NETRA', {
+        body: body || `You have ${count} new notification${count > 1 ? 's' : ''}`,
         icon: 'https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png',
       });
     }
@@ -87,12 +97,82 @@ const NotificationBell = () => {
     }
   };
 
+  // WebSocket connection for real-time notifications
+  const connectWebSocket = useCallback(() => {
+    if (!user?.id || wsRef.current?.readyState === WebSocket.OPEN) return;
+
+    const ws = new WebSocket(`${WS_URL}/api/chat/ws/${user.id}`);
+    
+    ws.onopen = () => {
+      console.log('Notification WebSocket connected');
+      setWsConnected(true);
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'notification') {
+        // Real-time notification received
+        const notif = data.notification;
+        
+        // Add to notifications list
+        setNotifications(prev => [notif, ...prev]);
+        
+        // Increment unread count
+        setUnreadCount(prev => prev + 1);
+        lastCountRef.current += 1;
+        
+        // Trigger browser notification
+        triggerBrowserNotification(1, notif.title, notif.message);
+      }
+      
+      if (data.type === 'new_message') {
+        // Chat message notification (if not in chat)
+        if (!window.location.pathname.includes('/chat')) {
+          setUnreadCount(prev => prev + 1);
+        }
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('Notification WebSocket disconnected');
+      setWsConnected(false);
+      
+      // Attempt to reconnect after 5 seconds
+      reconnectTimeoutRef.current = setTimeout(() => {
+        connectWebSocket();
+      }, 5000);
+    };
+
+    ws.onerror = (error) => {
+      console.error('Notification WebSocket error:', error);
+    };
+
+    wsRef.current = ws;
+  }, [user?.id]);
+
   useEffect(() => {
     requestBrowserPermission();
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 15000); // poll every 15s
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+    connectWebSocket();
+    
+    // Fallback polling every 30s if WebSocket fails
+    const interval = setInterval(() => {
+      if (!wsConnected) {
+        fetchUnreadCount();
+      }
+    }, 30000);
+    
+    return () => {
+      clearInterval(interval);
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [fetchUnreadCount, connectWebSocket, wsConnected]);
 
   useEffect(() => {
     if (open) fetchNotifications();
@@ -132,13 +212,22 @@ const NotificationBell = () => {
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
+        {/* WebSocket connection indicator */}
+        <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-gray-400'}`} title={wsConnected ? 'Real-time connected' : 'Connecting...'} />
       </button>
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-[380px] bg-white border border-zinc-200 rounded-lg shadow-lg z-50 overflow-hidden" data-testid="notification-dropdown">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 bg-zinc-50/50">
-            <span className="text-sm font-semibold text-zinc-900">Notifications</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-zinc-900">Notifications</span>
+              {wsConnected ? (
+                <Wifi className="w-3 h-3 text-green-500" title="Real-time" />
+              ) : (
+                <WifiOff className="w-3 h-3 text-gray-400" title="Connecting..." />
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button onClick={markAllRead} className="text-[11px] text-zinc-500 hover:text-zinc-900 flex items-center gap-1 transition-colors" data-testid="mark-all-read">
@@ -175,7 +264,11 @@ const NotificationBell = () => {
                     onClick={() => {
                       if (!notif.is_read) markAsRead(notif.id);
                       setOpen(false);
-                      navigate('/notifications');
+                      if (notif.link) {
+                        navigate(notif.link);
+                      } else {
+                        navigate('/notifications');
+                      }
                     }}
                   >
                     <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${meta.color}`} />
