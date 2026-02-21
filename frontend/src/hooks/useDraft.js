@@ -8,8 +8,9 @@ import { API } from '../App';
  * @param {string} draftType - Type of draft (e.g., 'onboarding', 'lead', 'meeting')
  * @param {Function} generateTitle - Function to generate title from form data
  * @param {number} autoSaveDelay - Delay in ms for auto-save (default: 3000ms)
+ * @param {string} entityId - Optional entity ID to filter drafts (e.g., lead_id, pricing_plan_id)
  */
-const useDraft = (draftType, generateTitle, autoSaveDelay = 3000) => {
+const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = null) => {
   const [draftId, setDraftId] = useState(null);
   const [drafts, setDrafts] = useState([]);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
@@ -18,20 +19,22 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000) => {
   const autoSaveTimerRef = useRef(null);
   const lastDataRef = useRef(null);
 
-  // Fetch all drafts of this type
+  // Fetch all drafts of this type, optionally filtered by entity ID
   const fetchDrafts = useCallback(async () => {
     setLoadingDrafts(true);
     try {
-      const response = await axios.get(`${API}/drafts`, {
-        params: { draft_type: draftType }
-      });
+      const params = { draft_type: draftType };
+      if (entityId) {
+        params.entity_id = entityId;
+      }
+      const response = await axios.get(`${API}/drafts`, { params });
       setDrafts(response.data || []);
     } catch (error) {
       console.error('Failed to fetch drafts:', error);
     } finally {
       setLoadingDrafts(false);
     }
-  }, [draftType]);
+  }, [draftType, entityId]);
 
   // Load drafts on mount
   useEffect(() => {
