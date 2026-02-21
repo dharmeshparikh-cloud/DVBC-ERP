@@ -44,6 +44,28 @@ const PricingPlanBuilder = () => {
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mastersLoading, setMastersLoading] = useState(true);
+  const [showDraftSelector, setShowDraftSelector] = useState(false);
+  
+  // Draft system
+  const generatePricingDraftTitle = useCallback((data) => {
+    if (lead?.company) return `Pricing - ${lead.company}`;
+    if (data.totalInvestment) return `Pricing Plan - ₹${data.totalInvestment.toLocaleString()}`;
+    return 'New Pricing Plan';
+  }, [lead]);
+
+  const {
+    draftId,
+    drafts,
+    loadingDrafts,
+    saving: savingDraft,
+    lastSaved,
+    loadDraft,
+    saveDraft,
+    autoSave,
+    deleteDraft,
+    convertDraft,
+    clearDraft
+  } = useDraft('pricing_plan', generatePricingDraftTitle);
   
   // Masters data from Admin
   const [tenureTypes, setTenureTypes] = useState([]);
