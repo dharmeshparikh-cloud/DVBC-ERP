@@ -97,7 +97,8 @@ const HROnboarding = () => {
     autoSave,
     deleteDraft,
     convertDraft,
-    clearDraft
+    clearDraft,
+    registerFormDataGetter
   } = useDraft('onboarding', generateDraftTitle);
   
   // Success dialog state
@@ -129,6 +130,9 @@ const HROnboarding = () => {
   // Confirmation dialog state
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
+
+  // Form data ref for save-on-leave
+  const formDataRef = useRef(null);
   
   const [formData, setFormData] = useState({
     // Personal Info (Tab 1 from Excel)
