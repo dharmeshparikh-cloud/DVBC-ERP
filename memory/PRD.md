@@ -464,8 +464,8 @@ Consultant Assignment → Timesheet Entry → Approval → Project Cost Calculat
 - Refactor monolithic `server.py` into domain routers
 - Email functionality for payroll reports
 - Finance Module & Project P&L Dashboards expansion
-- Day 0 guided onboarding tour
 - PWA Install Notification & Branding
+- Refactor `ApprovalCenter.js` (1600+ lines) into smaller components
 
 ## Known Minor Issues
 - `/api/my/check-status` returns 400 for HR Manager (non-blocking)
