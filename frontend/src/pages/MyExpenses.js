@@ -100,6 +100,17 @@ const MyExpenses = () => {
     }
   };
 
+  const handleDeleteExpense = async (expenseId) => {
+    if (!window.confirm('Are you sure you want to delete this expense?')) return;
+    try {
+      await axios.delete(`${API}/expenses/${expenseId}`);
+      toast.success('Expense deleted');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete expense');
+    }
+  };
+
   const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN')}`;
   const sm = data.summary;
 
