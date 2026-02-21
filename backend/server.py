@@ -15996,6 +15996,7 @@ api_router.include_router(chat_router.router)
 api_router.include_router(ai_assistant_router.router)
 api_router.include_router(email_actions_router.router)
 api_router.include_router(documentation_router.router)
+api_router.include_router(sales_router.router)
 
 app.include_router(api_router)
 
