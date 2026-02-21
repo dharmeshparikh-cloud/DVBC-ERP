@@ -266,6 +266,13 @@ class SalesTargetCreate(BaseModel):
     conversion_target: int = 0
     deal_value_target: float = 0.0
 
+# New model for yearly targets (Manager Target Assignment UI)
+class YearlySalesTargetCreate(BaseModel):
+    employee_id: str
+    year: int
+    monthly_targets: Dict[str, float] = {}  # {"1": 50000, "2": 60000, ...}
+    target_type: str = "revenue"  # revenue, closures, meetings
+
 class PerformanceReview(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
