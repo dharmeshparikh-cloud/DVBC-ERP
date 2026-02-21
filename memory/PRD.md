@@ -11,7 +11,35 @@
 
 ## Completed Work - February 2026
 
-### Enhanced Approvals Center - February 21, 2026 ✅ (Latest)
+### Day 0 Guided Onboarding Tour - February 21, 2026 ✅ (Latest)
+**Role-specific guided tour for first-time users**
+
+**Features:**
+- ✅ **Auto-start for first-time users** - Welcome dialog appears after first login
+- ✅ **Role-specific steps** - Admin sees HR/Admin features, Sales sees CRM features, etc.
+- ✅ **Tour content covers:**
+  - Real-time notification bell with count
+  - WebSocket connection status (Live/Offline)
+  - One-click actions in notifications
+  - Email action links explanation
+  - Team Chat and AI Assistant
+  - Role-specific features (HR Management, Approvals, Sales CRM, Projects)
+- ✅ **Tour navigation** - Next/Back buttons, progress indicator (e.g., "3 of 7")
+- ✅ **Replay Tour button** in Profile page settings
+- ✅ **MongoDB storage** - `has_completed_onboarding` field in users collection
+
+**Backend Endpoints:**
+- `GET /api/my/onboarding-status` - Check completion status
+- `POST /api/my/complete-onboarding` - Mark tour as complete
+- `POST /api/my/reset-onboarding` - Reset for replay
+
+**Files:**
+- `/app/frontend/src/components/OnboardingTour.js`
+- `/app/frontend/src/pages/UserProfile.js` - Added Replay Tour button
+
+---
+
+### Enhanced Approvals Center - February 21, 2026 ✅
 **Major UX improvements to the Approval Center**
 
 **New Features:**
