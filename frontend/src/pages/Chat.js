@@ -111,7 +111,7 @@ const Chat = () => {
     };
 
     wsRef.current = ws;
-  }, [currentUser?.id, selectedConversation]);
+  }, [currentUser?.id]);
 
   // Connect WebSocket on mount
   useEffect(() => {
