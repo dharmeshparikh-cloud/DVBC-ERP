@@ -1028,6 +1028,85 @@ const ApprovalsCenter = () => {
         </Card>
       )}
 
+      {/* Employee Profile Change Requests Section - For HR */}
+      {isHR && profileChangeApprovals.length > 0 && (
+        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <User className="w-5 h-5 text-blue-500" />
+              Employee Profile Changes ({profileChangeApprovals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {profileChangeApprovals.map((req, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
+                  data-testid={`profile-change-${req.id}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                          {req.employee_name || 'Unknown Employee'}
+                        </span>
+                        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 capitalize">
+                          {req.section?.replace('_', ' ')} Update
+                        </Badge>
+                      </div>
+                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        <span>Employee ID: <strong>{req.employee_code}</strong></span>
+                        <span className="mx-2">•</span>
+                        <span>Section: <strong className="capitalize">{req.section}</strong></span>
+                      </div>
+                      <div className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        <span className="font-medium">Changes: </span>
+                        {Object.entries(req.requested_values || {}).filter(([k, v]) => v).map(([key, val], i, arr) => (
+                          <span key={key}>
+                            {key.replace(/_/g, ' ')}: <strong>{String(val).slice(0, 20)}{String(val).length > 20 ? '...' : ''}</strong>
+                            {i < arr.length - 1 && ', '}
+                          </span>
+                        ))}
+                      </div>
+                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        Reason: {req.reason || 'Not specified'} • Requested on {new Date(req.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleProfileChangeAction(req.id, 'approve')}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        data-testid={`approve-profile-${req.id}`}
+                        disabled={actionLoading}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          const reason = prompt('Enter rejection reason:');
+                          if (reason) {
+                            setComments(reason);
+                            handleProfileChangeAction(req.id, 'reject');
+                          }
+                        }}
+                        data-testid={`reject-profile-${req.id}`}
+                        disabled={actionLoading}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
       <div className={`flex border-b ${isDark ? 'border-zinc-700' : 'border-zinc-200'} mb-6 overflow-x-auto`}>
         <button
