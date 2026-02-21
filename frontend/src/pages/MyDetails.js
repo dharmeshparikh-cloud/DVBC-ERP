@@ -19,6 +19,7 @@ const MyDetails = () => {
   const { user } = useContext(AuthContext);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const fileInputRef = useRef(null);
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,8 +33,11 @@ const MyDetails = () => {
   // Pending requests
   const [pendingRequests, setPendingRequests] = useState([]);
   
-  // Document upload
-  const [uploadingDoc, setUploadingDoc] = useState(false);
+  // Bank document upload states
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null);
+  const [verifyingIfsc, setVerifyingIfsc] = useState(false);
+  const [ifscVerified, setIfscVerified] = useState(false);
 
   useEffect(() => {
     fetchProfile();
