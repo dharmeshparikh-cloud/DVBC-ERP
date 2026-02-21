@@ -173,6 +173,11 @@ function AppRouter({ user, login, logout, loading }) {
   };
 
   return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full" />
+      </div>
+    }>
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       
