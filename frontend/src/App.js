@@ -212,6 +212,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="agreement/:agreementId" element={<AgreementView />} />
         <Route path="payment-verification" element={<PaymentVerification />} />
         <Route path="kickoff-requests" element={<KickoffRequests />} />
+        <Route path="manager-leads" element={<ManagerLeadsDashboard />} />
+        <Route path="team-leads" element={<ManagerLeadsDashboard />} />
         <Route path="clients" element={<Clients />} />
         <Route path="meetings" element={<SalesMeetings />} />
         <Route path="reports" element={<Reports />} />
