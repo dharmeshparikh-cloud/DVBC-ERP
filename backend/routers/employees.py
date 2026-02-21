@@ -81,8 +81,24 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
     # Generate employee ID if not provided
     employee_id = data.get("employee_id")
     if not employee_id:
-        count = await db.employees.count_documents({})
-        employee_id = f"EMP{str(count + 1).zfill(3)}"
+        # Find highest existing employee ID number
+        all_employees = await db.employees.find(
+            {"employee_id": {"$regex": "^EMP\\d+$"}},
+            {"employee_id": 1}
+        ).to_list(length=1000)
+        
+        max_num = 0
+        for emp in all_employees:
+            emp_id = emp.get("employee_id", "")
+            try:
+                num = int(emp_id.replace("EMP", ""))
+                if num > max_num:
+                    max_num = num
+            except (ValueError, AttributeError):
+                continue
+        
+        next_num = max_num + 1
+        employee_id = f"EMP{next_num:04d}" if next_num > 999 else f"EMP{next_num:03d}"
         data["employee_id"] = employee_id
     
     # Handle SELF reporting manager (for first employee or admin)
