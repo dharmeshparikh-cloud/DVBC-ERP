@@ -373,20 +373,40 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
                 }}
             )
             
-            # Notify Admin
-            admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(10)
+            # Send real-time approval notification (email + WebSocket) to Admins
+            admins = await db.users.find(
+                {"role": "admin"}, 
+                {"_id": 0, "id": 1, "full_name": 1, "email": 1}
+            ).to_list(10)
+            
+            ws_manager = get_ws_manager()
+            admin_expense_details = {
+                "Amount": f"₹{expense_amount:,.0f}",
+                "Employee": employee_name,
+                "Category": expense.get("category", "General").replace("_", " ").title(),
+                "Description": expense.get("description") or expense.get("notes", "No description"),
+                "HR Approved By": current_user.full_name,
+                "Status": "Pending Admin Approval"
+            }
+            
             for admin in admins:
-                await db.notifications.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "user_id": admin["id"],
-                    "type": "expense_admin_approval",
-                    "title": "Expense Requires Admin Approval",
-                    "message": f"₹{expense_amount:,.0f} expense from {employee_name} approved by HR, needs Admin approval",
-                    "reference_type": "expense",
-                    "reference_id": expense_id,
-                    "is_read": False,
-                    "created_at": now
-                })
+                try:
+                    await send_approval_notification(
+                        db=db,
+                        ws_manager=ws_manager,
+                        record_type="expense",
+                        record_id=expense_id,
+                        requester_id=expense.get("user_id") or expense.get("employee_id"),
+                        requester_name=employee_name,
+                        requester_email="",  # Already HR-approved, email goes to admin
+                        approver_id=admin["id"],
+                        approver_name=admin.get("full_name", "Admin"),
+                        approver_email=admin.get("email", ""),
+                        details=admin_expense_details,
+                        link="/expense-approvals"
+                    )
+                except Exception as e:
+                    print(f"Error sending approval notification to Admin {admin['id']}: {e}")
             
             return {
                 "message": "Expense approved by HR, sent to Admin for final approval",
