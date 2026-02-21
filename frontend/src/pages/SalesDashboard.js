@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   TrendingUp, Users, Target, DollarSign, ArrowRight, Calendar,
   CheckCircle, Clock, AlertCircle, BarChart3, PieChart, ArrowUpRight,
-  ChevronRight, Filter, RefreshCw, User, Briefcase
+  ChevronRight, Filter, RefreshCw, User, Briefcase, AlertTriangle,
+  Zap, TrendingDown
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -22,6 +23,8 @@ const SalesDashboard = () => {
   const [funnelData, setFunnelData] = useState(null);
   const [myFunnelData, setMyFunnelData] = useState(null);
   const [trendsData, setTrendsData] = useState(null);
+  const [bottleneckData, setBottleneckData] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
 
   const isManager = ['admin', 'manager', 'sr_manager', 'principal_consultant', 'sales_manager'].includes(user?.role);
 
@@ -39,6 +42,8 @@ const SalesDashboard = () => {
       if (isManager) {
         promises.push(axios.get(`${API}/analytics/funnel-summary?period=${period}`));
         promises.push(axios.get(`${API}/analytics/funnel-trends?period=${period}`));
+        promises.push(axios.get(`${API}/analytics/bottleneck-analysis`));
+        promises.push(axios.get(`${API}/analytics/forecasting`));
       }
       
       const results = await Promise.all(promises);
@@ -47,6 +52,8 @@ const SalesDashboard = () => {
       if (isManager) {
         setFunnelData(results[1].data);
         setTrendsData(results[2].data);
+        setBottleneckData(results[3].data);
+        setForecastData(results[4].data);
       }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
