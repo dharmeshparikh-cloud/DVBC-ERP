@@ -393,7 +393,15 @@ const AgreementView = () => {
       // Navigate to the kickoff requests page
       navigate('/kickoff-requests');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create kickoff request');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
+        toast.error(msg);
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to create kickoff request');
+      }
     } finally {
       setCreatingKickoff(false);
     }
