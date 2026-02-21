@@ -32,10 +32,24 @@
 - ✅ Stage probability scoring
 - ✅ Expected deals and revenue projections
 
-**4. Target vs Achievement**
-- ✅ Meetings/Closures/Revenue targets
-- ✅ Progress bars with percentages
-- ✅ Manager-configured targets visible to employees
+**4. Time-in-Stage Metrics**
+- ✅ Average days at each funnel stage
+- ✅ Stage-by-stage progress bars
+- ✅ Slowest stage identification
+- ✅ Total journey time calculation (42.5 days avg)
+
+**5. Win/Loss Analysis**
+- ✅ Won/Lost/Stale/Active categorization
+- ✅ Win rate calculation (66.7%)
+- ✅ 30-day stale lead detection
+- ✅ At-risk leads alert with details
+- ✅ Loss by stage tracking
+
+**6. Sales Velocity Metrics**
+- ✅ Average days to close (33.5 days)
+- ✅ Fastest/Slowest deal tracking
+- ✅ Stage-by-stage velocity breakdown
+- ✅ Completed deals analysis
 
 **New API Endpoints:**
 - `GET /api/analytics/funnel-summary` - Team/own funnel by stage
@@ -43,10 +57,19 @@
 - `GET /api/analytics/funnel-trends` - Historical trends
 - `GET /api/analytics/bottleneck-analysis` - Stage conversion analysis
 - `GET /api/analytics/forecasting` - Sales predictions
+- `GET /api/analytics/time-in-stage` - Stage duration metrics
+- `GET /api/analytics/win-loss` - Win/loss/stale analysis
+- `GET /api/analytics/velocity` - Sales velocity metrics
+
+**Test Data Seeded:**
+- 5 test journeys with complete timestamps
+- 3 complete journeys (FastTrack, SlowBurn, Quick Win)
+- 1 stale journey (Stalled Systems - 35 days at quotation)
+- 1 lost journey (Lost Deal LLC - lost at agreement)
 
 **Files Modified:**
 - `/app/frontend/src/pages/SalesDashboard.js` - Complete analytics overhaul
-- `/app/backend/server.py` - New analytics endpoints
+- `/app/backend/server.py` - 8 new analytics endpoints
 
 ---
 
