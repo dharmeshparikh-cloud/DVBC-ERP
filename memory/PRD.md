@@ -59,8 +59,14 @@
    - Frontend: `/app/frontend/src/pages/admin/EmailSettings.js`
 
 **Navigation Updates**:
-- Added "Communication" section to sidebar with Team Chat and AI Assistant links
+- Chat & AI Assistant moved to "My Workspace" section (visible for all users)
 - Email Settings added to Admin section
+
+**Real-time System**:
+- WebSocket-based real-time notifications (green indicator when connected)
+- Notifications appear instantly when triggered (approvals, chat mentions, etc.)
+- Fallback to 30-second polling if WebSocket disconnects
+- Browser push notifications for new alerts
 
 ### Backend Recovery & Telegram Bot Rollback - February 20, 2026 ✅
 - Complete Rollback of Telegram Bot Feature
