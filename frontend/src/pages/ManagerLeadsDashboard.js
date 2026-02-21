@@ -49,16 +49,18 @@ const ManagerLeadsDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [leadsRes, statsRes, perfRes] = await Promise.all([
+      const [leadsRes, statsRes, perfRes, kpiRes] = await Promise.all([
         axios.get(`${API}/manager/subordinate-leads`),
         axios.get(`${API}/manager/today-stats`),
-        axios.get(`${API}/manager/performance`)
+        axios.get(`${API}/manager/performance`),
+        axios.get(`${API}/manager/target-vs-achievement`)
       ]);
       
       setSubordinateLeads(leadsRes.data.leads || []);
       setSubordinates(leadsRes.data.subordinates || []);
       setTodayStats(statsRes.data);
       setPerformance(perfRes.data);
+      setTargetVsAchievement(kpiRes.data);
     } catch (error) {
       toast.error('Failed to load dashboard data');
       console.error(error);
