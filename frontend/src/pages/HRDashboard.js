@@ -342,6 +342,67 @@ const HRDashboard = () => {
         </CardContent>
       </Card>
 
+      {/* HR Documentation Card */}
+      <Card className="border-zinc-200 dark:border-zinc-800">
+        <CardHeader className="pb-2 px-4 md:px-6">
+          <CardTitle className="text-sm md:text-base flex items-center gap-2">
+            <Book className="w-4 h-4" />
+            HR Module Documentation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 md:px-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Generate complete HR module documentation pack (PDF & DOCX) covering business logic, workflows, SOPs, and training materials.
+              </p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => generateDocumentation(user?.email)}
+                disabled={generatingDocs}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                data-testid="generate-docs-email-btn"
+              >
+                {generatingDocs ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Mail className="w-4 h-4" />
+                )}
+                {generatingDocs ? 'Generating...' : 'Generate & Email'}
+              </button>
+            </div>
+          </div>
+          
+          {/* Download links when docs are ready */}
+          {docResult && (
+            <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
+                Documentation ready! {docResult.email_status === 'sent' && '(Emailed to your address)'}
+              </p>
+              <div className="flex gap-2">
+                <a
+                  href={`${API}${docResult.pdf_download_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium"
+                >
+                  <Download className="w-3 h-3" /> PDF
+                </a>
+                <a
+                  href={`${API}${docResult.docx_download_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium"
+                >
+                  <Download className="w-3 h-3" /> DOCX
+                </a>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Quick Actions - 2x2 on mobile */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
         {[
