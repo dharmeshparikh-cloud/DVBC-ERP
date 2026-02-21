@@ -4,15 +4,21 @@ Internal Chat System Router
 - Group Channels
 - Actionable Buttons with ERP Record Sync
 - @mentions, file sharing, read receipts
+- Real-time WebSocket support
 """
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
 import uuid
+import json
+import logging
+
+from websocket_manager import get_manager, ConnectionManager
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
+logger = logging.getLogger(__name__)
 
 # Pydantic Models
 class MessageCreate(BaseModel):
