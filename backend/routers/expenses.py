@@ -214,6 +214,8 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
     Submit expense for approval:
     - < ₹2000: HR directly approves (single level)
     - ≥ ₹2000: Admin approval required
+    
+    Sends real-time email + WebSocket notifications to approvers.
     """
     db = get_db()
     
@@ -230,6 +232,10 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
     expense_amount = expense.get("total_amount") or expense.get("amount", 0)
     employee_name = expense.get("employee_name") or current_user.full_name
     now = datetime.now(timezone.utc).isoformat()
+    
+    # Get requester email
+    requester_user = await db.users.find_one({"id": current_user.id})
+    requester_email = requester_user.get("email", "") if requester_user else ""
     
     # Determine approval flow based on amount
     requires_admin = expense_amount >= EXPENSE_HR_THRESHOLD
@@ -263,22 +269,41 @@ async def submit_expense(expense_id: str, current_user: User = Depends(get_curre
         }}
     )
     
-    # Notify HR managers
-    hr_managers = await db.users.find({"role": {"$in": ["hr_manager", "admin"]}}, {"_id": 0, "id": 1}).to_list(10)
+    # Send real-time approval notifications (email + WebSocket) to HR managers
+    hr_managers = await db.users.find(
+        {"role": {"$in": ["hr_manager"]}}, 
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1}
+    ).to_list(10)
+    
+    threshold_note = " (Requires Admin approval after HR)" if requires_admin else ""
+    expense_details = {
+        "Amount": f"₹{expense_amount:,.0f}",
+        "Category": expense.get("category", "General").replace("_", " ").title(),
+        "Description": expense.get("description") or expense.get("notes", "No description"),
+        "Date": expense.get("expense_date", "Not specified"),
+        "Note": threshold_note if requires_admin else "HR can approve directly"
+    }
+    
+    ws_manager = get_ws_manager()
+    
     for hr in hr_managers:
-        threshold_note = " (Requires Admin approval)" if requires_admin else " (HR can approve directly)"
-        notification = {
-            "id": str(uuid.uuid4()),
-            "user_id": hr["id"],
-            "type": "expense_approval",
-            "title": "Expense Approval Required",
-            "message": f"{employee_name} submitted ₹{expense_amount:,.0f} expense{threshold_note}",
-            "reference_type": "expense",
-            "reference_id": expense_id,
-            "is_read": False,
-            "created_at": now
-        }
-        await db.notifications.insert_one(notification)
+        try:
+            await send_approval_notification(
+                db=db,
+                ws_manager=ws_manager,
+                record_type="expense",
+                record_id=expense_id,
+                requester_id=current_user.id,
+                requester_name=employee_name,
+                requester_email=requester_email,
+                approver_id=hr["id"],
+                approver_name=hr.get("full_name", "HR Manager"),
+                approver_email=hr.get("email", ""),
+                details=expense_details,
+                link="/expense-approvals"
+            )
+        except Exception as e:
+            print(f"Error sending approval notification to HR {hr['id']}: {e}")
     
     return {
         "message": "Expense submitted for approval",
