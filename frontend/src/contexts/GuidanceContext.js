@@ -505,6 +505,7 @@ export const GuidanceProvider = ({ children }) => {
     isFeatureNew,
     toggleDontShowTips,
     getWorkflowsForPage,
+    smartRecommendations,
     WORKFLOWS,
     PAGE_TIPS,
     NEW_FEATURES
