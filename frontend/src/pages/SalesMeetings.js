@@ -324,6 +324,7 @@ const SalesMeetings = () => {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
 
       {/* Stats */}
