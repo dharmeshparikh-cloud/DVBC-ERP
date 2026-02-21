@@ -391,7 +391,7 @@ const Leads = () => {
                       id="first_name"
                       data-testid="lead-first-name"
                       value={formData.first_name}
-                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                      onChange={(e) => updateFormData('first_name', e.target.value)}
                       required
                       className="rounded-sm border-zinc-200"
                     />
@@ -404,7 +404,7 @@ const Leads = () => {
                       id="last_name"
                       data-testid="lead-last-name"
                       value={formData.last_name}
-                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      onChange={(e) => updateFormData('last_name', e.target.value)}
                       required
                       className="rounded-sm border-zinc-200"
                     />
@@ -419,7 +419,7 @@ const Leads = () => {
                     id="company"
                     data-testid="lead-company"
                     value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    onChange={(e) => updateFormData('company', e.target.value)}
                     required
                     className="rounded-sm border-zinc-200"
                   />
@@ -433,7 +433,7 @@ const Leads = () => {
                     id="job_title"
                     data-testid="lead-job-title"
                     value={formData.job_title}
-                    onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                    onChange={(e) => updateFormData('job_title', e.target.value)}
                     className="rounded-sm border-zinc-200"
                   />
                 </div>
@@ -448,7 +448,7 @@ const Leads = () => {
                       data-testid="lead-email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => updateFormData('email', e.target.value)}
                       className="rounded-sm border-zinc-200"
                     />
                   </div>
@@ -460,7 +460,7 @@ const Leads = () => {
                       id="phone"
                       data-testid="lead-phone"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => updateFormData('phone', e.target.value)}
                       className="rounded-sm border-zinc-200"
                     />
                   </div>
@@ -474,7 +474,7 @@ const Leads = () => {
                     id="linkedin_url"
                     data-testid="lead-linkedin"
                     value={formData.linkedin_url}
-                    onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
+                    onChange={(e) => updateFormData('linkedin_url', e.target.value)}
                     placeholder="https://linkedin.com/in/..."
                     className="rounded-sm border-zinc-200"
                   />
@@ -488,7 +488,7 @@ const Leads = () => {
                     id="source"
                     data-testid="lead-source"
                     value={formData.source}
-                    onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                    onChange={(e) => updateFormData('source', e.target.value)}
                     placeholder="e.g., Website, Referral, RocketReach"
                     className="rounded-sm border-zinc-200"
                   />
@@ -502,7 +502,7 @@ const Leads = () => {
                     id="notes"
                     data-testid="lead-notes"
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) => updateFormData('notes', e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
                   />
