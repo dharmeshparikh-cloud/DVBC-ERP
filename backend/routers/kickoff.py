@@ -24,7 +24,9 @@ async def create_kickoff_request(
     kickoff_create: KickoffRequestCreate,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new kickoff request (Sales to Consulting handoff)."""
+    """Create a new kickoff request (Sales to Consulting handoff).
+    Sends real-time email + WebSocket notification to assigned PM.
+    """
     db = get_db()
     
     # Only sales roles can create kickoff requests
@@ -63,19 +65,45 @@ async def create_kickoff_request(
     
     await db.kickoff_requests.insert_one(doc)
     
-    # Create notification for PM if assigned
+    # Get requester email
+    requester_user = await db.users.find_one({"id": current_user.id})
+    requester_email = requester_user.get("email", "") if requester_user else ""
+    
+    # Send real-time approval notification (email + WebSocket) to PM if assigned
     if kickoff.assigned_pm_id:
-        notification = {
-            "id": str(uuid.uuid4()),
-            "type": "kickoff_request",
-            "recipient_id": kickoff.assigned_pm_id,
-            "title": f"New Kickoff Request: {kickoff.project_name}",
-            "message": f"A new project kickoff request has been submitted for {kickoff.client_name}",
-            "kickoff_request_id": kickoff.id,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "read": False
-        }
-        await db.notifications.insert_one(notification)
+        pm_user = await db.users.find_one(
+            {"id": kickoff.assigned_pm_id}, 
+            {"_id": 0, "id": 1, "full_name": 1, "email": 1}
+        )
+        
+        if pm_user:
+            ws_manager = get_ws_manager()
+            kickoff_details = {
+                "Project Name": kickoff.project_name,
+                "Client": kickoff.client_name,
+                "Project Type": kickoff.project_type or "Mixed",
+                "Project Value": f"₹{kickoff.project_value:,.0f}" if kickoff.project_value else "Not specified",
+                "Expected Start": str(kickoff.expected_start_date)[:10] if kickoff.expected_start_date else "TBD",
+                "Total Meetings": kickoff.total_meetings or "Not specified"
+            }
+            
+            try:
+                await send_approval_notification(
+                    db=db,
+                    ws_manager=ws_manager,
+                    record_type="kickoff",
+                    record_id=kickoff.id,
+                    requester_id=current_user.id,
+                    requester_name=current_user.full_name,
+                    requester_email=requester_email,
+                    approver_id=pm_user["id"],
+                    approver_name=pm_user.get("full_name", "Project Manager"),
+                    approver_email=pm_user.get("email", ""),
+                    details=kickoff_details,
+                    link="/kickoff-requests"
+                )
+            except Exception as e:
+                print(f"Error sending kickoff notification to PM: {e}")
     
     return kickoff
 
