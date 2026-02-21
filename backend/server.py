@@ -4113,6 +4113,99 @@ async def sign_agreement(
     return {"message": "Agreement signed successfully", "signed_at": now.isoformat()}
 
 
+class SendToClientRequest(BaseModel):
+    client_email: EmailStr
+    client_name: Optional[str] = "Client"
+
+
+@api_router.post("/agreements/{agreement_id}/send-to-client")
+async def send_agreement_to_client(
+    agreement_id: str,
+    request: SendToClientRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Send agreement to client for review and signature"""
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Update status to 'sent'
+    await db.agreements.update_one(
+        {"id": agreement_id},
+        {"$set": {
+            "status": "sent",
+            "sent_to_email": request.client_email,
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "sent_by": current_user.id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update lead status
+    if agreement.get("lead_id"):
+        await db.leads.update_one(
+            {"id": agreement.get("lead_id")},
+            {"$set": {
+                "status": "agreement",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # In production, send actual email here
+    # For now, just log it
+    print(f"[EMAIL] Agreement {agreement.get('agreement_number')} sent to {request.client_email}")
+    
+    return {"message": f"Agreement sent to {request.client_email}", "status": "sent"}
+
+
+@api_router.post("/agreements/{agreement_id}/upload-signed")
+async def upload_signed_agreement(
+    agreement_id: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload a signed agreement document"""
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Read file content
+    contents = await file.read()
+    
+    # Save file (in production, use cloud storage)
+    import base64
+    file_data = base64.b64encode(contents).decode('utf-8')
+    
+    # Update agreement with signed document
+    await db.agreements.update_one(
+        {"id": agreement_id},
+        {"$set": {
+            "status": "signed",
+            "signed_document": {
+                "filename": file.filename,
+                "content_type": file.content_type,
+                "data": file_data,
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                "uploaded_by": current_user.id
+            },
+            "signed_date": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update lead status to payment
+    if agreement.get("lead_id"):
+        await db.leads.update_one(
+            {"id": agreement.get("lead_id")},
+            {"$set": {
+                "status": LeadStatus.PAYMENT,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    return {"message": "Signed agreement uploaded successfully", "status": "signed"}
+
+
 @api_router.post("/leads/bulk-upload")
 async def bulk_upload_leads(
     leads_data: List[LeadCreate],
