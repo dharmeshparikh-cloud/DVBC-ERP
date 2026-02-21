@@ -94,24 +94,28 @@ class LetterAcceptance(BaseModel):
 # ============== Helper Functions ==============
 
 async def get_next_employee_id(db):
-    """Generate next employee ID in format EMP009, EMP010, etc. Starting from 9."""
-    # Find the highest existing employee ID
-    latest = await db.employees.find_one(
-        {"employee_id": {"$regex": "^EMP"}},
-        {"employee_id": 1},
-        sort=[("employee_id", -1)]
-    )
+    """Generate next employee ID in format EMP001, EMP002, etc."""
+    # Find the highest existing employee ID by extracting and comparing numbers
+    all_employees = await db.employees.find(
+        {"employee_id": {"$regex": "^EMP\\d+$"}},  # Only match EMP followed by digits
+        {"employee_id": 1}
+    ).to_list(length=1000)
     
-    if latest and latest.get("employee_id"):
+    max_num = 0
+    for emp in all_employees:
+        emp_id = emp.get("employee_id", "")
         try:
-            # Extract number from EMP format
-            num = int(latest["employee_id"].replace("EMP", ""))
-            next_num = max(num + 1, 9)  # Ensure minimum is 9
-        except:
-            next_num = 9
-    else:
-        next_num = 9  # Start from EMP009
+            # Extract number from EMP format (e.g., EMP001 -> 1, EMP1003 -> 1003)
+            num = int(emp_id.replace("EMP", ""))
+            if num > max_num:
+                max_num = num
+        except (ValueError, AttributeError):
+            continue
     
+    next_num = max_num + 1
+    # Use 4 digits if we're past 999, otherwise 3 digits
+    if next_num > 999:
+        return f"EMP{next_num:04d}"
     return f"EMP{next_num:03d}"
 
 
