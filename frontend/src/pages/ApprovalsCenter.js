@@ -1962,6 +1962,74 @@ const ApprovalsCenter = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Action Dialog */}
+      <Dialog open={bulkActionDialog} onOpenChange={setBulkActionDialog}>
+        <DialogContent className={`${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200'} rounded-lg max-w-md`}>
+          <DialogHeader>
+            <DialogTitle className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
+              {bulkActionType === 'approve' ? (
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-500" />
+              )}
+              Bulk {bulkActionType === 'approve' ? 'Approve' : 'Reject'} ({selectedItems.size} items)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+              <p className={`text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                You are about to <strong>{bulkActionType}</strong> {selectedItems.size} approval request{selectedItems.size > 1 ? 's' : ''}.
+              </p>
+              <p className={`text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                This action cannot be undone.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                Comments {bulkActionType === 'reject' && '(recommended)'}
+              </label>
+              <Textarea
+                value={bulkComments}
+                onChange={(e) => setBulkComments(e.target.value)}
+                placeholder={bulkActionType === 'approve' ? 'Optional bulk approval comment...' : 'Reason for bulk rejection...'}
+                rows={3}
+                className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}
+              />
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setBulkActionDialog(false)} 
+                className={isDark ? 'border-zinc-600' : ''}
+                disabled={bulkLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleBulkAction}
+                disabled={bulkLoading}
+                className={`${
+                  bulkActionType === 'approve' 
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                {bulkLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                ) : bulkActionType === 'approve' ? (
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-1" />
+                )}
+                {bulkActionType === 'approve' ? 'Approve All' : 'Reject All'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
