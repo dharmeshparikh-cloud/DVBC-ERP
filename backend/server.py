@@ -11573,7 +11573,9 @@ async def submit_go_live_request(
     data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """HR submits Go-Live request for Admin approval."""
+    """HR submits Go-Live request for Admin approval.
+    Sends real-time email + WebSocket notification to Admins.
+    """
     global db
     
     if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
@@ -11612,20 +11614,43 @@ async def submit_go_live_request(
     
     await db.go_live_requests.insert_one(go_live_request)
     
-    # Notify admins
-    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(20)
+    # Get HR requester email
+    requester_user = await db.users.find_one({"id": current_user.id})
+    requester_email = requester_user.get("email", "") if requester_user else ""
+    
+    # Send real-time approval notification (email + WebSocket) to Admins
+    admins = await db.users.find(
+        {"role": "admin"}, 
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1}
+    ).to_list(20)
+    
+    ws_manager = get_ws_manager()
+    go_live_details = {
+        "Employee Name": go_live_request["employee_name"],
+        "Employee ID": go_live_request["employee_code"],
+        "Department": go_live_request["department"] or "Not specified",
+        "Submitted By": current_user.full_name,
+        "Notes": data.get("notes") or "None"
+    }
+    
     for admin in admins:
-        notification = {
-            "id": str(uuid.uuid4()),
-            "user_id": admin["id"],
-            "type": "go_live_request",
-            "title": "Go-Live Approval Required",
-            "message": f"Go-Live request submitted for {go_live_request['employee_name']} ({go_live_request['employee_code']})",
-            "link": "/approvals",
-            "read": False,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.notifications.insert_one(notification)
+        try:
+            await send_approval_notification(
+                db=db,
+                ws_manager=ws_manager,
+                record_type="go_live",
+                record_id=go_live_request["id"],
+                requester_id=current_user.id,
+                requester_name=current_user.full_name,
+                requester_email=requester_email,
+                approver_id=admin["id"],
+                approver_name=admin.get("full_name", "Admin"),
+                approver_email=admin.get("email", ""),
+                details=go_live_details,
+                link="/approvals"
+            )
+        except Exception as e:
+            print(f"Error sending Go-Live notification to Admin {admin['id']}: {e}")
     
     return {"message": "Go-Live request submitted for approval", "request_id": go_live_request["id"]}
 
