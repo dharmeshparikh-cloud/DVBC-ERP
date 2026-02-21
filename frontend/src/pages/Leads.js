@@ -71,6 +71,45 @@ const Leads = () => {
     fetchLeads();
   }, [selectedStatus]);
 
+  // Update form data with auto-save
+  const updateFormData = (field, value) => {
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Auto-save draft when dialog is open
+      if (dialogOpen) {
+        autoSave(updated);
+      }
+      return updated;
+    });
+  };
+
+  // Load draft into form
+  const handleLoadDraft = async (draft) => {
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft) {
+      setFormData(loadedDraft.data);
+      setShowDraftSelector(false);
+      setDialogOpen(true);
+      toast.success('Draft loaded');
+    }
+  };
+
+  // Manual save draft
+  const handleSaveDraft = () => {
+    saveDraft(formData);
+  };
+
+  // Start new lead
+  const handleNewLead = () => {
+    clearDraft();
+    setFormData({
+      first_name: '', last_name: '', company: '', job_title: '',
+      email: '', phone: '', linkedin_url: '', source: '', notes: '',
+    });
+    setShowDraftSelector(false);
+    setDialogOpen(true);
+  };
+
   const fetchLeads = async () => {
     try {
       const params = selectedStatus ? { status: selectedStatus } : {};
