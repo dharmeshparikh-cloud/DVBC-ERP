@@ -11,7 +11,48 @@
 
 ## Completed Work - February 2026
 
-### Phase 2: Manager Dashboard & Kickoff Approvals - February 21, 2026 ✅ (Latest)
+### Phase 3: P1 Tasks Completion - February 21, 2026 ✅ (Latest)
+
+**1. Target Management UI (Full Implementation)**
+- ✅ Yearly sales targets with monthly breakdown (Jan-Dec)
+- ✅ Target types: Revenue, Closures, Meetings
+- ✅ CRUD operations: Create, Edit, Delete targets
+- ✅ Summary cards: Total Targets Set, Team Members, Total Annual Target
+- ✅ Employee selection dropdown with subordinates
+- ✅ Quick apply feature for setting all months at once
+
+**2. Sales Targets Backend API (Updated)**
+- ✅ New collection: `yearly_sales_targets`
+- ✅ `POST /api/sales-targets` - Create yearly target with monthly_targets object
+- ✅ `GET /api/sales-targets` - List targets filtered by year/employee
+- ✅ `PATCH /api/sales-targets/{id}` - Update target
+- ✅ `DELETE /api/sales-targets/{id}` - Delete target
+
+**3. Agreement E-Sign & Upload Flow**
+- ✅ `POST /api/agreements/{id}/send-to-client` - Send agreement email to client
+- ✅ `POST /api/agreements/{id}/upload-signed` - Upload signed document
+- ✅ Frontend dialogs: Send to Client, Upload Signed Agreement
+- ✅ Agreement status flow: draft → sent → signed
+
+**4. List View Default on All Sales Funnel Pages**
+- ✅ Leads page - List view default
+- ✅ Agreements page - List view default  
+- ✅ Quotations page - List view default
+- ✅ SOW Builder - List view default
+
+**5. Manager Dashboard Permission Fix**
+- ✅ Added `account_manager` and `senior_consultant` roles to manager endpoints
+- ✅ `/api/manager/subordinate-leads` now accessible to all manager-level roles
+- ✅ `/api/manager/today-stats` fixed
+- ✅ `/api/manager/performance` fixed
+
+**Files Modified:**
+- `/app/backend/server.py` - Sales targets API, manager endpoint permissions
+- `/app/frontend/src/pages/TargetManagement.js` - Already fully implemented
+
+---
+
+### Phase 2: Manager Dashboard & Kickoff Approvals - February 21, 2026 ✅
 
 **1. Manager Leads Dashboard (NEW PAGE)**
 - ✅ Created `/manager-leads` route with full dashboard
