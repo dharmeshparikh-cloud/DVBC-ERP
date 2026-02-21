@@ -1027,15 +1027,7 @@ const AgreementView = () => {
                         key={consultant.id || consultant.user_id} 
                         value={consultant.user_id || consultant.id}
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">
-                            {consultant.first_name} {consultant.last_name}
-                          </span>
-                          <span className="text-zinc-400">•</span>
-                          <span className="text-xs text-zinc-500">
-                            {consultant.designation || 'Consultant'}
-                          </span>
-                        </div>
+                        {consultant.first_name} {consultant.last_name} - {consultant.designation || 'Consultant'}
                       </SelectItem>
                     ))
                   )}
