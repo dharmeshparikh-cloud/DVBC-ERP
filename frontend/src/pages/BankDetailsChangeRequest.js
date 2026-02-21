@@ -89,16 +89,23 @@ const BankDetailsChangeRequest = () => {
       setEmployee(response.data);
       
       // Pre-fill form with existing bank details
-      if (response.data?.bank_details) {
-        const bd = response.data.bank_details;
+      // Handle both old format (bank_details object) and new format (individual fields)
+      const bd = response.data?.bank_details || {};
+      const bankName = bd.bank_name || response.data?.bank_name || '';
+      const accountNumber = bd.account_number || response.data?.account_number || '';
+      const ifscCode = bd.ifsc_code || response.data?.ifsc_code || '';
+      const branchName = bd.branch_name || bd.branch || response.data?.bank_branch || '';
+      const holderName = bd.account_holder_name || `${response.data?.first_name || ''} ${response.data?.last_name || ''}`.trim();
+      
+      if (bankName || accountNumber) {
         setFormData(prev => ({
           ...prev,
-          account_holder_name: bd.account_holder_name || '',
-          account_number: bd.account_number || '',
-          confirm_account_number: bd.account_number || '',
-          bank_name: bd.bank_name || '',
-          ifsc_code: bd.ifsc_code || '',
-          branch_name: bd.branch_name || ''
+          account_holder_name: holderName,
+          account_number: accountNumber,
+          confirm_account_number: accountNumber,
+          bank_name: bankName,
+          ifsc_code: ifscCode,
+          branch_name: branchName
         }));
       }
     } catch (error) {
