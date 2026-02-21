@@ -18,6 +18,7 @@ const TargetManagement = () => {
   const [loading, setLoading] = useState(true);
   const [targets, setTargets] = useState([]);
   const [subordinates, setSubordinates] = useState([]);
+  const [totalClients, setTotalClients] = useState(0);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTarget, setEditingTarget] = useState(null);
@@ -43,13 +44,15 @@ const TargetManagement = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [targetsRes, subordinatesRes] = await Promise.all([
+      const [targetsRes, subordinatesRes, kpiRes] = await Promise.all([
         axios.get(`${API}/sales-targets?year=${selectedYear}`),
-        axios.get(`${API}/manager/subordinate-leads`)
+        axios.get(`${API}/manager/subordinate-leads`),
+        axios.get(`${API}/manager/target-vs-achievement?year=${selectedYear}`)
       ]);
       
       setTargets(targetsRes.data || []);
       setSubordinates(subordinatesRes.data.subordinates || []);
+      setTotalClients(kpiRes.data.total_clients || 0);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load targets');
