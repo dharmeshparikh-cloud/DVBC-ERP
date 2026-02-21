@@ -321,25 +321,42 @@ const Layout = () => {
 
       {/* Scrollable Navigation */}
       <nav className="flex-1 px-2 py-1.5 overflow-y-auto scrollbar-thin" data-testid="nav-container">
-        <NavLink item={{ name: isConsultant ? 'My Dashboard' : 'Dashboard', href: '/', icon: LayoutDashboard }} />
+        <div data-tour="dashboard-link">
+          <NavLink item={{ name: isConsultant ? 'My Dashboard' : 'Dashboard', href: '/', icon: LayoutDashboard }} />
+        </div>
 
         {/* MY WORKSPACE (includes Communication) */}
-        <SectionHeader label="My Workspace" sectionKey="workspace" />
-        {expanded.workspace && workspaceWithCommunication.map(item => <NavLink key={item.name} item={item} />)}
+        <div data-tour="my-workspace">
+          <SectionHeader label="My Workspace" sectionKey="workspace" />
+        </div>
+        {expanded.workspace && workspaceWithCommunication.map(item => (
+          <div 
+            key={item.name} 
+            data-tour={item.name === 'Team Chat' ? 'chat-link' : item.name === 'AI Assistant' ? 'ai-assistant-link' : undefined}
+          >
+            <NavLink item={item} />
+          </div>
+        ))}
 
         {/* HR */}
         {showHR && (
           <>
-            <SectionHeader label="HR" sectionKey="hr" />
+            <div data-tour="hr-section">
+              <SectionHeader label="HR" sectionKey="hr" />
+            </div>
             {expanded.hr && filteredHrItems.map(item => (
-              <NavLink 
-                key={item.name} 
-                item={item} 
-                badge={
-                  item.name === 'Attendance Approvals' ? pendingCounts.attendance :
-                  item.name === 'CTC Designer' ? pendingCounts.ctc : 0
-                }
-              />
+              <div 
+                key={item.name}
+                data-tour={item.name === 'Expense Approvals' ? 'expense-approvals' : undefined}
+              >
+                <NavLink 
+                  item={item} 
+                  badge={
+                    item.name === 'Attendance Approvals' ? pendingCounts.attendance :
+                    item.name === 'CTC Designer' ? pendingCounts.ctc : 0
+                  }
+                />
+              </div>
             ))}
           </>
         )}
@@ -347,7 +364,9 @@ const Layout = () => {
         {/* SALES */}
         {showSales && (
           <>
-            <SectionHeader label="Sales" sectionKey="sales" />
+            <div data-tour="sales-section">
+              <SectionHeader label="Sales" sectionKey="sales" />
+            </div>
             {expanded.sales && (
               <>
                 {salesFlowItems.map(item => <NavLink key={item.name} item={item} />)}
@@ -365,7 +384,9 @@ const Layout = () => {
         {/* CONSULTING */}
         {showConsulting && (
           <>
-            <SectionHeader label="Consulting" sectionKey="consulting" />
+            <div data-tour="projects-link">
+              <SectionHeader label="Consulting" sectionKey="consulting" />
+            </div>
             {expanded.consulting && consultingItems.map(item => <NavLink key={item.name} item={item} />)}
           </>
         )}
@@ -375,11 +396,15 @@ const Layout = () => {
           <>
             <SectionHeader label="Admin" sectionKey="admin" />
             {expanded.admin && adminItems.map(item => (
-              <NavLink 
-                key={item.name} 
-                item={item} 
-                badge={item.name === 'Approvals Center' ? pendingCounts.total : 0}
-              />
+              <div
+                key={item.name}
+                data-tour={item.name === 'Approvals Center' ? 'approvals-link' : undefined}
+              >
+                <NavLink 
+                  item={item} 
+                  badge={item.name === 'Approvals Center' ? pendingCounts.total : 0}
+                />
+              </div>
             ))}
           </>
         )}
