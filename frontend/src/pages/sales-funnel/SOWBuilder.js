@@ -11,10 +11,13 @@ import {
   ArrowLeft, Plus, Lock, History, Check, X, Send,
   FileText, Clock, Trash2, Edit2, Eye, Upload, Download,
   CheckCircle, AlertCircle, Clock as ClockIcon, XCircle,
-  Users, UserPlus, Calendar, GanttChart, Save, Paperclip
+  Users, UserPlus, Calendar, GanttChart, Save, Paperclip, Cloud
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addWeeks, startOfWeek } from 'date-fns';
+import useDraft from '../../hooks/useDraft';
+import DraftIndicator from '../../components/DraftIndicator';
+import DraftSelector from '../../components/DraftSelector';
 
 const SOW_CATEGORIES = [
   { value: 'sales', label: 'Sales' },
