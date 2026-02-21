@@ -12813,6 +12813,412 @@ async def get_target_vs_achievement(
     }
 
 
+# ============== FUNNEL ANALYTICS ==============
+
+@api_router.get("/analytics/funnel-summary")
+async def get_funnel_summary(
+    period: str = "month",  # week, month, quarter, year
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    employee_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get funnel stage summary with employee-wise breakdown.
+    For managers: sees all subordinates
+    For employees: sees only their own data
+    """
+    now = datetime.now(timezone.utc)
+    
+    # Calculate date range based on period
+    if start_date and end_date:
+        date_start = start_date
+        date_end = end_date
+    elif period == "week":
+        date_start = (now - timedelta(days=now.weekday())).strftime("%Y-%m-%d")
+        date_end = now.strftime("%Y-%m-%d")
+    elif period == "quarter":
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        date_start = datetime(now.year, quarter_month, 1).strftime("%Y-%m-%d")
+        date_end = now.strftime("%Y-%m-%d")
+    elif period == "year":
+        date_start = datetime(now.year, 1, 1).strftime("%Y-%m-%d")
+        date_end = now.strftime("%Y-%m-%d")
+    else:  # month
+        date_start = datetime(now.year, now.month, 1).strftime("%Y-%m-%d")
+        date_end = now.strftime("%Y-%m-%d")
+    
+    # Determine access level
+    is_manager = current_user.role in ["admin", "manager", "sr_manager", "principal_consultant", "sales_manager"]
+    
+    # Get employee info
+    user_employee = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    # Build employee filter
+    employee_ids = []
+    employee_map = {}
+    
+    if is_manager and not employee_id:
+        # Get all subordinates for manager
+        if current_user.role == "admin":
+            subordinates = await db.employees.find(
+                {"is_active": True},
+                {"_id": 0, "user_id": 1, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}
+            ).to_list(500)
+        elif user_employee:
+            manager_id = user_employee.get("employee_id") or user_employee.get("id")
+            subordinates = await db.employees.find(
+                {"$or": [
+                    {"reporting_manager_id": manager_id}, 
+                    {"reporting_manager_id": user_employee.get("id")}
+                ], "is_active": True},
+                {"_id": 0, "user_id": 1, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}
+            ).to_list(100)
+        else:
+            subordinates = []
+        
+        for sub in subordinates:
+            emp_id = sub.get("user_id") or sub.get("id")
+            employee_ids.append(emp_id)
+            employee_map[emp_id] = f"{sub.get('first_name', '')} {sub.get('last_name', '')}".strip()
+    elif employee_id:
+        employee_ids = [employee_id]
+        emp = await db.employees.find_one({"$or": [{"user_id": employee_id}, {"id": employee_id}]}, {"_id": 0})
+        if emp:
+            employee_map[employee_id] = f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip()
+    else:
+        # Employee viewing own data
+        if user_employee:
+            emp_id = user_employee.get("user_id") or user_employee.get("id")
+            employee_ids = [emp_id, current_user.id]
+            employee_map[emp_id] = f"{user_employee.get('first_name', '')} {user_employee.get('last_name', '')}".strip()
+        else:
+            employee_ids = [current_user.id]
+            employee_map[current_user.id] = current_user.full_name
+    
+    # Define funnel stages
+    funnel_stages = [
+        {"id": "lead", "name": "Lead Capture", "order": 1},
+        {"id": "meeting", "name": "Meeting", "order": 2},
+        {"id": "pricing", "name": "Pricing Plan", "order": 3},
+        {"id": "sow", "name": "SOW", "order": 4},
+        {"id": "quotation", "name": "Quotation", "order": 5},
+        {"id": "agreement", "name": "Agreement", "order": 6},
+        {"id": "payment", "name": "Payment", "order": 7},
+        {"id": "kickoff", "name": "Kickoff", "order": 8},
+        {"id": "complete", "name": "Project Created", "order": 9}
+    ]
+    
+    # Get all leads for the employees in date range
+    lead_query = {"created_at": {"$gte": date_start, "$lte": date_end + "T23:59:59"}}
+    if employee_ids:
+        lead_query["$or"] = [
+            {"created_by": {"$in": employee_ids}},
+            {"assigned_to": {"$in": employee_ids}}
+        ]
+    
+    leads = await db.leads.find(lead_query, {"_id": 0, "id": 1, "created_by": 1, "assigned_to": 1, "status": 1}).to_list(1000)
+    lead_ids = [l["id"] for l in leads]
+    
+    # Get progress for all leads
+    stage_counts = {stage["id"]: 0 for stage in funnel_stages}
+    employee_stage_counts = {emp_id: {stage["id"]: 0 for stage in funnel_stages} for emp_id in employee_ids}
+    
+    # Count leads at each stage
+    for lead in leads:
+        lead_id = lead["id"]
+        emp_id = lead.get("assigned_to") or lead.get("created_by")
+        
+        # Determine current stage
+        current_stage = "lead"
+        
+        # Check meeting
+        meeting = await db.meeting_records.find_one({"lead_id": lead_id})
+        if meeting:
+            current_stage = "meeting"
+        
+        # Check pricing plan
+        pricing = await db.pricing_plans.find_one({"lead_id": lead_id})
+        if pricing:
+            current_stage = "pricing"
+            
+            # Check SOW
+            sow = await db.enhanced_sow.find_one({"$or": [
+                {"pricing_plan_id": pricing.get("id")},
+                {"lead_id": lead_id}
+            ]})
+            if sow:
+                current_stage = "sow"
+        
+        # Check quotation
+        quotation = await db.quotations.find_one({"lead_id": lead_id})
+        if quotation:
+            current_stage = "quotation"
+        
+        # Check agreement
+        agreement = await db.agreements.find_one({"lead_id": lead_id})
+        if agreement:
+            if agreement.get("status") == "signed":
+                current_stage = "agreement"
+            else:
+                current_stage = "quotation"  # Agreement draft, still at quotation stage
+        
+        # Check payment
+        if agreement:
+            payment = await db.agreement_payments.find_one({"agreement_id": agreement.get("id")})
+            if payment:
+                current_stage = "payment"
+        
+        # Check kickoff
+        kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id})
+        if kickoff:
+            if kickoff.get("status") == "accepted":
+                current_stage = "complete"
+            else:
+                current_stage = "kickoff"
+        
+        # Update counts
+        stage_counts[current_stage] += 1
+        if emp_id in employee_stage_counts:
+            employee_stage_counts[emp_id][current_stage] += 1
+    
+    # Build employee breakdown
+    employee_breakdown = []
+    for emp_id, stages in employee_stage_counts.items():
+        total = sum(stages.values())
+        employee_breakdown.append({
+            "employee_id": emp_id,
+            "employee_name": employee_map.get(emp_id, "Unknown"),
+            "stages": stages,
+            "total_leads": total,
+            "conversion_rate": round((stages.get("complete", 0) / total * 100) if total > 0 else 0, 1)
+        })
+    
+    # Sort by total leads
+    employee_breakdown.sort(key=lambda x: x["total_leads"], reverse=True)
+    
+    # Calculate totals
+    total_leads = sum(stage_counts.values())
+    completed = stage_counts.get("complete", 0)
+    
+    return {
+        "period": period,
+        "date_range": {"start": date_start, "end": date_end},
+        "summary": {
+            "total_leads": total_leads,
+            "completed": completed,
+            "conversion_rate": round((completed / total_leads * 100) if total_leads > 0 else 0, 1),
+            "in_progress": total_leads - completed
+        },
+        "stage_counts": stage_counts,
+        "funnel_stages": funnel_stages,
+        "employee_breakdown": employee_breakdown if is_manager else [],
+        "is_manager_view": is_manager
+    }
+
+
+@api_router.get("/analytics/my-funnel-summary")
+async def get_my_funnel_summary(
+    period: str = "month",
+    current_user: User = Depends(get_current_user)
+):
+    """Get employee's own funnel summary with target vs achievement"""
+    now = datetime.now(timezone.utc)
+    
+    # Get employee info
+    user_employee = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    emp_id = user_employee.get("employee_id") or user_employee.get("id") if user_employee else current_user.id
+    user_id = user_employee.get("user_id") or current_user.id if user_employee else current_user.id
+    
+    # Calculate date range
+    if period == "week":
+        date_start = (now - timedelta(days=now.weekday())).strftime("%Y-%m-%d")
+    elif period == "quarter":
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        date_start = datetime(now.year, quarter_month, 1).strftime("%Y-%m-%d")
+    elif period == "year":
+        date_start = datetime(now.year, 1, 1).strftime("%Y-%m-%d")
+    else:  # month
+        date_start = datetime(now.year, now.month, 1).strftime("%Y-%m-%d")
+    
+    date_end = now.strftime("%Y-%m-%d")
+    
+    # Get my leads
+    my_leads = await db.leads.find({
+        "$or": [
+            {"created_by": {"$in": [user_id, emp_id, current_user.id]}},
+            {"assigned_to": {"$in": [user_id, emp_id, current_user.id]}}
+        ],
+        "created_at": {"$gte": date_start}
+    }, {"_id": 0, "id": 1, "status": 1}).to_list(500)
+    
+    lead_ids = [l["id"] for l in my_leads]
+    
+    # Count by stage (simplified)
+    stage_counts = {
+        "lead": 0, "meeting": 0, "pricing": 0, "sow": 0,
+        "quotation": 0, "agreement": 0, "payment": 0, "kickoff": 0, "complete": 0
+    }
+    
+    for lead in my_leads:
+        lead_id = lead["id"]
+        stage = "lead"
+        
+        if await db.meeting_records.find_one({"lead_id": lead_id}):
+            stage = "meeting"
+        if await db.pricing_plans.find_one({"lead_id": lead_id}):
+            stage = "pricing"
+        if await db.enhanced_sow.find_one({"lead_id": lead_id}):
+            stage = "sow"
+        if await db.quotations.find_one({"lead_id": lead_id}):
+            stage = "quotation"
+        agreement = await db.agreements.find_one({"lead_id": lead_id})
+        if agreement and agreement.get("status") == "signed":
+            stage = "agreement"
+        if agreement:
+            if await db.agreement_payments.find_one({"agreement_id": agreement.get("id")}):
+                stage = "payment"
+        kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id})
+        if kickoff:
+            stage = "kickoff" if kickoff.get("status") != "accepted" else "complete"
+        
+        stage_counts[stage] += 1
+    
+    # Get targets
+    targets = await db.yearly_sales_targets.find({
+        "employee_id": emp_id,
+        "year": now.year
+    }, {"_id": 0}).to_list(10)
+    
+    meeting_target = 0
+    closure_target = 0
+    revenue_target = 0
+    
+    for t in targets:
+        monthly = t.get("monthly_targets", {}).get(str(now.month), 0)
+        if t.get("target_type") == "meetings":
+            meeting_target = monthly
+        elif t.get("target_type") == "closures":
+            closure_target = monthly
+        elif t.get("target_type") == "revenue":
+            revenue_target = monthly
+    
+    # Get achievements
+    month_start = datetime(now.year, now.month, 1).strftime("%Y-%m-%d")
+    meetings_achieved = await db.meeting_records.count_documents({
+        "created_by": {"$in": [user_id, emp_id, current_user.id]},
+        "meeting_date": {"$gte": month_start}
+    })
+    
+    closures_achieved = stage_counts.get("complete", 0)
+    
+    # Revenue from completed deals
+    revenue_achieved = 0
+    completed_agreements = await db.agreements.find({
+        "lead_id": {"$in": lead_ids},
+        "status": "signed"
+    }, {"_id": 0, "total_value": 1}).to_list(100)
+    for agr in completed_agreements:
+        revenue_achieved += agr.get("total_value", 0)
+    
+    return {
+        "period": period,
+        "date_range": {"start": date_start, "end": date_end},
+        "total_leads": len(my_leads),
+        "stage_counts": stage_counts,
+        "targets": {
+            "meetings": {
+                "target": meeting_target,
+                "achieved": meetings_achieved,
+                "percentage": round((meetings_achieved / meeting_target * 100) if meeting_target > 0 else 0, 1)
+            },
+            "closures": {
+                "target": closure_target,
+                "achieved": closures_achieved,
+                "percentage": round((closures_achieved / closure_target * 100) if closure_target > 0 else 0, 1)
+            },
+            "revenue": {
+                "target": revenue_target,
+                "achieved": revenue_achieved,
+                "percentage": round((revenue_achieved / revenue_target * 100) if revenue_target > 0 else 0, 1)
+            }
+        },
+        "conversion_rate": round((closures_achieved / len(my_leads) * 100) if len(my_leads) > 0 else 0, 1)
+    }
+
+
+@api_router.get("/analytics/funnel-trends")
+async def get_funnel_trends(
+    period: str = "month",  # Shows last 6 units of this period
+    current_user: User = Depends(get_current_user)
+):
+    """Get month-over-month funnel trends for manager view"""
+    is_manager = current_user.role in ["admin", "manager", "sr_manager", "principal_consultant", "sales_manager"]
+    
+    if not is_manager:
+        raise HTTPException(status_code=403, detail="Only managers can view trends")
+    
+    now = datetime.now(timezone.utc)
+    trends = []
+    
+    for i in range(6):
+        if period == "month":
+            target_date = now - timedelta(days=30 * i)
+            month_start = datetime(target_date.year, target_date.month, 1)
+            if target_date.month == 12:
+                month_end = datetime(target_date.year + 1, 1, 1)
+            else:
+                month_end = datetime(target_date.year, target_date.month + 1, 1)
+            label = month_start.strftime("%b %Y")
+        elif period == "week":
+            target_date = now - timedelta(weeks=i)
+            week_start = target_date - timedelta(days=target_date.weekday())
+            week_end = week_start + timedelta(days=7)
+            month_start = week_start
+            month_end = week_end
+            label = f"Week {week_start.strftime('%d %b')}"
+        else:
+            continue
+        
+        # Count leads created in this period
+        leads_created = await db.leads.count_documents({
+            "created_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}
+        })
+        
+        # Count completed in this period
+        completed = await db.kickoff_requests.count_documents({
+            "status": "accepted",
+            "updated_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}
+        })
+        
+        # Count meetings
+        meetings = await db.meeting_records.count_documents({
+            "meeting_date": {"$gte": month_start.strftime("%Y-%m-%d"), "$lt": month_end.strftime("%Y-%m-%d")}
+        })
+        
+        trends.append({
+            "period": label,
+            "leads_created": leads_created,
+            "completed": completed,
+            "meetings": meetings,
+            "conversion_rate": round((completed / leads_created * 100) if leads_created > 0 else 0, 1)
+        })
+    
+    trends.reverse()  # Oldest first
+    
+    return {
+        "period_type": period,
+        "trends": trends
+    }
+
+
 # ============== LEAD PROGRESS TRACKING ==============
 
 @api_router.get("/leads/{lead_id}/progress")
