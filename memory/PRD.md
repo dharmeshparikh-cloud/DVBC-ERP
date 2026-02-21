@@ -11,7 +11,39 @@
 
 ## Completed Work - February 2026
 
-### Phase 1: Lead Stage Filter & List View + Single Approval Flow - February 21, 2026 ✅ (Latest)
+### Phase 2: Manager Dashboard & Kickoff Approvals - February 21, 2026 ✅ (Latest)
+
+**1. Manager Leads Dashboard (NEW PAGE)**
+- ✅ Created `/manager-leads` route with full dashboard
+- ✅ Today's Stats: Meetings, Calls, Closures, Team Size, Absent employees
+- ✅ Monthly & YTD Performance cards with progress bars
+- ✅ Team Summary: Grouped leads by employee with closure counts
+- ✅ Full leads table with Pause/Resume buttons, status badges, progress indicators
+- ✅ Filters: Search, Team Member dropdown, Status dropdown
+- ✅ Click-through to sales funnel for each lead
+
+**2. Kickoff Requests in Approvals Center**
+- ✅ Added "KICKOFF" stat card in Approvals Center
+- ✅ "Pending Kickoff Requests" section with full details
+- ✅ Kickoff Detail Dialog with approve/reject actions
+- ✅ Shows linked Agreement info and Lead info
+- ✅ Badge showing "Single Approval Point"
+
+**3. Navigation Updates**
+- ✅ Added "Team Leads" link in sidebar (for managers)
+- ✅ Added "Kickoff Requests" link in sidebar
+
+**Files Created:**
+- `/app/frontend/src/pages/ManagerLeadsDashboard.js`
+
+**Files Modified:**
+- `/app/frontend/src/App.js` - Added routes
+- `/app/frontend/src/pages/ApprovalsCenter.js` - Added Kickoff section
+- `/app/frontend/src/components/Layout.js` - Added nav links
+
+---
+
+### Phase 1: Lead Stage Filter & List View + Single Approval Flow - February 21, 2026 ✅
 
 **1. Lead Stage Dropdown Filter (Replaced Buttons)**
 - ✅ Replaced button-based status filter with dropdown
