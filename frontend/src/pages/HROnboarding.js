@@ -77,6 +77,29 @@ const HROnboarding = () => {
   const [suggestedDept, setSuggestedDept] = useState(null);
   const [deptSuggestionLoading, setDeptSuggestionLoading] = useState(false);
   
+  // Draft system
+  const [showDraftSelector, setShowDraftSelector] = useState(false);
+  const generateDraftTitle = useCallback((data) => {
+    if (data.first_name || data.last_name) {
+      return `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'New Employee';
+    }
+    return 'New Employee Draft';
+  }, []);
+  
+  const {
+    draftId,
+    drafts,
+    loadingDrafts,
+    saving: savingDraft,
+    lastSaved,
+    loadDraft,
+    saveDraft,
+    autoSave,
+    deleteDraft,
+    convertDraft,
+    clearDraft
+  } = useDraft('onboarding', generateDraftTitle);
+  
   // Success dialog state
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [onboardingSuccess, setOnboardingSuccess] = useState(null);
