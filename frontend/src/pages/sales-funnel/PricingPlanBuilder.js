@@ -628,7 +628,14 @@ const PricingPlanBuilder = () => {
       // Navigate to new scope selection flow
       navigate(`/sales-funnel/scope-selection/${response.data.id}?lead_id=${leadId}`);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create pricing plan');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to create pricing plan');
+      }
     } finally {
       setLoading(false);
     }
