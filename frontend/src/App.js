@@ -54,6 +54,7 @@ const Timesheets = lazy(() => import('./pages/Timesheets'));
 const HandoverAlerts = lazy(() => import('./pages/HandoverAlerts'));
 const KickoffMeeting = lazy(() => import('./pages/KickoffMeeting'));
 const KickoffRequests = lazy(() => import('./pages/KickoffRequests'));
+const ManagerLeadsDashboard = lazy(() => import('./pages/ManagerLeadsDashboard'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const Employees = lazy(() => import('./pages/Employees'));
