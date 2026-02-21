@@ -11,7 +11,50 @@
 
 ## Completed Work - February 2026
 
-### Day 0 Guided Onboarding Tour - February 21, 2026 ✅ (Latest)
+### AI-Powered Hybrid Guidance System - February 21, 2026 ✅ (Latest)
+**Contextual help system with AI-powered navigation suggestions**
+
+**Features:**
+- ✅ **Floating Help Button** - Orange circular button at bottom-right corner
+  - Pulse animation for first-time users
+  - `data-testid="floating-help-btn"` for testing
+  - Fixed position (bottom-6 right-6) with z-50
+- ✅ **Help Panel Modal** with 3 tabs:
+  1. **Ask AI Tab** - GPT-4o powered contextual help
+     - Quick action buttons based on user role
+     - Natural language queries ("How do I apply for leave?")
+     - Navigation suggestions extracted from AI response
+     - Auto-navigate feature takes user directly to relevant page
+  2. **Step-by-Step Guides Tab** - Workflow checklists
+     - Daily Tasks: Check-in, Regularize Attendance, Apply Leave, Submit Expense
+     - Sales Flow: Lead to Quotation, Quotation to Agreement, Agreement to Kickoff
+     - HR & Onboarding: Employee Onboarding, Permission Change, Approval Process
+     - Meetings & Tasks: Schedule Meeting, Create Task, Create Follow-up
+     - Administration: Manage Masters
+  3. **Page Tips Tab** - Contextual tips for current page
+     - "About this page" descriptions
+     - Pro tips specific to each page
+
+**Backend Endpoints:**
+- `POST /api/ai/guidance-help` - AI-powered help with navigation suggestions
+  - Request: `{query, current_page, user_role}`
+  - Response: `{response, suggested_route, auto_navigate}`
+- `GET /api/my/guidance-state` - Fetch user's guidance preferences
+- `POST /api/my/guidance-state` - Save user's guidance preferences
+
+**Files:**
+- `/app/frontend/src/components/GuidanceSystem.js` - FloatingHelpButton, HelpPanel, WorkflowOverlay
+- `/app/frontend/src/contexts/GuidanceContext.js` - WORKFLOWS, PAGE_TIPS, GuidanceProvider
+- `/app/backend/server.py` - Lines 11315-11414 for AI guidance endpoint
+- `/app/backend/tests/test_guidance_system.py` - Comprehensive test suite
+
+**Integration:**
+- Uses `emergentintegrations.llm.chat.LlmChat` with GPT-4o model
+- Navigation parsing via `[NAVIGATE:/route-path]` format in AI response
+
+---
+
+### Day 0 Guided Onboarding Tour - February 21, 2026 ✅
 **Role-specific guided tour for first-time users**
 
 **Features:**
