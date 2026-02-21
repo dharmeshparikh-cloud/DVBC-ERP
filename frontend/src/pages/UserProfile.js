@@ -366,6 +366,38 @@ const UserProfile = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Replay Tour */}
+          <Card className="border-zinc-200 shadow-none rounded-sm mt-6">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold uppercase tracking-tight text-zinc-950 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-orange-500" />
+                App Tour
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <p className="text-zinc-500 text-sm mb-4">
+                Want to see the guided tour again? Click below to restart the onboarding walkthrough.
+              </p>
+              <Button
+                onClick={async () => {
+                  try {
+                    await axios.post(`${API}/my/reset-onboarding`);
+                    toast.success('Tour reset! Refreshing page...');
+                    setTimeout(() => window.location.reload(), 1000);
+                  } catch (error) {
+                    toast.error('Failed to reset tour');
+                  }
+                }}
+                variant="outline"
+                className="w-full rounded-sm border-orange-200 text-orange-600 hover:bg-orange-50"
+                data-testid="replay-tour-btn"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Replay Onboarding Tour
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
