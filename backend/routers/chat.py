@@ -536,3 +536,94 @@ async def get_chat_users(
     
     users = await db.users.find(query, {"_id": 0, "id": 1, "full_name": 1, "email": 1, "role": 1, "department": 1, "avatar_url": 1}).limit(50).to_list(50)
     return users
+
+
+# ==================== WEBSOCKET ====================
+
+@router.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket endpoint for real-time chat updates"""
+    ws_manager = get_manager()
+    await ws_manager.connect(websocket, user_id)
+    
+    try:
+        # Send initial connection success message
+        await websocket.send_json({
+            "type": "connected",
+            "user_id": user_id,
+            "message": "Connected to chat WebSocket"
+        })
+        
+        while True:
+            # Receive and process messages from client
+            data = await websocket.receive_json()
+            
+            if data.get("type") == "subscribe":
+                # Subscribe to a conversation
+                conversation_id = data.get("conversation_id")
+                if conversation_id:
+                    ws_manager.subscribe_to_conversation(user_id, conversation_id)
+                    await websocket.send_json({
+                        "type": "subscribed",
+                        "conversation_id": conversation_id
+                    })
+            
+            elif data.get("type") == "unsubscribe":
+                # Unsubscribe from a conversation
+                conversation_id = data.get("conversation_id")
+                if conversation_id:
+                    ws_manager.unsubscribe_from_conversation(user_id, conversation_id)
+                    await websocket.send_json({
+                        "type": "unsubscribed",
+                        "conversation_id": conversation_id
+                    })
+            
+            elif data.get("type") == "ping":
+                # Keep-alive ping
+                await websocket.send_json({"type": "pong"})
+            
+            elif data.get("type") == "typing":
+                # Broadcast typing indicator
+                conversation_id = data.get("conversation_id")
+                if conversation_id:
+                    await ws_manager.broadcast_to_users(
+                        {
+                            "type": "typing",
+                            "conversation_id": conversation_id,
+                            "user_id": user_id,
+                            "user_name": data.get("user_name", "Someone")
+                        },
+                        data.get("participant_ids", []),
+                        exclude_user=user_id
+                    )
+            
+            elif data.get("type") == "read":
+                # Broadcast read receipt
+                conversation_id = data.get("conversation_id")
+                message_id = data.get("message_id")
+                if conversation_id:
+                    await ws_manager.broadcast_to_users(
+                        {
+                            "type": "read",
+                            "conversation_id": conversation_id,
+                            "message_id": message_id,
+                            "user_id": user_id
+                        },
+                        data.get("participant_ids", []),
+                        exclude_user=user_id
+                    )
+    
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, user_id)
+        logger.info(f"WebSocket disconnected for user {user_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error for user {user_id}: {e}")
+        ws_manager.disconnect(websocket, user_id)
+
+
+@router.get("/online-users")
+async def get_online_users():
+    """Get list of currently online users"""
+    ws_manager = get_manager()
+    return {"online_users": ws_manager.get_online_users()}
+
