@@ -478,14 +478,23 @@ async def ai_query(
     user_id: str = Query(...),
     db=Depends(get_db)
 ):
-    """Process a natural language query about ERP data"""
+    """Process a natural language query about ERP data with RBAC"""
+    # Check user access level
+    access = await get_user_access_level(db, user_id)
+    
+    if access.get("level") == "restricted":
+        raise HTTPException(status_code=403, detail=access.get("reason", "AI access restricted"))
+    
+    if access.get("level") == "none":
+        raise HTTPException(status_code=404, detail="User not found")
+    
     session_id = request.session_id or f"erp_ai_{user_id}_{datetime.now().strftime('%Y%m%d')}"
     
-    # Get relevant ERP context
+    # Get RBAC-filtered ERP context
     context_type = request.context or "all"
-    erp_data = await get_erp_context(db, context_type)
+    erp_data = await get_filtered_erp_context(db, context_type, access)
     
-    # Format context for AI
+    # Format context for AI with access level info
     context_str = json.dumps(erp_data, indent=2, default=str)
     
     # Query AI
@@ -499,6 +508,7 @@ async def ai_query(
         "query": request.query,
         "response": response,
         "context": context_type,
+        "access_level": access.get("level"),
         "created_at": datetime.now(timezone.utc)
     }
     await db.ai_chat_history.insert_one(chat_entry)
@@ -518,6 +528,7 @@ async def ai_query(
         "response": response,
         "query_type": query_type,
         "session_id": session_id,
+        "access_level": access.get("level"),
         "data": erp_data if query_type in ["analysis", "query"] else None
     }
 
