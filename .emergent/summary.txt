@@ -1,75 +1,113 @@
 <analysis>**original_problem_statement:**
-The user is developing a comprehensive business management ERP named NETRA. The initial goal was to restore the application after a failed feature rollback. Following the restoration, the user requested several major new features and enhancements:
-1.  **Internal Chat System:** A real-time chat for all users, including direct messages and group channels.
-2.  **AI Assistant:** An integrated OpenAI-powered assistant for ERP data analysis and reporting with Role-Based Access Control (RBAC).
-3.  **Email Action System:** A system for sending notifications with one-click approval/rejection links that work without logging into the app. All approval workflows must trigger these emails automatically.
-4.  **Admin Controls:** Admins should be able to audit all chat conversations and restrict users.
-5.  **Approval Center Enhancements:** The central approval dashboard should have real-time updates via WebSockets, bulk action capabilities, and a mobile-friendly design.
-6.  **Day 0 Onboarding Tour:** A guided walkthrough for first-time users, highlighting key features, with role-specific content and a replay option.
-7.  **AI-Powered Guidance System:** A contextual help system available on all pages to provide step-by-step guides for complex tasks and offer on-demand AI assistance that can navigate the user to the correct page.
-8.  **Employee Self-Service:** A portal for employees to edit their own details and submit changes for HR approval.
-9.  **UI/UX Improvements:** Enhance various UI components like the notifications panel for better usability.
+The user is developing a comprehensive business management ERP named NETRA. The initial goal was to restore the application after a failed feature rollback. Following the restoration, the user requested several major new features and enhancements, with a recent focus on a complete overhaul of the sales funnel process.
+
+**Key requirements for the sales funnel refactor:**
+1.  **Simplified Approval Flow:** Remove all intermediate approvals (e.g., for SOWs, Agreements) and establish a single approval point for a Kickoff Request to be approved by a Sr. Manager or Principal Consultant.
+2.  **Revamped Lead Stages & Filtering:** Replace the existing button-based filters on the leads page with a dropdown containing a new, more granular set of stages (e.g., Meeting, Pricing Plan, SOW, Agreement, Payment, Kickoff Request, etc.). The list view should be the default on all sales funnel pages.
+3.  **Manager Dashboard:** Create a dedicated dashboard for managers to view their subordinates' lead progress, see high-level stats (Today's Meetings, Calls, Closures, Absents), and drill down into individual leads.
+4.  **Managerial Controls:**
+    *   Implement a Pause/Resume function for managers to halt or continue progress on a subordinate's lead.
+    *   Create a UI for managers to assign sales targets to their team members.
+5.  **Enhanced Sales Flow:**
+    *   Make Record Meeting a mandatory step before proceeding to the pricing plan.
+    *   Implement an e-sign flow for agreements, including sending HTML templates to clients and allowing manual upload of the signed document.
+    *   Record payment details, including Cheque Number or UTR.
+    *   Ensure data from the SOW is inherited by the project when a deal is closed.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a stable and feature-rich full-stack ERP (React, FastAPI, MongoDB). All previously requested core features are complete. The last session focused on implementing UI/UX enhancements and a new Employee Self-Service feature.
+The application is a full-stack ERP with a React frontend, FastAPI backend, and MongoDB.
 
-Key completed enhancements in this session:
--   **AI Guidance System:** The hybrid AI guidance system is fully implemented and tested. It now includes Smart Suggestions to proactively guide users and the help panel is draggable to prevent it from blocking content.
--   **Notifications Panel:** The UI was overhauled to sort notifications by newest first and add filter tabs (by request type) with unread counts.
--   **Attendance Settings:** The Consulting Roles section was made read-only (inherited from Employee Master), and a new Employee-wise Configuration section was added to manage custom policies.
--   **Employee Self-Service:** A new My Details page was created under My Workspace, allowing employees to view their information. The backend endpoints and frontend page structure are in place.
+In this session, the agent fixed an issue preventing the System Admin from seeing pending agreement approvals by correctly fetching and displaying them in the . A View button with a detail dialog was also added.
+
+Most significantly, a major refactor of the sales funnel was executed:
+-   **Approval Flow Simplified:** Intermediate approvals for SOWs and Agreements were removed from the backend logic. The agreement status now defaults to  and is auto-approved upon creation.
+-   **New Kickoff Approval Flow:** A new  model and API endpoints (, ) were created to serve as the new single approval point. This flow was integrated into the  for relevant roles.
+-   **Leads Page Overhaul:** The  page now defaults to a list view. The old filter buttons were replaced with a dropdown menu containing the new, detailed lead stages.
+-   **Manager Controls:** A Pause/Resume lead feature was implemented (backend and frontend) for users with a manager role.
+-   **Manager Dashboard:** A new  page was created, providing a comprehensive overview of subordinate leads, team performance stats, and a summary table. A link was added to the main navigation sidebar.
 
 **Last working item**:
--   **Last item agent was working:** Implementing the My Details (Employee Self-Service) page. The agent successfully created the page, added the navigation link, and confirmed it renders correctly. The last action was taking a screenshot to verify the page's UI before testing the Edit functionality.
+-   **Last item agent was working:** The agent was simultaneously implementing three P1 user requests:
+    1.  Creating a Target Assignment UI for managers.
+    2.  Adding E-Sign template sending and Signed Agreement Upload functionality to the  page.
+    3.  Updating all sales funnel pages (beyond just ) to use a list view by default.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
 -   **Which testing method agent to use?** both
-    -   **Frontend:** Use the  to simulate a user clicking Edit on a section (e.g., Contact Info), filling out the modal form, submitting it, and verifying a success toast appears.
-    -   **Backend:** After the frontend test, log in as an HR Manager/Admin and verify that a new change request appears in the Approval Center or a dedicated admin view. Use  to test the new  endpoints directly.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Complete and Test Employee Self-Service (My Details) Page (P0)**
-    -   **Attempted fixes:** The agent created the page (), backend endpoints in , and added the routes/links in  and . The page now renders without errors.
+-   **Issue 1: Finalize Manager Target Assignment UI (P1)**
+    -   **Attempted fixes:** A new page  was created, and a route and sidebar link were added. The component is currently a skeleton.
     -   **Next debug checklist:**
-        1.  As a regular employee, navigate to the My Details page.
-        2.  Click the Edit button for the Contact Information section.
-        3.  Verify the edit modal dialog opens.
-        4.  Change the information and click Submit.
-        5.  Verify a confirmation message is shown and the modal closes.
-        6.  Log in as an HR Manager ().
-        7.  Check the Approval Center or notification bell for a new Employee Modification request.
-        8.  Approve the request and verify the employee's details are updated in the Employees page.
-    -   **Why fix this issue and what will be achieved with the fix?** This completes a key user-requested feature, empowering employees to manage their own data and reducing the administrative workload for HR.
+        1.  Flesh out the  component to fetch the list of subordinates for the logged-in manager.
+        2.  Create input fields for setting monthly and yearly targets (closure count and value) for each subordinate.
+        3.  Implement the  handler to call the existing  endpoint.
+        4.  Provide user feedback on successful updates.
+    -   **Why fix this issue and what will be achieved with the fix?** This will complete a key manager functionality, allowing them to set and track team goals directly within the ERP.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
-**In progress Task List**:
--   **Task 1: Implement Employee Self-Service Edit/Approval Flow (P0)**
-    -   **Where to resume:** The My Details page is rendering. The next step is to implement and test the full user flow for the Edit buttons: opening the modal, submitting data, and triggering the backend approval workflow.
-    -   **What will be achieved with this?** A fully functional self-service portal for employees.
+-   **Issue 2: Complete E-Sign & Signed Document Upload Flow (P1)**
+    -   **Attempted fixes:** Backend endpoints  and  were created. Frontend state, handlers, and dialog components were added to .
+    -   **Next debug checklist:**
+        1.  Finalize the UI for the Send to Client and Upload Signed Agreement dialogs in .
+        2.  Ensure the file upload logic correctly sends the file to the backend.
+        3.  Implement the logic for the  endpoint, which likely needs to interface with an email service.
+        4.  Test the full flow: send to client, receive signed doc, upload it.
+    -   **Why fix this issue and what will be achieved with the fix?** This will digitize a critical part of the deal closure process, removing the need for out-of-app communication.
     -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
+
+-   **Issue 3: Data Integrity in Leave Requests (P2)**
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:** A single leave request has a malformed date string (25th Feb to 27th feb). Run a one-time script to fix or delete this record: .
+    -   **Why fix this issue and what will be achieved with the fix?** Cleans up bad data, preventing potential errors in reporting.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on other issue:** None
+
+**In progress Task List**:
+-   **Task 1: Set All Sales Funnel Pages to List View Default (P1)**
+    -   **Where to resume:** The agent identified the relevant files (, , , ). The change from card view to list view needs to be implemented in each of these components, similar to how it was done in .
+    -   **What will be achieved with this?** This will provide a consistent user experience across the entire sales funnel as requested by the user.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on something:** None
+
+-   **Task 2: Implement Payment Recording with Cheque/UTR (P2)**
+    -   **Where to resume:** The agent identified the backend endpoint .
+    -   **What will be achieved with this?** It will allow for more detailed payment tracking.
+    -   **Status:** NOT STARTED
+    -   **Should Test frontend/backend/both after fix?** backend
     -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
--   **(P1) Implement Document Download Functionality:** The user asked how to download documents uploaded during onboarding. The agent identified that the download button exists but is not functional. This needs a backend endpoint and a frontend handler.
--   **(P1) Verify CTC Designer Access Restriction:** The user requested that the CTC designer be mandatory during the onboarding flow and restricted to edit-only from the main navigation. This logic needs to be fully implemented and tested.
--   **(P2) Investigate Slow Login Screen:** The user reported login screen taking longer to load. This requires performance analysis of frontend assets and backend authentication routes.
--   **(P2) Implement Sales Incentive Module:** Link incentives to the existing  records.
--   **(P2) Refactor :** Continue breaking down the monolithic  into domain-specific routers and services.
--   **(P2) Implement Full Pages for Placeholders:** The  and  pages are currently empty placeholders.
+-   **(P2) Implement Mandatory Meeting Check:** Block users from accessing the  for a lead until at least one meeting has been recorded for that lead.
+-   **(P2) Implement SOW Inheritance:** When a deal is closed (Kickoff Approved), ensure the items/scopes from the SOW are automatically copied to create a new  record.
+-   **(P2) Implement Full Pages for Placeholders:** The  and  pages are currently empty.
+-   **(P2) Refactor :** Continue breaking down the monolithic  into domain-specific routers.
+-   **(Future) Internal Chat System:** A real-time chat for all users.
+-   **(Future) AI Assistant:** An integrated OpenAI-powered assistant.
+-   **(Future) Day 0 Onboarding Tour:** A guided walkthrough for new users.
 
 **Completed work in this session**
--   **Hybrid Guidance System Enhancements:** Implemented Smart Suggestions based on pending tasks and made the AI Help panel draggable.
--   **Attendance & Leave Settings UI Overhaul:** Made Consulting Roles read-only and added a new Employee-wise Configuration section for custom policies.
--   **Notifications Dialog Rework:** Implemented chronological sorting (newest first) and added filter tabs by category with unread counts.
--   **Employee Self-Service Page Creation:** Created the My Details page with backend endpoints, which now successfully renders.
--   **Reporting Manager Functionality Clarification:** Investigated and explained the existing reporting manager feature to the user.
+-   **Agreement Approvals Integrated:** Fixed bug where admins couldn't see pending agreements and fully integrated the Agreement Approval flow into the main , complete with a View Details dialog.
+-   **Lead Navigation Fixed:** Corrected a bug in the lead progress API that was causing incorrect redirects when clicking on a lead card.
+-   **Sales Funnel Overhaul (Phase 1 & 2):**
+    -   Replaced lead stage filter buttons with a full-featured dropdown menu on the Leads page.
+    -   Set the Leads page to default to a list view.
+    -   Implemented a Pause/Resume feature for managers on leads.
+    -   Removed intermediate SOW and Agreement approvals, establishing the Kickoff Request as the single approval point.
+-   **Manager Dashboard Created:** Built and integrated a new  page with team stats and subordinate lead tracking.
+-   **Kickoff Requests in Approvals Center:** Added a new section to the  for Sr. Managers to approve/reject Kickoff Requests.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Data Integrity in Leave Requests**
@@ -77,72 +115,73 @@ Key completed enhancements in this session:
     -   **Why to solve this issue and what will be achieved with this?** Cleans up bad data, preventing potential errors in reporting.
     -   **Should Test frontend/backend/both after fix:** Backend (DB verification).
     -   **Is recurring issue?** N
--   **Issue 2: Slow Login Screen Performance**
-    -   **Debug checklist:**
-        1.  Use browser developer tools (Network tab) to check for large assets or slow API calls on login.
-        2.  Review the code for any inefficient data loading or processing during the authentication sequence.
-        3.  Check backend logs for slow database queries.
-    -   **Why to solve this issue and what will be achieved with this?** Improves user experience and provides a better first impression of the application.
-    -   **Should Test frontend/backend/both after fix:** Frontend performance testing.
-    -   **Is recurring issue?** N
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork:** The monolithic  file.
--   **Recurrence count:** High (18+).
--   **Status:** IN PROGRESS (Mitigation is ongoing by moving logic into separate routers).
+-   **Issue recurrence in previous fork:** Monolithic  file.
+-   **Recurrence count:** High (20+).
+-   **Status:** IN PROGRESS (Mitigation is ongoing, but new endpoints for the sales funnel refactor were still added to ).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Employee Self-Service Workflow:** A new feature where employees submit profile change requests, which are then queued for HR/Admin approval. This involves new frontend forms, backend endpoints, and likely a new database collection.
--   **Custom React Hooks:** A  hook was created to provide reusable drag-and-drop functionality for UI components, improving user experience.
--   **Conditional UI/Access Control:** Logic was introduced to restrict access to the CTC designer based on whether the user is a new hire in the onboarding process or an existing employee.
+-   **Single Approval Point:** Refactored the entire sales flow to remove multiple approval gates and consolidate authorization at a single Kickoff Request stage.
+-   **Role-Based Conditional UI:** The frontend now conditionally renders elements like the Pause/Resume buttons and sidebar links based on the user's role ( or ).
+-   **Dynamic Manager Dashboard:** A new dashboard that aggregates data from multiple sources (, , ) to provide a real-time overview of team performance.
+-   **State-Driven Lead Funnel:** The lead lifecycle is now managed by a more extensive set of statuses, with backend logic automatically transitioning leads between stages like , , and .
 
 **key DB schema**
--   ** (New/Implied):** A new collection to store pending profile changes submitted from the My Details page. Expected schema: .
+-   **:** The  field's default was changed from  to .
+-   **:** . A new collection to manage the single approval point.
+-   **:** The  field now uses an expanded set of values (, , , , , , , , etc.).
 
 **All files of reference**
--   : **New page** for employee self-service.
--   : **Modified** to include new endpoints for handling employee change requests.
--   : **Modified** to make Consulting Roles read-only and add employee-specific configurations.
--   : **Modified** to add a new endpoint for fetching consulting employees.
--   : **Modified** to include filtering tabs and correct sorting.
--   : **New hook** for making UI elements draggable.
--    & : **Modified** to integrate the new My Details page.
+-   : **CRITICAL FILE TO EDIT**. Needs full implementation.
+-   : **CRITICAL FILE TO EDIT**. Needs completion of the e-sign and document upload features.
+-   : Contains all the new backend logic for the sales funnel refactor.
+-   : Serves as the template for how other sales funnel pages should be updated (list view default).
+-   : The newly created dashboard page.
+-   : Contains the completed integration of Agreement and Kickoff approvals.
+-   , , : These files need to be updated to have list view as the default.
 
 **Areas that need refactoring**:
--   ****: Remains the primary candidate for further modularization. The new employee change request endpoints should eventually be moved to a dedicated router (e.g., ).
--   ****: This file has grown in complexity and should be broken down into smaller components for each distinct settings section.
+-    is still monolithic and a prime candidate for being broken down into smaller, domain-specific routers.
+-   The various sales funnel pages (, , , etc.) could benefit from a shared layout component to enforce UI consistency (like the list view default) and reduce code duplication.
 
 **key api endpoints**
--   : **New** endpoint for employees to submit profile change requests.
--   : **New (Implied)** endpoint for HR/Admins to view pending requests.
--   : **New (Implied)** endpoint for HR/Admins to approve or reject requests.
--   : **New** endpoint to get a list of employees with consulting roles.
+-   : **NEW**. Fetches all leads assigned to a manager's subordinates.
+-   : **NEW**. Gets dashboard stats (meetings, calls, closures).
+-   : **NEW**. Pauses a lead's progress.
+-   : **NEW**. Resumes a paused lead.
+-   : **NEW**. Creates a kickoff request for approval.
+-   : **NEW**. Approves a kickoff request.
+-   : **NEW** (incomplete). For uploading the signed agreement document.
+-   : **NEW** (incomplete). For sending an e-sign request.
+-   : **MODIFIED**. Now auto-approves agreements and updates lead status to .
 
 **Critical Info for New Agent**
--   Your immediate priority is to complete the **Employee Self-Service (My Details)** feature. The page UI is built, but the core functionality of editing data and submitting it for approval is not yet implemented or tested.
--   After completing the self-service feature, address the other user--requested tasks: **implementing document downloads** and investigating the **slow login screen**.
--   The user wants strict control over the CTC Designer. Ensure that it's only accessible during the onboarding flow for new employees and functions as an edit tool for existing ones.
+-   Your immediate priority is to complete the three P1 tasks that were started in parallel: **Target Assignment UI**, **E-Sign/Upload Flow**, and setting all **sales funnel pages to list view**.
+-   The core sales logic has been fundamentally changed to a **single approval flow**. Do not re-introduce SOW or Agreement level approvals. All authorization now happens at the Kickoff Request stage, which is approved by a Sr. Manager or Principal Consultant (identified by role).
+-   The user wants a consistent UX. Apply the list view by default change to all relevant sales funnel pages, using  as the reference.
+-   The  is complete, but the  page is just a skeleton and needs to be built out.
 
 **documents and test reports created in this job**
--   
--   
--    (updated multiple times)
+-    (updated with completed work)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Request:** Make AI Help panel movable. (COMPLETED)
-2.  **Request:** Continue with tasks and also investigate slow login screen. (IN PROGRESS - slow login not yet investigated)
-3.  **Question:** How to edit a reporting manager? (RESOLVED - Agent explained existing feature)
-4.  **Request:** Improve notifications dialog with sorting and tabs. (COMPLETED)
-5.  **Question/Request:** How to download documents? How can employees edit their info? Report of CTC sync issue. (IN PROGRESS - Self-service page started)
-6.  **Clarification/Request:** CTC is set but not via onboarding. Make onboarding CTC compulsory. Add Employee Self-Service. (IN PROGRESS)
-7.  **Request:** User confirms approval of agent's plan.
-8.  **Request:** User confirms approval of agent's plan.
+1.  **User Request:** Hide all clickable button...i want stage wise filteration of lead. (COMPLETED - Dropdown filter added)
+2.  **User Request:** open list view by default in any of the sales funnel pages. (IN PROGRESS)
+3.  **User Request:** remove manager appproval flow from Lead create to Kick off request...keep only 1 apporval...at kick off request. (COMPLETED)
+4.  **User Request:** manager has connected visibility of their all subordinate total leads progree view in dashboard. (COMPLETED - Manager Dashboard created)
+5.  **User Request:** Manager can pause lead progress with resume functions. (COMPLETED)
+6.  **User Request:** How can a manager assign targets? (IN PROGRESS - Target Management UI started)
+7.  **User Confirmation:** Clarified a detailed, mandatory flow from Lead -> Meeting -> SOW -> Agreement -> Payment -> Kickoff Request (Single Approval).
+8.  **User Confirmation:** Confirmed that SOW items should auto-copy to a new Project record when a deal is closed.
+9.  **User Confirmation:** Confirmed manager stats (Meetings, Calls, Closures, Absents) and that approver roles are identified by the  field.
+10. **User Confirmation:** Approved the phased implementation plan, starting with the lead stage filter and simplified approvals.
 
 **Project Health Check:**
--   **Healthy:** The application is stable and actively being developed with new features and enhancements based on direct user feedback. There are minor pending issues and tech debt, but no critical blockers.
+-   **Broken:** The  page is an empty placeholder. The E-Sign/Upload functionality in  is half-implemented and non-functional.
 
 **3rd Party Integrations**
 -   usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
@@ -185,22 +224,23 @@ options:
   -V, --version         show program's version number and exit: Used for the AI Assistant and AI Guidance System (via Emergent LLM Key).
 -   : For JWT creation.
 -   usage: websockets [--version | <uri>]: For all real-time functionalities.
+-   : Used for IFSC code verification.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. Used to test the Smart Suggestions feature, where it successfully identified and led to a fix for a backend data fetching issue.
+-   **Testing agent used after significant changes:** NO
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:**
-    -   
-    -   
--   **Known regressions:** None.
+-   **Test files created:** []
+-   **Known regressions:** None identified, but significant changes were made without comprehensive regression testing.
 
 **Credentials to test flow:**
--   **Admin:**  / 
+-   **Admin/System Admin:**  / 
 -   **HR Manager:**  / 
+-   **Manager:**  / 
 -   **Employee (Manager):**  / 
 -   **Employee (Reportee):**  / 
+-   **Sr. Manager/Principal (Test):** Create a user and an employee with  set to  or  to test Kickoff Approvals.
 
 **What agent forgot to execute**
--   The agent did not investigate the slow login screen issue mentioned by the user.
--   The agent acknowledged the request to fix document downloads but did not implement it.
--   The one-time database cleanup task for the malformed leave request record from a much earlier session is still pending.</analysis>
+-   The agent started three major P1 features ( UI, E-Sign/Upload, and converting all sales pages to list view) but did not fully complete any of them.
+-   The agent identified the need to modify the payment recording endpoint to include Cheque/UTR numbers but did not perform the implementation.
+-   A full end-to-end test of the new, simplified sales funnel (from lead creation to kickoff approval) was not performed after the major refactoring.</analysis>
