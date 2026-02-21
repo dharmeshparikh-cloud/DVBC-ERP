@@ -170,6 +170,7 @@ const ApprovalsCenter = () => {
         setModificationApprovals(results[5]?.data || []);
       } else if (isHR) {
         setBankApprovals(results[2]?.data || []);
+        setProfileChangeApprovals((results[3]?.data || []).filter(r => r.status === 'pending'));
       }
       
       if (isManager) {
