@@ -267,6 +267,7 @@ const Layout = () => {
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
     { name: 'Downloads', href: '/downloads', icon: Download },
+    { name: 'Email Settings', href: '/email-settings', icon: MailCheck },
   ];
 
   const workspaceItems = [
@@ -276,6 +277,12 @@ const Layout = () => {
     { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
     { name: 'My Bank Details', href: '/my-bank-details', icon: Building2 },
     { name: 'Mobile App', href: '/mobile-app', icon: Download },
+  ];
+
+  // Communication items (Chat & AI)
+  const communicationItems = [
+    { name: 'Team Chat', href: '/chat', icon: MessageCircle },
+    { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
   ];
 
   // Mobile bottom nav items
