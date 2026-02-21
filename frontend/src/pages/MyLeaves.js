@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API } from '../App';
 import { Card, CardContent } from '../components/ui/card';
@@ -6,9 +6,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Calendar, CheckCircle, XCircle, Clock, Undo2 } from 'lucide-react';
+import { Plus, Calendar, CheckCircle, XCircle, Clock, Undo2, Save, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import useDraft from '../hooks/useDraft';
+import DraftIndicator from '../components/DraftIndicator';
+import DraftSelector from '../components/DraftSelector';
 
 const LEAVE_TYPES = [
   { value: 'casual_leave', label: 'Casual Leave', key: 'casual' },
@@ -23,20 +26,65 @@ const STATUS_STYLES = {
   withdrawn: 'bg-zinc-100 text-zinc-500 border-zinc-200'
 };
 
+// Generate draft title from leave data
+const generateLeaveDraftTitle = (data) => {
+  const type = LEAVE_TYPES.find(t => t.value === data.leave_type)?.label || 'Leave';
+  const date = data.start_date ? format(new Date(data.start_date), 'MMM d') : 'No date';
+  return `${type} - ${date}`;
+};
+
 const MyLeaves = () => {
   const [requests, setRequests] = useState([]);
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [withdrawingId, setWithdrawingId] = useState(null);
+  
+  // Draft support
+  const {
+    drafts,
+    loadingDrafts,
+    saving: savingDraft,
+    lastSaved,
+    loadDraft,
+    saveDraft,
+    autoSave,
+    deleteDraft,
+    convertDraft,
+    clearDraft,
+    registerFormDataGetter
+  } = useDraft('leave', generateLeaveDraftTitle);
+  
   const [formData, setFormData] = useState({ 
     leave_type: 'casual_leave', 
     start_date: '', 
     end_date: '', 
     reason: '',
     is_half_day: false,
-    half_day_type: 'first_half'  // first_half or second_half
+    half_day_type: 'first_half'
   });
+  
+  // Register form data getter for save-on-leave
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+  
+  useEffect(() => {
+    if (dialogOpen) {
+      registerFormDataGetter(() => formDataRef.current);
+    }
+    return () => {
+      registerFormDataGetter(null);
+    };
+  }, [dialogOpen, registerFormDataGetter]);
+  
+  // Auto-save when form data changes
+  useEffect(() => {
+    if (dialogOpen && (formData.start_date || formData.reason)) {
+      autoSave(formData);
+    }
+  }, [formData, dialogOpen, autoSave]);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -54,6 +102,15 @@ const MyLeaves = () => {
       setLoading(false);
     }
   };
+  
+  // Load a saved draft
+  const handleLoadDraft = async (draft) => {
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft) {
+      setFormData(loadedDraft.data);
+      toast.success('Draft loaded');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,6 +121,8 @@ const MyLeaves = () => {
         end_date: formData.is_half_day ? new Date(formData.start_date).toISOString() : new Date(formData.end_date).toISOString()
       });
       toast.success('Leave request submitted for approval');
+      convertDraft();
+      clearDraft();
       setDialogOpen(false);
       setFormData({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '', is_half_day: false, half_day_type: 'first_half' });
       fetchData();
