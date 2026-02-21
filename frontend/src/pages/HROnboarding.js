@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -15,9 +15,11 @@ import {
   UserPlus, FileText, Upload, CheckCircle, AlertCircle,
   Building2, Mail, Phone, Calendar, Wallet, User,
   ChevronRight, ChevronLeft, Save, X, Plus, Copy, Key, UserCheck,
-  Download, FileSpreadsheet, Users, Trash2, Eye
+  Download, FileSpreadsheet, Users, Trash2, Eye, FolderOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
+import useDraft from '../hooks/useDraft';
+import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 
 const ONBOARDING_STEPS = [
   { id: 'import', title: 'Quick Import', icon: FileSpreadsheet },
