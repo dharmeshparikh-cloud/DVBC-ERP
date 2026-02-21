@@ -167,19 +167,37 @@ const ApprovalsCenter = () => {
         requests.push(axios.get(`${API}/hr/employee-change-requests`).catch(() => ({ data: [] })));
       }
       
+      // Fetch agreement approvals for managers and admins
+      if (isManager || isAdmin) {
+        requests.push(axios.get(`${API}/agreements/pending-approval`).catch(() => ({ data: [] })));
+      }
+      
       const results = await Promise.all(requests);
       
       setPendingApprovals(results[0]?.data || []);
       setMyRequests(results[1]?.data || []);
+      
+      let agreementApprovalIndex = null;
       
       if (isAdmin) {
         setCtcApprovals(results[2]?.data || []);
         setGoLiveApprovals(results[3]?.data || []);
         setPermissionApprovals((results[4]?.data || []).filter(r => r.status === 'pending'));
         setModificationApprovals(results[5]?.data || []);
+        agreementApprovalIndex = 6; // After the admin-specific requests
       } else if (isHR) {
         setBankApprovals(results[2]?.data || []);
         setProfileChangeApprovals((results[3]?.data || []).filter(r => r.status === 'pending'));
+        agreementApprovalIndex = isManager ? 4 : null; // HR managers get agreement approvals after HR requests
+      } else if (isManager) {
+        agreementApprovalIndex = 2; // For non-admin managers, right after the basic requests
+      }
+      
+      // Set agreement approvals if user has permission
+      if ((isManager || isAdmin) && agreementApprovalIndex !== null && results[agreementApprovalIndex]) {
+        const agreementData = results[agreementApprovalIndex]?.data || [];
+        // Extract the agreement objects from the response
+        setAgreementApprovals(agreementData.map(item => item.agreement || item));
       }
       
       if (isManager) {
