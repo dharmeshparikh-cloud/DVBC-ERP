@@ -940,43 +940,45 @@ Working Hours Support: 10 AM - 7 PM (Mon-Sat)"""
         """Generate PDF documentation"""
         pdf = FPDF()
         pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.set_left_margin(15)
+        pdf.set_right_margin(15)
         content = self.get_hr_documentation_content()
         
         # Title page
         pdf.add_page()
         pdf.set_font('Helvetica', 'B', 24)
-        pdf.cell(0, 60, '', 0, 1)  # Spacing
-        pdf.multi_cell(0, 10, content["title"], 0, 'C')
+        pdf.ln(50)  # Spacing
+        pdf.cell(0, 10, content["title"], 0, 1, 'C')
         
         pdf.set_font('Helvetica', '', 14)
-        pdf.cell(0, 20, '', 0, 1)
-        pdf.multi_cell(0, 8, content["subtitle"], 0, 'C')
+        pdf.ln(15)
+        pdf.cell(0, 8, content["subtitle"], 0, 1, 'C')
         
-        pdf.cell(0, 20, '', 0, 1)
+        pdf.ln(15)
         pdf.set_font('Helvetica', 'I', 10)
-        pdf.multi_cell(0, 6, f"Generated: {self.generated_date}", 0, 'C')
-        pdf.multi_cell(0, 6, self.company_name, 0, 'C')
+        pdf.cell(0, 6, f"Generated: {self.generated_date}", 0, 1, 'C')
+        pdf.cell(0, 6, self.company_name, 0, 1, 'C')
         
         # Table of Contents
         pdf.add_page()
         pdf.set_font('Helvetica', 'B', 18)
         pdf.cell(0, 10, 'Table of Contents', 0, 1)
-        pdf.cell(0, 5, '', 0, 1)
+        pdf.ln(5)
         
         pdf.set_font('Helvetica', '', 12)
-        for i, section in enumerate(content["sections"], 1):
-            pdf.cell(0, 8, f"{section['title']}", 0, 1)
+        for section in content["sections"]:
+            pdf.cell(0, 8, section['title'], 0, 1)
         
         # Add sections
         for section in content["sections"]:
             pdf.add_page()
             pdf.set_font('Helvetica', 'B', 16)
-            pdf.multi_cell(0, 10, section["title"])
-            pdf.cell(0, 5, '', 0, 1)
+            pdf.cell(0, 10, section["title"], 0, 1)
+            pdf.ln(5)
             
             for item in section["content"]:
                 pdf.set_font('Helvetica', 'B', 12)
-                pdf.multi_cell(0, 8, item["heading"])
+                pdf.cell(0, 8, item["heading"], 0, 1)
                 
                 pdf.set_font('Helvetica', '', 10)
                 # Clean and encode text properly
@@ -987,8 +989,15 @@ Working Hours Support: 10 AM - 7 PM (Mon-Sat)"""
                 text = text.replace('\u2013', '-').replace('\u2014', '-')
                 text = text.encode('latin-1', 'replace').decode('latin-1')
                 
-                pdf.multi_cell(0, 6, text)
-                pdf.cell(0, 5, '', 0, 1)
+                # Split text into paragraphs and add them
+                paragraphs = text.split('\n')
+                for para in paragraphs:
+                    para = para.strip()
+                    if para:
+                        pdf.multi_cell(0, 5, para)
+                    else:
+                        pdf.ln(2)
+                pdf.ln(5)
         
         pdf.output(output_path)
         return output_path
