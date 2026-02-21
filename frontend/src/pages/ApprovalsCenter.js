@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -6,10 +6,12 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Textarea } from '../components/ui/textarea';
+import { Checkbox } from '../components/ui/checkbox';
 import { 
   CheckCircle, XCircle, Clock, AlertCircle, ChevronRight, 
   FileText, Calendar, User, MessageSquare, Send, DollarSign,
-  Building2, CreditCard, Eye, Loader2, Rocket, Key, Wallet, Shield
+  Building2, CreditCard, Eye, Loader2, Rocket, Key, Wallet, Shield,
+  RefreshCw, CheckSquare, Square, Zap, Bell, Menu
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
@@ -26,7 +28,7 @@ const APPROVAL_TYPE_LABELS = {
 };
 
 const ApprovalsCenter = () => {
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   
@@ -54,24 +56,95 @@ const ApprovalsCenter = () => {
   const [selectedGoLive, setSelectedGoLive] = useState(null);
   const [goLiveChecklist, setGoLiveChecklist] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  // New states for bulk actions and real-time
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [bulkActionDialog, setBulkActionDialog] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState('');
+  const [bulkComments, setBulkComments] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const wsRef = useRef(null);
 
   const isAdmin = user?.role === 'admin';
   const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
   const isManager = ['admin', 'manager', 'hr_manager', 'project_manager'].includes(user?.role);
 
+  // WebSocket connection for real-time updates
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!token) return;
+    
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsHost = API.replace(/^https?:\/\//, '').replace('/api', '');
+    const wsUrl = `${wsProtocol}//${wsHost}/ws/notifications/${token}`;
+    
+    const connectWebSocket = () => {
+      try {
+        wsRef.current = new WebSocket(wsUrl);
+        
+        wsRef.current.onopen = () => {
+          setWsConnected(true);
+          console.log('Approvals WebSocket connected');
+        };
+        
+        wsRef.current.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            // Check if this is an approval-related notification
+            if (data.type?.includes('approval') || 
+                data.type?.includes('leave') || 
+                data.type?.includes('expense') ||
+                data.type?.includes('kickoff') ||
+                data.type?.includes('go_live') ||
+                data.type?.includes('bank_change') ||
+                data.type?.includes('ctc') ||
+                data.type?.includes('permission')) {
+              // Auto-refresh data on new approval notification
+              fetchData(true);
+              toast.info('New approval activity detected', {
+                icon: <Bell className="w-4 h-4" />,
+                duration: 3000
+              });
+            }
+          } catch (e) {
+            console.log('WebSocket message:', event.data);
+          }
+        };
+        
+        wsRef.current.onclose = () => {
+          setWsConnected(false);
+          console.log('Approvals WebSocket disconnected, reconnecting...');
+          setTimeout(connectWebSocket, 3000);
+        };
+        
+        wsRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setWsConnected(false);
+        };
+      } catch (error) {
+        console.error('Failed to connect WebSocket:', error);
+      }
+    };
+    
+    connectWebSocket();
+    
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [token]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const requests = [
         axios.get(`${API}/approvals/pending`).catch(() => ({ data: [] })),
         axios.get(`${API}/approvals/my-requests`).catch(() => ({ data: [] }))
       ];
       
-      // Fetch CTC approvals and permission change requests for admin
-      // Note: Bank changes are handled by HR only (no Admin step)
       if (isAdmin) {
         requests.push(axios.get(`${API}/ctc/pending-approvals`).catch(() => ({ data: [] })));
         requests.push(axios.get(`${API}/go-live/pending`).catch(() => ({ data: [] })));
@@ -79,7 +152,6 @@ const ApprovalsCenter = () => {
         requests.push(axios.get(`${API}/employees/modification-requests/pending`).catch(() => ({ data: [] })));
       }
       
-      // Fetch bank approvals for HR (HR handles bank changes directly)
       if (isHR) {
         requests.push(axios.get(`${API}/hr/bank-change-requests`).catch(() => ({ data: [] })));
       }
@@ -98,18 +170,24 @@ const ApprovalsCenter = () => {
         setBankApprovals(results[2]?.data || []);
       }
       
-      // Fetch all approvals if admin/manager
       if (isManager) {
         const allRes = await axios.get(`${API}/approvals/all`).catch(() => ({ data: [] }));
         setAllApprovals(allRes.data || []);
       }
+      
+      setLastRefresh(new Date());
+      setSelectedItems(new Set()); // Clear selections on refresh
     } catch (error) {
       console.error('Error fetching approvals:', error);
-      toast.error('Failed to load approvals');
+      if (!silent) toast.error('Failed to load approvals');
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin, isHR, isManager]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleAction = async () => {
     if (!selectedApproval) return;
