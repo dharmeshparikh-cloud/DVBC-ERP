@@ -382,8 +382,17 @@ async def execute_action(
     
     success = False
     message = ""
+    requester_id = None
+    approver_name = token_doc.get("recipient_email", "Approver").split("@")[0]  # Extract name from email
+    
+    # Import the notify function for real-time requester notification
+    from services.approval_notifications import notify_requester_on_action
+    from websocket_manager import get_manager as get_ws_manager
     
     if record_type == "leave_request":
+        leave_request = await db.leave_requests.find_one({"id": record_id}, {"_id": 0})
+        requester_id = leave_request.get("user_id") if leave_request else None
+        
         if action == "approve":
             result = await db.leave_requests.update_one(
                 {"id": record_id},
@@ -400,6 +409,9 @@ async def execute_action(
             message = "Leave request has been rejected."
     
     elif record_type == "expense":
+        expense = await db.expenses.find_one({"id": record_id}, {"_id": 0})
+        requester_id = expense.get("user_id") if expense else None
+        
         if action == "approve":
             result = await db.expenses.update_one(
                 {"id": record_id},
@@ -416,6 +428,9 @@ async def execute_action(
             message = "Expense has been rejected."
     
     elif record_type == "kickoff":
+        kickoff = await db.kickoff_requests.find_one({"id": record_id}, {"_id": 0})
+        requester_id = kickoff.get("requested_by") if kickoff else None
+        
         if action == "approve":
             result = await db.kickoff_requests.update_one(
                 {"id": record_id},
@@ -425,20 +440,70 @@ async def execute_action(
             message = "Kickoff request has been approved!"
     
     elif record_type == "go_live":
+        go_live_req = await db.go_live_requests.find_one({"id": record_id}, {"_id": 0})
+        if not go_live_req:
+            go_live_req = await db.go_live_requests.find_one({"employee_id": record_id}, {"_id": 0})
+        requester_id = go_live_req.get("submitted_by") if go_live_req else None
+        employee_id = go_live_req.get("employee_id") if go_live_req else record_id
+        
         if action == "approve":
+            # Update go-live request status
+            await db.go_live_requests.update_one(
+                {"$or": [{"id": record_id}, {"employee_id": record_id}]},
+                {"$set": {"status": "approved", "approved_at": datetime.now(timezone.utc), "approved_via": "email"}}
+            )
             # Update employee status
             result = await db.employees.update_one(
-                {"id": record_id},
-                {"$set": {"status": "active", "go_live_approved_at": datetime.now(timezone.utc), "go_live_approved_via": "email"}}
+                {"$or": [{"id": employee_id}, {"employee_id": employee_id}]},
+                {"$set": {"go_live_status": "active", "go_live_approved_at": datetime.now(timezone.utc), "go_live_approved_via": "email"}}
             )
             success = result.modified_count > 0
             message = "Go-Live has been approved! Employee is now active."
+    
+    elif record_type == "bank_change":
+        bank_req = await db.bank_change_requests.find_one({"id": record_id}, {"_id": 0})
+        requester_id = bank_req.get("employee_id") if bank_req else None
+        # Get user_id from employee
+        if requester_id:
+            emp = await db.employees.find_one({"$or": [{"_id": requester_id}, {"id": requester_id}]}, {"_id": 0, "user_id": 1})
+            requester_id = emp.get("user_id") if emp else None
+        
+        if action == "approve":
+            result = await db.bank_change_requests.update_one(
+                {"id": record_id},
+                {"$set": {"status": "hr_approved", "hr_approved_at": datetime.now(timezone.utc), "approved_via": "email"}}
+            )
+            success = result.modified_count > 0
+            message = "Bank change request has been approved by HR!"
+        elif action == "reject":
+            result = await db.bank_change_requests.update_one(
+                {"id": record_id},
+                {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc), "rejected_via": "email"}}
+            )
+            success = result.modified_count > 0
+            message = "Bank change request has been rejected."
     
     # Mark token as used
     await db.email_action_tokens.update_one(
         {"token": token},
         {"$set": {"used": True, "used_at": datetime.now(timezone.utc)}}
     )
+    
+    # Send real-time notification to requester about the action
+    if success and requester_id:
+        try:
+            ws_manager = get_ws_manager()
+            await notify_requester_on_action(
+                db=db,
+                ws_manager=ws_manager,
+                record_type=record_type,
+                record_id=record_id,
+                requester_id=requester_id,
+                action=action + "d",  # approved, rejected
+                approver_name=approver_name
+            )
+        except Exception as e:
+            print(f"Error notifying requester: {e}")
     
     if success:
         return HTMLResponse(content=_get_success_page(action.title(), message), status_code=200)
