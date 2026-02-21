@@ -11418,6 +11418,75 @@ async def reset_onboarding(current_user: User = Depends(get_current_user)):
     return {"message": "Onboarding reset", "has_completed_onboarding": False}
 
 
+# ============== LEAD PAUSE/RESUME ==============
+
+@api_router.post("/leads/{lead_id}/pause")
+async def pause_lead(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Pause a lead - only managers can pause subordinate leads"""
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Check if user is manager or admin
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only managers can pause leads")
+    
+    # Store previous status before pausing
+    previous_status = lead.get("status", "new")
+    if previous_status == LeadStatus.PAUSED:
+        raise HTTPException(status_code=400, detail="Lead is already paused")
+    
+    await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "status": LeadStatus.PAUSED,
+            "previous_status": previous_status,
+            "paused_by": current_user.id,
+            "paused_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Lead paused successfully", "previous_status": previous_status}
+
+
+@api_router.post("/leads/{lead_id}/resume")
+async def resume_lead(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Resume a paused lead - only managers can resume"""
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Check if user is manager or admin
+    if current_user.role not in ["admin", "manager", "sr_manager", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only managers can resume leads")
+    
+    if lead.get("status") != LeadStatus.PAUSED:
+        raise HTTPException(status_code=400, detail="Lead is not paused")
+    
+    # Restore previous status
+    previous_status = lead.get("previous_status", LeadStatus.NEW)
+    
+    await db.leads.update_one(
+        {"id": lead_id},
+        {
+            "$set": {
+                "status": previous_status,
+                "resumed_by": current_user.id,
+                "resumed_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$unset": {
+                "previous_status": "",
+                "paused_by": "",
+                "paused_at": ""
+            }
+        }
+    )
+    
+    return {"message": "Lead resumed successfully", "current_status": previous_status}
+
+
 # ============== LEAD PROGRESS TRACKING ==============
 
 @api_router.get("/leads/{lead_id}/progress")
