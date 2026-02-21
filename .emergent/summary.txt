@@ -7,336 +7,142 @@ The user is developing a comprehensive business management ERP named NETRA. The 
 5.  **Approval Center Enhancements:** The central approval dashboard should have real-time updates via WebSockets, bulk action capabilities, and a mobile-friendly design.
 6.  **Day 0 Onboarding Tour:** A guided walkthrough for first-time users, highlighting key features, with role-specific content and a replay option.
 7.  **AI-Powered Guidance System:** A contextual help system available on all pages to provide step-by-step guides for complex tasks and offer on-demand AI assistance that can navigate the user to the correct page.
+8.  **Employee Self-Service:** A portal for employees to edit their own details and submit changes for HR approval.
+9.  **UI/UX Improvements:** Enhance various UI components like the notifications panel for better usability.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a stable and feature-rich full-stack ERP (React, FastAPI, MongoDB). All initial restoration work and previously requested core features (Chat, AI Assistant, RBAC, real-time notifications, email actions) are complete and tested.
+The application is a stable and feature-rich full-stack ERP (React, FastAPI, MongoDB). All previously requested core features are complete. The last session focused on implementing UI/UX enhancements and a new Employee Self-Service feature.
 
-Key completed enhancements include:
--   **Centralized Approval Notifications:** All workflows (leave, expenses, SOW, etc.) now use a centralized service to automatically trigger real-time email and WebSocket notifications.
--   **Enhanced Approval Center:** The  page now features real-time updates, bulk approval actions, and a responsive mobile layout.
--   **Guided Onboarding Tour:** A custom, non-library-based onboarding tour guides new users through the UI. It's role-specific, triggers automatically on first login, and can be replayed from the user's profile.
-
-The agent has begun implementing the next major feature: a hybrid AI-powered guidance system.
+Key completed enhancements in this session:
+-   **AI Guidance System:** The hybrid AI guidance system is fully implemented and tested. It now includes Smart Suggestions to proactively guide users and the help panel is draggable to prevent it from blocking content.
+-   **Notifications Panel:** The UI was overhauled to sort notifications by newest first and add filter tabs (by request type) with unread counts.
+-   **Attendance Settings:** The Consulting Roles section was made read-only (inherited from Employee Master), and a new Employee-wise Configuration section was added to manage custom policies.
+-   **Employee Self-Service:** A new My Details page was created under My Workspace, allowing employees to view their information. The backend endpoints and frontend page structure are in place.
 
 **Last working item**:
--   **Last item agent was working:** Implementing the Hybrid Guidance System. The agent created the necessary frontend components (, , ), the backend router (), and the JSON file for static checklists (). The agent's last action was fixing a  in  where the  environment variable was not being loaded correctly.
+-   **Last item agent was working:** Implementing the My Details (Employee Self-Service) page. The agent successfully created the page, added the navigation link, and confirmed it renders correctly. The last action was taking a screenshot to verify the page's UI before testing the Edit functionality.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** Both.
-    -   **Frontend:** Use the  tool to verify the floating Help Me button is visible. Then, use the  to test the full user flow: clicking the button, opening the modal, asking for help, receiving an AI response, and verifying the auto-navigation to the correct page.
-    -   **Backend:** Use  to test the  endpoint directly to ensure it connects to the LLM and returns valid responses.
+-   **Which testing method agent to use?** both
+    -   **Frontend:** Use the  to simulate a user clicking Edit on a section (e.g., Contact Info), filling out the modal form, submitting it, and verifying a success toast appears.
+    -   **Backend:** After the frontend test, log in as an HR Manager/Admin and verify that a new change request appears in the Approval Center or a dedicated admin view. Use  to test the new  endpoints directly.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Verify Backend Fix for Guidance System (P0)**
-    -   **Attempted fixes:** The agent added  and  to  to resolve a .
+-   **Issue 1: Complete and Test Employee Self-Service (My Details) Page (P0)**
+    -   **Attempted fixes:** The agent created the page (), backend endpoints in , and added the routes/links in  and . The page now renders without errors.
     -   **Next debug checklist:**
-        1.  Restart the backend service to ensure the change is live.
-        2.  Take a screenshot of the frontend to confirm the app loads without crashing and the floating help button appears.
-        3.  If it fails, check the backend logs (==> /var/log/supervisor/backend.err.log <==
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     ('10.64.132.213', 43122) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:41:14,328 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 1
-INFO:     connection open
-INFO:     ('10.64.130.211', 51246) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:41:14,796 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 2
-INFO:     connection open
-INFO:     ('10.64.132.213', 52798) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:41:27,088 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 3
-INFO:     connection open
-INFO:     ('10.64.130.211', 36498) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:41:27,785 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 4
-INFO:     connection open
-2026-02-21 06:41:28,089 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:41:28,089 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-INFO:     ('10.64.132.213', 52802) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:41:28,838 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 4
-INFO:     connection open
-2026-02-21 06:41:29,178 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:41:29,178 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-INFO:     ('10.64.130.211', 36516) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:41:29,323 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 4
-INFO:     connection open
-2026-02-21 06:41:29,692 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:41:29,692 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-INFO:     ('10.64.132.213', 40446) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:41:29,787 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 4
-INFO:     connection open
-2026-02-21 06:41:30,083 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:41:30,084 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-2026-02-21 06:41:36,547 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:41:36,548 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-2026-02-21 06:41:37,032 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:41:37,033 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-2026-02-21 06:41:37,034 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:41:37,034 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-INFO:     connection closed
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [10085]
-INFO:     Started server process [10681]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-2026-02-21 06:46:44,595 - passlib.handlers.bcrypt - WARNING - (trapped) error reading bcrypt version
-Traceback (most recent call last):
-  File "/root/.venv/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
-    version = _bcrypt.__about__.__version__
-              ^^^^^^^^^^^^^^^^^
-AttributeError: module 'bcrypt' has no attribute '__about__'
-INFO:     ('10.64.132.213', 60420) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:46:51,649 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 1
-INFO:     connection open
-INFO:     ('10.64.130.211', 55834) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:46:51,880 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 2
-INFO:     connection open
-2026-02-21 06:46:53,297 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:46:53,303 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-2026-02-21 06:46:53,314 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:46:53,314 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-INFO:     ('10.64.130.211', 50200) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:46:53,581 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 1
-INFO:     connection open
-INFO:     ('10.64.130.211', 50212) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:46:53,788 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 2
-INFO:     connection open
-2026-02-21 06:46:54,542 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:46:54,542 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-2026-02-21 06:46:55,106 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:46:55,107 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-INFO:     ('10.64.132.213', 60444) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:46:55,753 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 1
-INFO:     connection open
-INFO:     ('10.64.132.213', 51090) - "WebSocket /api/chat/ws/48588b92-8856-4e3a-aa6c-b9e493442761" [accepted]
-2026-02-21 06:46:59,278 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 connected. Total connections: 2
-INFO:     connection open
-2026-02-21 06:47:01,778 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:47:01,778 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-2026-02-21 06:47:02,576 - websocket_manager - INFO - User 48588b92-8856-4e3a-aa6c-b9e493442761 disconnected
-2026-02-21 06:47:02,579 - routers.chat - INFO - WebSocket disconnected for user 48588b92-8856-4e3a-aa6c-b9e493442761
-INFO:     connection closed
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [46] using WatchFiles
-INFO:     Started server process [86]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-
-==> /var/log/supervisor/backend.out.log <==
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:33092 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:36050 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:47160 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:42120 - "GET /api/hr/pending-attendance-approvals HTTP/1.1" 200 OK
-INFO:     10.64.132.213:60652 - "GET /api/hr/bank-change-requests HTTP/1.1" 200 OK
-INFO:     10.64.130.211:42102 - "GET /api/leave-requests?status=pending HTTP/1.1" 200 OK
-INFO:     10.64.130.211:42110 - "GET /api/ctc/pending-approvals HTTP/1.1" 200 OK
-INFO:     10.64.132.213:60640 - "GET /api/expenses?status=pending HTTP/1.1" 200 OK
-INFO:     10.64.132.213:60640 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:60640 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:42120 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:42120 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:60640 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:52800 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:36502 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:36502 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:52800 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:52800 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:36502 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:36502 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:36502 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:40476 - "GET /api/hr/bank-change-requests HTTP/1.1" 200 OK
-INFO:     10.64.132.213:40494 - "GET /api/ctc/pending-approvals HTTP/1.1" 200 OK
-INFO:     10.64.132.213:40456 - "GET /api/hr/pending-attendance-approvals HTTP/1.1" 200 OK
-INFO:     10.64.132.213:40464 - "GET /api/expenses?status=pending HTTP/1.1" 200 OK
-INFO:     10.64.132.213:40486 - "GET /api/leave-requests?status=pending HTTP/1.1" 200 OK
-INFO:     10.64.132.213:58078 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.211:55824 - "GET /api/role-management/my-permissions HTTP/1.1" 200 OK
-INFO:     10.64.132.213:58078 - "GET /api/my/check-status HTTP/1.1" 400 Bad Request
-INFO:     10.64.130.211:55824 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:55824 - "GET /api/stats/consulting HTTP/1.1" 404 Not Found
-INFO:     10.64.130.211:55854 - "GET /api/stats/hr HTTP/1.1" 404 Not Found
-INFO:     10.64.130.211:55848 - "GET /api/department-access/my-access HTTP/1.1" 200 OK
-INFO:     10.64.132.213:58078 - "GET /api/stats/hr HTTP/1.1" 404 Not Found
-INFO:     10.64.130.211:55824 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:50186 - "GET /api/stats/consulting HTTP/1.1" 404 Not Found
-INFO:     10.64.130.211:55854 - "GET /api/my/check-status HTTP/1.1" 400 Bad Request
-INFO:     10.64.132.213:60436 - "GET /api/department-access/my-access HTTP/1.1" 200 OK
-INFO:     10.64.130.211:55824 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:50186 - "GET /api/my/onboarding-status HTTP/1.1" 200 OK
-INFO:     10.64.130.211:50186 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:55838 - "GET /api/stats/sales-dashboard-enhanced?view_mode=team HTTP/1.1" 200 OK
-INFO:     10.64.130.211:50186 - "GET /api/stats/sales-dashboard-enhanced?view_mode=team HTTP/1.1" 200 OK
-INFO:     10.64.130.211:50186 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.132.213:51100 - "GET /api/notifications/unread-count HTTP/1.1" 200 OK
-INFO:     10.64.130.211:50186 - "GET /api/hr/bank-change-requests HTTP/1.1" 200 OK
-INFO:     10.64.130.211:50216 - "GET /api/ctc/pending-approvals HTTP/1.1" 200 OK
-INFO:     10.64.132.213:51100 - "GET /api/expenses?status=pending HTTP/1.1" 200 OK
-INFO:     10.64.132.213:51110 - "GET /api/hr/pending-attendance-approvals HTTP/1.1" 200 OK
-INFO:     10.64.132.213:51120 - "GET /api/leave-requests?status=pending HTTP/1.1" 200 OK) for any remaining errors related to environment variables.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical blocker. Fixing it will make the AI-powered help feature functional.
+        1.  As a regular employee, navigate to the My Details page.
+        2.  Click the Edit button for the Contact Information section.
+        3.  Verify the edit modal dialog opens.
+        4.  Change the information and click Submit.
+        5.  Verify a confirmation message is shown and the modal closes.
+        6.  Log in as an HR Manager ().
+        7.  Check the Approval Center or notification bell for a new Employee Modification request.
+        8.  Approve the request and verify the employee's details are updated in the Employees page.
+    -   **Why fix this issue and what will be achieved with the fix?** This completes a key user-requested feature, empowering employees to manage their own data and reducing the administrative workload for HR.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both.
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Complete and Test the Hybrid Guidance System (P0)**
-    -   **Where to resume:**
-        1.  Verify the  fix (as described in the issue above).
-        2.  Populate  with the step-by-step guides for all specified workflows (Attendance, Onboarding, Permissions, Approvals, Sales Flow, etc.).
-        3.  Thoroughly test the end-to-end functionality using the testing agent.
-    -   **What will be achieved with this?** A powerful, contextual help system will be available across the entire application, improving user onboarding and reducing support load.
+-   **Task 1: Implement Employee Self-Service Edit/Approval Flow (P0)**
+    -   **Where to resume:** The My Details page is rendering. The next step is to implement and test the full user flow for the Edit buttons: opening the modal, submitting data, and triggering the backend approval workflow.
+    -   **What will be achieved with this?** A fully functional self-service portal for employees.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** Both.
-    -   **Blocked on something:** Blocked on Issue 1: Verify Backend Fix for Guidance System.
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
--   **(P1) Implement Sales Incentive Module:** Link incentives to the existing  records.
+-   **(P1) Implement Document Download Functionality:** The user asked how to download documents uploaded during onboarding. The agent identified that the download button exists but is not functional. This needs a backend endpoint and a frontend handler.
+-   **(P1) Verify CTC Designer Access Restriction:** The user requested that the CTC designer be mandatory during the onboarding flow and restricted to edit-only from the main navigation. This logic needs to be fully implemented and tested.
+-   **(P2) Investigate Slow Login Screen:** The user reported login screen taking longer to load. This requires performance analysis of frontend assets and backend authentication routes.
+-   **(P2) Implement Sales Incentive Module:** Link incentives to the existing  records.
 -   **(P2) Refactor :** Continue breaking down the monolithic  into domain-specific routers and services.
 -   **(P2) Implement Full Pages for Placeholders:** The  and  pages are currently empty placeholders.
--   **(P2) Expand Finance and Project P&L Modules.**
 
 **Completed work in this session**
--   **Centralized Approval System:** Refactored all approval workflows (Expenses, Kickoff, Go-Live, Bank Change, SOW) to use the centralized , ensuring consistent real-time email and WebSocket notifications.
--   **Approval Center Enhancements:** Implemented real-time refresh via WebSockets, bulk approval actions, and a responsive mobile-optimized UI for the  page.
--   **Day 0 Onboarding Tour:**
-    -   Successfully implemented a custom guided tour after abandoning  due to compatibility issues.
-    -   The tour is role-specific, starts automatically for new users, and includes a Replay Tour button on the user profile page.
-    -   Added backend endpoints () to track user's tour completion status.
+-   **Hybrid Guidance System Enhancements:** Implemented Smart Suggestions based on pending tasks and made the AI Help panel draggable.
+-   **Attendance & Leave Settings UI Overhaul:** Made Consulting Roles read-only and added a new Employee-wise Configuration section for custom policies.
+-   **Notifications Dialog Rework:** Implemented chronological sorting (newest first) and added filter tabs by category with unread counts.
+-   **Employee Self-Service Page Creation:** Created the My Details page with backend endpoints, which now successfully renders.
+-   **Reporting Manager Functionality Clarification:** Investigated and explained the existing reporting manager feature to the user.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Data Integrity in Leave Requests**
-    -   **Debug checklist:** A single leave request from a previous session has a malformed date string (25th Feb to 27th feb). Run a one-time script to fix or delete this record: .
-    -   **Why to solve this issue and what will be achieved with this?** Cleans up bad data left over from a rolled-back feature, preventing potential errors in reporting or data processing.
+    -   **Debug checklist:** A single leave request has a malformed date string (25th Feb to 27th feb). Run a one-time script to fix or delete this record: .
+    -   **Why to solve this issue and what will be achieved with this?** Cleans up bad data, preventing potential errors in reporting.
     -   **Should Test frontend/backend/both after fix:** Backend (DB verification).
+    -   **Is recurring issue?** N
+-   **Issue 2: Slow Login Screen Performance**
+    -   **Debug checklist:**
+        1.  Use browser developer tools (Network tab) to check for large assets or slow API calls on login.
+        2.  Review the code for any inefficient data loading or processing during the authentication sequence.
+        3.  Check backend logs for slow database queries.
+    -   **Why to solve this issue and what will be achieved with this?** Improves user experience and provides a better first impression of the application.
+    -   **Should Test frontend/backend/both after fix:** Frontend performance testing.
     -   **Is recurring issue?** N
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** The monolithic  file.
--   **Recurrence count:** 18+
--   **Status:** IN PROGRESS (Mitigation is ongoing by moving logic into separate routers and services).
+-   **Recurrence count:** High (18+).
+-   **Status:** IN PROGRESS (Mitigation is ongoing by moving logic into separate routers).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Hybrid Guidance System:** A feature combining static, predefined task checklists (from a JSON file) with an on-demand, AI-powered help modal that can trigger navigation.
--   **Custom Onboarding Component:** A lightweight, custom-built tour component using CSS and React state, created as a replacement for the incompatible  library.
--   **Centralized Service Pattern:** Logic for approvals, RBAC, and WebSockets has been abstracted into dedicated service modules, reducing the complexity of .
--   **Bulk Actions:** The Approval Center now supports selecting multiple items and performing a single action (e.g., approve all) via a dedicated backend endpoint.
--   **Real-time UI Updates:** Leveraging WebSockets to push data to the client (Approval Center, Notifications) without requiring polling or manual refreshes.
+-   **Employee Self-Service Workflow:** A new feature where employees submit profile change requests, which are then queued for HR/Admin approval. This involves new frontend forms, backend endpoints, and likely a new database collection.
+-   **Custom React Hooks:** A  hook was created to provide reusable drag-and-drop functionality for UI components, improving user experience.
+-   **Conditional UI/Access Control:** Logic was introduced to restrict access to the CTC designer based on whether the user is a new hire in the onboarding process or an existing employee.
 
 **key DB schema**
--   **:** Added . Will likely need  for the new guidance system.
+-   ** (New/Implied):** A new collection to store pending profile changes submitted from the My Details page. Expected schema: .
 
 **All files of reference**
--   : **New router** for the AI help system. (Last worked on)
--   : **New context** to manage the state of the guidance system.
--   : Significantly refactored to add real-time updates, bulk actions, and mobile views.
--   : **New component** for the custom Day 0 tour.
--   : Central service used by all workflows for notifications.
--   , : Refactored to use .
--   : Modified to integrate new routers and update various approval endpoints.
+-   : **New page** for employee self-service.
+-   : **Modified** to include new endpoints for handling employee change requests.
+-   : **Modified** to make Consulting Roles read-only and add employee-specific configurations.
+-   : **Modified** to add a new endpoint for fetching consulting employees.
+-   : **Modified** to include filtering tabs and correct sorting.
+-   : **New hook** for making UI elements draggable.
+-    & : **Modified** to integrate the new My Details page.
 
 **Areas that need refactoring**:
--   ****: Remains the primary candidate for further refactoring.
--   ****: This file is now over 1600 lines long. It should be broken down into smaller, more manageable components (e.g., , , ).
+-   ****: Remains the primary candidate for further modularization. The new employee change request endpoints should eventually be moved to a dedicated router (e.g., ).
+-   ****: This file has grown in complexity and should be broken down into smaller components for each distinct settings section.
 
 **key api endpoints**
--   : **New endpoint** to get AI-powered help and navigation suggestions.
--   , : **New endpoints** for managing guidance state.
--   , : **New endpoints** to manage the user's onboarding tour status.
--   : **New endpoint** for performing bulk approvals.
+-   : **New** endpoint for employees to submit profile change requests.
+-   : **New (Implied)** endpoint for HR/Admins to view pending requests.
+-   : **New (Implied)** endpoint for HR/Admins to approve or reject requests.
+-   : **New** endpoint to get a list of employees with consulting roles.
 
 **Critical Info for New Agent**
--   Your immediate priority is to complete the Hybrid Guidance System. Start by verifying the backend fix for the  error.
--   Once the backend is stable, the floating help button should appear on the UI. Your next task is to populate  with the required step-by-step guides.
--   After populating the checklists, conduct a full end-to-end test of the guidance system, ensuring the AI help and auto-navigation features work as specified by the user.
+-   Your immediate priority is to complete the **Employee Self-Service (My Details)** feature. The page UI is built, but the core functionality of editing data and submitting it for approval is not yet implemented or tested.
+-   After completing the self-service feature, address the other user--requested tasks: **implementing document downloads** and investigating the **slow login screen**.
+-   The user wants strict control over the CTC Designer. Ensure that it's only accessible during the onboarding flow for new employees and functions as an edit tool for existing ones.
 
 **documents and test reports created in this job**
 -   
 -   
--   
--   
--    (updated with completed tasks and new backlog items)
+-    (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asks to implement real-time refresh, bulk actions, and mobile optimization for the Approval Center. (COMPLETED)
-2.  **User:** Confirms the plan to implement all three Approval Center enhancements. (COMPLETED)
-3.  **User:** Asks to implement a Day 0 guided onboarding tour. (COMPLETED)
-4.  **User:** Provides specifications for the onboarding tour (trigger, content, storage). (COMPLETED)
-5.  **User:** Compares the agent's tooltips suggestion with their vision for a more advanced AI-powered guidance system. (IN PROGRESS)
-6.  **User:** Asks about compromises and credit usage for the AI guidance system. (IN PROGRESS)
-7.  **User:** Confirms they want to proceed with the Hybrid option for the guidance system. (IN PROGRESS)
-8.  **User:** Specifies that the Help Me button should be a floating button and provides a list of key workflows to create guides for. (IN PROGRESS)
-9.  **User:** Specifies that the AI help response should auto-navigate the user. (IN PROGRESS)
+1.  **Request:** Make AI Help panel movable. (COMPLETED)
+2.  **Request:** Continue with tasks and also investigate slow login screen. (IN PROGRESS - slow login not yet investigated)
+3.  **Question:** How to edit a reporting manager? (RESOLVED - Agent explained existing feature)
+4.  **Request:** Improve notifications dialog with sorting and tabs. (COMPLETED)
+5.  **Question/Request:** How to download documents? How can employees edit their info? Report of CTC sync issue. (IN PROGRESS - Self-service page started)
+6.  **Clarification/Request:** CTC is set but not via onboarding. Make onboarding CTC compulsory. Add Employee Self-Service. (IN PROGRESS)
+7.  **Request:** User confirms approval of agent's plan.
+8.  **Request:** User confirms approval of agent's plan.
 
 **Project Health Check:**
--   **Healthy:** The application is stable and all previously requested features are complete. The current work is on a new, user-requested feature.
+-   **Healthy:** The application is stable and actively being developed with new features and enhancements based on direct user feedback. There are minor pending issues and tech debt, but no critical blockers.
 
 **3rd Party Integrations**
 -   usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
@@ -376,15 +182,16 @@ options:
                         https://www.microsoft.com/en-
                         us/security/business/identity-access/microsoft-entra-
                         id
-  -V, --version         show program's version number and exit: Used for the AI Assistant and the new AI Guidance System (via Emergent LLM Key).
--   : For creating secure JWTs for email action links.
--   usage: websockets [--version | <uri>]: For real-time notifications, chat, and Approval Center updates.
--   : Was installed but **removed** due to React compatibility issues.
+  -V, --version         show program's version number and exit: Used for the AI Assistant and AI Guidance System (via Emergent LLM Key).
+-   : For JWT creation.
+-   usage: websockets [--version | <uri>]: For all real-time functionalities.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. Used successfully to test the Approval Center enhancements and the Onboarding Tour.
+-   **Testing agent used after significant changes:** YES. Used to test the Smart Suggestions feature, where it successfully identified and led to a fix for a backend data fetching issue.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None.
+-   **Test files created:**
+    -   
+    -   
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
@@ -394,4 +201,6 @@ options:
 -   **Employee (Reportee):**  / 
 
 **What agent forgot to execute**
--   The one-time data cleanup task for the malformed leave request record in the database is still pending from a previous session.</analysis>
+-   The agent did not investigate the slow login screen issue mentioned by the user.
+-   The agent acknowledged the request to fix document downloads but did not implement it.
+-   The one-time database cleanup task for the malformed leave request record from a much earlier session is still pending.</analysis>
