@@ -296,7 +296,7 @@ const ApprovalsCenter = () => {
   }
 
   // Calculate total pending for current user
-  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length + profileChangeApprovals.length + agreementApprovals.length;
+  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length + profileChangeApprovals.length + agreementApprovals.length + kickoffApprovals.length;
   
   // Handle agreement approval/rejection
   const handleAgreementAction = async (agreementId, action) => {
@@ -316,6 +316,29 @@ const ApprovalsCenter = () => {
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || `Failed to ${action} agreement`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle kickoff request approval/rejection
+  const handleKickoffAction = async (requestId, action) => {
+    setActionLoading(true);
+    try {
+      if (action === 'approve') {
+        await axios.post(`${API}/kickoff-requests/${requestId}/approve`);
+        toast.success('Kickoff request approved! Deal marked as accepted.');
+      } else {
+        const reason = rejectReason || 'Rejected by approver';
+        await axios.post(`${API}/kickoff-requests/${requestId}/reject`, { rejection_reason: reason });
+        toast.success('Kickoff request rejected');
+      }
+      setKickoffDetailDialog(false);
+      setSelectedKickoff(null);
+      setRejectReason('');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} kickoff request`);
     } finally {
       setActionLoading(false);
     }
