@@ -11240,7 +11240,9 @@ async def submit_bank_change_request(
     request_data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Submit a bank details change request"""
+    """Submit a bank details change request.
+    Sends real-time email + WebSocket notification to HR.
+    """
     employee = await db.employees.find_one({"user_id": current_user.id})
     if not employee:
         employee = await db.employees.find_one({"work_email": current_user.email})
@@ -11255,7 +11257,9 @@ async def submit_bank_change_request(
     if existing_pending:
         raise HTTPException(status_code=400, detail="You already have a pending bank change request")
     
+    request_id = str(uuid.uuid4())
     new_request = {
+        "id": request_id,
         "employee_id": str(employee["_id"]),
         "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}",
         "employee_code": employee.get("employee_code", ""),
@@ -11276,17 +11280,47 @@ async def submit_bank_change_request(
     
     await db.bank_change_requests.insert_one(new_request)
     
-    # Create notification for HR
-    await db.notifications.insert_one({
-        "type": "bank_change_request",
-        "message": f"Bank details change request from {new_request['employee_name']}",
-        "link": "/hr/approvals",
-        "for_roles": ["hr_manager", "hr_executive"],
-        "read": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
+    # Get requester email
+    requester_user = await db.users.find_one({"id": current_user.id})
+    requester_email = requester_user.get("email", "") if requester_user else ""
     
-    return {"message": "Bank details change request submitted successfully"}
+    # Send real-time approval notification (email + WebSocket) to HR
+    hr_users = await db.users.find(
+        {"role": {"$in": ["hr_manager", "hr_executive"]}}, 
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1}
+    ).to_list(20)
+    
+    ws_manager = get_ws_manager()
+    new_bank = request_data.get("new_bank_details", {})
+    bank_change_details = {
+        "Employee": new_request["employee_name"],
+        "Employee Code": new_request["employee_code"] or "N/A",
+        "New Bank": new_bank.get("bank_name", "Not specified"),
+        "New Account": f"XXXX{new_bank.get('account_number', '')[-4:]}" if new_bank.get("account_number") else "Not specified",
+        "Reason": request_data.get("reason") or "Not specified",
+        "Has Proof Document": "Yes" if request_data.get("proof_document") else "No"
+    }
+    
+    for hr in hr_users:
+        try:
+            await send_approval_notification(
+                db=db,
+                ws_manager=ws_manager,
+                record_type="bank_change",
+                record_id=request_id,
+                requester_id=current_user.id,
+                requester_name=new_request["employee_name"],
+                requester_email=requester_email,
+                approver_id=hr["id"],
+                approver_name=hr.get("full_name", "HR"),
+                approver_email=hr.get("email", ""),
+                details=bank_change_details,
+                link="/hr/approvals"
+            )
+        except Exception as e:
+            print(f"Error sending bank change notification to HR {hr['id']}: {e}")
+    
+    return {"message": "Bank details change request submitted successfully", "request_id": request_id}
 
 
 @api_router.get("/hr/bank-change-requests")
