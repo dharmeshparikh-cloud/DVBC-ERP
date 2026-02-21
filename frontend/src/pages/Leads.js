@@ -1006,12 +1006,12 @@ const Leads = () => {
                   {canEdit && lead.status !== 'closed' && lead.status !== 'lost' && (
                     <div className="pt-3 mt-3 border-t border-zinc-200" onClick={(e) => e.stopPropagation()}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`); }}
+                        onClick={(e) => { e.stopPropagation(); handleLeadClick(lead); }}
                         className="w-full px-3 py-2 text-xs font-medium bg-zinc-950 text-white rounded-sm hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
                         data-testid={`start-sales-flow-${lead.id}`}
                       >
                         <DollarSign className="w-3 h-3" strokeWidth={1.5} />
-                        Start Sales Flow
+                        {progress.current_stage > 1 ? 'Continue Sales Flow' : 'Start Sales Flow'}
                       </button>
                     </div>
                   )}
