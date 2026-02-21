@@ -7082,6 +7082,13 @@ async def create_approval_notification(
     }
     await db.notifications.insert_one(notification)
     
+    # Send real-time notification via WebSocket
+    try:
+        ws_manager = get_ws_manager()
+        await ws_manager.send_notification(approver_id, notification)
+    except Exception as e:
+        print(f"WebSocket notification failed: {e}")
+    
     # Log email notification (MOCKED)
     print(f"[EMAIL NOTIFICATION] Approval request sent to user {approver_id} for {reference_title}")
 
