@@ -11399,6 +11399,163 @@ async def reset_onboarding(current_user: User = Depends(get_current_user)):
     return {"message": "Onboarding reset", "has_completed_onboarding": False}
 
 
+# ============== LEAD PROGRESS TRACKING ==============
+
+@api_router.get("/leads/{lead_id}/progress")
+async def get_lead_progress(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Get the sales funnel progress for a lead"""
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Check for pricing plans
+    pricing_plans = await db.pricing_plans.find(
+        {"lead_id": lead_id},
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(10)
+    
+    # Check for SOW (enhanced_sow)
+    sows = await db.enhanced_sow.find(
+        {"lead_id": lead_id},
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(10)
+    
+    # Check for quotations
+    quotations = await db.quotations.find(
+        {"lead_id": lead_id},
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(10)
+    
+    # Check for proforma invoices
+    proforma_invoices = await db.proforma_invoices.find(
+        {"lead_id": lead_id},
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(10)
+    
+    # Check for agreements
+    agreements = await db.agreements.find(
+        {"lead_id": lead_id},
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(10)
+    
+    # Determine current stage and next URL
+    stages = {
+        "pricing": len(pricing_plans) > 0,
+        "sow": len(sows) > 0,
+        "quotation": len(quotations) > 0,
+        "invoice": len(proforma_invoices) > 0,
+        "agreement": len(agreements) > 0
+    }
+    
+    # Calculate current stage number (1-5)
+    current_stage = 0
+    next_url = f"/sales-funnel/pricing-plans?leadId={lead_id}"
+    
+    if stages["agreement"]:
+        latest_agreement = agreements[0]
+        current_stage = 5
+        if latest_agreement.get("status") == "signed":
+            next_url = f"/sales-funnel/agreement/{latest_agreement['id']}"
+        else:
+            next_url = f"/sales-funnel/agreements?leadId={lead_id}"
+    elif stages["invoice"]:
+        current_stage = 4
+        next_url = f"/sales-funnel/agreements?leadId={lead_id}"
+    elif stages["sow"] or stages["quotation"]:
+        current_stage = 3
+        if pricing_plans:
+            next_url = f"/sales-funnel/proforma-invoices?leadId={lead_id}"
+        else:
+            next_url = f"/sales-funnel/pricing-plans?leadId={lead_id}"
+    elif stages["pricing"]:
+        current_stage = 2
+        latest_plan = pricing_plans[0]
+        next_url = f"/sales-funnel/scope-selection/{latest_plan['id']}?lead_id={lead_id}"
+    else:
+        current_stage = 1
+        next_url = f"/sales-funnel/pricing-plans?leadId={lead_id}"
+    
+    return {
+        "lead_id": lead_id,
+        "stages": stages,
+        "current_stage": current_stage,
+        "total_stages": 5,
+        "next_url": next_url,
+        "latest_ids": {
+            "pricing_plan_id": pricing_plans[0]["id"] if pricing_plans else None,
+            "sow_id": sows[0]["id"] if sows else None,
+            "quotation_id": quotations[0]["id"] if quotations else None,
+            "invoice_id": proforma_invoices[0]["id"] if proforma_invoices else None,
+            "agreement_id": agreements[0]["id"] if agreements else None
+        }
+    }
+
+
+@api_router.get("/leads/progress/bulk")
+async def get_leads_progress_bulk(current_user: User = Depends(get_current_user)):
+    """Get progress for all leads (for displaying on leads list)"""
+    leads = await db.leads.find({}, {"_id": 0, "id": 1}).to_list(500)
+    lead_ids = [l["id"] for l in leads]
+    
+    # Get all related data in bulk
+    pricing_plans = await db.pricing_plans.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "id": 1, "lead_id": 1, "status": 1}
+    ).to_list(1000)
+    
+    sows = await db.enhanced_sow.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "id": 1, "lead_id": 1, "status": 1}
+    ).to_list(1000)
+    
+    quotations = await db.quotations.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "id": 1, "lead_id": 1, "status": 1}
+    ).to_list(1000)
+    
+    invoices = await db.proforma_invoices.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "id": 1, "lead_id": 1, "status": 1}
+    ).to_list(1000)
+    
+    agreements = await db.agreements.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "id": 1, "lead_id": 1, "status": 1}
+    ).to_list(1000)
+    
+    # Group by lead_id
+    progress_map = {}
+    for lead_id in lead_ids:
+        has_pricing = any(p["lead_id"] == lead_id for p in pricing_plans)
+        has_sow = any(s["lead_id"] == lead_id for s in sows)
+        has_quotation = any(q["lead_id"] == lead_id for q in quotations)
+        has_invoice = any(i["lead_id"] == lead_id for i in invoices)
+        has_agreement = any(a["lead_id"] == lead_id for a in agreements)
+        
+        # Calculate stage
+        if has_agreement:
+            stage = 5
+        elif has_invoice:
+            stage = 4
+        elif has_sow or has_quotation:
+            stage = 3
+        elif has_pricing:
+            stage = 2
+        else:
+            stage = 1
+            
+        progress_map[lead_id] = {
+            "pricing": has_pricing,
+            "sow": has_sow,
+            "quotation": has_quotation,
+            "invoice": has_invoice,
+            "agreement": has_agreement,
+            "current_stage": stage
+        }
+    
+    return progress_map
+
+
 # ============== GUIDANCE SYSTEM ==============
 
 @api_router.get("/my/guidance-state")
