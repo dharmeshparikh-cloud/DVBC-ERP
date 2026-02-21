@@ -267,6 +267,7 @@ const SalesMeetings = () => {
                       <Label className="text-sm font-medium text-zinc-950">Date & Time *</Label>
                       <Input type="datetime-local" value={formData.meeting_date} onChange={(e) => updateFormData('meeting_date', e.target.value)}
                         required className="rounded-sm border-zinc-200" data-testid="sales-meeting-date" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Mode *</Label>
