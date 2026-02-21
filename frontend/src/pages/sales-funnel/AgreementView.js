@@ -581,15 +581,15 @@ const AgreementView = () => {
               </Button>
             )}
             
-            {/* Record Payment Button - for signed agreements */}
+            {/* Client Onboarding Button - for signed agreements */}
             {agreement?.status === 'signed' && (
               <Button
-                onClick={() => setPaymentDialogOpen(true)}
-                className="bg-green-600 text-white hover:bg-green-700 rounded-sm shadow-none"
-                data-testid="record-payment-btn"
+                onClick={() => navigate(`/client-onboarding?agreementId=${agreementId}&leadId=${agreement?.lead_id}`)}
+                className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm shadow-none"
+                data-testid="client-onboarding-btn"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Record Payment
+                <UserCheck className="w-4 h-4 mr-2" />
+                Client Onboarding
               </Button>
             )}
           </div>
