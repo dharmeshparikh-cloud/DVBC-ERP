@@ -11,7 +11,36 @@
 
 ## Completed Work - February 2026
 
-### AI-Powered Hybrid Guidance System - February 21, 2026 ✅ (Latest)
+### Attendance & Leave Settings Enhancements - February 21, 2026 ✅ (Latest)
+**Improved attendance policy configuration with employee-wise customization**
+
+**Changes:**
+- ✅ **Consulting Roles now Read-Only** - Inherited from Employee Master
+  - Purple-highlighted section with "Inherited from Employee Master" label
+  - Shows role badges with employee count (e.g., "Consultant 20")
+  - Displays total employees following consulting timing
+  - No longer manually editable - roles are derived from employee data
+- ✅ **Employee-wise Configuration Section** (NEW)
+  - View employees with custom attendance policies
+  - Add new custom policy via modal dialog
+  - Edit existing custom policies
+  - Delete custom policies (reverts to default)
+  - Each policy shows: Check-in/out times, Grace period, Grace days, Reason
+  - Select employees via dropdown with live search
+
+**Backend Endpoints:**
+- `GET /api/attendance/consulting-employees` - Get employees with consulting roles from employee master
+- `GET /api/attendance/policy/custom` - List all custom policies
+- `POST /api/attendance/policy/custom` - Create/update custom policy
+- `DELETE /api/attendance/policy/custom/{employee_id}` - Remove custom policy
+
+**Files Modified:**
+- `/app/frontend/src/pages/hr/AttendanceLeaveSettings.js` - Added Employee-wise Configuration section, made Consulting Roles read-only
+- `/app/backend/routers/attendance.py` - Added `/consulting-employees` endpoint
+
+---
+
+### AI-Powered Hybrid Guidance System - February 21, 2026 ✅
 **Contextual help system with AI-powered navigation suggestions and Smart Recommendations**
 
 **Features:**
