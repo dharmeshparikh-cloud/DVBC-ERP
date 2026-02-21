@@ -642,6 +642,11 @@ const Layout = () => {
 
       {/* Onboarding Tour (for first-time users) */}
       <OnboardingTour />
+
+      {/* Guidance System */}
+      <FloatingHelpButton />
+      <HelpPanel />
+      <WorkflowOverlay />
     </div>
   );
 };
