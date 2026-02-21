@@ -205,44 +205,68 @@ const SalesMeetings = () => {
 
   return (
     <div data-testid="sales-meetings-page">
+      {/* Draft Selector */}
+      <DraftSelector
+        drafts={drafts}
+        loading={loadingDrafts}
+        onSelect={handleLoadDraft}
+        onDelete={deleteDraft}
+        onNewDraft={handleNewMeeting}
+        isOpen={showDraftSelector}
+        onClose={() => setShowDraftSelector(false)}
+        title="Meeting Drafts"
+        description="Continue editing a meeting or start a new one"
+      />
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Sales Meetings</h1>
           <p className="text-zinc-500">Track sales meetings, calls, and follow-ups with leads</p>
         </div>
-        {canEdit && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-sales-meeting-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> New Sales Meeting
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="border-zinc-200 rounded-sm max-w-xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Schedule Sales Meeting</DialogTitle>
-                <DialogDescription className="text-zinc-500">Quick meeting setup for sales activities</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Meeting Title *</Label>
-                    <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="e.g., Discovery Call, Follow-up" required className="rounded-sm border-zinc-200" data-testid="sales-meeting-title" />
+        <div className="flex items-center gap-3">
+          {/* Drafts Button */}
+          {drafts.length > 0 && (
+            <Button variant="outline" onClick={() => setShowDraftSelector(true)} className="gap-2">
+              <FolderOpen className="w-4 h-4" /> Drafts ({drafts.length})
+            </Button>
+          )}
+          
+          {canEdit && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="add-sales-meeting-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+                  <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> New Sales Meeting
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="border-zinc-200 rounded-sm max-w-xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 flex items-center justify-between">
+                    <span>Schedule Sales Meeting</span>
+                    <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={() => saveDraft(formData)} />
+                  </DialogTitle>
+                  <DialogDescription className="text-zinc-500">Quick meeting setup for sales activities</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-zinc-950">Meeting Title *</Label>
+                      <Input value={formData.title} onChange={(e) => updateFormData('title', e.target.value)}
+                        placeholder="e.g., Discovery Call, Follow-up" required className="rounded-sm border-zinc-200" data-testid="sales-meeting-title" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-zinc-950">Lead</Label>
+                      <select value={formData.lead_id} onChange={(e) => updateFormData('lead_id', e.target.value)}
+                        className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="sales-meeting-lead">
+                        <option value="">Select lead (optional)</option>
+                        {leads.map(l => <option key={l.id} value={l.id}>{l.first_name} {l.last_name} - {l.company}</option>)}
+                      </select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Lead</Label>
-                    <select value={formData.lead_id} onChange={(e) => setFormData({ ...formData, lead_id: e.target.value })}
-                      className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="sales-meeting-lead">
-                      <option value="">Select lead (optional)</option>
-                      {leads.map(l => <option key={l.id} value={l.id}>{l.first_name} {l.last_name} - {l.company}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Date & Time *</Label>
-                    <Input type="datetime-local" value={formData.meeting_date} onChange={(e) => setFormData({ ...formData, meeting_date: e.target.value })}
-                      required className="rounded-sm border-zinc-200" data-testid="sales-meeting-date" />
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-zinc-950">Date & Time *</Label>
+                      <Input type="datetime-local" value={formData.meeting_date} onChange={(e) => updateFormData('meeting_date', e.target.value)}
+                        required className="rounded-sm border-zinc-200" data-testid="sales-meeting-date" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Mode *</Label>
