@@ -430,6 +430,137 @@ const SalesDashboard = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Bottleneck Analysis & Forecasting */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Bottleneck Analysis */}
+            {bottleneckData && (
+              <Card className="border-zinc-200 dark:border-zinc-800">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                      Bottleneck Analysis
+                    </CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {bottleneckData.overall_conversion}% Overall Conv.
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {bottleneckData.bottlenecks?.slice(0, 5).map((bn, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-xs text-zinc-500 truncate">{bn.from_name}</span>
+                          <ArrowRight className="w-3 h-3 text-zinc-400 flex-shrink-0" />
+                          <span className="text-xs text-zinc-500 truncate">{bn.to_name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="w-20">
+                            <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full ${bn.conversion_rate >= 70 ? 'bg-emerald-500' : bn.conversion_rate >= 40 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                style={{ width: `${Math.min(bn.conversion_rate, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                          <span className={`text-xs font-medium w-12 text-right ${bn.is_bottleneck ? 'text-red-600' : 'text-zinc-600'}`}>
+                            {bn.conversion_rate}%
+                          </span>
+                          {bn.is_bottleneck && (
+                            <TrendingDown className="w-3 h-3 text-red-500" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {bottleneckData.worst_bottleneck && bottleneckData.worst_bottleneck.drop_off_rate > 30 && (
+                    <div className="mt-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs font-medium text-red-700 dark:text-red-300">
+                            Critical Bottleneck Detected
+                          </p>
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                            {bottleneckData.worst_bottleneck.drop_off_rate}% drop-off from {bottleneckData.worst_bottleneck.from_name} to {bottleneckData.worst_bottleneck.to_name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Sales Forecasting */}
+            {forecastData && (
+              <Card className="border-zinc-200 dark:border-zinc-800">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-amber-500" />
+                      Sales Forecast
+                    </CardTitle>
+                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                      {forecastData.total_pipeline} in Pipeline
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {/* Time-based Forecast */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                      <p className="text-xs text-blue-600 dark:text-blue-400">30 Days</p>
+                      <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{forecastData.time_based_forecast?.['30_days']?.deals || 0}</p>
+                      <p className="text-xs text-blue-500">{formatCurrency(forecastData.time_based_forecast?.['30_days']?.value || 0)}</p>
+                    </div>
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg text-center">
+                      <p className="text-xs text-indigo-600 dark:text-indigo-400">60 Days</p>
+                      <p className="text-xl font-bold text-indigo-700 dark:text-indigo-300">{forecastData.time_based_forecast?.['60_days']?.deals || 0}</p>
+                      <p className="text-xs text-indigo-500">{formatCurrency(forecastData.time_based_forecast?.['60_days']?.value || 0)}</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-center">
+                      <p className="text-xs text-purple-600 dark:text-purple-400">90 Days</p>
+                      <p className="text-xl font-bold text-purple-700 dark:text-purple-300">{forecastData.time_based_forecast?.['90_days']?.deals || 0}</p>
+                      <p className="text-xs text-purple-500">{formatCurrency(forecastData.time_based_forecast?.['90_days']?.value || 0)}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Weighted Summary */}
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">Expected Pipeline Value</p>
+                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                          {formatCurrency(forecastData.weighted_summary?.expected_value || 0)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">Expected Deals</p>
+                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                          {forecastData.weighted_summary?.expected_deals || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Insights */}
+                  {forecastData.insights?.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {forecastData.insights.filter(Boolean).slice(0, 2).map((insight, i) => (
+                        <p key={i} className="text-xs text-zinc-500 dark:text-zinc-400 flex items-start gap-1">
+                          <span className="text-amber-500">•</span> {insight}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </>
       )}
 
