@@ -20,8 +20,8 @@ const FUNNEL_STEPS = [
     title: 'Lead Capture', 
     icon: User, 
     description: 'Review lead details and contact information',
-    route: null, // Inline step
-    checkField: 'id' // Lead exists
+    route: null,
+    checkField: 'id'
   },
   { 
     id: 'meeting', 
@@ -69,7 +69,7 @@ const FUNNEL_STEPS = [
     title: 'Record Payment', 
     icon: CreditCard, 
     description: 'Log payment received - Cheque/NEFT/UPI',
-    route: null, // Inline or part of client-onboarding
+    route: null,
     checkCollection: 'agreement_payments'
   },
   { 
@@ -110,15 +110,12 @@ const SalesFunnelOnboarding = () => {
   const fetchFunnelData = async () => {
     setLoading(true);
     try {
-      // Fetch lead
       const leadRes = await axios.get(`${API}/leads/${leadId}`);
       setLead(leadRes.data);
 
-      // Fetch funnel progress
       const progressRes = await axios.get(`${API}/leads/${leadId}/funnel-progress`);
       setFunnelStatus(progressRes.data);
       
-      // Determine current step based on progress
       const completedSteps = progressRes.data.completed_steps || [];
       const lastCompleted = completedSteps.length > 0 ? 
         FUNNEL_STEPS.findIndex(s => s.id === completedSteps[completedSteps.length - 1]) : -1;
@@ -137,7 +134,6 @@ const SalesFunnelOnboarding = () => {
   };
 
   const isStepAccessible = (index) => {
-    // Step is accessible if all previous steps are completed
     if (index === 0) return true;
     for (let i = 0; i < index; i++) {
       if (!isStepCompleted(FUNNEL_STEPS[i].id)) {
@@ -159,7 +155,6 @@ const SalesFunnelOnboarding = () => {
     const step = FUNNEL_STEPS[currentStep];
     
     if (step.route) {
-      // Navigate to the existing page with leadId
       let route = step.route;
       if (step.id === 'meeting') {
         route = `${step.route}?leadId=${leadId}`;
@@ -174,7 +169,6 @@ const SalesFunnelOnboarding = () => {
       }
       navigate(route);
     } else {
-      // Inline steps - handle here or navigate to client-onboarding
       if (step.id === 'payment' || step.id === 'kickoff') {
         if (funnelStatus.agreement_id) {
           navigate(`/client-onboarding?agreementId=${funnelStatus.agreement_id}&leadId=${leadId}`);
@@ -281,244 +275,308 @@ const SalesFunnelOnboarding = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6" data-testid="sales-funnel-onboarding">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950" data-testid="sales-funnel-onboarding">
       {/* Header */}
-      <div className="mb-8">
-        <Button
-          onClick={() => navigate('/leads')}
-          variant="ghost"
-          className="hover:bg-zinc-100 rounded-sm mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Leads
-        </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 mb-2">
-              Sales Funnel
-            </h1>
-            <p className="text-zinc-500">
-              Complete all steps to onboard <span className="font-medium text-zinc-700">{lead.company || lead.first_name}</span>
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-zinc-500">Progress</p>
-            <p className="text-2xl font-semibold text-emerald-600">{completedCount} of {FUNNEL_STEPS.length}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="mb-8">
-        <Progress value={progress} className="h-3" />
-      </div>
-
-      {/* Steps Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Steps List */}
-        <div className="lg:col-span-1 space-y-2">
-          {FUNNEL_STEPS.map((step, index) => {
-            const StepIcon = step.icon;
-            const isCompleted = isStepCompleted(step.id);
-            const isCurrent = index === currentStep;
-            const isAccessible = isStepAccessible(index);
+      <div className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4">
+        <div className="max-w-7xl mx-auto">
+          <Button
+            onClick={() => navigate('/leads')}
+            variant="ghost"
+            size="sm"
+            className="mb-3 -ml-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+            data-testid="back-to-leads-btn"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Leads
+          </Button>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+                Sales Funnel
+              </h1>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                Complete all steps to onboard <span className="font-medium text-zinc-700 dark:text-zinc-300">{lead.company || `${lead.first_name} ${lead.last_name}`}</span>
+              </p>
+            </div>
             
-            return (
-              <div
-                key={step.id}
-                onClick={() => handleStepClick(index)}
-                className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                  isCurrent 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : isCompleted 
-                      ? 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100' 
-                      : isAccessible
-                        ? 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
-                        : 'border-zinc-100 bg-zinc-50 opacity-50 cursor-not-allowed'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isCompleted 
-                      ? 'bg-emerald-500 text-white' 
-                      : isCurrent 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-zinc-200 text-zinc-500'
-                  }`}>
-                    {isCompleted ? (
-                      <CheckCircle className="w-5 h-5" />
-                    ) : !isAccessible ? (
-                      <Lock className="w-4 h-4" />
-                    ) : (
-                      <StepIcon className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-medium truncate ${
-                      isCurrent ? 'text-blue-700' : isCompleted ? 'text-emerald-700' : 'text-zinc-700'
-                    }`}>
-                      {index + 1}. {step.title}
-                    </p>
-                    <p className="text-xs text-zinc-500 truncate">{step.description}</p>
-                  </div>
-                  {isCurrent && (
-                    <ChevronRight className="w-5 h-5 text-blue-500" />
-                  )}
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Progress</p>
+                <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                  {completedCount} of {FUNNEL_STEPS.length}
+                </p>
               </div>
-            );
-          })}
+              <div className="w-32">
+                <Progress value={progress} className="h-2" />
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* Current Step Content */}
-        <div className="lg:col-span-2">
-          <Card className="border-zinc-200 shadow-none">
-            <CardHeader className="border-b border-zinc-100">
-              <div className="flex items-center gap-3">
-                {React.createElement(FUNNEL_STEPS[currentStep].icon, {
-                  className: `w-8 h-8 ${
-                    isStepCompleted(FUNNEL_STEPS[currentStep].id) 
-                      ? 'text-emerald-500' 
-                      : 'text-blue-500'
-                  }`
-                })}
-                <div>
-                  <CardTitle className="text-xl">
-                    Step {currentStep + 1}: {FUNNEL_STEPS[currentStep].title}
-                  </CardTitle>
-                  <CardDescription>{FUNNEL_STEPS[currentStep].description}</CardDescription>
-                </div>
+      {/* Main Content - Two Column Layout */}
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="flex gap-6">
+          {/* Left Sidebar - Steps List */}
+          <div className="w-80 flex-shrink-0">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+              <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
+                <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                  Onboarding Steps
+                </h3>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              {/* Step Status */}
-              {isStepCompleted(FUNNEL_STEPS[currentStep].id) ? (
-                <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-emerald-700 mb-2">
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="font-medium">Step Completed</span>
-                  </div>
-                  {(() => {
-                    const details = getStepDetails(FUNNEL_STEPS[currentStep]);
-                    return details ? (
-                      <div className="text-sm text-emerald-600">
-                        <p className="font-medium">{details.title}</p>
-                        {details.subtitle && <p>{details.subtitle}</p>}
+              
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {FUNNEL_STEPS.map((step, index) => {
+                  const StepIcon = step.icon;
+                  const isCompleted = isStepCompleted(step.id);
+                  const isCurrent = index === currentStep;
+                  const isAccessible = isStepAccessible(index);
+                  
+                  return (
+                    <div
+                      key={step.id}
+                      onClick={() => handleStepClick(index)}
+                      data-testid={`step-${step.id}`}
+                      className={`p-4 cursor-pointer transition-all duration-200 ${
+                        isCurrent 
+                          ? 'bg-blue-50 dark:bg-blue-950/30 border-l-4 border-l-blue-500' 
+                          : isCompleted 
+                            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/30' 
+                            : isAccessible
+                              ? 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                              : 'opacity-50 cursor-not-allowed bg-zinc-50/50 dark:bg-zinc-800/30'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Step Icon/Status */}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          isCompleted 
+                            ? 'bg-emerald-500 text-white' 
+                            : isCurrent 
+                              ? 'bg-blue-500 text-white ring-4 ring-blue-100 dark:ring-blue-900' 
+                              : isAccessible
+                                ? 'bg-zinc-100 dark:bg-zinc-700 text-zinc-400 dark:text-zinc-500'
+                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600'
+                        }`}>
+                          {isCompleted ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : !isAccessible ? (
+                            <Lock className="w-3.5 h-3.5" />
+                          ) : (
+                            <span className="text-xs font-semibold">{index + 1}</span>
+                          )}
+                        </div>
+                        
+                        {/* Step Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <StepIcon className={`w-4 h-4 flex-shrink-0 ${
+                              isCurrent ? 'text-blue-600 dark:text-blue-400' : 
+                              isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 
+                              'text-zinc-400 dark:text-zinc-500'
+                            }`} />
+                            <p className={`text-sm font-medium truncate ${
+                              isCurrent ? 'text-blue-700 dark:text-blue-300' : 
+                              isCompleted ? 'text-emerald-700 dark:text-emerald-300' : 
+                              'text-zinc-700 dark:text-zinc-300'
+                            }`}>
+                              {step.title}
+                            </p>
+                          </div>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                            {step.description}
+                          </p>
+                          
+                          {/* Step Details if Completed */}
+                          {isCompleted && (() => {
+                            const details = getStepDetails(step);
+                            return details ? (
+                              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                                {details.title}
+                              </p>
+                            ) : null;
+                          })()}
+                        </div>
+                        
+                        {/* Arrow indicator for current step */}
+                        {isCurrent && (
+                          <ChevronRight className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                        )}
                       </div>
-                    ) : null;
-                  })()}
-                </div>
-              ) : (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-blue-700">
-                    <Clock className="w-5 h-5" />
-                    <span className="font-medium">Pending - Action Required</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Content Area */}
+          <div className="flex-1">
+            <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    isStepCompleted(FUNNEL_STEPS[currentStep].id)
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                      : 'bg-blue-100 dark:bg-blue-900/30'
+                  }`}>
+                    {React.createElement(FUNNEL_STEPS[currentStep].icon, {
+                      className: `w-6 h-6 ${
+                        isStepCompleted(FUNNEL_STEPS[currentStep].id) 
+                          ? 'text-emerald-600 dark:text-emerald-400' 
+                          : 'text-blue-600 dark:text-blue-400'
+                      }`
+                    })}
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-zinc-900 dark:text-zinc-100">
+                      Step {currentStep + 1}: {FUNNEL_STEPS[currentStep].title}
+                    </CardTitle>
+                    <CardDescription className="text-zinc-500 dark:text-zinc-400">
+                      {FUNNEL_STEPS[currentStep].description}
+                    </CardDescription>
                   </div>
                 </div>
-              )}
-
-              {/* Lead Details (Step 1) */}
-              {currentStep === 0 && lead && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-zinc-50 rounded-lg">
-                      <p className="text-xs text-zinc-500 uppercase">Name</p>
-                      <p className="font-semibold">{lead.first_name} {lead.last_name}</p>
+              </CardHeader>
+              
+              <CardContent className="p-6 bg-white dark:bg-zinc-900">
+                {/* Step Status Banner */}
+                {isStepCompleted(FUNNEL_STEPS[currentStep].id) ? (
+                  <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 mb-1">
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="font-semibold">Step Completed</span>
                     </div>
-                    <div className="p-4 bg-zinc-50 rounded-lg">
-                      <p className="text-xs text-zinc-500 uppercase">Company</p>
-                      <p className="font-semibold">{lead.company || 'N/A'}</p>
-                    </div>
-                    <div className="p-4 bg-zinc-50 rounded-lg">
-                      <p className="text-xs text-zinc-500 uppercase">Email</p>
-                      <p className="font-semibold">{lead.email}</p>
-                    </div>
-                    <div className="p-4 bg-zinc-50 rounded-lg">
-                      <p className="text-xs text-zinc-500 uppercase">Phone</p>
-                      <p className="font-semibold">{lead.phone || 'N/A'}</p>
-                    </div>
-                    <div className="p-4 bg-zinc-50 rounded-lg">
-                      <p className="text-xs text-zinc-500 uppercase">Lead Score</p>
-                      <p className="font-semibold">{lead.score || 0}</p>
-                    </div>
-                    <div className="p-4 bg-zinc-50 rounded-lg">
-                      <p className="text-xs text-zinc-500 uppercase">Status</p>
-                      <p className="font-semibold capitalize">{lead.status || 'New'}</p>
+                    {(() => {
+                      const details = getStepDetails(FUNNEL_STEPS[currentStep]);
+                      return details ? (
+                        <div className="text-sm text-emerald-600 dark:text-emerald-400 ml-7">
+                          <p className="font-medium">{details.title}</p>
+                          {details.subtitle && <p className="text-emerald-500">{details.subtitle}</p>}
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+                ) : (
+                  <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                      <Clock className="w-5 h-5" />
+                      <span className="font-semibold">Pending - Action Required</span>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Project Complete (Step 9) */}
-              {currentStep === 8 && (
-                <div className="text-center py-8">
-                  {funnelStatus.project_id ? (
-                    <>
-                      <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <CheckCircle className="w-10 h-10 text-emerald-600" />
+                {/* Lead Details (Step 1) */}
+                {currentStep === 0 && lead && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">Name</p>
+                        <p className="font-semibold text-zinc-900 dark:text-zinc-100">{lead.first_name} {lead.last_name}</p>
                       </div>
-                      <h2 className="text-2xl font-semibold text-zinc-800 mb-2">
-                        Onboarding Complete!
-                      </h2>
-                      <p className="text-zinc-500 mb-6">
-                        {lead.company || lead.first_name} has been successfully onboarded.
-                        <br />Project has been created and PM has been notified.
-                      </p>
-                      <Button
-                        onClick={() => navigate(`/projects/${funnelStatus.project_id}`)}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        View Project
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold mb-2">Awaiting Kickoff Approval</h2>
-                      <p className="text-zinc-500">
-                        Project will be created once Sr. Manager / Principal Consultant approves the kickoff request.
-                      </p>
-                    </>
-                  )}
-                </div>
-              )}
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">Company</p>
+                        <p className="font-semibold text-zinc-900 dark:text-zinc-100">{lead.company || 'N/A'}</p>
+                      </div>
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">Email</p>
+                        <p className="font-semibold text-zinc-900 dark:text-zinc-100">{lead.email}</p>
+                      </div>
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">Phone</p>
+                        <p className="font-semibold text-zinc-900 dark:text-zinc-100">{lead.phone || 'N/A'}</p>
+                      </div>
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">Lead Score</p>
+                        <p className="font-semibold text-zinc-900 dark:text-zinc-100">{lead.score || 0}</p>
+                      </div>
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">Status</p>
+                        <p className="font-semibold text-zinc-900 dark:text-zinc-100 capitalize">{lead.status || 'New'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-              {/* Action Buttons */}
-              <div className="flex justify-between mt-8 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                  disabled={currentStep === 0}
-                >
-                  Previous Step
-                </Button>
-                
-                {currentStep < 8 && (
-                  <Button
-                    onClick={handleContinue}
-                    className={isStepCompleted(FUNNEL_STEPS[currentStep].id) 
-                      ? 'bg-emerald-600 hover:bg-emerald-700' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                    }
-                  >
-                    {isStepCompleted(FUNNEL_STEPS[currentStep].id) ? (
+                {/* Project Complete (Step 9) */}
+                {currentStep === 8 && (
+                  <div className="text-center py-8">
+                    {funnelStatus.project_id ? (
                       <>
-                        Next Step
-                        <ChevronRight className="w-4 h-4 ml-2" />
+                        <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                          <CheckCircle className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                          Onboarding Complete!
+                        </h2>
+                        <p className="text-zinc-500 dark:text-zinc-400 mb-6">
+                          {lead.company || lead.first_name} has been successfully onboarded.
+                          <br />Project has been created and PM has been notified.
+                        </p>
+                        <Button
+                          onClick={() => navigate(`/projects/${funnelStatus.project_id}`)}
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                          data-testid="view-project-btn"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View Project
+                        </Button>
                       </>
                     ) : (
                       <>
-                        {FUNNEL_STEPS[currentStep].route ? 'Open ' : 'Complete '} 
-                        {FUNNEL_STEPS[currentStep].title}
-                        <ExternalLink className="w-4 h-4 ml-2" />
+                        <Clock className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                          Awaiting Kickoff Approval
+                        </h2>
+                        <p className="text-zinc-500 dark:text-zinc-400">
+                          Project will be created once Sr. Manager / Principal Consultant approves the kickoff request.
+                        </p>
                       </>
                     )}
-                  </Button>
+                  </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+
+                {/* Action Buttons */}
+                <div className="flex justify-between mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                    disabled={currentStep === 0}
+                    data-testid="prev-step-btn"
+                    className="border-zinc-200 dark:border-zinc-700"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Previous Step
+                  </Button>
+                  
+                  {currentStep < 8 && (
+                    <Button
+                      onClick={handleContinue}
+                      data-testid="continue-btn"
+                      className={isStepCompleted(FUNNEL_STEPS[currentStep].id) 
+                        ? 'bg-emerald-600 hover:bg-emerald-700' 
+                        : 'bg-blue-600 hover:bg-blue-700'
+                      }
+                    >
+                      {isStepCompleted(FUNNEL_STEPS[currentStep].id) ? (
+                        <>
+                          Next Step
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </>
+                      ) : (
+                        <>
+                          Open {FUNNEL_STEPS[currentStep].title}
+                          <ExternalLink className="w-4 h-4 ml-2" />
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
