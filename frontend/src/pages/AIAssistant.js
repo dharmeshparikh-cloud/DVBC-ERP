@@ -113,6 +113,7 @@ const AIAssistant = () => {
   };
 
   const analyzeReport = async (reportType) => {
+    if (!currentUser?.id) return;
     setLoading(true);
     const userMessage = { role: 'user', content: `Analyze my ${reportType} report`, timestamp: new Date().toISOString() };
     setChatHistory(prev => [...prev, userMessage]);
@@ -143,6 +144,7 @@ const AIAssistant = () => {
   };
 
   const clearHistory = async () => {
+    if (!currentUser?.id) return;
     try {
       await fetch(`${API_URL}/api/ai/chat-history?user_id=${currentUser.id}`, { method: 'DELETE' });
       setChatHistory([]);
