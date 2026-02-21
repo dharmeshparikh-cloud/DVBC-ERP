@@ -2655,6 +2655,155 @@ const ApprovalsCenter = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Kickoff Request Detail Dialog */}
+      <Dialog open={kickoffDetailDialog} onOpenChange={setKickoffDetailDialog}>
+        <DialogContent className={`${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200'} rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto`}>
+          <DialogHeader>
+            <DialogTitle className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
+              <Briefcase className="w-5 h-5 text-pink-500" />
+              Kickoff Request Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedKickoff && (
+            <div className="space-y-4">
+              {/* Kickoff Header */}
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+                    Kickoff Request
+                  </Badge>
+                  <Badge className={`${
+                    selectedKickoff.status === 'pending' 
+                      ? 'bg-yellow-100 text-yellow-700' 
+                      : selectedKickoff.status === 'accepted'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {selectedKickoff.status?.toUpperCase()}
+                  </Badge>
+                </div>
+                <h3 className={`text-lg font-semibold mb-2 ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                  {selectedKickoff.project_name || 'Unnamed Project'}
+                </h3>
+                <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  Requested by: <strong>{selectedKickoff.requested_by_name}</strong>
+                </p>
+              </div>
+
+              {/* Kickoff Details Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Client Name</p>
+                  <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                    {selectedKickoff.client_name || 'N/A'}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Project Type</p>
+                  <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                    {selectedKickoff.project_type || 'N/A'}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Project Tenure</p>
+                  <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                    {selectedKickoff.project_tenure_months ? `${selectedKickoff.project_tenure_months} months` : 'N/A'}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Meeting Frequency</p>
+                  <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                    {selectedKickoff.meeting_frequency || 'N/A'}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Expected Start</p>
+                  <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                    {selectedKickoff.expected_start_date ? new Date(selectedKickoff.expected_start_date).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Created Date</p>
+                  <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                    {selectedKickoff.created_at ? new Date(selectedKickoff.created_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Agreement Info */}
+              {selectedKickoff.agreement && (
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-emerald-900/20' : 'bg-emerald-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Linked Agreement</p>
+                  <p className={`font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                    {selectedKickoff.agreement.agreement_number} - {formatCurrency(selectedKickoff.agreement.total_value)}
+                  </p>
+                </div>
+              )}
+
+              {/* Lead Info */}
+              {selectedKickoff.lead && (
+                <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Lead</p>
+                  <p className={`font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                    {selectedKickoff.lead.first_name} {selectedKickoff.lead.last_name} - {selectedKickoff.lead.company}
+                  </p>
+                </div>
+              )}
+
+              {/* Rejection Reason Input */}
+              <div>
+                <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                  Rejection Reason (required for rejection)
+                </label>
+                <Textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Enter reason for rejection..."
+                  className={`mt-2 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <DialogFooter className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setKickoffDetailDialog(false);
+                    setSelectedKickoff(null);
+                    setRejectReason('');
+                  }}
+                  className={isDark ? 'border-zinc-600' : ''}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (!rejectReason.trim()) {
+                      toast.error('Please provide a rejection reason');
+                      return;
+                    }
+                    handleKickoffAction(selectedKickoff.id, 'reject');
+                  }}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => handleKickoffAction(selectedKickoff.id, 'approve')}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                  Approve Kickoff
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
