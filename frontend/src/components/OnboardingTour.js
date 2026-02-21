@@ -332,24 +332,34 @@ const OnboardingTour = () => {
   useEffect(() => {
     const checkOnboarding = async () => {
       if (!user || !token) {
+        console.log('OnboardingTour: No user or token yet');
         setLoading(false);
         return;
       }
       
+      console.log('OnboardingTour: Checking onboarding status for', user.email);
+      
       try {
-        const res = await axios.get(`${API}/my/onboarding-status`);
+        // Ensure axios has the token set
+        const res = await axios.get(`${API}/my/onboarding-status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        console.log('OnboardingTour: API response', res.data);
         if (!res.data.has_completed_onboarding) {
+          console.log('OnboardingTour: Showing welcome dialog');
           setShowWelcome(true);
         }
       } catch (error) {
-        console.error('Failed to check onboarding status:', error);
+        console.error('OnboardingTour: Failed to check status', error);
       } finally {
         setLoading(false);
       }
     };
     
-    // Small delay to let the page render first
-    const timer = setTimeout(checkOnboarding, 1000);
+    // Delay to let the page render and auth state stabilize
+    const timer = setTimeout(checkOnboarding, 1500);
     return () => clearTimeout(timer);
   }, [user, token]);
 
