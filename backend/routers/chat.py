@@ -178,10 +178,14 @@ async def send_message(
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    # Get sender info
+    # Get sender info and check restrictions
     sender = await db.users.find_one({"id": sender_id})
     if not sender:
         raise HTTPException(status_code=404, detail="Sender not found")
+    
+    # Check if user is restricted from chat
+    if sender.get("chat_restricted", False):
+        raise HTTPException(status_code=403, detail="Your chat access has been restricted. Contact admin for assistance.")
     
     message_id = str(uuid.uuid4())
     message = {
