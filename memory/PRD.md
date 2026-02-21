@@ -366,7 +366,6 @@ Consultant Assignment → Timesheet Entry → Approval → Project Cost Calculat
 ## Upcoming Tasks (P1)
 - Sales Incentive module (linking to `incentive_eligibility` records)
 - Implement full pages for placeholder routes (`/invoices`, `/follow-ups`)
-- Implement real email integration (currently MOCKED)
 
 ## Future Tasks (P2/P3)
 - Refactor monolithic `server.py` into domain routers
