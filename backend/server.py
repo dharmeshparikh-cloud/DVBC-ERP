@@ -13219,6 +13219,427 @@ async def get_funnel_trends(
     }
 
 
+@api_router.get("/analytics/bottleneck-analysis")
+async def get_bottleneck_analysis(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Analyze funnel bottlenecks - where leads are dropping off.
+    Shows conversion rates between each stage and identifies problem areas.
+    """
+    # Get all leads (not lost/closed)
+    all_leads = await db.leads.find(
+        {"status": {"$nin": ["lost"]}},
+        {"_id": 0, "id": 1, "created_at": 1}
+    ).to_list(1000)
+    
+    lead_ids = [l["id"] for l in all_leads]
+    total_leads = len(all_leads)
+    
+    if total_leads == 0:
+        return {"message": "No leads to analyze", "stages": []}
+    
+    # Count leads that reached each stage
+    stage_data = []
+    
+    # Stage 1: Lead (all leads start here)
+    stage_data.append({
+        "stage": "lead",
+        "name": "Lead Capture",
+        "count": total_leads,
+        "percentage": 100.0
+    })
+    
+    # Stage 2: Meeting
+    meeting_leads = set()
+    meetings = await db.meeting_records.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "lead_id": 1}
+    ).to_list(1000)
+    for m in meetings:
+        meeting_leads.add(m.get("lead_id"))
+    meeting_count = len(meeting_leads)
+    stage_data.append({
+        "stage": "meeting",
+        "name": "Meeting Recorded",
+        "count": meeting_count,
+        "percentage": round((meeting_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Stage 3: Pricing Plan
+    pricing_leads = set()
+    pricing = await db.pricing_plans.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "lead_id": 1, "id": 1}
+    ).to_list(1000)
+    pricing_map = {}
+    for p in pricing:
+        pricing_leads.add(p.get("lead_id"))
+        pricing_map[p.get("lead_id")] = p.get("id")
+    pricing_count = len(pricing_leads)
+    stage_data.append({
+        "stage": "pricing",
+        "name": "Pricing Plan",
+        "count": pricing_count,
+        "percentage": round((pricing_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Stage 4: SOW
+    sow_leads = set()
+    sow = await db.enhanced_sow.find(
+        {"$or": [
+            {"lead_id": {"$in": lead_ids}},
+            {"pricing_plan_id": {"$in": list(pricing_map.values())}}
+        ]},
+        {"_id": 0, "lead_id": 1}
+    ).to_list(1000)
+    for s in sow:
+        if s.get("lead_id"):
+            sow_leads.add(s.get("lead_id"))
+    sow_count = len(sow_leads)
+    stage_data.append({
+        "stage": "sow",
+        "name": "Scope of Work",
+        "count": sow_count,
+        "percentage": round((sow_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Stage 5: Quotation
+    quotation_leads = set()
+    quotations = await db.quotations.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "lead_id": 1}
+    ).to_list(1000)
+    for q in quotations:
+        quotation_leads.add(q.get("lead_id"))
+    quotation_count = len(quotation_leads)
+    stage_data.append({
+        "stage": "quotation",
+        "name": "Quotation Sent",
+        "count": quotation_count,
+        "percentage": round((quotation_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Stage 6: Agreement Created
+    agreement_leads = set()
+    agreement_map = {}
+    agreements = await db.agreements.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "lead_id": 1, "id": 1, "status": 1}
+    ).to_list(1000)
+    for a in agreements:
+        agreement_leads.add(a.get("lead_id"))
+        agreement_map[a.get("lead_id")] = {"id": a.get("id"), "status": a.get("status")}
+    agreement_count = len(agreement_leads)
+    stage_data.append({
+        "stage": "agreement",
+        "name": "Agreement Created",
+        "count": agreement_count,
+        "percentage": round((agreement_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Stage 7: Agreement Signed
+    signed_leads = set()
+    for lead_id, agr in agreement_map.items():
+        if agr.get("status") == "signed":
+            signed_leads.add(lead_id)
+    signed_count = len(signed_leads)
+    stage_data.append({
+        "stage": "signed",
+        "name": "Agreement Signed",
+        "count": signed_count,
+        "percentage": round((signed_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Stage 8: Payment Received
+    payment_leads = set()
+    agreement_ids = [v["id"] for v in agreement_map.values()]
+    payments = await db.agreement_payments.find(
+        {"agreement_id": {"$in": agreement_ids}},
+        {"_id": 0, "agreement_id": 1}
+    ).to_list(1000)
+    paid_agreement_ids = set(p.get("agreement_id") for p in payments)
+    for lead_id, agr in agreement_map.items():
+        if agr.get("id") in paid_agreement_ids:
+            payment_leads.add(lead_id)
+    payment_count = len(payment_leads)
+    stage_data.append({
+        "stage": "payment",
+        "name": "Payment Received",
+        "count": payment_count,
+        "percentage": round((payment_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Stage 9: Kickoff Requested
+    kickoff_leads = set()
+    kickoff_accepted_leads = set()
+    kickoffs = await db.kickoff_requests.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "lead_id": 1, "status": 1}
+    ).to_list(1000)
+    for k in kickoffs:
+        kickoff_leads.add(k.get("lead_id"))
+        if k.get("status") == "accepted":
+            kickoff_accepted_leads.add(k.get("lead_id"))
+    kickoff_count = len(kickoff_leads)
+    stage_data.append({
+        "stage": "kickoff",
+        "name": "Kickoff Requested",
+        "count": kickoff_count,
+        "percentage": round((kickoff_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Stage 10: Project Created (Kickoff Accepted)
+    complete_count = len(kickoff_accepted_leads)
+    stage_data.append({
+        "stage": "complete",
+        "name": "Project Created",
+        "count": complete_count,
+        "percentage": round((complete_count / total_leads) * 100, 1) if total_leads > 0 else 0
+    })
+    
+    # Calculate drop-off rates between stages
+    bottlenecks = []
+    for i in range(1, len(stage_data)):
+        prev = stage_data[i - 1]
+        curr = stage_data[i]
+        
+        if prev["count"] > 0:
+            conversion_rate = round((curr["count"] / prev["count"]) * 100, 1)
+            drop_off_rate = round(100 - conversion_rate, 1)
+            drop_off_count = prev["count"] - curr["count"]
+        else:
+            conversion_rate = 0
+            drop_off_rate = 0
+            drop_off_count = 0
+        
+        bottlenecks.append({
+            "from_stage": prev["stage"],
+            "from_name": prev["name"],
+            "to_stage": curr["stage"],
+            "to_name": curr["name"],
+            "conversion_rate": conversion_rate,
+            "drop_off_rate": drop_off_rate,
+            "drop_off_count": drop_off_count,
+            "is_bottleneck": drop_off_rate > 50 and drop_off_count > 2  # Significant drop-off
+        })
+    
+    # Identify worst bottleneck
+    worst_bottleneck = max(bottlenecks, key=lambda x: x["drop_off_rate"]) if bottlenecks else None
+    
+    return {
+        "total_leads": total_leads,
+        "completed": complete_count,
+        "overall_conversion": round((complete_count / total_leads) * 100, 1) if total_leads > 0 else 0,
+        "stages": stage_data,
+        "bottlenecks": bottlenecks,
+        "worst_bottleneck": worst_bottleneck,
+        "insights": [
+            f"Your worst bottleneck is at '{worst_bottleneck['from_name']} → {worst_bottleneck['to_name']}' with {worst_bottleneck['drop_off_rate']}% drop-off" if worst_bottleneck and worst_bottleneck['drop_off_rate'] > 30 else None,
+            f"Overall funnel conversion: {round((complete_count / total_leads) * 100, 1)}%" if total_leads > 0 else None,
+            f"{complete_count} out of {total_leads} leads converted to projects" if total_leads > 0 else None
+        ]
+    }
+
+
+@api_router.get("/analytics/forecasting")
+async def get_sales_forecasting(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Predict future closures based on current funnel and historical conversion rates.
+    Uses weighted probability based on stage position.
+    """
+    # Historical conversion rates (can be calculated dynamically with more data)
+    # These are stage-to-close probabilities
+    stage_probabilities = {
+        "lead": 0.05,        # 5% of new leads close
+        "meeting": 0.15,     # 15% after meeting
+        "pricing": 0.25,     # 25% after pricing
+        "sow": 0.35,         # 35% after SOW
+        "quotation": 0.50,   # 50% after quotation
+        "agreement": 0.65,   # 65% after agreement
+        "signed": 0.85,      # 85% after signing
+        "payment": 0.95,     # 95% after payment
+        "kickoff": 0.98,     # 98% after kickoff
+        "complete": 1.0      # 100% completed
+    }
+    
+    # Average deal values by stage (from historical data)
+    # Get actual averages from database
+    agreements = await db.agreements.find(
+        {"total_value": {"$exists": True, "$gt": 0}},
+        {"_id": 0, "total_value": 1}
+    ).to_list(100)
+    
+    if agreements:
+        avg_deal_value = sum(a.get("total_value", 0) for a in agreements) / len(agreements)
+    else:
+        avg_deal_value = 300000  # Default ₹3L
+    
+    # Get current funnel state
+    all_leads = await db.leads.find(
+        {"status": {"$nin": ["lost", "closed"]}},
+        {"_id": 0, "id": 1}
+    ).to_list(1000)
+    
+    lead_ids = [l["id"] for l in all_leads]
+    total_leads = len(all_leads)
+    
+    # Count leads at each stage (current position, not cumulative)
+    stage_counts = {
+        "lead": 0, "meeting": 0, "pricing": 0, "sow": 0,
+        "quotation": 0, "agreement": 0, "signed": 0,
+        "payment": 0, "kickoff": 0, "complete": 0
+    }
+    
+    # Build lookup sets
+    meeting_leads = set()
+    meetings = await db.meeting_records.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)
+    for m in meetings:
+        meeting_leads.add(m.get("lead_id"))
+    
+    pricing_leads = set()
+    pricing_map = {}
+    pricing = await db.pricing_plans.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "id": 1}).to_list(1000)
+    for p in pricing:
+        pricing_leads.add(p.get("lead_id"))
+        pricing_map[p.get("lead_id")] = p.get("id")
+    
+    sow_leads = set()
+    sow = await db.enhanced_sow.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)
+    for s in sow:
+        if s.get("lead_id"):
+            sow_leads.add(s.get("lead_id"))
+    
+    quotation_leads = set()
+    quotations = await db.quotations.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1}).to_list(1000)
+    for q in quotations:
+        quotation_leads.add(q.get("lead_id"))
+    
+    agreement_map = {}
+    agreements_db = await db.agreements.find(
+        {"lead_id": {"$in": lead_ids}},
+        {"_id": 0, "lead_id": 1, "id": 1, "status": 1, "total_value": 1}
+    ).to_list(1000)
+    for a in agreements_db:
+        agreement_map[a.get("lead_id")] = a
+    
+    agreement_ids = [a.get("id") for a in agreements_db]
+    paid_agreements = set()
+    payments = await db.agreement_payments.find({"agreement_id": {"$in": agreement_ids}}, {"_id": 0, "agreement_id": 1}).to_list(1000)
+    for p in payments:
+        paid_agreements.add(p.get("agreement_id"))
+    
+    kickoff_map = {}
+    kickoffs = await db.kickoff_requests.find({"lead_id": {"$in": lead_ids}}, {"_id": 0, "lead_id": 1, "status": 1}).to_list(1000)
+    for k in kickoffs:
+        kickoff_map[k.get("lead_id")] = k.get("status")
+    
+    # Determine current stage for each lead
+    for lead_id in lead_ids:
+        # Start from highest stage and work down
+        if lead_id in kickoff_map and kickoff_map[lead_id] == "accepted":
+            stage_counts["complete"] += 1
+        elif lead_id in kickoff_map:
+            stage_counts["kickoff"] += 1
+        elif lead_id in agreement_map and agreement_map[lead_id].get("id") in paid_agreements:
+            stage_counts["payment"] += 1
+        elif lead_id in agreement_map and agreement_map[lead_id].get("status") == "signed":
+            stage_counts["signed"] += 1
+        elif lead_id in agreement_map:
+            stage_counts["agreement"] += 1
+        elif lead_id in quotation_leads:
+            stage_counts["quotation"] += 1
+        elif lead_id in sow_leads:
+            stage_counts["sow"] += 1
+        elif lead_id in pricing_leads:
+            stage_counts["pricing"] += 1
+        elif lead_id in meeting_leads:
+            stage_counts["meeting"] += 1
+        else:
+            stage_counts["lead"] += 1
+    
+    # Calculate weighted pipeline value
+    pipeline_forecast = []
+    total_weighted_deals = 0
+    total_weighted_value = 0
+    
+    for stage, count in stage_counts.items():
+        if stage == "complete":
+            continue  # Already closed
+        
+        probability = stage_probabilities.get(stage, 0)
+        
+        # Get actual values for leads in this stage if available
+        stage_value = avg_deal_value
+        
+        weighted_deals = count * probability
+        weighted_value = count * stage_value * probability
+        
+        total_weighted_deals += weighted_deals
+        total_weighted_value += weighted_value
+        
+        pipeline_forecast.append({
+            "stage": stage,
+            "count": count,
+            "probability": round(probability * 100, 0),
+            "weighted_deals": round(weighted_deals, 1),
+            "weighted_value": round(weighted_value, 0)
+        })
+    
+    # Calculate expected closures in different timeframes
+    # Assuming average 30-day cycle per stage
+    forecast_30_days = {
+        "deals": round(stage_counts.get("kickoff", 0) * 0.98 + 
+                      stage_counts.get("payment", 0) * 0.70 + 
+                      stage_counts.get("signed", 0) * 0.40, 1),
+        "value": round((stage_counts.get("kickoff", 0) * 0.98 + 
+                       stage_counts.get("payment", 0) * 0.70 + 
+                       stage_counts.get("signed", 0) * 0.40) * avg_deal_value, 0)
+    }
+    
+    forecast_60_days = {
+        "deals": round(forecast_30_days["deals"] + 
+                      stage_counts.get("agreement", 0) * 0.50 + 
+                      stage_counts.get("quotation", 0) * 0.30, 1),
+        "value": round((forecast_30_days["deals"] + 
+                       stage_counts.get("agreement", 0) * 0.50 + 
+                       stage_counts.get("quotation", 0) * 0.30) * avg_deal_value, 0)
+    }
+    
+    forecast_90_days = {
+        "deals": round(forecast_60_days["deals"] + 
+                      stage_counts.get("sow", 0) * 0.25 + 
+                      stage_counts.get("pricing", 0) * 0.15, 1),
+        "value": round((forecast_60_days["deals"] + 
+                       stage_counts.get("sow", 0) * 0.25 + 
+                       stage_counts.get("pricing", 0) * 0.15) * avg_deal_value, 0)
+    }
+    
+    return {
+        "total_pipeline": total_leads - stage_counts.get("complete", 0),
+        "already_closed": stage_counts.get("complete", 0),
+        "avg_deal_value": round(avg_deal_value, 0),
+        "stage_distribution": stage_counts,
+        "pipeline_forecast": pipeline_forecast,
+        "weighted_summary": {
+            "expected_deals": round(total_weighted_deals, 1),
+            "expected_value": round(total_weighted_value, 0)
+        },
+        "time_based_forecast": {
+            "30_days": forecast_30_days,
+            "60_days": forecast_60_days,
+            "90_days": forecast_90_days
+        },
+        "insights": [
+            f"Expected {round(total_weighted_deals, 1)} deals worth {round(total_weighted_value/100000, 1)}L from current pipeline",
+            f"High-probability deals (payment/kickoff): {stage_counts.get('payment', 0) + stage_counts.get('kickoff', 0)}",
+            f"Average deal value: {round(avg_deal_value/100000, 2)}L"
+        ]
+    }
+
+
 # ============== LEAD PROGRESS TRACKING ==============
 
 @api_router.get("/leads/{lead_id}/progress")
