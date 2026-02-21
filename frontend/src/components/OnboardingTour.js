@@ -384,7 +384,10 @@ const OnboardingTour = () => {
   const handleSkipTour = async () => {
     setShowWelcome(false);
     try {
-      await axios.post(`${API}/my/complete-onboarding`);
+      const token = localStorage.getItem('token');
+      await axios.post(`${API}/my/complete-onboarding`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
     } catch (error) {
       console.error('Failed to mark onboarding complete:', error);
     }
@@ -398,7 +401,10 @@ const OnboardingTour = () => {
       setShowTour(false);
       setShowCompletion(true);
       try {
-        await axios.post(`${API}/my/complete-onboarding`);
+        const token = localStorage.getItem('token');
+        await axios.post(`${API}/my/complete-onboarding`, {}, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
       } catch (error) {
         console.error('Failed to mark onboarding complete:', error);
       }
@@ -414,7 +420,10 @@ const OnboardingTour = () => {
   const handleClose = async () => {
     setShowTour(false);
     try {
-      await axios.post(`${API}/my/complete-onboarding`);
+      const token = localStorage.getItem('token');
+      await axios.post(`${API}/my/complete-onboarding`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
     } catch (error) {
       console.error('Failed to mark onboarding complete:', error);
     }
