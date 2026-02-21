@@ -147,7 +147,7 @@ const AttendanceLeaveSettings = () => {
         headers,
         body: JSON.stringify({
           policy: attendancePolicy,
-          consulting_roles: consultingRoles
+          consulting_roles: consultingRoles // Keep existing roles
         })
       });
       if (res.ok) {
@@ -162,6 +162,88 @@ const AttendanceLeaveSettings = () => {
       setSaving(false);
     }
   };
+
+  const openAddPolicyModal = () => {
+    setEditingPolicy(null);
+    setPolicyForm({
+      employee_id: '',
+      check_in: attendancePolicy.non_consulting.check_in,
+      check_out: attendancePolicy.non_consulting.check_out,
+      grace_period_minutes: attendancePolicy.grace_period_minutes,
+      grace_days_per_month: attendancePolicy.grace_days_per_month,
+      reason: ''
+    });
+    setShowPolicyModal(true);
+  };
+
+  const openEditPolicyModal = (policy) => {
+    setEditingPolicy(policy);
+    setPolicyForm({
+      employee_id: policy.employee_id,
+      check_in: policy.check_in,
+      check_out: policy.check_out,
+      grace_period_minutes: policy.grace_period_minutes,
+      grace_days_per_month: policy.grace_days_per_month,
+      reason: policy.reason || ''
+    });
+    setShowPolicyModal(true);
+  };
+
+  const saveCustomPolicy = async () => {
+    if (!policyForm.employee_id) {
+      toast.error('Please select an employee');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/attendance/policy/custom`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(policyForm)
+      });
+      if (res.ok) {
+        toast.success(editingPolicy ? 'Custom policy updated' : 'Custom policy created');
+        setShowPolicyModal(false);
+        fetchCustomPolicies();
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Failed to save custom policy');
+      }
+    } catch (error) {
+      toast.error('Failed to save custom policy');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCustomPolicy = async (employeeId) => {
+    if (!window.confirm('Are you sure you want to remove this custom policy? The employee will revert to default policy.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/attendance/policy/custom/${employeeId}`, {
+        method: 'DELETE',
+        headers
+      });
+      if (res.ok) {
+        toast.success('Custom policy removed');
+        fetchCustomPolicies();
+      } else {
+        const error = await res.json();
+        toast.error(error.detail || 'Failed to delete custom policy');
+      }
+    } catch (error) {
+      toast.error('Failed to delete custom policy');
+    }
+  };
+
+  // Get employees without custom policies for the dropdown
+  const availableEmployees = allEmployees.filter(emp => 
+    !customPolicies.some(p => p.employee_id === emp.id) || 
+    (editingPolicy && editingPolicy.employee_id === emp.id)
+  );
 
   const saveLeavePolicy = async () => {
     setSaving(true);
