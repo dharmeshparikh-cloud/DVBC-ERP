@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Toaster } from './components/ui/sonner';
@@ -6,6 +6,8 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ApprovalProvider } from './contexts/ApprovalContext';
 import { PermissionProvider } from './contexts/PermissionContext';
 import { GuidanceProvider } from './contexts/GuidanceContext';
+
+// Critical paths - keep as regular imports for fast initial load
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
