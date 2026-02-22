@@ -221,6 +221,119 @@ async def get_leave_request(leave_id: str, current_user: User = Depends(get_curr
     return leave
 
 
+@router.post("/{leave_id}/attachments")
+async def upload_leave_attachment(
+    leave_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload attachment to a leave request (e.g., medical certificate, documents)."""
+    db = get_db()
+    
+    leave_req = await db.leave_requests.find_one({"id": leave_id}, {"_id": 0})
+    if not leave_req:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    
+    # Only owner or HR can upload
+    if leave_req.get("user_id") != current_user.id and current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    attachment = {
+        "id": str(uuid.uuid4()),
+        "file_name": data.get("file_name"),
+        "file_type": data.get("file_type"),
+        "file_data": data.get("file_data"),  # Base64 encoded
+        "description": data.get("description", ""),
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": current_user.full_name,
+        "uploaded_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.leave_requests.update_one(
+        {"id": leave_id},
+        {"$push": {"attachments": attachment}}
+    )
+    
+    return {"message": "Attachment uploaded", "attachment_id": attachment["id"]}
+
+
+@router.get("/{leave_id}/attachments")
+async def get_leave_attachments(
+    leave_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get attachments for a leave request."""
+    db = get_db()
+    
+    leave_req = await db.leave_requests.find_one({"id": leave_id}, {"_id": 0})
+    if not leave_req:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    
+    attachments = leave_req.get("attachments", [])
+    
+    # Return list without file data
+    attachment_list = []
+    for a in attachments:
+        attachment_list.append({
+            "id": a.get("id"),
+            "file_name": a.get("file_name"),
+            "file_type": a.get("file_type"),
+            "description": a.get("description"),
+            "uploaded_by_name": a.get("uploaded_by_name"),
+            "uploaded_at": a.get("uploaded_at"),
+            "has_data": bool(a.get("file_data"))
+        })
+    
+    return {"attachments": attachment_list, "count": len(attachment_list)}
+
+
+@router.get("/{leave_id}/attachments/{attachment_id}")
+async def get_leave_attachment(
+    leave_id: str,
+    attachment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific attachment with file data for download."""
+    db = get_db()
+    
+    leave_req = await db.leave_requests.find_one({"id": leave_id}, {"_id": 0})
+    if not leave_req:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    
+    attachments = leave_req.get("attachments", [])
+    attachment = next((a for a in attachments if a.get("id") == attachment_id), None)
+    
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    
+    return attachment
+
+
+@router.delete("/{leave_id}/attachments/{attachment_id}")
+async def delete_leave_attachment(
+    leave_id: str,
+    attachment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an attachment from a leave request."""
+    db = get_db()
+    
+    leave_req = await db.leave_requests.find_one({"id": leave_id}, {"_id": 0})
+    if not leave_req:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    
+    # Only owner or HR can delete
+    if leave_req.get("user_id") != current_user.id and current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.leave_requests.update_one(
+        {"id": leave_id},
+        {"$pull": {"attachments": {"id": attachment_id}}}
+    )
+    
+    return {"message": "Attachment deleted"}
+
+
 @router.get("/employee/{employee_id}/balance")
 async def get_leave_balance(employee_id: str, current_user: User = Depends(get_current_user)):
     """Get leave balance for an employee"""
