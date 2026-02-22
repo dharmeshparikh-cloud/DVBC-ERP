@@ -6,33 +6,11 @@ Extracted from server.py for better modularity and load performance.
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
-from routers.deps import get_db, oauth2_scheme, SECRET_KEY, ALGORITHM
-from routers.models import User
-from jose import JWTError, jwt
+from .deps import get_db
+from .models import User
+from .auth import get_current_user
 
 router = APIRouter(tags=["Analytics"])
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    """Get current user from JWT token."""
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    db = get_db()
-    user = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if user is None:
-        raise credentials_exception
-    return User(**user)
 
 
 @router.get("/analytics/funnel-summary")
