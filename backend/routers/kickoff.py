@@ -409,6 +409,13 @@ async def accept_kickoff_request(
     agreement = await db.agreements.find_one({"id": kickoff.get("agreement_id")}, {"_id": 0})
     pricing_plan_id = agreement.get('pricing_plan_id') if agreement else None
     
+    # Get tenure from kickoff request
+    tenure_months = kickoff.get("project_tenure_months", 12)
+    
+    # Calculate end_date based on kickoff accept date + tenure
+    kickoff_accepted_at = datetime.now(timezone.utc)
+    calculated_end_date = kickoff_accepted_at + relativedelta(months=tenure_months)
+    
     # Create project from kickoff request - SET STATUS TO ACTIVE
     project = Project(
         name=kickoff.get("project_name"),
@@ -416,7 +423,9 @@ async def accept_kickoff_request(
         lead_id=kickoff.get("lead_id"),
         agreement_id=kickoff.get("agreement_id"),
         project_type=kickoff.get("project_type", "mixed"),
-        start_date=datetime.now(timezone.utc),
+        start_date=kickoff_accepted_at,  # Kickoff accept date as start
+        end_date=calculated_end_date,  # Auto-calculated end date
+        tenure_months=tenure_months,  # Store tenure for reference
         total_meetings_committed=kickoff.get("total_meetings", 0),
         project_value=kickoff.get("project_value"),
         created_by=current_user.id,
