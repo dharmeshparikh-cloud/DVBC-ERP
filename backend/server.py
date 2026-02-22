@@ -187,6 +187,9 @@ from routers import pricing_plans as pricing_plans_router
 # Stage Guard (new - guided workflow)
 from routers import stage_guard as stage_guard_router
 
+# Drafts (new - auto-save functionality)
+from routers import drafts as drafts_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
