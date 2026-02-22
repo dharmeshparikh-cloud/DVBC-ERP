@@ -438,3 +438,190 @@ async def get_projects_pending_completion(
         "count": len(pending_completion),
         "projects": pending_completion
     }
+
+
+@router.post("/recalculate-statuses")
+async def recalculate_project_statuses(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Recalculate auto-status for all active projects.
+    
+    Status Logic:
+    - active: Default - Project ongoing, timeline not exceeded
+    - at_risk: Timeline < 30 days remaining AND (payments incomplete OR deliverables < 80%)
+    - delayed: Timeline exceeded but NOT completed
+    - completed: All conditions met (must go through /complete endpoint)
+    """
+    db = get_db()
+    
+    # Only admin/PM can trigger recalculation
+    if current_user.role not in ADMIN_ROLES + PROJECT_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Get all non-completed projects
+    projects = await db.projects.find(
+        {"status": {"$nin": ["completed", "cancelled", "on_hold"]}},
+        {"_id": 0}
+    ).to_list(500)
+    
+    results = {
+        "processed": 0,
+        "status_changes": [],
+        "errors": []
+    }
+    
+    for project in projects:
+        project_id = project.get('id')
+        project_name = project.get('name') or project.get('project_name') or 'Unnamed'
+        current_status = project.get('status', 'active')
+        
+        try:
+            validation = await validate_project_completion(project_id, current_user)
+            
+            # Determine new status based on validation
+            new_status = current_status
+            status_reason = None
+            
+            timeline = validation.timeline_status
+            payment = validation.payment_status
+            
+            days_remaining = timeline.get('days_remaining')
+            timeline_complete = timeline.get('is_complete', False)
+            payments_complete = payment.get('is_complete', False)
+            
+            # Calculate deliverables percentage (meetings delivered / committed)
+            meetings_committed = project.get('total_meetings_committed', 0)
+            meetings_delivered = project.get('total_meetings_delivered', 0)
+            deliverables_pct = (meetings_delivered / meetings_committed * 100) if meetings_committed > 0 else 0
+            
+            if timeline_complete and not payments_complete:
+                new_status = "delayed"
+                status_reason = f"Timeline over but payments incomplete ({payment.get('received_installments', 0)}/{payment.get('total_installments', 0)} received)"
+            elif days_remaining is not None and days_remaining <= 0 and current_status != "completed":
+                new_status = "delayed"
+                status_reason = f"Timeline exceeded by {abs(days_remaining)} days"
+            elif days_remaining is not None and 0 < days_remaining <= 30:
+                # Check if at risk
+                if not payments_complete or deliverables_pct < 80:
+                    new_status = "at_risk"
+                    reasons = []
+                    if not payments_complete:
+                        reasons.append(f"payments {payment.get('received_installments', 0)}/{payment.get('total_installments', 0)}")
+                    if deliverables_pct < 80:
+                        reasons.append(f"deliverables {deliverables_pct:.0f}%")
+                    status_reason = f"{days_remaining} days remaining, issues: {', '.join(reasons)}"
+            
+            # Update if status changed
+            if new_status != current_status:
+                await db.projects.update_one(
+                    {"id": project_id},
+                    {"$set": {
+                        "status": new_status,
+                        "status_auto_updated": True,
+                        "status_auto_reason": status_reason,
+                        "status_auto_updated_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                
+                results["status_changes"].append({
+                    "project_id": project_id,
+                    "project_name": project_name,
+                    "old_status": current_status,
+                    "new_status": new_status,
+                    "reason": status_reason
+                })
+            
+            results["processed"] += 1
+            
+        except Exception as e:
+            results["errors"].append({
+                "project_id": project_id,
+                "error": str(e)
+            })
+    
+    return results
+
+
+@router.get("/{project_id}/timeline")
+async def get_project_timeline(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get detailed project timeline information.
+    Shows start date, end date, tenure, and remaining/overdue days.
+    """
+    db = get_db()
+    
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    project_name = project.get('name') or project.get('project_name') or 'Unnamed Project'
+    
+    # Get kickoff request for original tenure info
+    kickoff = None
+    if project.get('kickoff_request_id'):
+        kickoff = await db.kickoff_requests.find_one(
+            {"id": project.get('kickoff_request_id')}, 
+            {"_id": 0}
+        )
+    
+    # Parse dates
+    start_date = project.get('start_date') or project.get('kickoff_accepted_at')
+    end_date = project.get('end_date')
+    tenure_months = project.get('tenure_months')
+    
+    if isinstance(start_date, str):
+        start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+    if isinstance(end_date, str):
+        end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+    
+    # Calculate if not set
+    if start_date and tenure_months and not end_date:
+        end_date = start_date + relativedelta(months=tenure_months)
+    
+    # Calculate days remaining/overdue
+    now = datetime.now(timezone.utc)
+    days_info = {}
+    
+    if end_date:
+        total_days = (end_date - start_date).days if start_date else None
+        elapsed_days = (now - start_date).days if start_date else None
+        remaining_days = (end_date - now).days
+        
+        if remaining_days > 0:
+            days_info = {
+                "days_remaining": remaining_days,
+                "days_overdue": 0,
+                "is_overdue": False,
+                "progress_percentage": (elapsed_days / total_days * 100) if total_days else 0
+            }
+        else:
+            days_info = {
+                "days_remaining": 0,
+                "days_overdue": abs(remaining_days),
+                "is_overdue": True,
+                "progress_percentage": 100
+            }
+    
+    return {
+        "project_id": project_id,
+        "project_name": project_name,
+        "client_name": project.get('client_name'),
+        "status": project.get('status'),
+        "timeline": {
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None,
+            "tenure_months": tenure_months,
+            "kickoff_accepted_at": project.get('kickoff_accepted_at'),
+            **days_info
+        },
+        "kickoff_details": {
+            "original_tenure_months": kickoff.get('project_tenure_months') if kickoff else None,
+            "expected_start_date": kickoff.get('expected_start_date') if kickoff else None,
+            "accepted_at": kickoff.get('accepted_at') if kickoff else None
+        } if kickoff else None
+    }
