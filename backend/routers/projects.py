@@ -34,7 +34,7 @@ async def create_project(project_create: ProjectCreate, current_user: User = Dep
     return project
 
 
-@router.get("", response_model=List[Project])
+@router.get("")
 async def get_projects(current_user: User = Depends(get_current_user)):
     """Get all projects (filtered by role)."""
     db = get_db()
@@ -49,15 +49,28 @@ async def get_projects(current_user: User = Depends(get_current_user)):
     
     projects = await db.projects.find(query, {"_id": 0}).to_list(1000)
     
+    # Handle date conversion for flexible schema
     for project in projects:
         if isinstance(project.get('start_date'), str):
-            project['start_date'] = datetime.fromisoformat(project['start_date'])
+            try:
+                project['start_date'] = datetime.fromisoformat(project['start_date'])
+            except:
+                pass
         if project.get('end_date') and isinstance(project['end_date'], str):
-            project['end_date'] = datetime.fromisoformat(project['end_date'])
+            try:
+                project['end_date'] = datetime.fromisoformat(project['end_date'])
+            except:
+                pass
         if isinstance(project.get('created_at'), str):
-            project['created_at'] = datetime.fromisoformat(project['created_at'])
+            try:
+                project['created_at'] = datetime.fromisoformat(project['created_at'])
+            except:
+                pass
         if isinstance(project.get('updated_at'), str):
-            project['updated_at'] = datetime.fromisoformat(project['updated_at'])
+            try:
+                project['updated_at'] = datetime.fromisoformat(project['updated_at'])
+            except:
+                pass
         
         # Strip financial data for HR Manager (operational view only)
         if current_user.role == UserRole.HR_MANAGER:
