@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://netra-unified.preview.emergentagent.com",
+      "value": "https://leads-fix-validation.preview.emergentagent.com",
       "type": "string"
     },
     {
