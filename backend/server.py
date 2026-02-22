@@ -211,6 +211,7 @@ api_router.include_router(sow_masters_router.router)
 api_router.include_router(masters_router.router)
 api_router.include_router(kickoff_router.router)
 api_router.include_router(pricing_plans_router.router)
+api_router.include_router(stage_guard_router.router)
 
 # Finance Module
 api_router.include_router(payments_router.router)
