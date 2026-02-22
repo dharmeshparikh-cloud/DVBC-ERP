@@ -167,9 +167,9 @@ async def get_my_leave_balance(current_user: User = Depends(get_current_user)):
     # Return default balance if no employee record
     if not emp:
         return {
-            "casual": {"total": 12, "used": 0, "available": 12},
-            "sick": {"total": 6, "used": 0, "available": 6},
-            "earned": {"total": 15, "used": 0, "available": 15}
+            "casual": {"total": DEFAULT_LEAVE_BALANCE['casual_leave'], "used": 0, "available": DEFAULT_LEAVE_BALANCE['casual_leave']},
+            "sick": {"total": DEFAULT_LEAVE_BALANCE['sick_leave'], "used": 0, "available": DEFAULT_LEAVE_BALANCE['sick_leave']},
+            "earned": {"total": DEFAULT_LEAVE_BALANCE['earned_leave'], "used": 0, "available": DEFAULT_LEAVE_BALANCE['earned_leave']}
         }
     
     balance = emp.get('leave_balance', {})
@@ -214,7 +214,6 @@ async def submit_change_request(
 ):
     """Submit a profile change request for HR approval"""
     db = get_db()
-    import uuid
     
     change_request = {
         "id": str(uuid.uuid4()),
@@ -325,7 +324,7 @@ async def get_my_stats(current_user: User = Depends(get_current_user)):
         "status": "approved",
         "start_date": {"$gte": year_start}
     }, {"_id": 0, "days": 1}).to_list(100)
-    total_leaves = sum(l.get("days", 0) for l in leaves)
+    total_leaves = sum(leave.get("days", 0) for leave in leaves)
     
     # Tasks
     pending_tasks = await db.tasks.count_documents({
