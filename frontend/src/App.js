@@ -210,6 +210,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route index element={<SalesDashboardEnhanced />} />
         <Route path="leads" element={<Leads />} />
         <Route path="pricing-plans" element={<PricingPlanBuilder />} />
+        <Route path="sow" element={<Navigate to="/sales/sow-list" replace />} />
         <Route path="sow/:pricingPlanId" element={<SOWBuilder />} />
         <Route path="scope-selection/:pricingPlanId" element={<SalesScopeSelection />} />
         <Route path="sow-review/:pricingPlanId" element={<ConsultingScopeView />} />
