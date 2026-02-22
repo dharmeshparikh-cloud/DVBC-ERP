@@ -8,7 +8,7 @@ from typing import Optional, List
 import uuid
 
 from .models import User, UserRole
-from .deps import get_db
+from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, HR_PM_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
