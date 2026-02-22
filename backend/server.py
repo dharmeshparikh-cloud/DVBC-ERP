@@ -178,6 +178,9 @@ from routers import roles as roles_router
 from routers import my as my_router
 from routers import leave_requests as leave_requests_router
 
+# Leave Policies (new - comprehensive leave management)
+from routers import leave_policies as leave_policies_router
+
 # Project Completion (new)
 from routers import project_completion as project_completion_router
 
@@ -254,6 +257,9 @@ api_router.include_router(settings_router.router)
 api_router.include_router(roles_router.router)
 api_router.include_router(my_router.router)
 api_router.include_router(leave_requests_router.router)
+
+# Leave Policies
+api_router.include_router(leave_policies_router.router)
 
 # Project Completion
 api_router.include_router(project_completion_router.router)
