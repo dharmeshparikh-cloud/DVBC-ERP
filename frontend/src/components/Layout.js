@@ -228,20 +228,33 @@ const Layout = () => {
     return true;
   });
 
-  const salesFlowItems = [
-    { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3 },
-    { name: 'Leads', href: '/leads', icon: Users },
-    { name: 'Team Leads', href: '/manager-leads', icon: Users, managerOnly: true },
-    { name: 'Target Management', href: '/target-management', icon: Target, managerOnly: true },
-    { name: 'SOW & Pricing', href: '/sales-funnel/pricing-plans', icon: FileText, adminOnly: true },
-    { name: 'Agreements', href: '/agreements', icon: FileCheck, adminOnly: true },
-    { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard, adminOnly: true },
-    { name: 'Clients', href: '/clients', icon: Building2 },
-    { name: 'Invoices', href: '/invoices', icon: Receipt },
-    { name: 'Lead Follow-ups', href: '/follow-ups', icon: CalendarCheck },
-    { name: 'Kickoff Requests', href: '/kickoff-requests', icon: Briefcase },
-    { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3 },
+  // Sales items for GUIDED mode (Sales Executives)
+  const guidedSalesItems = [
+    { name: 'My Leads', href: '/leads', icon: Users, stage: 'LEAD' },
+    { name: "Today's Follow-ups", href: '/follow-ups', icon: CalendarCheck, stage: null },
   ];
+
+  // Sales items for MONITORING/CONTROL mode (Managers, Admins)
+  const fullSalesFlowItems = [
+    { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3, stage: null },
+    { name: 'Leads', href: '/leads', icon: Users, stage: 'LEAD' },
+    { name: 'Team Leads', href: '/manager-leads', icon: Users, managerOnly: true, stage: null },
+    { name: 'Target Management', href: '/target-management', icon: Target, managerOnly: true, stage: null },
+    { name: 'Sales Meetings', href: '/sales-funnel/meetings', icon: CalendarCheck, stage: 'MEETING' },
+    { name: 'SOW & Pricing', href: '/sales-funnel/pricing-plans', icon: FileText, stage: 'PRICING' },
+    { name: 'SOW Generator', href: '/sales-funnel/sow', icon: FileText, stage: 'SOW' },
+    { name: 'Quotations', href: '/sales-funnel/quotations', icon: Receipt, stage: 'QUOTATION' },
+    { name: 'Agreements', href: '/agreements', icon: FileCheck, stage: 'AGREEMENT' },
+    { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard, stage: 'PAYMENT' },
+    { name: 'Kickoff Requests', href: '/kickoff-requests', icon: Briefcase, stage: 'KICKOFF' },
+    { name: 'Clients', href: '/clients', icon: Building2, stage: null },
+    { name: 'Invoices', href: '/invoices', icon: Receipt, stage: null },
+    { name: 'Lead Follow-ups', href: '/follow-ups', icon: CalendarCheck, stage: null },
+    { name: 'Sales Reports', href: '/reports?category=sales', icon: BarChart3, stage: null },
+  ];
+
+  // Select sales items based on mode
+  const salesFlowItems = isGuidedSalesMode ? guidedSalesItems : fullSalesFlowItems;
 
   // Removed: Mailbox (no route needed)
   const salesOtherItems = [];
