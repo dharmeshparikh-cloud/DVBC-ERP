@@ -13,7 +13,35 @@
 
 ## Completed Work - February 2026
 
-### Phase 28: Unified Approvals Center - February 22, 2026 ✅ (Latest)
+### Phase 29: Enhanced Approval Workflows & Receipt Management - February 22, 2026 ✅ (Latest)
+
+**Expense Receipt Management (Upload/View/Download):**
+- ✅ `POST /expenses/{id}/upload-receipt` - Upload receipt (base64 encoded)
+- ✅ `GET /expenses/{id}/receipts` - List receipts (without file data for efficiency)
+- ✅ `GET /expenses/{id}/receipts/{receipt_id}` - Download specific receipt with file data
+- ✅ `DELETE /expenses/{id}/receipts/{receipt_id}` - Delete a receipt
+
+**Enhanced Expense Approval Flow:**
+- ✅ `POST /expenses/{id}/send-back` - Send back for revision with comments
+- ✅ `POST /expenses/{id}/resubmit` - Employee resubmits after revision
+- ✅ `POST /expenses/{id}/approve-with-modification` - Partial approval (modify amount)
+- ✅ `POST /expenses/{id}/withdraw` - Owner withdraws pending expense
+- ✅ `PATCH /expenses/{id}` - Edit pending expense (was draft/rejected only)
+
+**Kickoff Request Management:**
+- ✅ `DELETE /sales-funnel/kickoff-request/{id}` - Withdraw pending request
+- ✅ `PATCH /sales-funnel/kickoff-request/{id}` - Update date/consultant while pending
+- ✅ `GET /sales-funnel/my-kickoff-requests` - View own kickoff requests
+
+**New Expense Statuses:**
+- `revision_required` - Sent back by HR for corrections
+- `withdrawn` - Withdrawn by owner
+
+**Testing:** 100% pass rate (24/24 tests) - `/app/test_reports/iteration_104.json`
+
+---
+
+### Phase 28: Unified Approvals Center - February 22, 2026 ✅
 
 **Merged Expense Approvals into Unified Approvals Center:**
 - ✅ Added EXPENSE stat card showing pending expense count
