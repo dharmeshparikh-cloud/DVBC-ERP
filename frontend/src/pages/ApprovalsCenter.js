@@ -39,8 +39,9 @@ const ApprovalsCenter = () => {
   const [permissionApprovals, setPermissionApprovals] = useState([]);
   const [modificationApprovals, setModificationApprovals] = useState([]);
   const [profileChangeApprovals, setProfileChangeApprovals] = useState([]);
-  const [agreementApprovals, setAgreementApprovals] = useState([]); // NEW: Manager Agreement Approvals
-  const [kickoffApprovals, setKickoffApprovals] = useState([]); // NEW: Kickoff Request Approvals
+  const [agreementApprovals, setAgreementApprovals] = useState([]);
+  const [kickoffApprovals, setKickoffApprovals] = useState([]);
+  const [expenseApprovals, setExpenseApprovals] = useState([]); // Merged from ExpenseApprovals
   const [myRequests, setMyRequests] = useState([]);
   const [allApprovals, setAllApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
