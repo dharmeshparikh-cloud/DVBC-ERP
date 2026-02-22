@@ -79,6 +79,18 @@ const ApprovalsCenter = () => {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseRemarks, setExpenseRemarks] = useState('');
   
+  // Enhanced expense dialog states
+  const [receiptUploadDialog, setReceiptUploadDialog] = useState(false);
+  const [receiptsListDialog, setReceiptsListDialog] = useState(false);
+  const [sendBackDialog, setSendBackDialog] = useState(false);
+  const [partialApprovalDialog, setPartialApprovalDialog] = useState(false);
+  const [expenseReceipts, setExpenseReceipts] = useState([]);
+  const [sendBackComments, setSendBackComments] = useState('');
+  const [approvedAmount, setApprovedAmount] = useState('');
+  const [modificationReason, setModificationReason] = useState('');
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [loadingReceipts, setLoadingReceipts] = useState(false);
+  
   // New states for bulk actions and real-time
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [bulkActionDialog, setBulkActionDialog] = useState(false);
