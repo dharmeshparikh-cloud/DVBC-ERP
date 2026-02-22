@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
-from .deps import get_db
+from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, DEFAULT_PAGE_SIZE, LARGE_QUERY_SIZE
 from .models import User
 from .auth import get_current_user
 
