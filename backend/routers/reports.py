@@ -20,7 +20,7 @@ async def get_available_reports(current_user: User = Depends(get_current_user)):
     reports = [
         {"id": "sales_summary", "name": "Sales Summary", "roles": ["admin", "sales_manager", "manager"]},
         {"id": "employee_attendance", "name": "Employee Attendance", "roles": ["admin", "hr_manager"]},
-        {"id": "project_status", "name": "Project Status", "roles": ["admin", "project_manager", "manager"]},
+        {"id": "project_status", "name": "Project Status", "roles": ["admin", "principal_consultant", "manager"]},
         {"id": "revenue_forecast", "name": "Revenue Forecast", "roles": ["admin", "manager"]},
         {"id": "consultant_utilization", "name": "Consultant Utilization", "roles": ["admin", "manager"]},
     ]
@@ -43,7 +43,7 @@ async def get_report(
     report_config = {
         "sales_summary": {"roles": ["admin", "sales_manager", "manager"]},
         "employee_attendance": {"roles": ["admin", "hr_manager"]},
-        "project_status": {"roles": ["admin", "project_manager", "manager"]},
+        "project_status": {"roles": ["admin", "principal_consultant", "manager"]},
     }
     
     if report_id not in report_config:
