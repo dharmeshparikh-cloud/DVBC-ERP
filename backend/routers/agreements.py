@@ -7,11 +7,15 @@ from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 from pydantic import BaseModel, Field
-from .deps import get_db, MANAGER_ROLES, SALES_MANAGER_ROLES
+from .deps import get_db, MANAGER_ROLES, SALES_MANAGER_ROLES, SALES_ROLES, ADMIN_ROLES, SENIOR_CONSULTING_ROLES, require_roles
 from .models import User
 from .auth import get_current_user
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
+
+# Role constants for this router
+AGREEMENT_VIEW_ROLES = SALES_ROLES + SENIOR_CONSULTING_ROLES  # sales, admin, principal_consultant
+AGREEMENT_CREATE_ROLES = SALES_MANAGER_ROLES + ADMIN_ROLES  # sales_manager, admin
 
 
 class AgreementSection(BaseModel):
