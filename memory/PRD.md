@@ -13,7 +13,65 @@
 
 ## Completed Work - February 2026
 
-### Phase 21: Portal Consolidation & Route Governance - February 22, 2026 ✅ (Latest)
+### Phase 22: Enterprise Permission System & API Consolidation - February 22, 2026 ✅ (Latest)
+
+**Enhanced Permission System (`/app/backend/routers/permissions.py`):**
+- ✅ 47+ controllable feature flags organized by category (Sales, HR, Consulting, Finance, Admin, Personal)
+- ✅ Employee-level permission overrides (grant/revoke beyond role defaults)
+- ✅ Sidebar visibility mapping to feature permissions
+- ✅ Bulk permission update API for multiple employees
+- ✅ Approval configuration system (dual/multi-approval support)
+- ✅ Permission check utility for real-time access control
+
+**API Consolidation - `/my/*` Router (`/app/backend/routers/my_consolidated.py`):**
+- ✅ `/my/profile` - User profile
+- ✅ `/my/attendance` - Personal attendance
+- ✅ `/my/leaves` - Leave requests
+- ✅ `/my/leave-balance` - Leave balance
+- ✅ `/my/salary-slips` - Salary slips
+- ✅ `/my/expenses` - Expense claims
+- ✅ `/my/projects` - Assigned projects
+- ✅ `/my/timesheets` - Personal timesheets
+- ✅ `/my/approvals` - Submitted approval requests
+- ✅ `/my/leads` - Assigned leads (sales)
+- ✅ `/my/funnel-summary` - Sales funnel stats
+- ✅ `/my/dashboard-stats` - Personalized stats
+- ✅ `/my/payments` - Project payments
+- ✅ `/my/permissions` - Effective permissions
+- ✅ `/my/department-access` - Department access config
+- ✅ `/my/travel` - Travel claims
+- ✅ `/my/scorecard` - Performance scorecard
+
+**API Consolidation - `/manager/*` Router (`/app/backend/routers/manager.py`):**
+- ✅ `/manager/team` - Direct reportees list
+- ✅ `/manager/team/summary` - Team statistics
+- ✅ `/manager/team/attendance` - Team attendance
+- ✅ `/manager/team/leaves` - Team leave requests
+- ✅ `/manager/team/expenses` - Team expense claims
+- ✅ `/manager/team/timesheets` - Team timesheets
+- ✅ `/manager/team/leads` - Team leads (sales)
+- ✅ `/manager/team/pipeline` - Team pipeline summary
+- ✅ `/manager/team/performance` - Team performance metrics
+- ✅ `/manager/approvals/pending` - Pending approvals
+- ✅ `/manager/leads/reassign` - Lead reassignment
+
+**Backend Security Enhancements:**
+- ✅ GET /agreements - Role guard (sales, admin, principal_consultant)
+- ✅ POST /agreements - Role guard + approval workflow
+- ✅ GET /leads - Role guard (sales_*, admin)
+- ✅ GET /pricing-plans - Role guard (sales, admin)
+- ✅ GET /timesheets - Role guard with scoping (self, manager, hr, admin)
+- ✅ GET /enhanced-sow - Role guard (sales, consulting)
+- ✅ User model updated with employee_id field
+
+**Frontend Fixes:**
+- ✅ Sidebar HR section hidden for Sales Executives
+- ✅ Achievement Scorecard link added to My Workspace
+- ✅ Role-based sidebar visibility enforced
+
+---
+
+### Phase 21: Portal Consolidation & Route Governance - February 22, 2026 ✅
 
 **Unified Portal Architecture:**
 - ✅ Consolidated Sales and HR portals into single Main ERP portal
