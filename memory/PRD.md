@@ -13,7 +13,30 @@
 
 ## Completed Work - February 2026
 
-### Phase 13: Guided Sales Workflow Fixes - February 22, 2026 ✅ (Latest)
+### Phase 14: Pricing Plan Builder Fixes - February 22, 2026 ✅ (Latest)
+
+**Bug Fix 1: Masters API Database Not Initialized (P0)**
+- ✅ Fixed: `masters.py` router had its own `db = None` variable that wasn't being set
+- ✅ Solution: Changed to use `get_db()` from `deps.py` for consistent database access
+- ✅ All masters endpoints now return data:
+  - 7 Tenure Types
+  - 13 Consultant Roles
+  - 10 Meeting Types
+
+**Bug Fix 2: Draft Save Endpoint Missing (P0)**
+- ✅ Created `/app/backend/routers/drafts.py` - Full CRUD for draft management
+- ✅ Endpoints:
+  - `GET /api/drafts` - List drafts (with type/entity filters)
+  - `GET /api/drafts/{id}` - Get specific draft
+  - `POST /api/drafts` - Create new draft
+  - `PUT /api/drafts/{id}` - Update draft
+  - `DELETE /api/drafts/{id}` - Delete draft
+  - `POST /api/drafts/{id}/convert` - Mark as converted
+- ✅ "Save Draft" and "Drafts (n)" features now work in Pricing Plan Builder
+
+---
+
+### Phase 13: Guided Sales Workflow Fixes - February 22, 2026 ✅
 
 **Bug Fix: Sales Executive Login (P0)**
 - ✅ Fixed: `sales@dvbc.com` user did not exist in database, causing login failures
