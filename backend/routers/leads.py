@@ -114,12 +114,19 @@ async def get_leads(
 ):
     """Get all leads with optional filters.
     
+    Access: sales_*, admin
+    
     Data scoping by hierarchy:
     - Admin: sees all leads
     - HR Manager: sees all leads  
     - Manager/Executive: sees own leads + team leads (reportees)
     """
     db = get_db()
+    
+    # Role-based access check
+    if current_user.role not in LEADS_ACCESS_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied. Only sales team and admin can view leads.")
+    
     query = {}
     if status:
         query['status'] = status
