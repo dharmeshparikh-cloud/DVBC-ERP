@@ -21,8 +21,16 @@ async def get_employees(
     status: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all employees with optional filters."""
+    """Get all employees with optional filters. HR and Admin only."""
     db = get_db()
+    
+    # Role guard - only HR and Admin can access full employee list
+    allowed_roles = HR_ROLES + ADMIN_ROLES
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=403, 
+            detail="Access denied. HR or Admin role required."
+        )
     
     query = {}
     if department:
