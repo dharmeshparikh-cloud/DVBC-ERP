@@ -128,8 +128,14 @@ async def get_pricing_plans(
     lead_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all pricing plans, optionally filtered by lead_id"""
+    """Get all pricing plans, optionally filtered by lead_id.
+    Access: sales, admin
+    """
     db = get_db()
+    
+    # Role-based access check
+    if current_user.role not in PRICING_VIEW_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied. Only sales team and admin can view pricing plans.")
     
     query = {}
     if lead_id:
