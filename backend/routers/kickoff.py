@@ -124,7 +124,7 @@ async def get_kickoff_requests(
     # Filter based on role
     if current_user.role in ["executive", "sales_manager"]:
         query["requested_by"] = current_user.id
-    elif current_user.role in ["project_manager"]:
+    elif current_user.role in ["principal_consultant", "senior_consultant"]:
         query["assigned_pm_id"] = current_user.id
     
     kickoffs = await db.kickoff_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
@@ -147,7 +147,7 @@ async def get_eligible_pms(current_user: User = Depends(get_current_user)):
     db = get_db()
     
     # Get all senior and principal consultants
-    eligible_roles = ["senior_consultant", "principal_consultant", "project_manager", "lead_consultant"]
+    eligible_roles = ["senior_consultant", "principal_consultant", "principal_consultant", "lead_consultant"]
     
     consultants = await db.users.find(
         {"role": {"$in": eligible_roles}, "is_active": True},

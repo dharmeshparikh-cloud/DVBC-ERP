@@ -243,7 +243,7 @@ async def complete_project(
     db = get_db()
     
     # Authorization check
-    allowed_roles = [UserRole.ADMIN, "project_manager", "principal_consultant"]
+    allowed_roles = [UserRole.ADMIN, "principal_consultant", "principal_consultant"]
     if current_user.role not in allowed_roles:
         raise HTTPException(
             status_code=403, 

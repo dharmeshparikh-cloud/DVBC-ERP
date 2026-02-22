@@ -470,7 +470,7 @@ async def send_payment_reminder(
     db = get_db()
     
     # Check if user is from consulting team
-    allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "consultant", "lead_consultant", "senior_consultant"]
+    allowed_roles = ["admin", "principal_consultant", "principal_consultant", "manager", "consultant", "lead_consultant", "senior_consultant"]
     if current_user.role not in allowed_roles:
         raise HTTPException(status_code=403, detail="Only consulting team can send payment reminders")
     
@@ -580,7 +580,7 @@ async def record_installment_payment(
     db = get_db()
     
     # Check if user is from consulting team
-    allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "consultant", "lead_consultant", "senior_consultant"]
+    allowed_roles = ["admin", "principal_consultant", "principal_consultant", "manager", "consultant", "lead_consultant", "senior_consultant"]
     if current_user.role not in allowed_roles:
         raise HTTPException(status_code=403, detail="Only consulting team can record payments")
     
@@ -748,7 +748,7 @@ async def check_reminder_eligibility(
     days_until_due = (due_date - datetime.now(timezone.utc)).days
     
     # Check consulting team role
-    allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "consultant", "lead_consultant", "senior_consultant"]
+    allowed_roles = ["admin", "principal_consultant", "principal_consultant", "manager", "consultant", "lead_consultant", "senior_consultant"]
     is_consulting_team = current_user.role in allowed_roles
     
     # Get last reminder sent

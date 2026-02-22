@@ -19,8 +19,8 @@ router = APIRouter(prefix="/enhanced-sow", tags=["Enhanced SOW"])
 # ============== Role Check Helpers ==============
 
 SALES_ROLES = ["admin", "executive", "sales_manager"]
-CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert", "project_manager"]
-CAN_ADD_SCOPES_ROLES = ["project_manager", "consultant", "principal_consultant", "admin"]  # Can add but not delete
+CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert", "principal_consultant"]
+CAN_ADD_SCOPES_ROLES = ["principal_consultant", "consultant", "principal_consultant", "admin"]  # Can add but not delete
 
 
 def is_sales_team(role: str) -> bool:
@@ -1317,7 +1317,7 @@ async def get_sow_history(
     """
     db = get_db()
     # Check permission
-    allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "reporting_manager"]
+    allowed_roles = ["admin", "principal_consultant", "principal_consultant", "manager", "reporting_manager"]
     if current_user_role not in allowed_roles:
         raise HTTPException(status_code=403, detail="Not authorized to view SOW history")
     
