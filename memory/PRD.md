@@ -13,7 +13,30 @@
 
 ## Completed Work - February 2026
 
-### Phase 29: Enhanced Approval Workflows & Receipt Management - February 22, 2026 ✅ (Latest)
+### Phase 30: Expense Approval UI Enhancements - February 22, 2026 ✅ (Latest)
+
+**Enhanced Expense Approval Cards in Approvals Center:**
+- ✅ **Receipts** button - Opens dialog showing uploaded receipts with download/delete options
+- ✅ **Upload Receipt** - Drag & drop or click-to-browse file upload (PDF, PNG, JPG)
+- ✅ **Send Back** button (orange) - Opens dialog with revision comments textarea
+- ✅ **Modify Amount** button (purple) - Opens partial approval dialog with:
+  - Amount input with ₹ prefix
+  - Dynamic percentage indicator ("60% of requested amount")
+  - Reason field (required when amount modified)
+- ✅ **Reject** button (red outline) - Standard rejection with reason
+- ✅ **Approve** button (green) - Standard full approval
+
+**Status Badges:**
+- ✅ Pending badge (amber)
+- ✅ Revision Required badge (orange)  
+- ✅ Pending Admin badge (blue)
+- ✅ Receipt count badge ("1 receipt(s)")
+
+**Testing:** 100% pass rate (8/8 feature areas) - `/app/test_reports/iteration_105.json`
+
+---
+
+### Phase 29: Enhanced Approval Workflows & Receipt Management - February 22, 2026 ✅
 
 **Expense Receipt Management (Upload/View/Download):**
 - ✅ `POST /expenses/{id}/upload-receipt` - Upload receipt (base64 encoded)
