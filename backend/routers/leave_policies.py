@@ -155,9 +155,12 @@ async def get_leave_policies(
     
     policies = await db.leave_policies.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
-    # If no policies exist, create default
-    if not policies:
-        default = {**DEFAULT_LEAVE_POLICY}
+    # If no company-wide policies exist and we're fetching all, create default
+    if not policies and not scope:
+        # Double-check no company policy exists
+        existing_company_policy = await db.leave_policies.find_one({"scope": "company"})
+        if not existing_company_policy:
+            default = {**DEFAULT_LEAVE_POLICY}
         default["id"] = str(uuid.uuid4())
         default["created_at"] = datetime.now(timezone.utc).isoformat()
         default["created_by"] = current_user.id
