@@ -238,6 +238,8 @@ api_router.include_router(consultants_router.router)
 api_router.include_router(reports_router.router)
 api_router.include_router(settings_router.router)
 api_router.include_router(roles_router.router)
+api_router.include_router(my_router.router)
+api_router.include_router(leave_requests_router.router)
 
 # Include all API routes under /api prefix
 app.include_router(api_router)
