@@ -1,0 +1,181 @@
+{
+  "summary": "NETRA ERP - Complete E2E test of Sales Funnel flow from Lead to Deal Closed. All backend tests passed (16/16). Frontend UI verified - Leads page, Funnel buttons, Sales Funnel Onboarding (9 stages), Add Lead dialog, and Admin Approvals Center all working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_tested": {
+    "authentication": {
+      "status": "PASS",
+      "tests": [
+        "Admin login with ADMIN001/test123 - PASS",
+        "Sales Exec login with SE001/test123 - PASS"
+      ]
+    },
+    "leads_page": {
+      "status": "PASS",
+      "tests": [
+        "Leads page loads with data-testid='leads-page' - PASS",
+        "Add Lead button with data-testid='add-lead-button' - PASS",
+        "Import CSV button visible - PASS",
+        "Search input with data-testid='lead-search-input' - PASS",
+        "Stage filter with data-testid='lead-status-filter' - PASS",
+        "Funnel buttons with data-testid='start-onboarding-{leadId}' - PASS (3 found)",
+        "Lead rows showing Name, Company, Email, Score, Progress (1/5), Status - PASS",
+        "Status dropdown on each row - PASS (4 found)"
+      ]
+    },
+    "add_lead_dialog": {
+      "status": "PASS",
+      "tests": [
+        "Dialog opens on button click - PASS",
+        "Form fields present: first_name, last_name, company, job_title, email, phone, linkedin_url, source, notes - PASS",
+        "Create Lead button with data-testid='submit-lead-button' - PASS",
+        "Lead creation successful - PASS",
+        "Success toast 'Lead created successfully' - PASS",
+        "Lead count incremented from 3 to 4 - PASS"
+      ]
+    },
+    "funnel_progress_api": {
+      "status": "PASS",
+      "tests": [
+        "GET /api/leads/{id}/funnel-progress - PASS",
+        "Returns: lead_id, completed_steps, current_step, total_steps (9), progress_percentage - PASS",
+        "Steps: lead_capture, record_meeting, pricing_plan, scope_of_work, quotation, agreement, record_payment, kickoff_request, project_created - PASS",
+        "Progress calculation correct (completed_count / 9 * 100) - PASS"
+      ]
+    },
+    "sales_funnel_onboarding_page": {
+      "status": "PASS",
+      "tests": [
+        "Navigation to /sales-funnel-onboarding?leadId={id} - PASS",
+        "Container with data-testid='sales-funnel-onboarding' - PASS",
+        "Back to Leads button with data-testid='back-to-leads-btn' - PASS",
+        "Continue button with data-testid='continue-btn' - PASS",
+        "Previous Step button with data-testid='prev-step-btn' - PASS",
+        "All 9 steps visible with data-testid='step-{stepId}' - PASS",
+        "Progress indicator (1 of 9) - PASS",
+        "Pending - Action Required badge visible - PASS",
+        "Lead details displayed (Name, Company, Email, Phone, Score, Status) - PASS"
+      ]
+    },
+    "lead_stage_api": {
+      "status": "PASS",
+      "tests": [
+        "GET /api/leads/{id}/stage - PASS",
+        "Returns: lead_id, current_stage, stages (9 items) - PASS",
+        "Stage order: LEAD → MEETING → PRICING → SOW → QUOTATION → AGREEMENT → PAYMENT → KICKOFF → CLOSED - PASS",
+        "Each stage has: stage, name, is_completed, is_current, is_locked - PASS"
+      ]
+    },
+    "kickoff_approvals": {
+      "status": "PASS",
+      "tests": [
+        "GET /api/sales-funnel/pending-kickoff-approvals (Admin) - PASS (5 pending)",
+        "Non-admin gets 403 Forbidden - PASS",
+        "Approvals Center page loads - PASS",
+        "Stats cards: PENDING(8), KICKOFF(5), EXPENSE(3) - PASS",
+        "Pending Kickoff Requests (5) section visible - PASS",
+        "Admin Approval Required badge visible - PASS",
+        "Each request shows: Company, Consultant role, Requested by, Notes - PASS",
+        "Approve button (green) - PASS (8 found)",
+        "Reject button (red) - PASS (8 found)"
+      ]
+    },
+    "admin_dashboard": {
+      "status": "PASS",
+      "tests": [
+        "Total Revenue (YTD): 4.5Cr - PASS",
+        "Active Leads: 4 - PASS",
+        "Conversion Rate: 20.1% - PASS",
+        "Meetings Today: 8 - PASS",
+        "Pending Actions: 24 - PASS",
+        "Hot Leads: 47 - PASS",
+        "Closed This Month: 12 - PASS",
+        "Quick Actions buttons: View Leads, View Projects, Approvals, Reports - PASS"
+      ]
+    },
+    "sales_funnel_endpoints": {
+      "status": "PASS",
+      "tests": [
+        "GET /api/sales-funnel/consulting-team - PASS (3 consultants)",
+        "GET /api/pricing-plans - PASS",
+        "GET /api/quotations - PASS",
+        "GET /api/agreements - PASS"
+      ]
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sales_funnel_complete_e2e.py",
+    "/app/test_reports/pytest/pytest_sales_funnel_complete_e2e.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_sales_funnel_complete_e2e.py"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% (All UI elements and flows verified)"
+  },
+  "test_credentials": {
+    "admin": "ADMIN001 / test123",
+    "sales_exec": "SE001 / test123"
+  },
+  "seed_data_creation": "Created test leads during E2E testing: TEST_E2E Lead, Test SalesFunnel at E2E Test Company",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Sales Funnel E2E flow fully verified. The new GET /api/leads/{id}/funnel-progress endpoint is working correctly, returning completed_steps, current_step, total_steps (9), and progress_percentage. All 9 stages (lead_capture through project_created) are properly tracked. Kickoff approvals require Admin role - 5 pending requests visible in Approvals Center. All data-testid attributes properly implemented for UI automation.",
+  "verified_data_testids": {
+    "leads_page": [
+      "data-testid='leads-page'",
+      "data-testid='add-lead-button'",
+      "data-testid='lead-status-filter'",
+      "data-testid='lead-search-input'",
+      "data-testid='start-onboarding-{leadId}'",
+      "data-testid='lead-row-{leadId}'",
+      "data-testid='status-select-{leadId}'",
+      "data-testid='submit-lead-button'",
+      "data-testid='lead-first-name'",
+      "data-testid='lead-last-name'",
+      "data-testid='lead-company'",
+      "data-testid='lead-email'",
+      "data-testid='lead-phone'"
+    ],
+    "sales_funnel_onboarding": [
+      "data-testid='sales-funnel-onboarding'",
+      "data-testid='back-to-leads-btn'",
+      "data-testid='continue-btn'",
+      "data-testid='prev-step-btn'",
+      "data-testid='step-lead'",
+      "data-testid='step-meeting'",
+      "data-testid='step-pricing'",
+      "data-testid='step-sow'",
+      "data-testid='step-quotation'",
+      "data-testid='step-agreement'",
+      "data-testid='step-payment'",
+      "data-testid='step-kickoff'",
+      "data-testid='step-complete'"
+    ]
+  },
+  "api_endpoints_verified": [
+    "POST /api/auth/login",
+    "GET /api/leads",
+    "GET /api/leads/{id}",
+    "GET /api/leads/{id}/stage",
+    "GET /api/leads/{id}/funnel-progress",
+    "POST /api/leads",
+    "PUT /api/leads/{id}",
+    "GET /api/sales-funnel/consulting-team",
+    "GET /api/sales-funnel/pending-kickoff-approvals",
+    "GET /api/stats/dashboard",
+    "GET /api/pricing-plans",
+    "GET /api/quotations",
+    "GET /api/agreements"
+  ]
+}
