@@ -413,6 +413,164 @@ const ApprovalsCenter = () => {
     }
   };
 
+  // Enhanced Expense Handlers
+  
+  // Upload receipt
+  const handleReceiptUpload = async (file) => {
+    if (!selectedExpense || !file) return;
+    
+    setUploadingReceipt(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result.split(',')[1];
+        await axios.post(`${API}/expenses/${selectedExpense.id}/upload-receipt`, {
+          file_name: file.name,
+          file_type: file.type,
+          file_data: base64
+        });
+        toast.success('Receipt uploaded successfully');
+        setReceiptUploadDialog(false);
+        fetchExpenseReceipts(selectedExpense.id);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to upload receipt');
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
+  // Fetch receipts for an expense
+  const fetchExpenseReceipts = async (expenseId) => {
+    setLoadingReceipts(true);
+    try {
+      const response = await axios.get(`${API}/expenses/${expenseId}/receipts`);
+      setExpenseReceipts(response.data.receipts || []);
+    } catch (error) {
+      console.error('Failed to fetch receipts:', error);
+      setExpenseReceipts([]);
+    } finally {
+      setLoadingReceipts(false);
+    }
+  };
+
+  // Download receipt
+  const handleDownloadReceipt = async (expenseId, receiptId, fileName) => {
+    try {
+      const response = await axios.get(`${API}/expenses/${expenseId}/receipts/${receiptId}`);
+      const { file_data, file_type } = response.data;
+      
+      // Create blob and download
+      const byteCharacters = atob(file_data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: file_type });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('Receipt downloaded');
+    } catch (error) {
+      toast.error('Failed to download receipt');
+    }
+  };
+
+  // Delete receipt
+  const handleDeleteReceipt = async (expenseId, receiptId) => {
+    try {
+      await axios.delete(`${API}/expenses/${expenseId}/receipts/${receiptId}`);
+      toast.success('Receipt deleted');
+      fetchExpenseReceipts(expenseId);
+    } catch (error) {
+      toast.error('Failed to delete receipt');
+    }
+  };
+
+  // Send back for revision
+  const handleSendBack = async () => {
+    if (!selectedExpense || !sendBackComments.trim()) {
+      toast.error('Please provide comments for revision');
+      return;
+    }
+    
+    setActionLoading(true);
+    try {
+      await axios.post(`${API}/expenses/${selectedExpense.id}/send-back`, {
+        comments: sendBackComments
+      });
+      toast.success('Expense sent back for revision');
+      setSendBackDialog(false);
+      setSendBackComments('');
+      setSelectedExpense(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to send back expense');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Approve with modified amount (partial approval)
+  const handlePartialApproval = async () => {
+    if (!selectedExpense) return;
+    
+    const amount = parseFloat(approvedAmount);
+    const originalAmount = selectedExpense.total_amount || selectedExpense.amount || 0;
+    
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+    
+    if (amount > originalAmount) {
+      toast.error('Approved amount cannot exceed requested amount');
+      return;
+    }
+    
+    if (amount < originalAmount && !modificationReason.trim()) {
+      toast.error('Please provide a reason for modifying the amount');
+      return;
+    }
+    
+    setActionLoading(true);
+    try {
+      await axios.post(`${API}/expenses/${selectedExpense.id}/approve-with-modification`, {
+        approved_amount: amount,
+        modification_reason: modificationReason,
+        remarks: expenseRemarks
+      });
+      toast.success(amount < originalAmount ? 'Expense partially approved' : 'Expense approved');
+      setPartialApprovalDialog(false);
+      setApprovedAmount('');
+      setModificationReason('');
+      setExpenseRemarks('');
+      setSelectedExpense(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to approve expense');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Open expense with receipts
+  const openExpenseDetails = async (expense) => {
+    setSelectedExpense(expense);
+    setApprovedAmount(String(expense.total_amount || expense.amount || 0));
+    await fetchExpenseReceipts(expense.id);
+    setExpenseDetailDialog(true);
+  };
+
   // Permission Change Action handlers
   const handlePermissionAction = async (requestId, action) => {
     setActionLoading(true);
