@@ -95,8 +95,6 @@ const ProjectPaymentDetails = lazy(() => import('./pages/ProjectPaymentDetails')
 
 // Layouts - keep as regular imports (small files)
 import Layout from './components/Layout';
-import SalesLayout from './components/SalesLayout';
-import HRLayout from './components/HRLayout';
 
 // Continue lazy loading remaining pages
 const SalesLogin = lazy(() => import('./pages/SalesLogin'));
