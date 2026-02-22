@@ -434,8 +434,11 @@ async def accept_kickoff_request(
     
     project_doc = project.model_dump()
     project_doc['start_date'] = project_doc['start_date'].isoformat()
+    project_doc['end_date'] = project_doc['end_date'].isoformat() if project_doc.get('end_date') else None
     project_doc['created_at'] = project_doc['created_at'].isoformat()
     project_doc['updated_at'] = project_doc['updated_at'].isoformat()
+    project_doc['kickoff_request_id'] = request_id  # Link back to kickoff
+    project_doc['kickoff_accepted_at'] = kickoff_accepted_at.isoformat()  # Store accept timestamp
     
     # Add pricing_plan_id to project for SOW linkage
     if pricing_plan_id:
