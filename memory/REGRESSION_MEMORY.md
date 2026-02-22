@@ -133,6 +133,42 @@ TEST CASE CREATED: Grep audit for hardcoded roles
 AUTO-FIX APPLIED: Yes - Propagated role constants to all routers
 ```
 
+### Issue #009: Missing Role Guards on /api/employees
+```
+ROOT CAUSE: GET /api/employees had no role check
+WHAT FAILED: Sales executive could access all employee data
+WHY IT FAILED: Role guard was never implemented
+WHICH LAYER: AUTH / API
+PATTERN TYPE: Missing authorization
+PREVENTION RULE: All sensitive endpoints MUST have role guards
+TEST CASE CREATED: e2e_validation.py - Role guards test
+AUTO-FIX APPLIED: Yes - Added HR_ROLES + ADMIN_ROLES check
+```
+
+### Issue #010: Missing Role Guards on /api/payroll/salary-components
+```
+ROOT CAUSE: GET /api/payroll/salary-components had no role check
+WHAT FAILED: Any user could view salary structure
+WHY IT FAILED: Role guard was only on POST, not GET
+WHICH LAYER: AUTH / API
+PATTERN TYPE: Missing authorization
+PREVENTION RULE: Both GET and POST on sensitive data need guards
+TEST CASE CREATED: e2e_validation.py - Role guards test
+AUTO-FIX APPLIED: Yes - Added HR_ADMIN_ROLES + HR_ROLES check
+```
+
+### Issue #011: Missing Role Guards on /api/users
+```
+ROOT CAUSE: GET /api/users had no role check
+WHAT FAILED: Any user could view all user accounts
+WHY IT FAILED: Role guard was never implemented
+WHICH LAYER: AUTH / API
+PATTERN TYPE: Missing authorization
+PREVENTION RULE: User management endpoints require Admin/HR roles
+TEST CASE CREATED: e2e_validation.py - Role guards test
+AUTO-FIX APPLIED: Yes - Added HR_ADMIN_ROLES check
+```
+
 ---
 
 ## PREVENTION CHECKLIST
