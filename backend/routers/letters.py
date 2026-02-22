@@ -11,7 +11,7 @@ import base64
 import os
 
 from .models import User
-from .deps import get_db, sanitize_text
+from .deps import get_db, sanitize_text, HR_ROLES, HR_ADMIN_ROLES
 from .auth import get_current_user
 
 # Import email service
@@ -146,7 +146,7 @@ async def create_letter_template(
     """Create a new letter template (Admin/HR Manager only)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can create templates")
     
     if template.template_type not in ["offer_letter", "appointment_letter"]:
@@ -188,7 +188,7 @@ async def get_letter_templates(
     """Get all letter templates."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     query = {"is_active": True}
@@ -207,7 +207,7 @@ async def get_letter_template(
     """Get a specific letter template with history."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     template = await db.letter_templates.find_one({"id": template_id}, {"_id": 0})
@@ -226,7 +226,7 @@ async def update_letter_template(
     """Update a letter template (saves history)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can update templates")
     
     template = await db.letter_templates.find_one({"id": template_id}, {"_id": 0})
@@ -279,7 +279,7 @@ async def delete_letter_template(
     """Soft delete a letter template."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can delete templates")
     
     result = await db.letter_templates.update_one(
@@ -303,7 +303,7 @@ async def create_offer_letter(
     """Create and send an offer letter to a candidate."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can create offer letters")
     
     # Verify candidate exists and is verified
@@ -366,7 +366,7 @@ async def create_offer_letter(
     
     # Notify all HR managers and admins
     hr_admins = await db.users.find(
-        {"role": {"$in": ["admin", "hr_manager"]}},
+        {"role": {"$in": HR_ADMIN_ROLES}},
         {"_id": 0, "id": 1}
     ).to_list(100)
     
@@ -428,7 +428,7 @@ async def get_offer_letters(
     """Get all offer letters."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     query = {}
@@ -447,7 +447,7 @@ async def get_offer_letter(
     """Get a specific offer letter."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     letter = await db.offer_letters.find_one({"id": letter_id}, {"_id": 0})
@@ -507,7 +507,7 @@ async def accept_offer_letter(acceptance: LetterAcceptance):
     
     # Notify HR managers and admins
     hr_admins = await db.users.find(
-        {"role": {"$in": ["admin", "hr_manager"]}},
+        {"role": {"$in": HR_ADMIN_ROLES}},
         {"_id": 0, "id": 1}
     ).to_list(100)
     
@@ -539,7 +539,7 @@ async def create_appointment_letter(
     """Create an appointment letter for an employee (after offer acceptance)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can create appointment letters")
     
     # Verify employee exists and has accepted offer
@@ -602,7 +602,7 @@ async def create_appointment_letter(
     
     # Notify HR managers and admins
     hr_admins = await db.users.find(
-        {"role": {"$in": ["admin", "hr_manager"]}},
+        {"role": {"$in": HR_ADMIN_ROLES}},
         {"_id": 0, "id": 1}
     ).to_list(100)
     
@@ -631,7 +631,7 @@ async def get_appointment_letters(
     """Get all appointment letters."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     query = {}
@@ -678,7 +678,7 @@ async def accept_appointment_letter(acceptance: LetterAcceptance):
     
     # Notify HR managers and admins
     hr_admins = await db.users.find(
-        {"role": {"$in": ["admin", "hr_manager"]}},
+        {"role": {"$in": HR_ADMIN_ROLES}},
         {"_id": 0, "id": 1}
     ).to_list(100)
     
@@ -707,7 +707,7 @@ async def get_letter_stats(current_user: User = Depends(get_current_user)):
     """Get letter management statistics."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     offer_pending = await db.offer_letters.count_documents({"status": "pending_acceptance"})
@@ -785,7 +785,7 @@ async def get_letterhead_settings(current_user: User = Depends(get_current_user)
     """Get letterhead settings (header/footer images)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     settings = await db.letterhead_settings.find_one({"id": "main"}, {"_id": 0})
@@ -814,7 +814,7 @@ async def update_letterhead_settings(
     """Update letterhead settings (Admin/HR Manager only)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can update letterhead settings")
     
     settings_doc = {
@@ -848,7 +848,7 @@ async def upload_header_image(
     """Upload letterhead header image."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can upload letterhead images")
     
     # Validate file type
@@ -888,7 +888,7 @@ async def upload_footer_image(
     """Upload letterhead footer image."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can upload letterhead images")
     
     # Validate file type
@@ -925,7 +925,7 @@ async def delete_header_image(current_user: User = Depends(get_current_user)):
     """Delete letterhead header image."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can delete letterhead images")
     
     await db.letterhead_settings.update_one(
@@ -941,7 +941,7 @@ async def delete_footer_image(current_user: User = Depends(get_current_user)):
     """Delete letterhead footer image."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin or HR Manager can delete letterhead images")
     
     await db.letterhead_settings.update_one(
