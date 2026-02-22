@@ -26,9 +26,19 @@ const Login = () => {
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const location = useLocation();
+
+  // Load remembered Employee ID on mount
+  useEffect(() => {
+    const savedEmployeeId = localStorage.getItem('netra_remembered_employee_id');
+    if (savedEmployeeId) {
+      setEmployeeId(savedEmployeeId);
+      setRememberMe(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (location.state?.error) {
