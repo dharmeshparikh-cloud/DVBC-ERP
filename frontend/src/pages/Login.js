@@ -203,6 +203,21 @@ const Login = () => {
                 </div>
               </div>
 
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  data-testid="remember-me-checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-black/20 text-black focus:ring-black focus:ring-offset-0 cursor-pointer"
+                />
+                <Label htmlFor="rememberMe" className="text-sm text-black/60 cursor-pointer select-none">
+                  Remember my Employee ID
+                </Label>
+              </div>
+
               <Button
                 type="submit"
                 data-testid="submit-button"
