@@ -141,19 +141,22 @@ const Timesheets = () => {
 
   const getTotalForDay = (date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
+    if (!timesheetData || typeof timesheetData !== 'object') return 0;
     return Object.values(timesheetData).reduce((sum, projectData) => {
-      return sum + (projectData[dateStr] || 0);
+      return sum + (projectData?.[dateStr] || 0);
     }, 0);
   };
 
   const getTotalForProject = (projectId) => {
-    const projectData = timesheetData[projectId] || {};
-    return Object.values(projectData).reduce((sum, hours) => sum + hours, 0);
+    const projectData = timesheetData?.[projectId] || {};
+    return Object.values(projectData).reduce((sum, hours) => sum + (hours || 0), 0);
   };
 
   const getWeekTotal = () => {
+    if (!timesheetData || typeof timesheetData !== 'object') return 0;
     return Object.values(timesheetData).reduce((sum, projectData) => {
-      return sum + Object.values(projectData).reduce((s, h) => s + h, 0);
+      if (!projectData || typeof projectData !== 'object') return sum;
+      return sum + Object.values(projectData).reduce((s, h) => s + (h || 0), 0);
     }, 0);
   };
 
