@@ -13,7 +13,38 @@
 
 ## Completed Work - February 2026
 
-### Phase 26: Universal Auto-Save & Resume System - February 22, 2026 ✅ (Latest)
+### Phase 27: Sales Funnel Business Logic UI - February 22, 2026 ✅ (Latest)
+
+**Fixed duplicate Lead filter in My Drafts page**
+
+**Implemented Stage Resume UI:**
+- ✅ `StageResumeBar` component - "Continue from where you left off" banner
+- ✅ Shows current stage, next stage, completion percentage
+- ✅ Resume button navigates to appropriate page
+
+**Implemented Admin-Only Kickoff Approval:**
+- ✅ `KickoffRequestPanel` component for sales team
+- ✅ Only Senior Consultants and Principal Consultants shown in selector
+- ✅ `POST /api/sales-funnel/request-kickoff` - Create kickoff request (requires Admin approval)
+- ✅ `GET /api/sales-funnel/pending-kickoff-approvals` - Admin view pending requests
+- ✅ `POST /api/sales-funnel/approve-kickoff/{id}` - Admin approve
+- ✅ `POST /api/sales-funnel/reject-kickoff/{id}` - Admin reject
+- ✅ `GET /api/sales-funnel/consulting-team` - Get Senior/Principal Consultants only
+- ✅ Full audit logging for all kickoff actions
+
+**Business Rules Applied:**
+- No dual approval needed anywhere in sales funnel
+- Only Admin can approve kickoff requests to consulting team
+- Kickoff can only be assigned to Senior Consultant or Principal Consultant roles
+
+**Files Created/Modified:**
+- `/app/frontend/src/components/sales-funnel/BusinessLogicUI.js` - StageResumeBar, KickoffRequestPanel
+- `/app/backend/routers/sales_funnel_logic.py` - New kickoff approval endpoints
+- `/app/frontend/src/pages/MyDrafts.js` - Fixed duplicate Lead filter
+
+---
+
+### Phase 26: Universal Auto-Save & Resume System - February 22, 2026 ✅
 
 **Implemented system-wide draft engine for auto-save and resume across entire ERP:**
 
