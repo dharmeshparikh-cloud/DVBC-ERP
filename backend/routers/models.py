@@ -204,22 +204,35 @@ class Project(BaseModel):
     """
     Project model with Optional fields to handle legacy data.
     Fields that may be missing in older documents are Optional with defaults.
+    Note: Some legacy records use 'project_name' instead of 'name'.
     """
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    client_name: str
+    name: Optional[str] = None  # Some legacy records use 'project_name' instead
+    project_name: Optional[str] = None  # Legacy field alias
+    client_name: Optional[str] = None  # May be missing in some legacy records
+    client_id: Optional[str] = None  # Legacy field
     lead_id: Optional[str] = None
     agreement_id: Optional[str] = None
+    kickoff_request_id: Optional[str] = None  # Legacy field
     project_type: Optional[str] = "mixed"
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     status: Optional[str] = "active"
+    tenure_months: Optional[int] = None  # Legacy field
+    meeting_frequency: Optional[str] = None  # Legacy field
+    total_meetings: Optional[int] = None  # Legacy field
     total_meetings_committed: Optional[int] = 0
     total_meetings_delivered: Optional[int] = 0
     number_of_visits: Optional[int] = 0
     assigned_consultants: Optional[List[str]] = []
     assigned_team: Optional[List[str]] = []
+    project_manager_id: Optional[str] = None  # Legacy field
+    project_manager_name: Optional[str] = None  # Legacy field
+    sow_items: Optional[List[Dict[str, Any]]] = []  # Legacy field
+    sow_id: Optional[str] = None  # Legacy field
+    team_deployment: Optional[List[Dict[str, Any]]] = []  # Legacy field
+    contract_value: Optional[float] = None  # Legacy field
     budget: Optional[float] = None
     project_value: Optional[float] = None
     pricing_plan_id: Optional[str] = None
@@ -227,6 +240,8 @@ class Project(BaseModel):
     created_by: Optional[str] = None  # Optional for legacy data compatibility
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
+    approved_by: Optional[str] = None  # Legacy field
+    approved_by_name: Optional[str] = None  # Legacy field
 
 
 class ProjectCreate(BaseModel):
