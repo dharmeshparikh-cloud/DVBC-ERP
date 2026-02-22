@@ -112,6 +112,7 @@ const HRAttendanceInput = lazy(() => import('./pages/hr/HRAttendanceInput'));
 const HRLeaveInput = lazy(() => import('./pages/hr/HRLeaveInput'));
 const PayrollSummaryReport = lazy(() => import('./pages/hr/PayrollSummaryReport'));
 const AttendanceLeaveSettings = lazy(() => import('./pages/hr/AttendanceLeaveSettings'));
+const LeavePolicySettings = lazy(() => import('./pages/hr/LeavePolicySettings'));
 const OfficeLocationsSettings = lazy(() => import('./pages/OfficeLocationsSettings'));
 const MobileAppDownload = lazy(() => import('./pages/MobileAppDownload'));
 const TravelReimbursement = lazy(() => import('./pages/TravelReimbursement'));
