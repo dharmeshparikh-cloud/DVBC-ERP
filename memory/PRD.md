@@ -4,7 +4,7 @@
 - **Frontend**: React with Shadcn/UI components
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB
-- **Auth**: JWT-based authentication
+- **Auth**: JWT-based authentication (Employee ID only)
 - **AI**: GPT-4o via Emergent LLM Key
 - **Documentation**: python-docx, reportlab for PDF/DOCX generation
 - **Email**: SMTP via SendGrid
@@ -13,7 +13,39 @@
 
 ## Completed Work - February 2026
 
-### Phase 19: Leave Policy Management System - February 22, 2026 ✅ (Latest)
+### Phase 21: Portal Consolidation - February 22, 2026 ✅ (Latest)
+
+**Unified Portal Architecture:**
+- ✅ Consolidated Sales and HR portals into single Main ERP portal
+- ✅ All users now access the application via a single entry point
+- ✅ Login page updated to accept Employee ID only (removed email login)
+- ✅ Role-based sidebar visibility (HR, Sales, Consulting, Admin sections)
+- ✅ Backward compatible URL redirects for bookmarks/shared links
+
+**Portal URL Redirects (`/app/frontend/src/components/PortalRedirect.js`):**
+- ✅ `/sales/*` routes → Main ERP equivalents (e.g., `/sales/leads` → `/leads`)
+- ✅ `/hr/*` routes → Main ERP equivalents (e.g., `/hr/employees` → `/employees`)
+- ✅ `/sales/login` and `/hr/login` → `/login`
+- ✅ Dynamic route support (e.g., `/sales/sow/:id` → `/sales-funnel/sow/:id`)
+
+**Login Page Updates (`/app/frontend/src/pages/Login.js`):**
+- ✅ Employee ID only login (removed email input option)
+- ✅ Removed "HR Portal" and "Sales Portal" footer links
+- ✅ Auto-uppercase Employee ID input
+- ✅ Google OAuth still available for @dvconsulting.co.in accounts
+
+**Sidebar Role-Based Visibility (`/app/frontend/src/components/Layout.js`):**
+- ✅ Admin: All sections visible (My Workspace, HR, Sales, Consulting, Admin)
+- ✅ HR Manager: My Workspace + HR sections
+- ✅ Sales Executive: My Workspace + Sales sections (Guided Mode)
+- ✅ Manager: My Workspace + Sales + limited HR
+- ✅ Consultant: My Workspace + Consulting sections
+
+**Testing:** ✅ Frontend 100% - All redirects and role visibility verified (iteration_101.json)
+
+---
+
+### Phase 19: Leave Policy Management System - February 22, 2026 ✅
 
 **Leave Policy Management with Full Payroll Integration:**
 - ✅ HR-editable leave policies at multiple levels (Company, Department, Role, Employee)
