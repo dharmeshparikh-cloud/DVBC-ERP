@@ -9,7 +9,7 @@ from typing import List, Optional
 import uuid
 
 from .models import PaymentVerification, PaymentVerificationCreate, User
-from .deps import get_db
+from .deps import get_db, SALES_EXECUTIVE_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -28,7 +28,7 @@ async def verify_installment_payment(
     db = get_db()
     
     # Only sales roles can verify payments
-    if current_user.role not in ["admin", "executive", "sales_manager", "manager"]:
+    if current_user.role not in SALES_EXECUTIVE_ROLES:
         raise HTTPException(status_code=403, detail="Only sales roles can verify payments")
     
     # Verify agreement exists
