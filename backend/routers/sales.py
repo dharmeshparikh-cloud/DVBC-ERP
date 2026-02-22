@@ -8,7 +8,7 @@ from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 
-from .deps import get_db
+from .deps import get_db, SENIOR_CONSULTING_ROLES
 from .auth import get_current_user
 from .models import User, UserRole
 
@@ -220,7 +220,7 @@ async def approve_sales_target(
 ):
     """Approve/reject sales target (Principal Consultant only)"""
     db = get_db()
-    if current_user.role not in ["principal_consultant", "admin"]:
+    if current_user.role not in SENIOR_CONSULTING_ROLES:
         raise HTTPException(status_code=403, detail="Only Principal Consultants can approve targets")
     
     target = await db.sales_targets.find_one({"id": target_id})
