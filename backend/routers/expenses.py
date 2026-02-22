@@ -8,7 +8,7 @@ from typing import Optional, List
 import uuid
 
 from .models import User, UserRole
-from .deps import get_db, sanitize_text
+from .deps import get_db, sanitize_text, HR_ROLES, HR_ADMIN_ROLES, MANAGER_ROLES
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification
 from websocket_manager import get_manager as get_ws_manager
@@ -98,7 +98,7 @@ async def get_pending_approvals(current_user: User = Depends(get_current_user)):
     """Get expenses pending approval for the current user (managers/HR/admin)."""
     db = get_db()
     
-    is_hr_admin = current_user.role in ["admin", "hr_manager"]
+    is_hr_admin = current_user.role in HR_ADMIN_ROLES
     is_manager = current_user.role in ["admin", "manager", "hr_manager", "principal_consultant"]
     
     # Get current user's employee record to check if they're a reporting manager
@@ -665,7 +665,7 @@ async def get_expense_stats(
     
     query = {}
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         query["employee_id"] = current_user.id
     elif employee_id:
         query["employee_id"] = employee_id
