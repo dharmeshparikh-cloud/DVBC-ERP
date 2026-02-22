@@ -299,6 +299,7 @@ const Layout = () => {
     { name: 'My Leaves', href: '/my-leaves', icon: Calendar },
     { name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet },
     { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
+    { name: 'My Drafts', href: '/my-drafts', icon: FileText },
     { name: 'My Details', href: '/my-details', icon: UserCog },
     { name: 'Mobile App', href: '/mobile-app', icon: Download },
   ];
