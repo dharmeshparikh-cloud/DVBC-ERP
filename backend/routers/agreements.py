@@ -66,8 +66,13 @@ class AgreementPaymentRecord(BaseModel):
 
 @router.post("")
 async def create_agreement(data: AgreementCreate, current_user: User = Depends(get_current_user)):
-    """Create a new agreement"""
+    """Create a new agreement. 
+    Access: sales_manager, admin only (requires admin approval for non-admin users)"""
     db = get_db()
+    
+    # Role-based access check - only sales_manager and admin can create agreements
+    if current_user.role not in AGREEMENT_CREATE_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied. Only sales managers and admins can create agreements.")
     
     lead = await db.leads.find_one({"id": data.lead_id}, {"_id": 0})
     if not lead:
@@ -75,6 +80,9 @@ async def create_agreement(data: AgreementCreate, current_user: User = Depends(g
     
     agreement_id = str(uuid.uuid4())
     agreement_number = f"AGR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+    
+    # Non-admin users create agreements in pending_approval status
+    initial_status = "draft" if current_user.role in ADMIN_ROLES else "pending_approval"
     
     agreement_doc = {
         "id": agreement_id,
@@ -91,7 +99,8 @@ async def create_agreement(data: AgreementCreate, current_user: User = Depends(g
         "start_date": data.start_date,
         "duration_months": data.duration_months,
         "sections": data.sections or [],
-        "status": "draft",
+        "status": initial_status,
+        "requires_admin_approval": current_user.role not in ADMIN_ROLES,
         "payments": [],
         "total_paid": 0,
         "created_by": current_user.id,
