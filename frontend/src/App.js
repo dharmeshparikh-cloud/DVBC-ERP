@@ -219,8 +219,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="payroll" element={<Payroll />} />
         <Route path="ctc-designer" element={<CTCDesigner />} />
         <Route path="document-center" element={<DocumentCenter />} />
-        <Route path="document-builder" element={<DocumentCenter />} />
-        <Route path="letter-management" element={<DocumentCenter />} />
+        <Route path="document-builder" element={<Navigate to="/document-center" replace />} />
+        <Route path="letter-management" element={<Navigate to="/document-center" replace />} />
         <Route path="my-attendance" element={<MyAttendance />} />
         <Route path="my-leaves" element={<MyLeaves />} />
         <Route path="my-salary-slips" element={<MySalarySlips />} />
@@ -239,7 +239,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/sow-review/:pricingPlanId" element={<ConsultingScopeView />} />
         <Route path="sales-funnel/sow-list" element={<SalesSOWList />} />
         <Route path="sales-funnel/quotations" element={<ProformaInvoice />} />
-        <Route path="sales-funnel/proforma-invoice" element={<ProformaInvoice />} />
+        <Route path="sales-funnel/proforma-invoice" element={<Navigate to="/sales-funnel/quotations" replace />} />
         <Route path="sales-funnel/agreements" element={<Agreements />} />
         <Route path="sales-funnel/agreement/:agreementId" element={<AgreementView />} />
         <Route path="sales-funnel/agreement" element={<AgreementView />} />
@@ -268,9 +268,9 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="password-management" element={<PasswordManagement />} />
         <Route path="approvals" element={<ApprovalsCenter />} />
         <Route path="manager-leads" element={<ManagerLeadsDashboard />} />
-        <Route path="team-leads" element={<ManagerLeadsDashboard />} />
+        <Route path="team-leads" element={<Navigate to="/manager-leads" replace />} />
         <Route path="target-management" element={<TargetManagement />} />
-        <Route path="targets" element={<TargetManagement />} />
+        <Route path="targets" element={<Navigate to="/target-management" replace />} />
         <Route path="clients" element={<Clients />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="travel-reimbursement" element={<TravelReimbursement />} />
@@ -297,7 +297,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="workflow" element={<WorkflowPage />} />
         <Route path="tutorials" element={<OnboardingTutorial />} />
         {/* Sales Features accessible in Main ERP */}
-        <Route path="meetings" element={<SalesMeetings />} />
+        <Route path="meetings" element={<Navigate to="/sales-meetings" replace />} />
         <Route path="team-performance" element={<SalesTeamPerformance />} />
         {/* HR Features accessible to Admin in Main ERP */}
         <Route path="team-workload" element={<HRTeamWorkload />} />
