@@ -552,38 +552,6 @@ async def send_client_consent_request(
     }
 
 
-@router.get("/consent-status/{agreement_id}")
-async def get_consent_status(
-    agreement_id: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Get consent status for an agreement"""
-    db = get_db()
-    
-    consent_req = await db.client_consent_requests.find_one({
-        "agreement_id": agreement_id
-    }, {"_id": 0}, sort=[("sent_at", -1)])
-    
-    if not consent_req:
-        return {
-            "sent": False,
-            "status": None,
-            "client_email": None,
-            "sent_at": None,
-            "expires_at": None
-        }
-    
-    return {
-        "sent": True,
-        "status": consent_req.get("status"),
-        "client_email": consent_req.get("client_email"),
-        "sent_at": consent_req.get("sent_at"),
-        "expires_at": consent_req.get("expires_at"),
-        "client_name": consent_req.get("client_name"),
-        "approved_at": consent_req.get("responded_at") if consent_req.get("status") == "approved" else None
-    }
-
-
 @router.post("/submit-consent")
 async def submit_client_consent(response: ClientConsentResponse):
     """Submit client's consent decision (accessed via token link)"""
