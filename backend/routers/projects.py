@@ -172,6 +172,19 @@ async def get_project(project_id: str, current_user: User = Depends(get_current_
     if not project_data:
         raise HTTPException(status_code=404, detail="Project not found")
     
+    # Normalize name field (some legacy records use 'project_name')
+    if not project_data.get('name') and project_data.get('project_name'):
+        project_data['name'] = project_data['project_name']
+    
+    # Ensure name has a fallback
+    if not project_data.get('name'):
+        project_data['name'] = project_data.get('id', 'Unnamed Project')
+    
+    # Ensure client_name has a fallback
+    if not project_data.get('client_name'):
+        project_data['client_name'] = 'Unknown Client'
+    
+    # Handle date conversion
     if isinstance(project_data.get('start_date'), str):
         project_data['start_date'] = datetime.fromisoformat(project_data['start_date'])
     if project_data.get('end_date') and isinstance(project_data['end_date'], str):
