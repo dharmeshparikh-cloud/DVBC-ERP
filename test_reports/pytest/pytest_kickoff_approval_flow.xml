@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="10" skipped="3" tests="13" time="8.852" timestamp="2026-02-22T19:34:27.934691+00:00" hostname="agent-env-619204b0-362a-4b6b-953d-4735b9dcd28e"><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_01_admin_login" time="0.710"><failure message="AssertionError: Admin login failed&#10;assert None is not None&#10; +  where None = &lt;test_kickoff_approval_flow.TestKickoffApprovalWorkflow object at 0x7b4ecd6b2b90&gt;.admin_token">backend/tests/test_kickoff_approval_flow.py:55: in test_01_admin_login
+    assert self.admin_token is not None, "Admin login failed"
+E   AssertionError: Admin login failed
+E   assert None is not None
+E    +  where None = &lt;test_kickoff_approval_flow.TestKickoffApprovalWorkflow object at 0x7b4ecd6b2b90&gt;.admin_token</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_02_sales_exec_login" time="0.532"><failure message="AssertionError: Sales executive login failed&#10;assert None is not None&#10; +  where None = &lt;test_kickoff_approval_flow.TestKickoffApprovalWorkflow object at 0x7b4ecd92c650&gt;.sales_token">backend/tests/test_kickoff_approval_flow.py:62: in test_02_sales_exec_login
+    assert self.sales_token is not None, "Sales executive login failed"
+E   AssertionError: Sales executive login failed
+E   assert None is not None
+E    +  where None = &lt;test_kickoff_approval_flow.TestKickoffApprovalWorkflow object at 0x7b4ecd92c650&gt;.sales_token</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_03_consulting_team_returns_only_senior_principal" time="0.591"><failure message="AssertionError: Expected 200, got 401: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_kickoff_approval_flow.py:74: in test_03_consulting_team_returns_only_senior_principal
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 401: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_04_get_lead_for_testing" time="0.584"><failure message="AssertionError: Failed to get leads: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_kickoff_approval_flow.py:99: in test_04_get_lead_for_testing
+    assert response.status_code == 200, f"Failed to get leads: {response.text}"
+E   AssertionError: Failed to get leads: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_05_stage_status_endpoint" time="0.560"><failure message="KeyError: 0">backend/tests/test_kickoff_approval_flow.py:126: in test_05_stage_status_endpoint
+    lead_id = lead_list[0].get("id")
+              ^^^^^^^^^^^^
+E   KeyError: 0</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_06_sales_can_request_kickoff" time="0.684"><skipped type="pytest.skip" message="No consultants available to assign">/app/backend/tests/test_kickoff_approval_flow.py:153: No consultants available to assign</skipped></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_07_admin_sees_pending_approvals" time="0.571"><failure message="AssertionError: Expected 200, got 401: {&quot;detail&quot;:&quot;Could not validate credentials&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_kickoff_approval_flow.py:206: in test_07_admin_sees_pending_approvals
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 401: {"detail":"Could not validate credentials"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_08_non_admin_denied_pending_approvals" time="0.545"><failure message="AssertionError: Expected 403 for non-admin, got 401&#10;assert 401 == 403&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_kickoff_approval_flow.py:222: in test_08_non_admin_denied_pending_approvals
+    assert response.status_code == 403, f"Expected 403 for non-admin, got {response.status_code}"
+E   AssertionError: Expected 403 for non-admin, got 401
+E   assert 401 == 403
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_09_cannot_assign_non_senior_consultant" time="0.576"><failure message="KeyError: 0">backend/tests/test_kickoff_approval_flow.py:241: in test_09_cannot_assign_non_senior_consultant
+    lead_id = lead_list[0].get("id")
+              ^^^^^^^^^^^^
+E   KeyError: 0</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_10_complete_approval_flow" time="0.976"><skipped type="pytest.skip" message="No consultants available">/app/backend/tests/test_kickoff_approval_flow.py:277: No consultants available</skipped></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_11_complete_rejection_flow" time="1.020"><skipped type="pytest.skip" message="No consultants available">/app/backend/tests/test_kickoff_approval_flow.py:359: No consultants available</skipped></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_12_non_admin_cannot_approve" time="0.562"><failure message="AssertionError: Expected 403 for non-admin, got 401&#10;assert 401 == 403&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_kickoff_approval_flow.py:427: in test_12_non_admin_cannot_approve
+    assert response.status_code == 403, f"Expected 403 for non-admin, got {response.status_code}"
+E   AssertionError: Expected 403 for non-admin, got 401
+E   assert 401 == 403
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_kickoff_approval_flow.TestKickoffApprovalWorkflow" name="test_13_non_admin_cannot_reject" time="0.547"><failure message="AssertionError: Expected 403 for non-admin, got 401&#10;assert 401 == 403&#10; +  where 401 = &lt;Response [401]&gt;.status_code">backend/tests/test_kickoff_approval_flow.py:440: in test_13_non_admin_cannot_reject
+    assert response.status_code == 403, f"Expected 403 for non-admin, got {response.status_code}"
+E   AssertionError: Expected 403 for non-admin, got 401
+E   assert 401 == 403
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase></testsuite></testsuites>
