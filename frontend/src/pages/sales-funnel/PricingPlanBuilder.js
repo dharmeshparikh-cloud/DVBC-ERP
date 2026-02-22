@@ -1565,6 +1565,15 @@ const PricingPlanBuilder = () => {
           </CardContent>
         </Card>
 
+        {/* Dual Approval Section - for editing existing plans */}
+        {searchParams.get('pricingId') && (
+          <DualApprovalPanel 
+            entityType="pricing" 
+            entityId={searchParams.get('pricingId')}
+            compact={false}
+          />
+        )}
+
         <div className="flex gap-4">
           <Button
             type="button"
