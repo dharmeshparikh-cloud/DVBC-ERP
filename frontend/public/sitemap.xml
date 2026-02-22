@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Authentication -->
+  <url><loc>/login</loc><priority>0.8</priority></url>
+  
+  <!-- Dashboard -->
+  <url><loc>/</loc><priority>1.0</priority></url>
+  
+  <!-- My Workspace -->
+  <url><loc>/my-attendance</loc><priority>0.7</priority></url>
+  <url><loc>/my-leaves</loc><priority>0.7</priority></url>
+  <url><loc>/my-salary-slips</loc><priority>0.7</priority></url>
+  <url><loc>/my-expenses</loc><priority>0.7</priority></url>
+  <url><loc>/my-drafts</loc><priority>0.7</priority></url>
+  <url><loc>/my-details</loc><priority>0.7</priority></url>
+  
+  <!-- Sales Module -->
+  <url><loc>/sales</loc><priority>0.9</priority></url>
+  <url><loc>/sales-dashboard</loc><priority>0.9</priority></url>
+  <url><loc>/leads</loc><priority>0.9</priority></url>
+  <url><loc>/sales-funnel/pricing-plans</loc><priority>0.8</priority></url>
+  <url><loc>/sales-funnel/quotations</loc><priority>0.8</priority></url>
+  <url><loc>/sales-funnel/sow-list</loc><priority>0.8</priority></url>
+  <url><loc>/sales-funnel/agreements</loc><priority>0.8</priority></url>
+  <url><loc>/sales-meetings</loc><priority>0.7</priority></url>
+  <url><loc>/follow-ups</loc><priority>0.7</priority></url>
+  <url><loc>/targets</loc><priority>0.7</priority></url>
+  
+  <!-- HR Module -->
+  <url><loc>/hr</loc><priority>0.9</priority></url>
+  <url><loc>/hr-dashboard</loc><priority>0.9</priority></url>
+  <url><loc>/employees</loc><priority>0.9</priority></url>
+  <url><loc>/onboarding</loc><priority>0.8</priority></url>
+  <url><loc>/attendance</loc><priority>0.8</priority></url>
+  <url><loc>/leave-management</loc><priority>0.8</priority></url>
+  <url><loc>/payroll</loc><priority>0.8</priority></url>
+  <url><loc>/expenses</loc><priority>0.7</priority></url>
+  
+  <!-- Consulting Module -->
+  <url><loc>/consulting-dashboard</loc><priority>0.9</priority></url>
+  <url><loc>/projects</loc><priority>0.9</priority></url>
+  <url><loc>/consulting/projects</loc><priority>0.8</priority></url>
+  <url><loc>/consulting/my-projects</loc><priority>0.8</priority></url>
+  <url><loc>/timesheets</loc><priority>0.8</priority></url>
+  <url><loc>/gantt-chart</loc><priority>0.7</priority></url>
+  
+  <!-- Admin Module -->
+  <url><loc>/admin-dashboard</loc><priority>0.9</priority></url>
+  <url><loc>/admin-masters</loc><priority>0.8</priority></url>
+  <url><loc>/user-management</loc><priority>0.8</priority></url>
+  <url><loc>/role-management</loc><priority>0.8</priority></url>
+  <url><loc>/permission-manager</loc><priority>0.7</priority></url>
+  <url><loc>/email-templates</loc><priority>0.7</priority></url>
+  <url><loc>/security-audit</loc><priority>0.7</priority></url>
+  
+  <!-- Reports -->
+  <url><loc>/reports</loc><priority>0.8</priority></url>
+  <url><loc>/performance-dashboard</loc><priority>0.7</priority></url>
+  <url><loc>/org-chart</loc><priority>0.7</priority></url>
+  
+  <!-- Communication -->
+  <url><loc>/chat</loc><priority>0.7</priority></url>
+  <url><loc>/ai-assistant</loc><priority>0.7</priority></url>
+  <url><loc>/notifications</loc><priority>0.7</priority></url>
+  
+  <!-- Documents -->
+  <url><loc>/document-center</loc><priority>0.8</priority></url>
+  <url><loc>/agreements</loc><priority>0.7</priority></url>
+  <url><loc>/quotations</loc><priority>0.7</priority></url>
+  
+  <!-- Other -->
+  <url><loc>/profile</loc><priority>0.6</priority></url>
+  <url><loc>/mobile-app</loc><priority>0.6</priority></url>
+  <url><loc>/tutorials</loc><priority>0.5</priority></url>
+</urlset>
