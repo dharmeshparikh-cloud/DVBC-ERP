@@ -43,7 +43,7 @@ async def get_salary_components(current_user: User = Depends(get_current_user)):
 @router.post("/salary-components")
 async def update_salary_components(data: dict, current_user: User = Depends(get_current_user)):
     """Update salary components (Admin/HR only)"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update salary components")
     db = get_db()
     await db.payroll_config.update_one({"type": "salary_components"}, {"$set": data}, upsert=True)
@@ -53,7 +53,7 @@ async def update_salary_components(data: dict, current_user: User = Depends(get_
 @router.post("/salary-components/add")
 async def add_salary_component(data: dict, current_user: User = Depends(get_current_user)):
     """Add a new salary component (Admin/HR only)"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can modify salary components")
     db = get_db()
     comp_type = data.get("type")
@@ -84,7 +84,7 @@ async def add_salary_component(data: dict, current_user: User = Depends(get_curr
 @router.delete("/salary-components/{comp_type}/{comp_key}")
 async def remove_salary_component(comp_type: str, comp_key: str, current_user: User = Depends(get_current_user)):
     """Remove a salary component (Admin/HR only). Cannot remove default components."""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can modify salary components")
     db = get_db()
     if comp_type not in ["earnings", "deductions"]:
@@ -102,10 +102,10 @@ async def remove_salary_component(comp_type: str, comp_key: str, current_user: U
 @router.get("/inputs")
 async def get_payroll_inputs(month: str, current_user: User = Depends(get_current_user)):
     """Get payroll input data for a month (Admin/HR only)"""
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can access payroll inputs")
     db = get_db()
-    inputs = await db.payroll_inputs.find({"month": month}, {"_id": 0}).to_list(500)
+    inputs = await db.payroll_inputs.find({"month": month}, {"_id": 0}).to_list(LARGE_QUERY_SIZE)
     input_map = {i["employee_id"]: i for i in inputs}
     employees = await db.employees.find(
         {"$or": [{"is_active": True}, {"is_active": {"$exists": False}}]},
