@@ -451,7 +451,7 @@ async def get_enhanced_sales_dashboard_stats(
 async def get_consulting_dashboard_stats(current_user: User = Depends(get_current_user)):
     """Consulting-specific dashboard stats - delivery, efficiency, workload"""
     db = get_db()
-    is_pm = current_user.role in ['admin', 'project_manager', 'manager']
+    is_pm = current_user.role in ['admin', 'principal_consultant', 'senior_consultant', 'manager']
     
     # Projects stats
     if is_pm:
