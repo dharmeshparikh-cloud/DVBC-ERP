@@ -203,8 +203,9 @@ const MyDrafts = () => {
   };
 
   const DraftCard = ({ draft }) => {
-    const config = DRAFT_TYPES[draft.draft_type] || {
-      label: draft.draft_type,
+    // Try draft_type first, then module for universal drafts
+    const config = DRAFT_TYPES[draft.draft_type] || DRAFT_TYPES[draft.module] || {
+      label: draft.draft_type || draft.module || 'Draft',
       icon: FileText,
       color: 'text-gray-600 bg-gray-100',
     };
@@ -222,7 +223,7 @@ const MyDrafts = () => {
                 <h3 className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
                   {draft.title || 'Untitled Draft'}
                 </h3>
-                <div className="flex items-center gap-2 mt-1 text-sm text-zinc-500">
+                <div className="flex items-center gap-2 mt-1 text-sm text-zinc-500 flex-wrap">
                   <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">
                     {config.label}
                   </span>
@@ -231,10 +232,20 @@ const MyDrafts = () => {
                       Step {draft.step}
                     </span>
                   )}
+                  {draft.active_tab && (
+                    <span className="px-2 py-0.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-xs">
+                      {draft.active_tab}
+                    </span>
+                  )}
+                  {draft.version > 1 && (
+                    <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded text-xs">
+                      v{draft.version}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 mt-2 text-xs text-zinc-400">
                   <Clock className="w-3 h-3" />
-                  <span>Last edited {getTimeSince(draft.updated_at)}</span>
+                  <span>Last edited {getTimeSince(draft.last_saved_at || draft.updated_at)}</span>
                 </div>
               </div>
             </div>
