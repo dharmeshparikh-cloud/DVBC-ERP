@@ -12,6 +12,35 @@ from bson import ObjectId
 import os
 import re
 
+# ==================== ROLE CONSTANTS ====================
+# Use these instead of hard-coded arrays in role checks
+
+# Admin-level roles (full system access)
+ADMIN_ROLES = ["admin"]
+
+# HR department roles
+HR_ROLES = ["admin", "hr_manager", "hr_executive"]
+HR_ADMIN_ROLES = ["admin", "hr_manager"]
+
+# Sales department roles  
+SALES_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant", "employee"]
+SALES_MANAGER_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant"]
+
+# Project management roles
+PROJECT_ROLES = ["admin", "project_manager", "manager"]
+
+# Finance roles
+FINANCE_ROLES = ["admin", "finance_manager"]
+
+# All manager-level roles
+MANAGER_ROLES = ["admin", "manager", "sr_manager", "sales_manager", "hr_manager", "project_manager", "principal_consultant"]
+
+# Default pagination limits
+DEFAULT_PAGE_SIZE = 100
+MAX_PAGE_SIZE = 1000
+LARGE_QUERY_SIZE = 500
+
+# ==================== DATABASE ====================
 # Database reference - set by main server
 db = None
 
