@@ -313,6 +313,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="email-templates" element={<EmailTemplates />} />
         <Route path="sales-funnel/pricing-plans" element={<PricingPlanBuilder />} />
         <Route path="sales-funnel/meeting/record" element={<MeetingRecord />} />
+        <Route path="sales-funnel/sow" element={<Navigate to="/sales-funnel/sow-list" replace />} />
         <Route path="sales-funnel/sow/:pricingPlanId" element={<SOWBuilder />} />
         <Route path="sales-funnel/scope-selection/:pricingPlanId" element={<SalesScopeSelection />} />
         <Route path="sales-funnel/sow-review/:pricingPlanId" element={<ConsultingScopeView />} />
