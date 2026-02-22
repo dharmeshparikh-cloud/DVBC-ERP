@@ -178,6 +178,9 @@ from routers import roles as roles_router
 from routers import my as my_router
 from routers import leave_requests as leave_requests_router
 
+# Project Completion (new)
+from routers import project_completion as project_completion_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
