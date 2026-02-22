@@ -13,14 +13,9 @@ from typing import List, Optional
 from datetime import datetime, timezone
 import uuid
 
+from .deps import get_db
+
 router = APIRouter(prefix="/sow-masters", tags=["SOW Masters"])
-
-# Database connection - will be set by main server
-db = None
-
-def set_db(database):
-    global db
-    db = database
 
 
 # ============== Models ==============
