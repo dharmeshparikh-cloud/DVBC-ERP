@@ -20,12 +20,6 @@ const DRAFT_TYPES = {
     label: 'Lead',
     icon: Users,
     color: 'text-blue-600 bg-blue-100',
-    continueUrl: (draft) => `/leads/new?draft=${draft.id}`,
-  },
-  leads: {
-    label: 'Lead',
-    icon: Users,
-    color: 'text-blue-600 bg-blue-100',
     continueUrl: (draft) => draft.route || `/leads/new?draft=${draft.id}`,
   },
   sow: {
