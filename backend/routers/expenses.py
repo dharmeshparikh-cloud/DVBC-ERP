@@ -99,7 +99,7 @@ async def get_pending_approvals(current_user: User = Depends(get_current_user)):
     db = get_db()
     
     is_hr_admin = current_user.role in HR_ADMIN_ROLES
-    is_manager = current_user.role in ["admin", "manager", "hr_manager", "principal_consultant"]
+    is_manager = current_user.role in APPROVAL_ROLES
     
     # Get current user's employee record to check if they're a reporting manager
     employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "employee_id": 1})
@@ -353,7 +353,7 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
     approval_flow = expense.get("approval_flow", [])
     requires_admin = expense.get("requires_admin_approval", False)
     
-    is_hr = current_user.role in ["hr_manager", "hr_executive"]
+    is_hr = current_user.role in HR_ROLES
     is_admin = current_user.role == "admin"
     
     if not (is_hr or is_admin):
