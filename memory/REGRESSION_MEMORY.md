@@ -169,6 +169,66 @@ TEST CASE CREATED: e2e_validation.py - Role guards test
 AUTO-FIX APPLIED: Yes - Added HR_ADMIN_ROLES check
 ```
 
+### Issue #012: Missing /my/leave-balance Endpoint
+```
+ROOT CAUSE: Frontend MyLeaves.js called /api/my/leave-balance but no such endpoint existed
+WHAT FAILED: /my-leaves page was blank
+WHY IT FAILED: API returned 404, component errored silently
+WHICH LAYER: API
+PATTERN TYPE: Missing endpoint
+PREVENTION RULE: Verify all frontend API calls have corresponding backend endpoints
+TEST CASE CREATED: Curl test for /api/my/leave-balance
+AUTO-FIX APPLIED: Yes - Added /my/leave-balance endpoint to my.py
+```
+
+### Issue #013: /my/profile Returns 404 for Users Without Employee Record
+```
+ROOT CAUSE: /my/profile raised HTTPException if no employee record found
+WHAT FAILED: /my-details showed "Unable to load profile" error toast
+WHY IT FAILED: Admin users don't always have employee records
+WHICH LAYER: API
+PATTERN TYPE: Missing fallback handling
+PREVENTION RULE: User-facing profile endpoints must gracefully handle missing data
+TEST CASE CREATED: Test profile endpoint with admin user
+AUTO-FIX APPLIED: Yes - Return user data with no_employee_record flag
+```
+
+### Issue #014: Leave Requests with Undefined ID Break React Keys
+```
+ROOT CAUSE: Leave requests from Telegram had no 'id' field
+WHAT FAILED: MyLeaves.js threw "Each child should have unique key" React warning
+WHY IT FAILED: map() used req.id for key but id was undefined
+WHICH LAYER: FRONTEND
+PATTERN TYPE: Missing null check
+PREVENTION RULE: Filter array items with .filter(item => item.id) before map()
+TEST CASE CREATED: None (visual test)
+AUTO-FIX APPLIED: Yes - Added .filter(req => req.id) before .map()
+```
+
+### Issue #015: Timesheets API Returns Array Instead of Expected Object
+```
+ROOT CAUSE: /api/timesheets returns array, frontend expected object with .entries property
+WHAT FAILED: Timesheets page crashed with "Cannot convert undefined or null to object"
+WHY IT FAILED: Array.entries() is a function, not an object property
+WHICH LAYER: FRONTEND
+PATTERN TYPE: API response shape mismatch
+PREVENTION RULE: Always check API response shape (Array.isArray) before accessing properties
+TEST CASE CREATED: None (visual test)
+AUTO-FIX APPLIED: Yes - Added Array.isArray check to extract first element
+```
+
+### Issue #016: Routes /meetings and /team-performance Not in Main Layout
+```
+ROOT CAUSE: Routes were defined in /sales nested route but not in main "/" routes
+WHAT FAILED: Direct navigation to /meetings showed "No routes matched"
+WHY IT FAILED: Routes only existed under /sales parent path
+WHICH LAYER: ROUTE
+PATTERN TYPE: Incomplete route definition
+PREVENTION RULE: Add routes to ALL route groups (/, /sales, /hr) when needed
+TEST CASE CREATED: Route audit script
+AUTO-FIX APPLIED: Yes - Added routes to main route group in App.js
+```
+
 ---
 
 ## PREVENTION CHECKLIST
