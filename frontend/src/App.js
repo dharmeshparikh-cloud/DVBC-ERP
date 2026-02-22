@@ -307,6 +307,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="my-expenses" element={<MyExpenses />} />
         <Route path="my-bank-details" element={<Navigate to="/my-details" replace />} />
         <Route path="my-details" element={<MyDetails />} />
+        <Route path="my-drafts" element={<MyDrafts />} />
         <Route path="project-roadmap" element={<ProjectRoadmap />} />
         <Route path="consultant-performance" element={<ConsultantPerformance />} />
         <Route path="email-templates" element={<EmailTemplates />} />
