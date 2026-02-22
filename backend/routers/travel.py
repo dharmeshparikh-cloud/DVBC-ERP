@@ -10,7 +10,7 @@ import uuid
 import os
 import math
 import httpx
-from .deps import get_db
+from .deps import get_db, HR_ADMIN_ROLES, APPROVAL_ROLES
 from .models import User
 from .auth import get_current_user
 
@@ -311,7 +311,7 @@ async def get_travel_reimbursements(
     db = get_db()
     query = {}
     
-    if current_user.role not in ["admin", "hr_manager", "manager"]:
+    if current_user.role not in APPROVAL_ROLES:
         employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
         if employee:
             query["employee_id"] = employee["id"]
@@ -360,7 +360,7 @@ async def approve_travel_reimbursement(
 ):
     """Approve a travel reimbursement (HR/Admin only)"""
     db = get_db()
-    if current_user.role not in ["admin", "hr_manager", "manager"]:
+    if current_user.role not in APPROVAL_ROLES:
         raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can approve")
     
     record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
@@ -391,7 +391,7 @@ async def reject_travel_reimbursement(
 ):
     """Reject a travel reimbursement (HR/Admin only)"""
     db = get_db()
-    if current_user.role not in ["admin", "hr_manager", "manager"]:
+    if current_user.role not in APPROVAL_ROLES:
         raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can reject")
     
     record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
@@ -419,7 +419,7 @@ async def convert_travel_to_expense(
 ):
     """Convert an approved travel reimbursement to an expense for payroll integration"""
     db = get_db()
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only HR/Admin can convert to expense")
     
     record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
@@ -589,7 +589,7 @@ async def get_travel_stats(
 ):
     """Get travel reimbursement statistics (HR/Admin)"""
     db = get_db()
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only HR/Admin can view stats")
     
     query = {}
