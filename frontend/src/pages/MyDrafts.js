@@ -3,14 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { FileText, Clock, Trash2, ArrowRight, Plus, FileSignature, DollarSign, Users, Filter } from 'lucide-react';
+import { FileText, Clock, Trash2, ArrowRight, Plus, FileSignature, DollarSign, Users, Filter, Briefcase, CalendarDays, Receipt, FileCheck, Plane, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// Draft type configuration
+// Universal Draft type configuration - covers ALL modules
 const DRAFT_TYPES = {
+  // Sales Module
   pricing_plan: {
     label: 'Pricing Plan',
     icon: DollarSign,
@@ -23,11 +24,87 @@ const DRAFT_TYPES = {
     color: 'text-blue-600 bg-blue-100',
     continueUrl: (draft) => `/leads/new?draft=${draft.id}`,
   },
+  leads: {
+    label: 'Lead',
+    icon: Users,
+    color: 'text-blue-600 bg-blue-100',
+    continueUrl: (draft) => draft.route || `/leads/new?draft=${draft.id}`,
+  },
   sow: {
     label: 'Statement of Work',
     icon: FileSignature,
     color: 'text-purple-600 bg-purple-100',
     continueUrl: (draft) => draft.entity_id ? `/sales-funnel/sow/${draft.entity_id}?draft=${draft.id}` : `/sales-funnel/sow`,
+  },
+  quotation: {
+    label: 'Quotation',
+    icon: FileCheck,
+    color: 'text-orange-600 bg-orange-100',
+    continueUrl: (draft) => draft.route || `/sales-funnel/quotations?draft=${draft.id}`,
+  },
+  agreement: {
+    label: 'Agreement',
+    icon: FileSignature,
+    color: 'text-indigo-600 bg-indigo-100',
+    continueUrl: (draft) => draft.route || `/sales-funnel/agreements?draft=${draft.id}`,
+  },
+  // HR Module
+  employees: {
+    label: 'Employee',
+    icon: Users,
+    color: 'text-teal-600 bg-teal-100',
+    continueUrl: (draft) => draft.route || `/employees/new?draft=${draft.id}`,
+  },
+  onboarding: {
+    label: 'Onboarding',
+    icon: Briefcase,
+    color: 'text-cyan-600 bg-cyan-100',
+    continueUrl: (draft) => draft.route || `/onboarding?draft=${draft.id}`,
+  },
+  leaves: {
+    label: 'Leave Request',
+    icon: CalendarDays,
+    color: 'text-pink-600 bg-pink-100',
+    continueUrl: (draft) => draft.route || `/my-leaves?draft=${draft.id}`,
+  },
+  payroll: {
+    label: 'Payroll',
+    icon: DollarSign,
+    color: 'text-green-600 bg-green-100',
+    continueUrl: (draft) => draft.route || `/ctc-payroll?draft=${draft.id}`,
+  },
+  // Projects Module
+  projects: {
+    label: 'Project',
+    icon: Briefcase,
+    color: 'text-violet-600 bg-violet-100',
+    continueUrl: (draft) => draft.route || `/projects?draft=${draft.id}`,
+  },
+  consulting: {
+    label: 'Consulting',
+    icon: Building2,
+    color: 'text-amber-600 bg-amber-100',
+    continueUrl: (draft) => draft.route || `/projects?draft=${draft.id}`,
+  },
+  // Finance Module
+  expenses: {
+    label: 'Expense',
+    icon: Receipt,
+    color: 'text-red-600 bg-red-100',
+    continueUrl: (draft) => draft.route || `/my-expenses?draft=${draft.id}`,
+  },
+  travel: {
+    label: 'Travel Request',
+    icon: Plane,
+    color: 'text-sky-600 bg-sky-100',
+    continueUrl: (draft) => draft.route || `/travel-requests?draft=${draft.id}`,
+  },
+  // Generic
+  general: {
+    label: 'Form',
+    icon: FileText,
+    color: 'text-gray-600 bg-gray-100',
+    continueUrl: (draft) => draft.route || '/',
   },
 };
 
