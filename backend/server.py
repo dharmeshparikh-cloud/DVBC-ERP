@@ -15603,6 +15603,11 @@ api_router.include_router(documentation_router.router)
 api_router.include_router(sales_router.router)
 api_router.include_router(audio_samples_router.router)
 
+# Phase 4 - Analytics, Payroll, Travel routers (extracted from server.py)
+api_router.include_router(analytics_router.router)
+api_router.include_router(payroll_router.router)
+api_router.include_router(travel_router.router)
+
 app.include_router(api_router)
 
 app.add_middleware(
