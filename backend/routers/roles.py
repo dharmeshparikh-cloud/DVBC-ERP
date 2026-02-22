@@ -27,7 +27,8 @@ async def get_roles(current_user: User = Depends(get_current_user)):
             {"id": "manager", "name": "Manager", "description": "Team management"},
             {"id": "sales_manager", "name": "Sales Manager", "description": "Sales team management"},
             {"id": "hr_manager", "name": "HR Manager", "description": "HR operations"},
-            {"id": "project_manager", "name": "Project Manager", "description": "Project management"},
+            {"id": "principal_consultant", "name": "Principal Consultant", "description": "Senior consulting & project authority"},
+            {"id": "senior_consultant", "name": "Senior Consultant", "description": "Senior consulting services"},
             {"id": "consultant", "name": "Consultant", "description": "Consulting services"},
             {"id": "employee", "name": "Employee", "description": "Regular employee"}
         ]
