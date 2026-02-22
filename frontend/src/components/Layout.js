@@ -22,11 +22,11 @@ import {
   FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target, ArrowRight, Circle
 } from 'lucide-react';
 
-// Legacy role-based access (kept for backward compatibility)
-const HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
-const SALES_ROLES_NAV = ['admin', 'sales_manager', 'senior_consultant', 'sr_manager', 'principal_consultant', 'manager']; // Roles that can see Sales section
-const CONSULTING_ROLES_NAV = ['admin']; // Department-based access is primary
-const ADMIN_ROLES = ['admin', 'hr_manager'];
+// Legacy role-based access (kept for backward compatibility only when API fails)
+const HR_ROLES_FALLBACK = ['admin', 'hr_manager', 'hr_executive'];
+const SALES_ROLES_FALLBACK = ['admin', 'sales_manager', 'sales_executive', 'executive', 'senior_consultant', 'principal_consultant'];
+const CONSULTING_ROLES_FALLBACK = ['admin', 'consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant'];
+const ADMIN_ROLES_FALLBACK = ['admin'];
 
 const Layout = () => {
   const { user, logout } = useContext(AuthContext);
@@ -45,30 +45,46 @@ const Layout = () => {
   // Department-based access state
   const [departmentAccess, setDepartmentAccess] = useState(null);
   
-  // Fetch department access on mount
+  // Sidebar visibility from centralized permissions API
+  const [sidebarVisibility, setSidebarVisibility] = useState(null);
+  
+  // Fetch department access and sidebar visibility on mount
   useEffect(() => {
-    const fetchDepartmentAccess = async () => {
+    const fetchAccessData = async () => {
       try {
         const API_URL = process.env.REACT_APP_BACKEND_URL;
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/api/department-access/my-access`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setDepartmentAccess(data);
+        
+        // Fetch both department access and permissions in parallel
+        const [deptResponse, permResponse] = await Promise.all([
+          fetch(`${API_URL}/api/department-access/my-access`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch(`${API_URL}/api/permissions/my-permissions`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
+        
+        if (deptResponse.ok) {
+          const deptData = await deptResponse.json();
+          setDepartmentAccess(deptData);
+        }
+        
+        if (permResponse.ok) {
+          const permData = await permResponse.json();
+          setSidebarVisibility(permData.sidebar_visibility);
         }
       } catch (error) {
-        console.error('Error fetching department access:', error);
+        console.error('Error fetching access data:', error);
       }
     };
     
     if (user) {
-      fetchDepartmentAccess();
+      fetchAccessData();
     }
   }, [user]);
   
-  // Department-based visibility (NEW - Primary method)
+  // Department-based visibility (secondary method)
   const userDepartments = departmentAccess?.departments || [];
   const hasDepartment = (dept) => userDepartments.includes(dept) || userDepartments.includes('Admin') || role === 'admin';
   
@@ -78,13 +94,13 @@ const Layout = () => {
   const canEditFlag = departmentAccess?.can_edit !== false; // Default to true if not set
   const isViewOnly = departmentAccess?.is_view_only || false;
   
-  // Combined visibility: Department-based (PRIMARY) with strict role checks
-  // Sales Executive should NOT see HR section - only HR department or HR roles
-  const showHR = hasDepartment('HR') || (HR_ROLES.includes(role) && role !== 'executive');
-  const showSales = hasDepartment('Sales') || SALES_ROLES_NAV.includes(role) || role === 'executive';
-  const showConsulting = hasDepartment('Consulting') || CONSULTING_ROLES_NAV.includes(role);
+  // SIDEBAR VISIBILITY: Use centralized permissions API (PRIMARY), fallback to role-based
+  // This ensures HR Manager doesn't see Sales section, Sales Executive doesn't see HR section, etc.
+  const showHR = sidebarVisibility?.hr_section ?? (hasDepartment('HR') || HR_ROLES_FALLBACK.includes(role));
+  const showSales = sidebarVisibility?.sales_section ?? (hasDepartment('Sales') || SALES_ROLES_FALLBACK.includes(role));
+  const showConsulting = sidebarVisibility?.consulting_section ?? (hasDepartment('Consulting') || CONSULTING_ROLES_FALLBACK.includes(role));
   const showFinance = hasDepartment('Finance');
-  const showAdmin = hasDepartment('Admin') || ADMIN_ROLES.includes(role);
+  const showAdmin = sidebarVisibility?.admin_section ?? (hasDepartment('Admin') || ADMIN_ROLES_FALLBACK.includes(role));
   const isConsultant = role === 'consultant';
   
   // Permission checks for specific features - now using has_reportees
