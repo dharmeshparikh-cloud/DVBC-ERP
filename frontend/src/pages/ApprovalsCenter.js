@@ -1552,59 +1552,120 @@ const ApprovalsCenter = () => {
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
                   data-testid={`expense-approval-${expense.id}`}
                 >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                          {expense.employee_name || 'Employee'}
-                        </span>
-                        <Badge className={`${expense.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'} ${isDark ? 'dark:bg-amber-900/30 dark:text-amber-400' : ''}`}>
-                          {expense.status === 'pending' ? 'Pending Manager' : 'Pending HR'}
-                        </Badge>
-                      </div>
-                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                        {expense.is_office_expense ? 'Office Expense' : (expense.client_name || expense.project_name || 'Expense')}
-                        {expense.notes && ` • ${expense.notes}`}
-                      </div>
-                      {expense.line_items?.length > 0 && (
-                        <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                          {expense.line_items.map(item => item.category).join(', ')}
+                  <div className="flex flex-col gap-3">
+                    {/* Header Row */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                            {expense.employee_name || 'Employee'}
+                          </span>
+                          <Badge className={`${expense.status === 'pending' ? 'bg-amber-100 text-amber-700' : expense.status === 'revision_required' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} ${isDark ? 'dark:bg-amber-900/30 dark:text-amber-400' : ''}`}>
+                            {expense.status === 'pending' ? 'Pending' : expense.status === 'revision_required' ? 'Revision Required' : expense.status === 'hr_approved' ? 'Pending Admin' : expense.status}
+                          </Badge>
+                          {expense.receipts?.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              <Paperclip className="w-3 h-3 mr-1" />
+                              {expense.receipts.length} receipt(s)
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                        {expense.created_at && new Date(expense.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                          {expense.is_office_expense ? 'Office Expense' : (expense.client_name || expense.project_name || expense.description || 'Expense')}
+                          {expense.notes && ` • ${expense.notes}`}
+                        </div>
+                        {expense.line_items?.length > 0 && (
+                          <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            {expense.line_items.map(item => item.category).join(', ')}
+                          </div>
+                        )}
+                        <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                          {expense.created_at && new Date(expense.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg font-bold text-emerald-600">
+                          ₹{(expense.total_amount || expense.amount || 0).toLocaleString('en-IN')}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-emerald-600">
-                        ₹{(expense.total_amount || expense.amount || 0).toLocaleString('en-IN')}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setSelectedExpense(expense);
-                            setExpenseDetailDialog(true);
-                          }}
-                          className="bg-emerald-600 hover:bg-emerald-700"
-                          disabled={actionLoading}
-                          data-testid={`approve-expense-${expense.id}`}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" /> Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => {
-                            setSelectedExpense(expense);
-                            setExpenseDetailDialog(true);
-                          }}
-                          disabled={actionLoading}
-                          data-testid={`reject-expense-${expense.id}`}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" /> Reject
-                        </Button>
-                      </div>
+                    
+                    {/* Action Buttons Row */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-700/50">
+                      {/* View/Upload Receipts */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedExpense(expense);
+                          fetchExpenseReceipts(expense.id);
+                          setReceiptsListDialog(true);
+                        }}
+                        className="text-zinc-600"
+                        data-testid={`view-receipts-${expense.id}`}
+                      >
+                        <Paperclip className="w-4 h-4 mr-1" />
+                        Receipts
+                      </Button>
+                      
+                      {/* Send Back Button */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedExpense(expense);
+                          setSendBackDialog(true);
+                        }}
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                        data-testid={`send-back-${expense.id}`}
+                      >
+                        <RotateCcw className="w-4 h-4 mr-1" />
+                        Send Back
+                      </Button>
+                      
+                      {/* Partial Approval Button */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedExpense(expense);
+                          setApprovedAmount(String(expense.total_amount || expense.amount || 0));
+                          setPartialApprovalDialog(true);
+                        }}
+                        className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                        data-testid={`modify-amount-${expense.id}`}
+                      >
+                        <Edit3 className="w-4 h-4 mr-1" />
+                        Modify Amount
+                      </Button>
+                      
+                      {/* Reject Button */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedExpense(expense);
+                          setExpenseDetailDialog(true);
+                        }}
+                        disabled={actionLoading}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        data-testid={`reject-expense-${expense.id}`}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Reject
+                      </Button>
+                      
+                      {/* Approve Button */}
+                      <Button
+                        size="sm"
+                        onClick={() => openExpenseDetails(expense)}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        disabled={actionLoading}
+                        data-testid={`approve-expense-${expense.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Approve
+                      </Button>
                     </div>
                   </div>
                 </div>
