@@ -109,6 +109,22 @@ const Layout = () => {
   // Quick Check-in Modal state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
 
+  // Sidebar scroll position ref
+  const sidebarNavRef = React.useRef(null);
+
+  // Persist sidebar scroll position across navigations
+  useEffect(() => {
+    const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
+    if (savedScrollPosition && sidebarNavRef.current) {
+      sidebarNavRef.current.scrollTop = parseInt(savedScrollPosition, 10);
+    }
+  }, []);
+
+  // Save scroll position when it changes
+  const handleSidebarScroll = useCallback((e) => {
+    sessionStorage.setItem('sidebarScrollPosition', e.target.scrollTop.toString());
+  }, []);
+
   // Global search keyboard shortcut (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e) => {
