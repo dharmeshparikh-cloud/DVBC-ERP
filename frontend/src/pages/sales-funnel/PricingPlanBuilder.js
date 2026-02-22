@@ -754,6 +754,9 @@ const PricingPlanBuilder = () => {
         description="Continue editing a pricing plan or start a new one"
       />
 
+      {/* Stage Resume Bar - shows when lead has progress in funnel */}
+      {leadId && <StageResumeBar leadId={leadId} />}
+
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <Button
