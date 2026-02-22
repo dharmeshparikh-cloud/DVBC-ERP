@@ -21,6 +21,7 @@
 - ✅ Login page updated to accept Employee ID only (removed email login)
 - ✅ Role-based sidebar visibility (HR, Sales, Consulting, Admin sections)
 - ✅ Backward compatible URL redirects for bookmarks/shared links
+- ✅ "Remember Me" feature for Employee ID persistence
 
 **Portal URL Redirects (`/app/frontend/src/components/PortalRedirect.js`):**
 - ✅ `/sales/*` routes → Main ERP equivalents (e.g., `/sales/leads` → `/leads`)
@@ -32,6 +33,7 @@
 - ✅ Employee ID only login (removed email input option)
 - ✅ Removed "HR Portal" and "Sales Portal" footer links
 - ✅ Auto-uppercase Employee ID input
+- ✅ "Remember my Employee ID" checkbox with localStorage persistence
 - ✅ Google OAuth still available for @dvconsulting.co.in accounts
 
 **Sidebar Role-Based Visibility (`/app/frontend/src/components/Layout.js`):**
@@ -40,6 +42,12 @@
 - ✅ Sales Executive: My Workspace + Sales sections (Guided Mode)
 - ✅ Manager: My Workspace + Sales + limited HR
 - ✅ Consultant: My Workspace + Consulting sections
+
+**Structural Cleanup:**
+- ✅ Removed unused SalesLayout and HRLayout imports from App.js
+- ✅ Fixed sidebar navigation links to match actual routes
+- ✅ Removed duplicate route definitions
+- ✅ Total: 114 routes, 72 sidebar navigation items
 
 **Testing:** ✅ Frontend 100% - All redirects and role visibility verified (iteration_101.json)
 
