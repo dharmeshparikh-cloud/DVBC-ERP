@@ -1,32 +1,99 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { API } from '../App';
 
 /**
- * Custom hook for managing drafts with auto-save functionality
+ * Enhanced useDraft hook with Universal Auto-Save & Resume functionality
+ * 
+ * Features:
+ * - Auto-save on field change (debounced, default 1.5 sec)
+ * - Save on tab change, blur, visibility change, and route exit
+ * - Resume flow with check for existing drafts
+ * - Auto-delete on submission/stage completion
+ * - Version conflict detection
+ * - RBAC compliance (employee-scoped)
+ * 
  * @param {string} draftType - Type of draft (e.g., 'onboarding', 'lead', 'meeting')
  * @param {Function} generateTitle - Function to generate title from form data
- * @param {number} autoSaveDelay - Delay in ms for auto-save (default: 3000ms)
- * @param {string} entityId - Optional entity ID to filter drafts (e.g., lead_id, pricing_plan_id)
+ * @param {number} autoSaveDelay - Delay in ms for auto-save (default: 1500ms)
+ * @param {string} entityId - Optional entity ID to filter drafts
+ * @param {Object} options - Additional options { module, checkOnMount, onResume }
  */
-const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = null) => {
+const useDraft = (
+  draftType, 
+  generateTitle, 
+  autoSaveDelay = 1500, 
+  entityId = null,
+  options = {}
+) => {
+  const location = useLocation();
+  const { 
+    module = draftType, 
+    checkOnMount = false,
+    onResume = null 
+  } = options;
+  
   const [draftId, setDraftId] = useState(null);
   const [drafts, setDrafts] = useState([]);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle, saving, saved, error
+  const [pendingDraft, setPendingDraft] = useState(null);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [version, setVersion] = useState(1);
+  
   const autoSaveTimerRef = useRef(null);
   const lastDataRef = useRef(null);
+  const formDataGetterRef = useRef(null);
+  const activeTabRef = useRef(null);
+  const hasCheckedRef = useRef(false);
 
-  // Fetch all drafts of this type, optionally filtered by entity ID
+  const currentRoute = location.pathname;
+
+  // ============== Check for Existing Draft ==============
+  
+  const checkForDraft = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ 
+        module, 
+        route: currentRoute 
+      });
+      if (entityId) params.append('entity_id', entityId);
+      
+      const response = await axios.get(`${API}/drafts/check?${params}`);
+      
+      if (response.data.has_draft) {
+        setPendingDraft(response.data.draft);
+        setShowResumePrompt(true);
+        return response.data.draft;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error checking for draft:', error);
+      return null;
+    }
+  }, [module, currentRoute, entityId]);
+
+  // Check on mount if enabled
+  useEffect(() => {
+    if (checkOnMount && !hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      checkForDraft();
+    }
+  }, [checkOnMount, checkForDraft]);
+
+  // ============== Fetch Drafts ==============
+
   const fetchDrafts = useCallback(async () => {
     setLoadingDrafts(true);
     try {
       const params = { draft_type: draftType };
-      if (entityId) {
-        params.entity_id = entityId;
-      }
+      if (entityId) params.entity_id = entityId;
+      if (module) params.module = module;
+      
       const response = await axios.get(`${API}/drafts`, { params });
       setDrafts(response.data || []);
     } catch (error) {
@@ -34,27 +101,30 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
     } finally {
       setLoadingDrafts(false);
     }
-  }, [draftType, entityId]);
+  }, [draftType, entityId, module]);
 
-  // Load drafts on mount
   useEffect(() => {
     fetchDrafts();
   }, [fetchDrafts]);
 
-  // Load a specific draft
+  // ============== Load Draft ==============
+
   const loadDraft = useCallback(async (id) => {
     try {
       const response = await axios.get(`${API}/drafts/${id}`);
+      const draft = response.data;
       setDraftId(id);
-      setLastSaved(new Date(response.data.updated_at));
-      return response.data;
+      setVersion(draft.version || 1);
+      setLastSaved(new Date(draft.updated_at || draft.last_saved_at));
+      return draft;
     } catch (error) {
       toast.error('Failed to load draft');
       return null;
     }
   }, []);
 
-  // Save draft (create or update)
+  // ============== Save Draft ==============
+
   const saveDraft = useCallback(async (formData, step = 0, metadata = {}, showToast = true) => {
     // Don't save if data hasn't changed
     const dataString = JSON.stringify(formData);
@@ -64,34 +134,46 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
     lastDataRef.current = dataString;
 
     setSaving(true);
+    setSaveStatus('saving');
+    
     try {
       const title = generateTitle ? generateTitle(formData) : `${draftType} Draft`;
       const draftData = {
+        module,
         draft_type: draftType,
         title,
-        data: formData,
+        route: currentRoute,
+        active_tab: activeTabRef.current,
         step,
+        form_data: formData,
+        data: formData, // Backward compatibility
         metadata,
-        entity_id: entityId // Include entity_id for filtering
+        entity_id: entityId
       };
 
       let response;
       if (draftId) {
-        // Update existing draft
         response = await axios.put(`${API}/drafts/${draftId}`, draftData);
       } else {
-        // Create new draft
         response = await axios.post(`${API}/drafts`, draftData);
         setDraftId(response.data.draft?.id);
       }
       
+      const newVersion = response.data.draft?.version || version + 1;
+      setVersion(newVersion);
       setLastSaved(new Date());
+      setSaveStatus('saved');
+      
+      // Reset to idle after 2 seconds
+      setTimeout(() => setSaveStatus('idle'), 2000);
+      
       if (showToast) {
         toast.success('Draft saved', { duration: 2000 });
       }
       return response.data.draft?.id || draftId;
     } catch (error) {
       console.error('Failed to save draft:', error);
+      setSaveStatus('error');
       if (showToast) {
         toast.error('Failed to save draft');
       }
@@ -99,22 +181,35 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
     } finally {
       setSaving(false);
     }
-  }, [draftId, draftType, generateTitle]);
+  }, [draftId, draftType, module, currentRoute, generateTitle, entityId, version]);
 
-  // Auto-save with debounce
+  // ============== Auto-Save ==============
+
   const autoSave = useCallback((formData, step = 0, metadata = {}) => {
-    // Clear existing timer
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
     
-    // Set new timer
     autoSaveTimerRef.current = setTimeout(() => {
-      saveDraft(formData, step, metadata, false); // Silent save (no toast)
+      saveDraft(formData, step, metadata, false);
     }, autoSaveDelay);
   }, [saveDraft, autoSaveDelay]);
 
-  // Delete a draft
+  // ============== Set Active Tab ==============
+
+  const setActiveTab = useCallback((tab) => {
+    activeTabRef.current = tab;
+    // Trigger immediate save on tab change
+    if (formDataGetterRef.current) {
+      const formData = formDataGetterRef.current();
+      if (formData && Object.keys(formData).length > 0) {
+        saveDraft(formData, 0, {}, false);
+      }
+    }
+  }, [saveDraft]);
+
+  // ============== Delete Draft ==============
+
   const deleteDraft = useCallback(async (id = draftId) => {
     if (!id) return;
     
@@ -123,6 +218,7 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
       if (id === draftId) {
         setDraftId(null);
         setLastSaved(null);
+        setVersion(1);
         lastDataRef.current = null;
       }
       setDrafts(prev => prev.filter(d => d.id !== id));
@@ -134,7 +230,8 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
     }
   }, [draftId]);
 
-  // Mark draft as converted (when actual record is created)
+  // ============== Convert/Complete Draft ==============
+
   const convertDraft = useCallback(async () => {
     if (!draftId) return;
     
@@ -142,61 +239,126 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
       await axios.post(`${API}/drafts/${draftId}/convert`);
       setDraftId(null);
       setLastSaved(null);
+      setVersion(1);
       lastDataRef.current = null;
     } catch (error) {
       console.error('Failed to mark draft as converted:', error);
     }
   }, [draftId]);
 
-  // Clear current draft (start fresh)
+  // Complete drafts by entity
+  const completeDraftByEntity = useCallback(async (entityIdToComplete) => {
+    try {
+      const params = new URLSearchParams({ 
+        module, 
+        entity_id: entityIdToComplete || entityId 
+      });
+      await axios.post(`${API}/drafts/complete-by-entity?${params}`);
+      
+      if (entityIdToComplete === entityId) {
+        setDraftId(null);
+        setLastSaved(null);
+        setVersion(1);
+        lastDataRef.current = null;
+      }
+    } catch (error) {
+      console.error('Error completing draft by entity:', error);
+    }
+  }, [module, entityId]);
+
+  // ============== Resume Flow ==============
+
+  const resumeDraft = useCallback(async (draft = pendingDraft) => {
+    if (!draft) return null;
+    
+    const loadedDraft = await loadDraft(draft.id);
+    if (loadedDraft && onResume) {
+      onResume(loadedDraft);
+    }
+    
+    setShowResumePrompt(false);
+    setPendingDraft(null);
+    return loadedDraft;
+  }, [pendingDraft, loadDraft, onResume]);
+
+  const discardPendingDraft = useCallback(async () => {
+    if (pendingDraft) {
+      await deleteDraft(pendingDraft.id);
+    }
+    setShowResumePrompt(false);
+    setPendingDraft(null);
+  }, [pendingDraft, deleteDraft]);
+
+  const cancelResume = useCallback(() => {
+    setShowResumePrompt(false);
+    setPendingDraft(null);
+  }, []);
+
+  // ============== Clear Draft ==============
+
   const clearDraft = useCallback(() => {
     setDraftId(null);
     setLastSaved(null);
+    setVersion(1);
     lastDataRef.current = null;
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
   }, []);
 
-  // Register a callback to get current form data for save-on-leave
-  const formDataGetterRef = useRef(null);
+  // ============== Register Form Data Getter ==============
+
   const registerFormDataGetter = useCallback((getter) => {
     formDataGetterRef.current = getter;
   }, []);
 
-  // Save on page leave (beforeunload)
+  // ============== Version Check ==============
+
+  const checkVersion = useCallback(async () => {
+    if (!draftId) return { in_sync: true };
+    
+    try {
+      const response = await axios.get(
+        `${API}/drafts/version-check/${draftId}?client_version=${version}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error checking version:', error);
+      return { in_sync: true };
+    }
+  }, [draftId, version]);
+
+  // ============== Event Handlers ==============
+
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      // Only save if we have a draft ID and form data getter
       if (formDataGetterRef.current && lastDataRef.current) {
         const formData = formDataGetterRef.current();
         if (formData && Object.keys(formData).length > 0) {
-          // Use sendBeacon for reliable save on page unload
           const title = generateTitle ? generateTitle(formData) : `${draftType} Draft`;
           const draftData = {
+            module,
             draft_type: draftType,
             title,
+            route: currentRoute,
+            active_tab: activeTabRef.current,
+            form_data: formData,
             data: formData,
-            step: 0,
-            metadata: {}
+            entity_id: entityId
           };
           
-          // Try sendBeacon first (more reliable for unload)
           const blob = new Blob([JSON.stringify(draftData)], { type: 'application/json' });
           const endpoint = draftId ? `${API}/drafts/${draftId}` : `${API}/drafts`;
-          
-          // Note: sendBeacon only works with POST, so this is best effort
           navigator.sendBeacon && navigator.sendBeacon(endpoint, blob);
         }
       }
     };
 
-    // Handle visibility change (user switching tabs)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && formDataGetterRef.current) {
         const formData = formDataGetterRef.current();
         if (formData && Object.keys(formData).length > 0) {
-          saveDraft(formData, 0, {}, false); // Silent save
+          saveDraft(formData, 0, {}, false);
         }
       }
     };
@@ -208,15 +370,14 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [draftId, draftType, generateTitle, saveDraft]);
+  }, [draftId, draftType, module, currentRoute, generateTitle, entityId, saveDraft]);
 
-  // Cleanup on unmount - save final state
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
-      // Save on unmount if there's data
       if (formDataGetterRef.current) {
         const formData = formDataGetterRef.current();
         if (formData && Object.keys(formData).length > 0) {
@@ -227,11 +388,18 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
   }, [saveDraft]);
 
   return {
+    // State
     draftId,
     drafts,
     loadingDrafts,
     saving,
     lastSaved,
+    saveStatus,
+    version,
+    pendingDraft,
+    showResumePrompt,
+    
+    // Core Functions
     fetchDrafts,
     loadDraft,
     saveDraft,
@@ -240,7 +408,18 @@ const useDraft = (draftType, generateTitle, autoSaveDelay = 3000, entityId = nul
     convertDraft,
     clearDraft,
     setDraftId,
-    registerFormDataGetter
+    
+    // Enhanced Functions
+    checkForDraft,
+    setActiveTab,
+    completeDraftByEntity,
+    checkVersion,
+    registerFormDataGetter,
+    
+    // Resume Functions
+    resumeDraft,
+    discardPendingDraft,
+    cancelResume,
   };
 };
 
