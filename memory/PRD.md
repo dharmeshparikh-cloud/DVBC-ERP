@@ -67,6 +67,20 @@
 - ✅ Updated 10 router files to remove `project_manager` references
 - ✅ New consulting hierarchy: `consultant` → `senior_consultant` → `principal_consultant`
 
+**8. P1 - Added `tenure_months` to Pricing Plan Schema**
+- ✅ Created `/app/backend/routers/pricing_plans.py` - New router for pricing plans CRUD
+- ✅ `tenure_months` is AUTO-CALCULATED from `len(schedule_breakdown)` - no duplicate entry
+- ✅ Endpoints:
+  - `POST /api/pricing-plans` - Create with auto tenure_months
+  - `GET /api/pricing-plans` - List all (backfills tenure if missing)
+  - `GET /api/pricing-plans/{id}` - Get single plan
+  - `PUT /api/pricing-plans/{id}` - Update (recalculates tenure if schedule changes)
+  - `DELETE /api/pricing-plans/{id}` - Delete (admin only)
+  - `POST /api/pricing-plans/{id}/clone` - Clone plan
+  - `POST /api/pricing-plans/backfill-tenure` - Backfill existing records
+- ✅ Backfilled 24 existing pricing plans with `tenure_months`
+- ✅ Updated `project_completion.py` to use stored `tenure_months` field
+
 ---
 
 ### Phase 11: Complete Server.py Refactoring - February 22, 2026 ✅
