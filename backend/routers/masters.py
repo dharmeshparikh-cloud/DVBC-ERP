@@ -10,18 +10,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime, timezone
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
 import uuid
 
+from .deps import get_db
+
 router = APIRouter(prefix="/masters", tags=["Admin Masters"])
-
-# Database connection - will be set by main server
-db = None
-
-def set_db(database):
-    global db
-    db = database
 
 
 # ============== Models ==============
