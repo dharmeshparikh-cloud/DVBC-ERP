@@ -39,6 +39,25 @@
 
 ---
 
+### Phase 25: Sidebar Role-Based Visibility Fix - February 22, 2026 ✅ (Latest)
+
+**Issue Fixed:** HR Manager was seeing the same sidebar sections as Admin (including Sales section)
+
+**Solution:**
+- ✅ Updated `/app/frontend/src/components/Layout.js` to fetch sidebar visibility from `/api/permissions/my-permissions`
+- ✅ Now uses centralized permissions API (`sidebarVisibility?.hr_section`, etc.) as primary source
+- ✅ Fallback to role-based logic only when API fails
+- ✅ Verified: HR Manager no longer sees Sales section, Admin sees all sections
+
+**Sidebar Visibility Matrix:**
+| Role | HR | Sales | Consulting | Admin |
+|------|----|-------|------------|-------|
+| Admin | ✅ | ✅ | ✅ | ✅ |
+| HR Manager | ✅ | ❌ | ✅ | ❌ |
+| Sales Executive | ❌ | ✅ | ❌ | ❌ |
+
+---
+
 ### Phase 22: Enterprise Permission System & API Consolidation - February 22, 2026 ✅
 
 **Enhanced Permission System (`/app/backend/routers/permissions.py`):**
