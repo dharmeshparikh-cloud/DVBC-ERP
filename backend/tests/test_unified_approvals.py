@@ -12,7 +12,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 # Test credentials from review request
 ADMIN_CREDS = {"employee_id": "ADMIN001", "password": "test123"}
 SALES_EXEC_CREDS = {"employee_id": "SE001", "password": "test123"}
-HR_MANAGER_CREDS = {"employee_id": "EMP002", "password": "password123"}
+HR_MANAGER_CREDS = {"employee_id": "HR001", "password": "test123"}
 
 
 class TestAuthAndSetup:
@@ -23,7 +23,7 @@ class TestAuthAndSetup:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=ADMIN_CREDS)
         assert response.status_code == 200, f"Admin login failed: {response.text}"
         data = response.json()
-        assert "token" in data
+        assert "access_token" in data, f"Expected access_token in response: {data.keys()}"
         assert "user" in data
         print(f"✓ Admin login successful - role: {data['user'].get('role')}")
     
@@ -32,7 +32,7 @@ class TestAuthAndSetup:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_EXEC_CREDS)
         assert response.status_code == 200, f"Sales Exec login failed: {response.text}"
         data = response.json()
-        assert "token" in data
+        assert "access_token" in data
         print(f"✓ Sales Executive login successful - role: {data['user'].get('role')}")
     
     def test_hr_manager_login(self):
@@ -40,7 +40,7 @@ class TestAuthAndSetup:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=HR_MANAGER_CREDS)
         assert response.status_code == 200, f"HR Manager login failed: {response.text}"
         data = response.json()
-        assert "token" in data
+        assert "access_token" in data
         print(f"✓ HR Manager login successful - role: {data['user'].get('role')}")
 
 
@@ -52,21 +52,21 @@ class TestExpenseApprovalsAPI:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=ADMIN_CREDS)
         if response.status_code != 200:
             pytest.skip("Admin login failed")
-        return response.json()["token"]
+        return response.json()["access_token"]
     
     @pytest.fixture
     def hr_token(self):
         response = requests.post(f"{BASE_URL}/api/auth/login", json=HR_MANAGER_CREDS)
         if response.status_code != 200:
             pytest.skip("HR Manager login failed")
-        return response.json()["token"]
+        return response.json()["access_token"]
     
     @pytest.fixture
     def sales_token(self):
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_EXEC_CREDS)
         if response.status_code != 200:
             pytest.skip("Sales Executive login failed")
-        return response.json()["token"]
+        return response.json()["access_token"]
     
     def test_pending_approvals_endpoint_admin(self, admin_token):
         """Test /api/expenses/pending-approvals returns pending expenses for Admin"""
