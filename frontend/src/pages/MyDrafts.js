@@ -47,8 +47,8 @@ const MyDrafts = () => {
     try {
       const token = localStorage.getItem('token');
       const url = filter === 'all' 
-        ? `${API}/api/drafts` 
-        : `${API}/api/drafts?draft_type=${filter}`;
+        ? `${API}/drafts` 
+        : `${API}/drafts?draft_type=${filter}`;
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -72,7 +72,7 @@ const MyDrafts = () => {
     setDeleting(draftId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/api/drafts/${draftId}`, {
+      const response = await fetch(`${API}/drafts/${draftId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

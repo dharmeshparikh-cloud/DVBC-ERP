@@ -25,7 +25,7 @@ const AcceptOfferPage = () => {
 
   const fetchLetter = async () => {
     try {
-      const response = await fetch(`${API}/api/letters/view/offer/${token}`);
+      const response = await fetch(`${API}/letters/view/offer/${token}`);
       if (response.ok) {
         const data = await response.json();
         setLetterData(data);
@@ -45,7 +45,7 @@ const AcceptOfferPage = () => {
   const handleAccept = async () => {
     setAccepting(true);
     try {
-      const response = await fetch(`${API}/api/letters/offer-letters/accept`, {
+      const response = await fetch(`${API}/letters/offer-letters/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ acceptance_token: token })
