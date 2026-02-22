@@ -43,7 +43,7 @@ const Timesheets = () => {
       const weekEnd = format(weekEndDate, 'yyyy-MM-dd');
       
       const [assignmentsRes, timesheetRes, allProjectsRes] = await Promise.all([
-        axios.get(`${API}/consultant/my-projects`).catch(() => ({ data: [] })),
+        axios.get(`${API}/consultants/my/projects`).catch(() => ({ data: [] })),
         axios.get(`${API}/timesheets?week_start=${weekStart}`).catch(() => ({ data: null })),
         axios.get(`${API}/projects`).catch(() => ({ data: [] }))
       ]);
