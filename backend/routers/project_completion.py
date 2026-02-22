@@ -89,10 +89,13 @@ async def validate_project_completion(
     if not tenure_months and pricing_plan_id:
         pricing_plan = await db.pricing_plans.find_one({"id": pricing_plan_id}, {"_id": 0})
         if pricing_plan:
-            # Calculate tenure from payment schedule breakdown
-            schedule = pricing_plan.get('payment_plan', {}).get('schedule_breakdown', [])
-            if schedule:
-                tenure_months = len(schedule)
+            # Use stored tenure_months (auto-calculated from schedule_breakdown)
+            tenure_months = pricing_plan.get('tenure_months')
+            # Fallback to calculating if not stored (legacy data)
+            if not tenure_months:
+                schedule = pricing_plan.get('payment_plan', {}).get('schedule_breakdown', [])
+                tenure_months = len(schedule) if schedule else None
+            if tenure_months:
                 timeline_status['source'] = 'pricing_plan'
     
     # Try to get tenure from agreement
