@@ -36,17 +36,17 @@ class PermissionCategory(str, Enum):
 # Master list of all controllable features
 FEATURE_FLAGS = {
     # Sales Features
-    "sales.view_leads": {"category": "sales", "label": "View Leads", "default_roles": ["admin", "sales_manager", "executive", "manager"]},
-    "sales.create_leads": {"category": "sales", "label": "Create Leads", "default_roles": ["admin", "sales_manager", "executive"]},
+    "sales.view_leads": {"category": "sales", "label": "View Leads", "default_roles": ["admin", "sales_manager", "executive", "sales_executive", "manager"]},
+    "sales.create_leads": {"category": "sales", "label": "Create Leads", "default_roles": ["admin", "sales_manager", "executive", "sales_executive"]},
     "sales.delete_leads": {"category": "sales", "label": "Delete Leads", "default_roles": ["admin"]},
     "sales.reassign_leads": {"category": "sales", "label": "Reassign Leads", "default_roles": ["admin", "sales_manager", "manager"]},
-    "sales.view_agreements": {"category": "sales", "label": "View Agreements", "default_roles": ["admin", "sales_manager", "principal_consultant", "executive"]},
+    "sales.view_agreements": {"category": "sales", "label": "View Agreements", "default_roles": ["admin", "sales_manager", "principal_consultant", "executive", "sales_executive"]},
     "sales.create_agreements": {"category": "sales", "label": "Create Agreements", "default_roles": ["admin", "sales_manager"]},
-    "sales.view_pricing": {"category": "sales", "label": "View Pricing Plans", "default_roles": ["admin", "sales_manager", "executive"]},
+    "sales.view_pricing": {"category": "sales", "label": "View Pricing Plans", "default_roles": ["admin", "sales_manager", "executive", "sales_executive"]},
     "sales.approve_pricing": {"category": "sales", "label": "Approve Pricing", "default_roles": ["admin", "sales_manager", "principal_consultant"]},
-    "sales.view_sow": {"category": "sales", "label": "View SOW", "default_roles": ["admin", "sales_manager", "executive", "consultant", "principal_consultant"]},
+    "sales.view_sow": {"category": "sales", "label": "View SOW", "default_roles": ["admin", "sales_manager", "executive", "sales_executive", "consultant", "principal_consultant"]},
     "sales.approve_sow": {"category": "sales", "label": "Approve SOW", "default_roles": ["admin", "sales_manager", "manager"]},
-    "sales.view_quotations": {"category": "sales", "label": "View Quotations", "default_roles": ["admin", "sales_manager", "executive"]},
+    "sales.view_quotations": {"category": "sales", "label": "View Quotations", "default_roles": ["admin", "sales_manager", "executive", "sales_executive"]},
     "sales.view_pipeline": {"category": "sales", "label": "View Sales Pipeline", "default_roles": ["admin", "sales_manager", "manager"]},
     "sales.view_team_leads": {"category": "sales", "label": "View Team Leads", "default_roles": ["admin", "sales_manager", "manager"]},
     "sales.manage_targets": {"category": "sales", "label": "Manage Targets", "default_roles": ["admin", "sales_manager", "manager"]},
