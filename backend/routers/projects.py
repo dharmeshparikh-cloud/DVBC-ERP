@@ -34,7 +34,7 @@ async def create_project(project_create: ProjectCreate, current_user: User = Dep
     return project
 
 
-@router.get("")
+@router.get("", response_model=List[Project])
 async def get_projects(current_user: User = Depends(get_current_user)):
     """Get all projects (filtered by role)."""
     db = get_db()
