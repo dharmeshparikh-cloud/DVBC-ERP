@@ -195,99 +195,16 @@ function AppRouter({ user, login, logout, loading }) {
       {/* Mobile Employee App - dedicated mobile view */}
       <Route path="/mobile" element={user ? <EmployeeMobileApp /> : <Navigate to="/login" />} />
       
-      {/* Unified Portal - Redirect HR and Sales logins to main login */}
+      {/* Unified Portal - Redirect all portal logins to main login */}
       <Route path="/sales/login" element={<Navigate to="/login" replace />} />
       <Route path="/hr/login" element={<Navigate to="/login" replace />} />
       
-      {/* Sales Portal Routes - restricted to sales roles */}
-      <Route
-        path="/sales"
-        element={
-          user 
-            ? (isSalesUser ? <SalesLayout /> : <Navigate to="/" />) 
-            : <Navigate to="/login" />
-        }
-      >
-        <Route index element={<SalesDashboardEnhanced />} />
-        <Route path="leads" element={<Leads />} />
-        <Route path="pricing-plans" element={<PricingPlanBuilder />} />
-        <Route path="sow" element={<Navigate to="/sales/sow-list" replace />} />
-        <Route path="sow/:pricingPlanId" element={<SOWBuilder />} />
-        <Route path="scope-selection/:pricingPlanId" element={<SalesScopeSelection />} />
-        <Route path="sow-review/:pricingPlanId" element={<ConsultingScopeView />} />
-        <Route path="sow-list" element={<SalesSOWList />} />
-        <Route path="quotations" element={<ProformaInvoice />} />
-        <Route path="agreements" element={<Agreements />} />
-        <Route path="agreement/:agreementId" element={<AgreementView />} />
-        <Route path="payment-verification" element={<PaymentVerification />} />
-        <Route path="kickoff-requests" element={<KickoffRequests />} />
-        <Route path="manager-leads" element={<ManagerLeadsDashboard />} />
-        <Route path="team-leads" element={<ManagerLeadsDashboard />} />
-        <Route path="clients" element={<Clients />} />
-        <Route path="meetings" element={<SalesMeetings />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="team-performance" element={<SalesTeamPerformance />} />
-        {/* Employee Workspace */}
-        <Route path="my-attendance" element={<MyAttendance />} />
-        <Route path="my-leaves" element={<MyLeaves />} />
-        <Route path="my-salary" element={<MySalarySlips />} />
-        <Route path="my-expenses" element={<MyExpenses />} />
-        <Route path="my-bank-details" element={<Navigate to="/my-details" replace />} />
-        <Route path="my-details" element={<MyDetails />} />
-        <Route path="my-drafts" element={<MyDrafts />} />
-      </Route>
+      {/* PORTAL REDIRECTS - All portal URLs redirect to Main ERP equivalents */}
+      {/* This maintains backward compatibility with bookmarks and shared links */}
+      <Route path="/sales/*" element={user ? <SalesPortalRedirect /> : <Navigate to="/login" />} />
+      <Route path="/hr/*" element={user ? <HRPortalRedirect /> : <Navigate to="/login" />} />
       
-      {/* HR Portal Routes - restricted to HR roles */}
-      <Route
-        path="/hr"
-        element={
-          user 
-            ? (['hr_manager', 'hr_executive', 'admin'].includes(user.role) ? <HRLayout /> : <Navigate to="/" />) 
-            : <Navigate to="/login" />
-        }
-      >
-        <Route index element={<HRPortalDashboard />} />
-        <Route path="employees" element={<Employees />} />
-        <Route path="onboarding" element={<HROnboarding />} />
-        <Route path="password-management" element={<PasswordManagement />} />
-        <Route path="go-live" element={<GoLiveDashboard />} />
-        <Route path="org-chart" element={<OrgChart />} />
-        <Route path="leave-management" element={<LeaveManagement />} />
-        <Route path="attendance" element={<Attendance />} />
-        <Route path="payroll" element={<Payroll />} />
-        <Route path="ctc-designer" element={<CTCDesigner />} />
-        <Route path="document-center" element={<DocumentCenter />} />
-        <Route path="document-builder" element={<DocumentCenter />} />
-        <Route path="expenses" element={<Expenses />} />
-        <Route path="travel-reimbursement" element={<TravelReimbursement />} />
-        <Route path="approvals" element={<ApprovalsCenter />} />
-        {/* HR Manager Only - Team View */}
-        <Route path="department-access" element={<DepartmentAccessManager />} />
-        <Route path="expense-approvals" element={<ExpenseApprovals />} />
-        <Route path="team-workload" element={<HRTeamWorkload />} />
-        <Route path="staffing-requests" element={<HRStaffingRequests />} />
-        <Route path="performance-dashboard" element={<PerformanceDashboard />} />
-        <Route path="attendance-approvals" element={<HRAttendanceApprovals />} />
-        <Route path="hr-attendance-input" element={<HRAttendanceInput />} />
-        <Route path="hr-leave-input" element={<HRLeaveInput />} />
-        <Route path="payroll-summary-report" element={<PayrollSummaryReport />} />
-        <Route path="attendance-leave-settings" element={<AttendanceLeaveSettings />} />
-        <Route path="leave-policy-settings" element={<LeavePolicySettings />} />
-        {/* Self Service */}
-        <Route path="my-attendance" element={<MyAttendance />} />
-        <Route path="my-leaves" element={<MyLeaves />} />
-        <Route path="my-salary" element={<MySalarySlips />} />
-        <Route path="my-expenses" element={<MyExpenses />} />
-        <Route path="my-bank-details" element={<Navigate to="/my-details" replace />} />
-        <Route path="my-details" element={<MyDetails />} />
-        <Route path="my-drafts" element={<MyDrafts />} />
-        {/* Reports */}
-        <Route path="reports" element={<Reports />} />
-        <Route path="notifications" element={<Notifications />} />
-        <Route path="employee-permissions" element={<EmployeePermissions />} />
-      </Route>
-      
-      {/* Main App Routes */}
+      {/* Main App Routes - Single entry point for all users */}
       <Route
         path="/"
         element={user ? <Layout /> : <Navigate to="/login" />}
