@@ -522,6 +522,7 @@ async def upload_scope_attachment(
     current_user_name: str = "Unknown"
 ):
     """Upload attachment to a scope item"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
