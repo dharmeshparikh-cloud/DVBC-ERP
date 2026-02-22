@@ -70,6 +70,11 @@ const ApprovalsCenter = () => {
   const [kickoffDetailDialog, setKickoffDetailDialog] = useState(false);
   const [selectedKickoff, setSelectedKickoff] = useState(null);
   
+  // Expense approval states (merged from ExpenseApprovals)
+  const [expenseDetailDialog, setExpenseDetailDialog] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [expenseRemarks, setExpenseRemarks] = useState('');
+  
   // New states for bulk actions and real-time
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [bulkActionDialog, setBulkActionDialog] = useState(false);
