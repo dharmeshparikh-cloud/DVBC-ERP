@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
 import SalesFunnelProgress from '../../components/SalesFunnelProgress';
+import { ClientConsentPanel } from '../../components/sales-funnel/BusinessLogicUI';
 
 const AgreementView = () => {
   const { agreementId } = useParams();
