@@ -177,9 +177,9 @@ const ApprovalsCenter = () => {
         requests.push(axios.get(`${API}/agreements/pending-approval`).catch(() => ({ data: [] })));
       }
       
-      // Fetch kickoff request approvals for Sr. Managers/Principals/Admins
-      if (isAdmin || user?.role === 'sr_manager' || user?.role === 'principal_consultant') {
-        requests.push(axios.get(`${API}/kickoff-requests/pending`).catch(() => ({ data: [] })));
+      // Fetch kickoff request approvals (Admin only - requires Admin approval)
+      if (isAdmin) {
+        requests.push(axios.get(`${API}/sales-funnel/pending-kickoff-approvals`).catch(() => ({ data: { requests: [] } })));
       }
       
       const results = await Promise.all(requests);
