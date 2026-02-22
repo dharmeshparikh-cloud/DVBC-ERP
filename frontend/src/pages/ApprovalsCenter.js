@@ -201,10 +201,10 @@ const ApprovalsCenter = () => {
         setBankApprovals(results[2]?.data || []);
         setProfileChangeApprovals((results[3]?.data || []).filter(r => r.status === 'pending'));
         agreementApprovalIndex = isManager ? 4 : null; // HR managers get agreement approvals after HR requests
-        kickoffApprovalIndex = isManager ? 5 : null;
+        // No kickoff approvals for non-admin
       } else if (isManager) {
         agreementApprovalIndex = 2; // For non-admin managers, right after the basic requests
-        kickoffApprovalIndex = 3;
+        // No kickoff approvals for non-admin
       }
       
       // Set agreement approvals if user has permission
@@ -214,9 +214,10 @@ const ApprovalsCenter = () => {
         setAgreementApprovals(agreementData.map(item => item.agreement || item));
       }
       
-      // Set kickoff approvals if user has permission
-      if (kickoffApprovalIndex !== null && results[kickoffApprovalIndex]) {
-        setKickoffApprovals(results[kickoffApprovalIndex]?.data || []);
+      // Set kickoff approvals (Admin only)
+      if (isAdmin && kickoffApprovalIndex !== null && results[kickoffApprovalIndex]) {
+        const kickoffData = results[kickoffApprovalIndex]?.data;
+        setKickoffApprovals(kickoffData?.requests || kickoffData || []);
       }
       
       if (isManager) {
