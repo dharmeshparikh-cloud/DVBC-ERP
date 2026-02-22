@@ -202,6 +202,12 @@ from routers import my_consolidated as my_consolidated_router
 # Manager Router (new - team data)
 from routers import manager as manager_router
 
+# Sales Funnel Business Logic (new - stage resume, dual approval, consent)
+from routers import sales_funnel_logic as sales_funnel_logic_router
+
+# Expanded Audit Logging (new)
+from routers import audit_logging as audit_logging_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
