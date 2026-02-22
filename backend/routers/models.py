@@ -201,28 +201,32 @@ class LeadUpdate(BaseModel):
 
 
 class Project(BaseModel):
+    """
+    Project model with Optional fields to handle legacy data.
+    Fields that may be missing in older documents are Optional with defaults.
+    """
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     client_name: str
     lead_id: Optional[str] = None
     agreement_id: Optional[str] = None
-    project_type: str = "mixed"
-    start_date: datetime
+    project_type: Optional[str] = "mixed"
+    start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    status: str = "active"
-    total_meetings_committed: int = 0
-    total_meetings_delivered: int = 0
-    number_of_visits: int = 0
-    assigned_consultants: List[str] = []
-    assigned_team: List[str] = []
+    status: Optional[str] = "active"
+    total_meetings_committed: Optional[int] = 0
+    total_meetings_delivered: Optional[int] = 0
+    number_of_visits: Optional[int] = 0
+    assigned_consultants: Optional[List[str]] = []
+    assigned_team: Optional[List[str]] = []
     budget: Optional[float] = None
     project_value: Optional[float] = None
     pricing_plan_id: Optional[str] = None
     notes: Optional[str] = None
-    created_by: str  # Required - tracks project creator for accountability
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_by: Optional[str] = None  # Optional for legacy data compatibility
+    created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ProjectCreate(BaseModel):
