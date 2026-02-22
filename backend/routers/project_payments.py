@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 import uuid
 
 from .models import User
-from .deps import get_db, PROJECT_PM_ROLES
+from .deps import get_db, PROJECT_PM_ROLES, SENIOR_CONSULTING_ROLES, PROJECT_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/project-payments", tags=["Project Payments"])
@@ -77,9 +77,9 @@ async def get_project_payments(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Check access permissions and determine role type
-    can_view_amounts = current_user.role in ["admin", "principal_consultant"]
-    is_manager_view = current_user.role in ["project_manager", "manager"]  # Can see consultant names, no amounts
-    is_admin = current_user.role in ["admin", "principal_consultant", "project_manager", "manager"]
+    can_view_amounts = current_user.role in SENIOR_CONSULTING_ROLES
+    is_manager_view = current_user.role in PROJECT_ROLES  # Can see consultant names, no amounts
+    is_admin = current_user.role in PROJECT_PM_ROLES
     is_assigned_consultant = current_user.id in (project.get("assigned_consultants") or [])
     
     # Check if user is reporting manager of assigned consultants
@@ -265,10 +265,10 @@ async def get_my_payments(
     """
     db = get_db()
     
-    can_view_amounts = current_user.role in ["admin", "principal_consultant"]
+    can_view_amounts = current_user.role in SENIOR_CONSULTING_ROLES
     project_ids = []
     
-    if current_user.role in ["admin", "principal_consultant", "project_manager"]:
+    if current_user.role in PROJECT_PM_ROLES:
         # Get all active projects
         projects = await db.projects.find(
             {"status": {"$ne": "completed"}},
