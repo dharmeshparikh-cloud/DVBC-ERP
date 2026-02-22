@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://erp-handbook-1.preview.emergentagent.com",
+      "value": "https://consulting-flow.preview.emergentagent.com",
       "type": "string"
     },
     {
