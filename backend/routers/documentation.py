@@ -12,7 +12,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 
-from .deps import get_db
+from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES
 from .auth import get_current_user
 from .models import User
 
@@ -147,7 +147,7 @@ async def generate_hr_documentation(
     db = get_db()
     
     # Only HR and Admin can generate documentation
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR/Admin can generate documentation")
     
     try:
@@ -233,7 +233,7 @@ async def get_documentation_logs(current_user: User = Depends(get_current_user))
     """Get documentation generation logs"""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view logs")
     
     logs = await db.documentation_logs.find(
