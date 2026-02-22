@@ -13,7 +13,41 @@
 
 ## Completed Work - February 2026
 
-### Phase 27: Sales Funnel Business Logic UI - February 22, 2026 ✅ (Latest)
+### Phase 28: Unified Approvals Center - February 22, 2026 ✅ (Latest)
+
+**Merged Expense Approvals into Unified Approvals Center:**
+- ✅ Added EXPENSE stat card showing pending expense count
+- ✅ Added "Pending Expense Approvals" section with approve/reject buttons
+- ✅ Expense detail dialog with line items, remarks, and rejection reason
+- ✅ Manager approval flow (pending → manager_approved → HR approved)
+- ✅ HR final approval flow linked to payroll
+
+**Cleanup & Consolidation:**
+- ✅ `/expense-approvals` route now redirects to `/approvals`
+- ✅ Removed separate "Expense Approvals" link from sidebar
+- ✅ Created reusable `ApprovalCard` component for consistent card design
+- ✅ Created `StatCard` component for stat card consistency
+
+**Files Created/Modified:**
+- `/app/frontend/src/pages/ApprovalsCenter.js` - Added expense approvals integration
+- `/app/frontend/src/components/approvals/ApprovalCard.js` - NEW: Reusable card components
+- `/app/frontend/src/components/Layout.js` - Removed Expense Approvals link
+- `/app/frontend/src/App.js` - Redirect /expense-approvals to /approvals
+
+**All approval types now in one unified center:**
+- General approvals (SOW, Agreements, Quotations, Leave)
+- CTC approvals (Admin)
+- Permission approvals (Admin)
+- Modification approvals (Admin)
+- Bank change approvals (HR)
+- Profile change approvals (HR)
+- Agreement approvals (Managers/Admin)
+- Kickoff approvals (Admin)
+- **Expense approvals (Managers/HR)** ← NEW
+
+---
+
+### Phase 27: Sales Funnel Business Logic UI - February 22, 2026 ✅
 
 **Fixed duplicate Lead filter in My Drafts page**
 
