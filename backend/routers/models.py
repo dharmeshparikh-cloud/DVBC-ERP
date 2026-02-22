@@ -88,7 +88,8 @@ class User(BaseModel):
     """User model for authentication and authorization."""
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    employee_id: Optional[str] = None
     full_name: str
     role: str
     department: Optional[str] = None
