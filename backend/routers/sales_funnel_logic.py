@@ -261,9 +261,11 @@ async def renew_deal(
     renewal_lead = {
         "id": new_lead_id,
         "company": original.get("company"),
-        "contact_name": original.get("contact_name"),
-        "contact_email": original.get("contact_email"),
-        "contact_phone": original.get("contact_phone"),
+        # Use proper Lead model schema with first_name/last_name
+        "first_name": original.get("first_name") or original.get("contact_name", "").split()[0] if original.get("contact_name") else "Renewal",
+        "last_name": original.get("last_name") or " ".join(original.get("contact_name", "").split()[1:]) if original.get("contact_name") else "Contact",
+        "email": original.get("email") or original.get("contact_email"),
+        "phone": original.get("phone") or original.get("contact_phone"),
         "source": "renewal",
         "status": "new",
         "current_stage": FunnelStage.LEAD.value,
