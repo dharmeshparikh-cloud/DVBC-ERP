@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETRA ERP - Site Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #f97316;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-card.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .stat-card.green { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .stat-card.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        
+        .stat-card h3 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .modules {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .module {
+            background: #fafafa;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e5e5e5;
+        }
+        
+        .module-header {
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .module-header .count {
+            background: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        
+        .module.sales .module-header { background: #fef3c7; color: #92400e; }
+        .module.hr .module-header { background: #dbeafe; color: #1e40af; }
+        .module.consulting .module-header { background: #d1fae5; color: #065f46; }
+        .module.admin .module-header { background: #fce7f3; color: #9d174d; }
+        .module.workspace .module-header { background: #e0e7ff; color: #3730a3; }
+        .module.reports .module-header { background: #f3e8ff; color: #6b21a8; }
+        .module.comm .module-header { background: #cffafe; color: #0e7490; }
+        .module.docs .module-header { background: #fef9c3; color: #854d0e; }
+        .module.other .module-header { background: #f1f5f9; color: #475569; }
+        
+        .module-content {
+            padding: 15px 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .route {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 6px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #374151;
+            border-left: 3px solid #d1d5db;
+        }
+        
+        .route:hover {
+            border-left-color: #f97316;
+            background: #fff7ed;
+        }
+        
+        .route.dynamic {
+            border-left-color: #8b5cf6;
+        }
+        
+        .tree-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e5e5;
+        }
+        
+        .tree-section h2 {
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+        
+        .tree {
+            font-family: 'Consolas', monospace;
+            background: #1a1a2e;
+            color: #e5e5e5;
+            padding: 30px;
+            border-radius: 10px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .tree .folder { color: #fbbf24; }
+        .tree .file { color: #60a5fa; }
+        .tree .param { color: #a78bfa; }
+        
+        .role-matrix {
+            margin-top: 40px;
+            overflow-x: auto;
+        }
+        
+        .role-matrix h2 {
+            margin-bottom: 20px;
+        }
+        
+        .role-matrix table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        .role-matrix th, .role-matrix td {
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #e5e5e5;
+        }
+        
+        .role-matrix th {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        
+        .role-matrix td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+        
+        .check { color: #22c55e; font-size: 1.2rem; }
+        .cross { color: #ef4444; font-size: 1.2rem; }
+        .partial { color: #f59e0b; font-size: 0.8rem; }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e5e5;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; padding: 20px; }
+            .module-content { max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 NETRA ERP - Site Map</h1>
+            <p class="subtitle">Business Management Platform | Complete Route Structure</p>
+            <p style="margin-top: 10px; color: #999;">Generated: February 22, 2026</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>125</h3>
+                <p>Total Pages</p>
+            </div>
+            <div class="stat-card blue">
+                <h3>49</h3>
+                <p>Backend Routers</p>
+            </div>
+            <div class="stat-card green">
+                <h3>~150</h3>
+                <p>API Endpoints</p>
+            </div>
+            <div class="stat-card purple">
+                <h3>12</h3>
+                <p>User Roles</p>
+            </div>
+        </div>
+        
+        <div class="modules">
+            <!-- Sales Module -->
+            <div class="module sales">
+                <div class="module-header">
+                    📈 Sales Module
+                    <span class="count">20 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/sales</div>
+                    <div class="route">/sales-dashboard</div>
+                    <div class="route">/leads</div>
+                    <div class="route">/manager-leads</div>
+                    <div class="route">/sales-meetings</div>
+                    <div class="route">/follow-ups</div>
+                    <div class="route">/targets</div>
+                    <div class="route">/sales-funnel/pricing-plans</div>
+                    <div class="route">/sales-funnel/quotations</div>
+                    <div class="route">/sales-funnel/sow-list</div>
+                    <div class="route dynamic">/sales-funnel/sow/:pricingPlanId</div>
+                    <div class="route dynamic">/sales-funnel/sow-review/:id</div>
+                    <div class="route">/sales-funnel/agreements</div>
+                    <div class="route dynamic">/sales-funnel/agreement/:id</div>
+                    <div class="route">/sales-funnel/payment-verification</div>
+                    <div class="route">/sales-funnel/proforma-invoice</div>
+                </div>
+            </div>
+            
+            <!-- HR Module -->
+            <div class="module hr">
+                <div class="module-header">
+                    👥 HR Module
+                    <span class="count">12 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/hr</div>
+                    <div class="route">/hr-dashboard</div>
+                    <div class="route">/employees</div>
+                    <div class="route">/onboarding</div>
+                    <div class="route">/attendance</div>
+                    <div class="route">/attendance-approvals</div>
+                    <div class="route">/leave-management</div>
+                    <div class="route">/payroll</div>
+                    <div class="route">/payroll-summary-report</div>
+                    <div class="route">/ctc-designer</div>
+                    <div class="route">/letter-management</div>
+                    <div class="route">/expenses</div>
+                </div>
+            </div>
+            
+            <!-- Consulting Module -->
+            <div class="module consulting">
+                <div class="module-header">
+                    💼 Consulting Module
+                    <span class="count">13 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/consulting-dashboard</div>
+                    <div class="route">/consultant-dashboard</div>
+                    <div class="route">/projects</div>
+                    <div class="route">/consulting/projects</div>
+                    <div class="route">/consulting/my-projects</div>
+                    <div class="route dynamic">/consulting/assign-team/:projectId</div>
+                    <div class="route dynamic">/consulting/project-tasks/:sowId</div>
+                    <div class="route">/consulting/payments</div>
+                    <div class="route">/consulting/sow-changes</div>
+                    <div class="route">/timesheets</div>
+                    <div class="route">/gantt-chart</div>
+                    <div class="route dynamic">/projects/:projectId/kickoff</div>
+                    <div class="route dynamic">/projects/:projectId/tasks</div>
+                </div>
+            </div>
+            
+            <!-- Admin Module -->
+            <div class="module admin">
+                <div class="module-header">
+                    ⚙️ Admin Module
+                    <span class="count">16 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/admin-dashboard</div>
+                    <div class="route">/admin-masters</div>
+                    <div class="route">/user-management</div>
+                    <div class="route">/role-management</div>
+                    <div class="route">/permission-manager</div>
+                    <div class="route">/permission-dashboard</div>
+                    <div class="route">/employee-permissions</div>
+                    <div class="route">/department-access</div>
+                    <div class="route">/password-management</div>
+                    <div class="route">/email-templates</div>
+                    <div class="route">/email-settings</div>
+                    <div class="route">/security-audit</div>
+                    <div class="route">/workflow</div>
+                    <div class="route">/downloads</div>
+                </div>
+            </div>
+            
+            <!-- My Workspace -->
+            <div class="module workspace">
+                <div class="module-header">
+                    🏠 My Workspace
+                    <span class="count">8 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/my-attendance</div>
+                    <div class="route">/my-leaves</div>
+                    <div class="route">/my-salary-slips</div>
+                    <div class="route">/my-expenses</div>
+                    <div class="route">/my-drafts</div>
+                    <div class="route">/my-details</div>
+                    <div class="route">/my-bank-details</div>
+                    <div class="route">/my-salary</div>
+                </div>
+            </div>
+            
+            <!-- Reports -->
+            <div class="module reports">
+                <div class="module-header">
+                    📊 Reports & Analytics
+                    <span class="count">7 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/reports</div>
+                    <div class="route">/performance-dashboard</div>
+                    <div class="route">/consultant-performance</div>
+                    <div class="route">/team-performance</div>
+                    <div class="route">/team-workload</div>
+                    <div class="route">/employee-scorecard</div>
+                    <div class="route">/org-chart</div>
+                </div>
+            </div>
+            
+            <!-- Communication -->
+            <div class="module comm">
+                <div class="module-header">
+                    💬 Communication
+                    <span class="count">4 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/chat</div>
+                    <div class="route">/ai-assistant</div>
+                    <div class="route">/notifications</div>
+                    <div class="route">/meetings</div>
+                </div>
+            </div>
+            
+            <!-- Documents -->
+            <div class="module docs">
+                <div class="module-header">
+                    📄 Documents
+                    <span class="count">6 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/document-center</div>
+                    <div class="route">/document-builder</div>
+                    <div class="route">/agreements</div>
+                    <div class="route">/quotations</div>
+                    <div class="route">/invoices</div>
+                    <div class="route">/sow-list</div>
+                </div>
+            </div>
+            
+            <!-- Other -->
+            <div class="module other">
+                <div class="module-header">
+                    📁 Other Pages
+                    <span class="count">37 pages</span>
+                </div>
+                <div class="module-content">
+                    <div class="route">/login</div>
+                    <div class="route">/profile</div>
+                    <div class="route">/mobile-app</div>
+                    <div class="route">/tutorials</div>
+                    <div class="route">/clients</div>
+                    <div class="route">/consultants</div>
+                    <div class="route">/approvals</div>
+                    <div class="route">/payments</div>
+                    <div class="route">/travel-reimbursement</div>
+                    <div class="route">/kickoff-requests</div>
+                    <div class="route">/go-live</div>
+                    <div class="route">+ 26 more...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tree-section">
+            <h2>📂 Visual Site Tree</h2>
+            <pre class="tree">
+<span class="folder">NETRA ERP</span>
+├── <span class="folder">Authentication</span>
+│   └── <span class="file">/login</span>
+│
+├── <span class="folder">Dashboard</span>
+│   └── <span class="file">/</span> (Main Dashboard)
+│
+├── <span class="folder">My Workspace</span>
+│   ├── <span class="file">/my-attendance</span>
+│   ├── <span class="file">/my-leaves</span>
+│   ├── <span class="file">/my-salary-slips</span>
+│   ├── <span class="file">/my-expenses</span>
+│   ├── <span class="file">/my-drafts</span>
+│   └── <span class="file">/my-details</span>
+│
+├── <span class="folder">Sales</span>
+│   ├── <span class="file">/sales-dashboard</span>
+│   ├── <span class="file">/leads</span>
+│   ├── <span class="file">/sales-meetings</span>
+│   └── <span class="folder">Sales Funnel</span>
+│       ├── <span class="file">/sales-funnel/pricing-plans</span>
+│       ├── <span class="file">/sales-funnel/quotations</span>
+│       ├── <span class="file">/sales-funnel/sow-list</span>
+│       ├── <span class="param">/sales-funnel/sow/:pricingPlanId</span>
+│       ├── <span class="file">/sales-funnel/agreements</span>
+│       └── <span class="file">/sales-funnel/payment-verification</span>
+│
+├── <span class="folder">HR</span>
+│   ├── <span class="file">/hr-dashboard</span>
+│   ├── <span class="file">/employees</span>
+│   ├── <span class="file">/onboarding</span>
+│   ├── <span class="file">/attendance</span>
+│   ├── <span class="file">/leave-management</span>
+│   ├── <span class="file">/payroll</span>
+│   └── <span class="file">/ctc-designer</span>
+│
+├── <span class="folder">Consulting</span>
+│   ├── <span class="file">/consulting-dashboard</span>
+│   ├── <span class="file">/projects</span>
+│   ├── <span class="param">/consulting/assign-team/:projectId</span>
+│   ├── <span class="file">/timesheets</span>
+│   └── <span class="file">/gantt-chart</span>
+│
+├── <span class="folder">Admin</span>
+│   ├── <span class="file">/admin-dashboard</span>
+│   ├── <span class="file">/admin-masters</span>
+│   ├── <span class="file">/user-management</span>
+│   ├── <span class="file">/role-management</span>
+│   ├── <span class="file">/permission-manager</span>
+│   └── <span class="file">/security-audit</span>
+│
+├── <span class="folder">Reports</span>
+│   ├── <span class="file">/reports</span>
+│   ├── <span class="file">/performance-dashboard</span>
+│   └── <span class="file">/org-chart</span>
+│
+└── <span class="folder">Communication</span>
+    ├── <span class="file">/chat</span>
+    ├── <span class="file">/ai-assistant</span>
+    └── <span class="file">/notifications</span>
+            </pre>
+        </div>
+        
+        <div class="role-matrix">
+            <h2>🔐 Role-Based Access Matrix</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Admin</th>
+                        <th>HR Manager</th>
+                        <th>Sales Manager</th>
+                        <th>Consultant</th>
+                        <th>Executive</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Dashboard</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="partial">Guided</span></td>
+                    </tr>
+                    <tr>
+                        <td>My Workspace</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Sales Module</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>HR Module</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="cross">✗</span></td>
+                    </tr>
+                    <tr>
+                        <td>Consulting</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                    </tr>
+                    <tr>
+                        <td>Admin Module</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="cross">✗</span></td>
+                    </tr>
+                    <tr>
+                        <td>Reports</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                    </tr>
+                    <tr>
+                        <td>User Management</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="cross">✗</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p><strong>NETRA ERP</strong> - Business Management Platform</p>
+            <p>© 2026 DVBC Consulting | Generated by Site Map Tool</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">
+                To save as PDF: Press <kbd>Ctrl</kbd> + <kbd>P</kbd> → Select "Save as PDF"
+            </p>
+        </div>
+    </div>
+</body>
+</html>
