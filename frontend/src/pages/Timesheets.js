@@ -52,10 +52,15 @@ const Timesheets = () => {
       setProjects(assignedProjects);
       setAllProjects(allProjectsRes.data || []);
       
-      if (timesheetRes.data) {
-        setTimesheetData(timesheetRes.data.entries || {});
-        setTimesheetStatus(timesheetRes.data.status || 'draft');
-        setNotes(timesheetRes.data.notes || {});
+      // API returns array of timesheets - get the first one if exists
+      const timesheetRecord = Array.isArray(timesheetRes.data) 
+        ? timesheetRes.data[0] 
+        : timesheetRes.data;
+      
+      if (timesheetRecord && typeof timesheetRecord === 'object') {
+        setTimesheetData(timesheetRecord.entries || {});
+        setTimesheetStatus(timesheetRecord.status || 'draft');
+        setNotes(timesheetRecord.notes || {});
       } else {
         // Initialize empty timesheet
         const emptyData = {};
