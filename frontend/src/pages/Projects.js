@@ -8,10 +8,40 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Calendar, Users, IndianRupee, ListTodo, UserPlus, PlayCircle } from 'lucide-react';
+import { Plus, Calendar, Users, IndianRupee, ListTodo, UserPlus, PlayCircle, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, differenceInDays, isPast } from 'date-fns';
 import ProjectConsultantAssignment from '../components/ProjectConsultantAssignment';
+
+// Helper function to calculate days remaining/overdue
+const getTimelineInfo = (project) => {
+  if (!project.end_date) return null;
+  
+  const endDate = new Date(project.end_date);
+  const today = new Date();
+  const daysRemaining = differenceInDays(endDate, today);
+  
+  return {
+    endDate,
+    daysRemaining,
+    isOverdue: daysRemaining < 0,
+    isAtRisk: daysRemaining >= 0 && daysRemaining <= 30
+  };
+};
+
+// Helper function to get status badge styling
+const getStatusBadge = (status, timelineInfo) => {
+  const statusConfig = {
+    active: { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Active' },
+    at_risk: { bg: 'bg-amber-50', text: 'text-amber-700', label: 'At Risk' },
+    delayed: { bg: 'bg-red-50', text: 'text-red-700', label: 'Delayed' },
+    completed: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Completed' },
+    on_hold: { bg: 'bg-zinc-100', text: 'text-zinc-600', label: 'On Hold' },
+    cancelled: { bg: 'bg-zinc-100', text: 'text-zinc-500', label: 'Cancelled' }
+  };
+  
+  return statusConfig[status?.toLowerCase()] || { bg: 'bg-zinc-100', text: 'text-zinc-600', label: status };
+};
 
 const Projects = () => {
   const { user } = useContext(AuthContext);
