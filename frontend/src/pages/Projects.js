@@ -287,44 +287,107 @@ const Projects = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg font-semibold text-zinc-950 dark:text-zinc-100">
-                      {project.name}
+                      {project.name || project.project_name}
                     </CardTitle>
                     <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{project.client_name}</div>
                   </div>
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-sm ${
-                      project.status === 'active'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-zinc-100 text-zinc-600'
-                    }`}
-                  >
-                    {project.status}
-                  </span>
+                  {(() => {
+                    const badge = getStatusBadge(project.status, getTimelineInfo(project));
+                    return (
+                      <span className={`px-2 py-1 text-xs font-medium rounded-sm ${badge.bg} ${badge.text}`}>
+                        {badge.label}
+                      </span>
+                    );
+                  })()}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                {/* Timeline Section - Prominent */}
+                <div className="grid grid-cols-2 gap-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-md">
                   <div>
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 mb-1">
                       <Calendar className="w-3 h-3" strokeWidth={1.5} />
                       Start Date
                     </div>
                     <div className="text-sm font-medium text-zinc-950 dark:text-zinc-100 data-text">
-                      {format(new Date(project.start_date), 'MMM dd, yyyy')}
+                      {project.start_date ? format(new Date(project.start_date), 'MMM dd, yyyy') : 'Not Set'}
                     </div>
                   </div>
-                  {project.budget && (
-                    <div>
-                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 mb-1">
-                        <IndianRupee className="w-3 h-3" strokeWidth={1.5} />
-                        Budget
-                      </div>
-                      <div className="text-sm font-medium text-zinc-950 dark:text-zinc-100 data-text">
-                        ₹{project.budget.toLocaleString('en-IN')}
-                      </div>
+                  <div>
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                      <Clock className="w-3 h-3" strokeWidth={1.5} />
+                      End Date
                     </div>
-                  )}
+                    <div className="text-sm font-medium text-zinc-950 dark:text-zinc-100 data-text">
+                      {project.end_date ? format(new Date(project.end_date), 'MMM dd, yyyy') : 'Not Set'}
+                    </div>
+                  </div>
                 </div>
+
+                {/* Days Remaining/Overdue Indicator */}
+                {(() => {
+                  const timeline = getTimelineInfo(project);
+                  if (!timeline) return null;
+                  
+                  if (project.status === 'completed') {
+                    return (
+                      <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                        <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Project Completed</span>
+                      </div>
+                    );
+                  }
+                  
+                  if (timeline.isOverdue) {
+                    return (
+                      <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-md">
+                        <AlertTriangle className="w-4 h-4 text-red-600" />
+                        <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                          {Math.abs(timeline.daysRemaining)} days overdue
+                        </span>
+                      </div>
+                    );
+                  }
+                  
+                  if (timeline.isAtRisk) {
+                    return (
+                      <div className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                          {timeline.daysRemaining} days remaining
+                        </span>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-md">
+                      <Clock className="w-4 h-4 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                        {timeline.daysRemaining} days remaining
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* Tenure Info */}
+                {project.tenure_months && (
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Project Tenure: {project.tenure_months} months
+                  </div>
+                )}
+
+                {project.budget && (
+                  <div>
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 mb-1">
+                      <IndianRupee className="w-3 h-3" strokeWidth={1.5} />
+                      Budget
+                    </div>
+                    <div className="text-sm font-medium text-zinc-950 dark:text-zinc-100 data-text">
+                      ₹{project.budget.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-700">
                   <div>
