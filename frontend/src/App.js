@@ -288,9 +288,6 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="expense-approvals" element={<ExpenseApprovals />} />
         <Route path="employee-scorecard" element={<EmployeeScorecard />} />
         <Route path="role-management" element={<RoleManagement />} />
-        <Route path="document-center" element={<DocumentCenter />} />
-        <Route path="letter-management" element={<DocumentCenter />} />
-        <Route path="document-builder" element={<DocumentCenter />} />
         <Route path="letterhead-settings" element={<LetterheadSettings />} />
         <Route path="admin-dashboard-mockups" element={<AdminDashboardMockups />} />
         <Route path="admin-dashboard" element={<AdminDashboard />} />
