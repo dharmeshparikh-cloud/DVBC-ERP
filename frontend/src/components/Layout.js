@@ -262,7 +262,7 @@ const Layout = () => {
     { name: 'Leads', href: '/leads', icon: Users, stage: 'LEAD' },
     { name: 'Team Leads', href: '/manager-leads', icon: Users, managerOnly: true, stage: null },
     { name: 'Target Management', href: '/target-management', icon: Target, managerOnly: true, stage: null },
-    { name: 'Sales Meetings', href: '/sales-funnel/meetings', icon: CalendarCheck, stage: 'MEETING' },
+    { name: 'Sales Meetings', href: '/sales-meetings', icon: CalendarCheck, stage: 'MEETING' },
     { name: 'SOW & Pricing', href: '/sales-funnel/pricing-plans', icon: FileText, stage: 'PRICING' },
     { name: 'SOW Generator', href: '/sales-funnel/sow', icon: FileText, stage: 'SOW' },
     { name: 'Quotations', href: '/sales-funnel/quotations', icon: Receipt, stage: 'QUOTATION' },
