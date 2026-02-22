@@ -639,6 +639,9 @@ const Layout = () => {
           )}
 
           <div className="flex items-center gap-2 md:gap-3 ml-auto">
+            {/* Auto-Save Indicator */}
+            <SaveIndicator className="hidden md:flex" />
+            
             {/* Global Search Button */}
             <button
               onClick={() => setSearchOpen(true)}
