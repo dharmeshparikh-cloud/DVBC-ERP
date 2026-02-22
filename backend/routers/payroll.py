@@ -776,3 +776,198 @@ async def get_generated_reports(current_user: User = Depends(get_current_user)):
     
     reports = await db.payroll_reports.find({}, {"_id": 0, "id": 1, "month": 1, "generated_at": 1, "generated_by_name": 1}).sort("month", -1).to_list(50)
     return reports
+
+
+# ==================== LEAVE ENCASHMENT INTEGRATION ====================
+
+@router.get("/leave-encashments")
+async def get_leave_encashments(
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get leave encashment requests for payroll processing"""
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can view leave encashments")
+    
+    db = get_db()
+    query = {}
+    if month:
+        query["month"] = month
+    if year:
+        query["year"] = year
+    if status:
+        query["status"] = status
+    
+    encashments = await db.leave_encashments.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    
+    # Enrich with employee data
+    emp_ids = list(set(e.get("employee_id") for e in encashments))
+    employees = await db.employees.find({"id": {"$in": emp_ids}}, {"_id": 0}).to_list(500)
+    emp_map = {e["id"]: e for e in employees}
+    
+    for enc in encashments:
+        emp = emp_map.get(enc.get("employee_id"), {})
+        enc["employee_name"] = f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip()
+        enc["department"] = emp.get("department", "")
+        # Calculate amount based on employee salary
+        ctc = emp.get("ctc", 0) or emp.get("salary", 0) * 12
+        basic_per_day = (ctc * 0.4 / 12) / 30 if ctc else 0
+        enc["estimated_amount"] = round(basic_per_day * enc.get("days", 0), 2)
+    
+    return encashments
+
+
+@router.post("/leave-encashments/{encashment_id}/approve")
+async def approve_leave_encashment(
+    encashment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a leave encashment request and link to payroll"""
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR Admin can approve encashments")
+    
+    db = get_db()
+    
+    encashment = await db.leave_encashments.find_one({"id": encashment_id}, {"_id": 0})
+    if not encashment:
+        raise HTTPException(status_code=404, detail="Encashment request not found")
+    
+    if encashment.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Cannot approve. Current status: {encashment.get('status')}")
+    
+    # Get employee and calculate amount
+    employee = await db.employees.find_one({"id": encashment["employee_id"]}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    ctc = employee.get("ctc", 0) or employee.get("salary", 0) * 12
+    basic_per_day = (ctc * 0.4 / 12) / 30 if ctc else 0
+    amount = round(basic_per_day * encashment.get("days", 0), 2)
+    
+    # Update encashment status
+    await db.leave_encashments.update_one(
+        {"id": encashment_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "amount": amount,
+            "payroll_month": f"{encashment.get('year')}-{encashment.get('month'):02d}"
+        }}
+    )
+    
+    # Update employee leave balance (deduct encashed days)
+    leave_type = encashment.get("leave_type", "earned_leave")
+    await db.employees.update_one(
+        {"id": encashment["employee_id"]},
+        {"$inc": {f"leave_balance.used_{leave_type.replace('_leave', '')}": encashment.get("days", 0)}}
+    )
+    
+    return {"message": "Leave encashment approved", "amount": amount}
+
+
+@router.post("/leave-encashments/{encashment_id}/reject")
+async def reject_leave_encashment(
+    encashment_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a leave encashment request"""
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR Admin can reject encashments")
+    
+    db = get_db()
+    
+    await db.leave_encashments.update_one(
+        {"id": encashment_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user.id,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "rejection_reason": data.get("reason", "")
+        }}
+    )
+    
+    return {"message": "Leave encashment rejected"}
+
+
+@router.get("/leave-policy-adjustments/{employee_id}")
+async def get_leave_policy_adjustments_for_payroll(
+    employee_id: str,
+    month: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all leave-related payroll adjustments for an employee:
+    - LOP deductions
+    - Leave encashment amounts
+    - Calculated based on effective leave policy
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can view payroll adjustments")
+    
+    db = get_db()
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Parse month
+    year, mon = map(int, month.split('-'))
+    
+    # Get CTC/salary info
+    ctc = employee.get("ctc", 0) or employee.get("salary", 0) * 12
+    monthly_gross = ctc / 12 if ctc else employee.get("salary", 0)
+    basic = monthly_gross * 0.4
+    per_day_basic = basic / 30
+    
+    # Get LOP leaves
+    month_start = f"{year}-{mon:02d}-01"
+    next_month = mon + 1 if mon < 12 else 1
+    next_year = year if mon < 12 else year + 1
+    month_end = f"{next_year}-{next_month:02d}-01"
+    
+    lop_leaves = await db.leave_requests.find({
+        "employee_id": employee_id,
+        "status": "approved",
+        "leave_type": {"$in": ["loss_of_pay", "lop", "unpaid", "leave_without_pay"]},
+        "start_date": {"$gte": month_start, "$lt": month_end}
+    }, {"_id": 0}).to_list(50)
+    
+    lop_days = sum(leave.get("days", 0) for leave in lop_leaves)
+    lop_deduction = round(lop_days * per_day_basic, 2)
+    
+    # Get approved encashments
+    encashments = await db.leave_encashments.find({
+        "employee_id": employee_id,
+        "status": "approved",
+        "month": mon,
+        "year": year
+    }, {"_id": 0}).to_list(10)
+    
+    encash_days = sum(e.get("days", 0) for e in encashments)
+    encash_amount = round(encash_days * per_day_basic, 2)
+    
+    return {
+        "employee_id": employee_id,
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "month": month,
+        "salary_info": {
+            "monthly_gross": round(monthly_gross, 2),
+            "basic": round(basic, 2),
+            "per_day_basic": round(per_day_basic, 2)
+        },
+        "lop": {
+            "days": lop_days,
+            "deduction": lop_deduction,
+            "leaves": lop_leaves
+        },
+        "encashment": {
+            "days": encash_days,
+            "amount": encash_amount,
+            "requests": encashments
+        },
+        "net_adjustment": round(encash_amount - lop_deduction, 2)
+    }
