@@ -442,6 +442,53 @@ async def submit_approval(
     }
 
 
+@router.get("/approval-status")
+async def get_approval_status(
+    entity_type: str,
+    entity_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get approval status for an entity"""
+    db = get_db()
+    
+    approval_req = await db.approval_requests.find_one({
+        "entity_type": entity_type,
+        "entity_id": entity_id
+    }, {"_id": 0})
+    
+    if not approval_req:
+        return {
+            "submitted": False,
+            "status": None,
+            "approvals_received": 0,
+            "approvals_required": 2 if entity_type == "pricing" else 1,
+            "can_approve": current_user.role in APPROVAL_ROLES,
+            "approvers": []
+        }
+    
+    # Get approver details
+    approvers = []
+    for approval in approval_req.get("approvals", []):
+        approver = await db.users.find_one({"id": approval["approved_by"]}, {"_id": 0, "full_name": 1, "email": 1})
+        approvers.append({
+            "name": approver.get("full_name") if approver else "Unknown",
+            "email": approver.get("email") if approver else "",
+            "decision": "approved",
+            "approved_at": approval.get("approved_at")
+        })
+    
+    return {
+        "submitted": True,
+        "status": approval_req.get("status"),
+        "approvals_received": len(approval_req.get("approvals", [])),
+        "approvals_required": approval_req.get("required_approvers", 2),
+        "can_approve": current_user.role in approval_req.get("allowed_roles", []) and 
+                       not any(a["approved_by"] == current_user.id for a in approval_req.get("approvals", [])),
+        "approvers": approvers,
+        "requested_at": approval_req.get("requested_at")
+    }
+
+
 # ============== Client Consent System ==============
 
 def generate_consent_token() -> str:
