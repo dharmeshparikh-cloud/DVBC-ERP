@@ -338,3 +338,54 @@ async def get_my_stats(current_user: User = Depends(get_current_user)):
         "leaves_taken_this_year": total_leaves,
         "pending_tasks": pending_tasks
     }
+
+
+
+@router.get("/guidance-state")
+async def get_guidance_state(current_user: User = Depends(get_current_user)):
+    """Get user's guidance system state (tips, features seen, workflow progress)"""
+    db = get_db()
+    
+    # Try to find existing guidance state
+    guidance = await db.user_guidance_state.find_one(
+        {"user_id": current_user.id},
+        {"_id": 0}
+    )
+    
+    if guidance:
+        return guidance
+    
+    # Return default state if not found
+    return {
+        "user_id": current_user.id,
+        "dismissed_tips": [],
+        "seen_features": [],
+        "workflow_progress": {},
+        "dont_show_tips": False
+    }
+
+
+@router.post("/guidance-state")
+async def save_guidance_state(
+    state_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Save user's guidance system state"""
+    db = get_db()
+    
+    guidance_state = {
+        "user_id": current_user.id,
+        "dismissed_tips": state_data.get("dismissed_tips", []),
+        "seen_features": state_data.get("seen_features", []),
+        "workflow_progress": state_data.get("workflow_progress", {}),
+        "dont_show_tips": state_data.get("dont_show_tips", False),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.user_guidance_state.update_one(
+        {"user_id": current_user.id},
+        {"$set": guidance_state},
+        upsert=True
+    )
+    
+    return guidance_state
