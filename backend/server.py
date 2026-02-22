@@ -276,6 +276,15 @@ api_router.include_router(project_completion_router.router)
 # Drafts
 api_router.include_router(drafts_router.router)
 
+# Enhanced Permission System
+api_router.include_router(permissions_router.router)
+
+# Consolidated My Router (aggregates all /my/* endpoints)
+api_router.include_router(my_consolidated_router.router)
+
+# Manager Router (team data for managers)
+api_router.include_router(manager_router.router)
+
 # Include all API routes under /api prefix
 app.include_router(api_router)
 
