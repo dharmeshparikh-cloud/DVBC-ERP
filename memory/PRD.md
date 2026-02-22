@@ -13,7 +13,7 @@
 
 ## Completed Work - February 2026
 
-### Phase 21: Portal Consolidation - February 22, 2026 ✅ (Latest)
+### Phase 21: Portal Consolidation & Route Governance - February 22, 2026 ✅ (Latest)
 
 **Unified Portal Architecture:**
 - ✅ Consolidated Sales and HR portals into single Main ERP portal
@@ -22,6 +22,20 @@
 - ✅ Role-based sidebar visibility (HR, Sales, Consulting, Admin sections)
 - ✅ Backward compatible URL redirects for bookmarks/shared links
 - ✅ "Remember Me" feature for Employee ID persistence
+
+**CANONICAL ROUTE RULE ENFORCEMENT:**
+- ✅ Every page has exactly ONE canonical route
+- ✅ All alias routes converted to Navigate redirects
+- ✅ No component rendered by multiple independent routes
+- ✅ Old portal routes (/sales/*, /hr/*) are REDIRECTS only
+
+**Redirect Conversions:**
+- ✅ `/meetings` → `/sales-meetings`
+- ✅ `/targets` → `/target-management`
+- ✅ `/team-leads` → `/manager-leads`
+- ✅ `/document-builder` → `/document-center`
+- ✅ `/letter-management` → `/document-center`
+- ✅ `/sales-funnel/proforma-invoice` → `/sales-funnel/quotations`
 
 **Portal URL Redirects (`/app/frontend/src/components/PortalRedirect.js`):**
 - ✅ `/sales/*` routes → Main ERP equivalents (e.g., `/sales/leads` → `/leads`)
@@ -43,13 +57,15 @@
 - ✅ Manager: My Workspace + Sales + limited HR
 - ✅ Consultant: My Workspace + Consulting sections
 
-**Structural Cleanup:**
-- ✅ Removed unused SalesLayout and HRLayout imports from App.js
-- ✅ Fixed sidebar navigation links to match actual routes
-- ✅ Removed duplicate route definitions
-- ✅ Total: 114 routes, 72 sidebar navigation items
+**Structural Stats:**
+- Total Routes: 114
+- Canonical Routes: 97
+- Redirect Routes: 17
+- Sidebar Items: 60
 
-**Testing:** ✅ Frontend 100% - All redirects and role visibility verified (iteration_101.json)
+**Governance Document:** `/app/memory/ROUTE_GOVERNANCE.md`
+**Stability Score:** 100/100
+**Testing:** ✅ Frontend 100% - All redirects verified working
 
 ---
 
