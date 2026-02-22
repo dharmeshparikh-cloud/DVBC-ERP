@@ -291,6 +291,12 @@ api_router.include_router(my_consolidated_router.router)
 # Manager Router (team data for managers)
 api_router.include_router(manager_router.router)
 
+# Sales Funnel Business Logic (stage resume, dual approval, client consent)
+api_router.include_router(sales_funnel_logic_router.router)
+
+# Expanded Audit Logging
+api_router.include_router(audit_logging_router.router)
+
 # Include all API routes under /api prefix
 app.include_router(api_router)
 
