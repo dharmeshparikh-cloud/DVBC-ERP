@@ -9,7 +9,7 @@ from pydantic import BaseModel
 import uuid
 
 from .models import User, UserRole
-from .deps import get_db, sanitize_text, HR_ADMIN_ROLES
+from .deps import get_db, sanitize_text, HR_ADMIN_ROLES, HR_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/role-management", tags=["Role Management"])
