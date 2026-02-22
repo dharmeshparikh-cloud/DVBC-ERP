@@ -24,8 +24,15 @@ async def get_users(
     department: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all users with optional filters."""
+    """Get all users with optional filters. Admin and HR only."""
     db = get_db()
+    
+    # Role guard - user management is admin/HR function
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Admin or HR role required."
+        )
     
     query = {}
     if role:
