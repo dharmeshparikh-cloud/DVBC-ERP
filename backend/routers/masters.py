@@ -66,7 +66,7 @@ class ConsultantRole(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str  # e.g., "Project Manager", "Lean Consultant"
-    code: str  # e.g., "project_manager", "lean_consultant"
+    code: str  # e.g., "principal_consultant", "lean_consultant"
     min_rate_per_meeting: float = 10000  # Minimum rate per meeting
     max_rate_per_meeting: float = 50000  # Maximum rate per meeting
     default_rate: float = 12500
