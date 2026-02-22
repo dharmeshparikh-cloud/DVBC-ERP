@@ -10,11 +10,14 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 import uuid
 
-from .deps import get_db, SALES_MANAGER_ROLES, ADMIN_ROLES
+from .deps import get_db, SALES_MANAGER_ROLES, ADMIN_ROLES, SALES_ROLES
 from .auth import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/pricing-plans", tags=["Pricing Plans"])
+
+# Role constants for this router
+PRICING_VIEW_ROLES = list(set(SALES_ROLES + ADMIN_ROLES))  # sales, admin
 
 
 class PaymentScheduleItem(BaseModel):
