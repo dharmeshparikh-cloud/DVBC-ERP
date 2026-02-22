@@ -459,7 +459,10 @@ function App() {
               <Toaster position="top-right" />
               <PWAInstallPrompt />
               <BrowserRouter>
-                <AppRouter user={user} login={login} logout={logout} loading={loading} />
+                <StageGuardProvider>
+                  <StageGuardDialog />
+                  <AppRouter user={user} login={login} logout={logout} loading={loading} />
+                </StageGuardProvider>
               </BrowserRouter>
             </GuidanceProvider>
           </ApprovalProvider>
