@@ -324,6 +324,7 @@ const Layout = () => {
     { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
     { name: 'My Drafts', href: '/my-drafts', icon: FileText },
     { name: 'My Details', href: '/my-details', icon: UserCog },
+    { name: 'My Scorecard', href: '/employee-scorecard', icon: Star },
     { name: 'Mobile App', href: '/mobile-app', icon: Download },
   ];
 
