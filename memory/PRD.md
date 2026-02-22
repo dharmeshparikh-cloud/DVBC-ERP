@@ -13,7 +13,28 @@
 
 ## Completed Work - February 2026
 
-### Phase 12: Project Completion & Timeline Management - February 22, 2026 ✅ (Latest)
+### Phase 13: Guided Sales Workflow Fixes - February 22, 2026 ✅ (Latest)
+
+**Bug Fix: Sales Executive Login (P0)**
+- ✅ Fixed: `sales@dvbc.com` user did not exist in database, causing login failures
+- ✅ Created user with proper bcrypt password hash (password: `sales123`)
+- ✅ User role set to `executive` for proper guided mode activation
+
+**Verified Guided Sales Workflow Features:**
+- ✅ Sales Executive login working correctly
+- ✅ Role-based sidebar rendering: Guided Workflow Mode banner visible
+- ✅ Restricted sidebar shows only "My Leads" and "Today's Follow-ups"
+- ✅ "SALES STAGE FLOW" progress indicator with visual checkmarks
+- ✅ Admin users see full "SALES" menu (not guided mode)
+- ✅ Testing: 100% pass rate (8/8 backend tests, all UI verified via Playwright)
+
+**Test Credentials:**
+- Sales Executive: `sales@dvbc.com` / `sales123` (role: executive)
+- Admin: `admin@dvbc.com` / `admin123` (role: admin)
+
+---
+
+### Phase 12: Project Completion & Timeline Management - February 22, 2026 ✅
 
 **1. Fixed Projects API Pydantic Validation (P0)**
 - ✅ Made all legacy fields Optional in Project model
