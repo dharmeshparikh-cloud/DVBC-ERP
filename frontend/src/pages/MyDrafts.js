@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../App';
+import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { FileText, Clock, Trash2, ArrowRight, Plus, FileSignature, DollarSign, Users, Filter, Briefcase, CalendarDays, Receipt, FileCheck, Plane, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-
-const API = process.env.REACT_APP_BACKEND_URL;
 
 // Universal Draft type configuration - covers ALL modules
 const DRAFT_TYPES = {
