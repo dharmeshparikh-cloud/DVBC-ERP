@@ -128,7 +128,6 @@ DEFAULT_TENURE_TYPES = [
 
 DEFAULT_CONSULTANT_ROLES = [
     {"name": "Principal Consultant", "code": "principal_consultant", "min_rate_per_meeting": 25000, "max_rate_per_meeting": 75000, "default_rate": 35000, "seniority_level": 5},
-    {"name": "Project Manager", "code": "project_manager", "min_rate_per_meeting": 20000, "max_rate_per_meeting": 50000, "default_rate": 25000, "seniority_level": 4},
     {"name": "Lead Consultant", "code": "lead_consultant", "min_rate_per_meeting": 18000, "max_rate_per_meeting": 40000, "default_rate": 22000, "seniority_level": 4},
     {"name": "Senior Consultant", "code": "senior_consultant", "min_rate_per_meeting": 15000, "max_rate_per_meeting": 35000, "default_rate": 18000, "seniority_level": 3},
     {"name": "Consultant", "code": "consultant", "min_rate_per_meeting": 12000, "max_rate_per_meeting": 25000, "default_rate": 15000, "seniority_level": 2},
