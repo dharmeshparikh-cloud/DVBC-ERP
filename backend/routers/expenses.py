@@ -8,7 +8,7 @@ from typing import Optional, List
 import uuid
 
 from .models import User, UserRole
-from .deps import get_db, sanitize_text, HR_ROLES, HR_ADMIN_ROLES, MANAGER_ROLES
+from .deps import get_db, sanitize_text, HR_ROLES, HR_ADMIN_ROLES, MANAGER_ROLES, APPROVAL_ROLES
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification
 from websocket_manager import get_manager as get_ws_manager
@@ -149,7 +149,7 @@ async def get_expenses(
     query = {}
     
     # Non-admin users can only see their own expenses
-    if current_user.role not in ["admin", "hr_manager", "hr_executive", "manager"]:
+    if current_user.role not in APPROVAL_ROLES:
         query["employee_id"] = current_user.id
     elif employee_id:
         query["employee_id"] = employee_id
@@ -568,7 +568,7 @@ async def reject_expense(expense_id: str, data: dict, current_user: User = Depen
     """Reject an expense."""
     db = get_db()
     
-    if current_user.role not in ["admin", "manager", "hr_manager"]:
+    if current_user.role not in APPROVAL_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to reject expenses")
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
