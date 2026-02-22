@@ -43,6 +43,110 @@ async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
     }
 
 
+@router.get("/overview")
+async def get_stats_overview(current_user: User = Depends(get_current_user)):
+    """Get overview statistics for dashboard - alias for dashboard endpoint."""
+    return await get_dashboard_stats(current_user)
+
+
+@router.get("/hr")
+async def get_hr_stats(current_user: User = Depends(get_current_user)):
+    """Get HR statistics for dashboard."""
+    db = get_db()
+    
+    total_employees = await db.employees.count_documents({"is_active": True})
+    active_employees = await db.employees.count_documents({"is_active": True, "go_live_status": "active"})
+    pending_onboarding = await db.employees.count_documents({"is_active": True, "go_live_status": {"$in": [None, "pending", "in_progress"]}})
+    
+    # Today's attendance
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    present_today = await db.attendance.count_documents({"date": today, "status": {"$in": ["present", "work_from_home"]}})
+    
+    # Pending leave requests
+    pending_leaves = await db.leave_requests.count_documents({"status": "pending"})
+    
+    # Pending expense approvals
+    pending_expenses = await db.expenses.count_documents({"status": "pending"})
+    
+    return {
+        "total_employees": total_employees,
+        "active_employees": active_employees,
+        "pending_onboarding": pending_onboarding,
+        "present_today": present_today,
+        "attendance_percentage": round((present_today / total_employees * 100) if total_employees > 0 else 0, 1),
+        "pending_leaves": pending_leaves,
+        "pending_expenses": pending_expenses
+    }
+
+
+@router.get("/sales")
+async def get_sales_stats(current_user: User = Depends(get_current_user)):
+    """Get sales statistics for dashboard."""
+    db = get_db()
+    
+    query = {}
+    if current_user.role not in ['admin', 'manager', 'sales_manager']:
+        query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+    
+    total_leads = await db.leads.count_documents(query)
+    new_leads = await db.leads.count_documents({**query, "status": "new"})
+    qualified = await db.leads.count_documents({**query, "status": "qualified"})
+    closed = await db.leads.count_documents({**query, "status": "closed"})
+    
+    # Agreements
+    agreements = await db.agreements.count_documents({"status": "signed"})
+    
+    # Revenue from agreements
+    revenue_agg = await db.agreements.aggregate([
+        {"$match": {"status": "signed"}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_value"}}}
+    ]).to_list(1)
+    total_revenue = revenue_agg[0]["total"] if revenue_agg else 0
+    
+    # Conversion rate
+    conversion_rate = round((closed / total_leads * 100) if total_leads > 0 else 0, 1)
+    
+    return {
+        "total_leads": total_leads,
+        "new_leads": new_leads,
+        "qualified_leads": qualified,
+        "closed_deals": closed,
+        "signed_agreements": agreements,
+        "total_revenue": total_revenue,
+        "conversion_rate": conversion_rate
+    }
+
+
+@router.get("/consulting")
+async def get_consulting_stats(current_user: User = Depends(get_current_user)):
+    """Get consulting statistics for dashboard."""
+    db = get_db()
+    
+    # Projects
+    total_projects = await db.projects.count_documents({})
+    active_projects = await db.projects.count_documents({"status": "active"})
+    completed_projects = await db.projects.count_documents({"status": "completed"})
+    
+    # Consultants
+    consultants = await db.users.count_documents({"role": "consultant", "is_active": True})
+    
+    # Meetings this week
+    week_start = (datetime.now(timezone.utc) - timedelta(days=datetime.now(timezone.utc).weekday())).strftime("%Y-%m-%d")
+    meetings_this_week = await db.meeting_records.count_documents({"meeting_date": {"$gte": week_start}})
+    
+    # Pending kickoffs
+    pending_kickoffs = await db.kickoff_requests.count_documents({"status": "pending"})
+    
+    return {
+        "total_projects": total_projects,
+        "active_projects": active_projects,
+        "completed_projects": completed_projects,
+        "total_consultants": consultants,
+        "meetings_this_week": meetings_this_week,
+        "pending_kickoffs": pending_kickoffs
+    }
+
+
 async def get_team_member_ids(manager_id: str) -> List[str]:
     """Get all team member IDs for a reporting manager."""
     db = get_db()
