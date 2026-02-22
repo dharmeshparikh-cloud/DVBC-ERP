@@ -111,14 +111,8 @@ const Login = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="text-white/40 text-sm">
-            © {new Date().getFullYear()} DVBC Consulting. All rights reserved.
-          </div>
-          <div className="flex gap-4 text-xs">
-            <a href="/hr/login" className="text-white/60 hover:text-white transition-colors">HR Portal</a>
-            <a href="/sales/login" className="text-white/60 hover:text-white transition-colors">Sales Portal</a>
-          </div>
+        <div className="text-white/40 text-sm">
+          © {new Date().getFullYear()} DVBC Consulting. All rights reserved.
         </div>
       </div>
 
@@ -234,11 +228,6 @@ const Login = () => {
         </Card>
       </div>
 
-      {/* Mobile Portal Links - visible on small screens */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 p-4 flex justify-center gap-6">
-        <a href="/hr/login" className="text-sm text-black font-medium">HR Portal</a>
-        <a href="/sales/login" className="text-sm text-black font-medium">Sales Portal</a>
-      </div>
     </div>
   );
 };
