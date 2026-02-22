@@ -47,15 +47,14 @@ class LeadStatus(str):
     LOST = "lost"
 
 
-# Default roles list
+# Default roles list (project_manager removed - use principal_consultant instead)
 DEFAULT_ROLES = [
     {"id": "admin", "name": "Admin", "description": "Full system access", "is_system_role": True, "can_delete": False},
     {"id": "consultant", "name": "Consultant", "description": "View SOW, update progress/status", "is_system_role": True, "can_delete": False},
     {"id": "lean_consultant", "name": "Lean Consultant", "description": "Junior consultant role", "is_system_role": False, "can_delete": True},
     {"id": "lead_consultant", "name": "Lead Consultant", "description": "Lead consultant with team oversight", "is_system_role": False, "can_delete": True},
-    {"id": "senior_consultant", "name": "Senior Consultant", "description": "Senior consultant with advanced permissions", "is_system_role": False, "can_delete": True},
-    {"id": "project_manager", "name": "Project Manager", "description": "Audit, approve, authorize SOW for client", "is_system_role": True, "can_delete": False},
-    {"id": "principal_consultant", "name": "Principal Consultant", "description": "Principal consultant with freeze authority", "is_system_role": True, "can_delete": False},
+    {"id": "senior_consultant", "name": "Senior Consultant", "description": "Senior consultant - can approve SOW and manage projects", "is_system_role": True, "can_delete": False},
+    {"id": "principal_consultant", "name": "Principal Consultant", "description": "Principal consultant - full project authority, freeze SOW, approve kickoffs", "is_system_role": True, "can_delete": False},
     {"id": "hr_executive", "name": "HR Executive", "description": "HR team member", "is_system_role": False, "can_delete": True},
     {"id": "hr_manager", "name": "HR Manager", "description": "HR team manager", "is_system_role": False, "can_delete": True},
     {"id": "sales_manager", "name": "Sales Manager", "description": "Handles client accounts and sales", "is_system_role": False, "can_delete": True},
@@ -67,11 +66,11 @@ DEFAULT_ROLES = [
 # Role categories for SOW access control
 SALES_ROLES = ["admin", "executive", "sales_manager"]
 CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert"]
-PM_ROLES = ["admin", "project_manager", "manager"]
+PM_ROLES = ["admin", "principal_consultant", "senior_consultant", "manager"]
 
 # Meeting role access constants
 SALES_MEETING_ROLES = ["admin", "executive", "sales_manager"]
-CONSULTING_MEETING_ROLES = ["admin", "project_manager", "consultant", "principal_consultant",
+CONSULTING_MEETING_ROLES = ["admin", "consultant", "principal_consultant",
     "lean_consultant", "lead_consultant", "senior_consultant", "subject_matter_expert", "manager"]
 
 # Roles that can see all department data
