@@ -82,8 +82,9 @@ const AgreementView = () => {
 
   const fetchConsultants = async () => {
     try {
-      const response = await axios.get(`${API}/employees/consultants`);
-      setConsultants(response.data);
+      // Fetch only Senior Consultants and Principal Consultants for kickoff
+      const response = await axios.get(`${API}/sales-funnel/consulting-team`);
+      setConsultants(response.data.consultants || []);
     } catch (error) {
       console.error('Failed to fetch consultants:', error);
     }
