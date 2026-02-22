@@ -232,6 +232,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="my-expenses" element={<MyExpenses />} />
         <Route path="my-bank-details" element={<Navigate to="/my-details" replace />} />
         <Route path="my-details" element={<MyDetails />} />
+        <Route path="my-drafts" element={<MyDrafts />} />
       </Route>
       
       {/* HR Portal Routes - restricted to HR roles */}
