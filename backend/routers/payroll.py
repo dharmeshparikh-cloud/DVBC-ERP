@@ -16,7 +16,14 @@ router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
 @router.get("/salary-components")
 async def get_salary_components(current_user: User = Depends(get_current_user)):
-    """Get salary component configuration"""
+    """Get salary component configuration. HR and Admin only."""
+    # Role guard - sensitive payroll data
+    if current_user.role not in HR_ADMIN_ROLES + HR_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. HR or Admin role required."
+        )
+    
     db = get_db()
     config = await db.payroll_config.find_one({"type": "salary_components"}, {"_id": 0})
     if not config:
