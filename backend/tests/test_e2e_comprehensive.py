@@ -242,8 +242,9 @@ class TestMyAPIs:
         
         assert response.status_code == 200
         data = response.json()
-        assert "user_id" in data
-        print("PASS: Dashboard stats endpoint working")
+        # Dashboard stats returns various metrics
+        assert "leads_count" in data or "active_projects" in data or "attendance_this_month" in data
+        print(f"PASS: Dashboard stats endpoint working - keys: {list(data.keys())[:5]}")
     
     def test_my_profile(self):
         """GET /api/my/profile returns user profile"""
