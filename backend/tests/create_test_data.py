@@ -99,15 +99,15 @@ def create_test_leads():
     sales_users = list(db.users.find({"role": {"$in": ["sales_executive", "sales_manager"]}}, {"_id": 0}))
     
     leads = [
-        {"company": "TechCorp India", "contact_name": "Amit Patel", "contact_email": "amit@techcorp.in", "estimated_value": 500000, "current_stage": "lead", "status": "new"},
-        {"company": "Global Solutions", "contact_name": "Sunita Rao", "contact_email": "sunita@globalsol.com", "estimated_value": 750000, "current_stage": "meeting", "status": "contacted"},
-        {"company": "Innovate Labs", "contact_name": "Vikram Singh", "contact_email": "vikram@innovate.io", "estimated_value": 1200000, "current_stage": "pricing", "status": "qualified"},
-        {"company": "DataDriven Inc", "contact_name": "Neha Gupta", "contact_email": "neha@datadriven.com", "estimated_value": 900000, "current_stage": "sow", "status": "proposal"},
-        {"company": "CloudFirst", "contact_name": "Raj Malhotra", "contact_email": "raj@cloudfirst.in", "estimated_value": 2000000, "current_stage": "agreement", "status": "negotiation"},
-        {"company": "SmartBiz Solutions", "contact_name": "Ananya Das", "contact_email": "ananya@smartbiz.com", "estimated_value": 450000, "current_stage": "payment", "status": "won"},
-        {"company": "FutureTech", "contact_name": "Kiran Kumar", "contact_email": "kiran@futuretech.in", "estimated_value": 1500000, "current_stage": "kickoff", "status": "won"},
-        {"company": "Legacy Systems", "contact_name": "Meera Iyer", "contact_email": "meera@legacy.com", "estimated_value": 300000, "current_stage": "complete", "status": "closed_won"},
-        {"company": "Failed Deal Corp", "contact_name": "Test User", "contact_email": "test@failed.com", "estimated_value": 100000, "current_stage": "lead", "status": "closed_lost"},
+        {"company": "TechCorp India", "first_name": "Amit", "last_name": "Patel", "email": "amit@techcorp.in", "estimated_value": 500000, "current_stage": "lead", "status": "new"},
+        {"company": "Global Solutions", "first_name": "Sunita", "last_name": "Rao", "email": "sunita@globalsol.com", "estimated_value": 750000, "current_stage": "meeting", "status": "contacted"},
+        {"company": "Innovate Labs", "first_name": "Vikram", "last_name": "Singh", "email": "vikram@innovate.io", "estimated_value": 1200000, "current_stage": "pricing", "status": "qualified"},
+        {"company": "DataDriven Inc", "first_name": "Neha", "last_name": "Gupta", "email": "neha@datadriven.com", "estimated_value": 900000, "current_stage": "sow", "status": "proposal"},
+        {"company": "CloudFirst", "first_name": "Raj", "last_name": "Malhotra", "email": "raj@cloudfirst.in", "estimated_value": 2000000, "current_stage": "agreement", "status": "negotiation"},
+        {"company": "SmartBiz Solutions", "first_name": "Ananya", "last_name": "Das", "email": "ananya@smartbiz.com", "estimated_value": 450000, "current_stage": "payment", "status": "won"},
+        {"company": "FutureTech", "first_name": "Kiran", "last_name": "Kumar", "email": "kiran@futuretech.in", "estimated_value": 1500000, "current_stage": "kickoff", "status": "won"},
+        {"company": "Legacy Systems", "first_name": "Meera", "last_name": "Iyer", "email": "meera@legacy.com", "estimated_value": 300000, "current_stage": "complete", "status": "closed_won"},
+        {"company": "Failed Deal Corp", "first_name": "Test", "last_name": "User", "email": "test@failed.com", "estimated_value": 100000, "current_stage": "lead", "status": "closed_lost"},
     ]
     
     for i, lead in enumerate(leads):
