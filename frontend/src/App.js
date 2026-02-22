@@ -30,6 +30,7 @@ const MyLeaves = lazy(() => import('./pages/MyLeaves'));
 const MySalarySlips = lazy(() => import('./pages/MySalarySlips'));
 const MyExpenses = lazy(() => import('./pages/MyExpenses'));
 const MyDetails = lazy(() => import('./pages/MyDetails'));
+const MyDrafts = lazy(() => import('./pages/MyDrafts'));
 const ProjectRoadmap = lazy(() => import('./pages/ProjectRoadmap'));
 const ConsultantPerformance = lazy(() => import('./pages/ConsultantPerformance'));
 const EmailTemplates = lazy(() => import('./pages/EmailTemplates'));
