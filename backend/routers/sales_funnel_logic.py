@@ -1021,3 +1021,27 @@ async def reject_kickoff(
         "message": "Kickoff request rejected",
         "lead_id": kickoff_req["lead_id"]
     }
+
+
+@router.get("/consulting-team")
+async def get_consulting_team(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get list of Senior Consultants and Principal Consultants for kickoff assignment.
+    Accessible by sales team.
+    """
+    if current_user.role not in [*SALES_ROLES, "admin"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    db = get_db()
+    
+    consultants = await db.users.find(
+        {"role": {"$in": ["senior_consultant", "principal_consultant"]}},
+        {"_id": 0, "id": 1, "full_name": 1, "role": 1, "email": 1}
+    ).to_list(50)
+    
+    return {
+        "consultants": consultants,
+        "total": len(consultants)
+    }
