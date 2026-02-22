@@ -165,7 +165,7 @@ DEFAULT_SCOPE_TEMPLATES = [
 async def get_sow_categories(include_inactive: bool = False):
     """Get all SOW categories"""
     query = {} if include_inactive else {"is_active": True}
-    categories = await db.sow_categories.find(query, {"_id": 0}).sort("order", 1).to_list(100)
+    categories = await get_db().sow_categories.find(query, {"_id": 0}).sort("order", 1).to_list(100)
     
     for cat in categories:
         if isinstance(cat.get('created_at'), str):
@@ -179,7 +179,7 @@ async def get_sow_categories(include_inactive: bool = False):
 @router.post("/categories", response_model=SOWCategory)
 async def create_sow_category(category: SOWCategoryCreate, current_user_id: str = None):
     """Create a new SOW category (Admin only)"""
-    existing = await db.sow_categories.find_one({"code": category.code})
+    existing = await get_db().sow_categories.find_one({"code": category.code})
     if existing:
         raise HTTPException(status_code=400, detail=f"Category with code '{category.code}' already exists")
     
@@ -188,23 +188,23 @@ async def create_sow_category(category: SOWCategoryCreate, current_user_id: str 
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     
-    await db.sow_categories.insert_one(doc)
+    await get_db().sow_categories.insert_one(doc)
     return new_category
 
 
 @router.put("/categories/{category_id}", response_model=SOWCategory)
 async def update_sow_category(category_id: str, update: SOWCategoryUpdate):
     """Update SOW category"""
-    existing = await db.sow_categories.find_one({"id": category_id}, {"_id": 0})
+    existing = await get_db().sow_categories.find_one({"id": category_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Category not found")
     
     update_data = update.model_dump(exclude_unset=True)
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
-    await db.sow_categories.update_one({"id": category_id}, {"$set": update_data})
+    await get_db().sow_categories.update_one({"id": category_id}, {"$set": update_data})
     
-    updated = await db.sow_categories.find_one({"id": category_id}, {"_id": 0})
+    updated = await get_db().sow_categories.find_one({"id": category_id}, {"_id": 0})
     if isinstance(updated.get('created_at'), str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     if isinstance(updated.get('updated_at'), str):
@@ -216,11 +216,11 @@ async def update_sow_category(category_id: str, update: SOWCategoryUpdate):
 @router.delete("/categories/{category_id}")
 async def delete_sow_category(category_id: str):
     """Soft delete SOW category"""
-    existing = await db.sow_categories.find_one({"id": category_id}, {"_id": 0})
+    existing = await get_db().sow_categories.find_one({"id": category_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    await db.sow_categories.update_one(
+    await get_db().sow_categories.update_one(
         {"id": category_id},
         {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
@@ -245,7 +245,7 @@ async def get_sow_scope_templates(
     if not include_custom:
         query["is_custom"] = False
     
-    scopes = await db.sow_scope_templates.find(query, {"_id": 0}).sort("name", 1).to_list(500)
+    scopes = await get_db().sow_scope_templates.find(query, {"_id": 0}).sort("name", 1).to_list(500)
     
     for scope in scopes:
         if isinstance(scope.get('created_at'), str):
@@ -261,11 +261,11 @@ async def get_sow_scopes_grouped(include_inactive: bool = False):
     """Get all scopes grouped by category for checkbox selection UI"""
     # Get active categories
     cat_query = {} if include_inactive else {"is_active": True}
-    categories = await db.sow_categories.find(cat_query, {"_id": 0}).sort("order", 1).to_list(100)
+    categories = await get_db().sow_categories.find(cat_query, {"_id": 0}).sort("order", 1).to_list(100)
     
     # Get scopes
     scope_query = {} if include_inactive else {"is_active": True}
-    scopes = await db.sow_scope_templates.find(scope_query, {"_id": 0}).sort("name", 1).to_list(500)
+    scopes = await get_db().sow_scope_templates.find(scope_query, {"_id": 0}).sort("name", 1).to_list(500)
     
     # Group scopes by category
     result = []
@@ -289,7 +289,7 @@ async def get_sow_scopes_grouped(include_inactive: bool = False):
 async def create_sow_scope_template(scope: SOWScopeTemplateCreate, current_user_id: str = None):
     """Create a new SOW scope template"""
     # Validate category exists
-    category = await db.sow_categories.find_one({"id": scope.category_id}, {"_id": 0})
+    category = await get_db().sow_categories.find_one({"id": scope.category_id}, {"_id": 0})
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     
@@ -303,23 +303,23 @@ async def create_sow_scope_template(scope: SOWScopeTemplateCreate, current_user_
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     
-    await db.sow_scope_templates.insert_one(doc)
+    await get_db().sow_scope_templates.insert_one(doc)
     return new_scope
 
 
 @router.put("/scopes/{scope_id}", response_model=SOWScopeTemplate)
 async def update_sow_scope_template(scope_id: str, update: SOWScopeTemplateUpdate):
     """Update SOW scope template"""
-    existing = await db.sow_scope_templates.find_one({"id": scope_id}, {"_id": 0})
+    existing = await get_db().sow_scope_templates.find_one({"id": scope_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Scope template not found")
     
     update_data = update.model_dump(exclude_unset=True)
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
-    await db.sow_scope_templates.update_one({"id": scope_id}, {"$set": update_data})
+    await get_db().sow_scope_templates.update_one({"id": scope_id}, {"$set": update_data})
     
-    updated = await db.sow_scope_templates.find_one({"id": scope_id}, {"_id": 0})
+    updated = await get_db().sow_scope_templates.find_one({"id": scope_id}, {"_id": 0})
     if isinstance(updated.get('created_at'), str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     if isinstance(updated.get('updated_at'), str):
@@ -331,11 +331,11 @@ async def update_sow_scope_template(scope_id: str, update: SOWScopeTemplateUpdat
 @router.delete("/scopes/{scope_id}")
 async def delete_sow_scope_template(scope_id: str):
     """Soft delete SOW scope template"""
-    existing = await db.sow_scope_templates.find_one({"id": scope_id}, {"_id": 0})
+    existing = await get_db().sow_scope_templates.find_one({"id": scope_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Scope template not found")
     
-    await db.sow_scope_templates.update_one(
+    await get_db().sow_scope_templates.update_one(
         {"id": scope_id},
         {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
@@ -352,17 +352,17 @@ async def seed_sow_masters():
     
     # Seed categories
     for cat_data in DEFAULT_SOW_CATEGORIES:
-        existing = await db.sow_categories.find_one({"code": cat_data["code"]})
+        existing = await get_db().sow_categories.find_one({"code": cat_data["code"]})
         if not existing:
             category = SOWCategory(**cat_data)
             doc = category.model_dump()
             doc['created_at'] = doc['created_at'].isoformat()
             doc['updated_at'] = doc['updated_at'].isoformat()
-            await db.sow_categories.insert_one(doc)
+            await get_db().sow_categories.insert_one(doc)
             results["categories"] += 1
     
     # Get category mapping for scopes
-    categories = await db.sow_categories.find({}, {"_id": 0}).to_list(100)
+    categories = await get_db().sow_categories.find({}, {"_id": 0}).to_list(100)
     cat_map = {c['code']: c['id'] for c in categories}
     
     # Seed scope templates
@@ -371,7 +371,7 @@ async def seed_sow_masters():
         if category_code not in cat_map:
             continue
         
-        existing = await db.sow_scope_templates.find_one({
+        existing = await get_db().sow_scope_templates.find_one({
             "category_code": category_code,
             "name": scope_data["name"]
         })
@@ -386,7 +386,7 @@ async def seed_sow_masters():
             doc = scope.model_dump()
             doc['created_at'] = doc['created_at'].isoformat()
             doc['updated_at'] = doc['updated_at'].isoformat()
-            await db.sow_scope_templates.insert_one(doc)
+            await get_db().sow_scope_templates.insert_one(doc)
             results["scopes"] += 1
     
     return {"message": "SOW masters seeded successfully", "created": results}
