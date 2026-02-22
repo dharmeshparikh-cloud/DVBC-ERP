@@ -4,17 +4,18 @@ import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Textarea } from '../components/ui/textarea';
 import { Checkbox } from '../components/ui/checkbox';
 import { 
   CheckCircle, XCircle, Clock, AlertCircle, ChevronRight, 
   FileText, Calendar, User, MessageSquare, Send, DollarSign,
   Building2, CreditCard, Eye, Loader2, Rocket, Key, Wallet, Shield,
-  RefreshCw, CheckSquare, Square, Zap, Bell, Menu, Briefcase, Play
+  RefreshCw, CheckSquare, Square, Zap, Bell, Menu, Briefcase, Play, Receipt
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
+import { ApprovalCard, StatCard } from '../components/approvals/ApprovalCard';
 
 const APPROVAL_TYPE_LABELS = {
   sow_item: 'SOW Item',
