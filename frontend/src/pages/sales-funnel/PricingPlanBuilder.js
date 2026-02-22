@@ -14,7 +14,6 @@ import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import useDraft from '../../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../../components/DraftSelector';
-import { DualApprovalPanel } from '../../components/sales-funnel/BusinessLogicUI';
 
 // Duration type to months mapping
 const DURATION_TYPE_MONTHS = {
