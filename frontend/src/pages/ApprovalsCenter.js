@@ -7,11 +7,14 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Textarea } from '../components/ui/textarea';
 import { Checkbox } from '../components/ui/checkbox';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { 
   CheckCircle, XCircle, Clock, AlertCircle, ChevronRight, 
   FileText, Calendar, User, MessageSquare, Send, DollarSign,
   Building2, CreditCard, Eye, Loader2, Rocket, Key, Wallet, Shield,
-  RefreshCw, CheckSquare, Square, Zap, Bell, Menu, Briefcase, Play, Receipt
+  RefreshCw, CheckSquare, Square, Zap, Bell, Menu, Briefcase, Play, Receipt,
+  Upload, Download, Paperclip, RotateCcw, Edit3, Trash2, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
