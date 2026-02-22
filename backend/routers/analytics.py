@@ -6,7 +6,7 @@ Extracted from server.py for better modularity and load performance.
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
-from .deps import get_db
+from .deps import get_db, MANAGER_ROLES
 from .models import User
 from .auth import get_current_user
 
@@ -48,7 +48,7 @@ async def get_funnel_summary(
         date_end = now.strftime("%Y-%m-%d")
     
     # Determine access level
-    is_manager = current_user.role in ["admin", "manager", "sr_manager", "principal_consultant", "sales_manager"]
+    is_manager = current_user.role in MANAGER_ROLES
     
     # Get employee info
     user_employee = await db.employees.find_one(
@@ -343,7 +343,7 @@ async def get_funnel_trends(
 ):
     """Get month-over-month funnel trends for manager view"""
     db = get_db()
-    is_manager = current_user.role in ["admin", "manager", "sr_manager", "principal_consultant", "sales_manager"]
+    is_manager = current_user.role in MANAGER_ROLES
     
     if not is_manager:
         raise HTTPException(status_code=403, detail="Only managers can view trends")
