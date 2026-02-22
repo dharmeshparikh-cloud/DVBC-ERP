@@ -13,7 +13,30 @@
 
 ## Completed Work - February 2026
 
-### Phase 14: Pricing Plan Builder & Drafts Fixes - February 22, 2026 ✅ (Latest)
+### Phase 15: UX Fixes & Route Audit - February 22, 2026 ✅ (Latest)
+
+**Bug Fix 1: SOW Builder Blank Page**
+- ✅ Root cause: `/sales-funnel/sow` route requires `:pricingPlanId` parameter
+- ✅ Fix: Added redirect from `/sales-funnel/sow` → `/sales-funnel/sow-list`
+- ✅ Also added for `/sales/sow` → `/sales/sow-list`
+
+**Bug Fix 2: Sidebar Scroll Position Not Persisting**
+- ✅ Added `sidebarNavRef` to track scroll position
+- ✅ Implemented `sessionStorage` persistence for scroll position
+- ✅ Scroll position now preserved across page navigations
+
+**Bug Fix 3: Database Connection Issue (sow_masters.py)**
+- ✅ Fixed `sow_masters.py` to use `get_db()` from deps.py
+- ✅ Now SOW Categories (9) and Scopes (43) load correctly
+
+**Route Audit Completed:**
+- ✅ All routes properly defined and accessible
+- ✅ `my-drafts` route added to all route groups (main, /sales, /hr)
+- ✅ No orphaned or mismatched routes found
+
+---
+
+### Phase 14: Pricing Plan Builder & Drafts Fixes - February 22, 2026 ✅
 
 **Bug Fix 1: Masters API Database Not Initialized (P0)**
 - ✅ Fixed: `masters.py` and `sow_masters.py` routers had their own `db = None` variable
