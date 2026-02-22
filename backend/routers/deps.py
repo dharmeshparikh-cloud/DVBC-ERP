@@ -116,3 +116,46 @@ def clean_mongo_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
 def clean_mongo_list(docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Clean a list of MongoDB documents."""
     return [clean_mongo_doc(doc) for doc in docs]
+
+
+def require_roles(allowed_roles: List[str]):
+    """
+    Dependency that checks if user has one of the allowed roles.
+    Usage: current_user = Depends(require_roles(SALES_ROLES))
+    """
+    async def role_checker(current_user = Depends(get_current_user_from_token)):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required roles: {', '.join(allowed_roles)}"
+            )
+        return current_user
+    return role_checker
+
+
+async def get_current_user_from_token(token: str = Depends(oauth2_scheme)):
+    """Get current user from JWT token - used by require_roles"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    db = get_db()
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if user is None:
+        # Try by employee_id
+        user = await db.users.find_one({"employee_id": user_id}, {"_id": 0})
+    if user is None:
+        raise credentials_exception
+    
+    # Import here to avoid circular import
+    from .models import User
+    return User(**user)
