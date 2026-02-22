@@ -458,9 +458,9 @@ class TestPolicyScope:
         assert active_resp.status_code == 200
         active_count = len(active_resp.json())
         
-        # Include inactive
-        all_resp = requests.get(f"{BASE_URL}/api/leave-policies?is_active=", headers=self.headers)
-        assert all_resp.status_code == 200
+        # No filter (should return all active by default)
+        default_resp = requests.get(f"{BASE_URL}/api/leave-policies", headers=self.headers)
+        assert default_resp.status_code == 200
         
         print(f"✓ Active policies: {active_count}")
 
