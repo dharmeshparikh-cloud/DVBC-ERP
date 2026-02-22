@@ -1023,6 +1023,151 @@ async def reject_kickoff(
     }
 
 
+@router.delete("/kickoff-request/{request_id}")
+async def withdraw_kickoff_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Withdraw (delete) a kickoff request.
+    Only the requester can withdraw their own pending request.
+    """
+    db = get_db()
+    
+    kickoff_req = await db.kickoff_requests.find_one(
+        {"id": request_id},
+        {"_id": 0}
+    )
+    
+    if not kickoff_req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Only requester or admin can withdraw
+    if kickoff_req.get("requested_by") != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to withdraw this request")
+    
+    # Can only withdraw pending requests
+    if kickoff_req.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Cannot withdraw {kickoff_req.get('status')} request")
+    
+    await db.kickoff_requests.delete_one({"id": request_id})
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "kickoff_withdrawn",
+        "entity_type": "kickoff_request",
+        "entity_id": request_id,
+        "changes": {"withdrawn_by": current_user.full_name},
+        "performed_by": current_user.id,
+        "performed_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "status": "success",
+        "message": "Kickoff request withdrawn"
+    }
+
+
+@router.patch("/kickoff-request/{request_id}")
+async def update_kickoff_request(
+    request_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update a pending kickoff request.
+    Sender can modify consultant, notes, or preferred start date while pending.
+    """
+    db = get_db()
+    
+    kickoff_req = await db.kickoff_requests.find_one(
+        {"id": request_id},
+        {"_id": 0}
+    )
+    
+    if not kickoff_req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    # Only requester or admin can update
+    if kickoff_req.get("requested_by") != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to update this request")
+    
+    # Can only update pending requests
+    if kickoff_req.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Cannot update {kickoff_req.get('status')} request")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    changes = {}
+    
+    # Update consultant if provided
+    if "assigned_consultant_id" in data:
+        consultant = await db.users.find_one(
+            {"id": data["assigned_consultant_id"]},
+            {"_id": 0, "full_name": 1, "role": 1}
+        )
+        
+        if not consultant:
+            raise HTTPException(status_code=404, detail="Consultant not found")
+        
+        if consultant.get("role") not in ["senior_consultant", "principal_consultant"]:
+            raise HTTPException(
+                status_code=400, 
+                detail="Only Senior/Principal Consultants can be assigned"
+            )
+        
+        update_data["assigned_consultant_id"] = data["assigned_consultant_id"]
+        update_data["consultant_name"] = consultant.get("full_name")
+        update_data["consultant_role"] = consultant.get("role")
+        changes["consultant"] = consultant.get("full_name")
+    
+    # Update notes
+    if "notes" in data:
+        update_data["notes"] = data["notes"]
+        changes["notes"] = "Updated"
+    
+    # Update preferred start date
+    if "preferred_start_date" in data:
+        update_data["preferred_start_date"] = data["preferred_start_date"]
+        changes["preferred_start_date"] = data["preferred_start_date"]
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": update_data}
+    )
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "kickoff_request_updated",
+        "entity_type": "kickoff_request",
+        "entity_id": request_id,
+        "changes": changes,
+        "performed_by": current_user.id,
+        "performed_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "status": "success",
+        "message": "Kickoff request updated"
+    }
+
+
+@router.get("/my-kickoff-requests")
+async def get_my_kickoff_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Get kickoff requests created by the current user."""
+    db = get_db()
+    
+    requests = await db.kickoff_requests.find(
+        {"requested_by": current_user.id},
+        {"_id": 0}
+    ).sort("requested_at", -1).to_list(50)
+    
+    return {"requests": requests}
+
+
 @router.get("/consulting-team")
 async def get_consulting_team(
     current_user: User = Depends(get_current_user)
