@@ -8,7 +8,7 @@ from typing import Optional, List
 import uuid
 
 from .models import User, UserRole
-from .deps import get_db, sanitize_text
+from .deps import get_db, sanitize_text, HR_ROLES, HR_ADMIN_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/hr", tags=["HR"])
@@ -19,7 +19,7 @@ async def get_pending_attendance_approvals(current_user: User = Depends(get_curr
     """Get pending attendance approvals for HR."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can view attendance approvals")
     
     pending = await db.attendance.find(
@@ -35,7 +35,7 @@ async def approve_attendance(attendance_id: str, data: dict, current_user: User 
     """Approve or reject attendance."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can approve attendance")
     
     attendance = await db.attendance.find_one({"id": attendance_id}, {"_id": 0})
@@ -69,7 +69,7 @@ async def get_hr_bank_change_requests(current_user: User = Depends(get_current_u
     """Get pending bank change requests for HR review."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can view bank change requests")
     
     pending = await db.bank_change_requests.find(
@@ -85,7 +85,7 @@ async def hr_approve_bank_change(request_id: str, data: dict, current_user: User
     """HR approves bank change request (moves to admin approval)."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only HR Manager can approve bank changes")
     
     request = await db.bank_change_requests.find_one({"id": request_id}, {"_id": 0})
@@ -131,7 +131,7 @@ async def hr_reject_bank_change(request_id: str, data: dict, current_user: User 
     """HR rejects bank change request."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only HR Manager can reject bank changes")
     
     request = await db.bank_change_requests.find_one({"id": request_id}, {"_id": 0})
@@ -294,7 +294,7 @@ async def get_hr_dashboard(current_user: User = Depends(get_current_user)):
     """Get HR dashboard data."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can access HR dashboard")
     
     # Employee counts
