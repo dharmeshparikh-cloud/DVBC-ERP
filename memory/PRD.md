@@ -81,6 +81,37 @@
 - ✅ Backfilled 24 existing pricing plans with `tenure_months`
 - ✅ Updated `project_completion.py` to use stored `tenure_months` field
 
+**9. Guided Sales Workflow UX System**
+- ✅ Created `/app/frontend/src/contexts/StageGuardContext.js` - Stage flow management
+- ✅ Created `/app/frontend/src/components/StageGuardDialog.js` - Smart dialog prompts
+- ✅ Created `/app/frontend/src/components/GuidedSalesSidebar.js` - Role-based sidebar
+- ✅ Created `/app/backend/routers/stage_guard.py` - Stage validation API
+- ✅ Added `/api/leads/{id}/stage` endpoint for stage tracking
+
+**Stage Guard Features:**
+- **Role-Based Sidebar Rendering:**
+  - Sales Executive → Guided mode (My Leads, Today's Tasks only)
+  - Sales Manager/Senior → Monitoring mode (full pipeline)
+  - Principal Consultant → Monitoring + Reportees view
+  - Admin → Full control mode
+
+- **Stage Lock System:**
+  - Prevents stage skipping (Lead → Meeting → Pricing → SOW → ...)
+  - Smart dialogs instead of 403 errors
+  - "Complete Meeting stage first before accessing Pricing Plan"
+  - Redirect CTA to required stage
+
+- **Auto-Prompt System:**
+  - On stage completion: "Meeting completed! Ready to create Pricing Plan?"
+  - [Create Pricing Plan Now] button
+  - Guides user through workflow
+
+**API Endpoints:**
+- `GET /api/stage-guard/role-config` - Get role's stage access config
+- `POST /api/stage-guard/validate-access` - Validate stage access
+- `POST /api/stage-guard/leads/{id}/advance-stage` - Advance to next stage
+- `GET /api/stage-guard/funnel-overview` - Pipeline overview (managers only)
+
 ---
 
 ### Phase 11: Complete Server.py Refactoring - February 22, 2026 ✅
