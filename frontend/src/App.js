@@ -386,12 +386,8 @@ function App() {
               <PWAInstallPrompt />
               <BrowserRouter>
                 <StageGuardProvider>
-                  <DraftProvider>
-                    <StageGuardDialog />
-                    <ResumeModal />
-                    <LoginResumeBanner />
-                    <AppRouter user={user} login={login} logout={logout} loading={loading} />
-                  </DraftProvider>
+                  <StageGuardDialog />
+                  <AppRouter user={user} login={login} logout={logout} loading={loading} />
                 </StageGuardProvider>
               </BrowserRouter>
             </GuidanceProvider>
