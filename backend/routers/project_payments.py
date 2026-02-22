@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 import uuid
 
 from .models import User
-from .deps import get_db
+from .deps import get_db, PROJECT_PM_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/project-payments", tags=["Project Payments"])
@@ -390,7 +390,7 @@ async def get_upcoming_payments(
     db = get_db()
     
     # Only admin, principal consultant, and managers can view all upcoming payments
-    if current_user.role not in ["admin", "principal_consultant", "manager", "project_manager"]:
+    if current_user.role not in PROJECT_PM_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to view upcoming payments")
     
     # Get all active projects
