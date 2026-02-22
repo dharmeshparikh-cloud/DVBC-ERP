@@ -175,6 +175,8 @@ from routers import consultants as consultants_router
 from routers import reports as reports_router
 from routers import settings as settings_router
 from routers import roles as roles_router
+from routers import my as my_router
+from routers import leave_requests as leave_requests_router
 
 # ==================== INCLUDE ALL ROUTERS ====================
 
