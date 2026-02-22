@@ -53,7 +53,7 @@ const ChangePasswordDialog = ({ open, onOpenChange }) => {
     
     setLoading(true);
     try {
-      await axios.post(`${API}/api/auth/change-password`, {
+      await axios.post(`${API}/auth/change-password`, {
         current_password: formData.currentPassword,
         new_password: formData.newPassword
       });
