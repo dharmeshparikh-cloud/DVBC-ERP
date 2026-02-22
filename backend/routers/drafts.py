@@ -128,11 +128,10 @@ async def create_draft(
     
     await db.drafts.insert_one(draft)
     
-    # Convert for response
-    draft['created_at'] = datetime.fromisoformat(draft['created_at'].replace('Z', '+00:00'))
-    draft['updated_at'] = datetime.fromisoformat(draft['updated_at'].replace('Z', '+00:00'))
+    # Fetch the clean version without _id
+    saved_draft = await db.drafts.find_one({"id": draft["id"]}, {"_id": 0})
     
-    return {"message": "Draft created", "draft": draft}
+    return {"message": "Draft created", "draft": saved_draft}
 
 
 @router.put("/{draft_id}")
