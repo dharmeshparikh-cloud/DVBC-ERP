@@ -13,7 +13,7 @@
 
 ## Completed Work - February 2026
 
-### Phase 11: Major Server.py Refactoring - February 22, 2026 ✅ (Latest)
+### Phase 11: Major Server.py Refactoring & Architecture Cleanup - February 22, 2026 ✅ (Latest)
 
 **Extracted 3 Major Routers for Better Modularity & Load Performance**
 
@@ -21,25 +21,28 @@
 - ✅ 8 funnel analytics endpoints
 - ✅ Bottleneck analysis, forecasting, time-in-stage metrics
 - ✅ Win/loss analysis, velocity metrics
-- ✅ All endpoints tested and working (200 OK)
 
 **2. Payroll Router (`/app/backend/routers/payroll.py`) - 793 lines**
 - ✅ 15 payroll endpoints
 - ✅ Salary components, payroll inputs, salary slips
 - ✅ Summary reports, linkage summary, reimbursements
-- ✅ All endpoints tested and working (200 OK)
 
 **3. Travel Router (`/app/backend/routers/travel.py`) - 648 lines**
 - ✅ 11 travel reimbursement endpoints
 - ✅ Distance calculation, location search (Google Maps API)
 - ✅ Travel approval workflow, convert to expense
-- ✅ All endpoints tested and working (200 OK)
 
-**Results:**
-- Total new router code: 2,621 lines
-- 34 endpoints extracted from server.py
-- 35 router files now in `/app/backend/routers/`
-- Zero errors on extraction
+**Architecture Improvements Made:**
+- ✅ Removed duplicate `get_current_user()` from 4 routers (now using shared auth.py)
+- ✅ Added role constants to deps.py: HR_ROLES, HR_ADMIN_ROLES, SALES_ROLES, etc.
+- ✅ Added pagination constants: DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, LARGE_QUERY_SIZE
+- ✅ Commented out duplicate endpoints in server.py (3 sections marked as "MOVED TO ROUTER")
+- ✅ 35 router files now in `/app/backend/routers/`
+
+**Remaining Technical Debt (for gradual cleanup):**
+- 108 hard-coded role arrays remaining (use role constants from deps.py)
+- 55 endpoints accept raw dict (add Pydantic validation models)
+- server.py still ~15,600 lines (continue extraction to routers)
 
 ---
 
