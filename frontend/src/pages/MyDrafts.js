@@ -168,9 +168,22 @@ const MyDrafts = () => {
   };
 
   const handleContinue = (draft) => {
-    const config = DRAFT_TYPES[draft.draft_type];
+    // First try to use the stored route directly (universal auto-save)
+    if (draft.route && draft.route !== '/') {
+      const url = draft.route.includes('?') 
+        ? `${draft.route}&draft=${draft.id}`
+        : `${draft.route}?draft=${draft.id}`;
+      navigate(url);
+      return;
+    }
+    
+    // Fall back to draft type configuration
+    const config = DRAFT_TYPES[draft.draft_type] || DRAFT_TYPES[draft.module];
     if (config) {
       navigate(config.continueUrl(draft));
+    } else {
+      // Ultimate fallback - just use the route
+      navigate(draft.route || '/');
     }
   };
 
