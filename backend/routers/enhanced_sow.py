@@ -40,6 +40,7 @@ def can_add_scopes(role: str) -> bool:
 @router.get("")
 async def get_all_enhanced_sows():
     """Get all enhanced SOWs - root endpoint"""
+    db = get_db()
     sows = await db.enhanced_sow.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
     return sows
 
@@ -47,6 +48,7 @@ async def get_all_enhanced_sows():
 @router.get("/list")
 async def list_enhanced_sows(role: str = "all"):
     """List all enhanced SOWs - filtered by role access"""
+    db = get_db()
     query = {}
     
     # For consulting, only show handed-over SOWs
