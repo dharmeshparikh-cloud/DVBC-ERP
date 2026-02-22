@@ -188,6 +188,13 @@ const ApprovalsCenter = () => {
         requests.push(axios.get(`${API}/sales-funnel/pending-kickoff-approvals`).catch(() => ({ data: { requests: [] } })));
       }
       
+      // Fetch expense approvals for managers and HR (merged from ExpenseApprovals)
+      if (isManager || isHR) {
+        requests.push(axios.get(`${API}/expenses/pending-approvals`).catch(() => 
+          axios.get(`${API}/expenses`).catch(() => ({ data: [] }))
+        ));
+      }
+      
       const results = await Promise.all(requests);
       
       setPendingApprovals(results[0]?.data || []);
