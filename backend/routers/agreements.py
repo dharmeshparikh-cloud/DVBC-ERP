@@ -127,8 +127,13 @@ async def get_agreements(
     lead_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all agreements with optional filters"""
+    """Get all agreements with optional filters. 
+    Access: sales, admin, principal_consultant"""
     db = get_db()
+    
+    # Role-based access check
+    if current_user.role not in AGREEMENT_VIEW_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied. You don't have permission to view agreements.")
     
     query = {}
     if status:
