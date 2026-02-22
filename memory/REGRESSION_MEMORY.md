@@ -229,6 +229,30 @@ TEST CASE CREATED: Route audit script
 AUTO-FIX APPLIED: Yes - Added routes to main route group in App.js
 ```
 
+### Issue #017: Double API Prefix Bug (/api/api/)
+```
+ROOT CAUSE: Frontend code used ${API}/api/... instead of ${API}/...
+WHAT FAILED: MyDrafts, AcceptOfferPage, ChangePasswordDialog failed to load data
+WHY IT FAILED: API constant already includes /api, causing /api/api/... path
+WHICH LAYER: FRONTEND
+PATTERN TYPE: String concatenation error
+PREVENTION RULE: API constant includes /api prefix - never add /api again
+FILES FIXED: MyDrafts.js, AcceptOfferPage.js, ChangePasswordDialog.js
+AUTO-FIX APPLIED: Yes - Removed duplicate /api prefix
+```
+
+### Issue #018: Missing Manager API Endpoints
+```
+ROOT CAUSE: Frontend called /api/manager/* endpoints that didn't exist
+WHAT FAILED: Target Management page showed "Failed to load targets" toast
+WHY IT FAILED: TargetManagement.js calls 3 APIs, 2 were undefined
+WHICH LAYER: API
+PATTERN TYPE: Missing endpoint
+PREVENTION RULE: Add backend endpoints BEFORE frontend uses them
+FILES FIXED: /app/backend/routers/sales.py - Added /manager/subordinate-leads and /manager/target-vs-achievement
+AUTO-FIX APPLIED: Yes - Created missing endpoints
+```
+
 ---
 
 ## PREVENTION CHECKLIST
