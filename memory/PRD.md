@@ -13,7 +13,38 @@
 
 ## Completed Work - February 2026
 
-### Phase 30: Expense Approval UI Enhancements - February 22, 2026 ✅ (Latest)
+### Phase 31: Sales Funnel E2E Complete - February 22, 2026 ✅ (Latest)
+
+**Sales Funnel Progress Tracking:**
+- ✅ Added `GET /api/leads/{id}/funnel-progress` endpoint
+- ✅ Returns: completed_steps, current_step, total_steps (9), progress_percentage
+- ✅ 9 stages: lead_capture → record_meeting → pricing_plan → scope_of_work → quotation → agreement → record_payment → kickoff_request → project_created
+
+**Sales Funnel Onboarding UI:**
+- ✅ Progress indicator ("1 of 9")
+- ✅ All 9 steps listed with descriptions
+- ✅ "Pending - Action Required" badge for current step
+- ✅ Lead details panel (Name, Company, Email, Phone, Score, Status)
+- ✅ "Open Lead Capture" / "Continue" navigation buttons
+- ✅ Back to Leads navigation
+
+**Leads Page:**
+- ✅ Lead list with Score badges, Progress (1/5), Status dropdowns
+- ✅ **Funnel** button on each row to start onboarding
+- ✅ Add Lead dialog with all required fields
+- ✅ Import CSV functionality
+- ✅ Stage filter dropdown
+
+**Kickoff Approvals (Admin):**
+- ✅ Approvals Center shows pending kickoff requests
+- ✅ Admin Approval Required badge
+- ✅ Approve/Reject buttons working
+
+**Testing:** 100% pass rate (16/16 backend, all UI verified) - `/app/test_reports/iteration_107.json`
+
+---
+
+### Phase 30: Expense Approval UI Enhancements - February 22, 2026 ✅
 
 **Enhanced Expense Approval Cards in Approvals Center:**
 - ✅ **Receipts** button - Opens dialog showing uploaded receipts with download/delete options
