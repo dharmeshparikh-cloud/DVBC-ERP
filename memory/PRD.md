@@ -13,7 +13,51 @@
 
 ## Completed Work - February 2026
 
-### Phase 18: Broken Pages Fix - February 22, 2026 ✅ (Latest)
+### Phase 19: Leave Policy Management System - February 22, 2026 ✅ (Latest)
+
+**Leave Policy Management with Full Payroll Integration:**
+- ✅ HR-editable leave policies at multiple levels (Company, Department, Role, Employee)
+- ✅ Earned leave calculation based on service tenure
+- ✅ Monthly/yearly accrual support with pro-rata for new joiners
+- ✅ Carry forward and encashment rules
+- ✅ 100% payroll linkage for LOP deductions and leave encashment
+
+**New Backend APIs (`/app/backend/routers/leave_policies.py`):**
+- ✅ `GET /api/leave-policies` - List all policies
+- ✅ `POST /api/leave-policies` - Create new policy
+- ✅ `PUT /api/leave-policies/{id}` - Update policy
+- ✅ `DELETE /api/leave-policies/{id}` - Delete policy
+- ✅ `GET /api/leave-policies/effective/{employee_id}` - Get cascaded effective policy
+- ✅ `GET /api/leave-policies/calculate-balance/{employee_id}` - Calculate leave balance with accrual
+- ✅ `POST /api/leave-policies/apply-to-department/{dept}` - Apply policy to department
+- ✅ `POST /api/leave-policies/apply-to-role/{role}` - Apply policy to role
+- ✅ `POST /api/leave-policies/apply-to-employee/{id}` - Apply policy to employee
+- ✅ `POST /api/leave-policies/year-end-processing/{year}` - Year-end balance processing
+
+**Payroll Integration (`/app/backend/routers/payroll.py`):**
+- ✅ `GET /api/payroll/leave-encashments` - List encashment requests
+- ✅ `POST /api/payroll/leave-encashments/{id}/approve` - Approve encashment
+- ✅ `POST /api/payroll/leave-encashments/{id}/reject` - Reject encashment
+- ✅ `GET /api/payroll/leave-policy-adjustments/{employee_id}` - Get LOP/encashment for salary
+
+**New Frontend Page:**
+- ✅ `/leave-policy-settings` - Full CRUD for leave policies
+- ✅ Policy configuration dialog with 3 tabs (Basic, Leave Types, Payroll Integration)
+- ✅ Add/Edit/Delete leave types with all accrual settings
+- ✅ Sidebar link under HR section
+
+**Leave Types Supported:**
+- Casual Leave (12 days, yearly)
+- Sick Leave (6 days, yearly, medical certificate required > 2 days)
+- Earned Leave (15 days, monthly accrual 1.25/month, carry forward, encashable)
+- Maternity Leave (182 days)
+- Paternity Leave (15 days)
+
+**Testing:** ✅ Backend 88%, Frontend 100% (iteration_97.json)
+
+---
+
+### Phase 18: Broken Pages Fix - February 22, 2026 ✅
 
 **Fixed 6 Broken Pages:**
 - ✅ `/my-leaves` - Added missing `/api/my/leave-balance` endpoint
