@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Optional
 import uuid
 
-from .deps import get_db
+from .deps import get_db, MANAGER_ROLES
 from .auth import get_current_user
 from .models import User
 
@@ -29,7 +29,7 @@ async def generate_invoices_from_pricing_plan(
     """
     db = get_db()
     
-    if current_user.role not in ["admin", "sales_manager", "sales_manager"]:
+    if current_user.role not in MANAGER_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/Sales can generate invoices")
     
     # Get pricing plan with payment schedule
@@ -164,7 +164,7 @@ async def record_invoice_payment(
     """
     db = get_db()
     
-    if current_user.role not in ["admin", "sales_manager", "sales_manager", "hr_manager"]:
+    if current_user.role not in MANAGER_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to record payments")
     
     invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
@@ -444,7 +444,7 @@ async def get_pnl_dashboard(
     """
     db = get_db()
     
-    if current_user.role not in ["admin", "sales_manager", "principal_consultant", "hr_manager"]:
+    if current_user.role not in MANAGER_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to view P&L dashboard")
     
     # Get all active projects
