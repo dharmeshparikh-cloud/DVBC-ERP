@@ -157,7 +157,7 @@ NETRA ERP
 |-----|-------------|
 | `/` | Main business overview dashboard |
 
-### My Workspace (8)
+### My Workspace (7)
 | URL | Description |
 |-----|-------------|
 | `/my-attendance` | Personal attendance tracking |
@@ -166,8 +166,7 @@ NETRA ERP
 | `/my-expenses` | Submit expense claims |
 | `/my-drafts` | Continue saved drafts |
 | `/my-details` | Personal profile & bank details |
-| `/my-bank-details` | Bank account details |
-| `/my-salary` | Salary information |
+| `/my-bank-details` | Bank account details (redirects to /my-details) |
 
 ### Sales Module (20)
 | URL | Description |
