@@ -131,6 +131,9 @@ async def validate_project_completion(
         elif end_date:
             if isinstance(end_date, str):
                 end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            # Ensure timezone-aware
+            if end_date.tzinfo is None:
+                end_date = end_date.replace(tzinfo=timezone.utc)
             
             timeline_status['expected_end_date'] = end_date.isoformat()
             timeline_status['source'] = 'project_end_date'
