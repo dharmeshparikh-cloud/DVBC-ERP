@@ -57,8 +57,10 @@ class PricingPlanUpdate(BaseModel):
 
 def calculate_tenure_months(payment_plan: dict) -> int:
     """Auto-calculate tenure_months from schedule_breakdown length"""
+    if not payment_plan:
+        return 0
     schedule = payment_plan.get("schedule_breakdown", [])
-    return len(schedule)
+    return len(schedule) if schedule else 0
 
 
 @router.post("")
