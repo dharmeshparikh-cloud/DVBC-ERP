@@ -233,6 +233,17 @@ const ApprovalsCenter = () => {
         setKickoffApprovals(kickoffData?.requests || kickoffData || []);
       }
       
+      // Set expense approvals (managers and HR)
+      if (isManager || isHR) {
+        const expenseIndex = results.length - 1; // Last item is expense approvals
+        const expenseData = results[expenseIndex]?.data || [];
+        // Filter for pending expenses (pending for manager, manager_approved for HR)
+        const pendingExpenses = expenseData.filter(e => 
+          e.status === 'pending' || e.status === 'manager_approved'
+        );
+        setExpenseApprovals(pendingExpenses);
+      }
+      
       if (isManager) {
         const allRes = await axios.get(`${API}/approvals/all`).catch(() => ({ data: [] }));
         setAllApprovals(allRes.data || []);
