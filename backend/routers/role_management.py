@@ -9,7 +9,7 @@ from pydantic import BaseModel
 import uuid
 
 from .models import User, UserRole
-from .deps import get_db, sanitize_text
+from .deps import get_db, sanitize_text, HR_ADMIN_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/role-management", tags=["Role Management"])
@@ -188,7 +188,7 @@ async def get_my_permissions(current_user: User = Depends(get_current_user)):
     
     if not employee:
         # Fallback to user role-based permissions for non-employees (admin, hr_manager, etc.)
-        if current_user.role in ["admin", "hr_manager"]:
+        if current_user.role in HR_ADMIN_ROLES:
             return {
                 "level": "leader",
                 "role": current_user.role,
@@ -499,7 +499,7 @@ async def get_role_management_stats(current_user: User = Depends(get_current_use
     """Get statistics for role management dashboard."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Count requests by status
