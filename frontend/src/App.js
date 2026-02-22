@@ -8,6 +8,7 @@ import { PermissionProvider } from './contexts/PermissionContext';
 import { GuidanceProvider } from './contexts/GuidanceContext';
 import { StageGuardProvider } from './contexts/StageGuardContext';
 import StageGuardDialog from './components/StageGuardDialog';
+import { SalesPortalRedirect, HRPortalRedirect } from './components/PortalRedirect';
 
 // Critical paths - keep as regular imports for fast initial load
 import Login from './pages/Login';
