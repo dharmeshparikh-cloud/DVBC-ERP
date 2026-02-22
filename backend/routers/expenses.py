@@ -248,11 +248,12 @@ async def withdraw_expense(expense_id: str, current_user: User = Depends(get_cur
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
-    # Only owner can withdraw
-    if expense["created_by"] != current_user.id:
+    # Only owner can withdraw (check both created_by and submitted_by)
+    owner_id = expense.get("created_by") or expense.get("submitted_by") or expense.get("user_id")
+    if owner_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only the expense creator can withdraw")
     
-    # Can only withdraw pending expenses
+    # Can only withdraw pending or revision_required expenses
     if expense["status"] not in ["pending", "revision_required"]:
         raise HTTPException(status_code=400, detail=f"Cannot withdraw expense in '{expense['status']}' status")
     
