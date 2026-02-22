@@ -322,7 +322,7 @@ const ApprovalsCenter = () => {
   }
 
   // Calculate total pending for current user
-  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length + profileChangeApprovals.length + agreementApprovals.length + kickoffApprovals.length;
+  const totalPending = pendingApprovals.length + ctcApprovals.length + bankApprovals.length + goLiveApprovals.length + permissionApprovals.length + modificationApprovals.length + profileChangeApprovals.length + agreementApprovals.length + kickoffApprovals.length + expenseApprovals.length;
   
   // Handle agreement approval/rejection
   const handleAgreementAction = async (agreementId, action) => {
