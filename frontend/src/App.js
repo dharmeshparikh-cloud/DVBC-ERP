@@ -395,6 +395,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="hr-leave-input" element={<HRLeaveInput />} />
         <Route path="payroll-summary-report" element={<PayrollSummaryReport />} />
         <Route path="attendance-leave-settings" element={<AttendanceLeaveSettings />} />
+        <Route path="leave-policy-settings" element={<LeavePolicySettings />} />
         <Route path="mobile-app" element={<MobileAppDownload />} />
         <Route path="go-live" element={<GoLiveDashboard />} />
         <Route path="notifications" element={<Notifications />} />
