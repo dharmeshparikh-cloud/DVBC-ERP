@@ -797,3 +797,227 @@ async def get_kickoff_status(
         "created_at": kickoff.get("created_at"),
         "updated_at": kickoff.get("updated_at")
     }
+
+
+# ============== Admin-Only Kickoff Request/Approval ==============
+
+class KickoffRequestCreate(BaseModel):
+    lead_id: str
+    agreement_id: Optional[str] = None
+    assigned_consultant_id: str
+    notes: Optional[str] = None
+
+
+@router.post("/request-kickoff")
+async def request_kickoff(
+    request: KickoffRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Create a kickoff request (requires Admin approval).
+    Only senior_consultant and principal_consultant can be assigned.
+    """
+    if current_user.role not in SALES_ROLES:
+        raise HTTPException(status_code=403, detail="Sales access required")
+    
+    db = get_db()
+    
+    # Verify the assigned consultant is senior_consultant or principal_consultant
+    consultant = await db.users.find_one(
+        {"id": request.assigned_consultant_id},
+        {"_id": 0, "full_name": 1, "role": 1}
+    )
+    
+    if not consultant:
+        raise HTTPException(status_code=404, detail="Consultant not found")
+    
+    if consultant.get("role") not in ["senior_consultant", "principal_consultant"]:
+        raise HTTPException(
+            status_code=400, 
+            detail="Only Senior Consultants or Principal Consultants can be assigned to kickoff"
+        )
+    
+    # Get lead info
+    lead = await db.leads.find_one({"id": request.lead_id}, {"_id": 0, "company": 1})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Create kickoff request
+    kickoff_request = {
+        "id": str(uuid.uuid4()),
+        "lead_id": request.lead_id,
+        "agreement_id": request.agreement_id,
+        "assigned_consultant_id": request.assigned_consultant_id,
+        "consultant_name": consultant.get("full_name"),
+        "consultant_role": consultant.get("role"),
+        "lead_company": lead.get("company"),
+        "notes": request.notes,
+        "status": "pending",  # pending, approved, rejected
+        "requested_by": current_user.id,
+        "requested_by_name": current_user.full_name,
+        "requested_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.kickoff_requests.insert_one(kickoff_request)
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "kickoff_request_created",
+        "entity_type": "kickoff_request",
+        "entity_id": kickoff_request["id"],
+        "changes": {
+            "lead_id": request.lead_id,
+            "consultant": consultant.get("full_name")
+        },
+        "performed_by": current_user.id,
+        "performed_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    kickoff_request.pop("_id", None)
+    return {
+        "status": "success",
+        "message": "Kickoff request created. Pending admin approval.",
+        "request": kickoff_request
+    }
+
+
+@router.get("/pending-kickoff-approvals")
+async def get_pending_kickoff_approvals(
+    current_user: User = Depends(get_current_user)
+):
+    """Get pending kickoff requests (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    db = get_db()
+    
+    requests = await db.kickoff_requests.find(
+        {"status": "pending"},
+        {"_id": 0}
+    ).sort("requested_at", -1).to_list(50)
+    
+    return {"requests": requests}
+
+
+@router.post("/approve-kickoff/{request_id}")
+async def approve_kickoff(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a kickoff request (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin approval required")
+    
+    db = get_db()
+    
+    kickoff_req = await db.kickoff_requests.find_one(
+        {"id": request_id},
+        {"_id": 0}
+    )
+    
+    if not kickoff_req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if kickoff_req.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Request already processed")
+    
+    # Update request status
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update lead stage
+    await db.leads.update_one(
+        {"id": kickoff_req["lead_id"]},
+        {
+            "$set": {
+                "current_stage": FunnelStage.KICKOFF.value,
+                "assigned_consultant_id": kickoff_req["assigned_consultant_id"],
+                "kickoff_approved_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$push": {
+                "stage_history": {
+                    "stage": FunnelStage.KICKOFF.value,
+                    "entered_at": datetime.now(timezone.utc).isoformat(),
+                    "notes": f"Kickoff approved by admin. Assigned to {kickoff_req['consultant_name']}"
+                }
+            }
+        }
+    )
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "kickoff_approved",
+        "entity_type": "kickoff_request",
+        "entity_id": request_id,
+        "changes": {"status": "approved"},
+        "performed_by": current_user.id,
+        "performed_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "status": "success",
+        "message": "Kickoff request approved",
+        "lead_id": kickoff_req["lead_id"]
+    }
+
+
+@router.post("/reject-kickoff/{request_id}")
+async def reject_kickoff(
+    request_id: str,
+    reason: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject a kickoff request (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    db = get_db()
+    
+    kickoff_req = await db.kickoff_requests.find_one(
+        {"id": request_id},
+        {"_id": 0}
+    )
+    
+    if not kickoff_req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if kickoff_req.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Request already processed")
+    
+    # Update request status
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "rejection_reason": reason
+        }}
+    )
+    
+    # Audit log
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "kickoff_rejected",
+        "entity_type": "kickoff_request",
+        "entity_id": request_id,
+        "changes": {"status": "rejected", "reason": reason},
+        "performed_by": current_user.id,
+        "performed_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "status": "success",
+        "message": "Kickoff request rejected",
+        "lead_id": kickoff_req["lead_id"]
+    }
