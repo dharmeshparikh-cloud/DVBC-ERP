@@ -108,6 +108,9 @@ async def validate_project_completion(
     if start_date:
         if isinstance(start_date, str):
             start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        # Ensure timezone-aware
+        if start_date.tzinfo is None:
+            start_date = start_date.replace(tzinfo=timezone.utc)
         
         timeline_status['start_date'] = start_date.isoformat()
         
