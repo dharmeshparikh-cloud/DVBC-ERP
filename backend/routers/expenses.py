@@ -187,8 +187,9 @@ async def update_expense(expense_id: str, data: dict, current_user: User = Depen
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
     
-    # Only owner or admin can update
-    if expense["created_by"] != current_user.id and current_user.role != "admin":
+    # Only owner or admin can update (check multiple possible owner fields)
+    owner_id = expense.get("created_by") or expense.get("submitted_by") or expense.get("user_id")
+    if owner_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to update this expense")
     
     # Can update draft, pending, rejected, or revision_required expenses
