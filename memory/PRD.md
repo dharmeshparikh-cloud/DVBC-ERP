@@ -51,13 +51,21 @@
 **6. P1 - Complete Refactoring Cleanup - Role Constants Centralization**
 - ✅ Expanded `/app/backend/routers/deps.py` with comprehensive role constants:
   - `HR_ROLES`, `HR_ADMIN_ROLES`, `HR_PM_ROLES`
-  - `PROJECT_ROLES`, `PROJECT_PM_ROLES`
+  - `PROJECT_ROLES` (merged PROJECT_PM_ROLES)
   - `SALES_ROLES`, `SALES_EXECUTIVE_ROLES`
   - `MANAGER_ROLES`, `APPROVAL_ROLES`
   - `ADMIN_ROLES`, `SENIOR_CONSULTING_ROLES`
 - ✅ Updated 18 router files to use centralized role constants
 - ✅ Eliminated 100+ hard-coded role arrays
 - ✅ Zero remaining hard-coded role arrays in codebase
+
+**7. Removed `project_manager` Role - Simplified Role Hierarchy**
+- ✅ Removed `project_manager` from `UserRole` enum
+- ✅ Removed from `DEFAULT_ROLES` and `DEFAULT_CONSULTANT_ROLES`
+- ✅ Transferred all permissions to `principal_consultant` and `senior_consultant`
+- ✅ Migrated 1 existing user (pm@dvbc.com) to `principal_consultant`
+- ✅ Updated 10 router files to remove `project_manager` references
+- ✅ New consulting hierarchy: `consultant` → `senior_consultant` → `principal_consultant`
 
 ---
 
