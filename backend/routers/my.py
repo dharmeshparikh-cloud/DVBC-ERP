@@ -28,7 +28,25 @@ async def _get_my_employee(current_user: User):
 async def get_check_in_status(current_user: User = Depends(get_current_user)):
     """Get current day's check-in/check-out status"""
     db = get_db()
-    emp = await _get_my_employee(current_user)
+    
+    emp = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    # If no employee record, return default status
+    if not emp:
+        return {
+            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "has_checked_in": False,
+            "has_checked_out": False,
+            "check_in_time": None,
+            "check_out_time": None,
+            "work_location": None,
+            "record": None,
+            "no_employee_record": True
+        }
+    
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
     record = await db.attendance.find_one(
