@@ -3244,6 +3244,297 @@ const ApprovalsCenter = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Receipts List Dialog */}
+      <Dialog open={receiptsListDialog} onOpenChange={setReceiptsListDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Paperclip className="w-5 h-5 text-emerald-600" />
+              Expense Receipts
+            </DialogTitle>
+            <DialogDescription>
+              View, download, or upload receipts for this expense.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Upload Button */}
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setReceiptsListDialog(false);
+                  setReceiptUploadDialog(true);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Upload className="w-4 h-4 mr-1" />
+                Upload Receipt
+              </Button>
+            </div>
+            
+            {/* Receipts List */}
+            {loadingReceipts ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+              </div>
+            ) : expenseReceipts.length === 0 ? (
+              <div className={`text-center py-8 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                <Paperclip className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>No receipts uploaded yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {expenseReceipts.map((receipt) => (
+                  <div 
+                    key={receipt.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200 bg-zinc-50'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-8 h-8 text-emerald-500" />
+                      <div>
+                        <p className={`font-medium text-sm ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                          {receipt.file_name}
+                        </p>
+                        <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                          {receipt.uploaded_at && new Date(receipt.uploaded_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDownloadReceipt(selectedExpense?.id, receipt.id, receipt.file_name)}
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteReceipt(selectedExpense?.id, receipt.id)}
+                        className="text-red-500 hover:text-red-600"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReceiptsListDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Upload Dialog */}
+      <Dialog open={receiptUploadDialog} onOpenChange={setReceiptUploadDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-emerald-600" />
+              Upload Receipt
+            </DialogTitle>
+            <DialogDescription>
+              Upload a receipt image or PDF for this expense.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div 
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDark ? 'border-zinc-700 hover:border-emerald-500' : 'border-zinc-300 hover:border-emerald-500'}`}
+              onClick={() => document.getElementById('receipt-file-input').click()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
+                if (file) handleReceiptUpload(file);
+              }}
+              onDragOver={(e) => e.preventDefault()}
+            >
+              <Upload className={`w-10 h-10 mx-auto mb-3 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
+              <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                Drag & drop a file here, or click to browse
+              </p>
+              <p className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                Supports: PDF, PNG, JPG (max 5MB)
+              </p>
+              <input
+                id="receipt-file-input"
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) handleReceiptUpload(file);
+                }}
+              />
+            </div>
+            
+            {uploadingReceipt && (
+              <div className="flex items-center justify-center gap-2 text-emerald-600">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Uploading...</span>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReceiptUploadDialog(false)} disabled={uploadingReceipt}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Back Dialog */}
+      <Dialog open={sendBackDialog} onOpenChange={setSendBackDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-orange-500" />
+              Send Back for Revision
+            </DialogTitle>
+            <DialogDescription>
+              The expense will be sent back to the employee to make corrections.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedExpense && (
+            <div className="space-y-4">
+              <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
+                <div className="flex justify-between items-center">
+                  <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>
+                    {selectedExpense.employee_name}
+                  </span>
+                  <span className="font-bold text-emerald-600">
+                    ₹{(selectedExpense.total_amount || selectedExpense.amount || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Revision Comments *</Label>
+                <Textarea
+                  value={sendBackComments}
+                  onChange={(e) => setSendBackComments(e.target.value)}
+                  placeholder="Explain what needs to be corrected (e.g., missing receipts, incorrect amount, need more details...)"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setSendBackDialog(false); setSendBackComments(''); }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendBack}
+              disabled={actionLoading || !sendBackComments.trim()}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              {actionLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-1" />}
+              Send Back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Partial Approval (Modify Amount) Dialog */}
+      <Dialog open={partialApprovalDialog} onOpenChange={setPartialApprovalDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="w-5 h-5 text-purple-500" />
+              Approve with Modified Amount
+            </DialogTitle>
+            <DialogDescription>
+              Approve the expense with a different amount (partial approval).
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedExpense && (
+            <div className="space-y-4">
+              <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
+                <div className="flex justify-between items-center">
+                  <span className={isDark ? 'text-zinc-300' : 'text-zinc-700'}>
+                    {selectedExpense.employee_name}
+                  </span>
+                  <div className="text-right">
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Requested</p>
+                    <p className="font-bold text-emerald-600">
+                      ₹{(selectedExpense.total_amount || selectedExpense.amount || 0).toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Approved Amount *</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">₹</span>
+                  <Input
+                    type="number"
+                    value={approvedAmount}
+                    onChange={(e) => setApprovedAmount(e.target.value)}
+                    className="pl-8"
+                    placeholder="Enter approved amount"
+                    min="0"
+                    max={selectedExpense.total_amount || selectedExpense.amount || 0}
+                  />
+                </div>
+                {parseFloat(approvedAmount) < (selectedExpense.total_amount || selectedExpense.amount || 0) && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    This is {((parseFloat(approvedAmount) / (selectedExpense.total_amount || selectedExpense.amount || 1)) * 100).toFixed(0)}% of the requested amount
+                  </p>
+                )}
+              </div>
+              
+              {parseFloat(approvedAmount) < (selectedExpense.total_amount || selectedExpense.amount || 0) && (
+                <div>
+                  <Label className="text-sm font-medium">Reason for Modification *</Label>
+                  <Textarea
+                    value={modificationReason}
+                    onChange={(e) => setModificationReason(e.target.value)}
+                    placeholder="Explain why the amount was modified..."
+                    rows={2}
+                  />
+                </div>
+              )}
+              
+              <div>
+                <Label className="text-sm font-medium">Additional Remarks (Optional)</Label>
+                <Textarea
+                  value={expenseRemarks}
+                  onChange={(e) => setExpenseRemarks(e.target.value)}
+                  placeholder="Any additional comments..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPartialApprovalDialog(false); setApprovedAmount(''); setModificationReason(''); }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePartialApproval}
+              disabled={actionLoading}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {actionLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+              Approve ₹{parseFloat(approvedAmount || 0).toLocaleString('en-IN')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
