@@ -361,7 +361,12 @@ const Layout = () => {
       </div>
 
       {/* Scrollable Navigation */}
-      <nav className="flex-1 px-2 py-1.5 overflow-y-auto scrollbar-thin" data-testid="nav-container">
+      <nav 
+        ref={sidebarNavRef}
+        onScroll={handleSidebarScroll}
+        className="flex-1 px-2 py-1.5 overflow-y-auto scrollbar-thin" 
+        data-testid="nav-container"
+      >
         <div data-tour="dashboard-link">
           <NavLink item={{ name: isConsultant ? 'My Dashboard' : 'Dashboard', href: '/', icon: LayoutDashboard }} />
         </div>
