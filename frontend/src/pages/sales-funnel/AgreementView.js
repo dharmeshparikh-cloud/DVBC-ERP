@@ -1115,7 +1115,7 @@ const AgreementView = () => {
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
                 <UserCheck className="w-4 h-4" />
-                Select Consultant as Project Manager *
+                Select Consultant (Senior/Principal only) *
               </Label>
               <Select value={selectedPmId} onValueChange={setSelectedPmId}>
                 <SelectTrigger className="rounded-sm" data-testid="pm-select">
@@ -1123,21 +1123,26 @@ const AgreementView = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {consultants.length === 0 ? (
-                    <SelectItem value="no-consultants" disabled>No consultants available</SelectItem>
+                    <SelectItem value="no-consultants" disabled>No Senior/Principal Consultants available</SelectItem>
                   ) : (
                     consultants.map((consultant) => (
                       <SelectItem 
-                        key={consultant.id || consultant.user_id} 
-                        value={consultant.user_id || consultant.id}
+                        key={consultant.id} 
+                        value={consultant.id}
                       >
-                        {consultant.first_name} {consultant.last_name} - {consultant.designation || 'Consultant'}
+                        <div className="flex items-center gap-2">
+                          <span>{consultant.full_name}</span>
+                          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
+                            {consultant.role === 'principal_consultant' ? 'Principal' : 'Senior'}
+                          </span>
+                        </div>
                       </SelectItem>
                     ))
                   )}
                 </SelectContent>
               </Select>
               <p className="text-xs text-zinc-500">
-                The selected consultant will be assigned as the Project Manager for this engagement.
+                Only Senior Consultants and Principal Consultants can be assigned. Admin approval required.
               </p>
             </div>
 
