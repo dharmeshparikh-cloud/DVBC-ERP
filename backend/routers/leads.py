@@ -305,3 +305,82 @@ async def generate_email_for_lead(
     from email_templates import generate_email_from_template
     email_content = generate_email_from_template(template, lead)
     return email_content
+
+
+
+# Stage mapping for sales funnel
+STAGE_MAPPING = {
+    "lead": "LEAD",
+    "new": "LEAD",
+    "meeting": "MEETING",
+    "meeting_scheduled": "MEETING",
+    "meeting_done": "MEETING",
+    "pricing": "PRICING",
+    "pricing_sent": "PRICING",
+    "sow": "SOW",
+    "sow_sent": "SOW",
+    "quotation": "QUOTATION",
+    "quotation_sent": "QUOTATION",
+    "agreement": "AGREEMENT",
+    "agreement_sent": "AGREEMENT",
+    "payment": "PAYMENT",
+    "payment_pending": "PAYMENT",
+    "payment_received": "PAYMENT",
+    "kickoff": "KICKOFF",
+    "kickoff_pending": "KICKOFF",
+    "closed": "CLOSED",
+    "won": "CLOSED",
+    "project_created": "CLOSED"
+}
+
+STAGE_ORDER = ["LEAD", "MEETING", "PRICING", "SOW", "QUOTATION", "AGREEMENT", "PAYMENT", "KICKOFF", "CLOSED"]
+STAGE_NAMES = {
+    "LEAD": "Lead",
+    "MEETING": "Meeting",
+    "PRICING": "Pricing Plan",
+    "SOW": "SOW",
+    "QUOTATION": "Quotation",
+    "AGREEMENT": "Agreement",
+    "PAYMENT": "Payment",
+    "KICKOFF": "Kickoff",
+    "CLOSED": "Closed"
+}
+
+
+@router.get("/{lead_id}/stage")
+async def get_lead_stage(
+    lead_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get the current sales funnel stage of a lead"""
+    db = get_db()
+    
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Get current stage
+    raw_stage = lead.get("stage", "lead")
+    current_stage = STAGE_MAPPING.get(raw_stage.lower(), "LEAD")
+    current_idx = STAGE_ORDER.index(current_stage) if current_stage in STAGE_ORDER else 0
+    
+    # Build stage status
+    stages = []
+    for i, stage in enumerate(STAGE_ORDER):
+        stages.append({
+            "stage": stage,
+            "name": STAGE_NAMES.get(stage, stage),
+            "is_completed": i < current_idx,
+            "is_current": i == current_idx,
+            "is_locked": i > current_idx
+        })
+    
+    return {
+        "lead_id": lead_id,
+        "company_name": lead.get("company_name"),
+        "current_stage": current_stage,
+        "current_stage_name": STAGE_NAMES.get(current_stage, current_stage),
+        "stage_index": current_idx,
+        "raw_stage": raw_stage,
+        "stages": stages
+    }
