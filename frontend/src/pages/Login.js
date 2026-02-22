@@ -47,11 +47,8 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Determine if input is an email or employee ID
-      const isEmail = employeeId.includes('@');
-      const loginPayload = isEmail 
-        ? { email: employeeId, password }
-        : { employee_id: employeeId.toUpperCase(), password };
+      // Employee ID only login
+      const loginPayload = { employee_id: employeeId.toUpperCase(), password };
       
       const response = await axios.post(`${API}/auth/login`, loginPayload);
       login(response.data.access_token, response.data.user);
@@ -137,18 +134,18 @@ const Login = () => {
             {/* Employee ID/Password Login */}
             <form onSubmit={handlePasswordLogin} className="space-y-4" data-testid="password-login-form">
               <div className="space-y-2">
-                <Label htmlFor="employeeId" className="text-sm font-medium text-black">Employee ID or Email</Label>
+                <Label htmlFor="employeeId" className="text-sm font-medium text-black">Employee ID</Label>
                 <div className="relative">
                   <IdCard className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
                   <Input
                     id="employeeId"
                     data-testid="employee-id-input"
                     type="text"
-                    placeholder="EMP001 or email@domain.com"
+                    placeholder="EMP001"
                     value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
+                    onChange={(e) => setEmployeeId(e.target.value.toUpperCase())}
                     required
-                    className="pl-11 h-11 rounded-lg border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-2 focus:ring-black focus:border-black"
+                    className="pl-11 h-11 rounded-lg border-black/20 bg-white text-black placeholder:text-black/40 focus:ring-2 focus:ring-black focus:border-black uppercase"
                   />
                 </div>
               </div>
@@ -222,7 +219,7 @@ const Login = () => {
 
             <p className="text-center text-[11px] text-black/40 leading-relaxed">
               Google login available for <span className="font-medium text-black/60">@dvconsulting.co.in</span> accounts.
-              <br />First time login? Use Employee ID with default password provided by HR.
+              <br />First time login? Use your Employee ID with default password provided by HR.
             </p>
           </CardContent>
         </Card>
