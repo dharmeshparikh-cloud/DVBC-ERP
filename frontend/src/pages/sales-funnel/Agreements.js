@@ -12,7 +12,6 @@ import { ArrowLeft, Plus, FileCheck, Send, Clock, CheckCircle, XCircle, Mail, Do
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import ViewToggle from '../../components/ViewToggle';
-import { ClientConsentPanel } from '../../components/sales-funnel/BusinessLogicUI';
 
 const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
