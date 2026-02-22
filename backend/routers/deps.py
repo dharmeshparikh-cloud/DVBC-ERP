@@ -23,9 +23,9 @@ HR_ROLES = ["admin", "hr_manager", "hr_executive"]
 HR_ADMIN_ROLES = ["admin", "hr_manager"]
 
 # Sales department roles  
-SALES_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant", "executive"]
+SALES_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant", "executive", "sales_executive"]
 SALES_MANAGER_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant"]
-SALES_EXECUTIVE_ROLES = ["admin", "executive", "sales_manager"]
+SALES_EXECUTIVE_ROLES = ["admin", "executive", "sales_executive", "sales_manager"]
 
 # Project/Consulting management roles (principal_consultant is the senior-most consulting role)
 PROJECT_ROLES = ["admin", "principal_consultant", "senior_consultant", "manager"]
@@ -45,6 +45,29 @@ APPROVAL_ROLES = ["admin", "manager", "hr_manager", "principal_consultant"]
 
 # HR + Senior Consulting (for attendance, resource management)
 HR_PM_ROLES = ["admin", "hr_manager", "hr_executive", "principal_consultant"]
+
+# ==================== EMPLOYEE ID LOGIC ====================
+# Roles that REQUIRE employee_id (internal employees)
+EMPLOYEE_ROLES = [
+    "admin", "hr_manager", "hr_executive", 
+    "sales_manager", "manager", "sr_manager", "executive", "sales_executive",
+    "consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert",
+    "finance_manager"
+]
+
+# Roles that must NOT have employee_id (external/system)
+NON_EMPLOYEE_ROLES = ["client", "vendor", "partner", "system", "api_user"]
+
+def validate_employee_id_for_role(role: str, employee_id: Optional[str]) -> bool:
+    """
+    Validate employee_id based on role:
+    - If role ∈ EMPLOYEE_ROLES → employee_id mandatory
+    - If role ∉ EMPLOYEE_ROLES → employee_id must be None
+    """
+    if role in EMPLOYEE_ROLES:
+        return employee_id is not None and employee_id.strip() != ""
+    else:
+        return employee_id is None or employee_id.strip() == ""
 
 # Default pagination limits
 DEFAULT_PAGE_SIZE = 100
