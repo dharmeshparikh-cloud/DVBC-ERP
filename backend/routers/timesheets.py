@@ -32,7 +32,9 @@ async def get_timesheets(
     status: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get timesheets with filters"""
+    """Get timesheets with filters.
+    Access: self (own timesheets), manager, hr, admin (all timesheets)
+    """
     db = get_db()
     
     query = {}
@@ -43,8 +45,8 @@ async def get_timesheets(
     if status:
         query["status"] = status
     
-    # Non-managers see only their own
-    if current_user.role not in MANAGER_ROLES:
+    # Non-managers/non-HR see only their own timesheets
+    if current_user.role not in TIMESHEET_VIEW_ALL_ROLES:
         query["employee_id"] = current_user.id
     
     timesheets = await db.timesheets.find(query, {"_id": 0}).sort("date", -1).to_list(500)
