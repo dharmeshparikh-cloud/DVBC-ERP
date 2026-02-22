@@ -7,11 +7,14 @@ from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 from pydantic import BaseModel
-from .deps import get_db, MANAGER_ROLES
+from .deps import get_db, MANAGER_ROLES, HR_ROLES, ADMIN_ROLES
 from .models import User
 from .auth import get_current_user
 
 router = APIRouter(prefix="/timesheets", tags=["Timesheets"])
+
+# Role constants for this router
+TIMESHEET_VIEW_ALL_ROLES = list(set(MANAGER_ROLES + HR_ROLES + ADMIN_ROLES))  # self, manager, hr, admin
 
 
 class TimesheetCreate(BaseModel):
