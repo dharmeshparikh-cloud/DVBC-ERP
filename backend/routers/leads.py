@@ -394,3 +394,97 @@ async def get_lead_stage(
         "raw_stage": raw_stage,
         "stages": stages
     }
+
+
+@router.get("/{lead_id}/funnel-progress")
+async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Get the sales funnel progress for a lead.
+    Returns completed steps, current step, and overall progress.
+    """
+    db = get_db()
+    
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Define funnel steps mapping
+    FUNNEL_STEPS = [
+        "lead_capture",
+        "record_meeting", 
+        "pricing_plan",
+        "scope_of_work",
+        "quotation",
+        "agreement",
+        "record_payment",
+        "kickoff_request",
+        "project_created"
+    ]
+    
+    # Determine completed steps based on lead data
+    completed_steps = []
+    
+    # Step 1: Lead Capture - always complete if lead exists
+    completed_steps.append("lead_capture")
+    
+    # Step 2: Meeting - check if meetings exist
+    meetings = await db.meetings.find({"lead_id": lead_id}).to_list(1)
+    if meetings:
+        completed_steps.append("record_meeting")
+    
+    # Step 3: Pricing Plan - check if pricing exists
+    pricing = await db.pricing_plans.find({"lead_id": lead_id}).to_list(1)
+    if pricing:
+        completed_steps.append("pricing_plan")
+    
+    # Step 4: SOW - check if SOW exists
+    sow = await db.sows.find({"lead_id": lead_id}).to_list(1)
+    if sow:
+        completed_steps.append("scope_of_work")
+    
+    # Step 5: Quotation - check if quotation exists
+    quotation = await db.quotations.find({"lead_id": lead_id}).to_list(1)
+    if quotation:
+        completed_steps.append("quotation")
+    
+    # Step 6: Agreement - check if agreement exists and is signed
+    agreement = await db.agreements.find_one({"lead_id": lead_id}, {"_id": 0})
+    if agreement:
+        completed_steps.append("agreement")
+        
+        # Step 7: Payment - check if payment recorded
+        if agreement.get("payment_status") == "paid" or agreement.get("payment_received"):
+            completed_steps.append("record_payment")
+    
+    # Step 8: Kickoff Request - check if kickoff exists
+    kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id}, {"_id": 0})
+    if kickoff:
+        completed_steps.append("kickoff_request")
+        
+        # Step 9: Project Created - check if kickoff approved
+        if kickoff.get("status") == "approved":
+            completed_steps.append("project_created")
+    
+    # Also check if lead status indicates completion
+    if lead.get("status") in ["won", "closed_won", "converted"]:
+        if "project_created" not in completed_steps:
+            completed_steps.append("project_created")
+    
+    # Calculate progress
+    progress_percentage = (len(completed_steps) / len(FUNNEL_STEPS)) * 100
+    
+    # Determine current step
+    current_step_index = len(completed_steps)
+    current_step = FUNNEL_STEPS[current_step_index] if current_step_index < len(FUNNEL_STEPS) else "project_created"
+    
+    return {
+        "lead_id": lead_id,
+        "company": lead.get("company"),
+        "completed_steps": completed_steps,
+        "current_step": current_step,
+        "total_steps": len(FUNNEL_STEPS),
+        "completed_count": len(completed_steps),
+        "progress_percentage": round(progress_percentage, 1),
+        "status": lead.get("status"),
+        "lead_score": lead.get("score", 0)
+    }
