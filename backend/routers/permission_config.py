@@ -11,7 +11,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 import uuid
 
-from .deps import get_db
+from .deps import get_db, HR_ADMIN_ROLES
 from .auth import get_current_user
 from .models import User
 
@@ -208,7 +208,7 @@ async def get_employee_special_permissions(
     current_user: User = Depends(get_current_user)
 ):
     """Get special permissions for an employee"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -251,7 +251,7 @@ async def update_employee_special_permissions(
     current_user: User = Depends(get_current_user)
 ):
     """Update special permissions for an employee (Admin/HR Manager only)"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -325,7 +325,7 @@ async def grant_temporary_department_access(
     current_user: User = Depends(get_current_user)
 ):
     """Quick action: Grant temporary department access to an employee"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -387,7 +387,7 @@ async def revoke_department_access(
     current_user: User = Depends(get_current_user)
 ):
     """Revoke additional department access from an employee"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -436,7 +436,7 @@ async def revoke_department_access(
 @router.get("/approval-matrix")
 async def get_approval_matrix(current_user: User = Depends(get_current_user)):
     """Get approval matrix showing who can approve what"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -542,7 +542,7 @@ async def suggest_department_from_designation(
 @router.get("/designation-mappings")
 async def get_designation_mappings(current_user: User = Depends(get_current_user)):
     """Get all designation to department mappings (Admin/HR only)"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
