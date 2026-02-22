@@ -1,10 +1,10 @@
 /**
  * Sales Funnel Business Logic UI Components
  * 
- * Three integrated components:
- * 1. StageResumeBar - "Continue from where you left off" banner
- * 2. DualApprovalPanel - Submit and track dual/multi approvals for pricing
- * 3. ClientConsentPanel - Send and track client consent for agreements
+ * Components:
+ * 1. StageResumeBar - "Continue from where you left off" banner for leads
+ * 2. KickoffRequestPanel - Admin approval for kickoff requests to consulting team
+ * 3. ConsultantSelector - Select senior_consultant/principal_consultant for kickoff
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -12,7 +12,6 @@ import { useNavigate } from 'react-router-dom';
 import { API } from '../../App';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
@@ -24,13 +23,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '../ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { toast } from 'sonner';
 import { 
-  Play, ArrowRight, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Send, Mail, Shield, Users, FileCheck, Loader2, RefreshCw,
-  ThumbsUp, ThumbsDown, Eye, ExternalLink
+  Play, ArrowRight, Clock, CheckCircle2, XCircle, 
+  Send, Shield, Users, Loader2, RefreshCw, Rocket,
+  UserCheck, AlertTriangle
 } from 'lucide-react';
 
 // ============== 1. STAGE RESUME BAR ==============
@@ -133,7 +138,7 @@ export const StageResumeBar = ({ leadId, onResume }) => {
   const nextStageLabel = stageLabels[stageStatus.next_stage] || stageStatus.next_stage;
 
   return (
-    <Alert className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
+    <Alert className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800" data-testid="stage-resume-bar">
       <Play className="h-4 w-4 text-blue-600" />
       <AlertTitle className="text-blue-800 dark:text-blue-200">Continue where you left off</AlertTitle>
       <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-2">
@@ -170,616 +175,317 @@ export const StageResumeBar = ({ leadId, onResume }) => {
   );
 };
 
-// ============== 2. DUAL APPROVAL PANEL ==============
+// ============== 2. KICKOFF REQUEST PANEL ==============
+// Admin approval required when sending kickoff to consulting team
 
-export const DualApprovalPanel = ({ 
-  entityType, // 'pricing' or 'sow'
-  entityId, 
-  onApprovalComplete,
-  compact = false 
+export const KickoffRequestPanel = ({ 
+  leadId,
+  agreementId,
+  onKickoffCreated,
+  isAdmin = false
 }) => {
-  const [approvalStatus, setApprovalStatus] = useState(null);
+  const [consultants, setConsultants] = useState([]);
+  const [selectedConsultant, setSelectedConsultant] = useState('');
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  const [approvalNotes, setApprovalNotes] = useState('');
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [showDialog, setShowDialog] = useState(false);
 
-  const fetchApprovalStatus = useCallback(async () => {
-    if (!entityId) {
-      setLoading(false);
-      return;
-    }
-    
+  // Fetch Senior Consultants and Principal Consultants only
+  const fetchConsultants = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${API}/sales-funnel/approval-status?entity_type=${entityType}&entity_id=${entityId}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      const response = await fetch(`${API}/users?roles=senior_consultant,principal_consultant`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       
       if (response.ok) {
         const data = await response.json();
-        setApprovalStatus(data);
+        // Filter to only show senior_consultant and principal_consultant
+        const filtered = (data.users || data || []).filter(u => 
+          u.role === 'senior_consultant' || u.role === 'principal_consultant'
+        );
+        setConsultants(filtered);
       }
     } catch (error) {
-      console.error('Error fetching approval status:', error);
+      console.error('Error fetching consultants:', error);
     } finally {
       setLoading(false);
     }
-  }, [entityType, entityId]);
+  }, []);
+
+  // Fetch pending kickoff requests (for admin)
+  const fetchPendingRequests = useCallback(async () => {
+    if (!isAdmin) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API}/sales-funnel/pending-kickoff-approvals`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPendingRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Error fetching pending requests:', error);
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
-    fetchApprovalStatus();
-  }, [fetchApprovalStatus]);
+    fetchConsultants();
+    fetchPendingRequests();
+  }, [fetchConsultants, fetchPendingRequests]);
 
-  const handleSubmitForApproval = async () => {
+  const handleSubmitKickoff = async () => {
+    if (!selectedConsultant) {
+      toast.error('Please select a consultant');
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/sales-funnel/request-approval`, {
+      const response = await fetch(`${API}/sales-funnel/request-kickoff`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          entity_type: entityType,
-          entity_id: entityId,
-          approval_notes: approvalNotes
+          lead_id: leadId,
+          agreement_id: agreementId,
+          assigned_consultant_id: selectedConsultant,
+          notes: notes
         })
       });
       
       if (response.ok) {
-        toast.success('Submitted for approval');
-        setShowSubmitDialog(false);
-        fetchApprovalStatus();
-        onApprovalComplete?.();
+        toast.success('Kickoff request submitted for admin approval');
+        setShowDialog(false);
+        setSelectedConsultant('');
+        setNotes('');
+        onKickoffCreated?.();
       } else {
         const error = await response.json();
         toast.error(error.detail || 'Failed to submit');
       }
     } catch (error) {
-      toast.error('Failed to submit for approval');
+      toast.error('Failed to submit kickoff request');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleApprove = async () => {
+  const handleApproveKickoff = async (requestId) => {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/sales-funnel/submit-approval`, {
+      const response = await fetch(`${API}/sales-funnel/approve-kickoff/${requestId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          entity_type: entityType,
-          entity_id: entityId,
-          decision: 'approved',
-          comments: approvalNotes
-        })
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
-        toast.success('Approval submitted');
-        fetchApprovalStatus();
-        onApprovalComplete?.();
+        toast.success('Kickoff request approved');
+        fetchPendingRequests();
       } else {
         const error = await response.json();
         toast.error(error.detail || 'Failed to approve');
       }
     } catch (error) {
-      toast.error('Failed to submit approval');
+      toast.error('Failed to approve');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading approval status...
-      </div>
-    );
-  }
-
-  // Compact view for inline display
-  if (compact) {
-    return (
-      <div className="flex items-center gap-2" data-testid="dual-approval-compact">
-        {!approvalStatus?.submitted ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowSubmitDialog(true)}
-            className="gap-1"
-          >
-            <Shield className="h-3 w-3" />
-            Submit for Approval
-          </Button>
-        ) : approvalStatus?.status === 'pending' ? (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-            <Clock className="h-3 w-3 mr-1" />
-            {approvalStatus.approvals_received}/{approvalStatus.approvals_required} Approvals
-          </Badge>
-        ) : approvalStatus?.status === 'approved' ? (
-          <Badge className="bg-green-100 text-green-700">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Approved
-          </Badge>
-        ) : (
-          <Badge variant="destructive">
-            <XCircle className="h-3 w-3 mr-1" />
-            Rejected
-          </Badge>
-        )}
-
-        {/* Submit Dialog */}
-        <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Submit for Dual Approval</DialogTitle>
-              <DialogDescription>
-                This {entityType} requires approval from 2 authorized personnel before proceeding.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Notes (Optional)</Label>
-                <Textarea
-                  value={approvalNotes}
-                  onChange={(e) => setApprovalNotes(e.target.value)}
-                  placeholder="Add any notes for the approvers..."
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowSubmitDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmitForApproval} disabled={submitting}>
-                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Submit
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    );
-  }
-
-  // Full panel view
-  return (
-    <Card data-testid="dual-approval-panel">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Shield className="h-5 w-5 text-blue-600" />
-          Dual Approval Required
-        </CardTitle>
-        <CardDescription>
-          {entityType === 'pricing' ? 'Pricing plans' : 'Statements of Work'} require approval from 2 authorized personnel
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Status */}
-        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${
-              !approvalStatus?.submitted ? 'bg-gray-200' :
-              approvalStatus?.status === 'approved' ? 'bg-green-100' :
-              approvalStatus?.status === 'rejected' ? 'bg-red-100' : 'bg-yellow-100'
-            }`}>
-              {!approvalStatus?.submitted ? (
-                <Clock className="h-5 w-5 text-gray-500" />
-              ) : approvalStatus?.status === 'approved' ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              ) : approvalStatus?.status === 'rejected' ? (
-                <XCircle className="h-5 w-5 text-red-600" />
-              ) : (
-                <Clock className="h-5 w-5 text-yellow-600" />
-              )}
-            </div>
-            <div>
-              <p className="font-medium">
-                {!approvalStatus?.submitted ? 'Not Submitted' :
-                 approvalStatus?.status === 'approved' ? 'Approved' :
-                 approvalStatus?.status === 'rejected' ? 'Rejected' : 'Pending Approval'}
-              </p>
-              {approvalStatus?.submitted && approvalStatus?.status === 'pending' && (
-                <p className="text-sm text-gray-500">
-                  {approvalStatus.approvals_received} of {approvalStatus.approvals_required} approvals received
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {!approvalStatus?.submitted ? (
-            <Button onClick={() => setShowSubmitDialog(true)} data-testid="submit-for-approval-btn">
-              <Send className="h-4 w-4 mr-2" />
-              Submit for Approval
-            </Button>
-          ) : approvalStatus?.can_approve && approvalStatus?.status === 'pending' ? (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleApprove} disabled={submitting}>
-                <ThumbsUp className="h-4 w-4 mr-1" />
-                Approve
-              </Button>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Approvers List */}
-        {approvalStatus?.approvers && approvalStatus.approvers.length > 0 && (
-          <div>
-            <p className="text-sm font-medium mb-2">Approval History</p>
-            <div className="space-y-2">
-              {approvalStatus.approvers.map((approver, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm">{approver.name || approver.email}</span>
-                  </div>
-                  <Badge variant={approver.decision === 'approved' ? 'default' : 'destructive'}>
-                    {approver.decision}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Submit Dialog */}
-        <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Submit for Dual Approval</DialogTitle>
-              <DialogDescription>
-                This {entityType} requires approval from 2 authorized personnel (Sales Manager, Principal Consultant, or Admin) before proceeding.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Notes for Approvers (Optional)</Label>
-                <Textarea
-                  value={approvalNotes}
-                  onChange={(e) => setApprovalNotes(e.target.value)}
-                  placeholder="Add any notes or context for the approvers..."
-                  rows={3}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowSubmitDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmitForApproval} disabled={submitting}>
-                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                Submit for Approval
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
-  );
-};
-
-// ============== 3. CLIENT CONSENT PANEL ==============
-
-export const ClientConsentPanel = ({ 
-  agreementId, 
-  clientEmail: initialEmail,
-  onConsentReceived,
-  compact = false 
-}) => {
-  const [consentStatus, setConsentStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [showSendDialog, setShowSendDialog] = useState(false);
-  const [clientEmail, setClientEmail] = useState(initialEmail || '');
-  const [message, setMessage] = useState('');
-
-  const fetchConsentStatus = useCallback(async () => {
-    if (!agreementId) {
-      setLoading(false);
-      return;
-    }
-    
+  const handleRejectKickoff = async (requestId) => {
+    setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${API}/sales-funnel/consent-status/${agreementId}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setConsentStatus(data);
-      }
-    } catch (error) {
-      console.error('Error fetching consent status:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [agreementId]);
-
-  useEffect(() => {
-    fetchConsentStatus();
-  }, [fetchConsentStatus]);
-
-  useEffect(() => {
-    if (initialEmail) setClientEmail(initialEmail);
-  }, [initialEmail]);
-
-  const handleSendConsent = async () => {
-    if (!clientEmail) {
-      toast.error('Please enter client email');
-      return;
-    }
-    
-    setSending(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/sales-funnel/send-consent-request`, {
+      const response = await fetch(`${API}/sales-funnel/reject-kickoff/${requestId}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          agreement_id: agreementId,
-          client_email: clientEmail,
-          message: message || undefined
-        })
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
-        const data = await response.json();
-        toast.success('Consent request sent to client');
-        setShowSendDialog(false);
-        fetchConsentStatus();
-        
-        // Show the consent token (in dev/demo mode)
-        if (data.consent_token) {
-          toast.info(`Demo: Token is ${data.consent_token.substring(0, 8)}...`, { duration: 10000 });
-        }
+        toast.success('Kickoff request rejected');
+        fetchPendingRequests();
       } else {
         const error = await response.json();
-        toast.error(error.detail || 'Failed to send');
+        toast.error(error.detail || 'Failed to reject');
       }
     } catch (error) {
-      toast.error('Failed to send consent request');
+      toast.error('Failed to reject');
     } finally {
-      setSending(false);
+      setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading consent status...
-      </div>
-    );
-  }
+  const getRoleLabel = (role) => {
+    const labels = {
+      'senior_consultant': 'Senior Consultant',
+      'principal_consultant': 'Principal Consultant'
+    };
+    return labels[role] || role;
+  };
 
-  // Compact view
-  if (compact) {
+  // Admin view - show pending approvals
+  if (isAdmin && pendingRequests.length > 0) {
     return (
-      <div className="flex items-center gap-2" data-testid="client-consent-compact">
-        {!consentStatus?.sent ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowSendDialog(true)}
-            className="gap-1"
-          >
-            <Mail className="h-3 w-3" />
-            Request Consent
-          </Button>
-        ) : consentStatus?.status === 'pending' ? (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-            <Clock className="h-3 w-3 mr-1" />
-            Awaiting Response
-          </Badge>
-        ) : consentStatus?.status === 'approved' ? (
-          <Badge className="bg-green-100 text-green-700">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Consent Received
-          </Badge>
-        ) : (
-          <Badge variant="destructive">
-            <XCircle className="h-3 w-3 mr-1" />
-            Declined
-          </Badge>
-        )}
-
-        {/* Send Dialog */}
-        <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Request Client Consent</DialogTitle>
-              <DialogDescription>
-                Send a consent request to the client for this agreement. They will receive an email with a secure link.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Client Email *</Label>
-                <Input
-                  type="email"
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="client@company.com"
-                />
-              </div>
-              <div>
-                <Label>Custom Message (Optional)</Label>
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Add a personal message to include in the email..."
-                  rows={3}
-                />
+      <Card data-testid="kickoff-approval-panel">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Shield className="h-5 w-5 text-orange-600" />
+            Pending Kickoff Approvals
+          </CardTitle>
+          <CardDescription>
+            Review and approve kickoff requests to consulting team
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {pendingRequests.map((req) => (
+            <div key={req.id} className="p-3 border rounded-lg bg-orange-50 dark:bg-orange-900/20">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-medium">{req.lead_company || 'Lead'}</p>
+                  <p className="text-sm text-gray-600">
+                    Assign to: <span className="font-medium">{req.consultant_name}</span>
+                    <Badge className="ml-2" variant="outline">{getRoleLabel(req.consultant_role)}</Badge>
+                  </p>
+                  {req.notes && (
+                    <p className="text-sm text-gray-500 mt-1">{req.notes}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    Requested by {req.requested_by_name} • {new Date(req.requested_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRejectKickoff(req.id)}
+                    disabled={submitting}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Reject
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleApproveKickoff(req.id)}
+                    disabled={submitting}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    Approve
+                  </Button>
+                </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowSendDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSendConsent} disabled={sending || !clientEmail}>
-                {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                Send Request
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+          ))}
+        </CardContent>
+      </Card>
     );
   }
 
-  // Full panel view
+  // Sales user view - create kickoff request
   return (
-    <Card data-testid="client-consent-panel">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <FileCheck className="h-5 w-5 text-purple-600" />
-          Client Consent
-        </CardTitle>
-        <CardDescription>
-          Request and track client consent for this agreement
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Status */}
-        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${
-              !consentStatus?.sent ? 'bg-gray-200' :
-              consentStatus?.status === 'approved' ? 'bg-green-100' :
-              consentStatus?.status === 'rejected' ? 'bg-red-100' : 'bg-yellow-100'
-            }`}>
-              {!consentStatus?.sent ? (
-                <Mail className="h-5 w-5 text-gray-500" />
-              ) : consentStatus?.status === 'approved' ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              ) : consentStatus?.status === 'rejected' ? (
-                <XCircle className="h-5 w-5 text-red-600" />
+    <>
+      <Button
+        onClick={() => setShowDialog(true)}
+        className="bg-purple-600 hover:bg-purple-700"
+        data-testid="create-kickoff-btn"
+      >
+        <Rocket className="h-4 w-4 mr-2" />
+        Create Kickoff Request
+      </Button>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Rocket className="h-5 w-5 text-purple-600" />
+              Create Kickoff Request
+            </DialogTitle>
+            <DialogDescription>
+              Select a consultant from the consulting team. Admin approval is required.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Alert className="bg-amber-50 border-amber-200">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                This request requires Admin approval before the kickoff meeting is scheduled.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label>Assign to Consultant *</Label>
+              <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
+                <SelectTrigger data-testid="consultant-selector">
+                  <SelectValue placeholder={loading ? "Loading..." : "Select consultant"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {consultants.map((consultant) => (
+                    <SelectItem key={consultant.id} value={consultant.id}>
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-purple-500" />
+                        <span>{consultant.full_name}</span>
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          {getRoleLabel(consultant.role)}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {consultants.length === 0 && !loading && (
+                <p className="text-sm text-red-500">No Senior/Principal Consultants available</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notes (Optional)</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any notes for the kickoff meeting..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitKickoff} 
+              disabled={submitting || !selectedConsultant}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <Clock className="h-5 w-5 text-yellow-600" />
+                <Send className="h-4 w-4 mr-2" />
               )}
-            </div>
-            <div>
-              <p className="font-medium">
-                {!consentStatus?.sent ? 'Not Sent' :
-                 consentStatus?.status === 'approved' ? 'Consent Received' :
-                 consentStatus?.status === 'rejected' ? 'Declined by Client' : 'Awaiting Response'}
-              </p>
-              {consentStatus?.sent_at && (
-                <p className="text-sm text-gray-500">
-                  Sent to {consentStatus.client_email} on {new Date(consentStatus.sent_at).toLocaleDateString()}
-                </p>
-              )}
-              {consentStatus?.expires_at && consentStatus?.status === 'pending' && (
-                <p className="text-xs text-orange-600">
-                  Expires: {new Date(consentStatus.expires_at).toLocaleString()}
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {!consentStatus?.sent || consentStatus?.status === 'rejected' ? (
-            <Button onClick={() => setShowSendDialog(true)} data-testid="send-consent-btn">
-              <Mail className="h-4 w-4 mr-2" />
-              {consentStatus?.status === 'rejected' ? 'Resend' : 'Send Request'}
+              Submit for Approval
             </Button>
-          ) : consentStatus?.status === 'pending' ? (
-            <Button variant="outline" onClick={fetchConsentStatus}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          ) : null}
-        </div>
-
-        {/* Consent Details */}
-        {consentStatus?.status === 'approved' && consentStatus?.client_name && (
-          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-            <p className="text-sm font-medium text-green-800 dark:text-green-200">
-              Approved by: {consentStatus.client_name}
-            </p>
-            {consentStatus.approved_at && (
-              <p className="text-xs text-green-600 dark:text-green-400">
-                {new Date(consentStatus.approved_at).toLocaleString()}
-              </p>
-            )}
-            {consentStatus.client_signature && (
-              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                Digital signature on file
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Send Dialog */}
-        <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Request Client Consent</DialogTitle>
-              <DialogDescription>
-                The client will receive an email with a secure link to review and approve/decline this agreement.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Client Email *</Label>
-                <Input
-                  type="email"
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="client@company.com"
-                />
-              </div>
-              <div>
-                <Label>Custom Message (Optional)</Label>
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Add a personal message to include in the consent request email..."
-                  rows={3}
-                />
-              </div>
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  The consent link will expire in 7 days. The client can approve or decline with optional comments.
-                </AlertDescription>
-              </Alert>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowSendDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSendConsent} disabled={sending || !clientEmail}>
-                {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                Send Consent Request
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
-// ============== EXPORT ==============
+// ============== EXPORTS ==============
 
 export default {
   StageResumeBar,
-  DualApprovalPanel,
-  ClientConsentPanel
+  KickoffRequestPanel
 };
