@@ -48,6 +48,17 @@
 - ✅ Status badges: Active (green), At Risk (amber), Delayed (red), Completed (blue)
 - ✅ Tenure months display when available
 
+**6. P1 - Complete Refactoring Cleanup - Role Constants Centralization**
+- ✅ Expanded `/app/backend/routers/deps.py` with comprehensive role constants:
+  - `HR_ROLES`, `HR_ADMIN_ROLES`, `HR_PM_ROLES`
+  - `PROJECT_ROLES`, `PROJECT_PM_ROLES`
+  - `SALES_ROLES`, `SALES_EXECUTIVE_ROLES`
+  - `MANAGER_ROLES`, `APPROVAL_ROLES`
+  - `ADMIN_ROLES`, `SENIOR_CONSULTING_ROLES`
+- ✅ Updated 18 router files to use centralized role constants
+- ✅ Eliminated 100+ hard-coded role arrays
+- ✅ Zero remaining hard-coded role arrays in codebase
+
 ---
 
 ### Phase 11: Complete Server.py Refactoring - February 22, 2026 ✅
