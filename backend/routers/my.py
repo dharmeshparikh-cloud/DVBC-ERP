@@ -104,7 +104,12 @@ async def reset_onboarding(current_user: User = Depends(get_current_user)):
 async def get_my_profile(current_user: User = Depends(get_current_user)):
     """Get current user's full profile"""
     db = get_db()
-    emp = await _get_my_employee(current_user)
+    
+    # Get employee record (may not exist for all users)
+    emp = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
     
     # Get user data
     user_data = await db.users.find_one(
@@ -112,10 +117,124 @@ async def get_my_profile(current_user: User = Depends(get_current_user)):
         {"_id": 0, "hashed_password": 0}
     )
     
-    return {
-        "user": user_data,
-        "employee": emp
+    # Return user info even if no employee record (use user data as fallback)
+    if not emp:
+        # Build profile from user data for users without employee records
+        return {
+            "id": current_user.id,
+            "employee_id": user_data.get("employee_id", "N/A"),
+            "first_name": user_data.get("first_name", user_data.get("name", "").split()[0] if user_data.get("name") else ""),
+            "last_name": user_data.get("last_name", " ".join(user_data.get("name", "").split()[1:]) if user_data.get("name") else ""),
+            "email": current_user.email,
+            "department": user_data.get("department", ""),
+            "designation": user_data.get("designation", ""),
+            "role": current_user.role,
+            "phone": user_data.get("phone", ""),
+            "date_of_joining": user_data.get("date_of_joining", ""),
+            "reporting_manager_name": user_data.get("reporting_manager_name", ""),
+            "no_employee_record": True
+        }
+    
+    # Combine employee and user data
+    result = {**emp}
+    result["email"] = current_user.email
+    result["role"] = current_user.role
+    if user_data:
+        result["first_name"] = result.get("first_name") or user_data.get("first_name", "")
+        result["last_name"] = result.get("last_name") or user_data.get("last_name", "")
+    
+    return result
+
+
+@router.get("/leave-balance")
+async def get_my_leave_balance(current_user: User = Depends(get_current_user)):
+    """Get current user's leave balance"""
+    db = get_db()
+    
+    # Find employee record
+    emp = await db.employees.find_one(
+        {"$or": [{"user_id": current_user.id}, {"official_email": current_user.email}]},
+        {"_id": 0}
+    )
+    
+    DEFAULT_LEAVE_BALANCE = {
+        'casual_leave': 12,
+        'sick_leave': 6,
+        'earned_leave': 15
     }
+    
+    # Return default balance if no employee record
+    if not emp:
+        return {
+            "casual": {"total": 12, "used": 0, "available": 12},
+            "sick": {"total": 6, "used": 0, "available": 6},
+            "earned": {"total": 15, "used": 0, "available": 15}
+        }
+    
+    balance = emp.get('leave_balance', {})
+    
+    return {
+        "casual": {
+            "total": balance.get('casual_leave', 12),
+            "used": balance.get('used_casual', 0),
+            "available": balance.get('casual_leave', 12) - balance.get('used_casual', 0)
+        },
+        "sick": {
+            "total": balance.get('sick_leave', 6),
+            "used": balance.get('used_sick', 0),
+            "available": balance.get('sick_leave', 6) - balance.get('used_sick', 0)
+        },
+        "earned": {
+            "total": balance.get('earned_leave', 15),
+            "used": balance.get('used_earned', 0),
+            "available": balance.get('earned_leave', 15) - balance.get('used_earned', 0)
+        }
+    }
+
+
+@router.get("/change-requests")
+async def get_my_change_requests(current_user: User = Depends(get_current_user)):
+    """Get current user's profile change requests"""
+    db = get_db()
+    
+    # Find all change requests by this user
+    requests = await db.profile_change_requests.find(
+        {"user_id": current_user.id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    return requests
+
+
+@router.post("/change-request")
+async def submit_change_request(
+    request_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Submit a profile change request for HR approval"""
+    db = get_db()
+    import uuid
+    
+    change_request = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user.id,
+        "employee_email": current_user.email,
+        "section": request_data.get("section"),
+        "changes": request_data.get("changes"),
+        "reason": request_data.get("reason"),
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Handle bank proof document
+    if request_data.get("proof_document"):
+        change_request["proof_document"] = request_data.get("proof_document")
+        change_request["proof_filename"] = request_data.get("proof_filename")
+    
+    await db.profile_change_requests.insert_one(change_request)
+    
+    return {"message": "Change request submitted successfully", "id": change_request["id"]}
 
 
 @router.get("/pending-approvals")
