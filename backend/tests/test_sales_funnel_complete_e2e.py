@@ -267,8 +267,13 @@ class TestKickoffApprovals:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        print(f"PASS: GET /api/sales-funnel/pending-kickoff-approvals - {len(data)} pending requests")
+        # API returns {"requests": [...]} or a list
+        if isinstance(data, dict) and "requests" in data:
+            requests_list = data["requests"]
+        else:
+            requests_list = data
+        assert isinstance(requests_list, list)
+        print(f"PASS: GET /api/sales-funnel/pending-kickoff-approvals - {len(requests_list)} pending requests")
     
     def test_non_admin_denied_kickoff_approvals(self, se_token):
         """Test non-admin gets 403 for kickoff approvals"""
@@ -324,8 +329,13 @@ class TestSalesFunnelEndpoints:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        print(f"PASS: GET /api/sales-funnel/consulting-team - {len(data)} consultants")
+        # API returns {"consultants": [...]} or a list
+        if isinstance(data, dict) and "consultants" in data:
+            consultants_list = data["consultants"]
+        else:
+            consultants_list = data
+        assert isinstance(consultants_list, list)
+        print(f"PASS: GET /api/sales-funnel/consulting-team - {len(consultants_list)} consultants")
 
 
 class TestPricingQuotationsAgreements:
