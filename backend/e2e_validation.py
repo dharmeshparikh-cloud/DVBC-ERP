@@ -54,8 +54,9 @@ ROUTE_ACCESS = {
 # Expected unauthorized routes per role
 UNAUTHORIZED_ROUTES = {
     'sales_executive': [
-        '/api/employees',  # HR only
-        '/api/payroll',    # HR only
+        '/api/employees',           # HR only - FIXED
+        '/api/payroll/salary-components',  # HR only - FIXED
+        '/api/users',               # Admin only
     ],
 }
 
