@@ -370,6 +370,34 @@ const ApprovalsCenter = () => {
     }
   };
 
+  // Handle expense approval/rejection (merged from ExpenseApprovals)
+  const handleExpenseAction = async (expenseId, action) => {
+    setActionLoading(true);
+    try {
+      if (action === 'approve') {
+        await axios.post(`${API}/expenses/${expenseId}/approve`, { remarks: expenseRemarks });
+        toast.success('Expense approved successfully');
+      } else {
+        if (!rejectReason?.trim()) {
+          toast.error('Please provide a rejection reason');
+          setActionLoading(false);
+          return;
+        }
+        await axios.post(`${API}/expenses/${expenseId}/reject`, { reason: rejectReason });
+        toast.success('Expense rejected');
+      }
+      setExpenseDetailDialog(false);
+      setSelectedExpense(null);
+      setExpenseRemarks('');
+      setRejectReason('');
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} expense`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Permission Change Action handlers
   const handlePermissionAction = async (requestId, action) => {
     setActionLoading(true);
