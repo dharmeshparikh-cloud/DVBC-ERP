@@ -270,10 +270,10 @@ NETRA ERP
 |-----|-------------|
 | `/document-center` | Document management |
 | `/document-builder` | Document creation |
-| `/agreements` | Agreement repository |
-| `/quotations` | Quotation management |
+| `/sales-funnel/agreements` | Agreement repository |
+| `/sales-funnel/quotations` | Quotation management |
 | `/invoices` | Invoice management |
-| `/sow-list` | SOW repository |
+| `/sales-funnel/sow-list` | SOW repository |
 
 ---
 
