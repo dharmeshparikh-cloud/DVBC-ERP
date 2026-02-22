@@ -15598,6 +15598,7 @@ api_router.include_router(ai_assistant_router.router)
 api_router.include_router(email_actions_router.router)
 api_router.include_router(documentation_router.router)
 api_router.include_router(sales_router.router)
+api_router.include_router(audio_samples_router.router)
 
 app.include_router(api_router)
 
