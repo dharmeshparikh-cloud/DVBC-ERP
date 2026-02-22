@@ -4,6 +4,7 @@ import { AuthContext } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { useApprovals } from '../contexts/ApprovalContext';
 import { usePermissions } from '../contexts/PermissionContext';
+import { useStageGuard, ROLE_STAGE_ACCESS } from '../contexts/StageGuardContext';
 import { Button } from './ui/button';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
@@ -18,7 +19,7 @@ import {
   User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronDown,
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings,
   Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard, KeyRound,
-  FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target
+  FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target, ArrowRight, Circle
 } from 'lucide-react';
 
 // Legacy role-based access (kept for backward compatibility)
