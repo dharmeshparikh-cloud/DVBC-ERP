@@ -389,10 +389,22 @@ const Layout = () => {
         {showSales && (
           <>
             <div data-tour="sales-section">
-              <SectionHeader label="Sales" sectionKey="sales" />
+              <SectionHeader label={isGuidedSalesMode ? "My Sales" : "Sales"} sectionKey="sales" />
             </div>
             {expanded.sales && (
               <>
+                {/* Guided Mode Header */}
+                {isGuidedSalesMode && (
+                  <div className={`mx-3 mb-2 p-2 rounded-md ${isDark ? 'bg-emerald-900/20 border border-emerald-800/30' : 'bg-emerald-50 border border-emerald-100'}`}>
+                    <div className={`text-xs font-medium ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                      Guided Workflow Mode
+                    </div>
+                    <div className={`text-[10px] ${isDark ? 'text-emerald-500/70' : 'text-emerald-600/70'}`}>
+                      Complete stages in order
+                    </div>
+                  </div>
+                )}
+                
                 {salesFlowItems
                   .filter(item => {
                     // Hide managerOnly items for non-managers
@@ -407,6 +419,39 @@ const Layout = () => {
                     <div className={`my-0.5 mx-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`} />
                     {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
                   </>
+                )}
+                
+                {/* Stage Progress for Guided Mode */}
+                {isGuidedSalesMode && (
+                  <div className="mt-3 mx-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+                    <div className={`text-[10px] font-medium uppercase tracking-wider mb-2 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      Sales Stage Flow
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {['Lead', 'Meeting', 'Pricing'].map((stage, idx) => (
+                        <React.Fragment key={stage}>
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                              idx === 0 
+                                ? 'bg-emerald-500 text-white' 
+                                : isDark 
+                                  ? 'bg-zinc-700 text-zinc-400' 
+                                  : 'bg-zinc-200 text-zinc-500'
+                            }`}
+                            title={stage}
+                          >
+                            {idx === 0 ? '✓' : idx + 1}
+                          </div>
+                          {idx < 2 && (
+                            <div className={`flex-1 h-0.5 ${idx === 0 ? 'bg-emerald-500' : isDark ? 'bg-zinc-700' : 'bg-zinc-200'}`} />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                    <div className={`text-[9px] mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      Complete each stage to unlock next
+                    </div>
+                  </div>
                 )}
               </>
             )}
