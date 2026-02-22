@@ -49,8 +49,21 @@ async def get_projects(current_user: User = Depends(get_current_user)):
     
     projects = await db.projects.find(query, {"_id": 0}).to_list(1000)
     
-    # Handle date conversion for flexible schema
+    # Normalize legacy data and handle date conversion
     for project in projects:
+        # Normalize name field (some legacy records use 'project_name')
+        if not project.get('name') and project.get('project_name'):
+            project['name'] = project['project_name']
+        
+        # Ensure name has a fallback
+        if not project.get('name'):
+            project['name'] = project.get('id', 'Unnamed Project')
+        
+        # Ensure client_name has a fallback
+        if not project.get('client_name'):
+            project['client_name'] = 'Unknown Client'
+        
+        # Handle date conversion for flexible schema
         if isinstance(project.get('start_date'), str):
             try:
                 project['start_date'] = datetime.fromisoformat(project['start_date'])
