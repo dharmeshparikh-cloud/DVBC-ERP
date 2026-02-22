@@ -5,22 +5,27 @@ Sales Team: Select scopes → Create snapshot → Handover
 Consulting Team: Review → Track progress → Submit roadmap for approval
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 import uuid
 import base64
-from .deps import get_db, PROJECT_ROLES
+from .deps import get_db, PROJECT_ROLES, SALES_ROLES as GLOBAL_SALES_ROLES, CONSULTING_ROLES as GLOBAL_CONSULTING_ROLES, ADMIN_ROLES
+from .auth import get_current_user
+from .models import User
 
 router = APIRouter(prefix="/enhanced-sow", tags=["Enhanced SOW"])
 
 
 # ============== Role Check Helpers ==============
 
-SALES_ROLES = ["admin", "executive", "sales_manager"]
-CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert", "principal_consultant"]
-CAN_ADD_SCOPES_ROLES = ["principal_consultant", "consultant", "principal_consultant", "admin"]  # Can add but not delete
+SALES_ROLES = ["admin", "executive", "sales_manager", "manager"]
+CONSULTING_ROLES = ["consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert"]
+CAN_ADD_SCOPES_ROLES = ["principal_consultant", "senior_consultant", "admin"]  # Can add but not delete
+
+# SOW view roles - Sales (for upcoming payment dates), Consulting (for project work)
+SOW_VIEW_ROLES = list(set(SALES_ROLES + CONSULTING_ROLES + ADMIN_ROLES))
 
 
 def is_sales_team(role: str) -> bool:
@@ -38,21 +43,32 @@ def can_add_scopes(role: str) -> bool:
 # ============== List SOWs ==============
 
 @router.get("")
-async def get_all_enhanced_sows():
-    """Get all enhanced SOWs - root endpoint"""
+async def get_all_enhanced_sows(current_user: User = Depends(get_current_user)):
+    """Get all enhanced SOWs - root endpoint
+    Access: Sales (view payment dates), Consulting (project work), Admin
+    """
+    if current_user.role not in SOW_VIEW_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied. Only sales and consulting team can view SOWs.")
+    
     db = get_db()
     sows = await db.enhanced_sow.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
     return sows
 
 
 @router.get("/list")
-async def list_enhanced_sows(role: str = "all"):
+async def list_enhanced_sows(
+    role: str = "all",
+    current_user: User = Depends(get_current_user)
+):
     """List all enhanced SOWs - filtered by role access"""
+    if current_user.role not in SOW_VIEW_ROLES:
+        raise HTTPException(status_code=403, detail="Access denied.")
+    
     db = get_db()
     query = {}
     
     # For consulting, only show handed-over SOWs
-    if role == "consulting":
+    if role == "consulting" or (current_user.role in CONSULTING_ROLES and current_user.role not in ADMIN_ROLES):
         query["sales_handover_complete"] = True
     
     sows = await db.enhanced_sow.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
