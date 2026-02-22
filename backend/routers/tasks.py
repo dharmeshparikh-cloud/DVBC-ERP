@@ -7,7 +7,7 @@ from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 from pydantic import BaseModel, Field
-from .deps import get_db
+from .deps import get_db, PROJECT_ROLES
 from .models import User
 from .auth import get_current_user
 
@@ -93,7 +93,7 @@ async def get_tasks(
         query["status"] = status
     
     # If not manager, only show own tasks or tasks created by user
-    if current_user.role not in ["admin", "manager", "project_manager"]:
+    if current_user.role not in PROJECT_ROLES:
         query["$or"] = [
             {"assigned_to": current_user.id},
             {"created_by": current_user.id}
@@ -126,7 +126,7 @@ async def update_task(task_id: str, data: TaskUpdate, current_user: User = Depen
     
     # Check permission
     can_edit = (
-        current_user.role in ["admin", "manager", "project_manager"] or
+        current_user.role in PROJECT_ROLES or
         task.get("assigned_to") == current_user.id or
         task.get("created_by") == current_user.id
     )
@@ -152,7 +152,7 @@ async def delete_task(task_id: str, current_user: User = Depends(get_current_use
         raise HTTPException(status_code=404, detail="Task not found")
     
     can_delete = (
-        current_user.role in ["admin", "manager", "project_manager"] or
+        current_user.role in PROJECT_ROLES or
         task.get("created_by") == current_user.id
     )
     if not can_delete:
