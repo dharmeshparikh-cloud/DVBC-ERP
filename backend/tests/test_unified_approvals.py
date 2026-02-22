@@ -114,14 +114,14 @@ class TestKickoffApprovalsAPI:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=ADMIN_CREDS)
         if response.status_code != 200:
             pytest.skip("Admin login failed")
-        return response.json()["token"]
+        return response.json()["access_token"]
     
     @pytest.fixture
     def sales_token(self):
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_EXEC_CREDS)
         if response.status_code != 200:
             pytest.skip("Sales Executive login failed")
-        return response.json()["token"]
+        return response.json()["access_token"]
     
     def test_pending_kickoff_approvals_admin(self, admin_token):
         """Test /api/sales-funnel/pending-kickoff-approvals for Admin"""
@@ -149,7 +149,7 @@ class TestApprovalsAggregation:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=ADMIN_CREDS)
         if response.status_code != 200:
             pytest.skip("Admin login failed")
-        return response.json()["token"]
+        return response.json()["access_token"]
     
     def test_all_pending_approvals_accessible(self, admin_token):
         """Test all approval types are accessible for Admin"""
@@ -197,14 +197,14 @@ class TestExpenseApprovalFlow:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=ADMIN_CREDS)
         if response.status_code != 200:
             pytest.skip("Admin login failed")
-        return response.json()["token"]
+        return response.json()["access_token"]
     
     @pytest.fixture
     def sales_token(self):
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_EXEC_CREDS)
         if response.status_code != 200:
             pytest.skip("Sales Executive login failed")
-        return response.json()["token"]
+        return response.json()["access_token"]
     
     def test_create_expense_as_employee(self, sales_token):
         """Test creating an expense as a regular employee"""
