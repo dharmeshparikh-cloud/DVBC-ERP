@@ -8995,6 +8995,9 @@ def calculate_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) ->
     return round(distance_meters / 1000, 2)
 
 
+
+# ===== MOVED TO TRAVEL ROUTER (travel.py) - START (DO NOT UNCOMMENT) =====
+'''
 @api_router.get("/travel/rates")
 async def get_travel_rates(current_user: User = Depends(get_current_user)):
     """Get current travel reimbursement rates"""
@@ -9585,6 +9588,9 @@ async def get_travel_stats(
         "pending_amount": round(pending_amount, 2),
         "by_vehicle_type": by_vehicle
     }
+'''
+# ===== MOVED TO TRAVEL ROUTER (travel.py) - END =====
+
 
 
 
@@ -9771,6 +9777,9 @@ async def get_report_stats(current_user: User = Depends(get_current_user)):
 
 # ==================== PAYROLL MODULE ====================
 
+
+# ===== MOVED TO PAYROLL ROUTER (payroll.py) - START (DO NOT UNCOMMENT) =====
+'''
 @api_router.get("/payroll/salary-components")
 async def get_salary_components(current_user: User = Depends(get_current_user)):
     """Get salary component configuration"""
@@ -10547,6 +10556,9 @@ async def generate_summary_report(data: dict, current_user: User = Depends(get_c
 
 
 @api_router.get("/payroll/generated-reports")
+'''
+# ===== MOVED TO PAYROLL ROUTER (payroll.py) - END =====
+
 async def get_generated_reports(current_user: User = Depends(get_current_user)):
     """Get list of generated payroll reports"""
     if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
@@ -12421,6 +12433,9 @@ async def get_target_vs_achievement(
 
 # ============== FUNNEL ANALYTICS ==============
 
+
+# ===== MOVED TO ANALYTICS ROUTER (analytics.py) - START (DO NOT UNCOMMENT) =====
+'''
 @api_router.get("/analytics/funnel-summary")
 async def get_funnel_summary(
     period: str = "month",  # week, month, quarter, year
@@ -13656,6 +13671,9 @@ async def get_velocity_metrics(
             f"Based on {len(velocities)} completed deals"
         ]
     }
+'''
+# ===== MOVED TO ANALYTICS ROUTER (analytics.py) - END =====
+
 
 
 # ============== LEAD PROGRESS TRACKING ==============
