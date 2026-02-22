@@ -5,6 +5,7 @@ My Router - User self-service endpoints (attendance check-in/out, profile, onboa
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from datetime import datetime, timezone
+import uuid
 from .deps import get_db, APPROVAL_ROLES
 from .models import User
 from .auth import get_current_user
