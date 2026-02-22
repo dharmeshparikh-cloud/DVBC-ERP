@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://consulting-flow.preview.emergentagent.com",
+      "value": "https://backend-refactor-fix.preview.emergentagent.com",
       "type": "string"
     },
     {
