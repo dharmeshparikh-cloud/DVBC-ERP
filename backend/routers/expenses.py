@@ -216,7 +216,7 @@ async def update_expense(expense_id: str, data: dict, current_user: User = Depen
 
 @router.delete("/{expense_id}")
 async def delete_expense(expense_id: str, current_user: User = Depends(get_current_user)):
-    """Delete an expense (only draft, pending, or rejected)."""
+    """Delete an expense (only draft, pending, revision_required, or rejected)."""
     db = get_db()
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
@@ -227,13 +227,48 @@ async def delete_expense(expense_id: str, current_user: User = Depends(get_curre
     if expense["created_by"] != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to delete this expense")
     
-    # Cannot delete approved expenses
-    if expense["status"] == "approved":
-        raise HTTPException(status_code=400, detail="Cannot delete approved expenses")
+    # Cannot delete approved or processing expenses
+    if expense["status"] in ["approved", "hr_approved"]:
+        raise HTTPException(status_code=400, detail="Cannot delete expenses in approval process or already approved")
     
     await db.expenses.delete_one({"id": expense_id})
     
     return {"message": "Expense deleted"}
+
+
+@router.post("/{expense_id}/withdraw")
+async def withdraw_expense(expense_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Withdraw a pending expense request.
+    Can only be done by the expense owner while status is pending.
+    """
+    db = get_db()
+    
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # Only owner can withdraw
+    if expense["created_by"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the expense creator can withdraw")
+    
+    # Can only withdraw pending expenses
+    if expense["status"] not in ["pending", "revision_required"]:
+        raise HTTPException(status_code=400, detail=f"Cannot withdraw expense in '{expense['status']}' status")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.expenses.update_one(
+        {"id": expense_id},
+        {"$set": {
+            "status": "withdrawn",
+            "withdrawn_at": now,
+            "withdrawn_by": current_user.id,
+            "updated_at": now
+        }}
+    )
+    
+    return {"message": "Expense withdrawn successfully", "status": "withdrawn"}
 
 
 # Expense approval threshold - below this HR approves directly, above needs Admin
