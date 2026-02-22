@@ -14,6 +14,7 @@ import ViewToggle from '../components/ViewToggle';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { StageResumeBar } from '../components/sales-funnel/BusinessLogicUI';
 
 const Leads = () => {
   const { user } = useContext(AuthContext);
