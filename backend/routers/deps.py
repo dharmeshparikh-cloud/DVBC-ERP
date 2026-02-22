@@ -23,17 +23,29 @@ HR_ROLES = ["admin", "hr_manager", "hr_executive"]
 HR_ADMIN_ROLES = ["admin", "hr_manager"]
 
 # Sales department roles  
-SALES_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant", "employee"]
+SALES_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant", "executive"]
 SALES_MANAGER_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant"]
+SALES_EXECUTIVE_ROLES = ["admin", "executive", "sales_manager"]
 
 # Project management roles
 PROJECT_ROLES = ["admin", "project_manager", "manager"]
+PROJECT_PM_ROLES = ["admin", "project_manager", "principal_consultant", "senior_consultant", "manager"]
+
+# Consulting roles
+CONSULTING_ROLES = ["admin", "consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert"]
+SENIOR_CONSULTING_ROLES = ["admin", "principal_consultant", "senior_consultant", "project_manager"]
 
 # Finance roles
 FINANCE_ROLES = ["admin", "finance_manager"]
 
 # All manager-level roles
 MANAGER_ROLES = ["admin", "manager", "sr_manager", "sales_manager", "hr_manager", "project_manager", "principal_consultant"]
+
+# Approval roles (can approve various requests)
+APPROVAL_ROLES = ["admin", "manager", "hr_manager", "project_manager", "principal_consultant"]
+
+# HR + Project Manager (for attendance, etc.)
+HR_PM_ROLES = ["admin", "hr_manager", "hr_executive", "project_manager"]
 
 # Default pagination limits
 DEFAULT_PAGE_SIZE = 100
