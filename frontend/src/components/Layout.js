@@ -78,9 +78,10 @@ const Layout = () => {
   const canEditFlag = departmentAccess?.can_edit !== false; // Default to true if not set
   const isViewOnly = departmentAccess?.is_view_only || false;
   
-  // Combined visibility: Department-based OR has team (for approvals)
-  const showHR = hasDepartment('HR') || HR_ROLES.includes(role) || hasReportees;
-  const showSales = hasDepartment('Sales') || SALES_ROLES_NAV.includes(role);
+  // Combined visibility: Department-based (PRIMARY) with strict role checks
+  // Sales Executive should NOT see HR section - only HR department or HR roles
+  const showHR = hasDepartment('HR') || (HR_ROLES.includes(role) && role !== 'executive');
+  const showSales = hasDepartment('Sales') || SALES_ROLES_NAV.includes(role) || role === 'executive';
   const showConsulting = hasDepartment('Consulting') || CONSULTING_ROLES_NAV.includes(role);
   const showFinance = hasDepartment('Finance');
   const showAdmin = hasDepartment('Admin') || ADMIN_ROLES.includes(role);
