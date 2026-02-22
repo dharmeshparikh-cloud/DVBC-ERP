@@ -108,9 +108,9 @@ async def get_pending_approvals(current_user: User = Depends(get_current_user)):
     expenses = []
     
     if is_hr_admin:
-        # HR/Admin can see all pending and manager_approved expenses
+        # HR/Admin can see all pending, manager_approved, revision_required expenses
         expenses = await db.expenses.find(
-            {"status": {"$in": ["pending", "manager_approved", "approved", "rejected"]}},
+            {"status": {"$in": ["pending", "manager_approved", "hr_approved", "revision_required", "approved", "rejected"]}},
             {"_id": 0}
         ).sort("created_at", -1).to_list(200)
     elif is_manager:
@@ -120,14 +120,14 @@ async def get_pending_approvals(current_user: User = Depends(get_current_user)):
                 {"current_approver_id": current_user.id},
                 {"reporting_manager_id": emp_code} if emp_code else {"current_approver_id": current_user.id}
             ],
-            "status": {"$in": ["pending", "approved", "rejected"]}
+            "status": {"$in": ["pending", "revision_required", "approved", "rejected"]}
         }
         expenses = await db.expenses.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
     else:
         # Check if user is a reporting manager for anyone
         if emp_code:
             expenses = await db.expenses.find(
-                {"reporting_manager_id": emp_code, "status": {"$in": ["pending", "approved", "rejected"]}},
+                {"reporting_manager_id": emp_code, "status": {"$in": ["pending", "revision_required", "approved", "rejected"]}},
                 {"_id": 0}
             ).sort("created_at", -1).to_list(200)
     
