@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://leads-fix-validation.preview.emergentagent.com",
+      "value": "https://business-logic-ui.preview.emergentagent.com",
       "type": "string"
     },
     {
