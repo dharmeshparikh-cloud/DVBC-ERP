@@ -143,7 +143,7 @@ async def get_payroll_inputs(month: str, current_user: User = Depends(get_curren
 @router.post("/inputs")
 async def save_payroll_input(data: dict, current_user: User = Depends(get_current_user)):
     """Save payroll input for a single employee for a month (Admin/HR only)."""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update payroll inputs")
     db = get_db()
     employee_id = data.get("employee_id")
@@ -184,7 +184,7 @@ async def save_payroll_input(data: dict, current_user: User = Depends(get_curren
 @router.post("/inputs/bulk")
 async def save_payroll_inputs_bulk(data: dict, current_user: User = Depends(get_current_user)):
     """Save payroll inputs for multiple employees (Admin/HR only)"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can update payroll inputs")
     db = get_db()
     month = data.get("month")
@@ -214,7 +214,7 @@ async def get_salary_slips(employee_id: Optional[str] = None, month: Optional[st
         query["employee_id"] = employee_id
     if month:
         query["month"] = month
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
         if emp:
             query["employee_id"] = emp["id"]
@@ -227,7 +227,7 @@ async def get_salary_slips(employee_id: Optional[str] = None, month: Optional[st
 @router.post("/generate-slip")
 async def generate_salary_slip(data: dict, current_user: User = Depends(get_current_user)):
     """Generate salary slip for an employee. Admin/HR only."""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can generate salary slips")
     db = get_db()
     employee_id = data.get("employee_id")
@@ -514,7 +514,7 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
 @router.post("/generate-bulk")
 async def generate_bulk_salary_slips(data: dict, current_user: User = Depends(get_current_user)):
     """Generate salary slips for all active employees for a month"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can generate salary slips")
     db = get_db()
     month = data.get("month")
@@ -534,7 +534,7 @@ async def generate_bulk_salary_slips(data: dict, current_user: User = Depends(ge
 @router.get("/linkage-summary")
 async def get_payroll_linkage_summary(month: str, current_user: User = Depends(get_current_user)):
     """Get summary of all payroll linkages for a month - attendance, leaves, expenses"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view payroll linkage summary")
     db = get_db()
     
@@ -602,7 +602,7 @@ async def get_payroll_linkage_summary(month: str, current_user: User = Depends(g
 @router.get("/pending-reimbursements")
 async def get_pending_reimbursements(month: Optional[str] = None, current_user: User = Depends(get_current_user)):
     """Get all pending expense reimbursements for payroll processing"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view pending reimbursements")
     db = get_db()
     
@@ -624,7 +624,7 @@ async def get_pending_reimbursements(month: Optional[str] = None, current_user: 
 @router.get("/summary-report")
 async def get_payroll_summary_report(month: str, current_user: User = Depends(get_current_user)):
     """Get payroll summary report for a month with department breakdown"""
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can view payroll reports")
     db = get_db()
     
@@ -732,7 +732,7 @@ async def get_payroll_summary_report(month: str, current_user: User = Depends(ge
 @router.post("/generate-summary-report")
 async def generate_summary_report(data: dict, current_user: User = Depends(get_current_user)):
     """Generate and save a payroll summary report"""
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only HR Manager/Admin can generate reports")
     db = get_db()
     
@@ -763,7 +763,7 @@ async def generate_summary_report(data: dict, current_user: User = Depends(get_c
 @router.get("/generated-reports")
 async def get_generated_reports(current_user: User = Depends(get_current_user)):
     """Get list of generated payroll reports"""
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can view reports")
     db = get_db()
     
