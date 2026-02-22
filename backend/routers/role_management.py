@@ -235,7 +235,7 @@ async def create_role_request(
     """HR creates a request to add a new role (requires Admin approval)."""
     db = get_db()
     
-    if current_user.role not in ["hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can create role requests")
     
     # Check if role already exists
@@ -303,7 +303,7 @@ async def get_role_requests(
         # Admin sees all
         if status:
             query["status"] = status
-    elif current_user.role in ["hr_manager", "hr_executive"]:
+    elif current_user.role in HR_ROLES:
         # HR sees their own requests
         query["submitted_by"] = current_user.id
         if status:
@@ -425,7 +425,7 @@ async def create_role_assignment_request(
     """HR requests to assign a role and level to an employee (requires Admin approval)."""
     db = get_db()
     
-    if current_user.role not in ["hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can create assignment requests")
     
     # Validate employee exists
