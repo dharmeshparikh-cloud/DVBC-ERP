@@ -9,7 +9,7 @@ import uuid
 import base64
 
 from .models import User, UserRole
-from .deps import get_db, sanitize_text
+from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, ADMIN_ROLES, sanitize_text
 from .auth import get_current_user, get_password_hash
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
@@ -54,7 +54,7 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
     """Create a new employee."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can create employees")
     
     # Validate email format
@@ -239,7 +239,7 @@ async def grant_employee_access(
     """
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can grant access")
     
     # Find employee by either id (UUID) or employee_id (EMP001)
@@ -343,7 +343,7 @@ async def reset_employee_temp_password(employee_id: str, current_user: User = De
     """
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can reset passwords")
     
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
@@ -385,7 +385,7 @@ async def revoke_employee_access(employee_id: str, current_user: User = Depends(
     """Revoke portal access from an employee."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can revoke access")
     
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
@@ -412,7 +412,7 @@ async def fix_missing_levels(current_user: User = Depends(get_current_user)):
     """Update all employees without a level to have 'executive' as default."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can fix levels")
     
     # Find employees without level or with null level
@@ -444,7 +444,7 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
     """Update an employee's details. For onboarded employees, changes require admin approval."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can update employees")
     
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
@@ -679,7 +679,7 @@ async def delete_employee(employee_id: str, current_user: User = Depends(get_cur
     """Delete (soft delete) an employee."""
     db = get_db()
     
-    if current_user.role not in ["admin"]:
+    if current_user.role not in ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin can delete employees")
     
     employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
@@ -743,7 +743,7 @@ async def delete_employee_document(employee_id: str, document_id: str, current_u
     """Delete an employee document."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only Admin/HR can delete documents")
     
     result = await db.employee_documents.delete_one({"id": document_id, "employee_id": employee_id})
@@ -824,7 +824,7 @@ async def get_employee_stats(current_user: User = Depends(get_current_user)):
     """Get employee statistics summary."""
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager", "hr_executive"]:
+    if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can view employee stats")
     
     total = await db.employees.count_documents({})
