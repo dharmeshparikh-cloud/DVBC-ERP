@@ -193,6 +193,15 @@ from routers import stage_guard as stage_guard_router
 # Drafts (new - auto-save functionality)
 from routers import drafts as drafts_router
 
+# Enhanced Permission System (new)
+from routers import permissions as permissions_router
+
+# Consolidated My Router (new)
+from routers import my_consolidated as my_consolidated_router
+
+# Manager Router (new - team data)
+from routers import manager as manager_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
