@@ -13,7 +13,36 @@
 
 ## Completed Work - February 2026
 
-### Phase 17: Regression Memory Layer & Security Hardening - February 22, 2026 ✅ (Latest)
+### Phase 18: Broken Pages Fix - February 22, 2026 ✅ (Latest)
+
+**Fixed 6 Broken Pages:**
+- ✅ `/my-leaves` - Added missing `/api/my/leave-balance` endpoint
+- ✅ `/my-details` - Fixed `/api/my/profile` to handle users without employee records
+- ✅ `/leave-management` - Working, added date validation for invalid formats
+- ✅ `/timesheets` - Fixed Array/Object response handling, null safety checks
+- ✅ `/team-performance` - Added route to main layout
+- ✅ `/meetings` - Added route to main layout
+
+**Backend API Additions (`/app/backend/routers/my.py`):**
+- ✅ `/api/my/leave-balance` - Returns user's leave balance
+- ✅ `/api/my/change-requests` - GET profile change requests
+- ✅ `/api/my/change-request` - POST new profile change request
+- ✅ `/api/my/profile` - Now gracefully handles users without employee records
+- ✅ `/api/my/guidance-state` - Added GET/POST for GuidanceContext (by testing agent)
+
+**Frontend Fixes:**
+- ✅ `MyLeaves.js` - Filter out leave requests without id field
+- ✅ `LeaveManagement.js` - Filter out items without id, validate dates
+- ✅ `Timesheets.js` - Handle array response, null safety for Object.values
+- ✅ `App.js` - Added `/meetings` and `/team-performance` to main routes
+
+**Regression Memory Updated:**
+- ✅ Added 6 new issues (#012-#017) with root causes and prevention rules
+- ✅ All fixes documented for future reference
+
+---
+
+### Phase 17: Regression Memory Layer & Security Hardening - February 22, 2026 ✅
 
 **Created Regression Memory Layer:**
 - ✅ `/app/memory/REGRESSION_MEMORY.md` - Documents ALL issues with root cause analysis
