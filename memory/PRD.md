@@ -13,15 +13,54 @@
 
 ## Completed Work - February 2026
 
-### Phase 22: Enterprise Permission System & API Consolidation - February 22, 2026 ✅ (Latest)
+### Phase 22: Enterprise Permission System & API Consolidation - February 22, 2026 ✅
 
 **Enhanced Permission System (`/app/backend/routers/permissions.py`):**
-- ✅ 47+ controllable feature flags organized by category (Sales, HR, Consulting, Finance, Admin, Personal)
+- ✅ 50 controllable feature flags organized by category (Sales, HR, Consulting, Finance, Admin, Personal)
 - ✅ Employee-level permission overrides (grant/revoke beyond role defaults)
 - ✅ Sidebar visibility mapping to feature permissions
 - ✅ Bulk permission update API for multiple employees
 - ✅ Approval configuration system (dual/multi-approval support)
 - ✅ Permission check utility for real-time access control
+
+---
+
+### Phase 23: Sales Funnel Business Logic & Audit System - February 22, 2026 ✅ (Latest)
+
+**Sales Funnel Business Logic (`/app/backend/routers/sales_funnel_logic.py`):**
+- ✅ **Stage Resume** - `/sales-funnel/stage-status/{lead_id}` returns current stage and context
+- ✅ **Stage Resume** - `/sales-funnel/resume-stage` returns stage data for continuation
+- ✅ **Deal Renewal** - `/sales-funnel/renew-deal` creates new lead from closed deal
+- ✅ **Dual Approval** - `/sales-funnel/request-approval` submits for dual/multi approval
+- ✅ **Dual Approval** - `/sales-funnel/approve` records individual approvals
+- ✅ **Client Consent** - `/sales-funnel/send-consent-request` sends token-based consent email
+- ✅ **Client Consent** - `/sales-funnel/submit-consent` records client decision
+- ✅ **Multi-Party Kickoff** - `/sales-funnel/kickoff-approval` handles consultant/principal/client approvals
+- ✅ **Kickoff Status** - `/sales-funnel/kickoff-status/{lead_id}` shows approval progress
+
+**Approval Requirements (Configurable):**
+- Pricing: 2 approvers from [sales_manager, principal_consultant, admin]
+- SOW: 1 approver from [sales_manager, manager, admin]
+- Agreement: Client consent (token-based)
+- Kickoff: 3-party (senior_consultant, principal_consultant, client)
+
+**Expanded Audit Logging (`/app/backend/routers/audit_logging.py`):**
+- ✅ `/audit/logs` - Query logs with filters (action, entity, user, date range)
+- ✅ `/audit/logs/entity/{type}/{id}` - Complete audit trail for entity
+- ✅ `/audit/logs/user/{user_id}` - User action history
+- ✅ `/audit/summary` - Dashboard stats (by action, entity, user)
+- ✅ `/audit/security` - Security-specific events (logins, permission changes)
+- ✅ `log_audit()` function for logging from any router
+- ✅ `compute_changes()` function for before/after diff tracking
+
+**Employee ID Logic Fix (`/app/backend/routers/deps.py`):**
+- ✅ `EMPLOYEE_ROLES` - Roles requiring employee_id (internal staff)
+- ✅ `NON_EMPLOYEE_ROLES` - Roles without employee_id (client, vendor, system)
+- ✅ `validate_employee_id_for_role()` - Validates employee_id based on role
+
+---
+
+### Phase 22 (continued): API Consolidation
 
 **API Consolidation - `/my/*` Router (`/app/backend/routers/my_consolidated.py`):**
 - ✅ `/my/profile` - User profile
