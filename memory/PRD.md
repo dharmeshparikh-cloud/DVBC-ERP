@@ -13,7 +13,44 @@
 
 ## Completed Work - February 2026
 
-### Phase 11: Complete Server.py Refactoring - February 22, 2026 ✅ (Latest)
+### Phase 12: Project Completion & Timeline Management - February 22, 2026 ✅ (Latest)
+
+**1. Fixed Projects API Pydantic Validation (P0)**
+- ✅ Made all legacy fields Optional in Project model
+- ✅ Added data normalization for legacy records (project_name → name)
+- ✅ Restored `response_model=List[Project]` for strict validation
+- ✅ All 8 projects loading correctly with proper validation
+
+**2. Project Completion Validation System (New Router)**
+- ✅ Created `/app/backend/routers/project_completion.py`
+- ✅ Endpoints:
+  - `GET /api/project-completion/{id}/validate` - Validate completion eligibility
+  - `POST /api/project-completion/{id}/complete` - Complete project with validation
+  - `PATCH /api/project-completion/{id}/status` - Update status (blocks direct "completed")
+  - `GET /api/project-completion/pending-completion` - List projects ready to complete
+  - `POST /api/project-completion/recalculate-statuses` - Auto-recalculate all statuses
+  - `GET /api/project-completion/{id}/timeline` - Get timeline details
+
+**3. Project Timeline Auto-Calculation**
+- ✅ End Date = Kickoff Accept Date + Tenure Months (from pricing plan)
+- ✅ Updated `/app/backend/routers/kickoff.py` to set tenure and calculate end_date
+- ✅ Projects now store: `tenure_months`, `end_date`, `kickoff_accepted_at`
+
+**4. Auto-Status Calculation Logic**
+- `active` - Default, timeline not exceeded
+- `at_risk` - Timeline < 30 days remaining AND (payments incomplete OR deliverables < 80%)
+- `delayed` - Timeline exceeded but NOT completed
+- `completed` - Via completion endpoint only (validates timeline + payments)
+
+**5. Frontend Updates - Projects Page**
+- ✅ Added End Date display (prominent timeline section)
+- ✅ Added Days Remaining/Overdue indicator with color coding
+- ✅ Status badges: Active (green), At Risk (amber), Delayed (red), Completed (blue)
+- ✅ Tenure months display when available
+
+---
+
+### Phase 11: Complete Server.py Refactoring - February 22, 2026 ✅
 
 **MAJOR MILESTONE: Routers are now the single source of truth**
 
