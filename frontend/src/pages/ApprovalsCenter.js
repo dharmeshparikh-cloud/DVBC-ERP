@@ -1362,6 +1362,85 @@ const ApprovalsCenter = () => {
         </Card>
       )}
 
+      {/* Expense Approvals Section - For Managers and HR (merged from ExpenseApprovals) */}
+      {(isManager || isHR) && expenseApprovals.length > 0 && (
+        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`} data-testid="expense-approvals-section">
+          <CardHeader className="pb-3">
+            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
+              <Receipt className="w-5 h-5 text-emerald-500" />
+              Pending Expense Approvals ({expenseApprovals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {expenseApprovals.map((expense, idx) => (
+                <div 
+                  key={expense.id || idx}
+                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
+                  data-testid={`expense-approval-${expense.id}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                          {expense.employee_name || 'Employee'}
+                        </span>
+                        <Badge className={`${expense.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'} ${isDark ? 'dark:bg-amber-900/30 dark:text-amber-400' : ''}`}>
+                          {expense.status === 'pending' ? 'Pending Manager' : 'Pending HR'}
+                        </Badge>
+                      </div>
+                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        {expense.is_office_expense ? 'Office Expense' : (expense.client_name || expense.project_name || 'Expense')}
+                        {expense.notes && ` • ${expense.notes}`}
+                      </div>
+                      {expense.line_items?.length > 0 && (
+                        <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                          {expense.line_items.map(item => item.category).join(', ')}
+                        </div>
+                      )}
+                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        {expense.created_at && new Date(expense.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold text-emerald-600">
+                        ₹{(expense.total_amount || expense.amount || 0).toLocaleString('en-IN')}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedExpense(expense);
+                            setExpenseDetailDialog(true);
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                          disabled={actionLoading}
+                          data-testid={`approve-expense-${expense.id}`}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" /> Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            setSelectedExpense(expense);
+                            setExpenseDetailDialog(true);
+                          }}
+                          disabled={actionLoading}
+                          data-testid={`reject-expense-${expense.id}`}
+                        >
+                          <XCircle className="w-4 h-4 mr-1" /> Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Bank Change Approvals Section - For Admin and HR */}
       {(isAdmin || isHR) && bankApprovals.length > 0 && (
         <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
