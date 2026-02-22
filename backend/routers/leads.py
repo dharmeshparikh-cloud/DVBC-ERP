@@ -7,10 +7,13 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from .models import Lead, LeadCreate, LeadUpdate, User, UserRole, LeadStatus
-from .deps import get_db
+from .deps import get_db, SALES_ROLES, ADMIN_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
+
+# Role constants for this router
+LEADS_ACCESS_ROLES = SALES_ROLES + ADMIN_ROLES  # sales_*, admin
 
 
 def calculate_lead_score(lead_data: dict) -> tuple:
