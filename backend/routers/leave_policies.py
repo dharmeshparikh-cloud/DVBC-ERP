@@ -349,7 +349,7 @@ async def calculate_leave_balance(
     if join_date_str:
         try:
             join_date = datetime.strptime(join_date_str[:10], "%Y-%m-%d")
-        except:
+        except (ValueError, TypeError):
             join_date = datetime.now(timezone.utc) - relativedelta(months=12)
     else:
         join_date = datetime.now(timezone.utc) - relativedelta(months=12)
@@ -569,7 +569,7 @@ async def apply_policy_to_employee(
     
     await db.leave_policies.insert_one(emp_policy)
     
-    return {"message": f"Policy applied to employee", "new_policy_id": emp_policy["id"]}
+    return {"message": "Policy applied to employee", "new_policy_id": emp_policy["id"]}
 
 
 # ==================== PAYROLL INTEGRATION ====================
@@ -620,7 +620,7 @@ async def get_payroll_adjustments(
         "start_date": {"$gte": month_start, "$lt": month_end}
     }, {"_id": 0}).to_list(100)
     
-    total_lop_days = sum(l.get("days", 0) for l in lop_leaves)
+    total_lop_days = sum(leave.get("days", 0) for leave in lop_leaves)
     
     # Calculate LOP deduction
     lop_formula = payroll_config.get("lop_deduction_formula", "basic_per_day")
