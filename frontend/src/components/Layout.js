@@ -229,6 +229,7 @@ const Layout = () => {
     { name: 'HR Leave Input', href: '/hr-leave-input', icon: Calendar, requiresHRorAdmin: true },
     { name: 'HR Attendance Input', href: '/hr-attendance-input', icon: Clock, requiresHRorAdmin: true },
     { name: 'Attendance & Leave Settings', href: '/attendance-leave-settings', icon: Settings, requiresHRorAdmin: true },
+    { name: 'Leave Policy Management', href: '/leave-policy-settings', icon: Calendar, requiresHRorAdmin: true },
     { name: 'CTC & Payroll', href: '/ctc-designer', icon: Wallet, requiresApproval: true },
     { name: 'Payroll Summary Report', href: '/payroll-summary-report', icon: FileText, requiresHRorAdmin: true },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },
