@@ -33,9 +33,14 @@ const Layout = () => {
   const { theme, toggleTheme } = useTheme();
   const { pendingCounts } = useApprovals();
   const { permissions, level, canViewTeamData, canApproveRequests, canViewReports, canManageTeam, isManagerOrAbove, isLeader } = usePermissions();
+  const { getAccessMode, isGuidedMode } = useStageGuard();
   const location = useLocation();
   const role = user?.role;
   const isDark = theme === 'dark';
+  
+  // Get sales access mode for current user
+  const salesAccessMode = getAccessMode(role);
+  const isGuidedSalesMode = isGuidedMode(role);
   
   // Department-based access state
   const [departmentAccess, setDepartmentAccess] = useState(null);
