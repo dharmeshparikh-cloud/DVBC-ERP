@@ -375,44 +375,31 @@ const AgreementView = () => {
 
   const handleCreateKickoffRequest = async () => {
     if (!selectedPmId) {
-      toast.error('Please select a consultant to assign as Project Manager');
+      toast.error('Please select a Senior/Principal Consultant');
       return;
     }
 
     setCreatingKickoff(true);
     try {
-      const selectedConsultant = consultants.find(c => c.id === selectedPmId || c.user_id === selectedPmId);
-      
-      const kickoffData = {
+      // Use new endpoint that requires Admin approval
+      const response = await axios.post(`${API}/sales-funnel/request-kickoff`, {
+        lead_id: lead?.id || agreement?.lead_id,
         agreement_id: agreementId,
-        client_name: lead?.company || '',
-        project_name: `${lead?.company || 'Project'} - Consulting Engagement`,
-        project_type: 'mixed',
-        total_meetings: pricingPlan?.team_deployment?.reduce((sum, m) => sum + (m.committed_meetings || 0), 0) || 0,
-        meeting_frequency: agreement?.meeting_frequency || pricingPlan?.project_duration_type || 'Monthly',
-        project_tenure_months: agreement?.project_tenure_months || pricingPlan?.project_duration_months || 12,
-        expected_start_date: pricingPlan?.payment_plan?.start_date || null,
-        assigned_pm_id: selectedConsultant?.user_id || selectedPmId,
-        assigned_pm_name: selectedConsultant ? `${selectedConsultant.first_name || ''} ${selectedConsultant.last_name || ''}`.trim() : '',
-        notes: kickoffNotes || `Kickoff request created from Agreement ${agreement?.agreement_number}`
-      };
-
-      const response = await axios.post(`${API}/kickoff-requests`, kickoffData);
+        assigned_consultant_id: selectedPmId,
+        notes: kickoffNotes || `Kickoff request for Agreement ${agreement?.agreement_number}`
+      });
       
-      toast.success('Kickoff request created successfully!');
+      toast.success('Kickoff request submitted! Awaiting Admin approval.');
       setPmSelectionDialogOpen(false);
+      setSelectedPmId('');
+      setKickoffNotes('');
       
-      // Navigate to the kickoff requests page
-      navigate('/kickoff-requests');
     } catch (error) {
       const detail = error.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        const msg = detail.map(e => e.msg || e.message || 'Validation error').join(', ');
-        toast.error(msg);
-      } else if (typeof detail === 'string') {
+      if (typeof detail === 'string') {
         toast.error(detail);
       } else {
-        toast.error('Failed to create kickoff request');
+        toast.error('Failed to submit kickoff request');
       }
     } finally {
       setCreatingKickoff(false);
