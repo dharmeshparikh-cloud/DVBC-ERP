@@ -212,6 +212,94 @@ async def delete_yearly_sales_target(
     return {"message": "Target deleted successfully"}
 
 
+# ===== MANAGER ENDPOINTS =====
+
+@router.get("/manager/subordinate-leads")
+async def get_subordinate_leads(
+    current_user: User = Depends(get_current_user)
+):
+    """Get leads assigned to subordinates for managers"""
+    db = get_db()
+    
+    # Get subordinates
+    subordinates = await db.users.find(
+        {"reporting_manager_id": current_user.id, "is_active": True},
+        {"_id": 0, "id": 1, "name": 1, "email": 1}
+    ).to_list(100)
+    
+    sub_user_ids = [s['id'] for s in subordinates]
+    
+    # Get leads assigned to subordinates
+    leads = await db.leads.find(
+        {"assigned_to": {"$in": sub_user_ids}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    
+    return {
+        "subordinates": subordinates,
+        "leads": leads,
+        "total_leads": len(leads)
+    }
+
+
+@router.get("/manager/target-vs-achievement")
+async def get_target_vs_achievement(
+    year: int = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get target vs achievement summary for managers"""
+    db = get_db()
+    
+    if not year:
+        year = datetime.now(timezone.utc).year
+    
+    # Get subordinates
+    subordinates = await db.users.find(
+        {"reporting_manager_id": current_user.id, "is_active": True},
+        {"_id": 0, "id": 1}
+    ).to_list(100)
+    sub_user_ids = [s['id'] for s in subordinates]
+    
+    # Get employees for subordinates
+    employees = await db.employees.find(
+        {"user_id": {"$in": sub_user_ids}},
+        {"_id": 0, "employee_id": 1, "id": 1}
+    ).to_list(100)
+    emp_ids = [e.get('employee_id') or e.get('id') for e in employees]
+    
+    # Get targets for subordinates
+    targets = await db.yearly_sales_targets.find(
+        {"employee_id": {"$in": emp_ids}, "year": year},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Calculate total targets
+    total_target = 0
+    for target in targets:
+        monthly = target.get("monthly_targets", {})
+        total_target += sum(monthly.values()) if isinstance(monthly, dict) else 0
+    
+    # Get converted leads (closed won) for subordinates
+    closed_leads = await db.leads.find(
+        {"assigned_to": {"$in": sub_user_ids}, "stage": "CLOSED"},
+        {"_id": 0, "expected_revenue": 1}
+    ).to_list(500)
+    
+    total_achieved = sum(lead.get("expected_revenue", 0) or 0 for lead in closed_leads)
+    
+    # Get total unique clients
+    clients = await db.clients.count_documents({"created_by": {"$in": sub_user_ids}})
+    
+    return {
+        "year": year,
+        "total_target": total_target,
+        "total_achieved": total_achieved,
+        "achievement_percentage": round((total_achieved / total_target * 100) if total_target > 0 else 0, 2),
+        "total_clients": clients,
+        "subordinate_count": len(subordinates)
+    }
+
+
 @router.patch("/sales-targets/{target_id}/approve")
 async def approve_sales_target(
     target_id: str,
