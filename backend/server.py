@@ -258,6 +258,9 @@ api_router.include_router(leave_requests_router.router)
 # Project Completion
 api_router.include_router(project_completion_router.router)
 
+# Drafts
+api_router.include_router(drafts_router.router)
+
 # Include all API routes under /api prefix
 app.include_router(api_router)
 
