@@ -8,7 +8,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from .models import User, UserRole, DEFAULT_ROLES
-from .deps import get_db, sanitize_text
+from .deps import get_db, sanitize_text, HR_ADMIN_ROLES
 from .auth import get_current_user, get_password_hash
 
 router = APIRouter(tags=["Users"])
@@ -69,7 +69,7 @@ async def set_reporting_manager(
     """
     db = get_db()
     
-    if current_user.role not in ["admin", "hr_manager"]:
+    if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only admin or HR manager can set reporting managers")
     
     # Get the employee record for this user
