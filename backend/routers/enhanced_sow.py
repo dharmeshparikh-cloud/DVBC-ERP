@@ -11,15 +11,9 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 import uuid
 import base64
+from .deps import get_db
 
 router = APIRouter(prefix="/enhanced-sow", tags=["Enhanced SOW"])
-
-# Database connection - will be set by main server
-db = None
-
-def set_db(database):
-    global db
-    db = database
 
 
 # ============== Role Check Helpers ==============
