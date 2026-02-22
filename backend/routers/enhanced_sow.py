@@ -69,6 +69,7 @@ async def request_manager_approval(
     current_user_name: str = "Unknown"
 ):
     """Request approval from reporting manager for specific scopes"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -121,6 +122,7 @@ async def create_sow_from_sales_selection(
     Sales team creates SOW by selecting scopes from master.
     Creates original scope snapshot (locked) and working scopes.
     """
+    db = get_db()
     # Verify pricing plan exists
     plan = await db.pricing_plans.find_one({"id": pricing_plan_id}, {"_id": 0})
     if not plan:
@@ -279,6 +281,7 @@ async def complete_sales_handover(
     current_user_role: str = "admin"
 ):
     """Mark sales handover as complete - locks original snapshot"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -303,6 +306,7 @@ async def complete_sales_handover(
 @router.get("/{sow_id}")
 async def get_enhanced_sow(sow_id: str, current_user_role: str = "admin"):
     """Get enhanced SOW - consulting team doesn't see pricing data"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -319,6 +323,7 @@ async def get_enhanced_sow(sow_id: str, current_user_role: str = "admin"):
 @router.get("/by-pricing-plan/{pricing_plan_id}")
 async def get_enhanced_sow_by_pricing_plan(pricing_plan_id: str, current_user_role: str = "admin"):
     """Get enhanced SOW by pricing plan ID"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="Enhanced SOW not found for this pricing plan")
@@ -341,6 +346,7 @@ async def update_scope_item(
     current_user_role: str = "consultant"
 ):
     """Update scope item - consulting team updates progress"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -434,6 +440,7 @@ async def add_scope_item(
     current_user_role: str = "consultant"
 ):
     """Add new scope - consulting team can add but NOT delete"""
+    db = get_db()
     if not can_add_scopes(current_user_role):
         raise HTTPException(
             status_code=403,
@@ -584,6 +591,7 @@ async def upload_scope_attachment(
 @router.get("/{sow_id}/scopes/{scope_id}/attachments/{attachment_id}")
 async def download_scope_attachment(sow_id: str, scope_id: str, attachment_id: str):
     """Download attachment"""
+    db = get_db()
     attachment_data = await db.sow_attachments.find_one({"id": attachment_id}, {"_id": 0})
     if not attachment_data:
         raise HTTPException(status_code=404, detail="Attachment not found")
@@ -613,6 +621,7 @@ async def submit_roadmap_for_approval(
     current_user_name: str = "Unknown"
 ):
     """Submit current roadmap for client approval"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -665,6 +674,7 @@ async def record_client_approval_response(
     current_user_name: str = "Unknown"
 ):
     """Record client's response to roadmap approval request"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -730,6 +740,7 @@ async def upload_consent_document(
     current_user_name: str = "Unknown"
 ):
     """Upload client consent document (email screenshot, signed doc)"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -778,6 +789,7 @@ async def upload_consent_document(
 @router.get("/{sow_id}/variance-report")
 async def get_scope_variance_report(sow_id: str):
     """Get variance report: Original vs Current scopes"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -845,6 +857,7 @@ async def get_scope_variance_report(sow_id: str):
 @router.get("/{sow_id}/change-log")
 async def get_full_change_log(sow_id: str):
     """Get complete change log across all scopes"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -876,6 +889,7 @@ async def create_scope_task(
     current_user_name: str = "Unknown"
 ):
     """Create a task under a specific scope"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -939,6 +953,7 @@ async def update_scope_task(
     current_user_name: str = "Unknown"
 ):
     """Update a task within a scope"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -993,6 +1008,7 @@ async def upload_task_attachment(
     current_user_name: str = "Unknown"
 ):
     """Upload attachment to a task"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -1067,6 +1083,7 @@ async def request_task_approval(
     Initiate approval request for a task.
     Parallel approval flow: Manager and Client approve independently.
     """
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -1168,6 +1185,7 @@ async def approve_task(
     Approval type: 'manager' or 'client'
     Both can approve independently (parallel).
     """
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -1269,6 +1287,7 @@ async def get_pending_task_approvals(
     current_user_role: str = "consultant"
 ):
     """Get all tasks pending approval for this SOW"""
+    db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
         raise HTTPException(status_code=404, detail="SOW not found")
@@ -1295,6 +1314,7 @@ async def get_sow_history(
     Get complete change history for a SOW.
     Only visible to: Reporting Manager, Project Manager, Principal Consultant, Admin
     """
+    db = get_db()
     # Check permission
     allowed_roles = ["admin", "principal_consultant", "project_manager", "manager", "reporting_manager"]
     if current_user_role not in allowed_roles:
@@ -1390,6 +1410,7 @@ async def get_project_sow(
     Shows the SOW linked to the project (inherited from sales flow).
     Access: Assigned Consultant (view only), PM/Principal/Admin (edit)
     """
+    db = get_db()
     # Get project
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
     if not project:
