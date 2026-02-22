@@ -116,9 +116,14 @@ const Layout = () => {
   useEffect(() => {
     const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
     if (savedScrollPosition && sidebarNavRef.current) {
-      sidebarNavRef.current.scrollTop = parseInt(savedScrollPosition, 10);
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        if (sidebarNavRef.current) {
+          sidebarNavRef.current.scrollTop = parseInt(savedScrollPosition, 10);
+        }
+      }, 50);
     }
-  }, []);
+  }, [location.pathname]);
 
   // Save scroll position when it changes
   const handleSidebarScroll = useCallback((e) => {
