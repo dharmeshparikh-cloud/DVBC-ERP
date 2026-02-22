@@ -1046,6 +1046,49 @@ async def upload_receipt(expense_id: str, data: dict, current_user: User = Depen
     return {"message": "Receipt uploaded", "receipt_id": receipt["id"]}
 
 
+@router.get("/{expense_id}/receipts")
+async def get_expense_receipts(expense_id: str, current_user: User = Depends(get_current_user)):
+    """Get all receipts for an expense."""
+    db = get_db()
+    
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    receipts = expense.get("receipts", [])
+    
+    # Return receipts without full file data for listing (to reduce payload)
+    receipt_list = []
+    for r in receipts:
+        receipt_list.append({
+            "id": r.get("id"),
+            "file_name": r.get("file_name"),
+            "file_type": r.get("file_type"),
+            "uploaded_at": r.get("uploaded_at"),
+            "has_data": bool(r.get("file_data"))
+        })
+    
+    return {"receipts": receipt_list, "count": len(receipt_list)}
+
+
+@router.get("/{expense_id}/receipts/{receipt_id}")
+async def get_expense_receipt(expense_id: str, receipt_id: str, current_user: User = Depends(get_current_user)):
+    """Get a specific receipt with file data for download."""
+    db = get_db()
+    
+    expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    receipts = expense.get("receipts", [])
+    receipt = next((r for r in receipts if r.get("id") == receipt_id), None)
+    
+    if not receipt:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    
+    return receipt
+
+
 @router.delete("/{expense_id}/receipts/{receipt_id}")
 async def delete_receipt(expense_id: str, receipt_id: str, current_user: User = Depends(get_current_user)):
     """Delete a receipt from an expense."""
