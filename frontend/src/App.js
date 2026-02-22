@@ -220,6 +220,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="ctc-designer" element={<CTCDesigner />} />
         <Route path="document-center" element={<DocumentCenter />} />
         <Route path="document-builder" element={<DocumentCenter />} />
+        <Route path="letter-management" element={<DocumentCenter />} />
         <Route path="my-attendance" element={<MyAttendance />} />
         <Route path="my-leaves" element={<MyLeaves />} />
         <Route path="my-salary-slips" element={<MySalarySlips />} />
