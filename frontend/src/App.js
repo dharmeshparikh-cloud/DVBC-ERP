@@ -6,6 +6,8 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ApprovalProvider } from './contexts/ApprovalContext';
 import { PermissionProvider } from './contexts/PermissionContext';
 import { GuidanceProvider } from './contexts/GuidanceContext';
+import { StageGuardProvider } from './contexts/StageGuardContext';
+import StageGuardDialog from './components/StageGuardDialog';
 
 // Critical paths - keep as regular imports for fast initial load
 import Login from './pages/Login';
