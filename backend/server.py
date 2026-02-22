@@ -184,6 +184,9 @@ from routers import project_completion as project_completion_router
 # Pricing Plans (new)
 from routers import pricing_plans as pricing_plans_router
 
+# Stage Guard (new - guided workflow)
+from routers import stage_guard as stage_guard_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
