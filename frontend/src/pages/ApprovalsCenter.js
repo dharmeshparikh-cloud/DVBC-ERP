@@ -1215,21 +1215,21 @@ const ApprovalsCenter = () => {
         </Card>
       )}
 
-      {/* Kickoff Request Approvals Section - For Sr. Managers/Principals/Admin */}
-      {(isAdmin || user?.role === 'sr_manager' || user?.role === 'principal_consultant') && kickoffApprovals.length > 0 && (
+      {/* Kickoff Request Approvals Section - Admin Only */}
+      {isAdmin && kickoffApprovals.length > 0 && (
         <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`} data-testid="kickoff-approvals-section">
           <CardHeader className="pb-3">
             <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
               <Briefcase className="w-5 h-5 text-pink-500" />
               Pending Kickoff Requests ({kickoffApprovals.length})
-              <Badge className="bg-pink-100 text-pink-700 ml-2">Single Approval Point</Badge>
+              <Badge className="bg-pink-100 text-pink-700 ml-2">Admin Approval Required</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {kickoffApprovals.map((request, idx) => (
                 <div 
-                  key={idx}
+                  key={request.id || idx}
                   className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
                   data-testid={`kickoff-approval-${request.id}`}
                 >
@@ -1237,62 +1237,30 @@ const ApprovalsCenter = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                          {request.project_name || 'Unnamed Project'}
+                          {request.lead_company || 'Kickoff Request'}
                         </span>
                         <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
                           Kickoff Request
                         </Badge>
                       </div>
                       <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                        <span>Client: <strong>{request.client_name}</strong></span>
-                        {request.project_type && (
-                          <>
-                            <span className="mx-2">•</span>
-                            <span>Type: {request.project_type}</span>
-                          </>
-                        )}
-                        {request.project_tenure_months && (
-                          <>
-                            <span className="mx-2">•</span>
-                            <span>Tenure: {request.project_tenure_months} months</span>
-                          </>
-                        )}
+                        Assign to: <strong>{request.consultant_name}</strong>
+                        <Badge className="ml-2 text-xs" variant="outline">
+                          {request.consultant_role === 'principal_consultant' ? 'Principal Consultant' : 'Senior Consultant'}
+                        </Badge>
                       </div>
                       <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                         Requested by: <strong>{request.requested_by_name || 'Unknown'}</strong>
                         <span className="mx-2">•</span>
-                        {request.created_at && new Date(request.created_at).toLocaleDateString()}
+                        {request.requested_at && new Date(request.requested_at).toLocaleDateString()}
                       </div>
-                      {request.lead && (
-                        <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                          Lead: {request.lead.first_name} {request.lead.last_name} ({request.lead.company})
+                      {request.notes && (
+                        <div className={`text-xs mt-1 italic ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                          "{request.notes}"
                         </div>
                       )}
-                      {request.agreement && (
-                        <div className={`text-xs mt-1 text-emerald-600`}>
-                          Agreement: {request.agreement.agreement_number} - {formatCurrency(request.agreement.total_value)}
-                        </div>
-                      )}
-                      <div className={`text-xs mt-2 font-medium ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          Pending approval from: <strong>Sr. Manager / Principal Consultant</strong>
-                        </span>
-                      </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { 
-                          setSelectedKickoff(request); 
-                          setKickoffDetailDialog(true); 
-                        }}
-                        className={isDark ? 'border-zinc-600' : ''}
-                        data-testid={`view-kickoff-${request.id}`}
-                      >
-                        <Eye className="w-4 h-4 mr-1" /> View
-                      </Button>
                       <Button
                         size="sm"
                         onClick={() => handleKickoffAction(request.id, 'approve')}
