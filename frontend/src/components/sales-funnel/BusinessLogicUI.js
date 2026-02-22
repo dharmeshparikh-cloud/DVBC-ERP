@@ -196,17 +196,13 @@ export const KickoffRequestPanel = ({
   const fetchConsultants = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/users?roles=senior_consultant,principal_consultant`, {
+      const response = await fetch(`${API}/sales-funnel/consulting-team`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
         const data = await response.json();
-        // Filter to only show senior_consultant and principal_consultant
-        const filtered = (data.users || data || []).filter(u => 
-          u.role === 'senior_consultant' || u.role === 'principal_consultant'
-        );
-        setConsultants(filtered);
+        setConsultants(data.consultants || []);
       }
     } catch (error) {
       console.error('Error fetching consultants:', error);
