@@ -180,7 +180,7 @@ async def get_expense(expense_id: str, current_user: User = Depends(get_current_
 
 @router.patch("/{expense_id}")
 async def update_expense(expense_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Update an expense."""
+    """Update an expense (allowed for draft, pending, rejected, or revision_required)."""
     db = get_db()
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
@@ -191,11 +191,21 @@ async def update_expense(expense_id: str, data: dict, current_user: User = Depen
     if expense["created_by"] != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to update this expense")
     
-    if expense["status"] not in ["draft", "rejected"]:
-        raise HTTPException(status_code=400, detail="Can only update draft or rejected expenses")
+    # Can update draft, pending, rejected, or revision_required expenses
+    if expense["status"] not in ["draft", "pending", "rejected", "revision_required"]:
+        raise HTTPException(status_code=400, detail=f"Cannot update expense in '{expense['status']}' status")
     
     if "description" in data:
         data["description"] = sanitize_text(data["description"])
+    
+    if "notes" in data:
+        data["notes"] = sanitize_text(data["notes"])
+    
+    # Update line items and recalculate total
+    if "line_items" in data:
+        data["total_amount"] = sum(item.get("amount", 0) for item in data["line_items"])
+        # Re-evaluate if admin approval is required based on new amount
+        data["requires_admin_approval"] = data["total_amount"] >= 2000
     
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
