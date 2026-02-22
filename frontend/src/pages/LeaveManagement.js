@@ -119,7 +119,7 @@ const LeaveManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {displayRequests.map(req => (
+              {displayRequests.filter(req => req.id).map(req => (
                 <tr key={req.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`leave-row-${req.id}`}>
                   {activeTab === 'all' && <td className="px-4 py-3 font-medium text-zinc-950">{req.employee_name}</td>}
                   <td className="px-4 py-3 text-zinc-700">{req.leave_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
