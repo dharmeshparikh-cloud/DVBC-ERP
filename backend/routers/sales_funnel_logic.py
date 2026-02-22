@@ -1136,6 +1136,119 @@ async def get_my_kickoff_requests(
     return {"requests": requests}
 
 
+@router.post("/kickoff-request/{request_id}/attachments")
+async def upload_kickoff_attachment(
+    request_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload attachment to a kickoff request (e.g., SOW, agreement, project docs)."""
+    db = get_db()
+    
+    kickoff_req = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff_req:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    # Only requester or admin can upload
+    if kickoff_req.get("requested_by") != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    attachment = {
+        "id": str(uuid.uuid4()),
+        "file_name": data.get("file_name"),
+        "file_type": data.get("file_type"),
+        "file_data": data.get("file_data"),  # Base64 encoded
+        "description": data.get("description", ""),
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": current_user.full_name,
+        "uploaded_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$push": {"attachments": attachment}}
+    )
+    
+    return {"message": "Attachment uploaded", "attachment_id": attachment["id"]}
+
+
+@router.get("/kickoff-request/{request_id}/attachments")
+async def get_kickoff_attachments(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get attachments for a kickoff request."""
+    db = get_db()
+    
+    kickoff_req = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff_req:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    attachments = kickoff_req.get("attachments", [])
+    
+    # Return list without file data
+    attachment_list = []
+    for a in attachments:
+        attachment_list.append({
+            "id": a.get("id"),
+            "file_name": a.get("file_name"),
+            "file_type": a.get("file_type"),
+            "description": a.get("description"),
+            "uploaded_by_name": a.get("uploaded_by_name"),
+            "uploaded_at": a.get("uploaded_at"),
+            "has_data": bool(a.get("file_data"))
+        })
+    
+    return {"attachments": attachment_list, "count": len(attachment_list)}
+
+
+@router.get("/kickoff-request/{request_id}/attachments/{attachment_id}")
+async def get_kickoff_attachment(
+    request_id: str,
+    attachment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific attachment with file data for download."""
+    db = get_db()
+    
+    kickoff_req = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff_req:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    attachments = kickoff_req.get("attachments", [])
+    attachment = next((a for a in attachments if a.get("id") == attachment_id), None)
+    
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    
+    return attachment
+
+
+@router.delete("/kickoff-request/{request_id}/attachments/{attachment_id}")
+async def delete_kickoff_attachment(
+    request_id: str,
+    attachment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an attachment from a kickoff request."""
+    db = get_db()
+    
+    kickoff_req = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff_req:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
+    
+    # Only requester or admin can delete
+    if kickoff_req.get("requested_by") != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$pull": {"attachments": {"id": attachment_id}}}
+    )
+    
+    return {"message": "Attachment deleted"}
+
+
 @router.get("/consulting-team")
 async def get_consulting_team(
     current_user: User = Depends(get_current_user)
