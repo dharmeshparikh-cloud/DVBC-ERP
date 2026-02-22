@@ -322,16 +322,16 @@ const ApprovalsCenter = () => {
     }
   };
 
-  // Handle kickoff request approval/rejection
+  // Handle kickoff request approval/rejection (Admin only)
   const handleKickoffAction = async (requestId, action) => {
     setActionLoading(true);
     try {
       if (action === 'approve') {
-        await axios.post(`${API}/kickoff-requests/${requestId}/approve`);
-        toast.success('Kickoff request approved! Deal marked as accepted.');
+        await axios.post(`${API}/sales-funnel/approve-kickoff/${requestId}`);
+        toast.success('Kickoff request approved! Consultant assigned.');
       } else {
-        const reason = rejectReason || 'Rejected by approver';
-        await axios.post(`${API}/kickoff-requests/${requestId}/reject`, { rejection_reason: reason });
+        const reason = rejectReason || 'Rejected by Admin';
+        await axios.post(`${API}/sales-funnel/reject-kickoff/${requestId}?reason=${encodeURIComponent(reason)}`);
         toast.success('Kickoff request rejected');
       }
       setKickoffDetailDialog(false);
