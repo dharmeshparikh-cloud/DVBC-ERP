@@ -808,6 +808,21 @@ const ApprovalsCenter = () => {
           </Card>
         )}
 
+        {/* Expense Approvals stat */}
+        {(isManager || isHR) && (
+          <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
+            <CardContent className="p-2.5 md:p-4">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className={`text-[10px] md:text-xs uppercase truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Expense</p>
+                  <p className="text-lg md:text-2xl font-semibold text-emerald-600">{expenseApprovals.length}</p>
+                </div>
+                <Receipt className="w-5 h-5 md:w-8 md:h-8 text-emerald-500/30 flex-shrink-0" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
           <CardContent className="p-2.5 md:p-4">
             <div className="flex items-center justify-between">
