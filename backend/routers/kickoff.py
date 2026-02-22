@@ -12,7 +12,7 @@ from .models import (
     KickoffRequest, KickoffRequestCreate, KickoffRequestUpdate, 
     KickoffReturnRequest, User, UserRole, Project
 )
-from .deps import get_db, SALES_EXECUTIVE_ROLES, PROJECT_PM_ROLES
+from .deps import get_db, SALES_EXECUTIVE_ROLES, PROJECT_ROLES
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification, notify_requester_on_action
 from websocket_manager import get_manager as get_ws_manager
@@ -298,7 +298,7 @@ async def return_kickoff_request(
     db = get_db()
     
     # Senior Consultant and Principal Consultant can approve kickoffs
-    if current_user.role not in PROJECT_PM_ROLES:
+    if current_user.role not in PROJECT_ROLES:
         raise HTTPException(status_code=403, detail="Only PM/Senior/Principal Consultant roles can return kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
@@ -395,7 +395,7 @@ async def accept_kickoff_request(
     db = get_db()
     
     # Senior Consultant and Principal Consultant can approve kickoffs
-    if current_user.role not in PROJECT_PM_ROLES:
+    if current_user.role not in PROJECT_ROLES:
         raise HTTPException(status_code=403, detail="Only PM/Senior/Principal Consultant roles can accept kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
@@ -531,7 +531,7 @@ async def reject_kickoff_request(
     db = get_db()
     
     # Senior Consultant and Principal Consultant can reject kickoffs
-    if current_user.role not in PROJECT_PM_ROLES:
+    if current_user.role not in PROJECT_ROLES:
         raise HTTPException(status_code=403, detail="Only PM/Senior/Principal Consultant roles can reject kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})

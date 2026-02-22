@@ -11,7 +11,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 import uuid
 import base64
-from .deps import get_db, PROJECT_PM_ROLES
+from .deps import get_db, PROJECT_ROLES
 
 router = APIRouter(prefix="/enhanced-sow", tags=["Enhanced SOW"])
 
@@ -1439,7 +1439,7 @@ async def get_project_sow(
         raise HTTPException(status_code=404, detail="No SOW found for this project")
     
     # Determine access level
-    can_edit = current_user_role in PROJECT_PM_ROLES
+    can_edit = current_user_role in PROJECT_ROLES
     
     # Check if user is assigned consultant
     is_assigned = False

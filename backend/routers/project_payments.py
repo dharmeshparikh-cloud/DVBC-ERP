@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 import uuid
 
 from .models import User
-from .deps import get_db, PROJECT_PM_ROLES, SENIOR_CONSULTING_ROLES, PROJECT_ROLES
+from .deps import get_db, PROJECT_ROLES, SENIOR_CONSULTING_ROLES, PROJECT_ROLES
 from .auth import get_current_user
 
 router = APIRouter(prefix="/project-payments", tags=["Project Payments"])
@@ -79,7 +79,7 @@ async def get_project_payments(
     # Check access permissions and determine role type
     can_view_amounts = current_user.role in SENIOR_CONSULTING_ROLES
     is_manager_view = current_user.role in PROJECT_ROLES  # Can see consultant names, no amounts
-    is_admin = current_user.role in PROJECT_PM_ROLES
+    is_admin = current_user.role in PROJECT_ROLES
     is_assigned_consultant = current_user.id in (project.get("assigned_consultants") or [])
     
     # Check if user is reporting manager of assigned consultants
@@ -268,7 +268,7 @@ async def get_my_payments(
     can_view_amounts = current_user.role in SENIOR_CONSULTING_ROLES
     project_ids = []
     
-    if current_user.role in PROJECT_PM_ROLES:
+    if current_user.role in PROJECT_ROLES:
         # Get all active projects
         projects = await db.projects.find(
             {"status": {"$ne": "completed"}},
@@ -390,7 +390,7 @@ async def get_upcoming_payments(
     db = get_db()
     
     # Only admin, principal consultant, and managers can view all upcoming payments
-    if current_user.role not in PROJECT_PM_ROLES:
+    if current_user.role not in PROJECT_ROLES:
         raise HTTPException(status_code=403, detail="Not authorized to view upcoming payments")
     
     # Get all active projects
