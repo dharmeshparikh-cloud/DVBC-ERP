@@ -74,6 +74,9 @@ from routers import email_actions as email_actions_router
 from routers import documentation as documentation_router
 from routers import sales as sales_router
 from routers import audio_samples as audio_samples_router
+from routers import analytics as analytics_router
+from routers import payroll as payroll_router
+from routers import travel as travel_router
 
 # Helper function to sanitize user input (prevent XSS)
 def sanitize_text(text: str) -> str:
