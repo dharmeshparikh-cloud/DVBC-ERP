@@ -5,7 +5,7 @@ My Router - User self-service endpoints (attendance check-in/out, profile, onboa
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from datetime import datetime, timezone
-from .deps import get_db
+from .deps import get_db, APPROVAL_ROLES
 from .models import User
 from .auth import get_current_user
 
@@ -125,7 +125,7 @@ async def get_my_pending_approvals(current_user: User = Depends(get_current_user
     
     # Leave requests pending approval (if manager)
     leaves = []
-    if current_user.role in ["admin", "manager", "hr_manager"]:
+    if current_user.role in APPROVAL_ROLES:
         leaves = await db.leave_requests.find(
             {"status": "pending"},
             {"_id": 0}
