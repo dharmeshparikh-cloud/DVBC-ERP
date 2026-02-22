@@ -61,6 +61,14 @@ const Login = () => {
       const loginPayload = { employee_id: employeeId.toUpperCase(), password };
       
       const response = await axios.post(`${API}/auth/login`, loginPayload);
+      
+      // Handle Remember Me
+      if (rememberMe) {
+        localStorage.setItem('netra_remembered_employee_id', employeeId.toUpperCase());
+      } else {
+        localStorage.removeItem('netra_remembered_employee_id');
+      }
+      
       login(response.data.access_token, response.data.user);
       
       // Check if first login (password is default)
