@@ -2920,6 +2920,96 @@ const ApprovalsCenter = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Expense Detail/Action Dialog */}
+      <Dialog open={expenseDetailDialog} onOpenChange={setExpenseDetailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-emerald-600" />
+              Expense Approval
+            </DialogTitle>
+            <DialogDescription>
+              {selectedExpense?.status === 'pending' 
+                ? 'This will approve and forward to HR for final approval.'
+                : 'This will fully approve and link to payroll for reimbursement.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedExpense && (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium">{selectedExpense.employee_name}</p>
+                    <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                      {selectedExpense.notes || 'Expense Claim'}
+                    </p>
+                  </div>
+                  <p className="text-xl font-bold text-emerald-600">
+                    ₹{(selectedExpense.total_amount || selectedExpense.amount || 0).toLocaleString('en-IN')}
+                  </p>
+                </div>
+                
+                {/* Line Items */}
+                {selectedExpense.line_items?.length > 0 && (
+                  <div className={`mt-3 pt-3 border-t space-y-1 ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                    {selectedExpense.line_items.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>
+                          {item.category}: {item.description}
+                        </span>
+                        <span className="font-medium">₹{(item.amount || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Remarks (Optional for approval)</label>
+                <Textarea
+                  value={expenseRemarks}
+                  onChange={(e) => setExpenseRemarks(e.target.value)}
+                  placeholder="Add any comments..."
+                  rows={2}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Rejection Reason (Required for rejection)</label>
+                <Textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Provide reason if rejecting..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setExpenseDetailDialog(false)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => handleExpenseAction(selectedExpense?.id, 'reject')} 
+              disabled={actionLoading}
+              data-testid="confirm-reject-expense-btn"
+            >
+              <XCircle className="w-4 h-4 mr-1" /> Reject
+            </Button>
+            <Button 
+              className="bg-emerald-600 hover:bg-emerald-700" 
+              onClick={() => handleExpenseAction(selectedExpense?.id, 'approve')} 
+              disabled={actionLoading}
+              data-testid="confirm-approve-expense-btn"
+            >
+              <CheckCircle className="w-4 h-4 mr-1" /> 
+              {selectedExpense?.status === 'pending' ? 'Approve & Forward' : 'Approve for Payroll'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
