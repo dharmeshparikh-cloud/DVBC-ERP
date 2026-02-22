@@ -272,6 +272,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="hr-leave-input" element={<HRLeaveInput />} />
         <Route path="payroll-summary-report" element={<PayrollSummaryReport />} />
         <Route path="attendance-leave-settings" element={<AttendanceLeaveSettings />} />
+        <Route path="leave-policy-settings" element={<LeavePolicySettings />} />
         {/* Self Service */}
         <Route path="my-attendance" element={<MyAttendance />} />
         <Route path="my-leaves" element={<MyLeaves />} />
