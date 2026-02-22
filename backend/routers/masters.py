@@ -153,7 +153,7 @@ DEFAULT_MEETING_TYPES = [
 async def create_tenure_type(tenure_create: TenureTypeCreate, current_user_id: str = None):
     """Create a new tenure type with allocation percentage"""
     # Check for duplicate code
-    existing = await db.tenure_types.find_one({"code": tenure_create.code})
+    existing = await get_db().tenure_types.find_one({"code": tenure_create.code})
     if existing:
         raise HTTPException(status_code=400, detail=f"Tenure type with code '{tenure_create.code}' already exists")
     
@@ -163,14 +163,14 @@ async def create_tenure_type(tenure_create: TenureTypeCreate, current_user_id: s
     
     # If setting as default, unset other defaults
     if tenure_create.is_default:
-        await db.tenure_types.update_many({}, {"$set": {"is_default": False}})
+        await get_db().tenure_types.update_many({}, {"$set": {"is_default": False}})
     
     tenure = TenureType(**tenure_create.model_dump(), created_by=current_user_id)
     doc = tenure.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     
-    await db.tenure_types.insert_one(doc)
+    await get_db().tenure_types.insert_one(doc)
     return tenure
 
 
@@ -178,7 +178,7 @@ async def create_tenure_type(tenure_create: TenureTypeCreate, current_user_id: s
 async def get_tenure_types(include_inactive: bool = False):
     """Get all tenure types (for dropdowns and allocation rules)"""
     query = {} if include_inactive else {"is_active": True}
-    tenure_types = await db.tenure_types.find(query, {"_id": 0}).sort("allocation_percentage", -1).to_list(100)
+    tenure_types = await get_db().tenure_types.find(query, {"_id": 0}).sort("allocation_percentage", -1).to_list(100)
     
     for tt in tenure_types:
         if isinstance(tt.get('created_at'), str):
@@ -192,7 +192,7 @@ async def get_tenure_types(include_inactive: bool = False):
 @router.get("/tenure-types/{tenure_id}", response_model=TenureType)
 async def get_tenure_type(tenure_id: str):
     """Get a specific tenure type"""
-    tenure = await db.tenure_types.find_one({"id": tenure_id}, {"_id": 0})
+    tenure = await get_db().tenure_types.find_one({"id": tenure_id}, {"_id": 0})
     if not tenure:
         raise HTTPException(status_code=404, detail="Tenure type not found")
     
@@ -207,7 +207,7 @@ async def get_tenure_type(tenure_id: str):
 @router.put("/tenure-types/{tenure_id}", response_model=TenureType)
 async def update_tenure_type(tenure_id: str, tenure_update: TenureTypeUpdate):
     """Update a tenure type"""
-    existing = await db.tenure_types.find_one({"id": tenure_id}, {"_id": 0})
+    existing = await get_db().tenure_types.find_one({"id": tenure_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Tenure type not found")
     
@@ -220,13 +220,13 @@ async def update_tenure_type(tenure_id: str, tenure_update: TenureTypeUpdate):
     
     # If setting as default, unset other defaults
     if update_data.get('is_default'):
-        await db.tenure_types.update_many({"id": {"$ne": tenure_id}}, {"$set": {"is_default": False}})
+        await get_db().tenure_types.update_many({"id": {"$ne": tenure_id}}, {"$set": {"is_default": False}})
     
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
-    await db.tenure_types.update_one({"id": tenure_id}, {"$set": update_data})
+    await get_db().tenure_types.update_one({"id": tenure_id}, {"$set": update_data})
     
-    updated = await db.tenure_types.find_one({"id": tenure_id}, {"_id": 0})
+    updated = await get_db().tenure_types.find_one({"id": tenure_id}, {"_id": 0})
     if isinstance(updated.get('created_at'), str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     if isinstance(updated.get('updated_at'), str):
@@ -238,11 +238,11 @@ async def update_tenure_type(tenure_id: str, tenure_update: TenureTypeUpdate):
 @router.delete("/tenure-types/{tenure_id}")
 async def delete_tenure_type(tenure_id: str):
     """Soft delete a tenure type"""
-    existing = await db.tenure_types.find_one({"id": tenure_id}, {"_id": 0})
+    existing = await get_db().tenure_types.find_one({"id": tenure_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Tenure type not found")
     
-    await db.tenure_types.update_one(
+    await get_db().tenure_types.update_one(
         {"id": tenure_id}, 
         {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
@@ -255,7 +255,7 @@ async def delete_tenure_type(tenure_id: str):
 @router.post("/consultant-roles", response_model=ConsultantRole)
 async def create_consultant_role(role_create: ConsultantRoleCreate, current_user_id: str = None):
     """Create a new consultant role"""
-    existing = await db.consultant_roles.find_one({"code": role_create.code})
+    existing = await get_db().consultant_roles.find_one({"code": role_create.code})
     if existing:
         raise HTTPException(status_code=400, detail=f"Consultant role with code '{role_create.code}' already exists")
     
@@ -264,7 +264,7 @@ async def create_consultant_role(role_create: ConsultantRoleCreate, current_user
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     
-    await db.consultant_roles.insert_one(doc)
+    await get_db().consultant_roles.insert_one(doc)
     return role
 
 
@@ -272,7 +272,7 @@ async def create_consultant_role(role_create: ConsultantRoleCreate, current_user
 async def get_consultant_roles(include_inactive: bool = False):
     """Get all consultant roles"""
     query = {} if include_inactive else {"is_active": True}
-    roles = await db.consultant_roles.find(query, {"_id": 0}).sort("seniority_level", -1).to_list(100)
+    roles = await get_db().consultant_roles.find(query, {"_id": 0}).sort("seniority_level", -1).to_list(100)
     
     for role in roles:
         if isinstance(role.get('created_at'), str):
@@ -286,16 +286,16 @@ async def get_consultant_roles(include_inactive: bool = False):
 @router.put("/consultant-roles/{role_id}", response_model=ConsultantRole)
 async def update_consultant_role(role_id: str, role_update: ConsultantRoleUpdate):
     """Update a consultant role"""
-    existing = await db.consultant_roles.find_one({"id": role_id}, {"_id": 0})
+    existing = await get_db().consultant_roles.find_one({"id": role_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Consultant role not found")
     
     update_data = role_update.model_dump(exclude_unset=True)
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
-    await db.consultant_roles.update_one({"id": role_id}, {"$set": update_data})
+    await get_db().consultant_roles.update_one({"id": role_id}, {"$set": update_data})
     
-    updated = await db.consultant_roles.find_one({"id": role_id}, {"_id": 0})
+    updated = await get_db().consultant_roles.find_one({"id": role_id}, {"_id": 0})
     if isinstance(updated.get('created_at'), str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     if isinstance(updated.get('updated_at'), str):
@@ -307,11 +307,11 @@ async def update_consultant_role(role_id: str, role_update: ConsultantRoleUpdate
 @router.delete("/consultant-roles/{role_id}")
 async def delete_consultant_role(role_id: str):
     """Soft delete a consultant role"""
-    existing = await db.consultant_roles.find_one({"id": role_id}, {"_id": 0})
+    existing = await get_db().consultant_roles.find_one({"id": role_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Consultant role not found")
     
-    await db.consultant_roles.update_one(
+    await get_db().consultant_roles.update_one(
         {"id": role_id}, 
         {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
@@ -325,7 +325,7 @@ async def delete_consultant_role(role_id: str):
 async def get_meeting_types(include_inactive: bool = False):
     """Get all meeting types"""
     query = {} if include_inactive else {"is_active": True}
-    types = await db.meeting_types.find(query, {"_id": 0}).to_list(100)
+    types = await get_db().meeting_types.find(query, {"_id": 0}).to_list(100)
     
     for mt in types:
         if isinstance(mt.get('created_at'), str):
@@ -339,7 +339,7 @@ async def get_meeting_types(include_inactive: bool = False):
 @router.post("/meeting-types", response_model=MeetingType)
 async def create_meeting_type(meeting_create: MeetingTypeCreate, current_user_id: str = None):
     """Create a new meeting type"""
-    existing = await db.meeting_types.find_one({"code": meeting_create.code})
+    existing = await get_db().meeting_types.find_one({"code": meeting_create.code})
     if existing:
         raise HTTPException(status_code=400, detail=f"Meeting type with code '{meeting_create.code}' already exists")
     
@@ -348,7 +348,7 @@ async def create_meeting_type(meeting_create: MeetingTypeCreate, current_user_id
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     
-    await db.meeting_types.insert_one(doc)
+    await get_db().meeting_types.insert_one(doc)
     return meeting
 
 
@@ -361,35 +361,35 @@ async def seed_default_masters():
     
     # Seed tenure types
     for tt_data in DEFAULT_TENURE_TYPES:
-        existing = await db.tenure_types.find_one({"code": tt_data["code"]})
+        existing = await get_db().tenure_types.find_one({"code": tt_data["code"]})
         if not existing:
             tenure = TenureType(**tt_data)
             doc = tenure.model_dump()
             doc['created_at'] = doc['created_at'].isoformat()
             doc['updated_at'] = doc['updated_at'].isoformat()
-            await db.tenure_types.insert_one(doc)
+            await get_db().tenure_types.insert_one(doc)
             results["tenure_types"] += 1
     
     # Seed consultant roles
     for role_data in DEFAULT_CONSULTANT_ROLES:
-        existing = await db.consultant_roles.find_one({"code": role_data["code"]})
+        existing = await get_db().consultant_roles.find_one({"code": role_data["code"]})
         if not existing:
             role = ConsultantRole(**role_data)
             doc = role.model_dump()
             doc['created_at'] = doc['created_at'].isoformat()
             doc['updated_at'] = doc['updated_at'].isoformat()
-            await db.consultant_roles.insert_one(doc)
+            await get_db().consultant_roles.insert_one(doc)
             results["consultant_roles"] += 1
     
     # Seed meeting types
     for mt_data in DEFAULT_MEETING_TYPES:
-        existing = await db.meeting_types.find_one({"code": mt_data["code"]})
+        existing = await get_db().meeting_types.find_one({"code": mt_data["code"]})
         if not existing:
             meeting = MeetingType(**mt_data)
             doc = meeting.model_dump()
             doc['created_at'] = doc['created_at'].isoformat()
             doc['updated_at'] = doc['updated_at'].isoformat()
-            await db.meeting_types.insert_one(doc)
+            await get_db().meeting_types.insert_one(doc)
             results["meeting_types"] += 1
     
     return {"message": "Default masters seeded successfully", "created": results}
@@ -424,7 +424,7 @@ async def calculate_allocation(data: dict):
     
     # Get tenure types
     tenure_lookup = {}
-    tenure_types = await db.tenure_types.find({"is_active": True}, {"_id": 0}).to_list(100)
+    tenure_types = await get_db().tenure_types.find({"is_active": True}, {"_id": 0}).to_list(100)
     for tt in tenure_types:
         tenure_lookup[tt["code"]] = tt
     
