@@ -462,7 +462,8 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
         })
         total_earnings += expense_reimb
     
-    effective_present_days = present_days + (half_days * 0.5)
+    # Calculate effective present days for reference
+    _ = present_days + (half_days * 0.5)  # Used for logging/reporting
     unexcused_absences = max(0, absent_days - leaves_count)
     if unexcused_absences > 0 and not payroll_input:
         absence_deduction = round(per_day_salary * unexcused_absences, 2)
@@ -581,7 +582,7 @@ async def get_payroll_linkage_summary(month: str, current_user: User = Depends(g
     generated_slips = await db.salary_slips.find({"month": month}, {"_id": 0, "employee_id": 1, "employee_name": 1, "net_salary": 1, "lop_days": 1, "expense_reimbursement_total": 1}).to_list(500)
     
     total_reimbursements = sum(r.get("amount", 0) for r in pending_reimbursements)
-    total_lop_days = sum(l.get("days", 0) for l in lop_leaves)
+    total_lop_days = sum(leave.get("days", 0) for leave in lop_leaves)
     
     return {
         "month": month,
