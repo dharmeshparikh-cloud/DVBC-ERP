@@ -14,9 +14,9 @@
       "description": "Record Meeting button was not passing leadId in URL, causing 'No lead ID provided' error",
       "status": "FIXED",
       "verification": [
-        "Navigated to /sales-funnel-onboarding?leadId=dac1da55-d96b-4401-8f8e-7ed99276822f",
+        "Navigated to /sales-funnel-onboarding?leadId=netra-erp-dev",
         "Clicked 'Open Record Meeting' button",
-        "URL navigated to /sales-funnel/meeting/record?leadId=dac1da55-d96b-4401-8f8e-7ed99276822f",
+        "URL navigated to /sales-funnel/meeting/record?leadId=netra-erp-dev",
         "leadId parameter correctly passed in URL"
       ],
       "fix_location": "/app/frontend/src/pages/SalesFunnelOnboarding.js - handleContinue() and getStepDetails() functions"
