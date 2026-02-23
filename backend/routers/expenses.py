@@ -707,11 +707,20 @@ async def send_back_expense(expense_id: str, data: dict, current_user: User = De
     """
     Send expense back to employee for revision.
     HR/Admin can request changes before approval.
+    
+    ACCESS: Only HR or Admin can send expenses back for revision.
     """
     db = get_db()
     
-    if current_user.role not in APPROVAL_ROLES:
-        raise HTTPException(status_code=403, detail="Not authorized to send back expenses")
+    # Use RBAC service for role checks
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    allowed_roles = list(set(hr_roles + hr_admin_roles + admin_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR or Admin can send back expenses for revision")
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
     if not expense:
