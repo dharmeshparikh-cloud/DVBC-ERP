@@ -9,11 +9,19 @@
 ## Executive Summary
 
 This audit identifies **15 distinct approval workflows** across 8 modules. The analysis reveals:
-- **10** workflows with proper backend enforcement
-- **3** workflows with UI-only gates (security gaps)
-- **2** workflows with partial enforcement (inconsistencies)
+- **13** workflows with proper backend enforcement (after fixes)
+- **0** workflows with UI-only gates (all fixed)
+- **2** workflows with partial enforcement (expenses module - pending migration)
 - **4** admin override capabilities identified
-- **2** instances of approval actions exposed to unauthorized roles
+- **0** instances of approval actions exposed to unauthorized roles (after fixes)
+
+### Fixes Applied During This Audit
+
+| Risk | Issue | Status | Fix |
+|------|-------|--------|-----|
+| HIGH | Leave Encashment missing approval | ✅ FIXED | Created `/encashment-requests/{id}/approve`, `/reject`, `/withdraw` |
+| MEDIUM | Quotation Finalization no auth | ✅ FIXED | Added Reporting Manager/Sales Manager/Admin check |
+| MEDIUM | Travel Approval broad roles | ✅ FIXED | Restricted to HR_ROLES and Admin only |
 
 ---
 
