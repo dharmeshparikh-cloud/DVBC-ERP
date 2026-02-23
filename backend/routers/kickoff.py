@@ -549,12 +549,12 @@ async def return_kickoff_request(
     return_data: KickoffReturnRequest,
     current_user: User = Depends(get_current_user)
 ):
-    """Return a kickoff request to sales (PM action)."""
+    """Return a kickoff request to sales (Principal Consultant action)."""
     db = get_db()
     
-    # Only Senior Consultant and Principal Consultant can return kickoffs
-    if current_user.role not in SENIOR_CONSULTING_ROLES:
-        raise HTTPException(status_code=403, detail="Only Senior Consultant or Principal Consultant roles can return kickoff requests")
+    # Only Principal Consultant can return kickoffs
+    if current_user.role not in PRINCIPAL_CONSULTANT_ROLES:
+        raise HTTPException(status_code=403, detail="Only Principal Consultant can return kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
     if not kickoff:
