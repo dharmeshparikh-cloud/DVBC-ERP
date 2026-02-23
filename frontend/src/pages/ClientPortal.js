@@ -105,20 +105,20 @@ const ClientPortal = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-black border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   const getStatusColor = (status) => {
     const colors = {
-      active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      completed: 'bg-blue-100 text-blue-700 border-blue-200',
-      on_hold: 'bg-amber-100 text-amber-700 border-amber-200',
-      pending: 'bg-zinc-100 text-zinc-700 border-zinc-200'
+      active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      completed: 'bg-blue-50 text-blue-700 border-blue-200',
+      on_hold: 'bg-amber-50 text-amber-700 border-amber-200',
+      pending: 'bg-black/5 text-black/70 border-black/10'
     };
-    return colors[status] || 'bg-zinc-100 text-zinc-700 border-zinc-200';
+    return colors[status] || 'bg-black/5 text-black/70 border-black/10';
   };
 
   const calculateProgress = (project) => {
