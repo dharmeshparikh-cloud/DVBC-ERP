@@ -280,6 +280,7 @@ api_router.include_router(role_management_router.router)
 api_router.include_router(permission_config_router.router)
 api_router.include_router(department_access_router.router)
 api_router.include_router(security_router.router)
+api_router.include_router(rbac_router.router)  # New RBAC Admin API
 
 # Communication
 api_router.include_router(chat_router.router)
