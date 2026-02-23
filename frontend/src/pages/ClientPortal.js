@@ -93,7 +93,7 @@ const ClientPortal = () => {
     try {
       const token = localStorage.getItem('client_token');
       await axios.post(
-        `${API}/client-auth/change-consultant-request?project_id=${selectedProject}&reason=${encodeURIComponent(reason)}`,
+        `${API}/api/client-auth/change-consultant-request?project_id=${selectedProject}&reason=${encodeURIComponent(reason)}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
