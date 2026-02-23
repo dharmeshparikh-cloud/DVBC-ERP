@@ -8,13 +8,16 @@ from typing import List, Optional
 import uuid
 
 from .models import Lead, LeadCreate, LeadUpdate, User, UserRole, LeadStatus
-from .deps import get_db, SALES_ROLES, ADMIN_ROLES
+from .deps import get_db, SALES_ROLES, ADMIN_ROLES, get_role_group, has_role
 from .auth import get_current_user
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
-# Role constants for this router
-LEADS_ACCESS_ROLES = SALES_ROLES + ADMIN_ROLES  # sales_*, admin
+
+def get_leads_access_roles():
+    """Get roles that can access leads - uses RBAC service"""
+    sales_roles = get_role_group("SALES_ROLES", fail_closed=False) or SALES_ROLES
+    return sales_roles  # ADMIN_ROLES is already included in SALES_ROLES
 
 
 def calculate_lead_score(lead_data: dict) -> tuple:
