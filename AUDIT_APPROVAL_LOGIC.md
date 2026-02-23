@@ -81,7 +81,7 @@ This audit identifies **15 distinct approval workflows** across 8 modules. The a
 |---|----------|------|-------------|------|
 | 12 | Expense Approval (< ₹2000) | `expenses.py` | Backend | Low |
 | 13 | Expense Approval (≥ ₹2000) | `expenses.py` | Backend (2-tier) | Low |
-| 14 | Travel Reimbursement Approval | `travel.py` | Backend | Low |
+| 14 | Travel Reimbursement Approval | `travel.py` | ✅ Backend (HR RBAC) - FIXED | Low |
 | 15 | Travel → Expense Conversion | `travel.py` | Backend (RBAC) | Low |
 
 ---
