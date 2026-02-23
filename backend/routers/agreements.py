@@ -127,31 +127,49 @@ async def create_agreement(
     await db.agreements.insert_one(agreement_doc)
     agreement_doc.pop("_id", None)
     
+    # Client email
+    client_email = data.client_email or lead.get("email", "")
+    
     # Send email notification in background
+    # Agreement: Manager + Manager's Manager + Client
     async def send_agreement_notification():
         try:
-            manager_emails = await get_sales_manager_emails(db)
-            if manager_emails:
-                email_data = agreement_created_email(
-                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
-                    company=lead.get("company", "Unknown"),
-                    agreement_number=agreement_number,
-                    agreement_type=data.title or "Consulting Services Agreement",
-                    total_value=data.total_value,
-                    currency="INR",
-                    start_date=data.start_date or "TBD",
-                    end_date=end_date,
-                    status=initial_status,
-                    salesperson_name=current_user.full_name,
-                    app_url=APP_URL
+            # Get manager + manager's manager emails (NOT HR)
+            manager_emails = await get_agreement_notification_emails(db)
+            
+            email_data = agreement_created_email(
+                lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+                company=lead.get("company", "Unknown"),
+                agreement_number=agreement_number,
+                agreement_id=agreement_id,
+                agreement_type=data.title or "Consulting Services Agreement",
+                total_value=data.total_value,
+                currency="INR",
+                start_date=data.start_date or "TBD",
+                end_date=end_date,
+                status=initial_status,
+                salesperson_name=current_user.full_name,
+                client_email=client_email,
+                app_url=APP_URL
+            )
+            
+            # Send to managers
+            for email in manager_emails:
+                await send_email(
+                    to_email=email,
+                    subject=email_data["subject"],
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
                 )
-                for email in manager_emails:
-                    await send_email(
-                        to_email=email,
-                        subject=email_data["subject"],
-                        html_content=email_data["html"],
-                        plain_content=email_data["plain"]
-                    )
+            
+            # Send to client if email exists
+            if client_email:
+                await send_email(
+                    to_email=client_email,
+                    subject=f"Your Service Agreement #{agreement_number} from DVBC",
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
+                )
         except Exception as e:
             print(f"Failed to send agreement notification: {e}")
     
