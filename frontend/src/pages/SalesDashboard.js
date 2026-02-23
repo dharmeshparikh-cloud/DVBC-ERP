@@ -141,6 +141,9 @@ const SalesDashboard = () => {
         </div>
       </div>
 
+      {/* RBAC Widget - Shows current permissions */}
+      <RBACWidget />
+
       {/* Target vs Achievement - My Performance */}
       {myFunnelData?.targets && (
         <Card className="border-zinc-200 dark:border-zinc-800">
