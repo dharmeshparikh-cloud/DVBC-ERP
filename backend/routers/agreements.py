@@ -9,7 +9,10 @@ from datetime import datetime, timezone
 import uuid
 import os
 from pydantic import BaseModel, Field
-from .deps import get_db, MANAGER_ROLES, SALES_MANAGER_ROLES, SALES_ROLES, ADMIN_ROLES, SENIOR_CONSULTING_ROLES, require_roles
+from .deps import (
+    get_db, MANAGER_ROLES, SALES_MANAGER_ROLES, SALES_ROLES, ADMIN_ROLES, 
+    SENIOR_CONSULTING_ROLES, require_roles, get_role_group, has_role
+)
 from .models import User
 from .auth import get_current_user
 from services.email_service import send_email
@@ -19,10 +22,10 @@ router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
 APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://netra-erp-dev.preview.emergentagent.com").replace("/api", "")
 
-# Role constants for this router
+# Role constants for this router - now using RBAC service as source of truth
 AGREEMENT_VIEW_ROLES = SALES_ROLES + SENIOR_CONSULTING_ROLES  # sales, admin, principal_consultant
 AGREEMENT_CREATE_ROLES = SALES_ROLES  # All sales roles including executive can create agreements
-AGREEMENT_APPROVE_ROLES = ["admin", "principal_consultant"]  # ONLY PC and Admin can approve - no other managers
+# AGREEMENT_APPROVE_ROLES now fetched from database via get_role_group("AGREEMENT_APPROVE_ROLES")
 
 
 class AgreementSection(BaseModel):
