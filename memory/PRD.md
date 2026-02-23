@@ -4,7 +4,7 @@
 - **Frontend**: React with Shadcn/UI components
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB
-- **Auth**: JWT-based authentication (Employee ID only)
+- **Auth**: JWT-based authentication (Employee ID + Client ID)
 - **AI**: GPT-4o via Emergent LLM Key
 - **Documentation**: python-docx, reportlab for PDF/DOCX generation
 - **Email**: SMTP via SendGrid
@@ -13,40 +13,52 @@
 
 ## Completed Work - February 2026
 
-### Phase 35: Dual Approval Kickoff Flow - February 23, 2026 ✅ (Latest)
+### Phase 35: Principal Consultant + Client Dual Approval - February 23, 2026 ✅ (Latest)
 
-**Kickoff Dual Approval System:**
-Kickoff requests now require BOTH approvals before project creation:
-1. **Principal Consultant / Senior Consultant** approval (internal)
-2. **Client** approval (via email link)
+**Dual Approval Flow (Completely Redesigned):**
 
-**Flow:**
-1. Sales creates kickoff → Status: `pending`
-2. Senior/Principal Consultant approves → Status: `consultant_approved`, email sent to client
-3. Client clicks approval link in email → Status: `approved`
-4. Project auto-created, consultant assigned to consulting hierarchy
+1. **Internal Approval (Principal Consultant ONLY)**
+   - Only `principal_consultant` and `admin` can approve (removed Senior Consultant)
+   - When approved:
+     - Project ID generated: `PROJ-YYYYMMDD-XXXX` (locked, auto-generated)
+     - Status: `internal_approved`
+     - Sales team notified: "Project Approved"
+     - Internal team email: "New Project Added"
+     - Client receives approval email
+
+2. **Client Approval (External)**
+   - Client clicks secure link from email
+   - Can confirm/change project start date
+   - When approved:
+     - Status: `approved`
+     - Client user account created (ID: `98XXX` format, 5-digit)
+     - Welcome email with NETRA credentials
+     - All stakeholders notified
+
+3. **Client Portal Access**
+   - Client ID: 5-digit sequential starting from `98000`
+   - Auto-generated password (must change on first login)
+   - Admin can reset password
+
+**New Database Models:**
+- `ClientUser` - Client portal accounts
+- `ProjectAssignment` - Consultant assignment with history tracking
 
 **New Endpoints:**
-- `POST /api/kickoff-requests/{id}/accept` - Consultant approval (updated)
+- `POST /api/kickoff-requests/{id}/accept` - Principal Consultant approval
 - `GET /api/kickoff-requests/client-approve/{token}` - Client approval page
-- `POST /api/kickoff-requests/client-approve/{token}/confirm` - Client confirms
+- `POST /api/kickoff-requests/client-approve/{token}/confirm` - Client confirms with start date
 
-**Model Updates:**
-- `KickoffRequest` model extended with dual approval fields:
-  - `consultant_approved`, `consultant_approved_by`, `consultant_approved_at`
-  - `client_approved`, `client_approved_by`, `client_approved_at`
-  - `client_approval_token` (for secure email links)
+**Status Flow:**
+```
+pending → internal_approved → approved → converted
+```
 
-**Status Values:**
-- `pending` - Waiting for first approval
-- `consultant_approved` - Consultant approved, waiting for client
-- `client_approved` - Client approved, waiting for consultant
-- `approved` - Both approved, project being created
-- `converted` - Project created successfully
-
-**Approval Roles:**
-- Only `senior_consultant` and `principal_consultant` can approve kickoffs (NOT PM, NOT regular consultant)
-- Approval Center updated to show kickoffs only for these roles
+**Email Notifications:**
+1. To Client: Project approval email with confirm button
+2. To Internal Team: New Project Added notification
+3. To Client: Welcome email with NETRA credentials
+4. To All Stakeholders: Project Activated (start date confirmed)
 
 ---
 
