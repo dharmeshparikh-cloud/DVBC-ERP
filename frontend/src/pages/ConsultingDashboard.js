@@ -163,7 +163,11 @@ const ConsultingDashboard = () => {
 
       {/* Project Stats */}
       <div className="grid grid-cols-4 gap-4">
-        <Card className="border-zinc-200">
+        <Card 
+          className="border-zinc-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+          onClick={() => navigate('/projects')}
+          data-testid="active-projects-card"
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -174,10 +178,17 @@ const ConsultingDashboard = () => {
                 <Briefcase className="w-6 h-6 text-blue-600" />
               </div>
             </div>
+            <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+              View projects <ArrowRight className="w-3 h-3" />
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200">
+        <Card 
+          className="border-zinc-200 cursor-pointer hover:shadow-md hover:border-green-300 transition-all"
+          onClick={() => navigate('/projects?status=completed')}
+          data-testid="completed-projects-card"
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -188,10 +199,17 @@ const ConsultingDashboard = () => {
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
             </div>
+            <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+              View completed <ArrowRight className="w-3 h-3" />
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200">
+        <Card 
+          className="border-zinc-200 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all"
+          onClick={() => navigate('/projects?status=on_hold')}
+          data-testid="onhold-projects-card"
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -202,10 +220,17 @@ const ConsultingDashboard = () => {
                 <Clock className="w-6 h-6 text-amber-600" />
               </div>
             </div>
+            <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+              View on hold <ArrowRight className="w-3 h-3" />
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200">
+        <Card 
+          className="border-zinc-200 cursor-pointer hover:shadow-md hover:border-red-300 transition-all"
+          onClick={() => navigate('/projects?status=at_risk')}
+          data-testid="atrisk-projects-card"
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -216,6 +241,9 @@ const ConsultingDashboard = () => {
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
             </div>
+            <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+              View at risk <ArrowRight className="w-3 h-3" />
+            </p>
           </CardContent>
         </Card>
       </div>
