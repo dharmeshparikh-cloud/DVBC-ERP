@@ -6,6 +6,10 @@ RBAC MIGRATION: December 2025
 - All role checks now use database-driven RBAC via get_role_group()
 - Numeric role levels used for hierarchy-based access
 - Team hierarchy filters for managers
+
+PERFORMANCE OPTIMIZATION: December 2025
+- Added in-memory caching for stats (5 min TTL)
+- Cache invalidation on data changes
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -17,6 +21,11 @@ from .models import User, LeadStatus
 from .deps import get_db, get_role_group, has_role
 from .auth import get_current_user
 from .rbac_service import rbac
+
+# Performance caching
+import sys
+sys.path.insert(0, '/app/backend')
+from services.cache_service import cache, stats_key, PerformanceCache
 
 logger = logging.getLogger(__name__)
 
