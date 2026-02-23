@@ -13,7 +13,29 @@
 
 ## Completed Work - February 2026
 
-### Phase 32: Sales Funnel Training & Draft System - February 23, 2026 ✅ (Latest)
+### Phase 33: Sales Funnel Email Notifications - February 23, 2026 ✅ (Latest)
+
+**HTML Email Notifications at Key Milestones:**
+- ✅ **MOM Filled** - When meeting with MOM is recorded
+- ✅ **Proforma Generated** - When quotation is created  
+- ✅ **Agreement Created** - When service agreement is created
+- ✅ **Kickoff Sent** - When kickoff request is submitted for approval
+- ✅ **Kickoff Accepted** - When kickoff is approved and project created
+
+**Email Features:**
+- Professional HTML templates with DVBC branding
+- Includes all relevant details (amounts, dates, people)
+- Client expectations and key commitments summary
+- Direct links to relevant pages in NETRA
+- Background tasks - non-blocking email sending
+
+**Backend Changes:**
+- NEW: `/app/backend/services/funnel_notifications.py` - Email templates
+- Modified: meetings.py, quotations.py, agreements.py, kickoff.py
+
+---
+
+### Phase 32: Sales Funnel Training & Draft System - February 23, 2026 ✅
 
 **Progress Checklist for New Salespeople:**
 - ✅ Added `GET /api/leads/{id}/funnel-checklist` endpoint
