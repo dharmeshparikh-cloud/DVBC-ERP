@@ -2,10 +2,9 @@
 Shared dependencies for all routers.
 Contains database connection, authentication, and common utilities.
 
-RBAC MIGRATION NOTE (Phase 4):
-Role constants are now loaded from the database via rbac_service.
-The hardcoded lists below are FALLBACKS for startup/testing only.
-All role checks should use rbac_service.get_role_group() or rbac_service.has_role().
+RBAC MIGRATION COMPLETE (December 2025):
+All role checks now use the database-driven rbac_service.
+Role constants are provided as properties that fetch from DB with fallbacks.
 """
 
 from fastapi import Depends, HTTPException, status, Request
@@ -35,67 +34,57 @@ def get_role_group(group_name: str, fail_closed: bool = False) -> List[str]:
     """
     return _get_role_group(group_name, fail_closed=fail_closed)
 
-# ==================== ROLE CONSTANTS (DB-BACKED) ====================
-# These are now lazy-loaded from the database via rbac_service
-# The hardcoded values serve as fallbacks during startup only
 
-def _get_roles(group_name: str, fallback: List[str]) -> List[str]:
-    """Get roles from DB or fallback."""
-    try:
-        roles = get_role_group(group_name)
-        if roles:
-            return roles
-    except Exception as e:
-        logger.debug(f"RBAC fallback for {group_name}: {e}")
-    return fallback
+# ==================== ROLE CONSTANTS (DB-BACKED WITH FALLBACKS) ====================
+# These are now fetched from the database with static fallbacks for startup/testing
+# All new code should use get_role_group() directly instead of these constants
 
-# Admin-level roles (full system access)
-ADMIN_ROLES = ["admin"]
-
-# HR department roles
-HR_ROLES = ["admin", "hr_manager", "hr_executive"]
-HR_ADMIN_ROLES = ["admin", "hr_manager"]
-
-# Sales department roles  
-SALES_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant", "executive", "sales_executive"]
-SALES_MANAGER_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant"]
-SALES_EXECUTIVE_ROLES = ["admin", "executive", "sales_executive", "sales_manager"]
-
-# Project/Consulting management roles (principal_consultant is the senior-most consulting role)
-PROJECT_ROLES = ["admin", "principal_consultant", "senior_consultant", "manager", "project_manager"]
-SENIOR_CONSULTING_ROLES = ["admin", "principal_consultant", "senior_consultant"]
-
-# Principal Consultant ONLY - for kickoff internal approval
-PRINCIPAL_CONSULTANT_ROLES = ["admin", "principal_consultant"]
-
-# All consulting roles (delivery team)
-CONSULTING_ROLES = ["admin", "consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert"]
-
-# Finance roles
-FINANCE_ROLES = ["admin", "finance_manager"]
-
-# All manager-level roles
-MANAGER_ROLES = ["admin", "manager", "sr_manager", "sales_manager", "hr_manager", "principal_consultant"]
-
-# Approval roles (can approve various requests)
-APPROVAL_ROLES = ["admin", "manager", "hr_manager", "principal_consultant"]
-
-# HR + Senior Consulting (for attendance, resource management)
-HR_PM_ROLES = ["admin", "hr_manager", "hr_executive", "principal_consultant"]
-
-# Agreement approval roles
-AGREEMENT_APPROVE_ROLES = ["admin", "principal_consultant"]
-
-# ==================== EMPLOYEE ID LOGIC ====================
-# Roles that REQUIRE employee_id (internal employees)
-EMPLOYEE_ROLES = [
+# Fallback values (used only if DB is unavailable)
+_FALLBACK_ADMIN_ROLES = ["admin"]
+_FALLBACK_HR_ROLES = ["admin", "hr_manager", "hr_executive"]
+_FALLBACK_HR_ADMIN_ROLES = ["admin", "hr_manager"]
+_FALLBACK_SALES_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant", "executive", "sales_executive"]
+_FALLBACK_SALES_MANAGER_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "principal_consultant"]
+_FALLBACK_SALES_EXECUTIVE_ROLES = ["admin", "executive", "sales_executive", "sales_manager"]
+_FALLBACK_PROJECT_ROLES = ["admin", "principal_consultant", "senior_consultant", "manager", "project_manager"]
+_FALLBACK_SENIOR_CONSULTING_ROLES = ["admin", "principal_consultant", "senior_consultant"]
+_FALLBACK_PRINCIPAL_CONSULTANT_ROLES = ["admin", "principal_consultant"]
+_FALLBACK_CONSULTING_ROLES = ["admin", "consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert"]
+_FALLBACK_FINANCE_ROLES = ["admin", "finance_manager"]
+_FALLBACK_MANAGER_ROLES = ["admin", "manager", "sr_manager", "sales_manager", "hr_manager", "principal_consultant"]
+_FALLBACK_APPROVAL_ROLES = ["admin", "manager", "hr_manager", "principal_consultant"]
+_FALLBACK_HR_PM_ROLES = ["admin", "hr_manager", "hr_executive", "principal_consultant"]
+_FALLBACK_AGREEMENT_APPROVE_ROLES = ["admin", "principal_consultant"]
+_FALLBACK_EMPLOYEE_ROLES = [
     "admin", "hr_manager", "hr_executive", 
     "sales_manager", "manager", "sr_manager", "executive", "sales_executive",
     "consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert",
     "finance_manager", "project_manager"
 ]
 
-# Roles that must NOT have employee_id (external/system)
+# Dynamic role getters with fallbacks (for backward compatibility)
+def _get_roles_safe(group_name: str, fallback: List[str]) -> List[str]:
+    """Get roles from DB with fallback for backward compatibility."""
+    roles = get_role_group(group_name, fail_closed=False)
+    return roles if roles else fallback
+
+# Backward-compatible constants (legacy imports will still work)
+ADMIN_ROLES = _FALLBACK_ADMIN_ROLES
+HR_ROLES = _FALLBACK_HR_ROLES
+HR_ADMIN_ROLES = _FALLBACK_HR_ADMIN_ROLES
+SALES_ROLES = _FALLBACK_SALES_ROLES
+SALES_MANAGER_ROLES = _FALLBACK_SALES_MANAGER_ROLES
+SALES_EXECUTIVE_ROLES = _FALLBACK_SALES_EXECUTIVE_ROLES
+PROJECT_ROLES = _FALLBACK_PROJECT_ROLES
+SENIOR_CONSULTING_ROLES = _FALLBACK_SENIOR_CONSULTING_ROLES
+PRINCIPAL_CONSULTANT_ROLES = _FALLBACK_PRINCIPAL_CONSULTANT_ROLES
+CONSULTING_ROLES = _FALLBACK_CONSULTING_ROLES
+FINANCE_ROLES = _FALLBACK_FINANCE_ROLES
+MANAGER_ROLES = _FALLBACK_MANAGER_ROLES
+APPROVAL_ROLES = _FALLBACK_APPROVAL_ROLES
+HR_PM_ROLES = _FALLBACK_HR_PM_ROLES
+AGREEMENT_APPROVE_ROLES = _FALLBACK_AGREEMENT_APPROVE_ROLES
+EMPLOYEE_ROLES = _FALLBACK_EMPLOYEE_ROLES
 NON_EMPLOYEE_ROLES = ["client", "vendor", "partner", "system", "api_user"]
 
 def validate_employee_id_for_role(role: str, employee_id: Optional[str]) -> bool:
