@@ -96,7 +96,9 @@ async def get_all_timesheets(
     """Get all timesheets (managers only)"""
     db = get_db()
     
-    if current_user.role not in MANAGER_ROLES:
+    # RBAC Migration
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=True)
+    if not manager_roles or not has_role(current_user.role, manager_roles):
         raise HTTPException(status_code=403, detail="Only managers can view all timesheets")
     
     query = {}
@@ -112,7 +114,9 @@ async def approve_timesheet(timesheet_id: str, current_user: User = Depends(get_
     """Approve a timesheet entry"""
     db = get_db()
     
-    if current_user.role not in MANAGER_ROLES:
+    # RBAC Migration
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=True)
+    if not manager_roles or not has_role(current_user.role, manager_roles):
         raise HTTPException(status_code=403, detail="Only managers can approve timesheets")
     
     timesheet = await db.timesheets.find_one({"id": timesheet_id}, {"_id": 0})
