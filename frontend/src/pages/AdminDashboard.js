@@ -9,6 +9,7 @@ import { Progress } from '../components/ui/progress';
 import { Link, useNavigate } from 'react-router-dom';
 import LockableCard from '../components/LockableCard';
 import QuickCheckInModal from '../components/QuickCheckInModal';
+import RBACWidget from '../components/RBACWidget';
 import { 
   RevenueExpanded, LeadsExpanded, MeetingsExpanded, 
   ProjectsExpanded, AttendanceExpanded 
