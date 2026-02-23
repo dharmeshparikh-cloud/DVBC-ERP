@@ -300,6 +300,9 @@ api_router.include_router(sales_funnel_logic_router.router)
 # Expanded Audit Logging
 api_router.include_router(audit_logging_router.router)
 
+# Test Email Preview
+api_router.include_router(test_email_preview_router.router)
+
 # Include all API routes under /api prefix
 app.include_router(api_router)
 
