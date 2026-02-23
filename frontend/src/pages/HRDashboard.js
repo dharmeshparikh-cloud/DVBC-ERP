@@ -219,7 +219,11 @@ const HRDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 dark:border-zinc-800">
+        <Card 
+          className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-red-300 transition-all"
+          onClick={() => navigate('/attendance')}
+          data-testid="absent-today-card"
+        >
           <CardContent className="p-4 md:pt-6">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -230,6 +234,9 @@ const HRDashboard = () => {
                 <UserX className="w-5 h-5 md:w-6 md:h-6 text-red-600" />
               </div>
             </div>
+            <p className="text-[10px] md:text-xs text-red-600 mt-2 flex items-center gap-1">
+              View details <ArrowRight className="w-3 h-3" />
+            </p>
           </CardContent>
         </Card>
       </div>
