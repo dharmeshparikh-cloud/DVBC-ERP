@@ -144,6 +144,25 @@ const SalesFunnelOnboarding = () => {
     }
   };
 
+  // Approve agreement directly from the blocking banner
+  const handleApproveAgreement = async () => {
+    if (!funnelStatus.agreement_id) return;
+    
+    setApproving(true);
+    try {
+      await axios.patch(`${API}/agreements/${funnelStatus.agreement_id}/approve`);
+      toast.success('Agreement approved successfully!');
+      // Refresh funnel data to update blocking status
+      await fetchFunnelData();
+    } catch (error) {
+      console.error('Error approving agreement:', error);
+      const message = error.response?.data?.detail || 'Failed to approve agreement';
+      toast.error(message);
+    } finally {
+      setApproving(false);
+    }
+  };
+
   // Save funnel position as draft
   const saveFunnelDraft = async (step) => {
     try {
