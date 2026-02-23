@@ -71,8 +71,12 @@ class AgreementPaymentRecord(BaseModel):
 
 
 @router.post("")
-async def create_agreement(data: AgreementCreate, current_user: User = Depends(get_current_user)):
-    """Create a new agreement. 
+async def create_agreement(
+    data: AgreementCreate,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new agreement and send email notification. 
     Access: sales_manager, admin only (requires admin approval for non-admin users)"""
     db = get_db()
     
@@ -90,6 +94,11 @@ async def create_agreement(data: AgreementCreate, current_user: User = Depends(g
     # Non-admin users create agreements in pending_approval status
     initial_status = "draft" if current_user.role in ADMIN_ROLES else "pending_approval"
     
+    # Calculate end date
+    from dateutil.relativedelta import relativedelta
+    start = datetime.strptime(data.start_date, "%Y-%m-%d") if data.start_date else datetime.now(timezone.utc)
+    end_date = (start + relativedelta(months=data.duration_months or 12)).strftime("%Y-%m-%d")
+    
     agreement_doc = {
         "id": agreement_id,
         "agreement_number": agreement_number,
@@ -103,6 +112,7 @@ async def create_agreement(data: AgreementCreate, current_user: User = Depends(g
         "total_value": data.total_value,
         "payment_terms": data.payment_terms,
         "start_date": data.start_date,
+        "end_date": end_date,
         "duration_months": data.duration_months,
         "sections": data.sections or [],
         "status": initial_status,
@@ -116,6 +126,37 @@ async def create_agreement(data: AgreementCreate, current_user: User = Depends(g
     
     await db.agreements.insert_one(agreement_doc)
     agreement_doc.pop("_id", None)
+    
+    # Send email notification in background
+    async def send_agreement_notification():
+        try:
+            manager_emails = await get_sales_manager_emails(db)
+            if manager_emails:
+                email_data = agreement_created_email(
+                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+                    company=lead.get("company", "Unknown"),
+                    agreement_number=agreement_number,
+                    agreement_type=data.title or "Consulting Services Agreement",
+                    total_value=data.total_value,
+                    currency="INR",
+                    start_date=data.start_date or "TBD",
+                    end_date=end_date,
+                    status=initial_status,
+                    salesperson_name=current_user.full_name,
+                    app_url=APP_URL
+                )
+                for email in manager_emails:
+                    await send_email(
+                        to_email=email,
+                        subject=email_data["subject"],
+                        html_content=email_data["html"],
+                        plain_content=email_data["plain"]
+                    )
+        except Exception as e:
+            print(f"Failed to send agreement notification: {e}")
+    
+    background_tasks.add_task(send_agreement_notification)
+    
     return agreement_doc
 
 
