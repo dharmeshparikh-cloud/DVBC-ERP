@@ -13,7 +13,40 @@
 
 ## Completed Work - February 2026
 
-### Phase 35: Principal Consultant + Client Dual Approval - February 23, 2026 ✅ (Latest)
+### Phase 36: Client Portal UI Redesign - February 23, 2026 ✅ (Latest)
+
+**Client Portal Light Theme Alignment:**
+- ✅ **ClientLogin.js** - Completely redesigned to match main ERP Login.js
+  - Black left panel with feature cards (Project Dashboard, Documents, Payments, Meeting Notes)
+  - White right panel with login card and D&V logo
+  - Black/white color scheme matching main ERP
+  - "Back to Employee Login" navigation link
+  - Remember My Client ID checkbox
+  - All data-testid attributes added for testing
+  
+- ✅ **ClientPortal.js** - Updated to light theme
+  - White background with black text
+  - Black selected project in sidebar
+  - Consistent card styling with black/10 borders
+  - Added Change Password navigation button in header
+  - All API paths fixed to use /api/ prefix
+  
+- ✅ **ClientChangePassword.js** - Completely redesigned
+  - Matching black left panel + white right panel layout
+  - Password security tips in left panel
+  - D&V logo in header
+  - All API paths fixed to use /api/ prefix
+  - Password requirements checker with visual feedback
+
+**Testing Results:**
+- 100% test pass rate (29/29 frontend tests)
+- Visual consistency verified between Client Login and Main Login
+- Mobile responsiveness verified
+- Form functionality working correctly
+
+---
+
+### Phase 35: Principal Consultant + Client Dual Approval - February 23, 2026 ✅
 
 **Dual Approval Flow (Completely Redesigned):**
 
