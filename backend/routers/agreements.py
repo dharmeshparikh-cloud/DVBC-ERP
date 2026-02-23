@@ -104,8 +104,9 @@ async def create_agreement(
     agreement_id = str(uuid.uuid4())
     agreement_number = f"AGR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
     
-    # Non-admin users create agreements in pending_approval status
-    initial_status = "draft" if current_user.role in ADMIN_ROLES else "pending_approval"
+    # All agreements start as 'draft' - must be submitted for PC/Admin approval
+    # Only after approval can they be sent to client
+    initial_status = "draft"
     
     # Calculate end date
     from dateutil.relativedelta import relativedelta
