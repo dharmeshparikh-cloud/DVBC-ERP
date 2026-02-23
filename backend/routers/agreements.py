@@ -328,7 +328,9 @@ async def reject_agreement(agreement_id: str, data: RejectionRequest, current_us
     """
     db = get_db()
     
-    if current_user.role not in AGREEMENT_APPROVE_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    approve_roles = get_role_group("AGREEMENT_APPROVE_ROLES", fail_closed=True)
+    if not approve_roles or not has_role(current_user.role, approve_roles):
         raise HTTPException(status_code=403, detail="Only Principal Consultant or Admin can reject agreements")
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
