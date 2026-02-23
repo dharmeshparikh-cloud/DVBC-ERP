@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../../App';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -13,7 +13,8 @@ import { Badge } from '../../components/ui/badge';
 import { 
   ArrowLeft, Calendar, Users, Clock, Video, MapPin, Plus, Trash2, 
   Save, CheckCircle, FileText, AlertCircle, ChevronRight, Eye,
-  MessageSquare, Target, Handshake, ListChecks
+  MessageSquare, Target, Handshake, ListChecks, Upload, Image, Mic,
+  Download, X, File
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,6 +23,7 @@ const MeetingRecord = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
+  const fileInputRef = useRef(null);
   
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,6 +31,8 @@ const MeetingRecord = () => {
   const [showMOMDialog, setShowMOMDialog] = useState(false);
   const [showViewMOMDialog, setShowViewMOMDialog] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState([]); // For new meeting
   
   // Meeting basic info
   const [formData, setFormData] = useState({
@@ -50,6 +54,14 @@ const MeetingRecord = () => {
     action_items: [''],
     next_steps: ''
   });
+
+  // Check if this is the first offline meeting
+  const isFirstOfflineMeeting = () => {
+    const offlineMeetings = meetings.filter(m => 
+      m.meeting_type?.toLowerCase() === 'offline' || m.mode === 'offline'
+    );
+    return offlineMeetings.length === 0 && formData.meeting_type === 'Offline';
+  };
 
   useEffect(() => {
     if (leadId) {
