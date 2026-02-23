@@ -5,6 +5,7 @@ Leads Router - Lead Management, Scoring, and CRUD operations
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 from typing import List, Optional
+import uuid
 
 from .models import Lead, LeadCreate, LeadUpdate, User, UserRole, LeadStatus
 from .deps import get_db, SALES_ROLES, ADMIN_ROLES
