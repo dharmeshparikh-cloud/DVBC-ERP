@@ -8,13 +8,118 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign, Eye, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Save, Pause, Play, MoreVertical } from 'lucide-react';
+import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign, Eye, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Save, Pause, Play, MoreVertical, CheckCircle, Circle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { StageResumeBar } from '../components/sales-funnel/BusinessLogicUI';
+import { Progress } from '../components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
+
+// Funnel Progress Indicator Component
+const FunnelProgressIndicator = ({ progress, onClick }) => {
+  if (!progress || !progress.completed_steps) {
+    return <span className="text-xs text-zinc-400">--</span>;
+  }
+
+  const steps = [
+    { key: 'meeting', label: 'Meeting', abbr: 'M' },
+    { key: 'pricing', label: 'Pricing', abbr: 'P' },
+    { key: 'sow', label: 'SOW', abbr: 'S' },
+    { key: 'quotation', label: 'Quote', abbr: 'Q' },
+    { key: 'agreement', label: 'Agreement', abbr: 'A' },
+    { key: 'kickoff', label: 'Kickoff', abbr: 'K' },
+    { key: 'project', label: 'Project', abbr: 'P' },
+  ];
+
+  const completedCount = progress.completed_count || 1;
+  const totalSteps = progress.total_steps || 9;
+  const percentage = progress.progress_percentage || 0;
+
+  // Determine stage label
+  const getStageLabel = () => {
+    if (progress.project) return 'Complete';
+    if (progress.kickoff) return 'Kickoff';
+    if (progress.agreement) return 'Agreement';
+    if (progress.quotation) return 'Quotation';
+    if (progress.sow) return 'SOW';
+    if (progress.pricing) return 'Pricing';
+    if (progress.meeting) return 'Meeting';
+    return 'Lead';
+  };
+
+  // Get stage color
+  const getStageColor = () => {
+    if (progress.project) return 'bg-emerald-500';
+    if (progress.kickoff) return 'bg-purple-500';
+    if (progress.agreement) return 'bg-blue-500';
+    if (progress.quotation) return 'bg-cyan-500';
+    if (progress.sow) return 'bg-teal-500';
+    if (progress.pricing) return 'bg-amber-500';
+    if (progress.meeting) return 'bg-orange-500';
+    return 'bg-zinc-400';
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div 
+            className="flex flex-col gap-1 cursor-pointer hover:opacity-80 transition-opacity min-w-[100px]"
+            onClick={onClick}
+            data-testid="funnel-progress-indicator"
+          >
+            {/* Progress Bar */}
+            <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+              <div 
+                className={`h-full ${getStageColor()} transition-all duration-300`}
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+            {/* Stage Label */}
+            <div className="flex items-center justify-between">
+              <span className={`text-[10px] font-medium ${getStageColor().replace('bg-', 'text-').replace('-500', '-600')}`}>
+                {getStageLabel()}
+              </span>
+              <span className="text-[10px] text-zinc-400">
+                {completedCount}/{totalSteps}
+              </span>
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="p-3 max-w-xs">
+          <div className="space-y-2">
+            <div className="text-xs font-semibold">Funnel Progress</div>
+            <div className="flex flex-wrap gap-1">
+              {steps.map((step) => (
+                <div 
+                  key={step.key}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${
+                    progress[step.key] 
+                      ? 'bg-emerald-100 text-emerald-700' 
+                      : 'bg-zinc-100 text-zinc-400'
+                  }`}
+                >
+                  {progress[step.key] ? (
+                    <CheckCircle className="w-2.5 h-2.5" />
+                  ) : (
+                    <Circle className="w-2.5 h-2.5" />
+                  )}
+                  {step.label}
+                </div>
+              ))}
+            </div>
+            <div className="text-[10px] text-zinc-500 pt-1 border-t">
+              Click to open Sales Funnel
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
 
 const Leads = () => {
   const { user } = useContext(AuthContext);
