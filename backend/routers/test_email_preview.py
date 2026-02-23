@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 from services.funnel_notifications import generate_test_email_previews
 
-router = APIRouter(prefix="/api/test", tags=["Test"])
+router = APIRouter(prefix="/test", tags=["Test"])
 
 
 @router.get("/email-preview/{template_name}")
