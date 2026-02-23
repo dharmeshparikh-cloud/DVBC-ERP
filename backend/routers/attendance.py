@@ -8,7 +8,7 @@ from typing import Optional, List
 import uuid
 
 from .models import User, UserRole
-from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, HR_PM_ROLES
+from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, HR_PM_ROLES, get_role_group, has_role
 from .auth import get_current_user
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
@@ -19,7 +19,9 @@ async def record_attendance(data: dict, current_user: User = Depends(get_current
     """Record attendance entry (HR/Admin manual entry)."""
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can manually record attendance")
     
     attendance = {
