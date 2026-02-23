@@ -201,8 +201,24 @@ async def get_sales_stats(current_user: User = Depends(get_current_user)):
 
 @router.get("/consulting")
 async def get_consulting_stats(current_user: User = Depends(get_current_user)):
-    """Get consulting statistics for dashboard."""
+    """
+    Get consulting statistics for dashboard.
+    
+    Access Control (RBAC-driven):
+    - CONSULTING_ROLES: Full access
+    - MANAGER_ROLES: View access
+    - Others: 403 Forbidden
+    """
     db = get_db()
+    
+    # RBAC check - only consulting team and managers can see consulting stats
+    consulting_roles = get_role_group("CONSULTING_ROLES", fail_closed=False) or []
+    manager_roles = get_manager_roles()
+    
+    allowed_roles = list(set(consulting_roles + manager_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Consulting or Manager access required")
     
     # Projects
     total_projects = await db.projects.count_documents({})
