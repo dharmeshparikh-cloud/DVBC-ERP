@@ -4,6 +4,7 @@ Sends email notifications when kickoff is sent and accepted.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi.responses import HTMLResponse
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 from typing import List, Optional
