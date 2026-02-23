@@ -804,7 +804,7 @@ async def client_confirm_kickoff_approval(
         """, status_code=404)
     
     if kickoff.get("client_approved"):
-        return HTMLResponse(content=f"""
+        return HTMLResponse(content="""
             <html><body style="font-family: Arial; text-align: center; padding: 50px;">
                 <h1 style="color: #10b981;">✓ Already Approved</h1>
             </body></html>
