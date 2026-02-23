@@ -13,7 +13,7 @@ from .deps import get_db, MANAGER_ROLES, SALES_MANAGER_ROLES, SALES_ROLES, ADMIN
 from .models import User
 from .auth import get_current_user
 from services.email_service import send_email
-from services.funnel_notifications import agreement_created_email, get_sales_manager_emails
+from services.funnel_notifications import agreement_created_email, get_agreement_notification_emails
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
