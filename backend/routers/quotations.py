@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import os
 from pydantic import BaseModel
-from .deps import get_db
+from .deps import get_db, get_role_group, has_role
 from .models import User
 from .auth import get_current_user
 from services.email_service import send_email
