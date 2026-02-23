@@ -36,8 +36,12 @@ class QuotationCreate(BaseModel):
 
 
 @router.post("")
-async def create_quotation(data: QuotationCreate, current_user: User = Depends(get_current_user)):
-    """Create a new quotation"""
+async def create_quotation(
+    data: QuotationCreate,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new quotation and send email notification"""
     db = get_db()
     
     lead = await db.leads.find_one({"id": data.lead_id}, {"_id": 0})
@@ -46,6 +50,7 @@ async def create_quotation(data: QuotationCreate, current_user: User = Depends(g
     
     quotation_id = str(uuid.uuid4())
     quotation_number = f"QT-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+    valid_until = (datetime.now(timezone.utc) + timedelta(days=data.validity_days)).strftime("%Y-%m-%d")
     
     quotation_doc = {
         "id": quotation_id,
@@ -61,7 +66,7 @@ async def create_quotation(data: QuotationCreate, current_user: User = Depends(g
         "tax_amount": data.tax_amount,
         "total": data.total,
         "validity_days": data.validity_days,
-        "valid_until": None,  # Calculate on finalize
+        "valid_until": valid_until,
         "notes": data.notes,
         "status": "draft",
         "created_by": current_user.id,
@@ -71,6 +76,36 @@ async def create_quotation(data: QuotationCreate, current_user: User = Depends(g
     
     await db.quotations.insert_one(quotation_doc)
     quotation_doc.pop("_id", None)
+    
+    # Send email notification in background
+    async def send_proforma_notification():
+        try:
+            manager_emails = await get_sales_manager_emails(db)
+            if manager_emails:
+                email_data = proforma_generated_email(
+                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+                    company=lead.get("company", "Unknown"),
+                    quotation_number=quotation_number,
+                    total_amount=data.total,
+                    currency="INR",
+                    valid_until=valid_until,
+                    items_count=len(data.line_items or []),
+                    payment_terms=data.notes or "As per agreement",
+                    salesperson_name=current_user.full_name,
+                    app_url=APP_URL
+                )
+                for email in manager_emails:
+                    await send_email(
+                        to_email=email,
+                        subject=email_data["subject"],
+                        html_content=email_data["html"],
+                        plain_content=email_data["plain"]
+                    )
+        except Exception as e:
+            print(f"Failed to send proforma notification: {e}")
+    
+    background_tasks.add_task(send_proforma_notification)
+    
     return quotation_doc
 
 
