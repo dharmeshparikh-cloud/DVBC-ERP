@@ -15,12 +15,22 @@
 
 ### Phase 38: Access Control Fixes & E2E Kickoff Flow Testing - February 23, 2026 ✅ (Latest)
 
-**Access Control Fixes:**
-- ✅ **Sales Executives CAN create agreements** (previously only managers)
-- ✅ **Reporting Managers can approve agreements** (manager, sr_manager, sales_manager, principal_consultant, admin)
-- ✅ **Client-facing communications require Principal Consultant approval**
-  - Send-to-client endpoint now requires PC or Admin role
-  - Error message: "Only Principal Consultant can send client-facing communications"
+**Agreement Workflow Fixed:**
+```
+1. Sales Executive creates agreement → status: 'draft'
+2. Sales Executive submits for approval → status: 'pending_approval'  
+3. ONLY Principal Consultant or Admin can approve → status: 'approved'
+4. Only after PC approval can agreement be sent to client
+```
+
+**New Endpoint Added:**
+- `PATCH /api/agreements/{id}/submit-for-approval` - Sales submits draft for PC review
+
+**Access Control:**
+- ✅ Sales Executives CAN create agreements (status: `draft`)
+- ✅ Sales Managers CANNOT approve (blocked with clear error message)
+- ✅ ONLY Principal Consultant or Admin can approve/reject
+- ✅ Client-facing communications require Principal Consultant approval
 
 **E2E Kickoff Flow Tested Successfully:**
 1. ✅ Create Lead (Sales Executive)
