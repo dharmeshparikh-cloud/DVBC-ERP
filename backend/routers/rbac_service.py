@@ -5,6 +5,9 @@ Single source of truth for roles, permissions, and departments.
 Uses MongoDB with in-memory caching for performance.
 
 This module replaces all hardcoded role arrays across the application.
+
+CRITICAL: This is the ONLY source of truth for roles/permissions.
+DO NOT create role arrays anywhere else in the codebase.
 """
 
 from typing import Dict, List, Optional, Any, Set
@@ -12,6 +15,15 @@ from datetime import datetime, timezone
 from functools import lru_cache
 import asyncio
 import logging
+import os
+
+from .rbac_migration import (
+    log_fallback_event, 
+    compare_permission_results,
+    CURRENT_PHASE, 
+    MigrationPhase,
+    with_rbac_lock
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +33,7 @@ _role_cache: Dict[str, Any] = {}
 _permission_cache: Dict[str, Any] = {}
 _department_cache: Dict[str, Any] = {}
 _cache_timestamp: float = 0
+_cache_version: int = 0  # Incremented on each update for cache invalidation
 CACHE_TTL_SECONDS = 300  # 5 minutes
 
 # ==================== DEFAULT SEED DATA ====================
