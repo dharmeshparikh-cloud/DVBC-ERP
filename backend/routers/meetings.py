@@ -1,11 +1,14 @@
 """
 Meetings Router - Meeting Management, MOM, Action Items
+Includes file attachments for offline meetings (photos/voice)
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 import uuid
+import base64
+import os
 
 from .models import Meeting, MeetingCreate, MOMCreate, ActionItemCreate, User
 from .models import SALES_MEETING_ROLES, CONSULTING_MEETING_ROLES
@@ -13,6 +16,16 @@ from .deps import get_db
 from .auth import get_current_user
 
 router = APIRouter(prefix="/meetings", tags=["Meetings"])
+
+# File storage path for meeting attachments
+UPLOAD_DIR = "/app/uploads/meetings"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Allowed file types for offline meeting attachments
+ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"]
+ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/webm", "audio/ogg", "audio/mp4", "audio/x-m4a"]
+ALLOWED_TYPES = ALLOWED_IMAGE_TYPES + ALLOWED_AUDIO_TYPES
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
 
 @router.post("", response_model=Meeting)
