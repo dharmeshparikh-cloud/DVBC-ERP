@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from functools import wraps
 import uuid
 
-from .deps import get_db, ADMIN_ROLES, HR_ADMIN_ROLES
+from .deps import get_db, ADMIN_ROLES, HR_ADMIN_ROLES, get_role_group, has_role
 from .auth import get_current_user
 from .models import User
 
