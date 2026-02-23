@@ -180,7 +180,9 @@ def calculate_ctc_breakdown_dynamic(annual_ctc: float, component_config: list, r
 @router.get("/component-master")
 async def get_ctc_component_master_api(current_user: User = Depends(get_current_user)):
     """Get CTC component master configuration."""
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can access CTC components")
     
     components = await get_ctc_component_master()
@@ -209,7 +211,9 @@ async def update_ctc_component_master(data: dict, current_user: User = Depends(g
 @router.post("/calculate-preview")
 async def preview_ctc_breakdown(data: dict, current_user: User = Depends(get_current_user)):
     """Preview CTC breakdown with configurable components."""
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can access CTC calculations")
     
     annual_ctc = data.get("annual_ctc", 0)
@@ -236,7 +240,9 @@ async def preview_ctc_breakdown(data: dict, current_user: User = Depends(get_cur
 async def design_ctc_structure(request: CTCStructureRequest, current_user: User = Depends(get_current_user)):
     """HR designs/saves CTC structure for an employee - No admin approval required."""
     db = get_db()
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only Admin/HR can design CTC structures")
     
     employee = await db.employees.find_one({"id": request.employee_id}, {"_id": 0})
@@ -326,7 +332,9 @@ async def design_ctc_structure(request: CTCStructureRequest, current_user: User 
 async def get_pending_ctc_approvals(current_user: User = Depends(get_current_user)):
     """Get all pending CTC structure approvals (Admin/HR Manager)."""
     db = get_db()
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view pending CTC approvals")
     
     pending = await db.ctc_structures.find(
@@ -345,7 +353,9 @@ async def get_all_ctc_structures(
 ):
     """Get all CTC structures with optional filters (Admin/HR)."""
     db = get_db()
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view CTC structures")
     
     query = {}
@@ -362,7 +372,9 @@ async def get_all_ctc_structures(
 async def get_employee_ctc(employee_id: str, current_user: User = Depends(get_current_user)):
     """Get active CTC structure for an employee."""
     db = get_db()
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         if current_user.id != employee_id:
             raise HTTPException(status_code=403, detail="Access denied")
     
@@ -383,7 +395,9 @@ async def get_employee_ctc(employee_id: str, current_user: User = Depends(get_cu
 async def get_employee_ctc_history(employee_id: str, current_user: User = Depends(get_current_user)):
     """Get CTC change history for an employee."""
     db = get_db()
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view CTC history")
     
     history = await db.ctc_structures.find(
@@ -500,7 +514,9 @@ async def reject_ctc_structure(ctc_id: str, data: dict, current_user: User = Dep
 async def cancel_ctc_request(ctc_id: str, current_user: User = Depends(get_current_user)):
     """HR cancels their own pending CTC request."""
     db = get_db()
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can cancel CTC requests")
     
     ctc_structure = await db.ctc_structures.find_one({"id": ctc_id}, {"_id": 0})
@@ -529,7 +545,9 @@ async def cancel_ctc_request(ctc_id: str, current_user: User = Depends(get_curre
 async def get_ctc_stats(current_user: User = Depends(get_current_user)):
     """Get CTC approval statistics (Admin/HR Manager)."""
     db = get_db()
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only Admin/HR Manager can view CTC stats")
     
     pending_count = await db.ctc_structures.count_documents({"status": "pending"})
