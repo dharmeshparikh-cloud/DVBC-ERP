@@ -1,15 +1,27 @@
 """
 Leads Router - Lead Management, Scoring, and CRUD operations
+
+PERFORMANCE OPTIMIZATION: December 2025
+- Added pagination support for list endpoints
+- Added caching for lead lists
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 
 from .models import Lead, LeadCreate, LeadUpdate, User, UserRole, LeadStatus
-from .deps import get_db, SALES_ROLES, ADMIN_ROLES, get_role_group, has_role
+from .deps import (
+    get_db, SALES_ROLES, ADMIN_ROLES, get_role_group, has_role,
+    PaginationParams, paginate_response, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+)
 from .auth import get_current_user
+
+# Performance caching
+import sys
+sys.path.insert(0, '/app/backend')
+from services.cache_service import cache, list_key, PerformanceCache
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
