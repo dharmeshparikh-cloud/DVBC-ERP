@@ -663,8 +663,9 @@ async def accept_kickoff_request(
     """
     db = get_db()
     
-    # ONLY Principal Consultant can approve kickoffs
-    if current_user.role not in PRINCIPAL_CONSULTANT_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    pc_roles = get_role_group("PRINCIPAL_CONSULTANT_ROLES", fail_closed=True)
+    if not pc_roles or not has_role(current_user.role, pc_roles):
         raise HTTPException(
             status_code=403, 
             detail="Only Principal Consultant can approve kickoff requests internally"
