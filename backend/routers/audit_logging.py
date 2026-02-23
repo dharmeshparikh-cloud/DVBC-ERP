@@ -170,7 +170,9 @@ async def get_audit_logs(
     current_user: User = Depends(get_current_user)
 ):
     """Query audit logs with filters (Admin only)"""
-    if current_user.role not in ADMIN_ROLES:
+    # RBAC Migration
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=True)
+    if not admin_roles or not has_role(current_user.role, admin_roles):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     db = get_db()
@@ -241,7 +243,9 @@ async def get_user_actions(
     current_user: User = Depends(get_current_user)
 ):
     """Get all actions performed by a specific user"""
-    if current_user.role not in ADMIN_ROLES:
+    # RBAC Migration
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=True)
+    if not admin_roles or not has_role(current_user.role, admin_roles):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     db = get_db()
@@ -279,7 +283,9 @@ async def get_audit_summary(
     current_user: User = Depends(get_current_user)
 ):
     """Get audit log summary for dashboard"""
-    if current_user.role not in ADMIN_ROLES:
+    # RBAC Migration
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=True)
+    if not admin_roles or not has_role(current_user.role, admin_roles):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     db = get_db()
@@ -366,7 +372,9 @@ async def get_security_audit(
     current_user: User = Depends(get_current_user)
 ):
     """Get security-related audit events"""
-    if current_user.role not in ADMIN_ROLES:
+    # RBAC Migration
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=True)
+    if not admin_roles or not has_role(current_user.role, admin_roles):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     db = get_db()
