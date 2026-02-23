@@ -1091,36 +1091,6 @@ async def _create_project_from_kickoff(
         "consultant_approved": True,
         "client_approved": True
     }
-                client_email=client_email,
-                app_url=APP_URL
-            )
-            
-            # Send to team
-            for email in team_emails:
-                await send_email(
-                    to_email=email,
-                    subject=email_data["subject"],
-                    html_content=email_data["html"],
-                    plain_content=email_data["plain"]
-                )
-            
-            # Send to client
-            if client_email:
-                await send_email(
-                    to_email=client_email,
-                    subject=f"🎉 Project Approved - {kickoff.get('project_name')}!",
-                    html_content=email_data["html"],
-                    plain_content=email_data["plain"]
-                )
-        except Exception as e:
-            print(f"Failed to send kickoff accepted notification: {e}")
-    
-    background_tasks.add_task(send_kickoff_accepted_notification)
-    
-    return {
-        "message": "Kickoff request accepted",
-        "project_id": project.id
-    }
 
 
 @router.post("/{request_id}/reject")
