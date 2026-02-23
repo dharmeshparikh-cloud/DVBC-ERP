@@ -413,35 +413,25 @@ if is_manager:
 
 ## 10. Recommendations
 
-### Immediate Actions (P0)
+### ~~Immediate Actions (P0)~~ ✅ ALL COMPLETED
 
-1. **Create Leave Encashment Approval Endpoint**
-   ```python
-   @router.post("/encashment-requests/{request_id}/approve")
-   async def approve_encashment_request(request_id: str, ...):
-       # HR_ADMIN_ROLES check using RBAC service
-   ```
+1. ~~**Create Leave Encashment Approval Endpoint**~~ ✅ DONE
+   - Created full CRUD with approve/reject/withdraw
+   - HR_ADMIN_ROLES authorization
+   - Payroll integration on approval
 
-2. **Add Quotation Finalization Authorization**
-   ```python
-   @router.patch("/{quotation_id}/finalize")
-   async def finalize_quotation(...):
-       manager_roles = get_role_group("SALES_MANAGER_ROLES", fail_closed=True)
-       if not has_role(current_user.role, manager_roles):
-           raise HTTPException(403, "Manager approval required")
-   ```
+2. ~~**Add Quotation Finalization Authorization**~~ ✅ DONE
+   - Added Reporting Manager/Sales Manager/Admin check
+   - Creator cannot self-approve
+
+3. ~~**Restrict Travel Approval Scope**~~ ✅ DONE
+   - Changed to HR_ROLES + Admin only
 
 ### Short-Term Actions (P1)
 
-3. **Complete RBAC Migration for Expenses/Travel**
-   - Replace all hardcoded `HR_ROLES`, `APPROVAL_ROLES` with `get_role_group()`
+4. **Complete RBAC Migration for Expenses**
+   - Replace remaining hardcoded `HR_ROLES`, `APPROVAL_ROLES` with `get_role_group()`
    - Ensure fail-closed behavior for financial operations
-
-4. **Restrict Travel Approval Scope**
-   ```python
-   # Change from APPROVAL_ROLES to specific financial roles
-   hr_finance_roles = get_role_group("HR_FINANCE_ROLES", fail_closed=True)
-   ```
 
 5. **Add Audit Trail for Admin Overrides**
    - Log all admin-override actions to `audit_logs` collection
