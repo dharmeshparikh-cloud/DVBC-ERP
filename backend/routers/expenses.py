@@ -8,7 +8,7 @@ from typing import Optional, List
 import uuid
 
 from .models import User, UserRole
-from .deps import get_db, sanitize_text, HR_ROLES, HR_ADMIN_ROLES, MANAGER_ROLES, APPROVAL_ROLES
+from .deps import get_db, sanitize_text, get_role_group, has_role
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification
 from websocket_manager import get_manager as get_ws_manager
