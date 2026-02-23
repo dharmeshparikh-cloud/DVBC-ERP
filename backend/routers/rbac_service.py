@@ -725,14 +725,21 @@ rbac = RBACService()
 # ==================== COMPATIBILITY FUNCTIONS ====================
 # These replace the hardcoded imports in deps.py
 
-def get_role_group(group_name: str) -> List[str]:
-    """Backward-compatible function to get role group"""
-    return rbac.get_role_group(group_name)
+def get_role_group(group_name: str, fail_closed: bool = False) -> List[str]:
+    """
+    Backward-compatible function to get role group.
+    
+    Args:
+        group_name: Name of the role group
+        fail_closed: If True, returns empty list instead of falling back to defaults.
+                     Use True for critical security operations.
+    """
+    return rbac.get_role_group(group_name, fail_closed=fail_closed)
 
 
-def has_role_in_group(user_role: str, group_name: str) -> bool:
+def has_role_in_group(user_role: str, group_name: str, fail_closed: bool = False) -> bool:
     """Check if user role is in a named group"""
-    return rbac.has_role(user_role, rbac.get_role_group(group_name))
+    return rbac.has_role(user_role, rbac.get_role_group(group_name, fail_closed=fail_closed))
 
 
 # ==================== PROPERTY ALIASES (for backward compatibility) ====================
