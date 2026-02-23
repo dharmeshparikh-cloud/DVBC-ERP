@@ -24,12 +24,16 @@ logger = logging.getLogger(__name__)
 # Import the RBAC service singleton - this is the source of truth
 from .rbac_service import rbac, get_role_group as _get_role_group
 
-def get_role_group(group_name: str) -> List[str]:
+def get_role_group(group_name: str, fail_closed: bool = False) -> List[str]:
     """
     Get role group from RBAC service (database-driven).
-    Falls back to hardcoded values during startup/testing.
+    Falls back to hardcoded values during startup/testing unless fail_closed=True.
+    
+    Args:
+        group_name: Name of the role group
+        fail_closed: If True, returns empty list (denies) instead of falling back
     """
-    return _get_role_group(group_name)
+    return _get_role_group(group_name, fail_closed=fail_closed)
 
 # ==================== ROLE CONSTANTS (DB-BACKED) ====================
 # These are now lazy-loaded from the database via rbac_service
