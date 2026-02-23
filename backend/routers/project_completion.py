@@ -409,9 +409,9 @@ async def get_projects_pending_completion(
     """
     db = get_db()
     
-    # Only certain roles can access this
-    allowed_roles = ADMIN_ROLES + PROJECT_ROLES
-    if current_user.role not in allowed_roles:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    project_roles = get_role_group("PROJECT_ROLES", fail_closed=True)
+    if not project_roles or not has_role(current_user.role, project_roles):
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Get all active projects
