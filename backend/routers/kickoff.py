@@ -1411,8 +1411,9 @@ async def reject_kickoff_request(
     """Reject a kickoff request (Principal Consultant ONLY)."""
     db = get_db()
     
-    # Only Principal Consultant can reject kickoffs
-    if current_user.role not in PRINCIPAL_CONSULTANT_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    pc_roles = get_role_group("PRINCIPAL_CONSULTANT_ROLES", fail_closed=True)
+    if not pc_roles or not has_role(current_user.role, pc_roles):
         raise HTTPException(status_code=403, detail="Only Principal Consultant can reject kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
