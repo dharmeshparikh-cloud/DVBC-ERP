@@ -34,6 +34,18 @@
 - Added `ALL_DATA_ACCESS_ROLES` group to RBAC service
 - Implemented team hierarchy filtering for managers
 - Added fail-closed authorization for sensitive stats
+- **NEW: Real-time RBAC Dashboard Widget** - Shows user's current role, level, permissions, and data access scope
+
+**RBAC Widget Features:**
+- Displays role name and numeric level (e.g., "Administrator - Level 100")
+- Color-coded access tier badges (Full Access, Department Lead, Manager, Team Member, Basic)
+- Shows department and data access scope
+- Permission indicators (Approvals, Reports, Manage Users, Team Data)
+- Expandable view with security notice
+
+**Backend RBAC Migration in projects.py:**
+- Migrated consultant assignment endpoints to use RBAC service
+- All 4 legacy role checks replaced with `get_role_group("SENIOR_CONSULTING_ROLES", fail_closed=True)`
 
 **Frontend-Backend Permission Validation:**
 - Fixed `ManagerApprovals.js` to use `usePermissions()` context
@@ -42,8 +54,13 @@
 
 **Files Modified:**
 - `/app/backend/routers/stats.py` - Full RBAC migration
+- `/app/backend/routers/projects.py` - Consultant assignment RBAC
 - `/app/backend/routers/rbac_service.py` - Added ALL_DATA_ACCESS_ROLES
 - `/app/backend/routers/leads.py` - Delete endpoint RBAC
+- `/app/frontend/src/components/RBACWidget.js` - NEW: Permission widget
+- `/app/frontend/src/pages/AdminDashboard.js` - Added RBAC widget
+- `/app/frontend/src/pages/SalesDashboard.js` - Added RBAC widget
+- `/app/frontend/src/pages/Dashboard.js` - Added RBAC widget
 - `/app/frontend/src/pages/sales-funnel/ManagerApprovals.js` - Permission context
 
 **Documentation Created:**
@@ -54,6 +71,7 @@
 - ✅ 12/12 RBAC regression tests pass
 - ✅ All stats endpoints verified via curl
 - ✅ Role-based filtering confirmed
+- ✅ RBAC widget visible and functional
 
 ---
 
