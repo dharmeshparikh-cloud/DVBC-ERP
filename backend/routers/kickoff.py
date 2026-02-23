@@ -23,7 +23,10 @@ from .models import (
     KickoffRequest, KickoffRequestCreate, KickoffRequestUpdate, 
     KickoffReturnRequest, User, UserRole, Project, ClientUser, ProjectAssignment
 )
-from .deps import get_db, SALES_EXECUTIVE_ROLES, PRINCIPAL_CONSULTANT_ROLES
+from .deps import (
+    get_db, SALES_EXECUTIVE_ROLES, PRINCIPAL_CONSULTANT_ROLES,
+    get_role_group, has_role, require_role_group_critical
+)
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification, notify_requester_on_action
 from services.email_service import send_email
