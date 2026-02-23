@@ -537,7 +537,10 @@ async def get_hr_dashboard_stats(current_user: User = Depends(get_current_user))
     """HR-specific dashboard stats - employees, attendance, leaves, payroll"""
     db = get_db()
     
-    if current_user.role not in ['admin', 'hr_manager', 'hr_executive', 'manager']:
+    # RBAC Migration: Use database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=False) or []
+    if not hr_roles or (not has_role(current_user.role, hr_roles) and not has_role(current_user.role, manager_roles)):
         raise HTTPException(status_code=403, detail="Not authorized")
     
     total_employees = await db.employees.count_documents({"is_active": True})
