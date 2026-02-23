@@ -6,13 +6,14 @@ import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { 
   Users, Calendar, Clock, DollarSign, FileText,
-  UserCheck, UserX, Briefcase, CheckCircle, AlertCircle, LogIn, Book, Download, Mail
+  UserCheck, UserX, Briefcase, CheckCircle, AlertCircle, LogIn, Book, Download, Mail, ArrowRight
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 
 const HRDashboard = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   
