@@ -1,6 +1,11 @@
 """
 Kickoff Router - Kickoff Requests Workflow (Sales to Consulting Handoff)
-Sends email notifications when kickoff is sent and accepted.
+
+DUAL APPROVAL FLOW:
+1. Principal Consultant (ONLY) approves internally → Project ID generated (PROJ-YYYYMMDD-XXXX)
+2. Client receives email → Approves with confirmed start date
+3. Client user account created (5-digit ID: 98XXX)
+4. Project activated, consultant can be assigned manually
 """
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
@@ -10,12 +15,15 @@ from dateutil.relativedelta import relativedelta
 from typing import List, Optional
 import uuid
 import os
+import secrets
+import string
+from passlib.context import CryptContext
 
 from .models import (
     KickoffRequest, KickoffRequestCreate, KickoffRequestUpdate, 
-    KickoffReturnRequest, User, UserRole, Project
+    KickoffReturnRequest, User, UserRole, Project, ClientUser, ProjectAssignment
 )
-from .deps import get_db, SALES_EXECUTIVE_ROLES, SENIOR_CONSULTING_ROLES
+from .deps import get_db, SALES_EXECUTIVE_ROLES, PRINCIPAL_CONSULTANT_ROLES
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification, notify_requester_on_action
 from services.email_service import send_email
@@ -25,6 +33,54 @@ from websocket_manager import get_manager as get_ws_manager
 router = APIRouter(prefix="/kickoff-requests", tags=["Kickoff Requests"])
 
 APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-approval-flow.preview.emergentagent.com").replace("/api", "")
+LOGO_URL = "https://dvconsulting.co.in/wp-content/uploads/2020/02/logov4-min.png"
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+# ============== HELPER FUNCTIONS ==============
+
+async def generate_project_id(db) -> str:
+    """Generate Project ID in format: PROJ-YYYYMMDD-XXXX"""
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    prefix = f"PROJ-{today}-"
+    
+    # Find highest sequence for today
+    existing = await db.projects.find(
+        {"id": {"$regex": f"^{prefix}"}},
+        {"_id": 0, "id": 1}
+    ).to_list(1000)
+    
+    if existing:
+        sequences = [int(p["id"].split("-")[-1]) for p in existing if p["id"].split("-")[-1].isdigit()]
+        next_seq = max(sequences) + 1 if sequences else 1
+    else:
+        next_seq = 1
+    
+    return f"{prefix}{next_seq:04d}"
+
+
+async def generate_client_id(db) -> str:
+    """Generate Client ID: 5-digit starting from 98000"""
+    # Find highest client_id starting with 98
+    existing = await db.client_users.find(
+        {"client_id": {"$regex": "^98"}},
+        {"_id": 0, "client_id": 1}
+    ).sort("client_id", -1).to_list(1)
+    
+    if existing:
+        last_id = int(existing[0]["client_id"])
+        next_id = last_id + 1
+    else:
+        next_id = 98000  # Starting point
+    
+    return str(next_id)
+
+
+def generate_random_password(length: int = 12) -> str:
+    """Generate a secure random password."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 @router.post("")
