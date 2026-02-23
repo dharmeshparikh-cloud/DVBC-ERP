@@ -136,33 +136,49 @@ async def create_kickoff_request(
         except Exception as e:
             print(f"Error sending kickoff notification to PM: {e}")
     
-    # Send HTML summary email to managers in background
+    # Get client email
+    client_email = lead.get("email", "") if lead else ""
+    
+    # Send HTML summary email to team + client in background
     async def send_kickoff_sent_notification():
         try:
-            manager_emails = await get_sales_manager_emails(db)
-            if manager_emails:
-                email_data = kickoff_sent_email(
-                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() if lead else "N/A",
-                    company=kickoff.client_name or (lead.get("company") if lead else "Unknown"),
-                    project_name=kickoff.project_name,
-                    project_type=kickoff.project_type or "Mixed",
-                    start_date=str(kickoff.expected_start_date)[:10] if kickoff.expected_start_date else "TBD",
-                    assigned_pm=pm_name,
-                    contract_value=kickoff.project_value or 0,
-                    currency="INR",
-                    meetings_count=meetings_count,
-                    key_commitments=key_commitments,
-                    salesperson_name=current_user.full_name,
-                    approver_name=pm_name,
-                    app_url=APP_URL
+            # Get emails: Lead Owner, Manager, Sales Head, Senior Manager, Principal Consultant
+            team_emails = await get_kickoff_notification_emails(db, current_user.id)
+            
+            email_data = kickoff_sent_email(
+                lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() if lead else "N/A",
+                company=kickoff.client_name or (lead.get("company") if lead else "Unknown"),
+                project_name=kickoff.project_name,
+                project_type=kickoff.project_type or "Mixed",
+                start_date=str(kickoff.expected_start_date)[:10] if kickoff.expected_start_date else "TBD",
+                assigned_pm=pm_name,
+                contract_value=kickoff.project_value or 0,
+                currency="INR",
+                meetings_count=meetings_count,
+                key_commitments=key_commitments,
+                salesperson_name=current_user.full_name,
+                approver_name=pm_name,
+                client_email=client_email,
+                app_url=APP_URL
+            )
+            
+            # Send to team
+            for email in team_emails:
+                await send_email(
+                    to_email=email,
+                    subject=email_data["subject"],
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
                 )
-                for email in manager_emails:
-                    await send_email(
-                        to_email=email,
-                        subject=email_data["subject"],
-                        html_content=email_data["html"],
-                        plain_content=email_data["plain"]
-                    )
+            
+            # Send to client
+            if client_email:
+                await send_email(
+                    to_email=client_email,
+                    subject=f"Project Kickoff Initiated - {kickoff.project_name}",
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
+                )
         except Exception as e:
             print(f"Failed to send kickoff sent notification: {e}")
     
