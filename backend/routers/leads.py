@@ -400,7 +400,7 @@ async def get_lead_stage(
 async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(get_current_user)):
     """
     Get the sales funnel progress for a lead.
-    Returns completed steps, current step, and overall progress.
+    Returns completed steps, current step, overall progress, and linked IDs for all steps.
     """
     db = get_db()
     
@@ -424,46 +424,105 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
     # Determine completed steps based on lead data
     completed_steps = []
     
+    # Track linked IDs for each step
+    linked_data = {
+        "lead_id": lead_id,
+        "meeting_ids": [],
+        "meeting_count": 0,
+        "last_meeting_date": None,
+        "pricing_plan_id": None,
+        "pricing_plan_total": 0,
+        "sow_id": None,
+        "sow_items_count": 0,
+        "quotation_id": None,
+        "quotation_number": None,
+        "agreement_id": None,
+        "agreement_number": None,
+        "agreement_status": None,
+        "total_paid": 0,
+        "payment_count": 0,
+        "kickoff_id": None,
+        "kickoff_status": None,
+        "project_id": None,
+        "project_name": None
+    }
+    
     # Step 1: Lead Capture - always complete if lead exists
     completed_steps.append("lead_capture")
     
-    # Step 2: Meeting - check if meetings exist
-    meetings = await db.meetings.find({"lead_id": lead_id}).to_list(1)
+    # Step 2: Meeting - check if meetings exist with MOM
+    meetings = await db.meetings.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("meeting_date", -1).to_list(100)
+    
     if meetings:
         completed_steps.append("record_meeting")
+        linked_data["meeting_ids"] = [m.get("id") for m in meetings if m.get("id")]
+        linked_data["meeting_count"] = len(meetings)
+        if meetings[0].get("meeting_date"):
+            linked_data["last_meeting_date"] = meetings[0]["meeting_date"][:10] if isinstance(meetings[0]["meeting_date"], str) else str(meetings[0]["meeting_date"])[:10]
     
     # Step 3: Pricing Plan - check if pricing exists
-    pricing = await db.pricing_plans.find({"lead_id": lead_id}).to_list(1)
+    pricing = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
     if pricing:
         completed_steps.append("pricing_plan")
+        linked_data["pricing_plan_id"] = pricing.get("id")
+        linked_data["pricing_plan_total"] = pricing.get("grand_total", 0)
     
-    # Step 4: SOW - check if SOW exists
-    sow = await db.sows.find({"lead_id": lead_id}).to_list(1)
+    # Step 4: SOW - check if SOW exists (check both sows and enhanced_sows collections)
+    sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0})
+    if not sow:
+        sow = await db.enhanced_sows.find_one({"lead_id": lead_id}, {"_id": 0})
     if sow:
         completed_steps.append("scope_of_work")
+        linked_data["sow_id"] = sow.get("id")
+        linked_data["sow_items_count"] = len(sow.get("scope_items", []))
     
     # Step 5: Quotation - check if quotation exists
-    quotation = await db.quotations.find({"lead_id": lead_id}).to_list(1)
+    quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0})
     if quotation:
         completed_steps.append("quotation")
+        linked_data["quotation_id"] = quotation.get("id")
+        linked_data["quotation_number"] = quotation.get("quotation_number")
     
-    # Step 6: Agreement - check if agreement exists and is signed
+    # Step 6: Agreement - check if agreement exists
     agreement = await db.agreements.find_one({"lead_id": lead_id}, {"_id": 0})
     if agreement:
         completed_steps.append("agreement")
+        linked_data["agreement_id"] = agreement.get("id")
+        linked_data["agreement_number"] = agreement.get("agreement_number")
+        linked_data["agreement_status"] = agreement.get("status")
         
         # Step 7: Payment - check if payment recorded
-        if agreement.get("payment_status") == "paid" or agreement.get("payment_received"):
+        payments = await db.payment_verifications.find(
+            {"agreement_id": agreement.get("id"), "status": "verified"},
+            {"_id": 0}
+        ).to_list(100)
+        
+        if payments:
+            linked_data["payment_count"] = len(payments)
+            linked_data["total_paid"] = sum(p.get("amount", 0) for p in payments)
+            completed_steps.append("record_payment")
+        elif agreement.get("payment_status") == "paid" or agreement.get("payment_received"):
             completed_steps.append("record_payment")
     
     # Step 8: Kickoff Request - check if kickoff exists
     kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id}, {"_id": 0})
+    if not kickoff and agreement:
+        # Also check by agreement_id
+        kickoff = await db.kickoff_requests.find_one({"agreement_id": agreement.get("id")}, {"_id": 0})
+    
     if kickoff:
         completed_steps.append("kickoff_request")
+        linked_data["kickoff_id"] = kickoff.get("id")
+        linked_data["kickoff_status"] = kickoff.get("status")
         
-        # Step 9: Project Created - check if kickoff approved
-        if kickoff.get("status") == "approved":
+        # Step 9: Project Created - check if kickoff approved/accepted
+        if kickoff.get("status") in ["approved", "accepted", "converted"]:
             completed_steps.append("project_created")
+            linked_data["project_id"] = kickoff.get("project_id")
+            linked_data["project_name"] = kickoff.get("project_name")
     
     # Also check if lead status indicates completion
     if lead.get("status") in ["won", "closed_won", "converted"]:
@@ -486,5 +545,8 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
         "completed_count": len(completed_steps),
         "progress_percentage": round(progress_percentage, 1),
         "status": lead.get("status"),
-        "lead_score": lead.get("score", 0)
+        "lead_score": lead.get("score", 0),
+        # Linked data for downstream steps
+        **linked_data
     }
+
