@@ -21,7 +21,8 @@ APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://netra-client-portal.p
 
 # Role constants for this router
 AGREEMENT_VIEW_ROLES = SALES_ROLES + SENIOR_CONSULTING_ROLES  # sales, admin, principal_consultant
-AGREEMENT_CREATE_ROLES = SALES_MANAGER_ROLES + ADMIN_ROLES  # sales_manager, admin
+AGREEMENT_CREATE_ROLES = SALES_ROLES  # All sales roles including executive can create agreements
+AGREEMENT_APPROVE_ROLES = ["admin", "manager", "sr_manager", "sales_manager", "principal_consultant"]  # Reporting managers can approve
 
 
 class AgreementSection(BaseModel):
