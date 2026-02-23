@@ -71,6 +71,7 @@ const ApprovalsCenter = lazy(() => import('./pages/ApprovalsCenter'));
 const Clients = lazy(() => import('./pages/Clients'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Reports = lazy(() => import('./pages/Reports'));
+const CustomReportBuilder = lazy(() => import('./pages/CustomReportBuilder'));
 const SecurityAuditLog = lazy(() => import('./pages/SecurityAuditLog'));
 const GanttChart = lazy(() => import('./pages/GanttChart'));
 const Downloads = lazy(() => import('./pages/Downloads'));
