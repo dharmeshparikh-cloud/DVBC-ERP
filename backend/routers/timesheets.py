@@ -7,14 +7,18 @@ from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
 from pydantic import BaseModel
-from .deps import get_db, MANAGER_ROLES, HR_ROLES, ADMIN_ROLES
+from .deps import get_db, MANAGER_ROLES, HR_ROLES, ADMIN_ROLES, get_role_group, has_role
 from .models import User
 from .auth import get_current_user
 
 router = APIRouter(prefix="/timesheets", tags=["Timesheets"])
 
-# Role constants for this router
-TIMESHEET_VIEW_ALL_ROLES = list(set(MANAGER_ROLES + HR_ROLES + ADMIN_ROLES))  # self, manager, hr, admin
+# Role constants - now dynamically resolved via RBAC service
+def get_timesheet_view_all_roles():
+    """Get roles that can view all timesheets - uses RBAC service"""
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=False) or MANAGER_ROLES
+    hr_roles = get_role_group("HR_ROLES", fail_closed=False) or HR_ROLES
+    return list(set(manager_roles + hr_roles))
 
 
 class TimesheetCreate(BaseModel):
