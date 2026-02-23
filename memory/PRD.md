@@ -13,7 +13,44 @@
 
 ## Completed Work - February 2026
 
-### Phase 40: Database-Driven RBAC System - February 23, 2026 ✅ (Latest)
+### Phase 41: RBAC Critical Endpoints Migration - February 23, 2026 ✅ (Latest)
+
+**Phase 1 Migration Completed (5 Critical Modules):**
+
+| Module | Endpoints Migrated | Role Group | Status |
+|--------|-------------------|------------|--------|
+| kickoff.py | return, approve-internal, reject (3) | PRINCIPAL_CONSULTANT_ROLES | ✅ |
+| agreements.py | approve, reject, send-to-client (3) | AGREEMENT_APPROVE_ROLES | ✅ |
+| project_completion.py | complete, pending, recalculate (3) | PROJECT_ROLES | ✅ |
+| project_pnl.py | generate-invoices, record-payment, dashboard (3) | MANAGER_ROLES | ✅ |
+| approvals.py | all, action, scope-task, reminders (4) | MANAGER_ROLES | ✅ |
+
+**Key Changes:**
+- All critical endpoints now use `get_role_group(name, fail_closed=True)`
+- Fail-closed behavior: Returns 403 if RBAC cache unavailable
+- Zero fallback events in production
+- Backward compatible with existing role assignments
+
+**Security Improvements:**
+- `require_role_group_critical()` dependency added for fail-closed checks
+- `/api/rbac/health` endpoint added for monitoring
+- No "permit on error" paths in critical endpoints
+
+**Testing:**
+- ✅ 12/12 regression tests pass
+- ✅ All migrated endpoints verified via curl
+- ✅ Zero fallback events in `/api/rbac/migration-status`
+
+**Files Modified:**
+- `/app/backend/routers/kickoff.py` - 3 role checks migrated
+- `/app/backend/routers/agreements.py` - 3 role checks migrated
+- `/app/backend/routers/project_completion.py` - 3 role checks migrated
+- `/app/backend/routers/project_pnl.py` - 3 role checks migrated
+- `/app/backend/routers/approvals.py` - 4 role checks migrated
+
+---
+
+### Phase 40: Database-Driven RBAC System - February 23, 2026 ✅
 
 **RBAC Phase 3 - Seeder Script:**
 - ✅ Created `/app/backend/routers/rbac_seeder.py` - Syncs hardcoded roles to DB
