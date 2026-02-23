@@ -136,12 +136,82 @@ const MeetingRecord = () => {
     }));
   };
 
+  // File upload handlers for offline meetings
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/heic',
+      'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'
+    ];
+    
+    for (const file of files) {
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`Invalid file type: ${file.name}. Only photos and voice files allowed.`);
+        continue;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error(`File too large: ${file.name}. Maximum 20MB allowed.`);
+        continue;
+      }
+      
+      // Add to pending attachments
+      const attachmentType = file.type.startsWith('image/') ? 'photo' : 'voice';
+      setPendingAttachments(prev => [...prev, {
+        file,
+        name: file.name,
+        type: attachmentType,
+        preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+      }]);
+    }
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removePendingAttachment = (index) => {
+    setPendingAttachments(prev => {
+      const newList = [...prev];
+      if (newList[index].preview) {
+        URL.revokeObjectURL(newList[index].preview);
+      }
+      newList.splice(index, 1);
+      return newList;
+    });
+  };
+
+  const uploadAttachmentsToMeeting = async (meetingId) => {
+    for (const attachment of pendingAttachments) {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', attachment.file);
+      formDataUpload.append('attachment_type', attachment.type);
+      
+      try {
+        await axios.post(`${API}/meetings/${meetingId}/attachments`, formDataUpload, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } catch (error) {
+        console.error('Failed to upload attachment:', error);
+        toast.error(`Failed to upload ${attachment.name}`);
+      }
+    }
+    setPendingAttachments([]);
+  };
+
   // Open MOM dialog - validate basic fields first
   const handleOpenMOMDialog = () => {
     if (!formData.meeting_date || !formData.meeting_time) {
       toast.error('Please fill meeting date and time first');
       return;
     }
+    
+    // Check if first offline meeting requires attachment
+    if (isFirstOfflineMeeting() && pendingAttachments.length === 0) {
+      toast.error('Photo or voice attachment is required for first offline meeting');
+      return;
+    }
+    
     setShowMOMDialog(true);
   };
 
