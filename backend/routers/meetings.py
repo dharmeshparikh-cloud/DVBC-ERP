@@ -224,6 +224,36 @@ async def record_sales_meeting(
     if "_id" in meeting_doc:
         del meeting_doc["_id"]
     
+    # Send email notification in background
+    async def send_mom_notification():
+        try:
+            manager_emails = await get_sales_manager_emails(db)
+            if manager_emails:
+                email_data = meeting_mom_filled_email(
+                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+                    company=lead.get("company", "Unknown"),
+                    meeting_title=meeting_doc.get("title", "Sales Meeting"),
+                    meeting_date=meeting_date,
+                    meeting_type=meeting_type,
+                    attendees=data.get("attendees", []),
+                    mom_summary=mom[:500] if len(mom) > 500 else mom,
+                    client_expectations=data.get("client_expectations", [])[:5],
+                    key_commitments=data.get("key_commitments", [])[:5],
+                    salesperson_name=current_user.full_name,
+                    app_url=APP_URL
+                )
+                for email in manager_emails:
+                    await send_email(
+                        to_email=email,
+                        subject=email_data["subject"],
+                        html_content=email_data["html"],
+                        plain_content=email_data["plain"]
+                    )
+        except Exception as e:
+            print(f"Failed to send MOM notification: {e}")
+    
+    background_tasks.add_task(send_mom_notification)
+    
     return {
         "message": "Meeting recorded successfully with MOM",
         "meeting_id": meeting_id,
