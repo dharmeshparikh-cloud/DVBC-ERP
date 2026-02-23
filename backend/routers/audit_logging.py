@@ -218,7 +218,10 @@ async def get_entity_audit_trail(
     current_user: User = Depends(get_current_user)
 ):
     """Get complete audit trail for a specific entity"""
-    if current_user.role not in ADMIN_ROLES + HR_ADMIN_ROLES:
+    # RBAC Migration
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    if not has_role(current_user.role, admin_roles + hr_admin_roles):
         raise HTTPException(status_code=403, detail="Admin or HR access required")
     
     db = get_db()
