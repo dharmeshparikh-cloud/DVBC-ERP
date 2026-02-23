@@ -250,7 +250,7 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
             "type": "employee_onboarded",
             "title": "New Employee Onboarded",
             "message": f"{emp_name} ({emp_code}) has joined {department} department.",
-            "link": f"/employees",
+            "link": "/employees",
             "reference_id": employee["id"],
             "is_read": False,
             "status": "info",
