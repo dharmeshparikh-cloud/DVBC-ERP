@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Optional
 import uuid
 
-from .deps import get_db, MANAGER_ROLES
+from .deps import get_db, MANAGER_ROLES, get_role_group, has_role
 from .auth import get_current_user
 from .models import User
 
@@ -29,7 +29,9 @@ async def generate_invoices_from_pricing_plan(
     """
     db = get_db()
     
-    if current_user.role not in MANAGER_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=True)
+    if not manager_roles or not has_role(current_user.role, manager_roles):
         raise HTTPException(status_code=403, detail="Only Admin/Sales can generate invoices")
     
     # Get pricing plan with payment schedule
