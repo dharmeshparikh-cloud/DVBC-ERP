@@ -8,7 +8,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from .models import User, UserRole, DEFAULT_ROLES
-from .deps import get_db, sanitize_text, HR_ADMIN_ROLES
+from .deps import get_db, sanitize_text, HR_ADMIN_ROLES, get_role_group, has_role
 from .auth import get_current_user, get_password_hash
 
 router = APIRouter(tags=["Users"])
