@@ -24,10 +24,10 @@ BASE_TEMPLATE = """
             <td align="center" style="padding: 40px 20px;">
                 <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                     
-                    <!-- Header with Logo -->
+                    <!-- Header with Logo - 2x broader -->
                     <tr>
-                        <td style="background-color: #f3f4f6; padding: 25px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-                            <img src=\"""" + LOGO_URL + """\" alt="D&V Business Consulting" style="height: 50px; width: auto;" />
+                        <td style="background-color: #f3f4f6; padding: 30px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+                            <img src=\"""" + LOGO_URL + """\" alt="D&V Business Consulting" style="height: 100px; width: auto; max-width: 280px;" />
                         </td>
                     </tr>
                     
