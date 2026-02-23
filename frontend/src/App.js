@@ -175,9 +175,9 @@ function AppRouter({ user, login, logout, loading }) {
     if (user?.role === 'consultant') {
       return <ConsultantDashboard />;
     }
-    // Sales users get the enhanced sales dashboard
+    // Sales users get the standard sales dashboard
     if (isSalesUser) {
-      return <SalesDashboardEnhanced />;
+      return <SalesDashboard />;
     }
     // Admin gets the unified admin dashboard
     if (user?.role === 'admin') {
