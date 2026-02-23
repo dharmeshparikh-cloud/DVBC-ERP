@@ -1,16 +1,29 @@
 """
 Employees Router - Employee Management, Documents, Org Structure
+
+PERFORMANCE OPTIMIZATION: December 2025
+- Added pagination support
+- Added caching for list endpoints
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from datetime import datetime, timezone
 from typing import Optional, List
 import uuid
 import base64
 
 from .models import User, UserRole
-from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, ADMIN_ROLES, sanitize_text, get_role_group, has_role
+from .deps import (
+    get_db, HR_ROLES, HR_ADMIN_ROLES, ADMIN_ROLES, sanitize_text, 
+    get_role_group, has_role, PaginationParams, paginate_response,
+    DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+)
 from .auth import get_current_user, get_password_hash
+
+# Performance caching
+import sys
+sys.path.insert(0, '/app/backend')
+from services.cache_service import cache, list_key, PerformanceCache
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
@@ -19,9 +32,17 @@ router = APIRouter(prefix="/employees", tags=["Employees"])
 async def get_employees(
     department: Optional[str] = None,
     status: Optional[str] = None,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE, description="Items per page"),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all employees with optional filters. HR and Admin only."""
+    """
+    Get all employees with optional filters. HR and Admin only.
+    
+    Supports pagination:
+    - page: Page number (default: 1)
+    - page_size: Items per page (default: 100, max: 1000)
+    """
     db = get_db()
     
     # RBAC Migration: Using database-driven role check
@@ -31,6 +52,52 @@ async def get_employees(
             status_code=403, 
             detail="Access denied. HR or Admin role required."
         )
+    
+    query = {}
+    if department:
+        query["department"] = department
+    if status:
+        query["status"] = status
+    
+    # Create pagination params
+    params = PaginationParams(page=page, page_size=page_size, sort_by="created_at")
+    
+    # Check cache for this query
+    cache_key = list_key("employees", {"dept": department, "status": status, "page": page})
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return cached
+    
+    # Get total count and paginated results
+    total = await db.employees.count_documents(query)
+    employees = await db.employees.find(
+        query, 
+        {"_id": 0}
+    ).sort("created_at", -1).skip(params.skip).limit(params.page_size).to_list(params.page_size)
+    
+    result = paginate_response(employees, total, params)
+    
+    # Cache for 5 minutes
+    await cache.set(cache_key, result, PerformanceCache.TTL_EMPLOYEE_LIST)
+    
+    return result
+
+
+@router.get("/all")
+async def get_all_employees(
+    department: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all employees without pagination (for dropdowns, etc).
+    Limited to 1000 results. HR and Admin only.
+    """
+    db = get_db()
+    
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Access denied. HR or Admin role required.")
     
     query = {}
     if department:
