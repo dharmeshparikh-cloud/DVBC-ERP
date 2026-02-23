@@ -18,7 +18,7 @@ from .deps import get_db, SALES_EXECUTIVE_ROLES, PROJECT_ROLES
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification, notify_requester_on_action
 from services.email_service import send_email
-from services.funnel_notifications import kickoff_sent_email, kickoff_accepted_email, get_sales_manager_emails
+from services.funnel_notifications import kickoff_sent_email, kickoff_accepted_email, get_kickoff_notification_emails
 from websocket_manager import get_manager as get_ws_manager
 
 router = APIRouter(prefix="/kickoff-requests", tags=["Kickoff Requests"])
