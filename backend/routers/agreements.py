@@ -1,17 +1,23 @@
 """
 Agreements Router - Agreement creation, signing, payments, and approval workflow.
+Sends email notification when agreement is created.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
+import os
 from pydantic import BaseModel, Field
 from .deps import get_db, MANAGER_ROLES, SALES_MANAGER_ROLES, SALES_ROLES, ADMIN_ROLES, SENIOR_CONSULTING_ROLES, require_roles
 from .models import User
 from .auth import get_current_user
+from services.email_service import send_email
+from services.funnel_notifications import agreement_created_email, get_sales_manager_emails
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
+
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://lead-record-mgmt.preview.emergentagent.com").replace("/api", "")
 
 # Role constants for this router
 AGREEMENT_VIEW_ROLES = SALES_ROLES + SENIOR_CONSULTING_ROLES  # sales, admin, principal_consultant
