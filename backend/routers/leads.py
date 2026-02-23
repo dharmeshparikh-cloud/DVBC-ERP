@@ -126,13 +126,15 @@ async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_
     return lead
 
 
-@router.get("", response_model=List[Lead])
+@router.get("")
 async def get_leads(
     status: Optional[str] = None,
     assigned_to: Optional[str] = None,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE, description="Items per page"),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all leads with optional filters.
+    """Get all leads with optional filters and pagination.
     
     Access: sales_*, admin
     
@@ -140,6 +142,10 @@ async def get_leads(
     - Admin: sees all leads
     - HR Manager: sees all leads  
     - Manager/Executive: sees own leads + team leads (reportees)
+    
+    Pagination:
+    - page: Page number (default: 1)
+    - page_size: Items per page (default: 100, max: 1000)
     """
     db = get_db()
     
@@ -190,7 +196,15 @@ async def get_leads(
                 {"created_by": {"$in": user_ids_to_include}}
             ]
     
-    leads = await db.leads.find(query, {"_id": 0}).to_list(1000)
+    # Pagination
+    params = PaginationParams(page=page, page_size=page_size, sort_by="created_at")
+    
+    # Get total count and paginated results
+    total = await db.leads.count_documents(query)
+    leads = await db.leads.find(
+        query, 
+        {"_id": 0}
+    ).sort("created_at", -1).skip(params.skip).limit(params.page_size).to_list(params.page_size)
     
     for lead in leads:
         if isinstance(lead.get('created_at'), str):
