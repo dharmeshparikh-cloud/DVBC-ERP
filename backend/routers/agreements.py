@@ -329,8 +329,17 @@ async def sign_agreement(agreement_id: str, data: AgreementSignatureData, curren
 
 @router.post("/{agreement_id}/send-to-client")
 async def send_agreement_to_client(agreement_id: str, data: SendToClientRequest, current_user: User = Depends(get_current_user)):
-    """Send agreement to client for review"""
+    """Send agreement to client for review.
+    IMPORTANT: All client-facing communications require Principal Consultant approval.
+    Only Principal Consultant or Admin can send agreements to clients."""
     db = get_db()
+    
+    # Only Principal Consultant or Admin can send client-facing communications
+    if current_user.role not in ["admin", "principal_consultant"]:
+        raise HTTPException(
+            status_code=403, 
+            detail="Only Principal Consultant can send client-facing communications. Please request PC approval."
+        )
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
     if not agreement:
@@ -346,6 +355,8 @@ async def send_agreement_to_client(agreement_id: str, data: SendToClientRequest,
                 "status": "sent_to_client",
                 "sent_to_email": data.email,
                 "sent_at": datetime.now(timezone.utc).isoformat(),
+                "sent_by": current_user.id,
+                "sent_by_name": current_user.full_name,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
         }
