@@ -282,10 +282,6 @@ async def get_team_member_ids(manager_id: str) -> List[str]:
     return [m["id"] for m in team_members]
 
 
-def can_see_all_data(user: User) -> bool:
-    return user.role in ALL_DATA_ACCESS_ROLES
-
-
 @router.get("/sales-dashboard")
 async def get_sales_dashboard_stats(current_user: User = Depends(get_current_user)):
     """Sales-specific dashboard stats - pipeline, conversions, revenue"""
