@@ -551,6 +551,24 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
                     "created_at": now
                 })
             
+            # Log audit trail for HR approval
+            await db.audit_logs.insert_one({
+                "id": str(uuid.uuid4()),
+                "action": "expense_hr_approved",
+                "entity_type": "expense",
+                "entity_id": expense_id,
+                "user_id": current_user.id,
+                "user_name": current_user.full_name,
+                "user_role": current_user.role,
+                "details": {
+                    "employee_id": expense.get("employee_id"),
+                    "amount": expense_amount,
+                    "payroll_period": payroll_period,
+                    "remarks": data.get("remarks", "")
+                },
+                "timestamp": now
+            })
+            
             return {
                 "message": "Expense approved and linked to payroll",
                 "status": "approved",
