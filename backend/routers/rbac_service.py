@@ -283,6 +283,8 @@ DEFAULT_ROLE_GROUPS = {
         "finance_manager"
     ],
     "AGREEMENT_APPROVE_ROLES": ["admin", "principal_consultant"],
+    # Roles that can see ALL company-wide data (highest data access tier)
+    "ALL_DATA_ACCESS_ROLES": ["admin", "hr_manager", "principal_consultant"],
 }
 
 
