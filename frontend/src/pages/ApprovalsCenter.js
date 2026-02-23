@@ -373,7 +373,7 @@ const ApprovalsCenter = () => {
     try {
       if (action === 'approve') {
         await axios.post(`${API}/sales-funnel/approve-kickoff/${requestId}`);
-        toast.success('Kickoff request approved! Consultant assigned.');
+        toast.success('Kickoff request approved! Senior/Principal Consultant assigned.');
       } else {
         const reason = rejectReason || 'Rejected by Admin';
         await axios.post(`${API}/sales-funnel/reject-kickoff/${requestId}?reason=${encodeURIComponent(reason)}`);
