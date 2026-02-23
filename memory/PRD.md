@@ -645,26 +645,26 @@ pending → internal_approved → approved → converted
 
 ## Upcoming Tasks
 
-### P0 - High Priority (From Audit)
-1. **Create Leave Encashment Approval Endpoint** - HIGH risk gap identified in audit
-2. **Add Quotation Finalization Authorization** - MEDIUM risk security gap
+### P0 - High Priority (COMPLETED)
+- ✅ **Leave Encashment Approval Endpoint** - Created full approval workflow
+- ✅ **Quotation Finalization Authorization** - Added Reporting Manager check
+- ✅ **Travel Approval Scope Restriction** - Limited to HR roles only
 
-### P1 - Features & Fixes (From Audit)
-3. **Complete RBAC Migration for Expenses/Travel** - Replace hardcoded roles with `get_role_group()`
-4. **Restrict Travel Approval Scope** - Remove sales_manager from travel approvers
-5. **Add Audit Trail for Admin Overrides** - Log all admin interventions
-6. **Frontend React Query Migration** - Migrate remaining components to `useApi` hook
-7. **Custom Report Builder Backend**: Implement backend logic for generating reports
-8. **Client Dashboard Features**: Project progress, document access, payment history
+### P1 - Features & Fixes
+1. **Complete RBAC Migration for Expenses** - Replace remaining hardcoded roles with `get_role_group()`
+2. **Add Audit Trail for Admin Overrides** - Log all admin interventions to audit_logs
+3. **Frontend React Query Migration** - Migrate remaining components to `useApi` hook
+4. **Custom Report Builder Backend**: Implement backend logic for generating reports
+5. **Client Dashboard Features**: Project progress, document access, payment history
 
 ### P2 - Lower Priority
-9. **DVBC Marketing Hub** - Marketing dashboard and campaigns
-10. **Consultant Incentive System** - Commission tracking
-11. **AI Chat & Voice** - OpenAI Whisper integration
-12. **Internal Chat System** - Team messaging
-13. **"Day 0" Onboarding Tour** - Interactive guide
-14. **Standardize Send Back vs Reject Semantics** - Consistent UX across modules
-15. **Refactor kickoff.py** - Break down 1500+ line file into smaller services
+6. **DVBC Marketing Hub** - Marketing dashboard and campaigns
+7. **Consultant Incentive System** - Commission tracking
+8. **AI Chat & Voice** - OpenAI Whisper integration
+9. **Internal Chat System** - Team messaging
+10. **"Day 0" Onboarding Tour** - Interactive guide
+11. **Standardize Send Back vs Reject Semantics** - Consistent UX across modules
+12. **Refactor kickoff.py** - Break down 1500+ line file into smaller services
 
 ---
 
