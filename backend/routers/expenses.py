@@ -632,11 +632,22 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
 
 @router.post("/{expense_id}/reject")
 async def reject_expense(expense_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Reject an expense."""
+    """
+    Reject an expense.
+    
+    ACCESS: Only HR or Admin can reject expenses (fail-closed authorization).
+    """
     db = get_db()
     
-    if current_user.role not in APPROVAL_ROLES:
-        raise HTTPException(status_code=403, detail="Not authorized to reject expenses")
+    # Use RBAC service for role checks
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    allowed_roles = list(set(hr_roles + hr_admin_roles + admin_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR or Admin can reject expenses")
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
     if not expense:
@@ -651,11 +662,28 @@ async def reject_expense(expense_id: str, data: dict, current_user: User = Depen
         {"$set": {
             "status": "rejected",
             "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
             "rejected_at": datetime.now(timezone.utc).isoformat(),
             "rejection_reason": rejection_reason,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
+    
+    # Log audit trail for rejection
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "expense_rejected",
+        "entity_type": "expense",
+        "entity_id": expense_id,
+        "user_id": current_user.id,
+        "user_name": current_user.full_name,
+        "details": {
+            "employee_id": expense.get("employee_id"),
+            "amount": expense.get("total_amount", expense.get("amount", 0)),
+            "reason": rejection_reason
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
     
     # Notify employee about rejection
     if expense.get("user_id"):
