@@ -250,7 +250,9 @@ async def send_scope_approval_reminders(data: dict, current_user: User = Depends
     """Send reminders for pending scope approvals"""
     db = get_db()
     
-    if current_user.role not in MANAGER_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=True)
+    if not manager_roles or not has_role(current_user.role, manager_roles):
         raise HTTPException(status_code=403, detail="Only managers can send reminders")
     
     pending = await db.scope_task_approvals.find({"status": "pending"}, {"_id": 0}).to_list(100)
