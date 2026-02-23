@@ -171,8 +171,24 @@ const SalesFunnelOnboarding = () => {
     return funnelStatus.completed_steps?.includes(stepId) || false;
   };
 
+  // Check if a step is blocked due to agreement status
+  const isStepBlockedByAgreement = (stepId) => {
+    // Steps that should be blocked if agreement is pending/rejected
+    const blockedSteps = ['payment', 'kickoff', 'complete'];
+    if (!blockedSteps.includes(stepId)) return false;
+    return funnelStatus.is_blocked === true;
+  };
+
   const isStepAccessible = (index) => {
     if (index === 0) return true;
+    
+    const stepId = FUNNEL_STEPS[index]?.id;
+    
+    // Check if step is blocked by agreement status
+    if (isStepBlockedByAgreement(stepId)) {
+      return false;
+    }
+    
     for (let i = 0; i < index; i++) {
       if (!isStepCompleted(FUNNEL_STEPS[i].id)) {
         return false;
@@ -182,6 +198,14 @@ const SalesFunnelOnboarding = () => {
   };
 
   const handleStepClick = (index) => {
+    const stepId = FUNNEL_STEPS[index]?.id;
+    
+    // Show specific message if blocked by agreement
+    if (isStepBlockedByAgreement(stepId)) {
+      toast.error(funnelStatus.blocked_reason || 'Agreement must be approved before proceeding');
+      return;
+    }
+    
     if (!isStepAccessible(index)) {
       toast.error('Please complete previous steps first');
       return;
@@ -191,6 +215,23 @@ const SalesFunnelOnboarding = () => {
 
   const handleContinue = () => {
     const step = FUNNEL_STEPS[currentStep];
+    
+    // Check if trying to proceed past a blocked step
+    if (funnelStatus.is_blocked && ['agreement', 'payment', 'kickoff'].includes(step.id)) {
+      if (step.id === 'agreement') {
+        // Allow viewing/editing agreement, but warn about status
+        if (funnelStatus.agreement_status?.toLowerCase() === 'rejected') {
+          toast.warning('Agreement was rejected. Please revise and resubmit.');
+        } else if (['pending', 'draft', 'review'].includes(funnelStatus.agreement_status?.toLowerCase())) {
+          toast.info('Agreement is pending approval. Continue to view/edit.');
+        }
+      } else {
+        // Block navigation to payment/kickoff
+        toast.error(funnelStatus.blocked_reason || 'Agreement must be approved first');
+        return;
+      }
+    }
+    
     
     if (step.route) {
       let route = step.route;
