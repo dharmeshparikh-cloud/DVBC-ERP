@@ -208,7 +208,9 @@ async def get_employee_special_permissions(
     current_user: User = Depends(get_current_user)
 ):
     """Get special permissions for an employee"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -251,7 +253,9 @@ async def update_employee_special_permissions(
     current_user: User = Depends(get_current_user)
 ):
     """Update special permissions for an employee (Admin/HR Manager only)"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -325,7 +329,9 @@ async def grant_temporary_department_access(
     current_user: User = Depends(get_current_user)
 ):
     """Quick action: Grant temporary department access to an employee"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -387,7 +393,9 @@ async def revoke_department_access(
     current_user: User = Depends(get_current_user)
 ):
     """Revoke additional department access from an employee"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -436,7 +444,9 @@ async def revoke_department_access(
 @router.get("/approval-matrix")
 async def get_approval_matrix(current_user: User = Depends(get_current_user)):
     """Get approval matrix showing who can approve what"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
@@ -542,7 +552,9 @@ async def suggest_department_from_designation(
 @router.get("/designation-mappings")
 async def get_designation_mappings(current_user: User = Depends(get_current_user)):
     """Get all designation to department mappings (Admin/HR only)"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Admin or HR Manager access required")
     
     db = get_db()
