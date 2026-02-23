@@ -13,15 +13,53 @@
 
 ## Completed Work - February 2026
 
-### Phase 34: Email Templates Preview & Agreement Blocking - February 23, 2026 ✅ (Latest)
+### Phase 35: Dual Approval Kickoff Flow - February 23, 2026 ✅ (Latest)
+
+**Kickoff Dual Approval System:**
+Kickoff requests now require BOTH approvals before project creation:
+1. **Principal Consultant / Senior Consultant** approval (internal)
+2. **Client** approval (via email link)
+
+**Flow:**
+1. Sales creates kickoff → Status: `pending`
+2. Senior/Principal Consultant approves → Status: `consultant_approved`, email sent to client
+3. Client clicks approval link in email → Status: `approved`
+4. Project auto-created, consultant assigned to consulting hierarchy
+
+**New Endpoints:**
+- `POST /api/kickoff-requests/{id}/accept` - Consultant approval (updated)
+- `GET /api/kickoff-requests/client-approve/{token}` - Client approval page
+- `POST /api/kickoff-requests/client-approve/{token}/confirm` - Client confirms
+
+**Model Updates:**
+- `KickoffRequest` model extended with dual approval fields:
+  - `consultant_approved`, `consultant_approved_by`, `consultant_approved_at`
+  - `client_approved`, `client_approved_by`, `client_approved_at`
+  - `client_approval_token` (for secure email links)
+
+**Status Values:**
+- `pending` - Waiting for first approval
+- `consultant_approved` - Consultant approved, waiting for client
+- `client_approved` - Client approved, waiting for consultant
+- `approved` - Both approved, project being created
+- `converted` - Project created successfully
+
+**Approval Roles:**
+- Only `senior_consultant` and `principal_consultant` can approve kickoffs (NOT PM, NOT regular consultant)
+- Approval Center updated to show kickoffs only for these roles
+
+---
+
+### Phase 34: Email Templates Preview & Agreement Blocking - February 23, 2026 ✅
 
 **Email Template Previews:**
 - ✅ Added `/api/test/email-preview/{template_name}` - HTML preview endpoint
 - ✅ Added `/api/test/email-preview-json/{template_name}` - JSON summary endpoint  
 - ✅ All 5 templates with Indian test data (TCS, Priya Sharma, etc.)
-- ✅ Templates include D&V logo on light gray header
+- ✅ Templates include D&V logo (2x broader - 100px height) on light gray header
 - ✅ Agreement email includes: View, Download, Upload, Edit, Approve, Reject buttons
 - ✅ Kickoff Accepted email includes "Edit Start Date" option
+- ✅ "Approve Agreement" button added to blocking banner
 
 **Agreement Status Blocking:**
 - ✅ Modified `/api/leads/{id}/funnel-progress` to detect blocking
@@ -29,14 +67,8 @@
 - ✅ Blocks progression to Payment, Kickoff, Complete if agreement is:
   - `pending`, `draft`, `review`, or `rejected`
 - ✅ Frontend blocking banner with red warning
-- ✅ "Review Agreement" button for quick access
+- ✅ "Review Agreement" + "Approve Agreement" buttons for quick action
 - ✅ "Agreement Approval Required" disabled button on blocked steps
-- ✅ Toast messages when attempting to access blocked steps
-
-**Files Changed:**
-- `/app/backend/routers/leads.py` - Blocking logic
-- `/app/backend/routers/test_email_preview.py` - NEW preview endpoint
-- `/app/frontend/src/pages/SalesFunnelOnboarding.js` - Blocking UI
 
 ---
 
