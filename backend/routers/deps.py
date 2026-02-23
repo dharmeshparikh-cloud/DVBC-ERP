@@ -31,6 +31,9 @@ SALES_EXECUTIVE_ROLES = ["admin", "executive", "sales_executive", "sales_manager
 PROJECT_ROLES = ["admin", "principal_consultant", "senior_consultant", "manager"]
 SENIOR_CONSULTING_ROLES = ["admin", "principal_consultant", "senior_consultant"]
 
+# Principal Consultant ONLY - for kickoff internal approval
+PRINCIPAL_CONSULTANT_ROLES = ["admin", "principal_consultant"]
+
 # All consulting roles (delivery team)
 CONSULTING_ROLES = ["admin", "consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert"]
 
