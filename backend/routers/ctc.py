@@ -8,7 +8,7 @@ from typing import Optional, List
 import uuid
 
 from .models import User, CTCStructureRequest
-from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES
+from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, get_role_group, has_role
 from .auth import get_current_user
 
 router = APIRouter(prefix="/ctc", tags=["CTC Structure"])
