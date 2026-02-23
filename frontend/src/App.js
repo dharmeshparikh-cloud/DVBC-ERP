@@ -76,7 +76,6 @@ const SecurityAuditLog = lazy(() => import('./pages/SecurityAuditLog'));
 const GanttChart = lazy(() => import('./pages/GanttChart'));
 const Downloads = lazy(() => import('./pages/Downloads'));
 const SalesDashboard = lazy(() => import('./pages/SalesDashboard'));
-const SalesDashboardEnhanced = lazy(() => import('./pages/SalesDashboardEnhanced'));
 const SalesTeamPerformance = lazy(() => import('./pages/SalesTeamPerformance'));
 const ConsultingDashboard = lazy(() => import('./pages/ConsultingDashboard'));
 const HRDashboard = lazy(() => import('./pages/HRDashboard'));
