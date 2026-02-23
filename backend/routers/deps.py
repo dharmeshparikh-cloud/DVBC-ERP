@@ -219,20 +219,28 @@ def require_roles(allowed_roles: List[str]):
     return role_checker
 
 
-def require_role_group(group_name: str):
+def require_role_group(group_name: str, fail_closed: bool = False):
     """
     Dependency that checks if user has a role in the specified group (from database).
     Usage: current_user = Depends(require_role_group("HR_ROLES"))
     
+    Args:
+        group_name: Name of the role group
+        fail_closed: If True, denies access on RBAC service failure.
+                     Use True for critical security operations (approvals, payments).
+    
     This is the preferred method for role checks as it uses the database-driven RBAC.
     """
     async def role_checker(current_user = Depends(get_current_user_from_token)):
-        allowed_roles = get_role_group(group_name)
+        allowed_roles = get_role_group(group_name, fail_closed=fail_closed)
         if not allowed_roles:
-            logger.error(f"Role group '{group_name}' not found in RBAC system")
+            if fail_closed:
+                logger.critical(f"RBAC FAIL-CLOSED: Denying access to {group_name}")
+            else:
+                logger.error(f"Role group '{group_name}' not found in RBAC system")
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Role configuration error"
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE if fail_closed else status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Authorization service unavailable" if fail_closed else "Role configuration error"
             )
         if not has_role(current_user.role, allowed_roles):
             raise HTTPException(
@@ -241,6 +249,16 @@ def require_role_group(group_name: str):
             )
         return current_user
     return role_checker
+
+
+def require_role_group_critical(group_name: str):
+    """
+    FAIL-CLOSED role check for critical operations.
+    Use this for: approvals, payments, data exports, role management.
+    
+    If RBAC service is unavailable, ACCESS IS DENIED (not permitted).
+    """
+    return require_role_group(group_name, fail_closed=True)
 
 
 def require_permission(permission: str):
