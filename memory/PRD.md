@@ -30,39 +30,39 @@
 | Partial Enforcement | 2 | Inconsistent authorization |
 | Admin Overrides | 4 | Documented with audit trail status |
 
-**Critical Issues Identified:**
+**Security Fixes Implemented:**
 
-| Risk Level | Issue | Module | Recommendation |
-|------------|-------|--------|----------------|
-| HIGH | Leave Encashment - Missing approval endpoint | HR | Create `/encashment-requests/{id}/approve` |
-| MEDIUM | Quotation Finalization - No authorization | Sales | Add manager role check |
-| MEDIUM | Travel Approval - Overly broad `APPROVAL_ROLES` | Finance | Restrict to HR/Finance roles |
+| Risk Level | Issue | Fix Applied |
+|------------|-------|-------------|
+| HIGH | Leave Encashment - Missing approval endpoint | ✅ Created full CRUD: `/encashment-requests`, `/approve`, `/reject`, `/withdraw` |
+| MEDIUM | Quotation Finalization - No authorization | ✅ Added Reporting Manager/Sales Manager/Admin check, creator cannot self-approve |
+| MEDIUM | Travel Approval - Overly broad roles | ✅ Restricted to HR roles and Admin only (removed sales_manager) |
 
-**Key Findings:**
-- Mixed use of hardcoded role constants and RBAC service
-- Inconsistent "Send Back" vs "Reject" semantics across modules
-- Admin override capabilities not fully audited for some endpoints
-- `APPROVAL_ROLES` grants travel approval to sales managers
+**New Endpoints Created:**
+- `GET /api/leave-policies/encashment-requests` - List all encashment requests (HR/Admin all, users own)
+- `GET /api/leave-policies/encashment-requests/{id}` - Get single request
+- `POST /api/leave-policies/encashment-requests/{id}/approve` - HR Admin approves, links to payroll
+- `POST /api/leave-policies/encashment-requests/{id}/reject` - HR Admin rejects with reason
+- `POST /api/leave-policies/encashment-requests/{id}/withdraw` - Owner withdraws pending request
+
+**Authorization Changes:**
+- `PATCH /api/quotations/{id}/finalize` - Now requires Reporting Manager, Sales Manager, or Admin (creator blocked)
+- `POST /api/travel/reimbursements/{id}/approve` - Now requires HR_ROLES or Admin only
+- `POST /api/travel/reimbursements/{id}/reject` - Now requires HR_ROLES or Admin only
 
 **Documentation Created:**
 - `/app/AUDIT_APPROVAL_LOGIC.md` - Comprehensive 400+ line audit report
-  - Total workflows by module
-  - Pages missing approval gates
-  - Broken/incomplete flows
-  - Conflicting logic patterns
-  - Admin override capabilities
-  - Risk assessment matrix
-  - Detailed recommendations
 
-**Files Analyzed:**
-- `agreements.py` (561 lines, 6 endpoints)
-- `kickoff.py` (1500+ lines, 8 endpoints)
-- `projects.py` (533 lines, 4 endpoints)
-- `expenses.py` (1175 lines, 11 endpoints)
-- `travel.py` (631 lines, 4 endpoints)
-- `leave_policies.py` (798 lines, 2 endpoints)
-- `quotations.py` (175 lines, 2 endpoints)
-- `employees.py` (700+ lines, 2 endpoints)
+**Files Modified:**
+- `/app/backend/routers/leave_policies.py` - Added 5 encashment approval endpoints (~200 lines)
+- `/app/backend/routers/quotations.py` - Added RBAC check to finalize endpoint
+- `/app/backend/routers/travel.py` - Restricted approval to HR roles only
+
+**Testing:**
+- ✅ 12/12 RBAC regression tests pass
+- ✅ All new endpoints respond correctly (curl verified)
+- ✅ Backend starts without errors
+- ✅ Authorization restrictions working (HR can approve, others blocked)
 
 ---
 
