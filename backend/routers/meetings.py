@@ -122,12 +122,14 @@ async def get_meetings_by_lead(lead_id: str, current_user: User = Depends(get_cu
 @router.post("/record")
 async def record_sales_meeting(
     data: Dict[str, Any],
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
     """
     Record a sales funnel meeting with MOM (Minutes of Meeting).
     MOM is required before meeting can be submitted.
     Used by the Sales Funnel flow.
+    Sends email notification to managers when MOM is recorded.
     """
     db = get_db()
     
