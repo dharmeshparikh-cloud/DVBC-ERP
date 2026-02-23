@@ -193,6 +193,12 @@ function AppRouter({ user, login, logout, loading }) {
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       
+      {/* Client Portal Routes - Separate auth system */}
+      <Route path="/client-login" element={<ClientLogin />} />
+      <Route path="/client-portal" element={<ClientPortal />} />
+      <Route path="/client-portal/change-password" element={<ClientChangePassword />} />
+      <Route path="/client-approval/:token" element={<ClientLogin />} /> {/* Redirect client approval to login first */}
+      
       {/* Public Letter Acceptance Routes - No auth required */}
       <Route path="/accept-offer/:token" element={<AcceptOfferPage />} />
       
