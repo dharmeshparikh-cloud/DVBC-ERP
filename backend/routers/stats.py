@@ -756,3 +756,42 @@ async def get_hr_dashboard_stats(current_user: User = Depends(get_current_user))
             "pending": total_employees - payroll_processed
         }
     }
+
+
+
+# ==================== CACHE MANAGEMENT ====================
+
+@router.get("/cache/stats")
+async def get_cache_stats(current_user: User = Depends(get_current_user)):
+    """
+    Get cache statistics for monitoring.
+    Admin only endpoint.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    return cache.get_stats()
+
+
+@router.post("/cache/invalidate")
+async def invalidate_cache(
+    pattern: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Invalidate cache entries.
+    Admin only endpoint.
+    
+    Args:
+        pattern: Optional pattern to match (e.g., "stats:*" to invalidate all stats)
+                 If not provided, clears all cache.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    if pattern:
+        count = cache.invalidate_pattern(pattern)
+        return {"message": f"Invalidated {count} cache entries matching '{pattern}'"}
+    else:
+        count = cache.invalidate_all()
+        return {"message": f"Cleared all {count} cache entries"}
