@@ -49,8 +49,9 @@ async def get_timesheets(
     if status:
         query["status"] = status
     
-    # Non-managers/non-HR see only their own timesheets
-    if current_user.role not in TIMESHEET_VIEW_ALL_ROLES:
+    # RBAC Migration: Non-managers/non-HR see only their own timesheets
+    view_all_roles = get_timesheet_view_all_roles()
+    if not has_role(current_user.role, view_all_roles):
         query["employee_id"] = current_user.id
     
     timesheets = await db.timesheets.find(query, {"_id": 0}).sort("date", -1).to_list(500)
