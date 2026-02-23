@@ -590,20 +590,306 @@ async def accept_kickoff_request(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
-    """Accept a kickoff request and create a project (PM action).
-    Sends HTML email notification when kickoff is accepted."""
+    """
+    CONSULTANT APPROVAL - First step of dual approval.
+    Only Senior Consultant or Principal Consultant can approve.
+    After consultant approves, client must also approve before project creation.
+    """
     db = get_db()
     
     # Only Senior Consultant and Principal Consultant can accept kickoffs
     if current_user.role not in SENIOR_CONSULTING_ROLES:
-        raise HTTPException(status_code=403, detail="Only Senior Consultant or Principal Consultant roles can accept kickoff requests")
+        raise HTTPException(status_code=403, detail="Only Senior Consultant or Principal Consultant roles can approve kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
     if not kickoff:
         raise HTTPException(status_code=404, detail="Kickoff request not found")
     
-    if kickoff.get("status") != "pending":
-        raise HTTPException(status_code=400, detail="Can only accept pending requests")
+    # Can approve if pending OR if client has already approved (waiting for consultant)
+    if kickoff.get("status") not in ["pending", "client_approved"]:
+        raise HTTPException(status_code=400, detail="Can only approve pending or client-approved requests")
+    
+    # Check if consultant already approved
+    if kickoff.get("consultant_approved"):
+        raise HTTPException(status_code=400, detail="Consultant has already approved this kickoff")
+    
+    # Generate client approval token if not exists
+    client_approval_token = kickoff.get("client_approval_token") or str(uuid.uuid4())
+    
+    # Update kickoff with consultant approval
+    new_status = "approved" if kickoff.get("client_approved") else "consultant_approved"
+    
+    await db.kickoff_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "consultant_approved": True,
+            "consultant_approved_by": current_user.id,
+            "consultant_approved_by_name": current_user.full_name,
+            "consultant_approved_at": datetime.now(timezone.utc).isoformat(),
+            "client_approval_token": client_approval_token,
+            "status": new_status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # If BOTH have now approved, create the project
+    if new_status == "approved":
+        return await _create_project_from_kickoff(request_id, current_user, background_tasks, db)
+    
+    # Otherwise, send notification to client for their approval
+    lead = None
+    if kickoff.get("lead_id"):
+        lead = await db.leads.find_one({"id": kickoff["lead_id"]}, {"_id": 0})
+    
+    client_email = lead.get("email", "") if lead else ""
+    
+    # Send email to client requesting approval
+    if client_email:
+        async def send_client_approval_request():
+            try:
+                approval_link = f"{APP_URL}/kickoff-approval/{client_approval_token}"
+                html_content = f"""
+                <html>
+                <head></head>
+                <body style="font-family: Arial, sans-serif; padding: 20px;">
+                    <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <img src="{LOGO_URL}" alt="D&V Business Consulting" style="height: 80px; margin-bottom: 20px;">
+                        
+                        <h2 style="color: #1a1a2e;">Project Kickoff Approval Required</h2>
+                        
+                        <p>Dear {kickoff.get('client_name')},</p>
+                        
+                        <p>Our consultant <strong>{current_user.full_name}</strong> has approved the kickoff request for:</p>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                            <p style="margin: 5px 0;"><strong>Project:</strong> {kickoff.get('project_name')}</p>
+                            <p style="margin: 5px 0;"><strong>Type:</strong> {kickoff.get('project_type', 'Mixed')}</p>
+                            <p style="margin: 5px 0;"><strong>Expected Start:</strong> {str(kickoff.get('expected_start_date', 'TBD'))[:10]}</p>
+                            <p style="margin: 5px 0;"><strong>Value:</strong> ₹{kickoff.get('project_value', 0):,.0f}</p>
+                        </div>
+                        
+                        <p>Please click below to confirm and approve the project kickoff:</p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{approval_link}" style="display: inline-block; background-color: #10b981; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                ✓ Approve Project Kickoff
+                            </a>
+                        </div>
+                        
+                        <p style="color: #666; font-size: 13px;">
+                            Once you approve, we will assign our senior consultant to your project and begin the onboarding process.
+                        </p>
+                        
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                        <p style="color: #999; font-size: 12px;">This is an automated notification from NETRA ERP</p>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                await send_email(
+                    to_email=client_email,
+                    subject=f"Action Required: Approve Project Kickoff - {kickoff.get('project_name')}",
+                    html_content=html_content,
+                    plain_content=f"Please approve the project kickoff: {approval_link}"
+                )
+            except Exception as e:
+                print(f"Failed to send client approval request: {e}")
+        
+        background_tasks.add_task(send_client_approval_request)
+    
+    # Notify requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "kickoff_consultant_approved",
+        "recipient_id": kickoff.get("requested_by"),
+        "title": f"Kickoff Consultant Approved: {kickoff.get('project_name')}",
+        "message": f"Approved by {current_user.full_name}. Awaiting client approval.",
+        "kickoff_request_id": request_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read": False
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {
+        "message": "Consultant approval recorded. Awaiting client approval.",
+        "status": "consultant_approved",
+        "client_approval_pending": True,
+        "client_email": client_email
+    }
+
+
+LOGO_URL = "https://dvconsulting.co.in/wp-content/uploads/2020/02/logov4-min.png"
+
+
+@router.get("/client-approve/{token}")
+async def client_approve_kickoff_page(token: str):
+    """
+    CLIENT APPROVAL - Second step of dual approval.
+    Client clicks a link from email to approve.
+    Returns HTML page for client to confirm approval.
+    """
+    db = get_db()
+    
+    kickoff = await db.kickoff_requests.find_one({"client_approval_token": token}, {"_id": 0})
+    if not kickoff:
+        return HTMLResponse(content="""
+            <html><body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #ef4444;">Invalid or Expired Link</h1>
+                <p>This approval link is no longer valid.</p>
+            </body></html>
+        """, status_code=404)
+    
+    if kickoff.get("client_approved"):
+        return HTMLResponse(content=f"""
+            <html><body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #10b981;">✓ Already Approved</h1>
+                <p>You have already approved the kickoff for <strong>{kickoff.get('project_name')}</strong>.</p>
+            </body></html>
+        """)
+    
+    # Show approval confirmation page
+    return HTMLResponse(content=f"""
+        <html>
+        <head>
+            <title>Approve Project Kickoff</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 40px; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .btn {{ display: inline-block; padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 10px; }}
+                .btn-approve {{ background: #10b981; color: white; }}
+                .btn-reject {{ background: #ef4444; color: white; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <img src="{LOGO_URL}" alt="D&V" style="height: 80px; margin-bottom: 20px;">
+                <h2>Project Kickoff Approval</h2>
+                <p>Please confirm your approval for:</p>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p><strong>Project:</strong> {kickoff.get('project_name')}</p>
+                    <p><strong>Client:</strong> {kickoff.get('client_name')}</p>
+                    <p><strong>Type:</strong> {kickoff.get('project_type', 'Mixed')}</p>
+                    <p><strong>Value:</strong> ₹{kickoff.get('project_value', 0):,.0f}</p>
+                </div>
+                <div style="text-align: center; margin-top: 30px;">
+                    <form action="/api/kickoff-requests/client-approve/{token}/confirm" method="POST" style="display: inline;">
+                        <button type="submit" class="btn btn-approve">✓ Approve Kickoff</button>
+                    </form>
+                </div>
+            </div>
+        </body>
+        </html>
+    """)
+
+
+@router.post("/client-approve/{token}/confirm")
+async def client_confirm_kickoff_approval(
+    token: str,
+    background_tasks: BackgroundTasks
+):
+    """
+    CLIENT APPROVAL CONFIRMATION - Final step of client approval.
+    When client submits the approval form.
+    """
+    db = get_db()
+    
+    kickoff = await db.kickoff_requests.find_one({"client_approval_token": token}, {"_id": 0})
+    if not kickoff:
+        return HTMLResponse(content="""
+            <html><body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #ef4444;">Invalid Link</h1>
+            </body></html>
+        """, status_code=404)
+    
+    if kickoff.get("client_approved"):
+        return HTMLResponse(content=f"""
+            <html><body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #10b981;">✓ Already Approved</h1>
+            </body></html>
+        """)
+    
+    # Determine new status
+    new_status = "approved" if kickoff.get("consultant_approved") else "client_approved"
+    
+    await db.kickoff_requests.update_one(
+        {"id": kickoff.get("id")},
+        {"$set": {
+            "client_approved": True,
+            "client_approved_by": kickoff.get("client_name"),
+            "client_approved_at": datetime.now(timezone.utc).isoformat(),
+            "status": new_status,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify sales team about client approval
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "kickoff_client_approved",
+        "recipient_id": kickoff.get("requested_by"),
+        "title": f"Client Approved Kickoff: {kickoff.get('project_name')}",
+        "message": f"Client {kickoff.get('client_name')} has approved the kickoff.",
+        "kickoff_request_id": kickoff.get("id"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read": False
+    }
+    await db.notifications.insert_one(notification)
+    
+    # If BOTH have now approved, create the project
+    if new_status == "approved":
+        # Get consultant who approved for project creation
+        consultant_id = kickoff.get("consultant_approved_by")
+        consultant = await db.users.find_one({"id": consultant_id}, {"_id": 0}) if consultant_id else None
+        
+        if consultant:
+            # Create a fake user object for project creation
+            class FakeUser:
+                def __init__(self, data):
+                    self.id = data.get("id")
+                    self.full_name = data.get("full_name", "Consultant")
+                    self.role = data.get("role", "senior_consultant")
+            
+            fake_consultant = FakeUser(consultant)
+            await _create_project_from_kickoff(kickoff.get("id"), fake_consultant, background_tasks, db)
+        
+        return HTMLResponse(content=f"""
+            <html>
+            <head><meta http-equiv="refresh" content="3;url={APP_URL}/dashboard"></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #10b981;">🎉 Project Approved!</h1>
+                <p>Thank you for your approval. The project <strong>{kickoff.get('project_name')}</strong> is now active.</p>
+                <p>Our consultant will be assigned shortly.</p>
+                <p style="color: #666;">Redirecting...</p>
+            </body>
+            </html>
+        """)
+    
+    # Client approved but waiting for consultant
+    return HTMLResponse(content=f"""
+        <html>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+            <h1 style="color: #3b82f6;">✓ Approval Recorded</h1>
+            <p>Thank you! Your approval for <strong>{kickoff.get('project_name')}</strong> has been recorded.</p>
+            <p>We are awaiting consultant approval to proceed.</p>
+        </body>
+        </html>
+    """)
+
+
+async def _create_project_from_kickoff(
+    request_id: str,
+    current_user,
+    background_tasks: BackgroundTasks,
+    db
+):
+    """
+    Internal function to create project when BOTH consultant and client have approved.
+    This is called when the final approval (either consultant or client) completes the dual approval.
+    """
+    kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
+    if not kickoff:
+        raise HTTPException(status_code=404, detail="Kickoff request not found")
     
     # Get agreement to link pricing plan and SOW
     agreement = await db.agreements.find_one({"id": kickoff.get("agreement_id")}, {"_id": 0})
@@ -650,6 +936,9 @@ async def accept_kickoff_request(
     project_doc['updated_at'] = project_doc['updated_at'].isoformat()
     project_doc['kickoff_request_id'] = request_id  # Link back to kickoff
     project_doc['kickoff_accepted_at'] = kickoff_accepted_at.isoformat()  # Store accept timestamp
+    project_doc['consultant_approved_by'] = kickoff.get("consultant_approved_by")
+    project_doc['consultant_approved_by_name'] = kickoff.get("consultant_approved_by_name")
+    project_doc['client_approved_at'] = kickoff.get("client_approved_at")
     
     # Add pricing_plan_id to project for SOW linkage
     if pricing_plan_id:
@@ -693,13 +982,32 @@ async def accept_kickoff_request(
         }}
     )
     
+    # Assign consultant to project in consulting hierarchy
+    consultant_id = kickoff.get("consultant_approved_by") or kickoff.get("assigned_pm_id")
+    if consultant_id:
+        # Add to consulting hierarchy
+        await db.project_assignments.insert_one({
+            "id": str(uuid.uuid4()),
+            "project_id": project.id,
+            "consultant_id": consultant_id,
+            "role": "lead_consultant",
+            "assigned_at": datetime.now(timezone.utc).isoformat(),
+            "status": "active"
+        })
+        
+        # Update consultant's active projects
+        await db.users.update_one(
+            {"id": consultant_id},
+            {"$push": {"active_project_ids": project.id}}
+        )
+    
     # Notify requester
     notification = {
         "id": str(uuid.uuid4()),
         "type": "kickoff_accepted",
         "recipient_id": kickoff.get("requested_by"),
-        "title": f"Kickoff Request Accepted: {kickoff.get('project_name')}",
-        "message": "Project created and ready for team assignment",
+        "title": f"🎉 Kickoff Fully Approved: {kickoff.get('project_name')}",
+        "message": "Both consultant and client have approved. Project is now active!",
         "kickoff_request_id": request_id,
         "project_id": project.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -728,6 +1036,7 @@ async def accept_kickoff_request(
     
     # Get client email for notification
     client_email = lead.get("email", "") if lead else ""
+    consultant_name = kickoff.get("consultant_approved_by_name") or current_user.full_name
     
     # Send HTML email notification in background
     async def send_kickoff_accepted_notification():
@@ -742,12 +1051,45 @@ async def accept_kickoff_request(
                 project_id=project.id,
                 project_type=kickoff.get("project_type", "Mixed"),
                 start_date=kickoff_accepted_at.strftime("%Y-%m-%d"),
-                assigned_pm=current_user.full_name,
+                assigned_consultant=consultant_name,
                 contract_value=kickoff.get("project_value") or 0,
                 currency="INR",
-                approved_by=current_user.full_name,
+                approved_by=f"{consultant_name} (Consultant) + {kickoff.get('client_name')} (Client)",
                 approval_date=kickoff_accepted_at.strftime("%Y-%m-%d %H:%M"),
                 salesperson_name=requester_name,
+                client_email=client_email,
+                app_url=APP_URL
+            )
+            
+            # Send to team
+            for email in team_emails:
+                await send_email(
+                    to_email=email,
+                    subject=email_data["subject"],
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
+                )
+            
+            # Send to client
+            if client_email:
+                await send_email(
+                    to_email=client_email,
+                    subject=f"🎉 Project Approved: {kickoff.get('project_name')} - Ready to Begin!",
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
+                )
+        except Exception as e:
+            print(f"Failed to send kickoff accepted notification: {e}")
+    
+    background_tasks.add_task(send_kickoff_accepted_notification)
+    
+    return {
+        "message": "Kickoff fully approved! Project created and consultant assigned.",
+        "status": "converted",
+        "project_id": project.id,
+        "consultant_approved": True,
+        "client_approved": True
+    }
                 client_email=client_email,
                 app_url=APP_URL
             )
