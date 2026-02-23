@@ -315,8 +315,9 @@ async def get_lead(lead_id: str, current_user: User = Depends(get_current_user))
     if not lead_data:
         raise HTTPException(status_code=404, detail="Lead not found")
     
-    # Check access based on hierarchy
-    if current_user.role not in ['admin', 'hr_manager']:
+    # RBAC Migration: Check access based on hierarchy
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=False) or ['admin', 'hr_manager']
+    if not has_role(current_user.role, hr_admin_roles):
         # Get accessible user IDs (self + reportees)
         accessible_user_ids = [current_user.id]
         
