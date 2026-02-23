@@ -124,16 +124,8 @@ const Dashboard = () => {
     }
   }, [user, userDomain]);
 
-  // Show domain-specific dashboard for non-admin users
-  if (userDomain === 'sales') {
-    return <SalesDashboard />;
-  }
-  if (userDomain === 'consulting') {
-    return <ConsultingDashboard />;
-  }
-  if (userDomain === 'hr') {
-    return <HRDashboard />;
-  }
+  // Note: Domain-specific routing is handled in App.js via getDefaultDashboard()
+  // Dashboard.js now serves only as the generic/fallback dashboard for 'admin' and 'general' domains
 
   const statCards = [
     {
