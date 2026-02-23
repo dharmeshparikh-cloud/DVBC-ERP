@@ -18,6 +18,7 @@ import Dashboard from './pages/Dashboard';
 // Lazy load non-critical pages for better performance
 const Leads = lazy(() => import('./pages/Leads'));
 const Projects = lazy(() => import('./pages/Projects'));
+const AllProjects = lazy(() => import('./pages/AllProjects'));
 const SalesMeetings = lazy(() => import('./pages/SalesMeetings'));
 const ConsultingMeetings = lazy(() => import('./pages/ConsultingMeetings'));
 const OrgChart = lazy(() => import('./pages/OrgChart'));
