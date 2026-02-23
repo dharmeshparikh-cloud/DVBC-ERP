@@ -419,7 +419,9 @@ async def convert_travel_to_expense(
 ):
     """Convert an approved travel reimbursement to an expense for payroll integration"""
     db = get_db()
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR/Admin can convert to expense")
     
     record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
@@ -589,7 +591,9 @@ async def get_travel_stats(
 ):
     """Get travel reimbursement statistics (HR/Admin)"""
     db = get_db()
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR/Admin can view stats")
     
     query = {}
