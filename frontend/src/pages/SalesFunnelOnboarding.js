@@ -575,7 +575,7 @@ const SalesFunnelOnboarding = () => {
                   <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                      <div>
+                      <div className="flex-1">
                         <div className="flex items-center gap-2 text-red-700 dark:text-red-300 mb-1">
                           <span className="font-semibold">Progress Blocked</span>
                           <Badge variant="destructive" className="text-xs">
@@ -586,16 +586,41 @@ const SalesFunnelOnboarding = () => {
                           {funnelStatus.blocked_reason}
                         </p>
                         {funnelStatus.agreement_id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-3 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
-                            onClick={() => navigate(`/sales-funnel/agreement?id=${funnelStatus.agreement_id}`)}
-                            data-testid="review-agreement-btn"
-                          >
-                            <FileCheck className="w-4 h-4 mr-2" />
-                            Review Agreement
-                          </Button>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
+                              onClick={() => navigate(`/sales-funnel/agreement?id=${funnelStatus.agreement_id}`)}
+                              data-testid="review-agreement-btn"
+                            >
+                              <FileCheck className="w-4 h-4 mr-2" />
+                              Review Agreement
+                            </Button>
+                            
+                            {/* Approve button - only for managers */}
+                            {canApproveAgreement && funnelStatus.agreement_status?.toLowerCase() !== 'rejected' && (
+                              <Button
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={handleApproveAgreement}
+                                disabled={approving}
+                                data-testid="approve-agreement-btn"
+                              >
+                                {approving ? (
+                                  <>
+                                    <Clock className="w-4 h-4 mr-2 animate-spin" />
+                                    Approving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Approve Agreement
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
