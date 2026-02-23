@@ -72,7 +72,7 @@ This audit identifies **15 distinct approval workflows** across 8 modules. The a
 | # | Workflow | File | Enforcement | Risk |
 |---|----------|------|-------------|------|
 | 8 | Leave Request Approval | `my.py` + `leave_policies.py` | Partial | Medium |
-| 9 | Leave Encashment Approval | `leave_policies.py` | **UI-Only** | High |
+| 9 | Leave Encashment Approval | `leave_policies.py` | ✅ Backend (RBAC) - FIXED | Low |
 | 10 | Employee Modification Approval | `employees.py` | Backend | Low |
 | 11 | Leave Policy Changes | `leave_policies.py` | Backend (RBAC) | Low |
 
