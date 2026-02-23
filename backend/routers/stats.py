@@ -1,17 +1,51 @@
 """
 Dashboard Stats Router - Dashboard statistics for Admin, Sales, HR, Consulting
 Replaces legacy stats endpoints from server.py
+
+RBAC MIGRATION: December 2025
+- All role checks now use database-driven RBAC via get_role_group()
+- Numeric role levels used for hierarchy-based access
+- Team hierarchy filters for managers
 """
 
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
+import logging
 
-from .models import User, UserRole, LeadStatus, CONSULTING_ROLES, ALL_DATA_ACCESS_ROLES
+from .models import User, LeadStatus
 from .deps import get_db, get_role_group, has_role
 from .auth import get_current_user
+from .rbac_service import rbac
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/stats", tags=["Dashboard Stats"])
+
+
+# ==================== HELPER FUNCTIONS ====================
+
+def get_all_data_roles() -> List[str]:
+    """Get roles that can see all company data (database-driven)."""
+    return get_role_group("ALL_DATA_ACCESS_ROLES", fail_closed=False) or ["admin", "hr_manager", "principal_consultant"]
+
+
+def get_manager_roles() -> List[str]:
+    """Get manager-level roles (database-driven)."""
+    return get_role_group("MANAGER_ROLES", fail_closed=False) or ["admin", "manager", "sr_manager", "sales_manager", "hr_manager", "principal_consultant"]
+
+
+def can_see_all_data(user: User) -> bool:
+    """Check if user role has access to all company data using RBAC."""
+    return has_role(user.role, get_all_data_roles())
+
+
+def is_manager_or_above(user: User) -> bool:
+    """Check if user is manager level or above using RBAC level."""
+    role_data = rbac.get_role(user.role)
+    if role_data:
+        return role_data.get("level", 0) >= 70
+    return has_role(user.role, get_manager_roles())
 
 
 @router.get("/dashboard")
