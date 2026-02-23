@@ -143,7 +143,10 @@ async def get_leave_policies(
     current_user: User = Depends(get_current_user)
 ):
     """Get all leave policies. HR/Admin only."""
-    if current_user.role not in HR_ADMIN_ROLES + HR_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    if not has_role(current_user.role, hr_admin_roles + hr_roles):
         raise HTTPException(status_code=403, detail="Access denied. HR role required.")
     
     db = get_db()
@@ -242,7 +245,9 @@ async def create_leave_policy(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new leave policy. HR Admin only."""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Admin can create policies")
     
     db = get_db()
@@ -279,7 +284,9 @@ async def update_leave_policy(
     current_user: User = Depends(get_current_user)
 ):
     """Update an existing leave policy"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Admin can update policies")
     
     db = get_db()
@@ -310,7 +317,9 @@ async def delete_leave_policy(
     current_user: User = Depends(get_current_user)
 ):
     """Soft delete a leave policy"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Admin can delete policies")
     
     db = get_db()
@@ -487,7 +496,9 @@ async def apply_policy_to_department(
     current_user: User = Depends(get_current_user)
 ):
     """Apply a policy to all employees in a department"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Admin can apply policies")
     
     db = get_db()
@@ -517,7 +528,9 @@ async def apply_policy_to_role(
     current_user: User = Depends(get_current_user)
 ):
     """Apply a policy to all employees with a specific role"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Admin can apply policies")
     
     db = get_db()
@@ -547,7 +560,9 @@ async def apply_policy_to_employee(
     current_user: User = Depends(get_current_user)
 ):
     """Apply a custom policy to a specific employee"""
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Admin can apply policies")
     
     db = get_db()
@@ -588,7 +603,10 @@ async def get_payroll_adjustments(
     Get leave-related payroll adjustments for an employee's salary
     Returns LOP deductions and leave encashment amounts
     """
-    if current_user.role not in HR_ADMIN_ROLES + HR_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    if not has_role(current_user.role, hr_admin_roles + hr_roles):
         raise HTTPException(status_code=403, detail="HR role required")
     
     db = get_db()
@@ -725,7 +743,9 @@ async def process_year_end(
     - Reset annual quotas
     - Trigger pending encashments
     """
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Admin can run year-end processing")
     
     db = get_db()
