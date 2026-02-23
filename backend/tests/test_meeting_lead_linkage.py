@@ -30,8 +30,8 @@ class TestAuth:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=ADMIN_CREDS)
         assert response.status_code == 200, f"Admin login failed: {response.text}"
         data = response.json()
-        assert "token" in data
-        return data["token"]
+        assert "access_token" in data
+        return data["access_token"]
     
     @pytest.fixture(scope="class")
     def sales_token(self):
@@ -39,15 +39,15 @@ class TestAuth:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_CREDS)
         assert response.status_code == 200, f"Sales login failed: {response.text}"
         data = response.json()
-        assert "token" in data
-        return data["token"]
+        assert "access_token" in data
+        return data["access_token"]
     
     def test_admin_login(self):
         """Test admin login"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json=ADMIN_CREDS)
         assert response.status_code == 200
         data = response.json()
-        assert "token" in data
+        assert "access_token" in data
         assert "user" in data
         print(f"Admin login successful: {data['user'].get('full_name')}")
     
@@ -56,7 +56,7 @@ class TestAuth:
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_CREDS)
         assert response.status_code == 200
         data = response.json()
-        assert "token" in data
+        assert "access_token" in data
         print(f"Sales login successful: {data['user'].get('full_name')}")
 
 
@@ -68,7 +68,7 @@ class TestMeetingRecordEndpoint:
         """Get auth header for sales user"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_CREDS)
         assert response.status_code == 200
-        token = response.json()["token"]
+        token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
     
     def test_record_meeting_success(self, auth_header):
@@ -184,7 +184,7 @@ class TestMeetingsByLeadEndpoint:
     def auth_header(self):
         """Get auth header"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_CREDS)
-        token = response.json()["token"]
+        token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
     
     def test_get_meetings_by_lead(self, auth_header):
@@ -228,7 +228,7 @@ class TestFunnelProgressEndpoint:
     def auth_header(self):
         """Get auth header"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_CREDS)
-        token = response.json()["token"]
+        token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
     
     def test_funnel_progress_structure(self, auth_header):
@@ -292,7 +292,7 @@ class TestKickoffDetailsEndpoint:
     def auth_header(self):
         """Get auth header"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json=ADMIN_CREDS)
-        token = response.json()["token"]
+        token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
     
     def test_get_kickoff_list(self, auth_header):
@@ -367,7 +367,7 @@ class TestLeadAutoRedirect:
     def auth_header(self):
         """Get auth header"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_CREDS)
-        token = response.json()["token"]
+        token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
     
     def test_create_lead_returns_id(self, auth_header):
@@ -416,7 +416,7 @@ class TestMeetingMOMIntegration:
     def auth_header(self):
         """Get auth header"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json=SALES_CREDS)
-        token = response.json()["token"]
+        token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
     
     def test_full_meeting_flow(self, auth_header):
