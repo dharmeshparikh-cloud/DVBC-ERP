@@ -2,37 +2,58 @@
 
 **Date:** December 2025  
 **Scope:** `/api/stats/dashboard` endpoint and related stats endpoints  
-**Status:** 🔴 CRITICAL ISSUES FOUND
+**Status:** ✅ FIXED
 
 ---
 
 ## Executive Summary
 
-The `/stats/dashboard` endpoint has **critical security vulnerabilities** that allow data leakage and bypass RBAC controls. The endpoint was not migrated during the RBAC refactor and still uses legacy string-based role checks.
+The `/stats/dashboard` endpoint had **critical security vulnerabilities** that allowed data leakage and bypass RBAC controls. **All issues have been fixed** - endpoints now use database-driven RBAC with proper role hierarchy and fail-closed security.
 
 ---
 
-## 1. Authorization Logic Audit
+## Issues Fixed
 
-### Current State (PROBLEMATIC)
+### 1. ✅ `/stats/dashboard` - RBAC Migration Complete
+**Before:** Binary admin-only check
+**After:** Three-tier access with team hierarchy
 
 ```python
-# Line 18-24 of stats.py
-@router.get("/dashboard")
-async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
-    query = {}
-    if current_user.role != UserRole.ADMIN:  # ❌ LEGACY STRING CHECK
-        query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+# New implementation
+if can_see_all_data(current_user):      # Admin, HR Manager, Principal Consultant
+    pass  # All data
+elif is_manager_or_above(current_user): # Managers see team data
+    team_ids = await get_team_member_ids(current_user.id)
+    query['$or'] = [{"assigned_to": {"$in": team_ids}}, ...]
+else:                                   # Regular users see own data
+    query['$or'] = [{"assigned_to": current_user.id}, ...]
 ```
 
-### Issues Found:
+### 2. ✅ `/stats/hr` - Authorization Added
+**Before:** No role check - any authenticated user could see HR stats
+**After:** Requires `HR_ROLES` or `MANAGER_ROLES`
 
-| Issue | Severity | Description |
-|-------|----------|-------------|
-| **Legacy Role Check** | 🔴 CRITICAL | Uses `current_user.role != UserRole.ADMIN` instead of RBAC service |
-| **Binary Access Model** | 🔴 CRITICAL | Only Admin vs Non-Admin, no role hierarchy |
-| **Missing RBAC Integration** | 🔴 HIGH | Does not use `require_role_group()` or `has_role()` |
-| **No Fail-Closed** | 🟡 MEDIUM | Endpoint accessible even if RBAC service fails |
+```python
+hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+if not hr_roles:
+    raise HTTPException(status_code=503, detail="Authorization service unavailable")
+if not has_role(current_user.role, hr_roles) and not has_role(current_user.role, manager_roles):
+    raise HTTPException(status_code=403, detail="HR or Manager access required")
+```
+
+### 3. ✅ `/stats/consulting` - Authorization Added
+**Before:** No role check - any authenticated user could see consulting stats
+**After:** Requires `CONSULTING_ROLES` or `MANAGER_ROLES`
+
+### 4. ✅ `/stats/sales` - Revenue Filtering Added
+**Before:** Revenue aggregation exposed total company revenue to all users
+**After:** Revenue filtered by user's role and ownership
+
+### 5. ✅ `ALL_DATA_ACCESS_ROLES` - Added to RBAC Service
+New role group added to DEFAULT_ROLE_GROUPS:
+```python
+"ALL_DATA_ACCESS_ROLES": ["admin", "hr_manager", "principal_consultant"]
+```
 
 ---
 
