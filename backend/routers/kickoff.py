@@ -33,7 +33,7 @@ async def create_kickoff_request(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new kickoff request (Sales to Consulting handoff).
-    Sends real-time email + WebSocket notification to assigned PM.
+    Sends real-time email + WebSocket notification to assigned Senior/Principal Consultant.
     Also sends HTML summary email to sales managers.
     """
     db = get_db()
