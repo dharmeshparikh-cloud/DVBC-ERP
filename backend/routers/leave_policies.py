@@ -715,18 +715,326 @@ async def create_encashment_request(
     encashment = {
         "id": str(uuid.uuid4()),
         "employee_id": employee["id"],
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "employee_code": employee.get("employee_id"),
         "user_id": current_user.id,
         "leave_type": leave_type,
         "days": days,
         "month": datetime.now(timezone.utc).month,
         "year": datetime.now(timezone.utc).year,
         "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "notes": data.get("notes", ""),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.leave_encashments.insert_one(encashment)
     
     return {"message": "Leave encashment request submitted", "id": encashment["id"]}
+
+
+# ==================== ENCASHMENT APPROVAL ENDPOINTS ====================
+
+@router.get("/encashment-requests")
+async def get_encashment_requests(
+    status: Optional[str] = None,
+    employee_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get leave encashment requests.
+    HR/Admin can see all, employees see only their own.
+    """
+    db = get_db()
+    
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    
+    query = {}
+    
+    # Non-HR users can only see their own requests
+    if not has_role(current_user.role, hr_admin_roles + hr_roles):
+        query["user_id"] = current_user.id
+    elif employee_id:
+        query["employee_id"] = employee_id
+    
+    if status:
+        query["status"] = status
+    
+    requests = await db.leave_encashments.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    return {
+        "requests": requests,
+        "total": len(requests),
+        "pending_count": len([r for r in requests if r.get("status") == "pending"])
+    }
+
+
+@router.get("/encashment-requests/{request_id}")
+async def get_encashment_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a single encashment request by ID"""
+    db = get_db()
+    
+    request = await db.leave_encashments.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Encashment request not found")
+    
+    # Check access: owner or HR/Admin
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    
+    if request.get("user_id") != current_user.id and not has_role(current_user.role, hr_admin_roles + hr_roles):
+        raise HTTPException(status_code=403, detail="Not authorized to view this request")
+    
+    return request
+
+
+@router.post("/encashment-requests/{request_id}/approve")
+async def approve_encashment_request(
+    request_id: str,
+    data: dict = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Approve a leave encashment request.
+    
+    ACCESS: Only HR Admin can approve encashment requests.
+    After approval, the encashment is linked to payroll.
+    
+    WORKFLOW:
+    - Request must be in 'pending' status
+    - HR Admin approves → status: 'approved'
+    - Amount calculated and linked to payroll for the current period
+    """
+    db = get_db()
+    
+    # RBAC: Only HR Admin can approve encashments (financial impact)
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Admin can approve leave encashment requests")
+    
+    request = await db.leave_encashments.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Encashment request not found")
+    
+    if request.get("status") != "pending":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot approve request in '{request.get('status')}' status. Only pending requests can be approved."
+        )
+    
+    now = datetime.now(timezone.utc).isoformat()
+    payroll_period = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    # Get employee details for payroll calculation
+    employee = await db.employees.find_one({"id": request.get("employee_id")}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Calculate encashment amount
+    ctc = employee.get("ctc", 0)
+    monthly_gross = ctc / 12 if ctc else employee.get("monthly_salary", 0)
+    basic = monthly_gross * 0.4  # Assuming 40% basic
+    per_day_basic = basic / 30
+    
+    days = request.get("days", 0)
+    encashment_amount = round(days * per_day_basic, 2)
+    
+    # Update encashment request
+    await db.leave_encashments.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": now,
+            "approval_remarks": data.get("remarks", "") if data else "",
+            "calculated_amount": encashment_amount,
+            "payroll_period": payroll_period,
+            "updated_at": now
+        }}
+    )
+    
+    # Link to payroll - create payroll reimbursement record
+    await db.payroll_reimbursements.insert_one({
+        "id": str(uuid.uuid4()),
+        "employee_id": request.get("employee_id"),
+        "employee_code": request.get("employee_code"),
+        "employee_name": request.get("employee_name"),
+        "encashment_request_id": request_id,
+        "amount": encashment_amount,
+        "category": "leave_encashment",
+        "description": f"Leave encashment: {days} days of {request.get('leave_type', 'earned_leave')}",
+        "payroll_period": payroll_period,
+        "status": "pending",
+        "approved_by": current_user.id,
+        "approved_by_name": current_user.full_name,
+        "created_at": now
+    })
+    
+    # Create notification for employee
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": request.get("user_id"),
+        "type": "encashment_approved",
+        "title": "Leave Encashment Approved",
+        "message": f"Your leave encashment request for {days} days has been approved. Amount: ₹{encashment_amount:,.2f} will be added to {payroll_period} payroll.",
+        "reference_type": "leave_encashment",
+        "reference_id": request_id,
+        "is_read": False,
+        "created_at": now
+    })
+    
+    # Log audit trail
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "encashment_approved",
+        "entity_type": "leave_encashment",
+        "entity_id": request_id,
+        "user_id": current_user.id,
+        "user_name": current_user.full_name,
+        "details": {
+            "employee_id": request.get("employee_id"),
+            "days": days,
+            "amount": encashment_amount,
+            "leave_type": request.get("leave_type")
+        },
+        "timestamp": now
+    })
+    
+    return {
+        "message": "Leave encashment approved and linked to payroll",
+        "status": "approved",
+        "amount": encashment_amount,
+        "payroll_period": payroll_period
+    }
+
+
+@router.post("/encashment-requests/{request_id}/reject")
+async def reject_encashment_request(
+    request_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reject a leave encashment request.
+    
+    ACCESS: Only HR Admin can reject encashment requests.
+    
+    WORKFLOW:
+    - Request must be in 'pending' status
+    - Rejection reason required
+    - Employee notified of rejection
+    """
+    db = get_db()
+    
+    # RBAC: Only HR Admin can reject encashments
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only HR Admin can reject leave encashment requests")
+    
+    request = await db.leave_encashments.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Encashment request not found")
+    
+    if request.get("status") != "pending":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot reject request in '{request.get('status')}' status. Only pending requests can be rejected."
+        )
+    
+    rejection_reason = data.get("reason", "")
+    if not rejection_reason:
+        raise HTTPException(status_code=400, detail="Rejection reason is required")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Update encashment request
+    await db.leave_encashments.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
+            "rejected_at": now,
+            "rejection_reason": rejection_reason,
+            "updated_at": now
+        }}
+    )
+    
+    # Create notification for employee
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": request.get("user_id"),
+        "type": "encashment_rejected",
+        "title": "Leave Encashment Rejected",
+        "message": f"Your leave encashment request for {request.get('days', 0)} days has been rejected. Reason: {rejection_reason}",
+        "reference_type": "leave_encashment",
+        "reference_id": request_id,
+        "is_read": False,
+        "created_at": now
+    })
+    
+    # Log audit trail
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "encashment_rejected",
+        "entity_type": "leave_encashment",
+        "entity_id": request_id,
+        "user_id": current_user.id,
+        "user_name": current_user.full_name,
+        "details": {
+            "employee_id": request.get("employee_id"),
+            "days": request.get("days"),
+            "reason": rejection_reason
+        },
+        "timestamp": now
+    })
+    
+    return {
+        "message": "Leave encashment request rejected",
+        "status": "rejected"
+    }
+
+
+@router.post("/encashment-requests/{request_id}/withdraw")
+async def withdraw_encashment_request(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Withdraw a pending encashment request.
+    
+    ACCESS: Only the request owner can withdraw their own pending request.
+    """
+    db = get_db()
+    
+    request = await db.leave_encashments.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Encashment request not found")
+    
+    # Only owner can withdraw
+    if request.get("user_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the request owner can withdraw")
+    
+    if request.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Can only withdraw pending requests")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.leave_encashments.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "withdrawn",
+            "withdrawn_at": now,
+            "updated_at": now
+        }}
+    )
+    
+    return {"message": "Encashment request withdrawn", "status": "withdrawn"}
 
 
 # ==================== YEAR-END PROCESSING ====================
