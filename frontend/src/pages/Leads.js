@@ -963,7 +963,6 @@ const Leads = () => {
                 <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Email</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Score</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Progress</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
@@ -1001,19 +1000,6 @@ const Leads = () => {
                         progress={progress}
                         onClick={() => navigate(`/sales-funnel-onboarding?leadId=${lead.id}`)}
                       />
-                    </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={lead.status}
-                        onChange={(e) => handleStatusChange(lead.id, e.target.value)}
-                        className={`px-2 py-1 text-xs font-medium rounded-sm border-0 cursor-pointer ${getStatusBadge(lead.status)}`}
-                        data-testid={`status-select-${lead.id}`}
-                        disabled={isPaused}
-                      >
-                        {leadStatusOptions.filter(o => o.value).map(o => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
