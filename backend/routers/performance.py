@@ -185,14 +185,39 @@ async def paginate_query(
 async def ensure_indexes(db):
     """
     Create all required indexes for optimal performance.
+    Uses the new comprehensive IndexOptimizer.
     Safe to run multiple times - only creates if not exists.
     """
-    logger.info("Ensuring MongoDB indexes...")
+    logger.info("Running comprehensive index optimization...")
+    
+    try:
+        # Import and run the new comprehensive index optimizer
+        import sys
+        sys.path.insert(0, '/app/backend')
+        from services.index_optimizer import IndexOptimizer
+        
+        optimizer = IndexOptimizer(db)
+        result = await optimizer.ensure_all_indexes()
+        
+        logger.info(f"Index optimization complete: {result['indexes_created']} indexes, {result['errors']} errors")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Index optimization failed: {e}")
+        # Fallback to basic indexes if optimizer fails
+        return await _ensure_basic_indexes(db)
+
+
+async def _ensure_basic_indexes(db):
+    """
+    Fallback: Create basic indexes if full optimization fails.
+    """
+    logger.info("Running basic index creation (fallback)...")
     
     indexes_created = []
     
     try:
-        # Users collection - Critical for auth (562 checks/session)
+        # Users collection - Critical for auth
         await db.users.create_index("id", unique=True, background=True)
         await db.users.create_index("employee_id", unique=True, sparse=True, background=True)
         await db.users.create_index("email", background=True)
