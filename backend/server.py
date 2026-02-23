@@ -177,6 +177,7 @@ from routers import role_management as role_management_router
 from routers import permission_config as permission_config_router
 from routers import department_access as department_access_router
 from routers import security as security_router
+from routers import rbac_router
 
 # Communication routers
 from routers import chat as chat_router
