@@ -291,6 +291,7 @@ def agreement_created_email(
     lead_name: str,
     company: str,
     agreement_number: str,
+    agreement_id: str,
     agreement_type: str,
     total_value: float,
     currency: str,
@@ -298,13 +299,19 @@ def agreement_created_email(
     end_date: str,
     status: str,
     salesperson_name: str,
+    client_email: str,
     app_url: str
 ) -> Dict[str, str]:
     """
-    Email template for when agreement is created
+    Email template for when agreement is created.
+    Sent to: Sales Manager + Sales Manager's Manager + Client
+    Includes view/download/upload links.
     """
     formatted_value = f"{currency} {total_value:,.2f}"
     status_color = "#10b981" if status.lower() == "signed" else "#3b82f6"
+    view_url = f"{app_url}/agreements/{agreement_id}"
+    download_url = f"{app_url}/api/agreements/{agreement_id}/download"
+    upload_url = f"{app_url}/agreements/{agreement_id}?action=upload"
     
     details = [
         {"label": "Client", "value": f"{lead_name} ({company})"},
@@ -314,7 +321,8 @@ def agreement_created_email(
         {"label": "Start Date", "value": start_date},
         {"label": "End Date", "value": end_date},
         {"label": "Status", "value": status.upper()},
-        {"label": "Created By", "value": salesperson_name}
+        {"label": "Created By", "value": salesperson_name},
+        {"label": "Client Email", "value": client_email or "N/A"}
     ]
     
     content = f"""
@@ -329,6 +337,24 @@ def agreement_created_email(
                 {status.upper()}
             </span>
         </div>
+        
+        <!-- Action Links -->
+        <div style="margin-top: 20px; padding: 15px; background-color: #faf5ff; border-radius: 8px;">
+            <p style="margin: 0 0 10px 0; color: #7c3aed; font-size: 13px; font-weight: 600;">Quick Actions</p>
+            <table role="presentation" style="width: 100%;">
+                <tr>
+                    <td style="padding: 5px 0;">
+                        <a href="{view_url}" style="color: #7c3aed; text-decoration: none; font-size: 13px;">📄 View Agreement</a>
+                    </td>
+                    <td style="padding: 5px 0;">
+                        <a href="{download_url}" style="color: #7c3aed; text-decoration: none; font-size: 13px;">⬇️ Download PDF</a>
+                    </td>
+                    <td style="padding: 5px 0;">
+                        <a href="{upload_url}" style="color: #7c3aed; text-decoration: none; font-size: 13px;">⬆️ Upload Signed Copy</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
     """
     
     html = BASE_TEMPLATE.format(
@@ -338,14 +364,15 @@ def agreement_created_email(
         headline=f"Service Agreement: {agreement_number}",
         content=content,
         details_section=_build_details_table(details),
-        action_section=_build_action_button("View Agreement", f"{app_url}/agreements", "#8b5cf6"),
+        action_section=_build_action_button("View Agreement", view_url, "#8b5cf6"),
         year=datetime.now().year
     )
     
     return {
         "subject": f"📝 Agreement #{agreement_number} Created - {company}",
         "html": html,
-        "plain": f"Service agreement created for {company}.\n\nAgreement: {agreement_number}\nValue: {formatted_value}\nStatus: {status}"
+        "plain": f"Service agreement created for {company}.\n\nAgreement: {agreement_number}\nValue: {formatted_value}\nStatus: {status}\nView: {view_url}\nDownload: {download_url}",
+        "client_email": client_email  # Return for sending to client
     }
 
 
