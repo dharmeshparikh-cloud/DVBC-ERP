@@ -152,6 +152,8 @@ async def get_hr_stats(current_user: User = Depends(get_current_user)):
     - HR_ROLES: Full access to HR statistics
     - MANAGER_ROLES: View access to high-level HR stats
     - Others: 403 Forbidden
+    
+    Performance: Cached for 5 minutes (global scope)
     """
     db = get_db()
     
@@ -165,6 +167,12 @@ async def get_hr_stats(current_user: User = Depends(get_current_user)):
     
     if not has_role(current_user.role, hr_roles) and not has_role(current_user.role, manager_roles):
         raise HTTPException(status_code=403, detail="HR or Manager access required")
+    
+    # Check cache - HR stats are global
+    cache_key = stats_key("hr", "global")
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return cached
     
     total_employees = await db.employees.count_documents({"is_active": True})
     active_employees = await db.employees.count_documents({"is_active": True, "go_live_status": "active"})
@@ -180,7 +188,7 @@ async def get_hr_stats(current_user: User = Depends(get_current_user)):
     # Pending expense approvals
     pending_expenses = await db.expenses.count_documents({"status": "pending"})
     
-    return {
+    result = {
         "total_employees": total_employees,
         "active_employees": active_employees,
         "pending_onboarding": pending_onboarding,
@@ -189,6 +197,11 @@ async def get_hr_stats(current_user: User = Depends(get_current_user)):
         "pending_leaves": pending_leaves,
         "pending_expenses": pending_expenses
     }
+    
+    # Cache result
+    await cache.set(cache_key, result, PerformanceCache.TTL_DASHBOARD_STATS)
+    
+    return result
 
 
 @router.get("/sales")
