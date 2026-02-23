@@ -394,9 +394,15 @@ async def update_lead(
 
 @router.delete("/{lead_id}")
 async def delete_lead(lead_id: str, current_user: User = Depends(get_current_user)):
-    """Delete a lead (admin only)."""
+    """
+    Delete a lead (admin only - critical operation).
+    Uses RBAC service for authorization.
+    """
     db = get_db()
-    if current_user.role != UserRole.ADMIN:
+    
+    # RBAC check - admin only for lead deletion
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=True)
+    if not admin_roles or not has_role(current_user.role, admin_roles):
         raise HTTPException(status_code=403, detail="Only admins can delete leads")
     
     result = await db.leads.delete_one({"id": lead_id})
