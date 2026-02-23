@@ -210,13 +210,67 @@ def require_roles(allowed_roles: List[str]):
     Usage: current_user = Depends(require_roles(SALES_ROLES))
     """
     async def role_checker(current_user = Depends(get_current_user_from_token)):
-        if current_user.role not in allowed_roles:
+        if not has_role(current_user.role, allowed_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Required roles: {', '.join(allowed_roles)}"
             )
         return current_user
     return role_checker
+
+
+def require_role_group(group_name: str):
+    """
+    Dependency that checks if user has a role in the specified group (from database).
+    Usage: current_user = Depends(require_role_group("HR_ROLES"))
+    
+    This is the preferred method for role checks as it uses the database-driven RBAC.
+    """
+    async def role_checker(current_user = Depends(get_current_user_from_token)):
+        allowed_roles = get_role_group(group_name)
+        if not allowed_roles:
+            logger.error(f"Role group '{group_name}' not found in RBAC system")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Role configuration error"
+            )
+        if not has_role(current_user.role, allowed_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required role group: {group_name}"
+            )
+        return current_user
+    return role_checker
+
+
+def require_permission(permission: str):
+    """
+    Dependency that checks if user has a specific permission.
+    Usage: current_user = Depends(require_permission("leads.create"))
+    """
+    async def permission_checker(current_user = Depends(get_current_user_from_token)):
+        if not has_permission(current_user.role, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required permission: {permission}"
+            )
+        return current_user
+    return permission_checker
+
+
+def require_approval_role():
+    """
+    Dependency that checks if user can approve requests.
+    Usage: current_user = Depends(require_approval_role())
+    """
+    async def approval_checker(current_user = Depends(get_current_user_from_token)):
+        if not can_approve(current_user.role):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have approval privileges"
+            )
+        return current_user
+    return approval_checker
 
 
 async def get_current_user_from_token(token: str = Depends(oauth2_scheme)):
