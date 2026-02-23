@@ -13,7 +13,34 @@
 
 ## Completed Work - February 2026
 
-### Phase 36: Client Portal UI Redesign - February 23, 2026 ✅ (Latest)
+### Phase 37: All Projects Consultant Assignment UI - February 23, 2026 ✅ (Latest)
+
+**New All Projects Page (Principal Consultant View):**
+- ✅ Created `/all-projects` route accessible to Principal Consultant, Senior Consultant, Admin
+- ✅ Shows ALL projects with assignment status indicators
+- ✅ Projects needing assignment highlighted with amber left border and "Needs Assignment" badge
+- ✅ Stats banner showing Total Projects and Needs Assignment counts
+- ✅ Filter buttons: All, Needs Assignment, Assigned
+- ✅ Search by project name, client, or ID
+- ✅ Assign Consultant dialog with role selection and meeting commitment
+- ✅ Assignment History dialog showing full history of assignments
+- ✅ Unassign consultant functionality (preserves history)
+
+**New Backend Endpoints:**
+- `GET /api/projects/all/for-assignment` - Returns all projects with assignment details
+- `POST /api/projects/{id}/assign-consultant` - Assigns a consultant to project
+- `DELETE /api/projects/{id}/unassign-consultant/{consultant_id}` - Removes consultant (preserves history)
+- `PATCH /api/projects/{id}/change-consultant` - Replace one consultant with another
+- `GET /api/projects/{id}/assignment-history` - Full history of assignments
+
+**Testing Results:**
+- 100% backend test pass rate (13/13 tests)
+- 100% frontend UI verification
+- Access control verified (PC001, SC001 can access; CON001 gets 403)
+
+---
+
+### Phase 36: Client Portal UI Redesign - February 23, 2026 ✅
 
 **Client Portal Light Theme Alignment:**
 - ✅ **ClientLogin.js** - Completely redesigned to match main ERP Login.js
