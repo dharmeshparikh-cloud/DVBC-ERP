@@ -1199,9 +1199,15 @@ async def get_expense_stats(
     """Get expense statistics summary."""
     db = get_db()
     
+    # Use RBAC service for role checks
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    can_view_all = has_role(current_user.role, hr_admin_roles + admin_roles)
+    
     query = {}
     
-    if current_user.role not in HR_ADMIN_ROLES:
+    if not can_view_all:
         query["employee_id"] = current_user.id
     elif employee_id:
         query["employee_id"] = employee_id
