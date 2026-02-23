@@ -29,10 +29,12 @@ APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://lead-record-mgmt.prev
 @router.post("")
 async def create_kickoff_request(
     kickoff_create: KickoffRequestCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
     """Create a new kickoff request (Sales to Consulting handoff).
     Sends real-time email + WebSocket notification to assigned PM.
+    Also sends HTML summary email to sales managers.
     """
     db = get_db()
     
@@ -44,6 +46,11 @@ async def create_kickoff_request(
     agreement = await db.agreements.find_one({"id": kickoff_create.agreement_id}, {"_id": 0})
     if not agreement:
         raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    # Get lead details
+    lead = None
+    if agreement.get("lead_id"):
+        lead = await db.leads.find_one({"id": agreement["lead_id"]}, {"_id": 0})
     
     # CRITICAL: Verify first installment payment before allowing kickoff request
     first_payment = await db.payment_verifications.find_one({
@@ -64,53 +71,102 @@ async def create_kickoff_request(
         requested_by_name=current_user.full_name
     )
     
-    doc = kickoff.model_dump()
-    doc['created_at'] = doc['created_at'].isoformat()
-    doc['updated_at'] = doc['updated_at'].isoformat()
-    if doc.get('expected_start_date'):
-        doc['expected_start_date'] = doc['expected_start_date'].isoformat()
+    # Add lead_id to kickoff
+    kickoff_doc = kickoff.model_dump()
+    kickoff_doc['lead_id'] = agreement.get("lead_id")
+    kickoff_doc['created_at'] = kickoff_doc['created_at'].isoformat()
+    kickoff_doc['updated_at'] = kickoff_doc['updated_at'].isoformat()
+    if kickoff_doc.get('expected_start_date'):
+        kickoff_doc['expected_start_date'] = kickoff_doc['expected_start_date'].isoformat()
     
-    await db.kickoff_requests.insert_one(doc)
+    await db.kickoff_requests.insert_one(kickoff_doc)
     
     # Get requester email
     requester_user = await db.users.find_one({"id": current_user.id})
     requester_email = requester_user.get("email", "") if requester_user else ""
     
-    # Send real-time approval notification (email + WebSocket) to PM if assigned
+    # Get PM details
+    pm_user = None
+    pm_name = "Not Assigned"
     if kickoff.assigned_pm_id:
         pm_user = await db.users.find_one(
             {"id": kickoff.assigned_pm_id}, 
             {"_id": 0, "id": 1, "full_name": 1, "email": 1}
         )
-        
         if pm_user:
-            ws_manager = get_ws_manager()
-            kickoff_details = {
-                "Project Name": kickoff.project_name,
-                "Client": kickoff.client_name,
-                "Project Type": kickoff.project_type or "Mixed",
-                "Project Value": f"₹{kickoff.project_value:,.0f}" if kickoff.project_value else "Not specified",
-                "Expected Start": str(kickoff.expected_start_date)[:10] if kickoff.expected_start_date else "TBD",
-                "Total Meetings": kickoff.total_meetings or "Not specified"
-            }
-            
-            try:
-                await send_approval_notification(
-                    db=db,
-                    ws_manager=ws_manager,
-                    record_type="kickoff",
-                    record_id=kickoff.id,
-                    requester_id=current_user.id,
-                    requester_name=current_user.full_name,
-                    requester_email=requester_email,
-                    approver_id=pm_user["id"],
-                    approver_name=pm_user.get("full_name", "Project Manager"),
-                    approver_email=pm_user.get("email", ""),
-                    details=kickoff_details,
-                    link="/kickoff-requests"
+            pm_name = pm_user.get("full_name", "Project Manager")
+    
+    # Get meeting count and key commitments for the lead
+    meetings_count = 0
+    key_commitments = []
+    if lead:
+        meetings = await db.meetings.find({"lead_id": lead.get("id")}, {"_id": 0}).to_list(50)
+        meetings_count = len(meetings)
+        for m in meetings:
+            key_commitments.extend(m.get("key_commitments", []) or [])
+        key_commitments = list(set([k for k in key_commitments if k]))[:5]
+    
+    # Send real-time approval notification (email + WebSocket) to PM if assigned
+    if pm_user:
+        ws_manager = get_ws_manager()
+        kickoff_details = {
+            "Project Name": kickoff.project_name,
+            "Client": kickoff.client_name,
+            "Project Type": kickoff.project_type or "Mixed",
+            "Project Value": f"₹{kickoff.project_value:,.0f}" if kickoff.project_value else "Not specified",
+            "Expected Start": str(kickoff.expected_start_date)[:10] if kickoff.expected_start_date else "TBD",
+            "Total Meetings": kickoff.total_meetings or "Not specified"
+        }
+        
+        try:
+            await send_approval_notification(
+                db=db,
+                ws_manager=ws_manager,
+                record_type="kickoff",
+                record_id=kickoff.id,
+                requester_id=current_user.id,
+                requester_name=current_user.full_name,
+                requester_email=requester_email,
+                approver_id=pm_user["id"],
+                approver_name=pm_user.get("full_name", "Project Manager"),
+                approver_email=pm_user.get("email", ""),
+                details=kickoff_details,
+                link="/kickoff-requests"
+            )
+        except Exception as e:
+            print(f"Error sending kickoff notification to PM: {e}")
+    
+    # Send HTML summary email to managers in background
+    async def send_kickoff_sent_notification():
+        try:
+            manager_emails = await get_sales_manager_emails(db)
+            if manager_emails:
+                email_data = kickoff_sent_email(
+                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() if lead else "N/A",
+                    company=kickoff.client_name or (lead.get("company") if lead else "Unknown"),
+                    project_name=kickoff.project_name,
+                    project_type=kickoff.project_type or "Mixed",
+                    start_date=str(kickoff.expected_start_date)[:10] if kickoff.expected_start_date else "TBD",
+                    assigned_pm=pm_name,
+                    contract_value=kickoff.project_value or 0,
+                    currency="INR",
+                    meetings_count=meetings_count,
+                    key_commitments=key_commitments,
+                    salesperson_name=current_user.full_name,
+                    approver_name=pm_name,
+                    app_url=APP_URL
                 )
-            except Exception as e:
-                print(f"Error sending kickoff notification to PM: {e}")
+                for email in manager_emails:
+                    await send_email(
+                        to_email=email,
+                        subject=email_data["subject"],
+                        html_content=email_data["html"],
+                        plain_content=email_data["plain"]
+                    )
+        except Exception as e:
+            print(f"Failed to send kickoff sent notification: {e}")
+    
+    background_tasks.add_task(send_kickoff_sent_notification)
     
     return kickoff
 
