@@ -429,6 +429,93 @@ const MeetingRecord = () => {
               ))}
             </div>
 
+            {/* File Upload for Offline Meetings */}
+            {formData.meeting_type === 'Offline' && (
+              <div className="space-y-3">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="flex items-start gap-2">
+                    <Upload className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">
+                        {isFirstOfflineMeeting() ? 'Attachment Required' : 'Add Attachments'}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        {isFirstOfflineMeeting() 
+                          ? 'First offline meeting requires photo or voice recording as proof.' 
+                          : 'You can optionally add photos or voice recordings from the meeting.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,audio/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1"
+                    data-testid="upload-photo-btn"
+                  >
+                    <Image className="w-4 h-4 mr-2" />
+                    Add Photo
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1"
+                    data-testid="upload-voice-btn"
+                  >
+                    <Mic className="w-4 h-4 mr-2" />
+                    Add Voice
+                  </Button>
+                </div>
+
+                {/* Pending Attachments Preview */}
+                {pendingAttachments.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-zinc-500">Attachments to upload:</p>
+                    {pendingAttachments.map((attachment, index) => (
+                      <div 
+                        key={index}
+                        className="flex items-center gap-2 p-2 bg-zinc-50 rounded border border-zinc-200"
+                      >
+                        {attachment.type === 'photo' ? (
+                          <Image className="w-4 h-4 text-blue-500" />
+                        ) : (
+                          <Mic className="w-4 h-4 text-purple-500" />
+                        )}
+                        <span className="text-sm flex-1 truncate">{attachment.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {attachment.type}
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePendingAttachment(index)}
+                          className="h-6 w-6 p-0 text-red-500 hover:bg-red-50"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* MOM Required Notice */}
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
               <div className="flex items-start gap-2">
