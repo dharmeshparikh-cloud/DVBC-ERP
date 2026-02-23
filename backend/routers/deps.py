@@ -130,6 +130,50 @@ DEFAULT_PAGE_SIZE = 100
 MAX_PAGE_SIZE = 1000
 LARGE_QUERY_SIZE = 500
 
+
+# ==================== PAGINATION HELPERS ====================
+
+class PaginationParams:
+    """Standard pagination parameters."""
+    def __init__(
+        self,
+        page: int = 1,
+        page_size: int = DEFAULT_PAGE_SIZE,
+        sort_by: str = None,
+        sort_order: str = "desc"
+    ):
+        self.page = max(1, page)
+        self.page_size = min(max(1, page_size), MAX_PAGE_SIZE)
+        self.sort_by = sort_by
+        self.sort_order = -1 if sort_order == "desc" else 1
+        self.skip = (self.page - 1) * self.page_size
+    
+    def to_dict(self):
+        return {
+            "page": self.page,
+            "page_size": self.page_size,
+            "skip": self.skip,
+            "sort_by": self.sort_by,
+            "sort_order": "desc" if self.sort_order == -1 else "asc"
+        }
+
+
+def paginate_response(items: list, total: int, params: PaginationParams) -> dict:
+    """Create paginated response with metadata."""
+    total_pages = (total + params.page_size - 1) // params.page_size if total > 0 else 1
+    return {
+        "items": items,
+        "pagination": {
+            "page": params.page,
+            "page_size": params.page_size,
+            "total_items": total,
+            "total_pages": total_pages,
+            "has_next": params.page < total_pages,
+            "has_prev": params.page > 1
+        }
+    }
+
+
 # ==================== DATABASE ====================
 # Database reference - set by main server
 db = None
