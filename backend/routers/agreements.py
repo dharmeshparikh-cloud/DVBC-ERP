@@ -407,8 +407,9 @@ async def send_agreement_to_client(agreement_id: str, data: SendToClientRequest,
     Only Principal Consultant or Admin can send agreements to clients."""
     db = get_db()
     
-    # Only Principal Consultant or Admin can send client-facing communications
-    if current_user.role not in ["admin", "principal_consultant"]:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    approve_roles = get_role_group("AGREEMENT_APPROVE_ROLES", fail_closed=True)
+    if not approve_roles or not has_role(current_user.role, approve_roles):
         raise HTTPException(
             status_code=403, 
             detail="Only Principal Consultant can send client-facing communications. Please request PC approval."
