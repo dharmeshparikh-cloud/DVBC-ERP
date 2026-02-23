@@ -564,7 +564,7 @@ def generate_test_email_previews(app_url: str = "https://erp-approval-flow.previ
     """
     Generate all email templates with Indian test data for preview.
     """
-    # Test data with Indian names
+    # Test data with Indian names - Senior Consultant/Principal Consultant as approvers (NOT PM)
     test_data = {
         "lead_name": "Rajesh Mehta",
         "company": "Tata Consultancy Services",
@@ -573,8 +573,8 @@ def generate_test_email_previews(app_url: str = "https://erp-approval-flow.previ
         "manager_name": "Amit Patel (Sales Manager)",
         "sales_head": "Vikram Singh (Sales Head)",
         "senior_manager": "Sunita Reddy (Senior Manager)",
-        "principal_consultant": "Arun Krishnamurthy (Principal Consultant)",
-        "project_manager": "Kiran Desai (Project Manager)"
+        "senior_consultant": "Kiran Desai (Senior Consultant)",
+        "principal_consultant": "Arun Krishnamurthy (Principal Consultant)"
     }
     
     previews = {}
@@ -627,25 +627,25 @@ def generate_test_email_previews(app_url: str = "https://erp-approval-flow.previ
         app_url=app_url
     )
     
-    # 4. Kickoff Sent Email
+    # 4. Kickoff Sent Email - Approved by Senior Consultant or Principal Consultant
     previews["kickoff_sent"] = kickoff_sent_email(
         lead_name=test_data["lead_name"],
         company=test_data["company"],
         project_name="TCS Digital Transformation - Phase 1",
         project_type="SAP Implementation",
         start_date="2025-01-15",
-        assigned_pm=test_data["project_manager"],
+        assigned_consultant=test_data["senior_consultant"],
         contract_value=4500000,
         currency="INR",
         meetings_count=4,
         key_commitments=["Dedicated senior consultant", "24/7 support during go-live", "Monthly executive reviews"],
         salesperson_name=test_data["salesperson_name"],
-        approver_name=test_data["project_manager"],
+        approver_name=test_data["principal_consultant"],
         client_email=test_data["client_email"],
         app_url=app_url
     )
     
-    # 5. Kickoff Accepted Email
+    # 5. Kickoff Accepted Email - Approved by Principal Consultant
     previews["kickoff_accepted"] = kickoff_accepted_email(
         lead_name=test_data["lead_name"],
         company=test_data["company"],
@@ -653,7 +653,7 @@ def generate_test_email_previews(app_url: str = "https://erp-approval-flow.previ
         project_id="proj-789",
         project_type="SAP Implementation",
         start_date="2025-01-15",
-        assigned_pm=test_data["project_manager"],
+        assigned_consultant=test_data["senior_consultant"],
         contract_value=4500000,
         currency="INR",
         approved_by=test_data["principal_consultant"],
