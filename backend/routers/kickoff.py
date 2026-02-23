@@ -206,7 +206,7 @@ async def get_kickoff_request_details(
     request_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get detailed kickoff request with related data."""
+    """Get detailed kickoff request with related data including all sales funnel steps."""
     db = get_db()
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
@@ -218,10 +218,13 @@ async def get_kickoff_request_details(
     if kickoff.get("agreement_id"):
         agreement = await db.agreements.find_one({"id": kickoff["agreement_id"]}, {"_id": 0})
     
-    # Get lead details
+    # Get lead details - try from kickoff first, then from agreement
     lead = None
-    if kickoff.get("lead_id"):
-        lead = await db.leads.find_one({"id": kickoff["lead_id"]}, {"_id": 0})
+    lead_id = kickoff.get("lead_id")
+    if not lead_id and agreement:
+        lead_id = agreement.get("lead_id")
+    if lead_id:
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     
     # Get client details
     client = None
@@ -241,13 +244,122 @@ async def get_kickoff_request_details(
     if kickoff.get("project_id"):
         project = await db.projects.find_one({"id": kickoff["project_id"]}, {"_id": 0})
     
-    # Get meeting history
+    # Get ALL meeting history with full MOM details
     meetings = []
-    if kickoff.get("lead_id"):
+    client_expectations_summary = []
+    key_commitments_summary = []
+    total_meetings_held = 0
+    
+    if lead_id:
         meetings = await db.meetings.find(
-            {"lead_id": kickoff["lead_id"]},
+            {"lead_id": lead_id},
             {"_id": 0}
-        ).sort("meeting_date", -1).limit(10).to_list(10)
+        ).sort("meeting_date", -1).to_list(50)
+        
+        total_meetings_held = len(meetings)
+        
+        # Extract client expectations and key commitments from all meetings
+        for meeting in meetings:
+            if meeting.get("client_expectations"):
+                for exp in meeting["client_expectations"]:
+                    if exp and exp not in client_expectations_summary:
+                        client_expectations_summary.append(exp)
+            if meeting.get("key_commitments"):
+                for com in meeting["key_commitments"]:
+                    if com and com not in key_commitments_summary:
+                        key_commitments_summary.append(com)
+    
+    # Get pricing plan details
+    pricing_plan = None
+    if lead_id:
+        pricing_plan = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
+    if not pricing_plan and agreement:
+        pricing_plan = await db.pricing_plans.find_one({"id": agreement.get("pricing_plan_id")}, {"_id": 0})
+    
+    # Get SOW details
+    sow = None
+    if lead_id:
+        sow = await db.enhanced_sows.find_one({"lead_id": lead_id}, {"_id": 0})
+        if not sow:
+            sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Get quotation details
+    quotation = None
+    if lead_id:
+        quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Get payment details
+    payments = []
+    if agreement:
+        payments = await db.payment_verifications.find(
+            {"agreement_id": agreement.get("id")},
+            {"_id": 0}
+        ).to_list(20)
+    
+    # Build funnel steps summary for reviewer
+    funnel_steps_summary = {
+        "lead_capture": {
+            "completed": lead is not None,
+            "data": {
+                "company": lead.get("company") if lead else None,
+                "contact": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() if lead else None,
+                "email": lead.get("email") if lead else None,
+                "phone": lead.get("phone") if lead else None,
+                "source": lead.get("source") if lead else None
+            } if lead else None
+        },
+        "meetings": {
+            "completed": total_meetings_held > 0,
+            "count": total_meetings_held,
+            "data": {
+                "total_meetings": total_meetings_held,
+                "client_expectations": client_expectations_summary[:5],  # Top 5
+                "key_commitments": key_commitments_summary[:5]  # Top 5
+            }
+        },
+        "pricing_plan": {
+            "completed": pricing_plan is not None,
+            "data": {
+                "id": pricing_plan.get("id") if pricing_plan else None,
+                "total": pricing_plan.get("grand_total", 0) if pricing_plan else 0,
+                "duration_months": pricing_plan.get("project_duration_months") if pricing_plan else None,
+                "project_type": pricing_plan.get("project_type") if pricing_plan else None
+            } if pricing_plan else None
+        },
+        "sow": {
+            "completed": sow is not None,
+            "data": {
+                "id": sow.get("id") if sow else None,
+                "scope_items_count": len(sow.get("scope_items", [])) if sow else 0,
+                "deliverables_count": len(sow.get("deliverables", [])) if sow else 0
+            } if sow else None
+        },
+        "quotation": {
+            "completed": quotation is not None,
+            "data": {
+                "id": quotation.get("id") if quotation else None,
+                "number": quotation.get("quotation_number") if quotation else None,
+                "total": quotation.get("total_amount", 0) if quotation else 0
+            } if quotation else None
+        },
+        "agreement": {
+            "completed": agreement is not None,
+            "data": {
+                "id": agreement.get("id") if agreement else None,
+                "number": agreement.get("agreement_number") if agreement else None,
+                "status": agreement.get("status") if agreement else None,
+                "signed_date": agreement.get("signed_date") if agreement else None
+            } if agreement else None
+        },
+        "payments": {
+            "completed": len(payments) > 0,
+            "count": len(payments),
+            "data": {
+                "total_paid": sum(p.get("amount", 0) for p in payments if p.get("status") == "verified"),
+                "verified_count": len([p for p in payments if p.get("status") == "verified"])
+            }
+        }
+    }
     
     return {
         "kickoff_request": kickoff,
@@ -256,7 +368,15 @@ async def get_kickoff_request_details(
         "client": client,
         "assigned_pm": pm,
         "project": project,
-        "meeting_history": meetings
+        "meeting_history": meetings,
+        "total_meetings_held": total_meetings_held,
+        "client_expectations_summary": client_expectations_summary,
+        "key_commitments_summary": key_commitments_summary,
+        "pricing_plan": pricing_plan,
+        "sow": sow,
+        "quotation": quotation,
+        "payments": payments,
+        "funnel_steps_summary": funnel_steps_summary
     }
 
 
