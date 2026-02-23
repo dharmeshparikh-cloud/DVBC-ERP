@@ -219,13 +219,13 @@ async def get_kickoff_requests(
 @router.get("/eligible-pms/list")
 async def get_eligible_pms(current_user: User = Depends(get_current_user)):
     """
-    Get list of consultants eligible to be assigned as PM for kickoff.
-    Only Senior Consultants and Principal Consultants with reportees (managers).
+    Get list of consultants eligible to approve kickoff requests.
+    Only Senior Consultants and Principal Consultants (NOT PM, NOT regular Consultant).
     """
     db = get_db()
     
-    # Get all senior and principal consultants
-    eligible_roles = ["senior_consultant", "principal_consultant", "principal_consultant", "lead_consultant"]
+    # Only Senior Consultant and Principal Consultant can approve kickoffs
+    eligible_roles = ["senior_consultant", "principal_consultant"]
     
     consultants = await db.users.find(
         {"role": {"$in": eligible_roles}, "is_active": True},
