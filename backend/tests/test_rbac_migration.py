@@ -166,7 +166,7 @@ class TestKickoffApproval:
         """Admin should be able to view kickoff requests"""
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{API_URL}/kickoff/requests",
+                f"{API_URL}/kickoff-requests",
                 headers={"Authorization": f"Bearer {admin_token}"},
                 timeout=10.0
             )
