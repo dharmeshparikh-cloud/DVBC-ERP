@@ -205,9 +205,10 @@ async def get_all_leads_progress(current_user: User = Depends(get_current_user))
         "quotation", "agreement", "record_payment", "kickoff_request", "project_created"
     ]
     
-    # Get accessible leads based on role
+    # RBAC Migration: Get accessible leads based on role
     query = {}
-    if current_user.role not in ['admin', 'hr_manager']:
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=False) or ['admin', 'hr_manager']
+    if not has_role(current_user.role, hr_admin_roles):
         user_employee = await db.employees.find_one(
             {"user_id": current_user.id}, 
             {"id": 1, "employee_id": 1, "_id": 0}
