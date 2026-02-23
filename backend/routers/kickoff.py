@@ -648,156 +648,753 @@ async def accept_kickoff_request(
     current_user: User = Depends(get_current_user)
 ):
     """
-    CONSULTANT APPROVAL - First step of dual approval.
-    Only Senior Consultant or Principal Consultant can approve.
-    After consultant approves, client must also approve before project creation.
+    INTERNAL APPROVAL - Principal Consultant ONLY.
+    Step 1 of dual approval flow.
+    
+    When approved:
+    - Project ID generated (PROJ-YYYYMMDD-XXXX)
+    - Status: internal_approved
+    - Sales team notified
+    - Client receives approval email
     """
     db = get_db()
     
-    # Only Senior Consultant and Principal Consultant can accept kickoffs
-    if current_user.role not in SENIOR_CONSULTING_ROLES:
-        raise HTTPException(status_code=403, detail="Only Senior Consultant or Principal Consultant roles can approve kickoff requests")
+    # ONLY Principal Consultant can approve kickoffs
+    if current_user.role not in PRINCIPAL_CONSULTANT_ROLES:
+        raise HTTPException(
+            status_code=403, 
+            detail="Only Principal Consultant can approve kickoff requests internally"
+        )
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
     if not kickoff:
         raise HTTPException(status_code=404, detail="Kickoff request not found")
     
-    # Can approve if pending OR if client has already approved (waiting for consultant)
-    if kickoff.get("status") not in ["pending", "client_approved"]:
-        raise HTTPException(status_code=400, detail="Can only approve pending or client-approved requests")
+    # Can only approve pending requests
+    if kickoff.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Cannot approve request with status: {kickoff.get('status')}")
     
-    # Check if consultant already approved
-    if kickoff.get("consultant_approved"):
-        raise HTTPException(status_code=400, detail="Consultant has already approved this kickoff")
+    # Check if already internally approved
+    if kickoff.get("internal_approved"):
+        raise HTTPException(status_code=400, detail="This kickoff has already been internally approved")
     
-    # Generate client approval token if not exists
-    client_approval_token = kickoff.get("client_approval_token") or str(uuid.uuid4())
+    # Generate Project ID (PROJ-YYYYMMDD-XXXX)
+    project_id = await generate_project_id(db)
     
-    # Update kickoff with consultant approval
-    new_status = "approved" if kickoff.get("client_approved") else "consultant_approved"
+    # Generate client approval token
+    client_approval_token = str(uuid.uuid4())
     
+    # Update kickoff with internal approval
     await db.kickoff_requests.update_one(
         {"id": request_id},
         {"$set": {
-            "consultant_approved": True,
-            "consultant_approved_by": current_user.id,
-            "consultant_approved_by_name": current_user.full_name,
-            "consultant_approved_at": datetime.now(timezone.utc).isoformat(),
+            "internal_approved": True,
+            "internal_approved_by": current_user.id,
+            "internal_approved_by_name": current_user.full_name,
+            "internal_approved_at": datetime.now(timezone.utc).isoformat(),
+            "project_id": project_id,
             "client_approval_token": client_approval_token,
-            "status": new_status,
+            "status": "internal_approved",
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
-    # If BOTH have now approved, create the project
-    if new_status == "approved":
-        return await _create_project_from_kickoff(request_id, current_user, background_tasks, db)
-    
-    # Otherwise, send notification to client for their approval
+    # Get lead details for client email
     lead = None
+    client_email = kickoff.get("client_email")
     if kickoff.get("lead_id"):
         lead = await db.leads.find_one({"id": kickoff["lead_id"]}, {"_id": 0})
+        if lead and not client_email:
+            client_email = lead.get("email", "")
     
-    client_email = lead.get("email", "") if lead else ""
+    # Notify Sales Team - Project approved
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "kickoff_internal_approved",
+        "recipient_id": kickoff.get("requested_by"),
+        "title": f"✅ Project Approved: {project_id}",
+        "message": f"Project '{kickoff.get('project_name')}' approved by {current_user.full_name}. Awaiting client confirmation.",
+        "kickoff_request_id": request_id,
+        "project_id": project_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read": False
+    }
+    await db.notifications.insert_one(notification)
     
-    # Send email to client requesting approval
+    # Send email to client for approval
     if client_email:
-        async def send_client_approval_request():
+        async def send_client_approval_email():
             try:
-                approval_link = f"{APP_URL}/kickoff-approval/{client_approval_token}"
+                approval_link = f"{APP_URL}/client-approval/{client_approval_token}"
+                expected_start = str(kickoff.get('expected_start_date', 'TBD'))[:10]
+                
                 html_content = f"""
+                <!DOCTYPE html>
                 <html>
-                <head></head>
-                <body style="font-family: Arial, sans-serif; padding: 20px;">
-                    <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <img src="{LOGO_URL}" alt="D&V Business Consulting" style="height: 80px; margin-bottom: 20px;">
-                        
-                        <h2 style="color: #1a1a2e;">Project Kickoff Approval Required</h2>
-                        
-                        <p>Dear {kickoff.get('client_name')},</p>
-                        
-                        <p>Our consultant <strong>{current_user.full_name}</strong> has approved the kickoff request for:</p>
-                        
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                            <p style="margin: 5px 0;"><strong>Project:</strong> {kickoff.get('project_name')}</p>
-                            <p style="margin: 5px 0;"><strong>Type:</strong> {kickoff.get('project_type', 'Mixed')}</p>
-                            <p style="margin: 5px 0;"><strong>Expected Start:</strong> {str(kickoff.get('expected_start_date', 'TBD'))[:10]}</p>
-                            <p style="margin: 5px 0;"><strong>Value:</strong> ₹{kickoff.get('project_value', 0):,.0f}</p>
-                        </div>
-                        
-                        <p>Please click below to confirm and approve the project kickoff:</p>
-                        
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="{approval_link}" style="display: inline-block; background-color: #10b981; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-                                ✓ Approve Project Kickoff
-                            </a>
-                        </div>
-                        
-                        <p style="color: #666; font-size: 13px;">
-                            Once you approve, we will assign our senior consultant to your project and begin the onboarding process.
-                        </p>
-                        
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                        <p style="color: #999; font-size: 12px;">This is an automated notification from NETRA ERP</p>
-                    </div>
+                <head><meta charset="utf-8"></head>
+                <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f5f5;">
+                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td align="center" style="padding: 40px 20px;">
+                                <table role="presentation" style="width: 100%; max-width: 600px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                    
+                                    <!-- Header -->
+                                    <tr>
+                                        <td style="background: #f3f4f6; padding: 30px; text-align: center;">
+                                            <img src="{LOGO_URL}" alt="D&V Business Consulting" style="height: 100px; width: auto;">
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Badge -->
+                                    <tr>
+                                        <td style="padding: 30px 40px 0; text-align: center;">
+                                            <span style="display: inline-block; background: #10b981; color: white; padding: 10px 25px; border-radius: 25px; font-weight: bold;">
+                                                PROJECT APPROVED
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Title -->
+                                    <tr>
+                                        <td style="padding: 25px 40px 10px; text-align: center;">
+                                            <h1 style="margin: 0; color: #1a1a2e; font-size: 24px;">
+                                                Your Project is Ready!
+                                            </h1>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Content -->
+                                    <tr>
+                                        <td style="padding: 10px 40px 30px;">
+                                            <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
+                                                Dear <strong>{kickoff.get('client_name')}</strong>,
+                                            </p>
+                                            <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
+                                                We are pleased to inform you that your project has been approved by our Principal Consultant, <strong>{current_user.full_name}</strong>.
+                                            </p>
+                                            
+                                            <!-- Project Details Box -->
+                                            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                                <h3 style="margin: 0 0 15px; color: #1a1a2e; font-size: 16px;">Project Details</h3>
+                                                <table style="width: 100%; font-size: 14px;">
+                                                    <tr>
+                                                        <td style="padding: 8px 0; color: #6b7280;">Project ID:</td>
+                                                        <td style="padding: 8px 0; color: #1a1a2e; font-weight: bold;">{project_id}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 8px 0; color: #6b7280;">Project Name:</td>
+                                                        <td style="padding: 8px 0; color: #1a1a2e;">{kickoff.get('project_name')}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 8px 0; color: #6b7280;">Type:</td>
+                                                        <td style="padding: 8px 0; color: #1a1a2e;">{kickoff.get('project_type', 'Mixed').title()}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 8px 0; color: #6b7280;">Proposed Start Date:</td>
+                                                        <td style="padding: 8px 0; color: #1a1a2e;">{expected_start}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 8px 0; color: #6b7280;">Contract Value:</td>
+                                                        <td style="padding: 8px 0; color: #1a1a2e; font-weight: bold;">₹{kickoff.get('project_value', 0):,.0f}</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            
+                                            <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
+                                                Please click the button below to <strong>confirm the project start date</strong> and activate your project:
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- CTA Button -->
+                                    <tr>
+                                        <td style="padding: 0 40px 30px; text-align: center;">
+                                            <a href="{approval_link}" style="display: inline-block; background: #10b981; color: white; padding: 16px 50px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                                ✓ Confirm & Approve Project
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Note -->
+                                    <tr>
+                                        <td style="padding: 0 40px 30px;">
+                                            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                                                <p style="margin: 0; color: #92400e; font-size: 13px;">
+                                                    <strong>What happens next?</strong><br>
+                                                    Once you approve, you will receive your NETRA ERP login credentials to track your project progress, view documents, and communicate with your assigned consultant.
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Footer -->
+                                    <tr>
+                                        <td style="background: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                                            <p style="margin: 0 0 10px; color: #6c757d; font-size: 12px;">
+                                                This is an automated notification from NETRA ERP
+                                            </p>
+                                            <p style="margin: 0; color: #adb5bd; font-size: 11px;">
+                                                © {datetime.now().year} D&V Business Consulting. All rights reserved.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
                 </body>
                 </html>
                 """
                 
                 await send_email(
                     to_email=client_email,
-                    subject=f"Action Required: Approve Project Kickoff - {kickoff.get('project_name')}",
+                    subject=f"✅ Project Approved: {project_id} - Please Confirm Start Date",
                     html_content=html_content,
-                    plain_content=f"Please approve the project kickoff: {approval_link}"
+                    plain_content=f"Your project {project_id} has been approved. Please confirm: {approval_link}"
                 )
             except Exception as e:
-                print(f"Failed to send client approval request: {e}")
+                print(f"Failed to send client approval email: {e}")
         
-        background_tasks.add_task(send_client_approval_request)
+        background_tasks.add_task(send_client_approval_email)
     
-    # Notify requester
-    notification = {
-        "id": str(uuid.uuid4()),
-        "type": "kickoff_consultant_approved",
-        "recipient_id": kickoff.get("requested_by"),
-        "title": f"Kickoff Consultant Approved: {kickoff.get('project_name')}",
-        "message": f"Approved by {current_user.full_name}. Awaiting client approval.",
-        "kickoff_request_id": request_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "read": False
-    }
-    await db.notifications.insert_one(notification)
+    # Send internal notification email (New Project Added)
+    async def send_internal_notification():
+        try:
+            # Get all consulting team emails
+            consulting_team = await db.users.find(
+                {"role": {"$in": ["principal_consultant", "senior_consultant", "consultant", "lean_consultant"]}},
+                {"_id": 0, "email": 1}
+            ).to_list(100)
+            
+            team_emails = [u["email"] for u in consulting_team if u.get("email")]
+            
+            # Also get HR Manager emails
+            hr_managers = await db.users.find(
+                {"role": "hr_manager"},
+                {"_id": 0, "email": 1}
+            ).to_list(10)
+            team_emails.extend([u["email"] for u in hr_managers if u.get("email")])
+            
+            for email in team_emails:
+                await send_email(
+                    to_email=email,
+                    subject=f"🆕 New Project Added: {project_id} - {kickoff.get('project_name')}",
+                    html_content=f"""
+                    <html>
+                    <body style="font-family: Arial; padding: 20px;">
+                        <h2>New Project Added to System</h2>
+                        <p>A new project has been internally approved and is awaiting client confirmation.</p>
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px;">
+                            <p><strong>Project ID:</strong> {project_id}</p>
+                            <p><strong>Client:</strong> {kickoff.get('client_name')}</p>
+                            <p><strong>Project:</strong> {kickoff.get('project_name')}</p>
+                            <p><strong>Approved By:</strong> {current_user.full_name}</p>
+                        </div>
+                    </body>
+                    </html>
+                    """,
+                    plain_content=f"New Project: {project_id} - {kickoff.get('project_name')}"
+                )
+        except Exception as e:
+            print(f"Failed to send internal notification: {e}")
+    
+    background_tasks.add_task(send_internal_notification)
     
     return {
-        "message": "Consultant approval recorded. Awaiting client approval.",
-        "status": "consultant_approved",
+        "message": f"Project approved! Project ID: {project_id}. Awaiting client confirmation.",
+        "status": "internal_approved",
+        "project_id": project_id,
         "client_approval_pending": True,
         "client_email": client_email
     }
 
 
-LOGO_URL = "https://dvconsulting.co.in/wp-content/uploads/2020/02/logov4-min.png"
-
-
 @router.get("/client-approve/{token}")
 async def client_approve_kickoff_page(token: str):
     """
-    CLIENT APPROVAL - Second step of dual approval.
-    Client clicks a link from email to approve.
-    Returns HTML page for client to confirm approval.
+    CLIENT APPROVAL PAGE - Step 2 of dual approval.
+    Shows project details and allows client to confirm start date.
     """
     db = get_db()
     
     kickoff = await db.kickoff_requests.find_one({"client_approval_token": token}, {"_id": 0})
     if not kickoff:
         return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Invalid Link</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px; background: #f5f5f5;">
+                <div style="max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px;">
+                    <h1 style="color: #ef4444;">❌ Invalid or Expired Link</h1>
+                    <p style="color: #666;">This approval link is no longer valid or has expired.</p>
+                    <p style="color: #999; font-size: 13px;">Please contact your D&V representative for assistance.</p>
+                </div>
+            </body>
+            </html>
+        """, status_code=404)
+    
+    if kickoff.get("client_approved"):
+        return HTMLResponse(content=f"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Already Approved</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px; background: #f5f5f5;">
+                <div style="max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px;">
+                    <h1 style="color: #10b981;">✅ Already Approved</h1>
+                    <p style="color: #666;">You have already approved this project.</p>
+                    <p><strong>Project ID:</strong> {kickoff.get('project_id')}</p>
+                    <p style="color: #999; font-size: 13px;">Check your email for NETRA login credentials.</p>
+                </div>
+            </body>
+            </html>
+        """)
+    
+    expected_start = str(kickoff.get('expected_start_date', ''))[:10] if kickoff.get('expected_start_date') else datetime.now().strftime('%Y-%m-%d')
+    
+    return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Confirm Project - D&V Business Consulting</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ background: #f3f4f6; padding: 30px; text-align: center; }}
+                .header img {{ height: 80px; }}
+                .content {{ padding: 30px 40px; }}
+                .badge {{ display: inline-block; background: #10b981; color: white; padding: 8px 20px; border-radius: 20px; font-weight: bold; margin-bottom: 20px; }}
+                .details {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+                .details table {{ width: 100%; border-collapse: collapse; }}
+                .details td {{ padding: 10px 0; }}
+                .details td:first-child {{ color: #6b7280; }}
+                .details td:last-child {{ color: #1a1a2e; font-weight: 500; }}
+                .form-group {{ margin: 20px 0; }}
+                .form-group label {{ display: block; margin-bottom: 8px; color: #374151; font-weight: 500; }}
+                .form-group input {{ width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; }}
+                .btn {{ display: block; width: 100%; padding: 16px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; }}
+                .btn:hover {{ background: #059669; }}
+                .footer {{ background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; }}
+                .footer p {{ margin: 5px 0; color: #9ca3af; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <img src="{LOGO_URL}" alt="D&V Business Consulting">
+                </div>
+                <div class="content">
+                    <div style="text-align: center;">
+                        <span class="badge">CONFIRM PROJECT</span>
+                        <h2 style="margin: 20px 0 10px; color: #1a1a2e;">Welcome, {kickoff.get('client_name')}!</h2>
+                        <p style="color: #6b7280;">Please review and confirm your project details below.</p>
+                    </div>
+                    
+                    <div class="details">
+                        <table>
+                            <tr>
+                                <td>Project ID:</td>
+                                <td><strong>{kickoff.get('project_id')}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Project Name:</td>
+                                <td>{kickoff.get('project_name')}</td>
+                            </tr>
+                            <tr>
+                                <td>Type:</td>
+                                <td>{kickoff.get('project_type', 'Mixed').title()}</td>
+                            </tr>
+                            <tr>
+                                <td>Duration:</td>
+                                <td>{kickoff.get('project_tenure_months', 12)} months</td>
+                            </tr>
+                            <tr>
+                                <td>Contract Value:</td>
+                                <td>₹{kickoff.get('project_value', 0):,.0f}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <form action="/api/kickoff-requests/client-approve/{token}/confirm" method="POST">
+                        <div class="form-group">
+                            <label for="start_date">📅 Confirm Project Start Date:</label>
+                            <input type="date" id="start_date" name="start_date" value="{expected_start}" required>
+                        </div>
+                        
+                        <button type="submit" class="btn">✓ Approve & Start Project</button>
+                    </form>
+                    
+                    <p style="margin-top: 20px; color: #6b7280; font-size: 13px; text-align: center;">
+                        By clicking "Approve", you confirm the project details and agree to proceed with the engagement.
+                    </p>
+                </div>
+                <div class="footer">
+                    <p>© {datetime.now().year} D&V Business Consulting. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    """)
+
+
+@router.post("/client-approve/{token}/confirm")
+async def client_confirm_approval(
+    token: str,
+    background_tasks: BackgroundTasks,
+    start_date: str = None
+):
+    """
+    CLIENT APPROVAL CONFIRMATION - Final step.
+    
+    When client approves:
+    1. Status → approved
+    2. Create client user account (ID: 98XXX)
+    3. Send welcome email with credentials
+    4. Notify all stakeholders
+    """
+    db = get_db()
+    
+    # Handle form data
+    from fastapi import Form, Request
+    
+    kickoff = await db.kickoff_requests.find_one({"client_approval_token": token}, {"_id": 0})
+    if not kickoff:
+        return HTMLResponse(content="""
             <html><body style="font-family: Arial; text-align: center; padding: 50px;">
-                <h1 style="color: #ef4444;">Invalid or Expired Link</h1>
-                <p>This approval link is no longer valid.</p>
+                <h1 style="color: #ef4444;">Invalid Link</h1>
             </body></html>
         """, status_code=404)
     
     if kickoff.get("client_approved"):
+        return HTMLResponse(content="""
+            <html><body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h1 style="color: #10b981;">✅ Already Approved</h1>
+            </body></html>
+        """)
+    
+    # Get client email from lead
+    lead = None
+    client_email = kickoff.get("client_email")
+    if kickoff.get("lead_id"):
+        lead = await db.leads.find_one({"id": kickoff["lead_id"]}, {"_id": 0})
+        if lead and not client_email:
+            client_email = lead.get("email", "")
+    
+    # Generate client ID (98XXX format)
+    client_id = await generate_client_id(db)
+    
+    # Generate random password
+    temp_password = generate_random_password()
+    hashed_password = pwd_context.hash(temp_password)
+    
+    # Determine confirmed start date
+    confirmed_start = start_date or str(kickoff.get('expected_start_date', ''))[:10]
+    if not confirmed_start:
+        confirmed_start = datetime.now().strftime('%Y-%m-%d')
+    
+    # Create client user account
+    client_user = {
+        "id": str(uuid.uuid4()),
+        "client_id": client_id,
+        "email": client_email,
+        "hashed_password": hashed_password,
+        "full_name": kickoff.get("client_name"),
+        "company_name": kickoff.get("client_name"),
+        "phone": lead.get("phone") if lead else None,
+        "lead_id": kickoff.get("lead_id"),
+        "project_ids": [kickoff.get("project_id")],
+        "agreement_ids": [kickoff.get("agreement_id")] if kickoff.get("agreement_id") else [],
+        "is_active": True,
+        "must_change_password": True,
+        "role": "client",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.client_users.insert_one(client_user)
+    
+    # Update kickoff request
+    await db.kickoff_requests.update_one(
+        {"id": kickoff.get("id")},
+        {"$set": {
+            "client_approved": True,
+            "client_approved_by": kickoff.get("client_name"),
+            "client_approved_at": datetime.now(timezone.utc).isoformat(),
+            "confirmed_start_date": confirmed_start,
+            "status": "approved",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Create/Update project record
+    project_id = kickoff.get("project_id")
+    existing_project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    
+    if not existing_project:
+        # Create new project
+        tenure_months = kickoff.get("project_tenure_months", 12)
+        start_dt = datetime.strptime(confirmed_start, "%Y-%m-%d")
+        end_dt = start_dt + relativedelta(months=tenure_months)
+        
+        project_doc = {
+            "id": project_id,
+            "name": kickoff.get("project_name"),
+            "client_name": kickoff.get("client_name"),
+            "client_id": client_id,
+            "lead_id": kickoff.get("lead_id"),
+            "agreement_id": kickoff.get("agreement_id"),
+            "kickoff_request_id": kickoff.get("id"),
+            "project_type": kickoff.get("project_type", "mixed"),
+            "start_date": confirmed_start,
+            "end_date": end_dt.strftime("%Y-%m-%d"),
+            "tenure_months": tenure_months,
+            "total_meetings_committed": kickoff.get("total_meetings", 0),
+            "project_value": kickoff.get("project_value"),
+            "status": "active",
+            "internal_approved_by": kickoff.get("internal_approved_by"),
+            "internal_approved_by_name": kickoff.get("internal_approved_by_name"),
+            "client_approved_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "consultant_assignments": []  # Will be assigned manually by Principal Consultant
+        }
+        await db.projects.insert_one(project_doc)
+    else:
+        # Update existing project
+        await db.projects.update_one(
+            {"id": project_id},
+            {"$set": {
+                "client_id": client_id,
+                "start_date": confirmed_start,
+                "status": "active",
+                "client_approved_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # Send welcome email to client with credentials
+    async def send_client_welcome_email():
+        try:
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="utf-8"></head>
+            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td align="center" style="padding: 40px 20px;">
+                            <table style="width: 100%; max-width: 600px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                
+                                <!-- Header with Full-Width Welcome -->
+                                <tr>
+                                    <td style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 50px 40px; text-align: center;">
+                                        <img src="{LOGO_URL}" alt="D&V" style="height: 80px; margin-bottom: 20px;">
+                                        <h1 style="color: white; margin: 0; font-size: 32px;">Welcome to<br>D&V Business Consulting!</h1>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Green Success Banner -->
+                                <tr>
+                                    <td style="background: #10b981; padding: 20px; text-align: center;">
+                                        <p style="color: white; margin: 0; font-size: 18px; font-weight: bold;">
+                                            🎉 Your Project is Now Active!
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Content -->
+                                <tr>
+                                    <td style="padding: 40px;">
+                                        <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                            Dear <strong>{kickoff.get('client_name')}</strong>,
+                                        </p>
+                                        <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                            Thank you for confirming your project. We are excited to begin our journey together!
+                                        </p>
+                                        
+                                        <!-- Project Details -->
+                                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                                            <h3 style="margin: 0 0 15px; color: #1a1a2e;">Project Details</h3>
+                                            <table style="width: 100%; font-size: 14px;">
+                                                <tr><td style="padding: 8px 0; color: #6b7280;">Project ID:</td><td style="color: #1a1a2e;"><strong>{project_id}</strong></td></tr>
+                                                <tr><td style="padding: 8px 0; color: #6b7280;">Project Name:</td><td style="color: #1a1a2e;">{kickoff.get('project_name')}</td></tr>
+                                                <tr><td style="padding: 8px 0; color: #6b7280;">Start Date:</td><td style="color: #1a1a2e;"><strong>{confirmed_start}</strong></td></tr>
+                                            </table>
+                                        </div>
+                                        
+                                        <!-- Login Credentials Box -->
+                                        <div style="background: #eff6ff; border: 2px solid #3b82f6; padding: 25px; border-radius: 8px; margin: 25px 0;">
+                                            <h3 style="margin: 0 0 15px; color: #1e40af;">🔐 Your NETRA Portal Access</h3>
+                                            <table style="width: 100%; font-size: 15px;">
+                                                <tr>
+                                                    <td style="padding: 10px 0; color: #1e40af;">Client ID:</td>
+                                                    <td style="color: #1a1a2e; font-weight: bold; font-family: monospace; font-size: 18px;">{client_id}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding: 10px 0; color: #1e40af;">Temporary Password:</td>
+                                                    <td style="color: #1a1a2e; font-weight: bold; font-family: monospace; font-size: 18px;">{temp_password}</td>
+                                                </tr>
+                                            </table>
+                                            <p style="margin: 15px 0 0; color: #92400e; font-size: 13px; background: #fef3c7; padding: 10px; border-radius: 4px;">
+                                                ⚠️ Please change your password upon first login.
+                                            </p>
+                                        </div>
+                                        
+                                        <!-- What You Can Do -->
+                                        <h3 style="color: #1a1a2e; margin: 30px 0 15px;">What You Can Do in NETRA:</h3>
+                                        <ul style="color: #4b5563; font-size: 14px; line-height: 2;">
+                                            <li>📊 View your project progress and status</li>
+                                            <li>👤 See your assigned consultant details</li>
+                                            <li>📅 Check meeting schedules</li>
+                                            <li>📄 Access documents (SOW, Agreement, Invoices)</li>
+                                            <li>💰 View payment history and upcoming payments</li>
+                                            <li>📝 Review Meeting Notes (MOM) from consultants</li>
+                                            <li>🔄 Request consultant change if needed</li>
+                                        </ul>
+                                        
+                                        <!-- Login Button -->
+                                        <div style="text-align: center; margin: 30px 0;">
+                                            <a href="{APP_URL}/client-login" style="display: inline-block; background: #3b82f6; color: white; padding: 16px 50px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                                Login to NETRA Portal
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="background: #f8f9fa; padding: 25px 40px; text-align: center; border-top: 1px solid #e9ecef;">
+                                        <p style="margin: 0 0 10px; color: #6c757d; font-size: 14px;">
+                                            Questions? Contact your assigned consultant or email us.
+                                        </p>
+                                        <p style="margin: 0; color: #adb5bd; font-size: 12px;">
+                                            © {datetime.now().year} D&V Business Consulting. All rights reserved.
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            """
+            
+            await send_email(
+                to_email=client_email,
+                subject=f"🎉 Welcome to D&V! Your Project {project_id} is Active",
+                html_content=html_content,
+                plain_content=f"Welcome to D&V Business Consulting! Your Client ID: {client_id}, Password: {temp_password}"
+            )
+        except Exception as e:
+            print(f"Failed to send client welcome email: {e}")
+    
+    background_tasks.add_task(send_client_welcome_email)
+    
+    # Send notification to all stakeholders
+    async def send_stakeholder_notifications():
+        try:
+            # Get all recipients: Consulting Team + HR Manager + Sales Team
+            recipients = []
+            
+            # Consulting team
+            consulting = await db.users.find(
+                {"role": {"$in": ["principal_consultant", "senior_consultant", "consultant", "lean_consultant"]}},
+                {"_id": 0, "id": 1, "email": 1, "full_name": 1}
+            ).to_list(100)
+            recipients.extend(consulting)
+            
+            # HR Manager
+            hr = await db.users.find({"role": "hr_manager"}, {"_id": 0, "id": 1, "email": 1}).to_list(10)
+            recipients.extend(hr)
+            
+            # Sales team (requester)
+            if kickoff.get("requested_by"):
+                sales = await db.users.find_one({"id": kickoff.get("requested_by")}, {"_id": 0, "id": 1, "email": 1})
+                if sales:
+                    recipients.append(sales)
+            
+            # Create notifications
+            for user in recipients:
+                notification = {
+                    "id": str(uuid.uuid4()),
+                    "type": "project_client_approved",
+                    "recipient_id": user.get("id"),
+                    "title": f"✅ Client Approved: {project_id}",
+                    "message": f"{kickoff.get('client_name')} has approved. Project starts {confirmed_start}.",
+                    "project_id": project_id,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "read": False
+                }
+                await db.notifications.insert_one(notification)
+                
+                # Send email
+                if user.get("email"):
+                    await send_email(
+                        to_email=user["email"],
+                        subject=f"✅ Project {project_id} Activated - Client Approved",
+                        html_content=f"""
+                        <html>
+                        <body style="font-family: Arial; padding: 20px;">
+                            <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <img src="{LOGO_URL}" style="height: 60px; margin-bottom: 20px;">
+                                <h2 style="color: #10b981;">Project Activated!</h2>
+                                <p>Client <strong>{kickoff.get('client_name')}</strong> has approved the project.</p>
+                                <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                    <p><strong>Project ID:</strong> {project_id}</p>
+                                    <p><strong>Project:</strong> {kickoff.get('project_name')}</p>
+                                    <p><strong>Start Date:</strong> {confirmed_start}</p>
+                                    <p><strong>Client ID:</strong> {client_id}</p>
+                                </div>
+                                <p style="color: #666;">Consultant can now be assigned via All Projects page.</p>
+                            </div>
+                        </body>
+                        </html>
+                        """,
+                        plain_content=f"Project {project_id} activated. Start: {confirmed_start}"
+                    )
+        except Exception as e:
+            print(f"Failed to send stakeholder notifications: {e}")
+    
+    background_tasks.add_task(send_stakeholder_notifications)
+    
+    # Return success page
+    return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Project Approved - D&V Business Consulting</title>
+            <meta http-equiv="refresh" content="5;url={APP_URL}/client-login">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+            <div style="text-align: center; padding: 40px;">
+                <img src="{LOGO_URL}" style="height: 80px; margin-bottom: 30px;">
+                <div style="background: white; padding: 50px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); max-width: 500px;">
+                    <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+                    <h1 style="color: #10b981; margin: 0 0 20px;">Welcome to D&V!</h1>
+                    <p style="color: #4b5563; font-size: 18px; line-height: 1.6;">
+                        Your project <strong>{project_id}</strong> is now active!
+                    </p>
+                    <p style="color: #6b7280; margin: 20px 0;">
+                        We've sent your login credentials to <strong>{client_email}</strong>
+                    </p>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                        <p style="margin: 5px 0; color: #1a1a2e;"><strong>Your Client ID:</strong> {client_id}</p>
+                        <p style="margin: 5px 0; color: #1a1a2e;"><strong>Project Start:</strong> {confirmed_start}</p>
+                    </div>
+                    <p style="color: #9ca3af; font-size: 13px;">
+                        Redirecting to login page in 5 seconds...
+                    </p>
+                    <a href="{APP_URL}/client-login" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px;">
+                        Go to Login Now
+                    </a>
+                </div>
+            </div>
+        </body>
+        </html>
+    """)
         return HTMLResponse(content=f"""
             <html><body style="font-family: Arial; text-align: center; padding: 50px;">
                 <h1 style="color: #10b981;">✓ Already Approved</h1>
