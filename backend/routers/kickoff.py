@@ -14,7 +14,7 @@ from .models import (
     KickoffRequest, KickoffRequestCreate, KickoffRequestUpdate, 
     KickoffReturnRequest, User, UserRole, Project
 )
-from .deps import get_db, SALES_EXECUTIVE_ROLES, PROJECT_ROLES
+from .deps import get_db, SALES_EXECUTIVE_ROLES, SENIOR_CONSULTING_ROLES
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification, notify_requester_on_action
 from services.email_service import send_email
