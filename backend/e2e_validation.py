@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 load_dotenv('/app/backend/.env')
 
 # Configuration
-API_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://netra-client-portal.preview.emergentagent.com')
+API_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://lead-kickoff-flow.preview.emergentagent.com')
 if not API_URL.startswith('http'):
     API_URL = f"https://{API_URL}"
 

@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://netra-client-portal.preview.emergentagent.com",
+      "value": "https://lead-kickoff-flow.preview.emergentagent.com",
       "type": "string"
     },
     {
