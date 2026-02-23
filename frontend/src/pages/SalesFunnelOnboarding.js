@@ -5,11 +5,13 @@ import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
+import { Badge } from '../components/ui/badge';
 import { 
   User, Calendar, DollarSign, FileText, Receipt, 
   FileCheck, CreditCard, Rocket, CheckCircle, 
   ChevronRight, ArrowLeft, Building2, Phone, Mail,
-  Clock, AlertCircle, ExternalLink, Lock
+  Clock, AlertCircle, ExternalLink, Lock, Lightbulb,
+  Circle, CheckCircle2, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 
