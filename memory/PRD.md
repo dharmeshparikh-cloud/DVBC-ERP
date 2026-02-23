@@ -15,50 +15,42 @@
 
 ### Phase 40: Database-Driven RBAC System - February 23, 2026 ✅ (Latest)
 
-**RBAC Backend Infrastructure:**
-- ✅ Created `/app/backend/routers/rbac_service.py` - Core RBAC service with caching
-- ✅ Created `/app/backend/routers/rbac_migration.py` - Migration framework for safe rollout
-- ✅ Created `/app/backend/routers/rbac_router.py` - Admin API endpoints
-- ✅ Fixed `Database objects do not implement truth value testing` error
-- ✅ Fixed `get_current_user_from_token` to support email-based lookup
+**RBAC Phase 3 - Seeder Script:**
+- ✅ Created `/app/backend/routers/rbac_seeder.py` - Syncs hardcoded roles to DB
+- ✅ 17 roles, 6 departments, 16 role groups defined and synced
+- ✅ Includes ROLE_DEFINITIONS, ROLE_GROUP_DEFINITIONS, DEPARTMENT_DEFINITIONS
+- ✅ Idempotent sync - can run multiple times safely
 
-**RBAC Data:**
-- ✅ Seeded 17 roles into `rbac_roles` collection
-- ✅ Seeded 6 departments into `rbac_departments` collection  
-- ✅ Seeded 16 role groups into `rbac_role_groups` collection
-- ✅ Added `project_manager` role to fix consistency issues
+**RBAC Phase 4 - Backend Integration:**
+- ✅ Updated `/app/backend/routers/deps.py` to import from `rbac_service`
+- ✅ Added `get_role_group()` function to fetch roles from DB
+- ✅ Added `has_role()`, `has_permission()`, `can_approve()`, `is_manager()` helpers
+- ✅ Added `require_role_group()` dependency for DB-driven role checks
+- ✅ Added `require_permission()` dependency for permission-based access
+- ✅ Added `require_approval_role()` dependency
+- ✅ Backward compatible - hardcoded constants still work as fallbacks
 
-**RBAC Admin UI (Phase 2):**
-- ✅ Created `/app/frontend/src/pages/RBACAdmin.js` - Full admin interface
-- ✅ Roles tab with view/edit/delete functionality
-- ✅ Departments tab with color coding
-- ✅ Role Groups tab for managing role memberships
-- ✅ My Permissions card showing current user's access
-- ✅ Refresh Cache button for manual cache invalidation
-- ✅ Create Role dialog with full configuration options
+**RBAC Phase 5 - Frontend Integration:**
+- ✅ Updated `/app/frontend/src/contexts/PermissionContext.js`
+- ✅ Fetches from `/api/rbac/my-permissions` (new RBAC API)
+- ✅ Falls back to legacy `/api/role-management/my-permissions` if needed
+- ✅ Added `rbacData` state with full role information
+- ✅ Added `isAdmin()`, `canManageUsers()`, `getStageAccess()` helpers
+- ✅ Converts RBAC permissions to legacy format for backward compatibility
 
-**API Endpoints:**
-- `GET /api/rbac/roles` - List all roles
-- `POST /api/rbac/roles` - Create new role
-- `PUT /api/rbac/roles/{code}` - Update role
-- `DELETE /api/rbac/roles/{code}` - Soft delete role
-- `GET /api/rbac/departments` - List departments
-- `POST /api/rbac/departments` - Create department
-- `GET /api/rbac/role-groups` - List role groups
-- `PUT /api/rbac/role-groups/{code}` - Update group roles
-- `GET /api/rbac/my-permissions` - Current user's permissions
-- `POST /api/rbac/refresh-cache` - Refresh RBAC cache
+**New API Endpoint:**
+- `GET /api/rbac/migration-status` - Returns RBAC health and statistics
 
-**Testing:**
-- ✅ All backend tests pass (78% success, 3 skipped)
-- ✅ All frontend UI tests pass (100% success)
-- ✅ Test file created: `/app/backend/tests/test_rbac_admin.py`
+**Testing Results:**
+- ✅ Backend: 100% (15/15 tests passed)
+- ✅ Frontend: 100% (All UI tests passed)
+- ✅ Test file: `/app/backend/tests/test_rbac_integration.py`
 
 **Files Created/Modified:**
-- `/app/frontend/src/pages/RBACAdmin.js` (NEW)
-- `/app/backend/routers/rbac_service.py` (MODIFIED - DB check fix)
-- `/app/backend/routers/deps.py` (MODIFIED - email lookup)
-- `/app/frontend/src/App.js` (MODIFIED - added route)
+- `/app/backend/routers/rbac_seeder.py` (NEW - Phase 3)
+- `/app/backend/routers/deps.py` (MODIFIED - Phase 4)
+- `/app/backend/routers/rbac_router.py` (MODIFIED - migration-status endpoint)
+- `/app/frontend/src/contexts/PermissionContext.js` (MODIFIED - Phase 5)
 
 ---
 
