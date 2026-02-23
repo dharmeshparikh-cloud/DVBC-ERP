@@ -241,7 +241,7 @@ const SalesFunnelOnboarding = () => {
     const step = FUNNEL_STEPS[currentStep];
     
     // Check if trying to proceed past a blocked step
-    if (funnelStatus.is_blocked && ['agreement', 'payment', 'kickoff'].includes(step.id)) {
+    if (funnelStatus.is_blocked && ['agreement', 'record_payment', 'kickoff_request'].includes(step.id)) {
       if (step.id === 'agreement') {
         // Allow viewing/editing agreement, but warn about status
         if (funnelStatus.agreement_status?.toLowerCase() === 'rejected') {
@@ -259,11 +259,12 @@ const SalesFunnelOnboarding = () => {
     
     if (step.route) {
       let route = step.route;
-      if (step.id === 'meeting') {
+      // Use correct step IDs that match FUNNEL_STEPS
+      if (step.id === 'record_meeting') {
         route = `${step.route}?leadId=${leadId}`;
-      } else if (step.id === 'pricing') {
+      } else if (step.id === 'pricing_plan') {
         route = `${step.route}?leadId=${leadId}`;
-      } else if (step.id === 'sow' && funnelStatus.pricing_plan_id) {
+      } else if (step.id === 'scope_of_work' && funnelStatus.pricing_plan_id) {
         route = `${step.route}/${funnelStatus.pricing_plan_id}`;
       } else if (step.id === 'quotation' && funnelStatus.pricing_plan_id) {
         route = `/sales-funnel/quotation?pricingPlanId=${funnelStatus.pricing_plan_id}`;
@@ -272,13 +273,14 @@ const SalesFunnelOnboarding = () => {
       }
       navigate(route);
     } else {
-      if (step.id === 'payment' || step.id === 'kickoff') {
+      // Handle steps without predefined routes
+      if (step.id === 'record_payment' || step.id === 'kickoff_request') {
         if (funnelStatus.agreement_id) {
           navigate(`/client-onboarding?agreementId=${funnelStatus.agreement_id}&leadId=${leadId}`);
         } else {
           toast.error('Please complete Agreement step first');
         }
-      } else if (step.id === 'complete') {
+      } else if (step.id === 'project_created') {
         if (funnelStatus.project_id) {
           navigate(`/projects/${funnelStatus.project_id}`);
         } else {
@@ -289,8 +291,9 @@ const SalesFunnelOnboarding = () => {
   };
 
   const getStepDetails = (step) => {
+    // Use correct step IDs that match FUNNEL_STEPS
     switch (step.id) {
-      case 'lead':
+      case 'lead_capture':
         return lead ? {
           title: `${lead.first_name} ${lead.last_name}`,
           subtitle: lead.company,
@@ -300,17 +303,17 @@ const SalesFunnelOnboarding = () => {
             { icon: Building2, value: lead.company }
           ]
         } : null;
-      case 'meeting':
+      case 'record_meeting':
         return funnelStatus.meeting_count > 0 ? {
           title: `${funnelStatus.meeting_count} Meeting(s) Recorded`,
           subtitle: `Last: ${funnelStatus.last_meeting_date || 'N/A'}`
         } : null;
-      case 'pricing':
+      case 'pricing_plan':
         return funnelStatus.pricing_plan_id ? {
           title: 'Pricing Plan Created',
           subtitle: `Total: ${formatCurrency(funnelStatus.pricing_plan_total)}`
         } : null;
-      case 'sow':
+      case 'scope_of_work':
         return funnelStatus.sow_id ? {
           title: 'SOW Created',
           subtitle: `${funnelStatus.sow_items_count || 0} scope items`
@@ -325,17 +328,17 @@ const SalesFunnelOnboarding = () => {
           title: `Agreement ${funnelStatus.agreement_status || 'Draft'}`,
           subtitle: `#${funnelStatus.agreement_number || 'N/A'}`
         } : null;
-      case 'payment':
+      case 'record_payment':
         return funnelStatus.total_paid > 0 ? {
           title: `${formatCurrency(funnelStatus.total_paid)} Received`,
           subtitle: `${funnelStatus.payment_count || 0} payment(s)`
         } : null;
-      case 'kickoff':
+      case 'kickoff_request':
         return funnelStatus.kickoff_status ? {
           title: `Kickoff ${funnelStatus.kickoff_status}`,
           subtitle: funnelStatus.kickoff_status === 'accepted' ? 'Approved!' : 'Pending approval'
         } : null;
-      case 'complete':
+      case 'project_created':
         return funnelStatus.project_id ? {
           title: 'Project Created',
           subtitle: funnelStatus.project_name || 'View Project'
