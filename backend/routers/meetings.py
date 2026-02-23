@@ -200,7 +200,8 @@ async def record_sales_meeting(
         )
     
     # Return meeting without _id
-    del meeting_doc["_id"] if "_id" in meeting_doc else None
+    if "_id" in meeting_doc:
+        del meeting_doc["_id"]
     
     return {
         "message": "Meeting recorded successfully with MOM",
