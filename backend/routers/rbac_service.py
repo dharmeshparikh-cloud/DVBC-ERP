@@ -381,26 +381,44 @@ class RBACService:
         await self.db.rbac_departments.create_index("code", unique=True)
         await self.db.rbac_role_groups.create_index("code", unique=True)
     
-    def _load_defaults_to_cache(self):
-        """Load default values to cache (fallback)"""
-        global _role_cache, _department_cache, _permission_cache, _cache_timestamp
+    def _load_defaults_to_cache(self, reason: str = "unknown"):
+        """
+        Load default values to cache (fallback).
+        FAIL-LOUD: Always logs when this happens.
+        """
+        global _role_cache, _department_cache, _permission_cache, _cache_timestamp, _cache_version
+        
+        # Log fallback event - this should trigger alerts in production
+        log_fallback_event(
+            location="RBACService._load_defaults_to_cache",
+            reason=reason,
+            fallback_value=f"{len(DEFAULT_ROLES)} default roles"
+        )
         
         _role_cache = {r["code"]: r for r in DEFAULT_ROLES}
         _department_cache = {d["code"]: d for d in DEFAULT_DEPARTMENTS}
         _permission_cache = DEFAULT_ROLE_GROUPS.copy()
         _cache_timestamp = datetime.now(timezone.utc).timestamp()
+        _cache_version += 1
     
     async def refresh_cache(self):
         """Refresh in-memory cache from database"""
-        global _role_cache, _department_cache, _permission_cache, _cache_timestamp
+        global _role_cache, _department_cache, _permission_cache, _cache_timestamp, _cache_version
         
         if not self.db:
-            self._load_defaults_to_cache()
+            self._load_defaults_to_cache(reason="No database connection")
             return
         
         try:
             # Load roles
             roles = await self.db.rbac_roles.find({"is_active": True}).to_list(1000)
+            
+            if not roles:
+                # No roles in DB - this is a problem, not normal
+                logger.warning("RBAC: No roles found in database, seeding defaults...")
+                await self._seed_defaults()
+                roles = await self.db.rbac_roles.find({"is_active": True}).to_list(1000)
+            
             _role_cache = {r["code"]: r for r in roles}
             
             # Load departments
@@ -411,12 +429,18 @@ class RBACService:
             groups = await self.db.rbac_role_groups.find({}).to_list(100)
             _permission_cache = {g["code"]: g["roles"] for g in groups}
             
+            # Also include defaults for any missing groups
+            for group_name, roles_list in DEFAULT_ROLE_GROUPS.items():
+                if group_name not in _permission_cache:
+                    _permission_cache[group_name] = roles_list
+            
             _cache_timestamp = datetime.now(timezone.utc).timestamp()
-            logger.info(f"RBAC cache refreshed: {len(_role_cache)} roles, {len(_department_cache)} depts")
+            _cache_version += 1
+            logger.info(f"RBAC cache refreshed: {len(_role_cache)} roles, {len(_department_cache)} depts, version={_cache_version}")
             
         except Exception as e:
             logger.error(f"RBAC cache refresh error: {e}")
-            self._load_defaults_to_cache()
+            self._load_defaults_to_cache(reason=f"Database error: {str(e)}")
     
     def _is_cache_valid(self) -> bool:
         """Check if cache is still valid"""
