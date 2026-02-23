@@ -495,9 +495,9 @@ async def return_kickoff_request(
     """Return a kickoff request to sales (PM action)."""
     db = get_db()
     
-    # Senior Consultant and Principal Consultant can approve kickoffs
-    if current_user.role not in PROJECT_ROLES:
-        raise HTTPException(status_code=403, detail="Only PM/Senior/Principal Consultant roles can return kickoff requests")
+    # Only Senior Consultant and Principal Consultant can return kickoffs
+    if current_user.role not in SENIOR_CONSULTING_ROLES:
+        raise HTTPException(status_code=403, detail="Only Senior Consultant or Principal Consultant roles can return kickoff requests")
     
     kickoff = await db.kickoff_requests.find_one({"id": request_id}, {"_id": 0})
     if not kickoff:
