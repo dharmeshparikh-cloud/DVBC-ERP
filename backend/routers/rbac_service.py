@@ -671,7 +671,7 @@ class RBACService:
         """Update a role group"""
         now = datetime.now(timezone.utc).isoformat()
         
-        result = await self.db.rbac_role_groups.update_one(
+        await self.db.rbac_role_groups.update_one(
             {"code": group_name},
             {
                 "$set": {
