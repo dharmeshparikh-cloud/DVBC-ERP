@@ -13,7 +13,36 @@
 
 ## Completed Work - February 2026
 
-### Phase 37: All Projects Consultant Assignment UI - February 23, 2026 ✅ (Latest)
+### Phase 38: Access Control Fixes & E2E Kickoff Flow Testing - February 23, 2026 ✅ (Latest)
+
+**Access Control Fixes:**
+- ✅ **Sales Executives CAN create agreements** (previously only managers)
+- ✅ **Reporting Managers can approve agreements** (manager, sr_manager, sales_manager, principal_consultant, admin)
+- ✅ **Client-facing communications require Principal Consultant approval**
+  - Send-to-client endpoint now requires PC or Admin role
+  - Error message: "Only Principal Consultant can send client-facing communications"
+
+**E2E Kickoff Flow Tested Successfully:**
+1. ✅ Create Lead (Sales Executive)
+2. ✅ Record Meeting
+3. ✅ Create Pricing Plan
+4. ✅ Create Quotation
+5. ✅ Create Agreement (Sales Executive - now allowed)
+6. ✅ Approve Agreement (Reporting Manager)
+7. ✅ Verify First Installment Payment
+8. ✅ Create Kickoff Request
+9. ✅ Principal Consultant Internal Approval → Project ID Generated (PROJ-20260223-0001)
+10. ✅ Client Approval via Token Link → Client User Created (98000)
+11. ✅ Client Portal Login Successful
+
+**Test Client Credentials:**
+- Client ID: `98000`
+- Project: `PROJ-20260223-0001`
+- Company: E2E Test Company Ltd
+
+---
+
+### Phase 37: All Projects Consultant Assignment UI - February 23, 2026 ✅
 
 **New All Projects Page (Principal Consultant View):**
 - ✅ Created `/all-projects` route accessible to Principal Consultant, Senior Consultant, Admin
