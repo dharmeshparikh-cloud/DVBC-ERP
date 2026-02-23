@@ -78,12 +78,13 @@ async def create_agreement(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new agreement and send email notification. 
-    Access: sales_manager, admin only (requires admin approval for non-admin users)"""
+    Access: All sales roles including executives can create agreements.
+    Agreements require approval from reporting manager before client communication."""
     db = get_db()
     
-    # Role-based access check - only sales_manager and admin can create agreements
+    # Role-based access check - all sales roles can create agreements
     if current_user.role not in AGREEMENT_CREATE_ROLES:
-        raise HTTPException(status_code=403, detail="Access denied. Only sales managers and admins can create agreements.")
+        raise HTTPException(status_code=403, detail="Access denied. Only sales roles can create agreements.")
     
     lead = await db.leads.find_one({"id": data.lead_id}, {"_id": 0})
     if not lead:
