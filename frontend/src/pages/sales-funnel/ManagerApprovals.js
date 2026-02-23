@@ -97,7 +97,8 @@ const ManagerApprovals = () => {
     } : { name: 'Unknown', company: 'Unknown', email: '' };
   };
 
-  const canApprove = user?.role === 'manager' || user?.role === 'admin';
+  // Use RBAC-driven permission check instead of hardcoded roles
+  const canApprove = isManagerOrAbove() || canApproveRequests();
 
   if (!canApprove) {
     return (
