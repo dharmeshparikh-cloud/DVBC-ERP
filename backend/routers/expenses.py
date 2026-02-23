@@ -805,6 +805,23 @@ async def send_back_expense(expense_id: str, data: dict, current_user: User = De
             "created_at": now
         })
     
+    # Log audit trail for send-back action
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "expense_sent_back",
+        "entity_type": "expense",
+        "entity_id": expense_id,
+        "user_id": current_user.id,
+        "user_name": current_user.full_name,
+        "user_role": current_user.role,
+        "details": {
+            "employee_id": expense.get("employee_id"),
+            "amount": expense.get("total_amount", expense.get("amount", 0)),
+            "comments": revision_comments
+        },
+        "timestamp": now
+    })
+    
     return {
         "message": "Expense sent back for revision",
         "status": "revision_required"
