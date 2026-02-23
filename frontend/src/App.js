@@ -10,6 +10,9 @@ import { StageGuardProvider } from './contexts/StageGuardContext';
 import StageGuardDialog from './components/StageGuardDialog';
 import { SalesPortalRedirect, HRPortalRedirect } from './components/PortalRedirect';
 
+// React Query for data caching
+import { QueryClientProvider, queryClient } from './lib/queryClient';
+
 // Critical paths - keep as regular imports for fast initial load
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
