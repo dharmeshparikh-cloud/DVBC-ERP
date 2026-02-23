@@ -223,6 +223,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route index element={getDefaultDashboard()} />
         <Route path="leads" element={<Leads />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="all-projects" element={<AllProjects />} />
         <Route path="sales-meetings" element={<SalesMeetings />} />
         <Route path="consulting-meetings" element={<ConsultingMeetings />} />
         <Route path="org-chart" element={<OrgChart />} />
