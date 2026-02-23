@@ -107,7 +107,6 @@ import Layout from './components/Layout';
 // Continue lazy loading remaining pages
 const SalesLogin = lazy(() => import('./pages/SalesLogin'));
 const HRLogin = lazy(() => import('./pages/HRLogin'));
-const HRPortalDashboard = lazy(() => import('./pages/HRPortalDashboard'));
 const HRTeamWorkload = lazy(() => import('./pages/HRTeamWorkload'));
 const HRStaffingRequests = lazy(() => import('./pages/HRStaffingRequests'));
 const HROnboarding = lazy(() => import('./pages/HROnboarding'));
