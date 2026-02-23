@@ -7,6 +7,7 @@ import { Briefcase, Calendar, TrendingUp, Clock, CheckCircle, Target, Users, Log
 import { toast } from 'sonner';
 import { formatINR } from '../utils/currency';
 import QuickCheckInModal from '../components/QuickCheckInModal';
+import RBACWidget from '../components/RBACWidget';
 
 const ConsultantDashboard = () => {
   const { user } = useContext(AuthContext);

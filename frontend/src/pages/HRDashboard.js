@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
+import RBACWidget from '../components/RBACWidget';
 
 const HRDashboard = () => {
   const { user } = useContext(AuthContext);
