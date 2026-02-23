@@ -208,6 +208,9 @@ from routers import sales_funnel_logic as sales_funnel_logic_router
 # Expanded Audit Logging (new)
 from routers import audit_logging as audit_logging_router
 
+# Test Email Preview (new)
+from routers import test_email_preview as test_email_preview_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
