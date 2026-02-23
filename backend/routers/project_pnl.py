@@ -166,7 +166,9 @@ async def record_invoice_payment(
     """
     db = get_db()
     
-    if current_user.role not in MANAGER_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=True)
+    if not manager_roles or not has_role(current_user.role, manager_roles):
         raise HTTPException(status_code=403, detail="Not authorized to record payments")
     
     invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
