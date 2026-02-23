@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 // Complete 9-Step Sales Funnel
 const FUNNEL_STEPS = [
   { 
-    id: 'lead', 
+    id: 'lead_capture', 
     title: 'Lead Capture', 
     icon: User, 
     description: 'Review lead details and contact information',
@@ -26,7 +26,7 @@ const FUNNEL_STEPS = [
     checkField: 'id'
   },
   { 
-    id: 'meeting', 
+    id: 'record_meeting', 
     title: 'Record Meeting', 
     icon: Calendar, 
     description: 'Log meeting with client - date, attendees, MOM',
@@ -34,7 +34,7 @@ const FUNNEL_STEPS = [
     checkCollection: 'meeting_records'
   },
   { 
-    id: 'pricing', 
+    id: 'pricing_plan', 
     title: 'Pricing Plan', 
     icon: DollarSign, 
     description: 'Create investment plan with services and team',
@@ -42,7 +42,7 @@ const FUNNEL_STEPS = [
     checkCollection: 'pricing_plans'
   },
   { 
-    id: 'sow', 
+    id: 'scope_of_work', 
     title: 'Scope of Work', 
     icon: FileText, 
     description: 'Define deliverables, milestones and scope items',
