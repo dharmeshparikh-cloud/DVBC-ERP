@@ -27,7 +27,8 @@
 | RBAC Widget Added | ConsultingDashboard, HRDashboard, ConsultantDashboard |
 | Sales Dashboard Consolidated | Removed SalesDashboardEnhanced from default routing |
 | Dashboard.js Simplified | Removed redundant domain-based routing |
-| Dead Code Identified | HRPortalDashboard.js, DashboardLayoutA.js (~27KB) |
+| Orphaned Files Deleted | HRPortalDashboard.js, DashboardLayoutA.js, SalesDashboardEnhanced.js (~65KB) |
+| deps.py Refactored | Legacy constants now have fallbacks with RBAC DB integration |
 
 **Canonical Dashboard Structure:**
 - `admin` role → `AdminDashboard` (Business Overview)
@@ -38,14 +39,25 @@
 - Others → `Dashboard` (generic)
 
 **Files Modified:**
-- `/app/frontend/src/App.js` - Consolidated sales routing
+- `/app/frontend/src/App.js` - Removed unused imports, consolidated routing
 - `/app/frontend/src/pages/Dashboard.js` - Removed domain routing
 - `/app/frontend/src/pages/ConsultingDashboard.js` - Added RBAC widget
 - `/app/frontend/src/pages/HRDashboard.js` - Added RBAC widget
 - `/app/frontend/src/pages/ConsultantDashboard.js` - Added RBAC widget
+- `/app/backend/routers/deps.py` - Refactored role constants with fallbacks
+
+**Files Deleted:**
+- `/app/frontend/src/pages/HRPortalDashboard.js` (16KB)
+- `/app/frontend/src/pages/DashboardLayoutA.js` (11KB)
+- `/app/frontend/src/pages/SalesDashboardEnhanced.js` (37KB)
 
 **Documentation Created:**
 - `/app/memory/ADMIN_DASHBOARD_AUDIT.md`
+
+**Testing:**
+- ✅ 12/12 RBAC regression tests pass
+- ✅ Dashboard loads correctly after cleanup
+- ✅ Frontend bundle size reduced by ~64KB
 
 ---
 
