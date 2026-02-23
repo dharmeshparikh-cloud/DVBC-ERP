@@ -43,11 +43,14 @@ async def get_projects(current_user: User = Depends(get_current_user)):
     db = get_db()
     query = {}
     
-    # HR Manager can view all projects (for workload planning) but not create
-    if current_user.role == UserRole.HR_MANAGER:
+    # RBAC Migration: HR Manager can view all projects (for workload planning) but not create
+    hr_roles = get_role_group("HR_ROLES", fail_closed=False) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ['admin']
+    
+    if has_role(current_user.role, hr_roles):
         # HR Manager sees all projects but financial data will be stripped
         pass
-    elif current_user.role != UserRole.ADMIN:
+    elif not has_role(current_user.role, admin_roles):
         query['$or'] = [{"assigned_team": current_user.id}, {"created_by": current_user.id}]
     
     projects = await db.projects.find(query, {"_id": 0}).to_list(1000)
