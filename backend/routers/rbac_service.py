@@ -305,7 +305,7 @@ class RBACService:
         if self._initialized:
             return
         
-        if not self.db:
+        if self.db is None:
             logger.warning("RBAC: No database connection, using defaults")
             return
         
@@ -405,7 +405,7 @@ class RBACService:
         """Refresh in-memory cache from database"""
         global _role_cache, _department_cache, _permission_cache, _cache_timestamp, _cache_version
         
-        if not self.db:
+        if self.db is None:
             self._load_defaults_to_cache(reason="No database connection")
             return
         
