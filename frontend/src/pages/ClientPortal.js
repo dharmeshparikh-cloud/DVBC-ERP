@@ -131,39 +131,48 @@ const ClientPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-white" data-testid="client-portal-page">
       {/* Header - Matching Main ERP */}
-      <header className="bg-white border-b border-zinc-200 sticky top-0 z-50">
+      <header className="bg-white border-b border-black/10 sticky top-0 z-50">
         <div className="flex items-center justify-between h-16 px-4 lg:px-6">
           {/* Left - Logo & Title */}
           <div className="flex items-center gap-4">
             <button 
-              className="lg:hidden p-2 hover:bg-zinc-100 rounded-lg"
+              className="lg:hidden p-2 hover:bg-black/5 rounded-lg"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              <Menu className="w-5 h-5 text-zinc-600" />
+              <Menu className="w-5 h-5 text-black/60" />
             </button>
             <img src={LOGO_URL} alt="D&V" className="h-8" />
             <div className="hidden sm:block">
-              <h1 className="text-base font-semibold text-zinc-800">DVBC - NETRA</h1>
-              <p className="text-xs text-zinc-500">Client Portal</p>
+              <h1 className="text-base font-semibold text-black">DVBC - NETRA</h1>
+              <p className="text-xs text-black/50">Client Portal</p>
             </div>
           </div>
           
           {/* Right - User Info */}
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/client-portal/change-password')}
+              className="text-black/60 hover:text-black hover:bg-black/5"
+              data-testid="change-password-nav-btn"
+            >
+              <KeyRound className="w-4 h-4" />
+            </Button>
             <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium text-zinc-800">{clientData?.full_name}</p>
-              <p className="text-xs text-zinc-500">Client ID: {clientData?.client_id}</p>
+              <p className="text-sm font-medium text-black">{clientData?.full_name}</p>
+              <p className="text-xs text-black/50">Client ID: {clientData?.client_id}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-              <User className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center border border-black/10">
+              <User className="w-5 h-5 text-black/60" />
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="text-zinc-600 hover:text-zinc-800 hover:bg-zinc-100"
+              className="text-black/60 hover:text-black hover:bg-black/5"
               data-testid="client-logout-btn"
             >
               <LogOut className="w-4 h-4" />
@@ -175,26 +184,26 @@ const ClientPortal = () => {
       <div className="flex">
         {/* Sidebar - Projects List */}
         <aside className={`
-          fixed lg:static inset-y-0 left-0 z-40 w-72 bg-white border-r border-zinc-200 
+          fixed lg:static inset-y-0 left-0 z-40 w-72 bg-white border-r border-black/10 
           transform transition-transform duration-200 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           pt-16 lg:pt-0
         `}>
           {/* Mobile Close Button */}
           <button 
-            className="lg:hidden absolute top-4 right-4 p-2 hover:bg-zinc-100 rounded-lg"
+            className="lg:hidden absolute top-4 right-4 p-2 hover:bg-black/5 rounded-lg"
             onClick={() => setSidebarOpen(false)}
           >
-            <X className="w-5 h-5 text-zinc-600" />
+            <X className="w-5 h-5 text-black/60" />
           </button>
 
           <div className="p-4">
-            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">
+            <h2 className="text-xs font-semibold text-black/50 uppercase tracking-wide mb-3">
               My Projects
             </h2>
             <div className="space-y-2">
               {projects.length === 0 ? (
-                <div className="text-center py-8 text-zinc-500">
+                <div className="text-center py-8 text-black/50">
                   <Building2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No projects found</p>
                 </div>
@@ -209,16 +218,18 @@ const ClientPortal = () => {
                     }}
                     className={`w-full text-left p-3 rounded-lg transition-all ${
                       selectedProject === project.id
-                        ? 'bg-amber-50 border-2 border-amber-500'
-                        : 'bg-zinc-50 border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100'
+                        ? 'bg-black text-white'
+                        : 'bg-black/5 border border-black/10 hover:border-black/20 hover:bg-black/10 text-black'
                     }`}
                     data-testid={`project-${project.id}`}
                   >
-                    <p className="font-medium text-zinc-800 text-sm truncate">
+                    <p className={`font-medium text-sm truncate ${selectedProject === project.id ? 'text-white' : 'text-black'}`}>
                       {project.name}
                     </p>
-                    <p className="text-xs text-zinc-500 mt-1 font-mono">{project.id}</p>
-                    <Badge className={`mt-2 text-xs ${getStatusColor(project.status)}`}>
+                    <p className={`text-xs mt-1 font-mono ${selectedProject === project.id ? 'text-white/70' : 'text-black/50'}`}>
+                      {project.id}
+                    </p>
+                    <Badge className={`mt-2 text-xs ${selectedProject === project.id ? 'bg-white/20 text-white border-white/30' : getStatusColor(project.status)}`}>
                       {project.status?.replace('_', ' ').toUpperCase()}
                     </Badge>
                   </button>
