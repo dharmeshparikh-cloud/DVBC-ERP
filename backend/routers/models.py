@@ -380,7 +380,10 @@ class PerformanceReviewCreate(BaseModel):
 
 
 class KickoffRequest(BaseModel):
-    """Request from Sales team to Project Manager for project kickoff"""
+    """Request from Sales team for project kickoff - Requires DUAL APPROVAL:
+    1. Principal Consultant / Senior Consultant approval
+    2. Client approval
+    Only when BOTH approve, consultant is assigned to project."""
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     agreement_id: str
@@ -394,14 +397,24 @@ class KickoffRequest(BaseModel):
     project_tenure_months: int = 12
     project_value: Optional[float] = None
     expected_start_date: Optional[datetime] = None
-    assigned_pm_id: Optional[str] = None
+    assigned_pm_id: Optional[str] = None  # Will be the Senior/Principal Consultant
     assigned_pm_name: Optional[str] = None
-    status: str = "pending"
+    status: str = "pending"  # pending, consultant_approved, client_approved, approved, rejected, returned
     notes: Optional[str] = None
     requested_by: str
     requested_by_name: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Dual approval tracking
+    consultant_approved: bool = False
+    consultant_approved_by: Optional[str] = None
+    consultant_approved_by_name: Optional[str] = None
+    consultant_approved_at: Optional[datetime] = None
+    client_approved: bool = False
+    client_approved_by: Optional[str] = None  # Client name or email
+    client_approved_at: Optional[datetime] = None
+    client_approval_token: Optional[str] = None  # Token for client email approval link
+    # Final approval
     accepted_at: Optional[datetime] = None
     project_id: Optional[str] = None
     return_reason: Optional[str] = None
