@@ -76,6 +76,139 @@ async def get_meetings(
     return meetings
 
 
+@router.get("/lead/{lead_id}")
+async def get_meetings_by_lead(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Get all meetings for a specific lead."""
+    db = get_db()
+    
+    # Verify lead exists
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    meetings = await db.meetings.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("meeting_date", -1).to_list(100)
+    
+    for meeting in meetings:
+        if isinstance(meeting.get('meeting_date'), str):
+            meeting['meeting_date'] = datetime.fromisoformat(meeting['meeting_date'])
+        if isinstance(meeting.get('created_at'), str):
+            meeting['created_at'] = datetime.fromisoformat(meeting['created_at'])
+    
+    return meetings
+
+
+@router.post("/record")
+async def record_sales_meeting(
+    data: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Record a sales funnel meeting with MOM (Minutes of Meeting).
+    MOM is required before meeting can be submitted.
+    Used by the Sales Funnel flow.
+    """
+    db = get_db()
+    
+    # Validate required fields
+    lead_id = data.get("lead_id")
+    if not lead_id:
+        raise HTTPException(status_code=400, detail="lead_id is required")
+    
+    # Verify lead exists
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    meeting_date = data.get("meeting_date")
+    meeting_time = data.get("meeting_time", "00:00")
+    if not meeting_date:
+        raise HTTPException(status_code=400, detail="meeting_date is required")
+    
+    # MOM is required
+    mom = data.get("mom", "").strip()
+    if not mom:
+        raise HTTPException(status_code=400, detail="Minutes of Meeting (MOM) is required before submitting")
+    
+    # Parse meeting date and time
+    try:
+        if "T" in meeting_date:
+            meeting_datetime = datetime.fromisoformat(meeting_date.replace('Z', '+00:00'))
+        else:
+            meeting_datetime = datetime.strptime(f"{meeting_date} {meeting_time}", "%Y-%m-%d %H:%M")
+            meeting_datetime = meeting_datetime.replace(tzinfo=timezone.utc)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid meeting_date format")
+    
+    # Map meeting_type to mode
+    meeting_type = data.get("meeting_type", "Online")
+    mode = "online" if meeting_type.lower() == "online" else "offline"
+    
+    # Create meeting document with MOM
+    meeting_id = str(uuid.uuid4())
+    meeting_doc = {
+        "id": meeting_id,
+        "type": "sales",
+        "lead_id": lead_id,
+        "project_id": None,
+        "client_id": None,
+        "sow_id": None,
+        "meeting_date": meeting_datetime.isoformat(),
+        "meeting_time": meeting_time,
+        "mode": mode,
+        "meeting_type": meeting_type,
+        "attendees": data.get("attendees", []),
+        "attendee_names": data.get("attendees", []),
+        "duration_minutes": data.get("duration_minutes"),
+        "notes": data.get("notes", ""),
+        "title": data.get("title") or f"Sales Meeting - {lead.get('company', 'Client')}",
+        "is_delivered": True,
+        # MOM fields
+        "mom": mom,
+        "mom_generated": True,
+        "agenda": data.get("agenda", []),
+        "discussion_points": data.get("discussion_points", []),
+        "decisions_made": data.get("decisions_made", []),
+        "action_items": data.get("action_items", []),
+        "client_expectations": data.get("client_expectations", []),
+        "key_commitments": data.get("key_commitments", []),
+        "next_steps": data.get("next_steps", ""),
+        "next_meeting_date": None,
+        "mom_sent_to_client": False,
+        "mom_sent_at": None,
+        # Metadata
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.meetings.insert_one(meeting_doc)
+    
+    # Update lead stage to meeting if it's still at lead/new stage
+    current_status = lead.get("status", "new").lower()
+    if current_status in ["new", "lead", "contacted"]:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "status": "meeting",
+                "stage": "meeting",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    # Return meeting without _id
+    del meeting_doc["_id"] if "_id" in meeting_doc else None
+    
+    return {
+        "message": "Meeting recorded successfully with MOM",
+        "meeting_id": meeting_id,
+        "meeting": meeting_doc
+    }
+
+
 @router.get("/{meeting_id}")
 async def get_meeting(meeting_id: str, current_user: User = Depends(get_current_user)):
     """Get a single meeting with full MOM details."""
