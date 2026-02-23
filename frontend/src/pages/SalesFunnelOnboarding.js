@@ -754,28 +754,48 @@ const SalesFunnelOnboarding = () => {
                     Previous Step
                   </Button>
                   
-                  {currentStep < 8 && (
-                    <Button
-                      onClick={handleContinue}
-                      data-testid="continue-btn"
-                      className={isStepCompleted(FUNNEL_STEPS[currentStep].id) 
-                        ? 'bg-emerald-600 hover:bg-emerald-700' 
-                        : 'bg-blue-600 hover:bg-blue-700'
-                      }
-                    >
-                      {isStepCompleted(FUNNEL_STEPS[currentStep].id) ? (
-                        <>
-                          Next Step
-                          <ChevronRight className="w-4 h-4 ml-2" />
-                        </>
-                      ) : (
-                        <>
-                          Open {FUNNEL_STEPS[currentStep].title}
-                          <ExternalLink className="w-4 h-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  {currentStep < 8 && (() => {
+                    const nextStepId = FUNNEL_STEPS[currentStep + 1]?.id;
+                    const isNextStepBlocked = isStepBlockedByAgreement(nextStepId);
+                    const isCurrentCompleted = isStepCompleted(FUNNEL_STEPS[currentStep].id);
+                    
+                    // If navigating to next step would be blocked
+                    if (isCurrentCompleted && isNextStepBlocked) {
+                      return (
+                        <Button
+                          disabled
+                          data-testid="continue-btn-blocked"
+                          className="bg-zinc-400 cursor-not-allowed"
+                        >
+                          <Lock className="w-4 h-4 mr-2" />
+                          Agreement Approval Required
+                        </Button>
+                      );
+                    }
+                    
+                    return (
+                      <Button
+                        onClick={handleContinue}
+                        data-testid="continue-btn"
+                        className={isCurrentCompleted 
+                          ? 'bg-emerald-600 hover:bg-emerald-700' 
+                          : 'bg-blue-600 hover:bg-blue-700'
+                        }
+                      >
+                        {isCurrentCompleted ? (
+                          <>
+                            Next Step
+                            <ChevronRight className="w-4 h-4 ml-2" />
+                          </>
+                        ) : (
+                          <>
+                            Open {FUNNEL_STEPS[currentStep].title}
+                            <ExternalLink className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>
