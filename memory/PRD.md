@@ -363,17 +363,22 @@ pending → internal_approved → approved → converted
 
 ## Upcoming Tasks
 
-### P0 - High Priority
-1. **DVBC Marketing Hub** - Build marketing dashboard and campaign management
+### P0 - High Priority (RBAC Migration)
+1. **RBAC Phase 3**: Create seeder script to migrate all hardcoded roles from `deps.py` into MongoDB
+2. **RBAC Phase 4**: Replace hardcoded role checks with `rbac_service` calls using migration framework
+3. **RBAC Phase 5**: Update frontend to fetch permissions from new RBAC API
 
-### P1 - Medium Priority  
-2. **Full Performance Analysis** - Database optimization and API response times
-3. **Consultant Incentive System** - Commission tracking and payouts
+### P1 - Performance & Features
+4. **Performance Optimization**: Caching, pagination, payload optimization
+5. **Custom Report Builder Backend**: Implement backend logic for generating reports
+6. **Client Dashboard Features**: Project progress, document access, payment history
 
 ### P2 - Lower Priority
-4. **Internal Chat System** - Team messaging
-5. **AI Assistant** - GPT-powered help
-6. **"Day 0" Onboarding Tour** - Interactive guide for new users
+7. **DVBC Marketing Hub** - Marketing dashboard and campaigns
+8. **Consultant Incentive System** - Commission tracking
+9. **AI Chat & Voice** - OpenAI Whisper integration
+10. **Internal Chat System** - Team messaging
+11. **"Day 0" Onboarding Tour** - Interactive guide
 
 ---
 
