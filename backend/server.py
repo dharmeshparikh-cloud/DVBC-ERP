@@ -211,10 +211,14 @@ from routers import audit_logging as audit_logging_router
 # Test Email Preview (new)
 from routers import test_email_preview as test_email_preview_router
 
+# Client Portal Authentication
+from routers import client_auth as client_auth_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
 api_router.include_router(auth_router.router)
+api_router.include_router(client_auth_router.router)  # Client Portal Auth
 api_router.include_router(users_router.router)
 api_router.include_router(leads_router.router)
 api_router.include_router(projects_router.router)
