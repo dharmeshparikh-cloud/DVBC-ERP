@@ -645,22 +645,26 @@ pending → internal_approved → approved → converted
 
 ## Upcoming Tasks
 
-### P0 - High Priority (COMPLETED)
-- ✅ **RBAC Phase 3**: Seeder script completed
-- ✅ **RBAC Phase 4**: Backend integration completed  
-- ✅ **RBAC Phase 5**: Frontend integration completed
+### P0 - High Priority (From Audit)
+1. **Create Leave Encashment Approval Endpoint** - HIGH risk gap identified in audit
+2. **Add Quotation Finalization Authorization** - MEDIUM risk security gap
 
-### P1 - Performance & Features
-1. **Performance Optimization**: Caching, pagination, payload optimization
-2. **Custom Report Builder Backend**: Implement backend logic for generating reports
-3. **Client Dashboard Features**: Project progress, document access, payment history
+### P1 - Features & Fixes (From Audit)
+3. **Complete RBAC Migration for Expenses/Travel** - Replace hardcoded roles with `get_role_group()`
+4. **Restrict Travel Approval Scope** - Remove sales_manager from travel approvers
+5. **Add Audit Trail for Admin Overrides** - Log all admin interventions
+6. **Frontend React Query Migration** - Migrate remaining components to `useApi` hook
+7. **Custom Report Builder Backend**: Implement backend logic for generating reports
+8. **Client Dashboard Features**: Project progress, document access, payment history
 
 ### P2 - Lower Priority
-4. **DVBC Marketing Hub** - Marketing dashboard and campaigns
-5. **Consultant Incentive System** - Commission tracking
-6. **AI Chat & Voice** - OpenAI Whisper integration
-7. **Internal Chat System** - Team messaging
-8. **"Day 0" Onboarding Tour** - Interactive guide
+9. **DVBC Marketing Hub** - Marketing dashboard and campaigns
+10. **Consultant Incentive System** - Commission tracking
+11. **AI Chat & Voice** - OpenAI Whisper integration
+12. **Internal Chat System** - Team messaging
+13. **"Day 0" Onboarding Tour** - Interactive guide
+14. **Standardize Send Back vs Reject Semantics** - Consistent UX across modules
+15. **Refactor kickoff.py** - Break down 1500+ line file into smaller services
 
 ---
 
