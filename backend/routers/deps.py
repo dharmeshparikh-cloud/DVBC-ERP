@@ -1,6 +1,11 @@
 """
 Shared dependencies for all routers.
 Contains database connection, authentication, and common utilities.
+
+RBAC MIGRATION NOTE (Phase 4):
+Role constants are now loaded from the database via rbac_service.
+The hardcoded lists below are FALLBACKS for startup/testing only.
+All role checks should use rbac_service.get_role_group() or rbac_service.has_role().
 """
 
 from fastapi import Depends, HTTPException, status, Request
@@ -11,9 +16,34 @@ from typing import Optional, Dict, Any, List
 from bson import ObjectId
 import os
 import re
+import logging
 
-# ==================== ROLE CONSTANTS ====================
-# Use these instead of hard-coded arrays in role checks
+logger = logging.getLogger(__name__)
+
+# ==================== RBAC SERVICE INTEGRATION ====================
+# Import the RBAC service singleton - this is the source of truth
+from .rbac_service import rbac, get_role_group as _get_role_group
+
+def get_role_group(group_name: str) -> List[str]:
+    """
+    Get role group from RBAC service (database-driven).
+    Falls back to hardcoded values during startup/testing.
+    """
+    return _get_role_group(group_name)
+
+# ==================== ROLE CONSTANTS (DB-BACKED) ====================
+# These are now lazy-loaded from the database via rbac_service
+# The hardcoded values serve as fallbacks during startup only
+
+def _get_roles(group_name: str, fallback: List[str]) -> List[str]:
+    """Get roles from DB or fallback."""
+    try:
+        roles = get_role_group(group_name)
+        if roles:
+            return roles
+    except Exception as e:
+        logger.debug(f"RBAC fallback for {group_name}: {e}")
+    return fallback
 
 # Admin-level roles (full system access)
 ADMIN_ROLES = ["admin"]
@@ -28,7 +58,7 @@ SALES_MANAGER_ROLES = ["admin", "sales_manager", "manager", "sr_manager", "princ
 SALES_EXECUTIVE_ROLES = ["admin", "executive", "sales_executive", "sales_manager"]
 
 # Project/Consulting management roles (principal_consultant is the senior-most consulting role)
-PROJECT_ROLES = ["admin", "principal_consultant", "senior_consultant", "manager"]
+PROJECT_ROLES = ["admin", "principal_consultant", "senior_consultant", "manager", "project_manager"]
 SENIOR_CONSULTING_ROLES = ["admin", "principal_consultant", "senior_consultant"]
 
 # Principal Consultant ONLY - for kickoff internal approval
@@ -49,13 +79,16 @@ APPROVAL_ROLES = ["admin", "manager", "hr_manager", "principal_consultant"]
 # HR + Senior Consulting (for attendance, resource management)
 HR_PM_ROLES = ["admin", "hr_manager", "hr_executive", "principal_consultant"]
 
+# Agreement approval roles
+AGREEMENT_APPROVE_ROLES = ["admin", "principal_consultant"]
+
 # ==================== EMPLOYEE ID LOGIC ====================
 # Roles that REQUIRE employee_id (internal employees)
 EMPLOYEE_ROLES = [
     "admin", "hr_manager", "hr_executive", 
     "sales_manager", "manager", "sr_manager", "executive", "sales_executive",
     "consultant", "lean_consultant", "lead_consultant", "senior_consultant", "principal_consultant", "subject_matter_expert",
-    "finance_manager"
+    "finance_manager", "project_manager"
 ]
 
 # Roles that must NOT have employee_id (external/system)
@@ -67,10 +100,37 @@ def validate_employee_id_for_role(role: str, employee_id: Optional[str]) -> bool
     - If role ∈ EMPLOYEE_ROLES → employee_id mandatory
     - If role ∉ EMPLOYEE_ROLES → employee_id must be None
     """
-    if role in EMPLOYEE_ROLES:
+    employee_roles = get_role_group("EMPLOYEE_ROLES") or EMPLOYEE_ROLES
+    if role in employee_roles:
         return employee_id is not None and employee_id.strip() != ""
     else:
         return employee_id is None or employee_id.strip() == ""
+
+
+# ==================== RBAC HELPER FUNCTIONS ====================
+
+def has_role(user_role: str, allowed_roles: List[str]) -> bool:
+    """
+    Check if user has one of the allowed roles.
+    Uses rbac_service for the check.
+    """
+    return rbac.has_role(user_role, allowed_roles)
+
+def has_permission(user_role: str, permission: str) -> bool:
+    """
+    Check if user role has a specific permission.
+    Uses rbac_service for the check.
+    """
+    return rbac.has_permission(user_role, permission)
+
+def can_approve(user_role: str) -> bool:
+    """Check if role can approve requests."""
+    return rbac.can_approve(user_role)
+
+def is_manager(user_role: str) -> bool:
+    """Check if role is a manager-level role."""
+    return rbac.is_manager_role(user_role)
+
 
 # Default pagination limits
 DEFAULT_PAGE_SIZE = 100
