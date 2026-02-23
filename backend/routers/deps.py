@@ -175,7 +175,11 @@ async def get_current_user_from_token(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     
     db = get_db()
+    # Try by id first
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if user is None:
+        # Try by email (admin users have email in sub)
+        user = await db.users.find_one({"email": user_id}, {"_id": 0})
     if user is None:
         # Try by employee_id
         user = await db.users.find_one({"employee_id": user_id}, {"_id": 0})
