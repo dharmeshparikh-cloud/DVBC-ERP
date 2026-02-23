@@ -214,6 +214,39 @@ async def get_leads(
         if lead.get('enriched_at') and isinstance(lead['enriched_at'], str):
             lead['enriched_at'] = datetime.fromisoformat(lead['enriched_at'])
     
+    return paginate_response(leads, total, params)
+
+
+@router.get("/all")
+async def get_all_leads(
+    status: Optional[str] = None,
+    assigned_to: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all leads without pagination (for dropdowns, exports, etc).
+    Limited to 1000 results.
+    """
+    db = get_db()
+    
+    leads_access_roles = get_leads_access_roles()
+    if not has_role(current_user.role, leads_access_roles):
+        raise HTTPException(status_code=403, detail="Access denied.")
+    
+    query = {}
+    if status:
+        query['status'] = status
+    if assigned_to:
+        query['assigned_to'] = assigned_to
+    
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=False) or ['admin', 'hr_manager']
+    if not has_role(current_user.role, hr_admin_roles):
+        query['$or'] = [
+            {"assigned_to": current_user.id},
+            {"created_by": current_user.id}
+        ]
+    
+    leads = await db.leads.find(query, {"_id": 0}).to_list(1000)
     return leads
 
 
