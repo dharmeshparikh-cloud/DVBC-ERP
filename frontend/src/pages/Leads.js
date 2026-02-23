@@ -996,14 +996,11 @@ const Leads = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      {/* Progress Indicator */}
-                      <div className="flex items-center gap-1">
-                        <div className={`w-2 h-2 rounded-full ${progress.pricing ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="Pricing" />
-                        <div className={`w-2 h-2 rounded-full ${progress.sow ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="SOW" />
-                        <div className={`w-2 h-2 rounded-full ${progress.invoice ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="Invoice" />
-                        <div className={`w-2 h-2 rounded-full ${progress.agreement ? 'bg-emerald-500' : 'bg-zinc-200'}`} title="Agreement" />
-                        <span className="text-xs text-zinc-400 ml-1">{progress.current_stage || 1}/5</span>
-                      </div>
+                      {/* Funnel Progress Indicator */}
+                      <FunnelProgressIndicator 
+                        progress={progress}
+                        onClick={() => navigate(`/sales-funnel-onboarding?leadId=${lead.id}`)}
+                      />
                     </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <select
