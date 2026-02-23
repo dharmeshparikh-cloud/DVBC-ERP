@@ -1,0 +1,79 @@
+{
+  "summary": "Sales Funnel Bug Fixes Testing Complete - Both P0 bugs verified as FIXED: (1) Record Meeting button now passes leadId in URL correctly, (2) Lead status auto-updates when funnel progress changes",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "bugs_verified": {
+    "bug_1_record_meeting_url": {
+      "description": "Record Meeting button was not passing leadId in URL, causing 'No lead ID provided' error",
+      "status": "FIXED",
+      "verification": [
+        "Navigated to /sales-funnel-onboarding?leadId=dac1da55-d96b-4401-8f8e-7ed99276822f",
+        "Clicked 'Open Record Meeting' button",
+        "URL navigated to /sales-funnel/meeting/record?leadId=dac1da55-d96b-4401-8f8e-7ed99276822f",
+        "leadId parameter correctly passed in URL"
+      ],
+      "fix_location": "/app/frontend/src/pages/SalesFunnelOnboarding.js - handleContinue() and getStepDetails() functions"
+    },
+    "bug_2_lead_status_auto_update": {
+      "description": "Lead's main status (e.g., 'New') was not updating automatically when progressing through funnel stages",
+      "status": "FIXED",
+      "verification": [
+        "Lead initially had status 'new'",
+        "Created a meeting for the lead via /api/meetings/record endpoint",
+        "Called /api/leads/{id}/funnel-progress endpoint",
+        "Lead status auto-updated from 'new' to 'contacted'",
+        "Status correctly reflects funnel progress"
+      ],
+      "fix_location": "/app/backend/routers/leads.py - get_lead_funnel_progress() function (lines ~559-591)"
+    }
+  },
+  "test_results": {
+    "backend_tests": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "tests": [
+        "test_funnel_progress_api_returns_correct_step_ids - PASSED",
+        "test_funnel_progress_api_returns_lead_id - PASSED",
+        "test_lead_status_auto_updates_with_funnel_progress - PASSED",
+        "test_meeting_record_endpoint_works - PASSED",
+        "test_funnel_checklist_endpoint - PASSED",
+        "test_get_lead_returns_valid_status - PASSED"
+      ]
+    },
+    "frontend_tests": {
+      "login": "PASS",
+      "sales_funnel_page_load": "PASS",
+      "record_meeting_button_url": "PASS",
+      "pricing_plan_button_url": "PASS",
+      "step_completion_display": "PASS"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sales_funnel_bugs.py",
+    "/app/test_reports/pytest/pytest_sales_funnel_bugs.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_sales_funnel_bugs.py"
+  ],
+  "success_rate": {
+    "backend": "100% (6/6 tests passed)",
+    "frontend": "100% (All UI flows verified)"
+  },
+  "test_credentials": {
+    "sales_executive": "SE001 / password123"
+  },
+  "seed_data_creation": "Created test meeting for lead dac1da55-d96b-4401-8f8e-7ed99276822f",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Both P0 sales funnel bugs have been fixed and verified. Test lead ID: dac1da55-d96b-4401-8f8e-7ed99276822f (D&V company). The handleContinue() function in SalesFunnelOnboarding.js now correctly uses step IDs like 'record_meeting', 'pricing_plan' (instead of 'meeting', 'pricing'). The get_lead_funnel_progress() backend function now auto-updates lead status based on completed funnel steps. 6 pytest tests created in test_sales_funnel_bugs.py."
+}
