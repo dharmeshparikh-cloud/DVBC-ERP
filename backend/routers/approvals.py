@@ -198,7 +198,10 @@ async def get_pending_scope_approvals(current_user: User = Depends(get_current_u
     
     query = {"status": "pending"}
     
-    if current_user.role not in MANAGER_ROLES:
+    # RBAC Migration: Check authorization
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=True)
+    is_manager = manager_roles and has_role(current_user.role, manager_roles)
+    if not is_manager:
         query["approver_id"] = current_user.id
     
     approvals = await db.scope_task_approvals.find(query, {"_id": 0}).to_list(100)
