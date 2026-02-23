@@ -245,9 +245,9 @@ async def complete_project(
     """
     db = get_db()
     
-    # Authorization check
-    allowed_roles = [UserRole.ADMIN, "principal_consultant", "principal_consultant"]
-    if current_user.role not in allowed_roles:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    project_roles = get_role_group("PROJECT_ROLES", fail_closed=True)
+    if not project_roles or not has_role(current_user.role, project_roles):
         raise HTTPException(
             status_code=403, 
             detail="Only Admin, Project Manager, or Principal Consultant can complete projects"
