@@ -98,8 +98,13 @@ async def get_pending_approvals(current_user: User = Depends(get_current_user)):
     """Get expenses pending approval for the current user (managers/HR/admin)."""
     db = get_db()
     
-    is_hr_admin = current_user.role in HR_ADMIN_ROLES
-    is_manager = current_user.role in APPROVAL_ROLES
+    # Use RBAC service for role checks (fail-closed for financial operations)
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    approval_roles = get_role_group("EXPENSE_APPROVAL_ROLES", fail_closed=True) or get_role_group("HR_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    is_hr_admin = has_role(current_user.role, hr_admin_roles + admin_roles)
+    is_manager = has_role(current_user.role, approval_roles + admin_roles)
     
     # Get current user's employee record to check if they're a reporting manager
     employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "employee_id": 1})
