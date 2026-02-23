@@ -598,7 +598,7 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
         "total_steps": len(FUNNEL_STEPS),
         "completed_count": len(completed_steps),
         "progress_percentage": round(progress_percentage, 1),
-        "status": lead.get("status"),
+        "status": current_status,  # Use updated status
         "lead_score": lead.get("score", 0),
         # Blocking status - prevents progress past agreement if not approved
         "is_blocked": agreement_blocked,
