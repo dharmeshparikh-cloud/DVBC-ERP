@@ -77,9 +77,20 @@ async def create_agreement(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new agreement and send email notification. 
-    Access: All sales roles including executives can create agreements.
-    Agreements require approval from reporting manager before client communication."""
+    """
+    Create a new agreement.
+    
+    ACCESS: All sales roles (including Sales Executive) can create agreements.
+    
+    WORKFLOW:
+    1. Sales Executive creates agreement → status: 'draft'
+    2. Sales Executive reviews and submits for approval → status: 'pending_approval'
+    3. ONLY Principal Consultant or Admin can approve → status: 'approved'
+    4. Only after PC approval can the agreement be sent to client
+    
+    NOTE: Agreements start in 'draft' status. They must be explicitly submitted
+    for approval before PC/Admin can approve them.
+    """
     db = get_db()
     
     # Role-based access check - all sales roles can create agreements
