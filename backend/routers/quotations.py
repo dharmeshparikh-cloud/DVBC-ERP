@@ -1,17 +1,23 @@
 """
 Quotations Router - Quotation/Proforma Invoice creation and management.
+Sends email notification when proforma is generated.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
+import os
 from pydantic import BaseModel
 from .deps import get_db
 from .models import User
 from .auth import get_current_user
+from services.email_service import send_email
+from services.funnel_notifications import proforma_generated_email, get_sales_manager_emails
 
 router = APIRouter(prefix="/quotations", tags=["Quotations"])
+
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://lead-record-mgmt.preview.emergentagent.com").replace("/api", "")
 
 
 class QuotationCreate(BaseModel):
