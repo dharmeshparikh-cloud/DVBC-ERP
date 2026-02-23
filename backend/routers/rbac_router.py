@@ -10,8 +10,11 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 
-from .deps import get_db, get_current_user
+from .deps import get_db
 from .models import User
+
+# Import the correct function name
+from .deps import get_current_user_from_token as get_current_user
 from .rbac_service import rbac
 
 router = APIRouter(prefix="/rbac", tags=["RBAC Administration"])
