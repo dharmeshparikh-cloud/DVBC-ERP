@@ -233,21 +233,66 @@ async def get_agreements(
     return agreements
 
 
+@router.patch("/{agreement_id}/submit-for-approval")
+async def submit_agreement_for_approval(agreement_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Submit a draft agreement for Principal Consultant/Admin approval.
+    
+    ACCESS: Sales roles who created the agreement can submit it.
+    
+    WORKFLOW:
+    - Agreement must be in 'draft' status
+    - Changes status to 'pending_approval'
+    - Only then can PC/Admin approve it
+    """
+    db = get_db()
+    
+    agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not agreement:
+        raise HTTPException(status_code=404, detail="Agreement not found")
+    
+    if agreement.get("status") != "draft":
+        raise HTTPException(status_code=400, detail=f"Only draft agreements can be submitted. Current status: {agreement.get('status')}")
+    
+    await db.agreements.update_one(
+        {"id": agreement_id},
+        {
+            "$set": {
+                "status": "pending_approval",
+                "submitted_for_approval_by": current_user.id,
+                "submitted_for_approval_by_name": current_user.full_name,
+                "submitted_for_approval_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    return {"message": "Agreement submitted for Principal Consultant approval", "status": "pending_approval"}
+
+
 @router.patch("/{agreement_id}/approve")
 async def approve_agreement(agreement_id: str, current_user: User = Depends(get_current_user)):
-    """Approve an agreement. 
-    Access: Reporting managers (manager, sr_manager, sales_manager, principal_consultant, admin)"""
+    """
+    Approve an agreement.
+    
+    ACCESS: ONLY Principal Consultant or Admin can approve.
+    No other managers (sales_manager, sr_manager, etc.) can approve.
+    
+    WORKFLOW:
+    - Agreement must be in 'pending_approval' status (submitted by Sales)
+    - After approval, agreement can be sent to client
+    """
     db = get_db()
     
     if current_user.role not in AGREEMENT_APPROVE_ROLES:
-        raise HTTPException(status_code=403, detail="Only reporting managers can approve agreements")
+        raise HTTPException(status_code=403, detail="Only Principal Consultant or Admin can approve agreements")
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
     if not agreement:
         raise HTTPException(status_code=404, detail="Agreement not found")
     
     if agreement.get("status") != "pending_approval":
-        raise HTTPException(status_code=400, detail="Agreement is not pending approval")
+        raise HTTPException(status_code=400, detail="Agreement must be submitted for approval first. Current status: " + agreement.get("status", "unknown"))
     
     await db.agreements.update_one(
         {"id": agreement_id},
@@ -255,23 +300,31 @@ async def approve_agreement(agreement_id: str, current_user: User = Depends(get_
             "$set": {
                 "status": "approved",
                 "approved_by": current_user.id,
+                "approved_by_name": current_user.full_name,
                 "approved_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
         }
     )
     
-    return {"message": "Agreement approved", "status": "approved"}
+    return {"message": "Agreement approved by Principal Consultant", "status": "approved"}
 
 
 @router.patch("/{agreement_id}/reject")
 async def reject_agreement(agreement_id: str, data: RejectionRequest, current_user: User = Depends(get_current_user)):
-    """Reject an agreement.
-    Access: Reporting managers (manager, sr_manager, sales_manager, principal_consultant, admin)"""
+    """
+    Reject an agreement.
+    
+    ACCESS: ONLY Principal Consultant or Admin can reject.
+    
+    WORKFLOW:
+    - Agreement goes back to 'rejected' status
+    - Sales can edit and resubmit after addressing feedback
+    """
     db = get_db()
     
     if current_user.role not in AGREEMENT_APPROVE_ROLES:
-        raise HTTPException(status_code=403, detail="Only reporting managers can reject agreements")
+        raise HTTPException(status_code=403, detail="Only Principal Consultant or Admin can reject agreements")
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
     if not agreement:
@@ -284,6 +337,7 @@ async def reject_agreement(agreement_id: str, data: RejectionRequest, current_us
                 "status": "rejected",
                 "rejection_reason": data.reason,
                 "rejected_by": current_user.id,
+                "rejected_by_name": current_user.full_name,
                 "rejected_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
