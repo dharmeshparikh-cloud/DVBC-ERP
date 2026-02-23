@@ -14,9 +14,12 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
+import RBACWidget from '../components/RBACWidget';
+import { usePermissions } from '../contexts/PermissionContext';
 
 const SalesDashboard = () => {
   const { user } = useContext(AuthContext);
+  const { isManagerOrAbove } = usePermissions();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
@@ -29,7 +32,8 @@ const SalesDashboard = () => {
   const [winLossData, setWinLossData] = useState(null);
   const [velocityData, setVelocityData] = useState(null);
 
-  const isManager = ['admin', 'manager', 'sr_manager', 'principal_consultant', 'sales_manager'].includes(user?.role);
+  // Use RBAC-driven check instead of hardcoded roles
+  const isManager = isManagerOrAbove();
 
   useEffect(() => {
     fetchAllData();
