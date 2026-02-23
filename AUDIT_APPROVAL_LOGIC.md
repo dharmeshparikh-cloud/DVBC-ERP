@@ -59,7 +59,7 @@ This audit identifies **15 distinct approval workflows** across 8 modules. The a
 | 1 | Agreement Approval | `agreements.py` | Backend (RBAC) | Low |
 | 2 | Agreement Rejection | `agreements.py` | Backend (RBAC) | Low |
 | 3 | Agreement Send to Client | `agreements.py` | Backend (RBAC) | Low |
-| 4 | Quotation Finalization | `quotations.py` | **UI-Only** | Medium |
+| 4 | Quotation Finalization | `quotations.py` | ✅ Backend (RBAC) - FIXED | Low |
 
 ### Projects Module (3 workflows)
 | # | Workflow | File | Enforcement | Risk |
