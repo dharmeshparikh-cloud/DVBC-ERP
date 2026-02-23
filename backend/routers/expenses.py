@@ -402,6 +402,9 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
     Simplified expense approval:
     - < ₹2000: HR directly approves → linked to payroll
     - ≥ ₹2000: HR approves → Admin approves → linked to payroll
+    
+    ACCESS: HR roles can approve pending expenses. Admin can approve at any stage.
+    Uses RBAC service with fail-closed behavior for financial security.
     """
     db = get_db()
     
@@ -413,8 +416,12 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
     approval_flow = expense.get("approval_flow", [])
     requires_admin = expense.get("requires_admin_approval", False)
     
-    is_hr = current_user.role in HR_ROLES
-    is_admin = current_user.role == "admin"
+    # Use RBAC service for role checks (fail-closed for financial operations)
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    is_hr = has_role(current_user.role, hr_roles)
+    is_admin = has_role(current_user.role, admin_roles)
     
     if not (is_hr or is_admin):
         raise HTTPException(status_code=403, detail="Only HR or Admin can approve expenses")
