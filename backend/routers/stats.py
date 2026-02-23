@@ -66,8 +66,26 @@ async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
     - ALL_DATA_ACCESS_ROLES: See all company data
     - MANAGER_ROLES: See team data (direct reports)
     - Others: See only own data
+    
+    Performance: Cached for 5 minutes per user scope
     """
     db = get_db()
+    
+    # Determine cache scope based on user role
+    if can_see_all_data(current_user):
+        cache_scope = "global"
+    elif is_manager_or_above(current_user):
+        cache_scope = f"manager:{current_user.id}"
+    else:
+        cache_scope = f"user:{current_user.id}"
+    
+    cache_key = stats_key("dashboard", cache_scope)
+    
+    # Try cache first
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        logger.debug(f"Cache hit: {cache_key}")
+        return cached
     
     # Build query based on RBAC role hierarchy
     query = {}
@@ -105,9 +123,18 @@ async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
     
     active_projects = await db.projects.count_documents({**project_query, "status": "active"})
     
-    return {
+    result = {
         "total_leads": total_leads,
         "new_leads": new_leads,
+        "qualified_leads": qualified_leads,
+        "closed_deals": closed_deals,
+        "active_projects": active_projects
+    }
+    
+    # Cache result
+    await cache.set(cache_key, result, PerformanceCache.TTL_DASHBOARD_STATS)
+    
+    return result
         "qualified_leads": qualified_leads,
         "closed_deals": closed_deals,
         "active_projects": active_projects
