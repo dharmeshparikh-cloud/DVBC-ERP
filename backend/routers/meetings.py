@@ -223,6 +223,198 @@ async def record_sales_meeting(
     }
 
 
+@router.post("/{meeting_id}/attachments")
+async def upload_meeting_attachment(
+    meeting_id: str,
+    file: UploadFile = File(...),
+    attachment_type: str = Form(default="photo"),  # photo or voice
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload photo or voice attachment for offline meetings.
+    Mandatory for first offline meeting. Stored and inherited downstream.
+    """
+    db = get_db()
+    
+    # Verify meeting exists
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # Validate file type
+    content_type = file.content_type
+    if content_type not in ALLOWED_TYPES:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid file type. Allowed: images (jpeg, png, webp) and audio (mp3, wav, webm, ogg)"
+        )
+    
+    # Read file content
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large. Maximum 20MB allowed")
+    
+    # Generate unique filename
+    file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'bin'
+    file_id = str(uuid.uuid4())
+    filename = f"{meeting_id}_{file_id}.{file_ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    
+    # Save file
+    with open(filepath, 'wb') as f:
+        f.write(content)
+    
+    # Create attachment record
+    attachment = {
+        "id": file_id,
+        "meeting_id": meeting_id,
+        "lead_id": meeting.get("lead_id"),
+        "filename": file.filename,
+        "stored_filename": filename,
+        "filepath": filepath,
+        "content_type": content_type,
+        "attachment_type": attachment_type,  # photo or voice
+        "size_bytes": len(content),
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": current_user.full_name,
+        "uploaded_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.meeting_attachments.insert_one(attachment)
+    
+    # Update meeting with attachment reference
+    attachments = meeting.get("attachments", []) or []
+    attachments.append({
+        "id": file_id,
+        "filename": file.filename,
+        "type": attachment_type,
+        "content_type": content_type
+    })
+    
+    await db.meetings.update_one(
+        {"id": meeting_id},
+        {"$set": {"attachments": attachments, "has_attachments": True}}
+    )
+    
+    return {
+        "message": "Attachment uploaded successfully",
+        "attachment_id": file_id,
+        "filename": file.filename,
+        "type": attachment_type
+    }
+
+
+@router.get("/{meeting_id}/attachments")
+async def get_meeting_attachments(
+    meeting_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all attachments for a meeting."""
+    db = get_db()
+    
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    attachments = await db.meeting_attachments.find(
+        {"meeting_id": meeting_id},
+        {"_id": 0, "filepath": 0}  # Exclude internal path
+    ).to_list(50)
+    
+    return attachments
+
+
+@router.get("/{meeting_id}/attachments/{attachment_id}/download")
+async def download_meeting_attachment(
+    meeting_id: str,
+    attachment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download a specific attachment (returns base64 encoded content)."""
+    db = get_db()
+    
+    attachment = await db.meeting_attachments.find_one(
+        {"id": attachment_id, "meeting_id": meeting_id},
+        {"_id": 0}
+    )
+    
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    
+    filepath = attachment.get("filepath")
+    if not filepath or not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found on server")
+    
+    with open(filepath, 'rb') as f:
+        content = f.read()
+    
+    return {
+        "filename": attachment.get("filename"),
+        "content_type": attachment.get("content_type"),
+        "attachment_type": attachment.get("attachment_type"),
+        "content_base64": base64.b64encode(content).decode('utf-8')
+    }
+
+
+@router.delete("/{meeting_id}/attachments/{attachment_id}")
+async def delete_meeting_attachment(
+    meeting_id: str,
+    attachment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a meeting attachment."""
+    db = get_db()
+    
+    attachment = await db.meeting_attachments.find_one(
+        {"id": attachment_id, "meeting_id": meeting_id},
+        {"_id": 0}
+    )
+    
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    
+    # Delete file from disk
+    filepath = attachment.get("filepath")
+    if filepath and os.path.exists(filepath):
+        os.remove(filepath)
+    
+    # Delete from database
+    await db.meeting_attachments.delete_one({"id": attachment_id})
+    
+    # Update meeting's attachment list
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if meeting:
+        attachments = [a for a in (meeting.get("attachments") or []) if a.get("id") != attachment_id]
+        await db.meetings.update_one(
+            {"id": meeting_id},
+            {"$set": {
+                "attachments": attachments,
+                "has_attachments": len(attachments) > 0
+            }}
+        )
+    
+    return {"message": "Attachment deleted successfully"}
+
+
+@router.get("/lead/{lead_id}/attachments")
+async def get_all_lead_meeting_attachments(
+    lead_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all meeting attachments for a lead.
+    Used for inheriting attachments downstream in the funnel.
+    """
+    db = get_db()
+    
+    attachments = await db.meeting_attachments.find(
+        {"lead_id": lead_id},
+        {"_id": 0, "filepath": 0}
+    ).sort("uploaded_at", -1).to_list(100)
+    
+    return attachments
+
+
 @router.get("/{meeting_id}")
 async def get_meeting(meeting_id: str, current_user: User = Depends(get_current_user)):
     """Get a single meeting with full MOM details."""
@@ -237,6 +429,7 @@ async def get_meeting(meeting_id: str, current_user: User = Depends(get_current_
         meeting['created_at'] = datetime.fromisoformat(meeting['created_at'])
     
     return meeting
+
 
 
 @router.patch("/{meeting_id}/mom")
