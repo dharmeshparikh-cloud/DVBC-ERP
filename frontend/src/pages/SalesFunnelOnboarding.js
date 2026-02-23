@@ -547,6 +547,38 @@ const SalesFunnelOnboarding = () => {
                   </div>
                 )}
 
+                {/* Agreement Blocking Banner */}
+                {funnelStatus.is_blocked && (
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center gap-2 text-red-700 dark:text-red-300 mb-1">
+                          <span className="font-semibold">Progress Blocked</span>
+                          <Badge variant="destructive" className="text-xs">
+                            Agreement {funnelStatus.agreement_status?.toUpperCase() || 'PENDING'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {funnelStatus.blocked_reason}
+                        </p>
+                        {funnelStatus.agreement_id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
+                            onClick={() => navigate(`/sales-funnel/agreement?id=${funnelStatus.agreement_id}`)}
+                            data-testid="review-agreement-btn"
+                          >
+                            <FileCheck className="w-4 h-4 mr-2" />
+                            Review Agreement
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Progress Checklist for Current Step */}
                 {checklist && (
                   <div className="mb-6">
