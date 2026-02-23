@@ -243,7 +243,14 @@ const MeetingRecord = () => {
         next_steps: momData.next_steps
       };
 
-      await axios.post(`${API}/meetings/record`, payload);
+      const response = await axios.post(`${API}/meetings/record`, payload);
+      const meetingId = response.data.meeting_id;
+
+      // Upload pending attachments if any
+      if (pendingAttachments.length > 0 && meetingId) {
+        toast.info('Uploading attachments...');
+        await uploadAttachmentsToMeeting(meetingId);
+      }
 
       toast.success('Meeting recorded with MOM successfully!');
       setShowMOMDialog(false);
