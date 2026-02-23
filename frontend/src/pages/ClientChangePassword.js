@@ -68,7 +68,7 @@ const ClientChangePassword = () => {
     try {
       const token = localStorage.getItem('client_token');
       await axios.post(
-        `${API}/client-auth/change-password`,
+        `${API}/api/client-auth/change-password`,
         {
           current_password: formData.current_password,
           new_password: formData.new_password
