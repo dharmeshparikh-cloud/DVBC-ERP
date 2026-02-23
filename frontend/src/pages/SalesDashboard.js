@@ -250,7 +250,11 @@ const SalesDashboard = () => {
         <>
           {/* Team Overview Cards */}
           <div className="grid grid-cols-4 gap-4">
-            <Card className="border-zinc-200 dark:border-zinc-800">
+            <Card 
+              className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+              onClick={() => navigate('/leads')}
+              data-testid="total-leads-card"
+            >
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -263,10 +267,17 @@ const SalesDashboard = () => {
                     <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
+                <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                  View all leads <ArrowRight className="w-3 h-3" />
+                </p>
               </CardContent>
             </Card>
             
-            <Card className="border-zinc-200 dark:border-zinc-800">
+            <Card 
+              className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all"
+              onClick={() => navigate('/leads?stage=in_progress')}
+              data-testid="in-progress-card"
+            >
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -279,10 +290,17 @@ const SalesDashboard = () => {
                     <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                   </div>
                 </div>
+                <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                  View in-progress <ArrowRight className="w-3 h-3" />
+                </p>
               </CardContent>
             </Card>
             
-            <Card className="border-zinc-200 dark:border-zinc-800">
+            <Card 
+              className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all"
+              onClick={() => navigate('/projects')}
+              data-testid="completed-card"
+            >
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -295,10 +313,17 @@ const SalesDashboard = () => {
                     <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 </div>
+                <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                  View projects <ArrowRight className="w-3 h-3" />
+                </p>
               </CardContent>
             </Card>
             
-            <Card className="border-zinc-200 dark:border-zinc-800">
+            <Card 
+              className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all"
+              onClick={() => navigate('/analytics')}
+              data-testid="conversion-card"
+            >
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -311,6 +336,9 @@ const SalesDashboard = () => {
                     <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                   </div>
                 </div>
+                <p className="text-xs text-indigo-600 mt-2 flex items-center gap-1">
+                  View analytics <ArrowRight className="w-3 h-3" />
+                </p>
               </CardContent>
             </Card>
           </div>
