@@ -289,10 +289,13 @@ def agreement_created_email(
     Includes view/download/upload links.
     """
     formatted_value = f"{currency} {total_value:,.2f}"
-    status_color = "#10b981" if status.lower() == "signed" else "#3b82f6"
+    status_color = "#10b981" if status.lower() == "signed" else ("#f59e0b" if status.lower() == "pending" else ("#ef4444" if status.lower() == "rejected" else "#3b82f6"))
     view_url = f"{app_url}/agreements/{agreement_id}"
     download_url = f"{app_url}/api/agreements/{agreement_id}/download"
     upload_url = f"{app_url}/agreements/{agreement_id}?action=upload"
+    edit_url = f"{app_url}/agreements/{agreement_id}?action=edit"
+    approve_url = f"{app_url}/agreements/{agreement_id}?action=approve"
+    reject_url = f"{app_url}/agreements/{agreement_id}?action=reject"
     
     details = [
         {"label": "Client", "value": f"{lead_name} ({company})"},
@@ -305,6 +308,17 @@ def agreement_created_email(
         {"label": "Created By", "value": salesperson_name},
         {"label": "Client Email", "value": client_email or "N/A"}
     ]
+    
+    # Show warning for pending/rejected status
+    status_warning = ""
+    if status.lower() in ["pending", "rejected", "draft"]:
+        status_warning = f"""
+        <div style="margin-top: 15px; padding: 12px; background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 4px;">
+            <p style="margin: 0; color: #991b1b; font-size: 13px;">
+                <strong>⚠️ Note:</strong> Lead cannot proceed to next stage until agreement is approved.
+            </p>
+        </div>
+        """
     
     content = f"""
         <p style="margin: 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
@@ -319,19 +333,50 @@ def agreement_created_email(
             </span>
         </div>
         
-        <!-- Action Links -->
-        <div style="margin-top: 20px; padding: 15px; background-color: #faf5ff; border-radius: 8px;">
-            <p style="margin: 0 0 10px 0; color: #7c3aed; font-size: 13px; font-weight: 600;">Quick Actions</p>
+        {status_warning}
+        
+        <!-- Action Buttons -->
+        <div style="margin-top: 20px; padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 15px 0; color: #475569; font-size: 13px; font-weight: 600;">Quick Actions</p>
+            
+            <!-- Row 1: View, Download, Upload -->
+            <table role="presentation" style="width: 100%; margin-bottom: 10px;">
+                <tr>
+                    <td style="padding: 5px; text-align: center;">
+                        <a href="{view_url}" style="display: inline-block; background-color: #6366f1; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                            📄 View
+                        </a>
+                    </td>
+                    <td style="padding: 5px; text-align: center;">
+                        <a href="{download_url}" style="display: inline-block; background-color: #0ea5e9; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                            ⬇️ Download
+                        </a>
+                    </td>
+                    <td style="padding: 5px; text-align: center;">
+                        <a href="{upload_url}" style="display: inline-block; background-color: #8b5cf6; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                            ⬆️ Upload
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            
+            <!-- Row 2: Edit, Approve, Reject -->
             <table role="presentation" style="width: 100%;">
                 <tr>
-                    <td style="padding: 5px 0;">
-                        <a href="{view_url}" style="color: #7c3aed; text-decoration: none; font-size: 13px;">📄 View Agreement</a>
+                    <td style="padding: 5px; text-align: center;">
+                        <a href="{edit_url}" style="display: inline-block; background-color: #f59e0b; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                            ✏️ Edit
+                        </a>
                     </td>
-                    <td style="padding: 5px 0;">
-                        <a href="{download_url}" style="color: #7c3aed; text-decoration: none; font-size: 13px;">⬇️ Download PDF</a>
+                    <td style="padding: 5px; text-align: center;">
+                        <a href="{approve_url}" style="display: inline-block; background-color: #10b981; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                            ✅ Approve
+                        </a>
                     </td>
-                    <td style="padding: 5px 0;">
-                        <a href="{upload_url}" style="color: #7c3aed; text-decoration: none; font-size: 13px;">⬆️ Upload Signed Copy</a>
+                    <td style="padding: 5px; text-align: center;">
+                        <a href="{reject_url}" style="display: inline-block; background-color: #ef4444; color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                            ❌ Reject
+                        </a>
                     </td>
                 </tr>
             </table>
@@ -345,7 +390,7 @@ def agreement_created_email(
         headline=f"Service Agreement: {agreement_number}",
         content=content,
         details_section=_build_details_table(details),
-        action_section=_build_action_button("View Agreement", view_url, "#8b5cf6"),
+        action_section="",  # Buttons already in content
         year=datetime.now().year
     )
     
@@ -353,7 +398,7 @@ def agreement_created_email(
         "subject": f"📝 Agreement #{agreement_number} Created - {company}",
         "html": html,
         "plain": f"Service agreement created for {company}.\n\nAgreement: {agreement_number}\nValue: {formatted_value}\nStatus: {status}\nView: {view_url}\nDownload: {download_url}",
-        "client_email": client_email  # Return for sending to client
+        "client_email": client_email
     }
 
 
