@@ -182,6 +182,116 @@ async def get_leads(
     return leads
 
 
+@router.get("/progress/bulk")
+async def get_all_leads_progress(current_user: User = Depends(get_current_user)):
+    """
+    Get funnel progress for all leads accessible to the user.
+    Returns a simplified progress summary for each lead for list display.
+    """
+    db = get_db()
+    
+    # Define funnel steps
+    FUNNEL_STEPS = [
+        "lead_capture", "record_meeting", "pricing_plan", "scope_of_work",
+        "quotation", "agreement", "record_payment", "kickoff_request", "project_created"
+    ]
+    
+    # Get accessible leads based on role
+    query = {}
+    if current_user.role not in ['admin', 'hr_manager']:
+        user_employee = await db.employees.find_one(
+            {"user_id": current_user.id}, 
+            {"id": 1, "employee_id": 1, "_id": 0}
+        )
+        reportee_user_ids = []
+        if user_employee:
+            emp_id = user_employee.get("employee_id")
+            emp_internal_id = user_employee.get("id")
+            if emp_id or emp_internal_id:
+                reportees = await db.employees.find(
+                    {"$or": [{"reporting_manager_id": emp_id}, {"reporting_manager_id": emp_internal_id}]},
+                    {"user_id": 1, "_id": 0}
+                ).to_list(1000)
+                reportee_user_ids = [r.get("user_id") for r in reportees if r.get("user_id")]
+        
+        user_ids_to_include = [current_user.id] + reportee_user_ids
+        query['$or'] = [
+            {"assigned_to": {"$in": user_ids_to_include}},
+            {"created_by": {"$in": user_ids_to_include}}
+        ]
+    
+    leads = await db.leads.find(query, {"id": 1, "_id": 0}).to_list(1000)
+    lead_ids = [l["id"] for l in leads]
+    
+    # Fetch related data in bulk
+    meetings = await db.meetings.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(10000)
+    pricing_plans = await db.pricing_plans.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
+    sows = await db.sows.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
+    enhanced_sows = await db.enhanced_sows.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
+    quotations = await db.quotations.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(1000)
+    agreements = await db.agreements.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "status": 1, "_id": 0}).to_list(1000)
+    kickoffs = await db.kickoff_requests.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "status": 1, "project_id": 1, "_id": 0}).to_list(1000)
+    
+    # Create lookup sets
+    meeting_leads = set(m["lead_id"] for m in meetings)
+    pricing_leads = set(p["lead_id"] for p in pricing_plans)
+    sow_leads = set(s["lead_id"] for s in sows) | set(s["lead_id"] for s in enhanced_sows)
+    quotation_leads = set(q["lead_id"] for q in quotations)
+    agreement_map = {a["lead_id"]: a for a in agreements}
+    kickoff_map = {k["lead_id"]: k for k in kickoffs}
+    
+    # Build progress map
+    progress_map = {}
+    for lead_id in lead_ids:
+        completed_steps = ["lead_capture"]  # Always complete
+        
+        if lead_id in meeting_leads:
+            completed_steps.append("record_meeting")
+        if lead_id in pricing_leads:
+            completed_steps.append("pricing_plan")
+        if lead_id in sow_leads:
+            completed_steps.append("scope_of_work")
+        if lead_id in quotation_leads:
+            completed_steps.append("quotation")
+        
+        agreement = agreement_map.get(lead_id)
+        if agreement:
+            completed_steps.append("agreement")
+            if agreement.get("status") == "approved":
+                # Could add payment check here
+                pass
+        
+        kickoff = kickoff_map.get(lead_id)
+        if kickoff:
+            completed_steps.append("kickoff_request")
+            if kickoff.get("status") in ["approved", "accepted", "converted"] and kickoff.get("project_id"):
+                completed_steps.append("project_created")
+        
+        # Calculate current stage
+        completed_count = len(completed_steps)
+        current_step_index = min(completed_count, len(FUNNEL_STEPS) - 1)
+        current_step = FUNNEL_STEPS[current_step_index]
+        
+        progress_map[lead_id] = {
+            "completed_steps": completed_steps,
+            "completed_count": completed_count,
+            "total_steps": len(FUNNEL_STEPS),
+            "current_step": current_step,
+            "progress_percentage": round((completed_count / len(FUNNEL_STEPS)) * 100, 1),
+            # Simplified flags for UI
+            "meeting": "record_meeting" in completed_steps,
+            "pricing": "pricing_plan" in completed_steps,
+            "sow": "scope_of_work" in completed_steps,
+            "quotation": "quotation" in completed_steps,
+            "agreement": "agreement" in completed_steps,
+            "kickoff": "kickoff_request" in completed_steps,
+            "project": "project_created" in completed_steps,
+            "current_stage": completed_count
+        }
+    
+    return progress_map
+
+
 @router.get("/{lead_id}", response_model=Lead)
 async def get_lead(lead_id: str, current_user: User = Depends(get_current_user)):
     """Get a single lead by ID.
