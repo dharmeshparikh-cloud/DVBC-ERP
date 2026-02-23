@@ -1,12 +1,14 @@
 """
 Kickoff Router - Kickoff Requests Workflow (Sales to Consulting Handoff)
+Sends email notifications when kickoff is sent and accepted.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 from typing import List, Optional
 import uuid
+import os
 
 from .models import (
     KickoffRequest, KickoffRequestCreate, KickoffRequestUpdate, 
@@ -15,9 +17,13 @@ from .models import (
 from .deps import get_db, SALES_EXECUTIVE_ROLES, PROJECT_ROLES
 from .auth import get_current_user
 from services.approval_notifications import send_approval_notification, notify_requester_on_action
+from services.email_service import send_email
+from services.funnel_notifications import kickoff_sent_email, kickoff_accepted_email, get_sales_manager_emails
 from websocket_manager import get_manager as get_ws_manager
 
 router = APIRouter(prefix="/kickoff-requests", tags=["Kickoff Requests"])
+
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://lead-record-mgmt.preview.emergentagent.com").replace("/api", "")
 
 
 @router.post("")
