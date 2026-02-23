@@ -191,8 +191,9 @@ async def withdraw_leave(leave_id: str, current_user: User = Depends(get_current
     if not leave:
         raise HTTPException(status_code=404, detail="Leave request not found")
     
-    # Check ownership
-    if leave.get("user_id") != current_user.id and current_user.role not in HR_ROLES:
+    # RBAC Migration: Check ownership
+    hr_roles = get_role_group("HR_ROLES", fail_closed=False) or HR_ROLES
+    if leave.get("user_id") != current_user.id and not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Not authorized to withdraw this leave")
     
     if leave.get("status") != "pending":
