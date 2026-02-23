@@ -225,11 +225,10 @@ def proforma_generated_email(
 ) -> Dict[str, str]:
     """
     Email template for when proforma/quotation is generated.
-    Includes view/download links for client.
+    Simple view link only - no download/upload.
     """
     formatted_amount = f"{currency} {total_amount:,.2f}"
     view_url = f"{app_url}/quotations/{quotation_id}"
-    download_url = f"{app_url}/api/quotations/{quotation_id}/download"
     
     details = [
         {"label": "Lead", "value": f"{lead_name} ({company})"},
@@ -238,8 +237,7 @@ def proforma_generated_email(
         {"label": "Items", "value": f"{items_count} line item(s)"},
         {"label": "Valid Until", "value": valid_until},
         {"label": "Payment Terms", "value": payment_terms or "As per agreement"},
-        {"label": "Created By", "value": salesperson_name},
-        {"label": "Client Email", "value": client_email or "N/A"}
+        {"label": "Created By", "value": salesperson_name}
     ]
     
     content = f"""
@@ -250,21 +248,6 @@ def proforma_generated_email(
         <div style="margin-top: 20px; padding: 20px; background-color: #fef3c7; border-radius: 8px; text-align: center;">
             <p style="margin: 0 0 5px 0; color: #92400e; font-size: 12px; text-transform: uppercase;">Total Value</p>
             <p style="margin: 0; color: #78350f; font-size: 28px; font-weight: 700;">{formatted_amount}</p>
-        </div>
-        
-        <!-- Action Links -->
-        <div style="margin-top: 20px; padding: 15px; background-color: #f0f9ff; border-radius: 8px;">
-            <p style="margin: 0 0 10px 0; color: #0369a1; font-size: 13px; font-weight: 600;">Quick Actions</p>
-            <table role="presentation" style="width: 100%;">
-                <tr>
-                    <td style="padding: 5px 0;">
-                        <a href="{view_url}" style="color: #0284c7; text-decoration: none; font-size: 13px;">📄 View Quotation</a>
-                    </td>
-                    <td style="padding: 5px 0;">
-                        <a href="{download_url}" style="color: #0284c7; text-decoration: none; font-size: 13px;">⬇️ Download PDF</a>
-                    </td>
-                </tr>
-            </table>
         </div>
     """
     
@@ -282,8 +265,8 @@ def proforma_generated_email(
     return {
         "subject": f"📄 Proforma #{quotation_number} Generated - {company} ({formatted_amount})",
         "html": html,
-        "plain": f"Proforma invoice generated for {company}.\n\nQuotation: {quotation_number}\nAmount: {formatted_amount}\nView: {view_url}\nDownload: {download_url}",
-        "client_email": client_email  # Return for sending to client
+        "plain": f"Proforma invoice generated for {company}.\n\nQuotation: {quotation_number}\nAmount: {formatted_amount}\nView: {view_url}",
+        "client_email": client_email
     }
 
 
