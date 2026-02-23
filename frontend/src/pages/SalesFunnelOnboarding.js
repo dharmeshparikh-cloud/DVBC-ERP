@@ -11,7 +11,7 @@ import {
   FileCheck, CreditCard, Rocket, CheckCircle, 
   ChevronRight, ArrowLeft, Building2, Phone, Mail,
   Clock, AlertCircle, ExternalLink, Lock, Lightbulb,
-  Circle, CheckCircle2, Info
+  Circle, CheckCircle2, Info, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
