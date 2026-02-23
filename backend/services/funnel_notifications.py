@@ -558,6 +558,115 @@ def kickoff_accepted_email(
     }
 
 
+# ============== Test Email Preview Generator ==============
+
+def generate_test_email_previews(app_url: str = "https://lead-record-mgmt.preview.emergentagent.com") -> Dict[str, str]:
+    """
+    Generate all email templates with Indian test data for preview.
+    """
+    # Test data with Indian names
+    test_data = {
+        "lead_name": "Rajesh Mehta",
+        "company": "Tata Consultancy Services",
+        "client_email": "rajesh.mehta@tcs.com",
+        "salesperson_name": "Priya Sharma (Sales Executive)",
+        "manager_name": "Amit Patel (Sales Manager)",
+        "sales_head": "Vikram Singh (Sales Head)",
+        "senior_manager": "Sunita Reddy (Senior Manager)",
+        "principal_consultant": "Arun Krishnamurthy (Principal Consultant)",
+        "project_manager": "Kiran Desai (Project Manager)"
+    }
+    
+    previews = {}
+    
+    # 1. MOM Filled Email
+    previews["mom_filled"] = meeting_mom_filled_email(
+        lead_name=test_data["lead_name"],
+        company=test_data["company"],
+        meeting_title="Discovery Call - Digital Transformation",
+        meeting_date="2024-12-23",
+        meeting_type="Online (Zoom)",
+        attendees=["Rajesh Mehta (CTO)", "Neha Gupta (IT Head)", "Priya Sharma (Sales)"],
+        mom_summary="Discussed digital transformation roadmap. Key outcomes: 1. Client needs SAP S/4HANA implementation 2. Budget approved for Phase 1 (₹45L) 3. Timeline is 6 months 4. Weekly status reviews required",
+        client_expectations=["Go-live within 6 months", "Zero business disruption", "Knowledge transfer to internal team"],
+        key_commitments=["Dedicated senior consultant", "24/7 support during go-live", "Monthly executive reviews"],
+        salesperson_name=test_data["salesperson_name"],
+        app_url=app_url
+    )
+    
+    # 2. Proforma/Quotation Email
+    previews["proforma"] = proforma_generated_email(
+        lead_name=test_data["lead_name"],
+        company=test_data["company"],
+        quotation_number="QT-20241223-A1B2",
+        quotation_id="test-quotation-123",
+        total_amount=4500000,
+        currency="INR",
+        valid_until="2025-01-23",
+        items_count=5,
+        payment_terms="50% advance, 50% on completion",
+        salesperson_name=test_data["salesperson_name"],
+        client_email=test_data["client_email"],
+        app_url=app_url
+    )
+    
+    # 3. Agreement Email (with all buttons)
+    previews["agreement"] = agreement_created_email(
+        lead_name=test_data["lead_name"],
+        company=test_data["company"],
+        agreement_number="AGR-20241223-C3D4",
+        agreement_id="test-agreement-456",
+        agreement_type="Consulting Services Agreement",
+        total_value=4500000,
+        currency="INR",
+        start_date="2025-01-15",
+        end_date="2025-07-15",
+        status="pending",  # Shows warning about lead not moving to next stage
+        salesperson_name=test_data["salesperson_name"],
+        client_email=test_data["client_email"],
+        app_url=app_url
+    )
+    
+    # 4. Kickoff Sent Email
+    previews["kickoff_sent"] = kickoff_sent_email(
+        lead_name=test_data["lead_name"],
+        company=test_data["company"],
+        project_name="TCS Digital Transformation - Phase 1",
+        project_type="SAP Implementation",
+        start_date="2025-01-15",
+        assigned_pm=test_data["project_manager"],
+        contract_value=4500000,
+        currency="INR",
+        meetings_count=4,
+        key_commitments=["Dedicated senior consultant", "24/7 support during go-live", "Monthly executive reviews"],
+        salesperson_name=test_data["salesperson_name"],
+        approver_name=test_data["project_manager"],
+        client_email=test_data["client_email"],
+        app_url=app_url
+    )
+    
+    # 5. Kickoff Accepted Email
+    previews["kickoff_accepted"] = kickoff_accepted_email(
+        lead_name=test_data["lead_name"],
+        company=test_data["company"],
+        project_name="TCS Digital Transformation - Phase 1",
+        project_id="proj-789",
+        project_type="SAP Implementation",
+        start_date="2025-01-15",
+        assigned_pm=test_data["project_manager"],
+        contract_value=4500000,
+        currency="INR",
+        approved_by=test_data["principal_consultant"],
+        approval_date="2024-12-23 14:30",
+        salesperson_name=test_data["salesperson_name"],
+        client_email=test_data["client_email"],
+        app_url=app_url
+    )
+    
+    return previews
+
+
+
 # ============== Helper to get manager emails ==============
 
 async def get_sales_manager_emails(db) -> List[str]:
