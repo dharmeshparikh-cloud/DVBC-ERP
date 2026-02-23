@@ -91,8 +91,8 @@ async def get_projects(current_user: User = Depends(get_current_user)):
             except:
                 pass
         
-        # Strip financial data for HR Manager (operational view only)
-        if current_user.role == UserRole.HR_MANAGER:
+        # Strip financial data for HR (operational view only)
+        if has_role(current_user.role, hr_roles) and not has_role(current_user.role, admin_roles):
             project.pop('budget', None)
             project.pop('actual_cost', None)
             project.pop('hourly_rate', None)
@@ -107,7 +107,10 @@ async def get_projects(current_user: User = Depends(get_current_user)):
 async def get_handover_alerts(current_user: User = Depends(get_current_user)):
     """Get projects approaching 15-day handover deadline from agreement approval."""
     db = get_db()
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER, UserRole.PROJECT_MANAGER]:
+    
+    # RBAC Migration: Check project roles
+    project_roles = get_role_group("PROJECT_ROLES", fail_closed=True)
+    if not project_roles or not has_role(current_user.role, project_roles):
         raise HTTPException(status_code=403, detail="Not authorized to view handover alerts")
     
     # Get approved agreements from last 30 days
