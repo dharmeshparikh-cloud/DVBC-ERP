@@ -47,7 +47,9 @@ async def record_bulk_attendance(data: dict, current_user: User = Depends(get_cu
     """Record bulk attendance (HR/Admin)."""
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can record bulk attendance")
     
     records = data.get("records", [])
@@ -197,7 +199,9 @@ async def get_attendance_analytics(
     """Get attendance analytics (admin/HR only)."""
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can view attendance analytics")
     
     # Default to last 30 days
@@ -389,7 +393,9 @@ async def get_employee_attendance_policy(employee_id: str, current_user: User = 
     """Get attendance policy for a specific employee"""
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         # Non-HR can only see their own policy
         employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0, "id": 1})
         if not employee or employee["id"] != employee_id:
@@ -415,7 +421,9 @@ async def list_custom_policies(current_user: User = Depends(get_current_user)):
     """List all custom employee attendance policies"""
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can view custom policies")
     
     policies = await db.employee_attendance_policies.find(
@@ -444,7 +452,9 @@ async def create_custom_policy(data: dict, current_user: User = Depends(get_curr
     """Create or update custom attendance policy for an employee"""
     db = get_db()
     
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Manager/Admin can set custom policies")
     
     employee_id = data.get("employee_id")
@@ -504,7 +514,9 @@ async def delete_custom_policy(employee_id: str, current_user: User = Depends(ge
     """Delete custom attendance policy for an employee (reverts to default)"""
     db = get_db()
     
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Manager/Admin can delete custom policies")
     
     result = await db.employee_attendance_policies.delete_one({"employee_id": employee_id})
@@ -520,7 +532,9 @@ async def get_consulting_employees(current_user: User = Depends(get_current_user
     """Get list of employees with consulting roles from employee master"""
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can view consulting employees")
     
     # Get the configured consulting roles from settings
@@ -566,7 +580,9 @@ async def auto_validate_attendance(data: dict, current_user: User = Depends(get_
     """
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can auto-validate attendance")
     
     month = data.get("month")  # Format: YYYY-MM
@@ -762,7 +778,9 @@ async def apply_attendance_penalties(data: dict, current_user: User = Depends(ge
     """
     db = get_db()
     
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Manager/Admin can apply penalties")
     
     month = data.get("month")
@@ -825,7 +843,9 @@ async def hr_bulk_leave_credit(data: dict, current_user: User = Depends(get_curr
     """
     db = get_db()
     
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only HR Manager/Admin can credit leaves")
     
     leave_type = data.get("leave_type")  # casual_leave, sick_leave, earned_leave
@@ -868,7 +888,9 @@ async def hr_apply_leave_for_employee(data: dict, current_user: User = Depends(g
     """
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can apply leave on behalf of employee")
     
     employee_id = data.get("employee_id")
@@ -958,7 +980,9 @@ async def hr_mark_attendance_bulk(data: dict, current_user: User = Depends(get_c
     """
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can mark bulk attendance")
     
     date = data.get("date")
@@ -1017,7 +1041,9 @@ async def get_employee_attendance_input(month: str, current_user: User = Depends
     """
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can access attendance input")
     
     # Get all employees
