@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
 from .models import User, UserRole, LeadStatus, CONSULTING_ROLES, ALL_DATA_ACCESS_ROLES
-from .deps import get_db
+from .deps import get_db, get_role_group, has_role
 from .auth import get_current_user
 
 router = APIRouter(prefix="/stats", tags=["Dashboard Stats"])
