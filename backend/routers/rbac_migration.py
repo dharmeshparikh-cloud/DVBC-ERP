@@ -266,7 +266,7 @@ class RBACLock:
         
         try:
             # Try to insert lock document
-            result = await self.db.rbac_locks.update_one(
+            await self.db.rbac_locks.update_one(
                 {
                     "name": self.lock_name,
                     "$or": [
