@@ -468,20 +468,42 @@ class RBACService:
         """Get all active roles"""
         return list(_role_cache.values())
     
-    def get_role_group(self, group_name: str) -> List[str]:
+    def get_role_group(self, group_name: str, fail_closed: bool = False) -> List[str]:
         """
         Get roles in a group (replaces hardcoded arrays).
-        FAIL-LOUD: Logs if falling back to defaults.
+        
+        Args:
+            group_name: Name of the role group (e.g., "HR_ROLES")
+            fail_closed: If True, raises exception instead of falling back to defaults.
+                         Use True for critical security operations.
+        
+        Security Behavior:
+        - If fail_closed=True: Raises RBACUnavailableError on cache miss
+        - If fail_closed=False: Falls back to DEFAULT_ROLE_GROUPS (current behavior)
         """
         # First check cache (from database)
         if group_name in _permission_cache:
             return _permission_cache[group_name]
         
-        # Fallback to defaults - but LOG IT
+        # Cache miss - this indicates RBAC service issue
+        logger.warning(f"RBAC: Cache miss for role group '{group_name}'")
+        
+        # FAIL-CLOSED mode for critical operations
+        if fail_closed:
+            log_fallback_event(
+                location=f"RBACService.get_role_group({group_name})",
+                reason="FAIL-CLOSED: Group not in cache, DENYING ACCESS",
+                fallback_value=[]
+            )
+            logger.critical(f"RBAC FAIL-CLOSED: Role group '{group_name}' not in cache - denying access")
+            # Return empty list to deny access
+            return []
+        
+        # Fallback to defaults - but LOG IT (legacy behavior)
         if group_name in DEFAULT_ROLE_GROUPS:
             log_fallback_event(
                 location=f"RBACService.get_role_group({group_name})",
-                reason="Group not in cache, using DEFAULT_ROLE_GROUPS",
+                reason="Group not in cache, using DEFAULT_ROLE_GROUPS (fail-open)",
                 fallback_value=DEFAULT_ROLE_GROUPS[group_name]
             )
             return DEFAULT_ROLE_GROUPS[group_name]
@@ -489,6 +511,15 @@ class RBACService:
         # Unknown group - this is an error
         logger.error(f"RBAC: Unknown role group '{group_name}' requested")
         return []
+    
+    def is_cache_valid(self) -> bool:
+        """Check if RBAC cache is valid and has data"""
+        import time
+        if not _role_cache:
+            return False
+        if time.time() - _cache_timestamp > CACHE_TTL_SECONDS:
+            return False
+        return True
     
     def get_roles_by_department(self, department: str) -> List[str]:
         """Get all role codes for a department"""
