@@ -243,8 +243,9 @@ const Leads = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/leads`, formData);
-      toast.success('Lead created successfully');
+      const response = await axios.post(`${API}/leads`, formData);
+      const newLead = response.data;
+      toast.success('Lead created successfully! Redirecting to Sales Funnel...');
       setDialogOpen(false);
       
       // Mark draft as converted
@@ -261,7 +262,10 @@ const Leads = () => {
         source: '',
         notes: '',
       });
-      fetchLeads();
+      
+      // Auto-redirect to Sales Funnel with the new lead
+      // Lead step will be ticked, Meeting step will be current
+      navigate(`/sales-funnel-onboarding?leadId=${newLead.id}`);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create lead');
     }
