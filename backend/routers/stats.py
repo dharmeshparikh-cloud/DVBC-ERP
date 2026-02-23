@@ -50,21 +50,49 @@ def is_manager_or_above(user: User) -> bool:
 
 @router.get("/dashboard")
 async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
-    """Get main dashboard statistics - matches frontend expected format."""
+    """
+    Get main dashboard statistics - matches frontend expected format.
+    
+    Access Control (RBAC-driven):
+    - ALL_DATA_ACCESS_ROLES: See all company data
+    - MANAGER_ROLES: See team data (direct reports)
+    - Others: See only own data
+    """
     db = get_db()
     
+    # Build query based on RBAC role hierarchy
     query = {}
-    if current_user.role != UserRole.ADMIN:
+    project_query = {}
+    
+    if can_see_all_data(current_user):
+        # Admin, HR Manager, Principal Consultant see all data
+        pass  # Empty query = all data
+    elif is_manager_or_above(current_user):
+        # Managers see their team's data
+        team_ids = await get_team_member_ids(current_user.id)
+        team_ids.append(current_user.id)
+        query['$or'] = [
+            {"assigned_to": {"$in": team_ids}},
+            {"created_by": {"$in": team_ids}}
+        ]
+        project_query['$or'] = [
+            {"assigned_team": {"$in": team_ids}},
+            {"created_by": {"$in": team_ids}},
+            {"assigned_consultants": {"$in": team_ids}}
+        ]
+    else:
+        # Regular users see only their own data
         query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+        project_query['$or'] = [
+            {"assigned_team": current_user.id},
+            {"created_by": current_user.id},
+            {"assigned_consultants": current_user.id}
+        ]
     
     total_leads = await db.leads.count_documents(query)
     new_leads = await db.leads.count_documents({**query, "status": LeadStatus.NEW})
     qualified_leads = await db.leads.count_documents({**query, "status": LeadStatus.QUALIFIED})
     closed_deals = await db.leads.count_documents({**query, "status": LeadStatus.CLOSED})
-    
-    project_query = {}
-    if current_user.role != UserRole.ADMIN:
-        project_query['$or'] = [{"assigned_team": current_user.id}, {"created_by": current_user.id}]
     
     active_projects = await db.projects.count_documents({**project_query, "status": "active"})
     
