@@ -48,7 +48,7 @@ const ClientPortal = () => {
 
   const fetchProjects = async (token) => {
     try {
-      const response = await axios.get(`${API}/client-auth/my-projects`, {
+      const response = await axios.get(`${API}/api/client-auth/my-projects`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProjects(response.data.projects || []);
@@ -70,7 +70,7 @@ const ClientPortal = () => {
   const fetchProjectDetails = async (projectId, token) => {
     try {
       const authToken = token || localStorage.getItem('client_token');
-      const response = await axios.get(`${API}/client-auth/project/${projectId}`, {
+      const response = await axios.get(`${API}/api/client-auth/project/${projectId}`, {
         headers: { Authorization: `Bearer ${authToken}` }
       });
       setProjectDetails(response.data);
