@@ -393,3 +393,43 @@ async def get_my_permissions(
         "can_manage_users": role.get("can_manage_users", False),
         "stage_access": rbac.get_stage_access(current_user.role)
     }
+
+
+@router.get("/migration-status")
+async def get_migration_status(
+    current_user: User = Depends(get_current_user)
+):
+    """Get RBAC migration status and health report (Admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from .rbac_migration import get_migration_status, get_audit_report, run_consistency_checks
+    
+    db = get_db()
+    
+    # Run consistency checks
+    consistency = await run_consistency_checks(db)
+    
+    # Get migration status
+    migration = get_migration_status()
+    
+    # Count usage
+    roles_count = await db.rbac_roles.count_documents({"is_active": True})
+    groups_count = await db.rbac_role_groups.count_documents({})
+    depts_count = await db.rbac_departments.count_documents({"is_active": True})
+    
+    return {
+        "phase": migration["current_phase"],
+        "health": consistency["status"],
+        "consistency_issues": consistency["issues"],
+        "statistics": {
+            "roles_in_db": roles_count,
+            "role_groups_in_db": groups_count,
+            "departments_in_db": depts_count,
+            "role_checks_registered": migration["role_checks_registered"],
+            "fallback_events": migration["fallback_events"],
+            "permission_mismatches": migration["permission_mismatches"]
+        },
+        "recent_fallbacks": migration["recent_fallbacks"],
+        "recent_mismatches": migration["recent_mismatches"]
+    }
