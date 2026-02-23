@@ -1,9 +1,10 @@
 """
 Meetings Router - Meeting Management, MOM, Action Items
 Includes file attachments for offline meetings (photos/voice)
+Sends email notifications when MOM is filled
 """
 
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 import uuid
@@ -14,6 +15,8 @@ from .models import Meeting, MeetingCreate, MOMCreate, ActionItemCreate, User
 from .models import SALES_MEETING_ROLES, CONSULTING_MEETING_ROLES
 from .deps import get_db
 from .auth import get_current_user
+from services.email_service import send_email
+from services.funnel_notifications import meeting_mom_filled_email, get_sales_manager_emails
 
 router = APIRouter(prefix="/meetings", tags=["Meetings"])
 
@@ -26,6 +29,9 @@ ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"]
 ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/webm", "audio/ogg", "audio/mp4", "audio/x-m4a"]
 ALLOWED_TYPES = ALLOWED_IMAGE_TYPES + ALLOWED_AUDIO_TYPES
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
+
+# App URL for email links
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://lead-record-mgmt.preview.emergentagent.com").replace("/api", "")
 
 
 @router.post("", response_model=Meeting)
