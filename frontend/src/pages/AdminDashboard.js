@@ -27,6 +27,7 @@ import {
 const AdminDashboard = () => {
   const { user } = useContext(AuthContext);
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
   
   const [loading, setLoading] = useState(true);
