@@ -414,9 +414,10 @@ async def change_consultant_on_project(
     """
     db = get_db()
     
-    # Only Principal Consultant and Admin
-    if current_user.role not in ["admin", "principal_consultant", "senior_consultant"]:
-        raise HTTPException(status_code=403, detail="Only Principal Consultant can change consultants")
+    # RBAC Migration: Use database-driven role check (fail-closed for critical operation)
+    senior_consulting_roles = get_role_group("SENIOR_CONSULTING_ROLES", fail_closed=True)
+    if not senior_consulting_roles or not has_role(current_user.role, senior_consulting_roles):
+        raise HTTPException(status_code=403, detail="Only Senior Consultants and above can change consultants")
     
     # Verify project exists
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
