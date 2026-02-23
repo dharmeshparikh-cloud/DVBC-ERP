@@ -113,8 +113,26 @@ async def get_stats_overview(current_user: User = Depends(get_current_user)):
 
 @router.get("/hr")
 async def get_hr_stats(current_user: User = Depends(get_current_user)):
-    """Get HR statistics for dashboard."""
+    """
+    Get HR statistics for dashboard.
+    
+    Access Control (RBAC-driven):
+    - HR_ROLES: Full access to HR statistics
+    - MANAGER_ROLES: View access to high-level HR stats
+    - Others: 403 Forbidden
+    """
     db = get_db()
+    
+    # RBAC check - only HR and managers can see HR stats
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    manager_roles = get_manager_roles()
+    
+    if not hr_roles:
+        logger.warning("RBAC: HR_ROLES group not available, denying access")
+        raise HTTPException(status_code=503, detail="Authorization service unavailable")
+    
+    if not has_role(current_user.role, hr_roles) and not has_role(current_user.role, manager_roles):
+        raise HTTPException(status_code=403, detail="HR or Manager access required")
     
     total_employees = await db.employees.count_documents({"is_active": True})
     active_employees = await db.employees.count_documents({"is_active": True, "go_live_status": "active"})
