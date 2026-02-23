@@ -81,7 +81,10 @@ async def take_approval_action(approval_id: str, data: ApprovalAction, current_u
     if not approval:
         raise HTTPException(status_code=404, detail="Approval not found")
     
-    if approval.get("approver_id") != current_user.id and current_user.role not in MANAGER_ROLES:
+    # RBAC Migration: Check authorization
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=True)
+    is_manager = manager_roles and has_role(current_user.role, manager_roles)
+    if approval.get("approver_id") != current_user.id and not is_manager:
         raise HTTPException(status_code=403, detail="Not authorized to act on this approval")
     
     if approval.get("status") != "pending":
