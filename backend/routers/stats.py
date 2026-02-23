@@ -168,9 +168,13 @@ async def get_sales_dashboard_stats(current_user: User = Depends(get_current_use
     """Sales-specific dashboard stats - pipeline, conversions, revenue"""
     db = get_db()
     
-    # Get user's leads or all if admin
+    # RBAC Migration: Use database-driven role check
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=False) or ['admin', 'manager']
+    is_manager = has_role(current_user.role, manager_roles)
+    
+    # Get user's leads or all if admin/manager
     lead_query = {}
-    if current_user.role not in ['admin', 'manager']:
+    if not is_manager:
         lead_query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
     
     # Lead pipeline stats
@@ -186,18 +190,18 @@ async def get_sales_dashboard_stats(current_user: User = Depends(get_current_use
     total_clients = await db.clients.count_documents({"is_active": True})
     
     # Quotations and Agreements
-    quot_query = {} if current_user.role in ['admin', 'manager'] else {"created_by": current_user.id}
+    quot_query = {} if is_manager else {"created_by": current_user.id}
     pending_quotations = await db.quotations.count_documents({**quot_query, "status": "pending"})
     pending_agreements = await db.agreements.count_documents({**quot_query, "status": "pending_approval"})
     approved_agreements = await db.agreements.count_documents({**quot_query, "status": "approved"})
     
     # Kickoff requests sent
-    kickoff_query = {} if current_user.role in ['admin', 'manager'] else {"requested_by": current_user.id}
+    kickoff_query = {} if is_manager else {"requested_by": current_user.id}
     pending_kickoffs = await db.kickoff_requests.count_documents({**kickoff_query, "status": "pending"})
     
     # Calculate total revenue from clients
     pipeline = [
-        {"$match": {"sales_person_id": current_user.id} if current_user.role not in ['admin', 'manager'] else {}},
+        {"$match": {"sales_person_id": current_user.id} if not is_manager else {}},
         {"$unwind": {"path": "$revenue_history", "preserveNullAndEmptyArrays": False}},
         {"$group": {"_id": None, "total": {"$sum": "$revenue_history.amount"}}}
     ]
