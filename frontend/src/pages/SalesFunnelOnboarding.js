@@ -176,16 +176,17 @@ const SalesFunnelOnboarding = () => {
 
   // Get step checklist key mapping
   const getChecklistKey = (stepId) => {
+    // Step IDs now match backend directly, but keep mapping for checklist
     const mapping = {
-      'lead': 'lead_capture',
-      'meeting': 'record_meeting',
-      'pricing': 'pricing_plan',
-      'sow': 'scope_of_work',
+      'lead_capture': 'lead_capture',
+      'record_meeting': 'record_meeting',
+      'pricing_plan': 'pricing_plan',
+      'scope_of_work': 'scope_of_work',
       'quotation': 'quotation',
       'agreement': 'agreement',
-      'payment': 'record_payment',
-      'kickoff': 'kickoff_request',
-      'complete': 'project_created'
+      'record_payment': 'record_payment',
+      'kickoff_request': 'kickoff_request',
+      'project_created': 'project_created'
     };
     return mapping[stepId] || stepId;
   };
