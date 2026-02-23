@@ -1,6 +1,9 @@
 """
 Analytics Router - Sales funnel analytics, bottleneck analysis, forecasting, velocity metrics
 Extracted from server.py for better modularity and load performance.
+
+PERFORMANCE OPTIMIZATION: December 2025
+- Added caching for analytics endpoints (3 min TTL)
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,6 +12,11 @@ from datetime import datetime, timezone, timedelta
 from .deps import get_db, MANAGER_ROLES, get_role_group, has_role
 from .models import User
 from .auth import get_current_user
+
+# Performance caching
+import sys
+sys.path.insert(0, '/app/backend')
+from services.cache_service import cache, stats_key, PerformanceCache
 
 router = APIRouter(tags=["Analytics"])
 
