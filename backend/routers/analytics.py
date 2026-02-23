@@ -48,7 +48,9 @@ async def get_funnel_summary(
         date_end = now.strftime("%Y-%m-%d")
     
     # Determine access level
-    is_manager = current_user.role in MANAGER_ROLES
+    # RBAC Migration
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=False) or MANAGER_ROLES
+    is_manager = has_role(current_user.role, manager_roles)
     
     # Get employee info
     user_employee = await db.employees.find_one(
@@ -343,7 +345,9 @@ async def get_funnel_trends(
 ):
     """Get month-over-month funnel trends for manager view"""
     db = get_db()
-    is_manager = current_user.role in MANAGER_ROLES
+    # RBAC Migration
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=False) or MANAGER_ROLES
+    is_manager = has_role(current_user.role, manager_roles)
     
     if not is_manager:
         raise HTTPException(status_code=403, detail="Only managers can view trends")
