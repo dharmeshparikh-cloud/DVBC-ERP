@@ -510,7 +510,8 @@ def kickoff_accepted_email(
     return {
         "subject": f"✅ Kickoff Approved: {project_name} - {company} - Project Created!",
         "html": html,
-        "plain": f"Kickoff approved for {company}!\n\nProject: {project_name}\nApproved by: {approved_by}\nPM: {assigned_pm}"
+        "plain": f"Kickoff approved for {company}!\n\nProject: {project_name}\nApproved by: {approved_by}\nPM: {assigned_pm}\nEdit Date: {edit_date_url}",
+        "client_email": client_email
     }
 
 
