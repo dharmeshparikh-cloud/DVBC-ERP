@@ -519,15 +519,13 @@ def kickoff_accepted_email(
 async def get_sales_manager_emails(db) -> List[str]:
     """
     Get email addresses for general sales funnel notifications.
-    Recipients: HR, Sales Manager, Sales Head, Admin
+    Recipients: Sales Manager, Sales Head, Admin (NO HR)
     """
     recipients = await db.users.find(
         {"role": {"$in": [
-            "hr_manager",           # HR
-            "hr",                   # HR
             "sales_manager",        # Sales Manager
-            "sales_head",           # Sales Manager's Manager
-            "admin"                 # Admin (top level)
+            "sales_head",           # Sales Head
+            "admin"                 # Admin
         ]}},
         {"_id": 0, "email": 1}
     ).to_list(50)
@@ -538,7 +536,7 @@ async def get_sales_manager_emails(db) -> List[str]:
 async def get_agreement_notification_emails(db) -> List[str]:
     """
     Get email addresses for AGREEMENT-specific notifications.
-    Recipients: Sales Manager + Sales Manager's Manager ONLY
+    Recipients: Sales Manager + Sales Manager's Manager ONLY (NO HR)
     """
     recipients = await db.users.find(
         {"role": {"$in": [
@@ -550,3 +548,31 @@ async def get_agreement_notification_emails(db) -> List[str]:
     ).to_list(50)
     
     return [r.get("email") for r in recipients if r.get("email")]
+
+
+async def get_kickoff_notification_emails(db, lead_owner_id: str = None) -> List[str]:
+    """
+    Get email addresses for KICKOFF notifications.
+    Recipients: Lead Owner, Manager, Sales Head, Senior Manager, Principal Consultant (NO HR)
+    """
+    recipients = await db.users.find(
+        {"role": {"$in": [
+            "sales_executive",      # Lead Owner (if they have this role)
+            "sales_manager",        # Manager
+            "sales_head",           # Sales Head
+            "senior_manager",       # Senior Manager
+            "principal_consultant", # Principal Consultant
+            "admin"                 # Admin
+        ]}},
+        {"_id": 0, "email": 1, "id": 1}
+    ).to_list(50)
+    
+    emails = [r.get("email") for r in recipients if r.get("email")]
+    
+    # Also get lead owner's email specifically if provided
+    if lead_owner_id:
+        lead_owner = await db.users.find_one({"id": lead_owner_id}, {"_id": 0, "email": 1})
+        if lead_owner and lead_owner.get("email") and lead_owner["email"] not in emails:
+            emails.append(lead_owner["email"])
+    
+    return emails
