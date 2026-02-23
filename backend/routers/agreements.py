@@ -17,7 +17,7 @@ from services.funnel_notifications import agreement_created_email, get_agreement
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-approval-flow.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://netra-client-portal.preview.emergentagent.com").replace("/api", "")
 
 # Role constants for this router
 AGREEMENT_VIEW_ROLES = SALES_ROLES + SENIOR_CONSULTING_ROLES  # sales, admin, principal_consultant

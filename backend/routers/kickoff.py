@@ -32,7 +32,7 @@ from websocket_manager import get_manager as get_ws_manager
 
 router = APIRouter(prefix="/kickoff-requests", tags=["Kickoff Requests"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-approval-flow.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://netra-client-portal.preview.emergentagent.com").replace("/api", "")
 LOGO_URL = "https://dvconsulting.co.in/wp-content/uploads/2020/02/logov4-min.png"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

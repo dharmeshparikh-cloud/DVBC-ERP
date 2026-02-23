@@ -31,7 +31,7 @@ ALLOWED_TYPES = ALLOWED_IMAGE_TYPES + ALLOWED_AUDIO_TYPES
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
 # App URL for email links
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-approval-flow.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://netra-client-portal.preview.emergentagent.com").replace("/api", "")
 
 
 @router.post("", response_model=Meeting)
