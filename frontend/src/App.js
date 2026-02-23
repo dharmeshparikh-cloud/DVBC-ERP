@@ -93,6 +93,11 @@ const FlowDiagram = lazy(() => import('./pages/FlowDiagram'));
 const ProjectPayments = lazy(() => import('./pages/ProjectPayments'));
 const ProjectPaymentDetails = lazy(() => import('./pages/ProjectPaymentDetails'));
 
+// Client Portal Pages
+const ClientLogin = lazy(() => import('./pages/ClientLogin'));
+const ClientPortal = lazy(() => import('./pages/ClientPortal'));
+const ClientChangePassword = lazy(() => import('./pages/ClientChangePassword'));
+
 // Layouts - keep as regular imports (small files)
 import Layout from './components/Layout';
 
