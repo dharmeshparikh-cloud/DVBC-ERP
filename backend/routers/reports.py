@@ -5,11 +5,24 @@ Reports Router - Report generation and downloads.
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 from datetime import datetime, timezone
-from .deps import get_db, MANAGER_ROLES, HR_ROLES
+from .deps import get_db, MANAGER_ROLES, HR_ROLES, get_role_group, has_role
 from .models import User
 from .auth import get_current_user
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
+
+
+def get_report_roles_from_rbac(report_type: str) -> list:
+    """Get roles for a report type using RBAC service"""
+    report_group_mapping = {
+        "sales_summary": "SALES_MANAGER_ROLES",
+        "employee_attendance": "HR_ADMIN_ROLES",
+        "project_status": "PROJECT_ROLES",
+        "revenue_forecast": "MANAGER_ROLES",
+        "consultant_utilization": "MANAGER_ROLES",
+    }
+    group_name = report_group_mapping.get(report_type, "ADMIN_ROLES")
+    return get_role_group(group_name, fail_closed=False) or ["admin"]
 
 
 @router.get("")
@@ -17,15 +30,16 @@ async def get_available_reports(current_user: User = Depends(get_current_user)):
     """Get list of available reports based on role"""
     db = get_db()
     
+    # RBAC Migration: Dynamic role resolution
     reports = [
-        {"id": "sales_summary", "name": "Sales Summary", "roles": ["admin", "sales_manager", "manager"]},
-        {"id": "employee_attendance", "name": "Employee Attendance", "roles": ["admin", "hr_manager"]},
-        {"id": "project_status", "name": "Project Status", "roles": ["admin", "principal_consultant", "manager"]},
-        {"id": "revenue_forecast", "name": "Revenue Forecast", "roles": ["admin", "manager"]},
-        {"id": "consultant_utilization", "name": "Consultant Utilization", "roles": ["admin", "manager"]},
+        {"id": "sales_summary", "name": "Sales Summary", "roles": get_report_roles_from_rbac("sales_summary")},
+        {"id": "employee_attendance", "name": "Employee Attendance", "roles": get_report_roles_from_rbac("employee_attendance")},
+        {"id": "project_status", "name": "Project Status", "roles": get_report_roles_from_rbac("project_status")},
+        {"id": "revenue_forecast", "name": "Revenue Forecast", "roles": get_report_roles_from_rbac("revenue_forecast")},
+        {"id": "consultant_utilization", "name": "Consultant Utilization", "roles": get_report_roles_from_rbac("consultant_utilization")},
     ]
     
-    available = [r for r in reports if current_user.role in r["roles"]]
+    available = [r for r in reports if has_role(current_user.role, r["roles"])]
     return available
 
 
@@ -40,16 +54,17 @@ async def get_report(
     """Generate a report"""
     db = get_db()
     
+    # RBAC Migration: Use database-driven role check
     report_config = {
-        "sales_summary": {"roles": ["admin", "sales_manager", "manager"]},
-        "employee_attendance": {"roles": ["admin", "hr_manager"]},
-        "project_status": {"roles": ["admin", "principal_consultant", "manager"]},
+        "sales_summary": {"roles": get_report_roles_from_rbac("sales_summary")},
+        "employee_attendance": {"roles": get_report_roles_from_rbac("employee_attendance")},
+        "project_status": {"roles": get_report_roles_from_rbac("project_status")},
     }
     
     if report_id not in report_config:
         raise HTTPException(status_code=404, detail="Report not found")
     
-    if current_user.role not in report_config[report_id]["roles"]:
+    if not has_role(current_user.role, report_config[report_id]["roles"]):
         raise HTTPException(status_code=403, detail="Not authorized to access this report")
     
     # Basic report data
