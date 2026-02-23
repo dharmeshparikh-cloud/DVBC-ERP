@@ -221,7 +221,7 @@ async def get_all_leads_progress(current_user: User = Depends(get_current_user))
         ]
     
     leads = await db.leads.find(query, {"id": 1, "_id": 0}).to_list(1000)
-    lead_ids = [l["id"] for l in leads]
+    lead_ids = [lead["id"] for lead in leads]
     
     # Fetch related data in bulk
     meetings = await db.meetings.find({"lead_id": {"$in": lead_ids}}, {"lead_id": 1, "_id": 0}).to_list(10000)
