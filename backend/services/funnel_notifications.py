@@ -468,10 +468,19 @@ def kickoff_accepted_email(
 # ============== Helper to get manager emails ==============
 
 async def get_sales_manager_emails(db) -> List[str]:
-    """Get email addresses of sales managers for notifications"""
-    managers = await db.users.find(
-        {"role": {"$in": ["admin", "sales_head", "sales_manager", "principal_consultant"]}},
+    """
+    Get email addresses for sales funnel notifications.
+    Recipients: HR, Sales Manager, Sales Manager's Manager (Sales Head/Admin)
+    """
+    recipients = await db.users.find(
+        {"role": {"$in": [
+            "hr_manager",           # HR
+            "hr",                   # HR
+            "sales_manager",        # Sales Manager
+            "sales_head",           # Sales Manager's Manager
+            "admin"                 # Admin (top level)
+        ]}},
         {"_id": 0, "email": 1}
     ).to_list(50)
     
-    return [m.get("email") for m in managers if m.get("email")]
+    return [r.get("email") for r in recipients if r.get("email")]
