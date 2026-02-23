@@ -88,38 +88,20 @@ This audit identifies **15 distinct approval workflows** across 8 modules. The a
 
 ## 3. Pages That SHOULD Have Approval But Do Not
 
-### 3.1 Quotation Finalization
-**File:** `quotations.py`, Line 147  
-**Current State:** Any authenticated user can finalize a quotation  
-**Expected:** Sales Manager or PC approval required
-
-```python
-# CURRENT (No role check)
-@router.patch("/{quotation_id}/finalize")
-async def finalize_quotation(quotation_id: str, current_user: User = Depends(get_current_user)):
-    # Anyone can finalize!
-```
-
-**Risk Level:** Medium  
-**Impact:** Sales executives can lock quotations without manager review, potentially committing to unfavorable terms.
+### ~~3.1 Quotation Finalization~~ ✅ FIXED
+**Status:** RESOLVED  
+**Fix Applied:** Added Reporting Manager/Sales Manager/Admin authorization check.  
+Creator cannot finalize their own quotation (separation of duties enforced).
 
 ---
 
-### 3.2 Leave Encashment Request Processing
-**File:** `leave_policies.py`, Line 689-729  
-**Current State:** Leave encashment requests are created but no approval endpoint exists  
-**Expected:** HR Manager approval required before payroll integration
-
-```python
-# CURRENT - Request creation exists, approval endpoint missing
-@router.post("/encashment-request")
-async def create_encashment_request(...):
-    encashment = {..., "status": "pending", ...}
-    # No corresponding /approve-encashment endpoint!
-```
-
-**Risk Level:** High  
-**Impact:** Encashment requests remain in limbo; no formal approval workflow exists for HR to process them.
+### ~~3.2 Leave Encashment Request Processing~~ ✅ FIXED
+**Status:** RESOLVED  
+**Fix Applied:** Created complete approval workflow:
+- `GET /encashment-requests` - List requests
+- `POST /encashment-requests/{id}/approve` - HR Admin approves, links to payroll
+- `POST /encashment-requests/{id}/reject` - HR Admin rejects with reason
+- `POST /encashment-requests/{id}/withdraw` - Owner can withdraw pending request
 
 ---
 
