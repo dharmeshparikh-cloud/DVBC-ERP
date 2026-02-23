@@ -13,7 +13,43 @@
 
 ## Completed Work - December 2025
 
-### Phase 43: Stats Dashboard Security Audit & RBAC Migration - December 2025 ✅ (Latest)
+### Phase 44: Dashboard Architecture Cleanup & Consolidation - December 2025 ✅ (Latest)
+
+**Dashboard Audit Completed:**
+- Identified 13 dashboard components, 4 orphaned/legacy files
+- Documented all routing conditions and entry points
+- Found duplicate sales dashboards causing inconsistencies
+
+**Actions Taken:**
+
+| Action | Details |
+|--------|---------|
+| RBAC Widget Added | ConsultingDashboard, HRDashboard, ConsultantDashboard |
+| Sales Dashboard Consolidated | Removed SalesDashboardEnhanced from default routing |
+| Dashboard.js Simplified | Removed redundant domain-based routing |
+| Dead Code Identified | HRPortalDashboard.js, DashboardLayoutA.js (~27KB) |
+
+**Canonical Dashboard Structure:**
+- `admin` role → `AdminDashboard` (Business Overview)
+- `consultant` role → `ConsultantDashboard`
+- Sales roles → `SalesDashboard`
+- HR roles → `HRDashboard`
+- Consulting roles → `ConsultingDashboard`
+- Others → `Dashboard` (generic)
+
+**Files Modified:**
+- `/app/frontend/src/App.js` - Consolidated sales routing
+- `/app/frontend/src/pages/Dashboard.js` - Removed domain routing
+- `/app/frontend/src/pages/ConsultingDashboard.js` - Added RBAC widget
+- `/app/frontend/src/pages/HRDashboard.js` - Added RBAC widget
+- `/app/frontend/src/pages/ConsultantDashboard.js` - Added RBAC widget
+
+**Documentation Created:**
+- `/app/memory/ADMIN_DASHBOARD_AUDIT.md`
+
+---
+
+### Phase 43: Stats Dashboard Security Audit & RBAC Migration - December 2025 ✅
 
 **Security Audit Completed:**
 - Full audit of `/api/stats/dashboard` and related endpoints
