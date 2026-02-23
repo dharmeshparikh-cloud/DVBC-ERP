@@ -13,7 +13,38 @@
 
 ## Completed Work - February 2026
 
-### Phase 38: Access Control Fixes & E2E Kickoff Flow Testing - February 23, 2026 ✅ (Latest)
+### Phase 39: Sales Funnel P0 Bug Fixes - February 23, 2026 ✅ (Latest)
+
+**Bug 1 - Record Meeting Button URL (P0):**
+- ✅ Fixed `handleContinue()` in SalesFunnelOnboarding.js
+- ✅ Changed step ID checks from `'meeting'` to `'record_meeting'`
+- ✅ Changed step ID checks from `'pricing'` to `'pricing_plan'`
+- ✅ Changed step ID checks from `'sow'` to `'scope_of_work'`
+- ✅ Button now correctly navigates to `/sales-funnel/meeting/record?leadId=<id>`
+
+**Bug 2 - Lead Status Auto-Update (P0):**
+- ✅ Added FUNNEL_TO_STATUS_MAP in `get_lead_funnel_progress()` backend function
+- ✅ Automatically updates lead status based on furthest completed funnel step:
+  - `lead_capture` → `new`
+  - `record_meeting` → `contacted`
+  - `pricing_plan`, `scope_of_work` → `qualified`
+  - `quotation` → `proposal`
+  - `agreement`, `record_payment`, `kickoff_request` → `agreement`
+  - `project_created` → `closed`
+- ✅ Won't override manually set `won`, `lost`, `closed_won`, `closed_lost` statuses
+
+**Files Modified:**
+- `/app/frontend/src/pages/SalesFunnelOnboarding.js`
+- `/app/backend/routers/leads.py`
+
+**Testing Results:**
+- 100% backend tests passed (6/6)
+- 100% frontend UI verification passed
+- Test lead (Dharmesh Parikh) status auto-updated from `new` to `contacted`
+
+---
+
+### Phase 38: Access Control Fixes & E2E Kickoff Flow Testing - February 23, 2026 ✅
 
 **Agreement Workflow Fixed:**
 ```
