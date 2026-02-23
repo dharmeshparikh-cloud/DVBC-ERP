@@ -372,10 +372,12 @@ def kickoff_sent_email(
     key_commitments: List[str],
     salesperson_name: str,
     approver_name: str,
+    client_email: str,
     app_url: str
 ) -> Dict[str, str]:
     """
-    Email template for when kickoff request is sent for approval
+    Email template for when kickoff request is sent for approval.
+    Recipients: Lead Owner, Manager, Sales Head, Senior Manager, Principal Consultant, Client
     """
     formatted_value = f"{currency} {contract_value:,.2f}"
     
@@ -388,7 +390,8 @@ def kickoff_sent_email(
         {"label": "Contract Value", "value": formatted_value},
         {"label": "Meetings Held", "value": f"{meetings_count} meeting(s)"},
         {"label": "Requested By", "value": salesperson_name},
-        {"label": "Pending Approval From", "value": approver_name}
+        {"label": "Pending Approval From", "value": approver_name},
+        {"label": "Client Email", "value": client_email or "N/A"}
     ]
     
     content = f"""
@@ -419,7 +422,8 @@ def kickoff_sent_email(
     return {
         "subject": f"🚀 Kickoff Request Sent: {project_name} - {company} (Pending Approval)",
         "html": html,
-        "plain": f"Kickoff request submitted for {company}.\n\nProject: {project_name}\nAwaiting approval from: {approver_name}"
+        "plain": f"Kickoff request submitted for {company}.\n\nProject: {project_name}\nAwaiting approval from: {approver_name}",
+        "client_email": client_email
     }
 
 
@@ -436,12 +440,16 @@ def kickoff_accepted_email(
     approved_by: str,
     approval_date: str,
     salesperson_name: str,
+    client_email: str,
     app_url: str
 ) -> Dict[str, str]:
     """
-    Email template for when kickoff is accepted/approved
+    Email template for when kickoff is accepted/approved.
+    Recipients: Lead Owner, Manager, Sales Head, Senior Manager, Principal Consultant, Client
+    Includes edit date option link.
     """
     formatted_value = f"{currency} {contract_value:,.2f}"
+    edit_date_url = f"{app_url}/projects/{project_id}?action=edit-date"
     
     details = [
         {"label": "Client", "value": f"{lead_name} ({company})"},
@@ -453,7 +461,8 @@ def kickoff_accepted_email(
         {"label": "Contract Value", "value": formatted_value},
         {"label": "Approved By", "value": approved_by},
         {"label": "Approval Date", "value": approval_date},
-        {"label": "Sales Owner", "value": salesperson_name}
+        {"label": "Sales Owner", "value": salesperson_name},
+        {"label": "Client Email", "value": client_email or "N/A"}
     ]
     
     content = f"""
@@ -467,6 +476,14 @@ def kickoff_accepted_email(
             <p style="margin: 8px 0 0 0; color: #047857; font-size: 14px;">
                 The project has been created and the PM has been notified.
             </p>
+        </div>
+        
+        <!-- Edit Date Option -->
+        <div style="margin-top: 20px; padding: 15px; background-color: #fef3c7; border-radius: 8px; text-align: center;">
+            <p style="margin: 0 0 10px 0; color: #92400e; font-size: 13px;">Need to adjust the project timeline?</p>
+            <a href="{edit_date_url}" style="display: inline-block; background-color: #f59e0b; color: white; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                ✏️ Edit Start Date
+            </a>
         </div>
         
         <div style="margin-top: 20px; padding: 15px; background-color: #eff6ff; border-radius: 8px;">
