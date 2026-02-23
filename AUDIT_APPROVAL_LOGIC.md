@@ -270,28 +270,14 @@ if owner_id != current_user.id and current_user.role != "admin":
 
 ## 7. Approval Actions Exposed to Unauthorized Roles
 
-### 7.1 Travel Reimbursement Approval - Overly Broad Access
-**File:** `travel.py`, Lines 356-384  
-**Issue:** `APPROVAL_ROLES` includes roles that may not be appropriate for financial approvals
-
-```python
-if current_user.role not in APPROVAL_ROLES:
-    raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can approve")
-```
-
-**APPROVAL_ROLES Definition (deps.py):**
-```python
-APPROVAL_ROLES = ["admin", "hr_manager", "principal_consultant", "senior_consultant", 
-                  "sr_manager", "sales_manager"]
-```
-
-**Issue:** `sales_manager` and `sr_manager` can approve travel reimbursements, which may not be intentional for financial controls.
-
-**Risk Level:** Medium
+### ~~7.1 Travel Reimbursement Approval - Overly Broad Access~~ ✅ FIXED
+**Status:** RESOLVED  
+**Fix Applied:** Changed from `APPROVAL_ROLES` to `HR_ROLES + HR_ADMIN_ROLES + ADMIN_ROLES` only.  
+Sales managers and other non-HR roles can no longer approve travel reimbursements.
 
 ---
 
-### 7.2 Expense Pending Approvals View - Data Leakage
+### ~~7.2 Expense Pending Approvals View - Data Leakage~~ (Unchanged - Review Needed)
 **File:** `expenses.py`, Lines 97-134  
 **Issue:** The `is_manager` check uses `APPROVAL_ROLES` which may expose expense data to inappropriate roles
 
