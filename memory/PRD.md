@@ -13,7 +13,7 @@
 
 ## Completed Work - February 2026
 
-### Phase 39: Sales Funnel P0 Bug Fixes - February 23, 2026 ✅ (Latest)
+### Phase 39: Sales Funnel P0 Bug Fixes & Progress Indicator Enhancement - February 23, 2026 ✅ (Latest)
 
 **Bug 1 - Record Meeting Button URL (P0):**
 - ✅ Fixed `handleContinue()` in SalesFunnelOnboarding.js
@@ -33,14 +33,26 @@
   - `project_created` → `closed`
 - ✅ Won't override manually set `won`, `lost`, `closed_won`, `closed_lost` statuses
 
+**Enhancement - Visual Progress Indicators on Leads List:**
+- ✅ Added new `GET /api/leads/progress/bulk` endpoint for efficient batch progress loading
+- ✅ Created `FunnelProgressIndicator` component with:
+  - Color-coded progress bar (orange→amber→teal→cyan→blue→purple→emerald)
+  - Stage label showing current funnel position
+  - Completed steps count (e.g., "2/9")
+  - Hover tooltip showing all steps with checkmarks for completed ones
+  - Click-to-navigate to Sales Funnel page
+- ✅ Updated both List View and Card View on Leads page
+- ✅ Added TooltipProvider for interactive progress details
+
 **Files Modified:**
 - `/app/frontend/src/pages/SalesFunnelOnboarding.js`
+- `/app/frontend/src/pages/Leads.js`
 - `/app/backend/routers/leads.py`
 
 **Testing Results:**
 - 100% backend tests passed (6/6)
 - 100% frontend UI verification passed
-- Test lead (Dharmesh Parikh) status auto-updated from `new` to `contacted`
+- Visual progress indicator working in both list and card views
 
 ---
 
