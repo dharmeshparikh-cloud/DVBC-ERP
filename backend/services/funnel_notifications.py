@@ -408,7 +408,7 @@ def kickoff_sent_email(
     project_name: str,
     project_type: str,
     start_date: str,
-    assigned_pm: str,
+    assigned_consultant: str,
     contract_value: float,
     currency: str,
     meetings_count: int,
@@ -420,7 +420,8 @@ def kickoff_sent_email(
 ) -> Dict[str, str]:
     """
     Email template for when kickoff request is sent for approval.
-    Recipients: Lead Owner, Manager, Sales Head, Senior Manager, Principal Consultant, Client
+    Recipients: Lead Owner, Manager, Sales Head, Senior Manager, Senior Consultant, Principal Consultant, Client
+    Approvers: Senior Consultant OR Principal Consultant (NOT PM)
     """
     formatted_value = f"{currency} {contract_value:,.2f}"
     
@@ -429,7 +430,7 @@ def kickoff_sent_email(
         {"label": "Project Name", "value": project_name},
         {"label": "Project Type", "value": project_type},
         {"label": "Proposed Start", "value": start_date},
-        {"label": "Assigned PM", "value": assigned_pm},
+        {"label": "Assigned Consultant", "value": assigned_consultant},
         {"label": "Contract Value", "value": formatted_value},
         {"label": "Meetings Held", "value": f"{meetings_count} meeting(s)"},
         {"label": "Requested By", "value": salesperson_name},
