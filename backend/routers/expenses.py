@@ -846,11 +846,20 @@ async def approve_expense_with_modification(expense_id: str, data: dict, current
     """
     Approve expense with modified amount.
     HR/Admin can adjust the approved amount (partial approval).
+    
+    ACCESS: Only HR or Admin can approve expenses with modifications.
     """
     db = get_db()
     
-    if current_user.role not in APPROVAL_ROLES:
-        raise HTTPException(status_code=403, detail="Not authorized to approve expenses")
+    # Use RBAC service for role checks
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    allowed_roles = list(set(hr_roles + hr_admin_roles + admin_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR or Admin can approve expenses")
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
     if not expense:
@@ -860,8 +869,8 @@ async def approve_expense_with_modification(expense_id: str, data: dict, current
     if current_status not in ["pending", "hr_approved"]:
         raise HTTPException(status_code=400, detail=f"Expense cannot be approved in '{current_status}' status")
     
-    is_hr = current_user.role in HR_ROLES
-    is_admin = current_user.role == "admin"
+    is_hr = has_role(current_user.role, hr_roles)
+    is_admin = has_role(current_user.role, admin_roles)
     
     # Get modification details
     approved_amount = data.get("approved_amount")
