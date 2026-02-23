@@ -464,8 +464,9 @@ async def recalculate_project_statuses(
     """
     db = get_db()
     
-    # Only admin/PM can trigger recalculation
-    if current_user.role not in ADMIN_ROLES + PROJECT_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    project_roles = get_role_group("PROJECT_ROLES", fail_closed=True)
+    if not project_roles or not has_role(current_user.role, project_roles):
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Get all non-completed projects
