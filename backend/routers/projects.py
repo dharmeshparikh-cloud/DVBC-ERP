@@ -7,7 +7,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
 from .models import Project, ProjectCreate, User, UserRole
-from .deps import get_db
+from .deps import get_db, get_role_group, has_role
 from .auth import get_current_user
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
@@ -17,8 +17,11 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 async def create_project(project_create: ProjectCreate, current_user: User = Depends(get_current_user)):
     """Create a new project."""
     db = get_db()
-    if current_user.role == UserRole.MANAGER:
-        raise HTTPException(status_code=403, detail="Managers can only view and download")
+    
+    # RBAC Migration: Check if manager-only role (view-only)
+    project_roles = get_role_group("PROJECT_ROLES", fail_closed=True)
+    if not project_roles or not has_role(current_user.role, project_roles):
+        raise HTTPException(status_code=403, detail="Only project team can create projects")
     
     project_dict = project_create.model_dump()
     project = Project(**project_dict, created_by=current_user.id)
