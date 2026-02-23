@@ -358,10 +358,23 @@ async def approve_travel_reimbursement(
     travel_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Approve a travel reimbursement (HR/Admin only)"""
+    """
+    Approve a travel reimbursement.
+    
+    ACCESS: Only HR roles (HR Manager, HR Admin) or Admin can approve travel reimbursements.
+    Sales managers and other non-HR roles are NOT authorized for financial approvals.
+    """
     db = get_db()
-    if current_user.role not in APPROVAL_ROLES:
-        raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can approve")
+    
+    # RBAC: Use HR-specific roles for travel approval (financial control)
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    allowed_roles = list(set(hr_roles + hr_admin_roles + admin_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR or Admin can approve travel reimbursements")
     
     record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
     if not record:
@@ -375,6 +388,7 @@ async def approve_travel_reimbursement(
         {"$set": {
             "status": "approved",
             "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
             "approved_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
@@ -389,10 +403,22 @@ async def reject_travel_reimbursement(
     data: dict = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Reject a travel reimbursement (HR/Admin only)"""
+    """
+    Reject a travel reimbursement.
+    
+    ACCESS: Only HR roles (HR Manager, HR Admin) or Admin can reject travel reimbursements.
+    """
     db = get_db()
-    if current_user.role not in APPROVAL_ROLES:
-        raise HTTPException(status_code=403, detail="Only HR/Admin/Manager can reject")
+    
+    # RBAC: Use HR-specific roles for travel rejection (financial control)
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    allowed_roles = list(set(hr_roles + hr_admin_roles + admin_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR or Admin can reject travel reimbursements")
     
     record = await db.travel_reimbursements.find_one({"id": travel_id}, {"_id": 0})
     if not record:
@@ -404,6 +430,7 @@ async def reject_travel_reimbursement(
             "status": "rejected",
             "rejection_reason": data.get("reason", "Rejected") if data else "Rejected",
             "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
             "rejected_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
