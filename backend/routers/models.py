@@ -381,15 +381,16 @@ class PerformanceReviewCreate(BaseModel):
 
 class KickoffRequest(BaseModel):
     """Request from Sales team for project kickoff - Requires DUAL APPROVAL:
-    1. Principal Consultant / Senior Consultant approval
-    2. Client approval
-    Only when BOTH approve, consultant is assigned to project."""
+    1. Principal Consultant approval (ONLY - not Senior Consultant)
+    2. Client approval (via email link)
+    Only when BOTH approve, project is created and consultant can be assigned."""
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     agreement_id: str
     lead_id: Optional[str] = None
     client_id: Optional[str] = None
     client_name: str
+    client_email: Optional[str] = None
     project_name: str
     project_type: str = "mixed"
     total_meetings: int = 0
@@ -397,31 +398,82 @@ class KickoffRequest(BaseModel):
     project_tenure_months: int = 12
     project_value: Optional[float] = None
     expected_start_date: Optional[datetime] = None
-    assigned_pm_id: Optional[str] = None  # Will be the Senior/Principal Consultant
+    confirmed_start_date: Optional[datetime] = None  # Client-confirmed start date
+    assigned_pm_id: Optional[str] = None
     assigned_pm_name: Optional[str] = None
-    status: str = "pending"  # pending, consultant_approved, client_approved, approved, rejected, returned
+    # Status: pending → internal_approved → approved → converted
+    status: str = "pending"
     notes: Optional[str] = None
     requested_by: str
     requested_by_name: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    # Dual approval tracking
-    consultant_approved: bool = False
-    consultant_approved_by: Optional[str] = None
-    consultant_approved_by_name: Optional[str] = None
-    consultant_approved_at: Optional[datetime] = None
+    # Internal Approval (Principal Consultant ONLY)
+    internal_approved: bool = False
+    internal_approved_by: Optional[str] = None
+    internal_approved_by_name: Optional[str] = None
+    internal_approved_at: Optional[datetime] = None
+    # Client Approval
     client_approved: bool = False
-    client_approved_by: Optional[str] = None  # Client name or email
+    client_approved_by: Optional[str] = None  # Client name
     client_approved_at: Optional[datetime] = None
-    client_approval_token: Optional[str] = None  # Token for client email approval link
-    # Final approval
+    client_approval_token: Optional[str] = None  # Secure token for email link
+    # Project linkage
+    project_id: Optional[str] = None  # Format: PROJ-YYYYMMDD-XXXX
     accepted_at: Optional[datetime] = None
-    project_id: Optional[str] = None
+    # Return handling
     return_reason: Optional[str] = None
     return_notes: Optional[str] = None
     returned_by: Optional[str] = None
     returned_by_name: Optional[str] = None
     returned_at: Optional[datetime] = None
+
+
+class ClientUser(BaseModel):
+    """Client user account for NETRA ERP access."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    client_id: str  # 5-digit format: 00098, 00099, etc.
+    email: str
+    hashed_password: str
+    full_name: str
+    company_name: str
+    phone: Optional[str] = None
+    # Linkages
+    lead_id: Optional[str] = None
+    project_ids: List[str] = Field(default_factory=list)
+    agreement_ids: List[str] = Field(default_factory=list)
+    # Status
+    is_active: bool = True
+    must_change_password: bool = True
+    role: str = "client"
+    # Timestamps
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_login: Optional[datetime] = None
+    password_changed_at: Optional[datetime] = None
+
+
+class ProjectAssignment(BaseModel):
+    """Consultant assignment to project with history tracking."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    consultant_id: str
+    consultant_name: str
+    consultant_role: str  # lead_consultant, lean_consultant, support_consultant
+    # Assignment details
+    assigned_by: str
+    assigned_by_name: str
+    assigned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Status tracking
+    is_active: bool = True
+    removed_at: Optional[datetime] = None
+    removed_by: Optional[str] = None
+    removed_by_name: Optional[str] = None
+    removal_reason: Optional[str] = None
+    # Access control
+    can_access: bool = True  # False when reassigned, but history preserved
 
 
 class KickoffRequestCreate(BaseModel):
