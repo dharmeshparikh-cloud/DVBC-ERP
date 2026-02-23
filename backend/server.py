@@ -52,6 +52,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# GZip compression for responses > 1KB
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # Database client (initialized on startup)
 client = None
 db = None
