@@ -457,7 +457,11 @@ async def get_enhanced_sales_dashboard_stats(
 async def get_consulting_dashboard_stats(current_user: User = Depends(get_current_user)):
     """Consulting-specific dashboard stats - delivery, efficiency, workload"""
     db = get_db()
-    is_pm = current_user.role in ['admin', 'principal_consultant', 'senior_consultant', 'manager']
+    
+    # RBAC Migration: Use database-driven role check
+    senior_consulting_roles = get_role_group("SENIOR_CONSULTING_ROLES", fail_closed=False) or ['admin', 'principal_consultant', 'senior_consultant']
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=False) or ['admin', 'manager']
+    is_pm = has_role(current_user.role, senior_consulting_roles) or has_role(current_user.role, manager_roles)
     
     # Projects stats
     if is_pm:
