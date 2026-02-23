@@ -11,6 +11,52 @@
 
 ---
 
+## Completed Work - December 2025
+
+### Phase 43: Stats Dashboard Security Audit & RBAC Migration - December 2025 ✅ (Latest)
+
+**Security Audit Completed:**
+- Full audit of `/api/stats/dashboard` and related endpoints
+- Identified critical data leakage vulnerabilities
+- Fixed all legacy string-based role checks
+- Implemented proper role hierarchy and team filtering
+
+**Issues Fixed:**
+
+| Endpoint | Issue | Fix |
+|----------|-------|-----|
+| `/api/stats/dashboard` | Binary admin check only | Three-tier access (all data / team / own) |
+| `/api/stats/hr` | No authorization | Requires HR_ROLES or MANAGER_ROLES |
+| `/api/stats/consulting` | No authorization | Requires CONSULTING_ROLES or MANAGER_ROLES |
+| `/api/stats/sales` | Revenue leakage | Filtered by role and ownership |
+
+**New Features:**
+- Added `ALL_DATA_ACCESS_ROLES` group to RBAC service
+- Implemented team hierarchy filtering for managers
+- Added fail-closed authorization for sensitive stats
+
+**Frontend-Backend Permission Validation:**
+- Fixed `ManagerApprovals.js` to use `usePermissions()` context
+- Updated lead delete endpoint with proper RBAC check
+- Created comprehensive permission mismatch report
+
+**Files Modified:**
+- `/app/backend/routers/stats.py` - Full RBAC migration
+- `/app/backend/routers/rbac_service.py` - Added ALL_DATA_ACCESS_ROLES
+- `/app/backend/routers/leads.py` - Delete endpoint RBAC
+- `/app/frontend/src/pages/sales-funnel/ManagerApprovals.js` - Permission context
+
+**Documentation Created:**
+- `/app/memory/STATS_DASHBOARD_AUDIT.md`
+- `/app/memory/FRONTEND_BACKEND_PERMISSION_MATRIX.md`
+
+**Testing:**
+- ✅ 12/12 RBAC regression tests pass
+- ✅ All stats endpoints verified via curl
+- ✅ Role-based filtering confirmed
+
+---
+
 ## Completed Work - February 2026
 
 ### Phase 42: RBAC HR & Attendance Migration (Phase 2) - February 23, 2026 ✅ (Latest)
