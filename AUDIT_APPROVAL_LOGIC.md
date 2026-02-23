@@ -123,18 +123,13 @@ if current_user.role != "admin" and current_user.id != kickoff.get("requested_by
 
 ## 4. Broken or Incomplete Approval Flows
 
-### 4.1 Leave Encashment - Missing Approval Endpoint
-**Status:** BROKEN  
-**File:** `leave_policies.py`
-
-**Issue:** The `create_encashment_request` endpoint creates records with `status: "pending"`, but there is no corresponding approval endpoint. The `get_payroll_adjustments` endpoint queries for `status: "approved"` records that can never exist through proper workflow.
-
-**Flow Gap:**
-```
-[Employee] → Create Request (pending) → ??? → [Payroll Integration expects approved]
-```
-
-**Recommendation:** Create `/encashment-requests/{id}/approve` and `/reject` endpoints with HR_ADMIN_ROLES authorization.
+### ~~4.1 Leave Encashment - Missing Approval Endpoint~~ ✅ FIXED
+**Status:** RESOLVED  
+**Fix Applied:** Created complete encashment approval workflow with:
+- List, approve, reject, withdraw endpoints
+- Payroll integration on approval
+- Audit trail logging
+- Employee notifications
 
 ---
 
