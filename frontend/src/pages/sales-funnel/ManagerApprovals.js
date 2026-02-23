@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ArrowLeft, CheckCircle, XCircle, Clock, FileCheck, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
+import { usePermissions } from '../../contexts/PermissionContext';
 
 const ManagerApprovals = () => {
   const { user } = useContext(AuthContext);
