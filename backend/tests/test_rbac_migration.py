@@ -179,7 +179,7 @@ class TestKickoffApproval:
             pytest.skip("PC credentials not working")
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{API_URL}/kickoff/requests",
+                f"{API_URL}/kickoff-requests",
                 headers={"Authorization": f"Bearer {pc_token}"},
                 timeout=10.0
             )
@@ -192,7 +192,7 @@ class TestKickoffApproval:
             pytest.skip("Sales credentials not working")
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{API_URL}/kickoff/test-id/approve-internal",
+                f"{API_URL}/kickoff-requests/test-id/approve-internal",
                 headers={"Authorization": f"Bearer {sales_token}"},
                 timeout=10.0
             )
