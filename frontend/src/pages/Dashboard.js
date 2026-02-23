@@ -11,10 +11,8 @@ import { sanitizeDisplayText } from '../utils/sanitize';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
 
-// Import domain-specific dashboards
-import SalesDashboard from './SalesDashboard';
-import ConsultingDashboard from './ConsultingDashboard';
-import HRDashboard from './HRDashboard';
+// Note: Domain-specific dashboards (Sales, HR, Consulting) are now handled in App.js
+// This Dashboard.js serves as the generic/fallback dashboard
 
 // Helper to determine user's primary domain
 const getUserDomain = (user) => {
