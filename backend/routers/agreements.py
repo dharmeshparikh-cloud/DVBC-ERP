@@ -254,11 +254,12 @@ async def approve_agreement(agreement_id: str, current_user: User = Depends(get_
 
 @router.patch("/{agreement_id}/reject")
 async def reject_agreement(agreement_id: str, data: RejectionRequest, current_user: User = Depends(get_current_user)):
-    """Reject an agreement (manager only)"""
+    """Reject an agreement.
+    Access: Reporting managers (manager, sr_manager, sales_manager, principal_consultant, admin)"""
     db = get_db()
     
-    if current_user.role not in MANAGER_ROLES:
-        raise HTTPException(status_code=403, detail="Only managers can reject agreements")
+    if current_user.role not in AGREEMENT_APPROVE_ROLES:
+        raise HTTPException(status_code=403, detail="Only reporting managers can reject agreements")
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
     if not agreement:
