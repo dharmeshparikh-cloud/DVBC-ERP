@@ -11,7 +11,7 @@ import {
   MessageSquare, Clock, CheckCircle, AlertCircle,
   LogOut, ChevronRight, Phone, Mail, RefreshCw,
   Download, Eye, Users, TrendingUp, ClipboardList,
-  Home, Settings, Bell, Search, Menu, X
+  Home, Settings, Bell, Search, Menu, X, KeyRound
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
