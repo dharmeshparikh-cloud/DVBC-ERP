@@ -12,6 +12,7 @@ import { usePermissions } from '../../contexts/PermissionContext';
 
 const ManagerApprovals = () => {
   const { user } = useContext(AuthContext);
+  const { isManagerOrAbove, canApproveRequests } = usePermissions();
   const navigate = useNavigate();
   
   const [pendingApprovals, setPendingApprovals] = useState([]);
