@@ -971,8 +971,8 @@ const ApprovalsCenter = () => {
           </Card>
         )}
 
-        {/* Kickoff Request Approvals stat */}
-        {(isAdmin || user?.role === 'sr_manager' || user?.role === 'principal_consultant') && (
+        {/* Kickoff Request Approvals stat - Senior Consultant, Principal Consultant, Admin */}
+        {(isAdmin || user?.role === 'senior_consultant' || user?.role === 'principal_consultant') && (
           <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg`}>
             <CardContent className="p-2.5 md:p-4">
               <div className="flex items-center justify-between">
