@@ -248,11 +248,11 @@ const ClientPortal = () => {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 min-h-[calc(100vh-64px)]">
+        <main className="flex-1 p-4 lg:p-6 min-h-[calc(100vh-64px)] bg-black/[0.02]">
           {projectDetails ? (
             <div className="max-w-6xl mx-auto space-y-6">
               {/* Project Header Card */}
-              <Card className="border-zinc-200">
+              <Card className="border-black/10 bg-white shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div>
@@ -260,21 +260,21 @@ const ClientPortal = () => {
                         <Badge className={getStatusColor(projectDetails.status)}>
                           {projectDetails.status?.replace('_', ' ').toUpperCase()}
                         </Badge>
-                        <span className="text-xs text-zinc-500 font-mono">{projectDetails.id}</span>
+                        <span className="text-xs text-black/50 font-mono">{projectDetails.id}</span>
                       </div>
-                      <h1 className="text-xl font-bold text-zinc-800">{projectDetails.name}</h1>
-                      <p className="text-sm text-zinc-500 mt-1">{projectDetails.client_name}</p>
+                      <h1 className="text-xl font-bold text-black">{projectDetails.name}</h1>
+                      <p className="text-sm text-black/50 mt-1">{projectDetails.client_name}</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                      <div className="bg-zinc-50 px-4 py-2 rounded-lg border border-zinc-200">
-                        <p className="text-xs text-zinc-500">Contract Value</p>
+                      <div className="bg-black/5 px-4 py-2 rounded-lg border border-black/10">
+                        <p className="text-xs text-black/50">Contract Value</p>
                         <p className="text-lg font-bold text-emerald-600">
                           ₹{(projectDetails.project_value || 0).toLocaleString()}
                         </p>
                       </div>
-                      <div className="bg-zinc-50 px-4 py-2 rounded-lg border border-zinc-200">
-                        <p className="text-xs text-zinc-500">Duration</p>
-                        <p className="text-lg font-bold text-zinc-800">
+                      <div className="bg-black/5 px-4 py-2 rounded-lg border border-black/10">
+                        <p className="text-xs text-black/50">Duration</p>
+                        <p className="text-lg font-bold text-black">
                           {projectDetails.tenure_months || 12} months
                         </p>
                       </div>
@@ -284,11 +284,11 @@ const ClientPortal = () => {
                   {/* Progress Bar */}
                   <div className="mt-6">
                     <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-zinc-600">Project Progress</span>
-                      <span className="font-medium text-zinc-800">{Math.round(calculateProgress(projectDetails))}%</span>
+                      <span className="text-black/60">Project Progress</span>
+                      <span className="font-medium text-black">{Math.round(calculateProgress(projectDetails))}%</span>
                     </div>
                     <Progress value={calculateProgress(projectDetails)} className="h-2" />
-                    <div className="flex justify-between text-xs text-zinc-500 mt-2">
+                    <div className="flex justify-between text-xs text-black/50 mt-2">
                       <span>{projectDetails.start_date?.split('T')[0] || 'TBD'}</span>
                       <span>{projectDetails.end_date?.split('T')[0] || 'TBD'}</span>
                     </div>
@@ -298,15 +298,15 @@ const ClientPortal = () => {
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="border-zinc-200">
+                <Card className="border-black/10 bg-white shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
                         <Users className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Consultants</p>
-                        <p className="text-xl font-bold text-zinc-800">
+                        <p className="text-xs text-black/50">Consultants</p>
+                        <p className="text-xl font-bold text-black">
                           {projectDetails.active_consultants?.length || 0}
                         </p>
                       </div>
@@ -314,15 +314,15 @@ const ClientPortal = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-zinc-200">
+                <Card className="border-black/10 bg-white shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
                         <ClipboardList className="w-5 h-5 text-purple-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Meetings</p>
-                        <p className="text-xl font-bold text-zinc-800">
+                        <p className="text-xs text-black/50">Meetings</p>
+                        <p className="text-xl font-bold text-black">
                           {projectDetails.meetings?.length || 0}
                         </p>
                       </div>
@@ -330,15 +330,15 @@ const ClientPortal = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-zinc-200">
+                <Card className="border-black/10 bg-white shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
                         <CreditCard className="w-5 h-5 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Payments</p>
-                        <p className="text-xl font-bold text-zinc-800">
+                        <p className="text-xs text-black/50">Payments</p>
+                        <p className="text-xl font-bold text-black">
                           {projectDetails.payments?.length || 0}
                         </p>
                       </div>
@@ -346,15 +346,15 @@ const ClientPortal = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-zinc-200">
+                <Card className="border-black/10 bg-white shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
                         <FileText className="w-5 h-5 text-orange-600" />
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Documents</p>
-                        <p className="text-xl font-bold text-zinc-800">
+                        <p className="text-xs text-black/50">Documents</p>
+                        <p className="text-xl font-bold text-black">
                           {(projectDetails.documents?.length || 0) + (projectDetails.agreement ? 1 : 0)}
                         </p>
                       </div>
@@ -366,10 +366,10 @@ const ClientPortal = () => {
               {/* Two Column Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Assigned Consultant */}
-                <Card className="border-zinc-200">
+                <Card className="border-black/10 bg-white shadow-sm">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2 text-zinc-800">
-                      <Users className="w-5 h-5 text-amber-600" />
+                    <CardTitle className="text-base flex items-center gap-2 text-black">
+                      <Users className="w-5 h-5 text-black/60" />
                       Assigned Consultant
                     </CardTitle>
                   </CardHeader>
@@ -377,15 +377,15 @@ const ClientPortal = () => {
                     {projectDetails.active_consultants?.length > 0 ? (
                       <div className="space-y-3">
                         {projectDetails.active_consultants.map((assignment, idx) => (
-                          <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
-                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                              <User className="w-5 h-5 text-amber-600" />
+                          <div key={idx} className="flex items-center gap-3 p-3 bg-black/5 rounded-lg border border-black/5">
+                            <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center">
+                              <User className="w-5 h-5 text-black/60" />
                             </div>
                             <div className="flex-1">
-                              <p className="font-medium text-zinc-800">
+                              <p className="font-medium text-black">
                                 {assignment.consultant_details?.full_name || assignment.consultant_name}
                               </p>
-                              <p className="text-xs text-zinc-500">
+                              <p className="text-xs text-black/50">
                                 {assignment.consultant_role?.replace('_', ' ').toUpperCase()}
                               </p>
                             </div>
@@ -394,7 +394,7 @@ const ClientPortal = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full mt-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+                          className="w-full mt-2 border-black/20 text-black/70 hover:bg-black/5"
                           onClick={handleConsultantChangeRequest}
                           data-testid="change-consultant-btn"
                         >
@@ -403,7 +403,7 @@ const ClientPortal = () => {
                         </Button>
                       </div>
                     ) : (
-                      <div className="text-center py-6 text-zinc-500">
+                      <div className="text-center py-6 text-black/50">
                         <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">Consultant will be assigned soon</p>
                       </div>
@@ -412,24 +412,24 @@ const ClientPortal = () => {
                 </Card>
 
                 {/* Reporting Manager */}
-                <Card className="border-zinc-200">
+                <Card className="border-black/10 bg-white shadow-sm">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2 text-zinc-800">
-                      <Building2 className="w-5 h-5 text-blue-600" />
+                    <CardTitle className="text-base flex items-center gap-2 text-black">
+                      <Building2 className="w-5 h-5 text-black/60" />
                       Reporting Manager
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {projectDetails.reporting_manager ? (
-                      <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <User className="w-5 h-5 text-blue-600" />
+                      <div className="flex items-center gap-3 p-3 bg-black/5 rounded-lg border border-black/5">
+                        <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center">
+                          <User className="w-5 h-5 text-black/60" />
                         </div>
                         <div>
-                          <p className="font-medium text-zinc-800">
+                          <p className="font-medium text-black">
                             {projectDetails.reporting_manager.full_name}
                           </p>
-                          <p className="text-xs text-zinc-500">
+                          <p className="text-xs text-black/50">
                             {projectDetails.reporting_manager.role?.replace('_', ' ').toUpperCase()}
                           </p>
                           {projectDetails.reporting_manager.email && (
@@ -444,7 +444,7 @@ const ClientPortal = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-6 text-zinc-500">
+                      <div className="text-center py-6 text-black/50">
                         <Building2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">Manager details not available</p>
                       </div>
@@ -454,13 +454,13 @@ const ClientPortal = () => {
               </div>
 
               {/* Meetings / MOM */}
-              <Card className="border-zinc-200">
+              <Card className="border-black/10 bg-white shadow-sm">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2 text-zinc-800">
-                    <ClipboardList className="w-5 h-5 text-purple-600" />
+                  <CardTitle className="text-base flex items-center gap-2 text-black">
+                    <ClipboardList className="w-5 h-5 text-black/60" />
                     Meeting Notes (MOM)
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-black/50">
                     Minutes of meetings recorded by your consultant
                   </CardDescription>
                 </CardHeader>
@@ -468,25 +468,25 @@ const ClientPortal = () => {
                   {projectDetails.meetings?.length > 0 ? (
                     <div className="space-y-3 max-h-80 overflow-y-auto">
                       {projectDetails.meetings.map((meeting, idx) => (
-                        <div key={idx} className="p-4 bg-zinc-50 rounded-lg border border-zinc-100">
+                        <div key={idx} className="p-4 bg-black/5 rounded-lg border border-black/5">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="font-medium text-zinc-800">
+                              <p className="font-medium text-black">
                                 {meeting.title || meeting.meeting_type || 'Meeting'}
                               </p>
-                              <p className="text-xs text-zinc-500 flex items-center gap-1 mt-1">
+                              <p className="text-xs text-black/50 flex items-center gap-1 mt-1">
                                 <Calendar className="w-3 h-3" />
                                 {meeting.date?.split('T')[0]}
                               </p>
                             </div>
-                            <Badge variant="outline" className="text-xs border-zinc-300">
+                            <Badge variant="outline" className="text-xs border-black/20">
                               {meeting.status || 'completed'}
                             </Badge>
                           </div>
                           {meeting.mom && (
-                            <div className="mt-3 p-3 bg-white rounded border border-zinc-200">
-                              <p className="text-xs font-medium text-zinc-500 mb-1">Meeting Notes:</p>
-                              <p className="text-sm text-zinc-700 whitespace-pre-wrap">
+                            <div className="mt-3 p-3 bg-white rounded border border-black/10">
+                              <p className="text-xs font-medium text-black/50 mb-1">Meeting Notes:</p>
+                              <p className="text-sm text-black/70 whitespace-pre-wrap">
                                 {meeting.mom.length > 300 ? `${meeting.mom.substring(0, 300)}...` : meeting.mom}
                               </p>
                             </div>
@@ -495,7 +495,7 @@ const ClientPortal = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-zinc-500">
+                    <div className="text-center py-8 text-black/50">
                       <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">No meetings recorded yet</p>
                     </div>
@@ -506,10 +506,10 @@ const ClientPortal = () => {
               {/* Documents & Payments Row */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Documents */}
-                <Card className="border-zinc-200">
+                <Card className="border-black/10 bg-white shadow-sm">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2 text-zinc-800">
-                      <FileText className="w-5 h-5 text-orange-600" />
+                    <CardTitle className="text-base flex items-center gap-2 text-black">
+                      <FileText className="w-5 h-5 text-black/60" />
                       Documents
                     </CardTitle>
                   </CardHeader>
@@ -517,37 +517,37 @@ const ClientPortal = () => {
                     {projectDetails.documents?.length > 0 || projectDetails.agreement ? (
                       <div className="space-y-2">
                         {projectDetails.agreement && (
-                          <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+                          <div className="flex items-center justify-between p-3 bg-black/5 rounded-lg border border-black/5">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded bg-orange-100 flex items-center justify-center">
+                              <div className="w-8 h-8 rounded bg-orange-50 flex items-center justify-center">
                                 <FileText className="w-4 h-4 text-orange-600" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-zinc-800">Service Agreement</p>
-                                <p className="text-xs text-zinc-500">{projectDetails.agreement.agreement_number}</p>
+                                <p className="text-sm font-medium text-black">Service Agreement</p>
+                                <p className="text-xs text-black/50">{projectDetails.agreement.agreement_number}</p>
                               </div>
                             </div>
-                            <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-800">
+                            <Button variant="ghost" size="sm" className="text-black/50 hover:text-black">
                               <Eye className="w-4 h-4" />
                             </Button>
                           </div>
                         )}
                         {projectDetails.documents?.map((doc, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+                          <div key={idx} className="flex items-center justify-between p-3 bg-black/5 rounded-lg border border-black/5">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded bg-orange-100 flex items-center justify-center">
+                              <div className="w-8 h-8 rounded bg-orange-50 flex items-center justify-center">
                                 <FileText className="w-4 h-4 text-orange-600" />
                               </div>
-                              <span className="text-sm font-medium text-zinc-800">{doc.name}</span>
+                              <span className="text-sm font-medium text-black">{doc.name}</span>
                             </div>
-                            <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-800">
+                            <Button variant="ghost" size="sm" className="text-black/50 hover:text-black">
                               <Download className="w-4 h-4" />
                             </Button>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-6 text-zinc-500">
+                      <div className="text-center py-6 text-black/50">
                         <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No documents available</p>
                       </div>
@@ -556,25 +556,25 @@ const ClientPortal = () => {
                 </Card>
 
                 {/* Payments */}
-                <Card className="border-zinc-200">
+                <Card className="border-black/10 bg-white shadow-sm">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2 text-zinc-800">
-                      <CreditCard className="w-5 h-5 text-emerald-600" />
+                    <CardTitle className="text-base flex items-center gap-2 text-black">
+                      <CreditCard className="w-5 h-5 text-black/60" />
                       Payments
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {projectDetails.payments?.length > 0 && (
                       <div className="mb-4">
-                        <p className="text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wide">Payment History</p>
+                        <p className="text-xs font-medium text-black/50 mb-2 uppercase tracking-wide">Payment History</p>
                         <div className="space-y-2">
                           {projectDetails.payments.slice(0, 3).map((payment, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                               <div>
-                                <p className="text-sm font-medium text-zinc-800">
+                                <p className="text-sm font-medium text-black">
                                   ₹{(payment.amount || 0).toLocaleString()}
                                 </p>
-                                <p className="text-xs text-zinc-500">
+                                <p className="text-xs text-black/50">
                                   {payment.created_at?.split('T')[0]}
                                 </p>
                               </div>
@@ -587,15 +587,15 @@ const ClientPortal = () => {
                     
                     {projectDetails.upcoming_payments?.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wide">Upcoming</p>
+                        <p className="text-xs font-medium text-black/50 mb-2 uppercase tracking-wide">Upcoming</p>
                         <div className="space-y-2">
                           {projectDetails.upcoming_payments.map((payment, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
                               <div>
-                                <p className="text-sm font-medium text-zinc-800">
+                                <p className="text-sm font-medium text-black">
                                   ₹{(payment.amount || 0).toLocaleString()}
                                 </p>
-                                <p className="text-xs text-zinc-500">
+                                <p className="text-xs text-black/50">
                                   Due: {payment.due_date?.split('T')[0]}
                                 </p>
                               </div>
@@ -607,7 +607,7 @@ const ClientPortal = () => {
                     )}
                     
                     {!projectDetails.payments?.length && !projectDetails.upcoming_payments?.length && (
-                      <div className="text-center py-6 text-zinc-500">
+                      <div className="text-center py-6 text-black/50">
                         <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No payment records</p>
                       </div>
@@ -618,9 +618,9 @@ const ClientPortal = () => {
             </div>
           ) : (
             <div className="flex items-center justify-center h-[60vh]">
-              <Card className="p-8 text-center border-zinc-200">
-                <Building2 className="w-12 h-12 mx-auto mb-4 text-zinc-300" />
-                <p className="text-zinc-500">Select a project to view details</p>
+              <Card className="p-8 text-center border-black/10 bg-white">
+                <Building2 className="w-12 h-12 mx-auto mb-4 text-black/30" />
+                <p className="text-black/50">Select a project to view details</p>
               </Card>
             </div>
           )}
