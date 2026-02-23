@@ -390,25 +390,24 @@ if is_manager:
 | Risk Level | Count | Workflows |
 |------------|-------|-----------|
 | **Critical** | 0 | - |
-| **High** | 1 | Leave Encashment (missing approval endpoint) |
-| **Medium** | 3 | Quotation Finalization, Travel Auth Scope, Kickoff Resubmission |
-| **Low** | 11 | All others |
+| **High** | 0 | ~~Leave Encashment~~ ✅ FIXED |
+| **Medium** | 1 | Leave Request Approval (partial enforcement) |
+| **Low** | 14 | All others (including 3 fixed workflows) |
 
-### Critical Path Risks
+### ~~Critical Path Risks~~ (RESOLVED)
 
-1. **Leave Encashment Gap (HIGH)**
-   - Employees can request encashment
-   - No approval mechanism exists
-   - Payroll integration expects "approved" status
-   - **Business Impact:** Financial discrepancies
+1. ~~**Leave Encashment Gap (HIGH)**~~ ✅ FIXED
+   - Created full approval workflow with HR Admin authorization
+   - Payroll integration on approval
+   - Audit trail and notifications
 
-2. **Quotation Finalization (MEDIUM)**
-   - No manager oversight on price commitments
-   - **Business Impact:** Revenue risk
+2. ~~**Quotation Finalization (MEDIUM)**~~ ✅ FIXED
+   - Added Reporting Manager/Sales Manager/Admin authorization
+   - Creator cannot self-approve (separation of duties)
 
-3. **Travel Authorization Scope (MEDIUM)**
-   - Sales managers approving travel claims
-   - **Business Impact:** Segregation of duties violation
+3. ~~**Travel Authorization Scope (MEDIUM)**~~ ✅ FIXED
+   - Restricted to HR_ROLES and Admin only
+   - Sales managers removed from approvers
 
 ---
 
