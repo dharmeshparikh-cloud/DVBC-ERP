@@ -13,7 +13,34 @@
 
 ## Completed Work - February 2026
 
-### Phase 33: Sales Funnel Email Notifications - February 23, 2026 ✅ (Latest)
+### Phase 34: Email Templates Preview & Agreement Blocking - February 23, 2026 ✅ (Latest)
+
+**Email Template Previews:**
+- ✅ Added `/api/test/email-preview/{template_name}` - HTML preview endpoint
+- ✅ Added `/api/test/email-preview-json/{template_name}` - JSON summary endpoint  
+- ✅ All 5 templates with Indian test data (TCS, Priya Sharma, etc.)
+- ✅ Templates include D&V logo on light gray header
+- ✅ Agreement email includes: View, Download, Upload, Edit, Approve, Reject buttons
+- ✅ Kickoff Accepted email includes "Edit Start Date" option
+
+**Agreement Status Blocking:**
+- ✅ Modified `/api/leads/{id}/funnel-progress` to detect blocking
+- ✅ New fields: `is_blocked`, `blocked_reason`, `blocked_at_step`
+- ✅ Blocks progression to Payment, Kickoff, Complete if agreement is:
+  - `pending`, `draft`, `review`, or `rejected`
+- ✅ Frontend blocking banner with red warning
+- ✅ "Review Agreement" button for quick access
+- ✅ "Agreement Approval Required" disabled button on blocked steps
+- ✅ Toast messages when attempting to access blocked steps
+
+**Files Changed:**
+- `/app/backend/routers/leads.py` - Blocking logic
+- `/app/backend/routers/test_email_preview.py` - NEW preview endpoint
+- `/app/frontend/src/pages/SalesFunnelOnboarding.js` - Blocking UI
+
+---
+
+### Phase 33: Sales Funnel Email Notifications - February 23, 2026 ✅
 
 **HTML Email Notifications at Key Milestones:**
 - ✅ **MOM Filled** - When meeting with MOM is recorded
