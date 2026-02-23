@@ -367,7 +367,7 @@ const ApprovalsCenter = () => {
     }
   };
 
-  // Handle kickoff request approval/rejection (Admin only)
+  // Handle kickoff request approval/rejection (Senior Consultant, Principal Consultant, Admin)
   const handleKickoffAction = async (requestId, action) => {
     setActionLoading(true);
     try {
