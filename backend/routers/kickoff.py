@@ -726,33 +726,49 @@ async def accept_kickoff_request(
         }
         await db.notifications.insert_one(hr_notification)
     
+    # Get client email for notification
+    client_email = lead.get("email", "") if lead else ""
+    
     # Send HTML email notification in background
     async def send_kickoff_accepted_notification():
         try:
-            manager_emails = await get_sales_manager_emails(db)
-            if manager_emails:
-                email_data = kickoff_accepted_email(
-                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() if lead else "N/A",
-                    company=kickoff.get("client_name") or (lead.get("company") if lead else "Unknown"),
-                    project_name=kickoff.get("project_name"),
-                    project_id=project.id,
-                    project_type=kickoff.get("project_type", "Mixed"),
-                    start_date=kickoff_accepted_at.strftime("%Y-%m-%d"),
-                    assigned_pm=current_user.full_name,
-                    contract_value=kickoff.get("project_value") or 0,
-                    currency="INR",
-                    approved_by=current_user.full_name,
-                    approval_date=kickoff_accepted_at.strftime("%Y-%m-%d %H:%M"),
-                    salesperson_name=requester_name,
-                    app_url=APP_URL
+            # Get emails: Lead Owner, Manager, Sales Head, Senior Manager, Principal Consultant
+            team_emails = await get_kickoff_notification_emails(db, kickoff.get("requested_by"))
+            
+            email_data = kickoff_accepted_email(
+                lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() if lead else "N/A",
+                company=kickoff.get("client_name") or (lead.get("company") if lead else "Unknown"),
+                project_name=kickoff.get("project_name"),
+                project_id=project.id,
+                project_type=kickoff.get("project_type", "Mixed"),
+                start_date=kickoff_accepted_at.strftime("%Y-%m-%d"),
+                assigned_pm=current_user.full_name,
+                contract_value=kickoff.get("project_value") or 0,
+                currency="INR",
+                approved_by=current_user.full_name,
+                approval_date=kickoff_accepted_at.strftime("%Y-%m-%d %H:%M"),
+                salesperson_name=requester_name,
+                client_email=client_email,
+                app_url=APP_URL
+            )
+            
+            # Send to team
+            for email in team_emails:
+                await send_email(
+                    to_email=email,
+                    subject=email_data["subject"],
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
                 )
-                for email in manager_emails:
-                    await send_email(
-                        to_email=email,
-                        subject=email_data["subject"],
-                        html_content=email_data["html"],
-                        plain_content=email_data["plain"]
-                    )
+            
+            # Send to client
+            if client_email:
+                await send_email(
+                    to_email=client_email,
+                    subject=f"🎉 Project Approved - {kickoff.get('project_name')}!",
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
+                )
         except Exception as e:
             print(f"Failed to send kickoff accepted notification: {e}")
     
