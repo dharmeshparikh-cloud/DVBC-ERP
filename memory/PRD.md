@@ -650,21 +650,23 @@ pending → internal_approved → approved → converted
 - ✅ **Quotation Finalization Authorization** - Added Reporting Manager check
 - ✅ **Travel Approval Scope Restriction** - Limited to HR roles only
 
-### P1 - Features & Fixes
-1. **Complete RBAC Migration for Expenses** - Replace remaining hardcoded roles with `get_role_group()`
-2. **Add Audit Trail for Admin Overrides** - Log all admin interventions to audit_logs
-3. **Frontend React Query Migration** - Migrate remaining components to `useApi` hook
-4. **Custom Report Builder Backend**: Implement backend logic for generating reports
-5. **Client Dashboard Features**: Project progress, document access, payment history
+### P1 - Recently Completed
+- ✅ **RBAC Migration for Expenses** - Replaced all hardcoded role constants with `get_role_group()`
+- ✅ **Audit Trail for Admin/HR Actions** - Added logging for approve, reject, send-back actions
+
+### P1 - In Progress
+1. **Frontend React Query Migration** - Migrate remaining components to `useApi` hook
+2. **Custom Report Builder Backend**: Implement backend logic for generating reports
+3. **Client Dashboard Features**: Project progress, document access, payment history
 
 ### P2 - Lower Priority
-6. **DVBC Marketing Hub** - Marketing dashboard and campaigns
-7. **Consultant Incentive System** - Commission tracking
-8. **AI Chat & Voice** - OpenAI Whisper integration
-9. **Internal Chat System** - Team messaging
-10. **"Day 0" Onboarding Tour** - Interactive guide
-11. **Standardize Send Back vs Reject Semantics** - Consistent UX across modules
-12. **Refactor kickoff.py** - Break down 1500+ line file into smaller services
+4. **DVBC Marketing Hub** - Marketing dashboard and campaigns
+5. **Consultant Incentive System** - Commission tracking
+6. **AI Chat & Voice** - OpenAI Whisper integration
+7. **Internal Chat System** - Team messaging
+8. **"Day 0" Onboarding Tour** - Interactive guide
+9. **Standardize Send Back vs Reject Semantics** - Consistent UX across modules
+10. **Refactor kickoff.py** - Break down 1500+ line file into smaller services
 
 ---
 
