@@ -6,7 +6,10 @@ HTML email templates for key milestones in the sales funnel
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-# Base HTML template with DVBC branding
+# Base HTML template with DVBC branding and logo
+# Logo URL from uploaded asset
+LOGO_URL = "https://customer-assets.emergentagent.com/job_4b907e74-f4f6-4be7-98e2-05aace4aef49/artifacts/vhzgpezp_2.png"
+
 BASE_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -21,15 +24,10 @@ BASE_TEMPLATE = """
             <td align="center" style="padding: 40px 20px;">
                 <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                     
-                    <!-- Header -->
+                    <!-- Header with Logo -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px 40px; text-align: center;">
-                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
-                                DVBC - NETRA
-                            </h1>
-                            <p style="margin: 8px 0 0 0; color: #a0a0a0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">
-                                Sales Funnel Update
-                            </p>
+                        <td style="background-color: #f3f4f6; padding: 25px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
+                            <img src=\"""" + LOGO_URL + """\" alt="D&V Business Consulting" style="height: 50px; width: auto;" />
                         </td>
                     </tr>
                     
@@ -74,7 +72,7 @@ BASE_TEMPLATE = """
                                             This is an automated notification from NETRA ERP
                                         </p>
                                         <p style="margin: 0; color: #adb5bd; font-size: 11px;">
-                                            © {year} DVBC Consulting. All rights reserved.
+                                            © {year} D&V Business Consulting. All rights reserved.
                                         </p>
                                     </td>
                                 </tr>
