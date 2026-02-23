@@ -82,7 +82,11 @@ def calculate_lead_score(lead_data: dict) -> tuple:
 async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_current_user)):
     """Create a new lead."""
     db = get_db()
-    if current_user.role == UserRole.MANAGER:
+    
+    # RBAC Migration: Check if manager-only role (view-only)
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=False) or []
+    sales_exec_roles = get_role_group("SALES_EXECUTIVE_ROLES", fail_closed=False) or ['executive', 'sales_executive']
+    if current_user.role in manager_roles and not has_role(current_user.role, sales_exec_roles):
         raise HTTPException(status_code=403, detail="Managers can only view and download")
     
     lead_dict = lead_create.model_dump()
