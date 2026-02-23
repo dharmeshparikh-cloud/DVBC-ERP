@@ -158,6 +158,9 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      {/* RBAC Widget - Shows current permissions */}
+      <RBACWidget />
+
       {/* Quick Attendance Card - Light Blue to Dark Blue Gradient */}
       <Card 
         className={`cursor-pointer transition-all hover:shadow-lg ${
