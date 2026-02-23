@@ -478,7 +478,7 @@ def kickoff_accepted_email(
     project_id: str,
     project_type: str,
     start_date: str,
-    assigned_pm: str,
+    assigned_consultant: str,
     contract_value: float,
     currency: str,
     approved_by: str,
@@ -489,7 +489,8 @@ def kickoff_accepted_email(
 ) -> Dict[str, str]:
     """
     Email template for when kickoff is accepted/approved.
-    Recipients: Lead Owner, Manager, Sales Head, Senior Manager, Principal Consultant, Client
+    Recipients: Lead Owner, Manager, Sales Head, Senior Manager, Senior Consultant, Principal Consultant, Client
+    Approvers: Senior Consultant OR Principal Consultant (NOT PM)
     Includes edit date option link.
     """
     formatted_value = f"{currency} {contract_value:,.2f}"
@@ -501,7 +502,7 @@ def kickoff_accepted_email(
         {"label": "Project ID", "value": project_id or "Pending"},
         {"label": "Project Type", "value": project_type},
         {"label": "Start Date", "value": start_date},
-        {"label": "Project Manager", "value": assigned_pm},
+        {"label": "Assigned Consultant", "value": assigned_consultant},
         {"label": "Contract Value", "value": formatted_value},
         {"label": "Approved By", "value": approved_by},
         {"label": "Approval Date", "value": approval_date},
@@ -518,7 +519,7 @@ def kickoff_accepted_email(
             <div style="font-size: 40px; margin-bottom: 10px;">🎉</div>
             <p style="margin: 0; color: #065f46; font-size: 18px; font-weight: 700;">Project Approved!</p>
             <p style="margin: 8px 0 0 0; color: #047857; font-size: 14px;">
-                The project has been created and the PM has been notified.
+                The project has been created and the assigned consultant has been notified.
             </p>
         </div>
         
@@ -533,7 +534,7 @@ def kickoff_accepted_email(
         <div style="margin-top: 20px; padding: 15px; background-color: #eff6ff; border-radius: 8px;">
             <h4 style="margin: 0 0 10px 0; color: #1e40af; font-size: 13px;">Next Steps</h4>
             <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #1e3a5f;">
-                <li style="margin-bottom: 6px;">PM will schedule internal kickoff meeting</li>
+                <li style="margin-bottom: 6px;">Consultant will schedule internal kickoff meeting</li>
                 <li style="margin-bottom: 6px;">Client onboarding will begin</li>
                 <li style="margin-bottom: 6px;">Project timeline will be shared</li>
             </ul>
@@ -554,7 +555,7 @@ def kickoff_accepted_email(
     return {
         "subject": f"✅ Kickoff Approved: {project_name} - {company} - Project Created!",
         "html": html,
-        "plain": f"Kickoff approved for {company}!\n\nProject: {project_name}\nApproved by: {approved_by}\nPM: {assigned_pm}\nEdit Date: {edit_date_url}",
+        "plain": f"Kickoff approved for {company}!\n\nProject: {project_name}\nApproved by: {approved_by}\nConsultant: {assigned_consultant}\nEdit Date: {edit_date_url}",
         "client_email": client_email
     }
 
