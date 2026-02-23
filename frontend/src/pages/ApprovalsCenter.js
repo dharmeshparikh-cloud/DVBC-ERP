@@ -199,8 +199,12 @@ const ApprovalsCenter = () => {
         requests.push(axios.get(`${API}/agreements/pending-approval`).catch(() => ({ data: [] })));
       }
       
-      // Fetch kickoff request approvals (Admin only - requires Admin approval)
-      if (isAdmin) {
+      // Fetch kickoff request approvals (Senior Consultant, Principal Consultant, Admin)
+      const canApproveKickoffs = isAdmin || 
+        user?.role === 'senior_consultant' || 
+        user?.role === 'principal_consultant';
+      
+      if (canApproveKickoffs) {
         requests.push(axios.get(`${API}/sales-funnel/pending-kickoff-approvals`).catch(() => ({ data: { requests: [] } })));
       }
       
@@ -226,14 +230,15 @@ const ApprovalsCenter = () => {
         setModificationApprovals(results[5]?.data || []);
         agreementApprovalIndex = 6; // After the admin-specific requests
         kickoffApprovalIndex = 7; // After agreement approvals
+      } else if (user?.role === 'senior_consultant' || user?.role === 'principal_consultant') {
+        // Senior/Principal Consultants only see kickoff approvals
+        kickoffApprovalIndex = 2; // Right after basic requests
       } else if (isHR) {
         setBankApprovals(results[2]?.data || []);
         setProfileChangeApprovals((results[3]?.data || []).filter(r => r.status === 'pending'));
         agreementApprovalIndex = isManager ? 4 : null; // HR managers get agreement approvals after HR requests
-        // No kickoff approvals for non-admin
       } else if (isManager) {
         agreementApprovalIndex = 2; // For non-admin managers, right after the basic requests
-        // No kickoff approvals for non-admin
       }
       
       // Set agreement approvals if user has permission
@@ -243,8 +248,8 @@ const ApprovalsCenter = () => {
         setAgreementApprovals(agreementData.map(item => item.agreement || item));
       }
       
-      // Set kickoff approvals (Admin only)
-      if (isAdmin && kickoffApprovalIndex !== null && results[kickoffApprovalIndex]) {
+      // Set kickoff approvals (Senior Consultant, Principal Consultant, Admin)
+      if (canApproveKickoffs && kickoffApprovalIndex !== null && results[kickoffApprovalIndex]) {
         const kickoffData = results[kickoffApprovalIndex]?.data;
         setKickoffApprovals(kickoffData?.requests || kickoffData || []);
       }
