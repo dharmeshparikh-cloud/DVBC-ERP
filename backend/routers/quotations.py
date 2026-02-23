@@ -77,30 +77,45 @@ async def create_quotation(
     await db.quotations.insert_one(quotation_doc)
     quotation_doc.pop("_id", None)
     
+    # Client email from lead
+    client_email = data.client_email or lead.get("email", "")
+    
     # Send email notification in background
     async def send_proforma_notification():
         try:
             manager_emails = await get_sales_manager_emails(db)
-            if manager_emails:
-                email_data = proforma_generated_email(
-                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
-                    company=lead.get("company", "Unknown"),
-                    quotation_number=quotation_number,
-                    total_amount=data.total,
-                    currency="INR",
-                    valid_until=valid_until,
-                    items_count=len(data.line_items or []),
-                    payment_terms=data.notes or "As per agreement",
-                    salesperson_name=current_user.full_name,
-                    app_url=APP_URL
+            email_data = proforma_generated_email(
+                lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+                company=lead.get("company", "Unknown"),
+                quotation_number=quotation_number,
+                quotation_id=quotation_id,
+                total_amount=data.total,
+                currency="INR",
+                valid_until=valid_until,
+                items_count=len(data.line_items or []),
+                payment_terms=data.notes or "As per agreement",
+                salesperson_name=current_user.full_name,
+                client_email=client_email,
+                app_url=APP_URL
+            )
+            
+            # Send to managers
+            for email in manager_emails:
+                await send_email(
+                    to_email=email,
+                    subject=email_data["subject"],
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
                 )
-                for email in manager_emails:
-                    await send_email(
-                        to_email=email,
-                        subject=email_data["subject"],
-                        html_content=email_data["html"],
-                        plain_content=email_data["plain"]
-                    )
+            
+            # Send to client if email exists
+            if client_email:
+                await send_email(
+                    to_email=client_email,
+                    subject=f"Your Quotation #{quotation_number} from DVBC",
+                    html_content=email_data["html"],
+                    plain_content=email_data["plain"]
+                )
         except Exception as e:
             print(f"Failed to send proforma notification: {e}")
     
