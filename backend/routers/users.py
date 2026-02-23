@@ -28,7 +28,9 @@ async def get_users(
     db = get_db()
     
     # Role guard - user management is admin/HR function
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(
             status_code=403,
             detail="Access denied. Admin or HR role required."
@@ -76,7 +78,9 @@ async def set_reporting_manager(
     """
     db = get_db()
     
-    if current_user.role not in HR_ADMIN_ROLES:
+    # RBAC Migration
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True)
+    if not hr_admin_roles or not has_role(current_user.role, hr_admin_roles):
         raise HTTPException(status_code=403, detail="Only admin or HR manager can set reporting managers")
     
     # Get the employee record for this user
