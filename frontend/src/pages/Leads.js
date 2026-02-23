@@ -1122,22 +1122,11 @@ const Leads = () => {
                   </div>
                   
                   {/* Sales Funnel Progress Indicator */}
-                  <div className="mt-3 flex items-center gap-1.5">
-                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${progress.pricing ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`} title="Pricing Plan">
-                      {progress.pricing ? '✓' : '1'}
-                    </div>
-                    <div className={`flex-1 h-0.5 ${progress.sow ? 'bg-emerald-500' : 'bg-zinc-200'}`} />
-                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${progress.sow ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`} title="SOW">
-                      {progress.sow ? '✓' : '2'}
-                    </div>
-                    <div className={`flex-1 h-0.5 ${progress.invoice ? 'bg-emerald-500' : 'bg-zinc-200'}`} />
-                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${progress.invoice ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`} title="Invoice">
-                      {progress.invoice ? '✓' : '3'}
-                    </div>
-                    <div className={`flex-1 h-0.5 ${progress.agreement ? 'bg-emerald-500' : 'bg-zinc-200'}`} />
-                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${progress.agreement ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-400'}`} title="Agreement">
-                      {progress.agreement ? '✓' : '4'}
-                    </div>
+                  <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                    <FunnelProgressIndicator 
+                      progress={progress}
+                      onClick={() => navigate(`/sales-funnel-onboarding?leadId=${lead.id}`)}
+                    />
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
