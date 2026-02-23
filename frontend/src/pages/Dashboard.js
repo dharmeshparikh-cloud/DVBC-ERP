@@ -9,6 +9,7 @@ import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, 
 import { toast } from 'sonner';
 import { sanitizeDisplayText } from '../utils/sanitize';
 import QuickCheckInModal from '../components/QuickCheckInModal';
+import RBACWidget from '../components/RBACWidget';
 
 // Import domain-specific dashboards
 import SalesDashboard from './SalesDashboard';
