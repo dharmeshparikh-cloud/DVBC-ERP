@@ -433,3 +433,35 @@ async def get_migration_status(
         "recent_fallbacks": migration["recent_fallbacks"],
         "recent_mismatches": migration["recent_mismatches"]
     }
+
+
+@router.get("/health")
+async def rbac_health():
+    """
+    RBAC service health check for monitoring.
+    Returns health status without authentication for monitoring systems.
+    """
+    import time
+    from .rbac_service import rbac, _role_cache, _permission_cache, _cache_timestamp, CACHE_TTL_SECONDS
+    
+    cache_valid = rbac.is_cache_valid()
+    roles_count = len(_role_cache)
+    groups_count = len(_permission_cache)
+    cache_age = time.time() - _cache_timestamp if _cache_timestamp else -1
+    
+    healthy = cache_valid and roles_count > 0 and groups_count > 0
+    
+    return {
+        "healthy": healthy,
+        "status": "HEALTHY" if healthy else "DEGRADED",
+        "cache_valid": cache_valid,
+        "roles_cached": roles_count,
+        "groups_cached": groups_count,
+        "cache_age_seconds": round(cache_age, 1),
+        "cache_ttl_seconds": CACHE_TTL_SECONDS,
+        "details": {
+            "roles_loaded": roles_count > 0,
+            "groups_loaded": groups_count > 0,
+            "cache_fresh": cache_age < CACHE_TTL_SECONDS if cache_age > 0 else False
+        }
+    }
