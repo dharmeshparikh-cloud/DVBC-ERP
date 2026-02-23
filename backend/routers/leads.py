@@ -556,6 +556,40 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
     current_step_index = len(completed_steps)
     current_step = FUNNEL_STEPS[current_step_index] if current_step_index < len(FUNNEL_STEPS) else "project_created"
     
+    # Auto-update lead status based on funnel progress
+    # Map funnel steps to lead status
+    FUNNEL_TO_STATUS_MAP = {
+        "lead_capture": LeadStatus.NEW,
+        "record_meeting": LeadStatus.CONTACTED,
+        "pricing_plan": LeadStatus.QUALIFIED,
+        "scope_of_work": LeadStatus.QUALIFIED,
+        "quotation": LeadStatus.PROPOSAL,
+        "agreement": LeadStatus.AGREEMENT,
+        "record_payment": LeadStatus.AGREEMENT,
+        "kickoff_request": LeadStatus.AGREEMENT,
+        "project_created": LeadStatus.CLOSED
+    }
+    
+    # Determine expected status based on furthest completed step
+    expected_status = LeadStatus.NEW
+    for step in FUNNEL_STEPS:
+        if step in completed_steps:
+            expected_status = FUNNEL_TO_STATUS_MAP.get(step, LeadStatus.NEW)
+    
+    # Update lead status if it doesn't match (and not already won/lost)
+    current_status = lead.get("status", LeadStatus.NEW)
+    if current_status not in ["won", "lost", "closed_won", "closed_lost"]:
+        if current_status != expected_status:
+            await db.leads.update_one(
+                {"id": lead_id},
+                {"$set": {
+                    "status": expected_status,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            # Update local reference for response
+            current_status = expected_status
+    
     return {
         "lead_id": lead_id,
         "company": lead.get("company"),
