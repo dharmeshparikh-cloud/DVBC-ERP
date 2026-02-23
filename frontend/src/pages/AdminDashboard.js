@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import LockableCard from '../components/LockableCard';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import { 
@@ -17,7 +17,7 @@ import {
   TrendingUp, TrendingDown, Users, FileText, DollarSign, Target,
   Briefcase, Clock, CheckCircle, AlertCircle, Calendar, Award,
   Building2, BarChart3, PieChart, Activity, ArrowUpRight, ArrowDownRight,
-  ChevronRight, Zap, Flame, RefreshCw, LogIn
+  ChevronRight, Zap, Flame, RefreshCw, LogIn, ArrowRight
 } from 'lucide-react';
 import {
   PieChart as RechartsPie, Pie, Cell, ResponsiveContainer,
