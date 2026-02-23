@@ -104,6 +104,10 @@ const SalesFunnelOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [checklist, setChecklist] = useState(null);
   const [showTips, setShowTips] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  // Check if user can approve agreements (Sales Manager, Sr. Manager, Principal Consultant, Admin)
+  const canApproveAgreement = ['admin', 'sales_manager', 'sr_manager', 'manager', 'principal_consultant'].includes(user?.role);
 
   useEffect(() => {
     if (leadId) {
