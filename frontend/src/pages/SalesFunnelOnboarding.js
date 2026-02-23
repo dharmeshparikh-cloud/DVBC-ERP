@@ -102,6 +102,8 @@ const SalesFunnelOnboarding = () => {
   const [lead, setLead] = useState(null);
   const [funnelStatus, setFunnelStatus] = useState({});
   const [currentStep, setCurrentStep] = useState(0);
+  const [checklist, setChecklist] = useState(null);
+  const [showTips, setShowTips] = useState(false);
 
   useEffect(() => {
     if (leadId) {
@@ -112,16 +114,23 @@ const SalesFunnelOnboarding = () => {
   const fetchFunnelData = async () => {
     setLoading(true);
     try {
-      const leadRes = await axios.get(`${API}/leads/${leadId}`);
+      const [leadRes, progressRes, checklistRes] = await Promise.all([
+        axios.get(`${API}/leads/${leadId}`),
+        axios.get(`${API}/leads/${leadId}/funnel-progress`),
+        axios.get(`${API}/leads/${leadId}/funnel-checklist`)
+      ]);
+      
       setLead(leadRes.data);
-
-      const progressRes = await axios.get(`${API}/leads/${leadId}/funnel-progress`);
       setFunnelStatus(progressRes.data);
+      setChecklist(checklistRes.data);
       
       const completedSteps = progressRes.data.completed_steps || [];
       const lastCompleted = completedSteps.length > 0 ? 
         FUNNEL_STEPS.findIndex(s => s.id === completedSteps[completedSteps.length - 1]) : -1;
       setCurrentStep(Math.min(lastCompleted + 1, FUNNEL_STEPS.length - 1));
+      
+      // Save funnel draft position
+      saveFunnelDraft(Math.min(lastCompleted + 1, FUNNEL_STEPS.length - 1));
       
     } catch (error) {
       console.error('Error fetching funnel data:', error);
@@ -129,6 +138,33 @@ const SalesFunnelOnboarding = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Save funnel position as draft
+  const saveFunnelDraft = async (step) => {
+    try {
+      await axios.post(`${API}/leads/${leadId}/funnel-draft`, {
+        current_step: FUNNEL_STEPS[step]?.id || 'lead_capture'
+      });
+    } catch (error) {
+      console.error('Failed to save funnel draft:', error);
+    }
+  };
+
+  // Get step checklist key mapping
+  const getChecklistKey = (stepId) => {
+    const mapping = {
+      'lead': 'lead_capture',
+      'meeting': 'record_meeting',
+      'pricing': 'pricing_plan',
+      'sow': 'scope_of_work',
+      'quotation': 'quotation',
+      'agreement': 'agreement',
+      'payment': 'record_payment',
+      'kickoff': 'kickoff_request',
+      'complete': 'project_created'
+    };
+    return mapping[stepId] || stepId;
   };
 
   const isStepCompleted = (stepId) => {
