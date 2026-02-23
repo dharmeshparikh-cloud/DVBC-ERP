@@ -38,8 +38,10 @@ async def get_leave_requests(
     if employee_id:
         query["employee_id"] = employee_id
     
-    # Non-managers see only their own
-    if current_user.role not in MANAGER_ROLES and current_user.role not in HR_ROLES:
+    # RBAC Migration: Non-managers see only their own
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=False) or MANAGER_ROLES
+    hr_roles = get_role_group("HR_ROLES", fail_closed=False) or HR_ROLES
+    if not has_role(current_user.role, manager_roles) and not has_role(current_user.role, hr_roles):
         emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
         if emp:
             query["employee_id"] = emp["id"]
@@ -55,7 +57,9 @@ async def get_all_leave_requests(
     """Get all leave requests (HR/Admin only)"""
     db = get_db()
     
-    if current_user.role not in HR_ROLES:
+    # RBAC Migration
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(status_code=403, detail="Only HR can view all leave requests")
     
     requests = await db.leave_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
