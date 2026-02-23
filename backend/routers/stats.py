@@ -85,7 +85,9 @@ async def get_sales_stats(current_user: User = Depends(get_current_user)):
     db = get_db()
     
     query = {}
-    if current_user.role not in ['admin', 'manager', 'sales_manager']:
+    # RBAC Migration: Use database-driven role check
+    sales_manager_roles = get_role_group("SALES_MANAGER_ROLES", fail_closed=False) or ['admin', 'manager', 'sales_manager']
+    if not has_role(current_user.role, sales_manager_roles):
         query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
     
     total_leads = await db.leads.count_documents(query)
