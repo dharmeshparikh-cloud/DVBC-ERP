@@ -9,11 +9,12 @@ import {
   Briefcase, Users, Calendar, CheckCircle, Clock, 
   AlertTriangle, TrendingUp, ArrowRight, Inbox, BarChart3, LogIn
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 
 const ConsultingDashboard = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   
