@@ -153,7 +153,11 @@ const HRDashboard = () => {
 
       {/* Employee Overview - 2 cols on mobile, 4 cols on desktop */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <Card className="border-zinc-200 dark:border-zinc-800">
+        <Card 
+          className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+          onClick={() => navigate('/employees')}
+          data-testid="total-employees-card"
+        >
           <CardContent className="p-4 md:pt-6">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -167,10 +171,17 @@ const HRDashboard = () => {
                 <Users className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
               </div>
             </div>
+            <p className="text-[10px] md:text-xs text-blue-600 mt-2 flex items-center gap-1">
+              View employees <ArrowRight className="w-3 h-3" />
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 dark:border-zinc-800">
+        <Card 
+          className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-green-300 transition-all"
+          onClick={() => navigate('/attendance')}
+          data-testid="present-today-card"
+        >
           <CardContent className="p-4 md:pt-6">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -181,10 +192,17 @@ const HRDashboard = () => {
                 <UserCheck className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
               </div>
             </div>
+            <p className="text-[10px] md:text-xs text-green-600 mt-2 flex items-center gap-1">
+              View attendance <ArrowRight className="w-3 h-3" />
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 dark:border-zinc-800">
+        <Card 
+          className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
+          onClick={() => navigate('/attendance')}
+          data-testid="wfh-today-card"
+        >
           <CardContent className="p-4 md:pt-6">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -195,6 +213,9 @@ const HRDashboard = () => {
                 <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
               </div>
             </div>
+            <p className="text-[10px] md:text-xs text-blue-600 mt-2 flex items-center gap-1">
+              View details <ArrowRight className="w-3 h-3" />
+            </p>
           </CardContent>
         </Card>
 
