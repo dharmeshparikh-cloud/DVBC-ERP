@@ -239,6 +239,11 @@ const Dashboard = () => {
         user={user} 
       />
 
+      {/* RBAC Widget - Shows current permissions */}
+      <div className="mb-6">
+        <RBACWidget />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {statCards.map((stat) => {
           const Icon = stat.icon;
