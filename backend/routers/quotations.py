@@ -145,7 +145,17 @@ async def get_quotations(
 
 @router.patch("/{quotation_id}/finalize")
 async def finalize_quotation(quotation_id: str, current_user: User = Depends(get_current_user)):
-    """Finalize and lock a quotation"""
+    """
+    Finalize and lock a quotation.
+    
+    ACCESS: Only the creator's Reporting Manager, Sales Manager roles, or Admin can finalize.
+    This ensures proper oversight before committing to client pricing.
+    
+    WORKFLOW:
+    - Quotation must be in 'draft' status
+    - Reporting Manager or Sales Manager+ approves → status: 'finalized'
+    - Quotation becomes locked and valid_until date is set
+    """
     db = get_db()
     
     quotation = await db.quotations.find_one({"id": quotation_id}, {"_id": 0})
@@ -155,7 +165,43 @@ async def finalize_quotation(quotation_id: str, current_user: User = Depends(get
     if quotation.get("status") != "draft":
         raise HTTPException(status_code=400, detail="Only draft quotations can be finalized")
     
-    from datetime import timedelta
+    # Get creator's employee record to find their reporting manager
+    creator_id = quotation.get("created_by")
+    creator_employee = await db.employees.find_one({"user_id": creator_id}, {"_id": 0})
+    
+    # Check authorization: Admin, Sales Manager roles, or Reporting Manager
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    manager_roles = get_role_group("SALES_MANAGER_ROLES", fail_closed=False) or ["sales_manager", "sr_manager"]
+    
+    is_admin = has_role(current_user.role, admin_roles)
+    is_sales_manager = has_role(current_user.role, manager_roles)
+    
+    # Check if current user is the reporting manager of the creator
+    is_reporting_manager = False
+    if creator_employee and creator_employee.get("reporting_manager_id"):
+        rm_id = creator_employee.get("reporting_manager_id")
+        # Reporting manager can be stored as user_id or employee_id
+        current_emp = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+        if current_emp:
+            is_reporting_manager = (
+                rm_id == current_user.id or 
+                rm_id == current_emp.get("id") or 
+                rm_id == current_emp.get("employee_id")
+            )
+    
+    # Creator cannot finalize their own quotation (separation of duties)
+    if creator_id == current_user.id and not is_admin:
+        raise HTTPException(
+            status_code=403, 
+            detail="You cannot finalize your own quotation. Please request approval from your Reporting Manager."
+        )
+    
+    if not (is_admin or is_sales_manager or is_reporting_manager):
+        raise HTTPException(
+            status_code=403, 
+            detail="Only Reporting Manager, Sales Manager, or Admin can finalize quotations"
+        )
+    
     valid_until = (datetime.now(timezone.utc) + timedelta(days=quotation.get("validity_days", 30))).strftime("%Y-%m-%d")
     
     await db.quotations.update_one(
@@ -165,10 +211,28 @@ async def finalize_quotation(quotation_id: str, current_user: User = Depends(get
                 "status": "finalized",
                 "valid_until": valid_until,
                 "finalized_by": current_user.id,
+                "finalized_by_name": current_user.full_name,
                 "finalized_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
         }
     )
     
-    return {"message": "Quotation finalized", "valid_until": valid_until}
+    # Log audit trail
+    await db.audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "quotation_finalized",
+        "entity_type": "quotation",
+        "entity_id": quotation_id,
+        "user_id": current_user.id,
+        "user_name": current_user.full_name,
+        "details": {
+            "quotation_number": quotation.get("quotation_number"),
+            "total": quotation.get("total"),
+            "created_by": creator_id,
+            "approval_type": "admin" if is_admin else ("sales_manager" if is_sales_manager else "reporting_manager")
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Quotation finalized", "valid_until": valid_until, "finalized_by": current_user.full_name}
