@@ -458,19 +458,37 @@ class RBACService:
     
     def get_role(self, role_code: str) -> Optional[Dict]:
         """Get role by code (sync, from cache)"""
-        return _role_cache.get(role_code)
+        role = _role_cache.get(role_code)
+        if not role and role_code:
+            # Role not in cache - log this unusual situation
+            logger.warning(f"RBAC: Role '{role_code}' not found in cache ({len(_role_cache)} roles loaded)")
+        return role
     
     def get_all_roles(self) -> List[Dict]:
         """Get all active roles"""
         return list(_role_cache.values())
     
     def get_role_group(self, group_name: str) -> List[str]:
-        """Get roles in a group (replaces hardcoded arrays)"""
-        # First check cache
+        """
+        Get roles in a group (replaces hardcoded arrays).
+        FAIL-LOUD: Logs if falling back to defaults.
+        """
+        # First check cache (from database)
         if group_name in _permission_cache:
             return _permission_cache[group_name]
-        # Fallback to defaults
-        return DEFAULT_ROLE_GROUPS.get(group_name, [])
+        
+        # Fallback to defaults - but LOG IT
+        if group_name in DEFAULT_ROLE_GROUPS:
+            log_fallback_event(
+                location=f"RBACService.get_role_group({group_name})",
+                reason="Group not in cache, using DEFAULT_ROLE_GROUPS",
+                fallback_value=DEFAULT_ROLE_GROUPS[group_name]
+            )
+            return DEFAULT_ROLE_GROUPS[group_name]
+        
+        # Unknown group - this is an error
+        logger.error(f"RBAC: Unknown role group '{group_name}' requested")
+        return []
     
     def get_roles_by_department(self, department: str) -> List[str]:
         """Get all role codes for a department"""
