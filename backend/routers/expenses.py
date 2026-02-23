@@ -151,10 +151,17 @@ async def get_expenses(
     """Get expenses with filters."""
     db = get_db()
     
+    # Use RBAC service for authorization
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    can_view_all = has_role(current_user.role, hr_roles + hr_admin_roles + admin_roles)
+    
     query = {}
     
-    # Non-admin users can only see their own expenses
-    if current_user.role not in APPROVAL_ROLES:
+    # Non-privileged users can only see their own expenses
+    if not can_view_all:
         query["employee_id"] = current_user.id
     elif employee_id:
         query["employee_id"] = employee_id
