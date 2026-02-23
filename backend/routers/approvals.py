@@ -44,7 +44,9 @@ async def get_all_approvals(
     """Get all approvals (managers only)"""
     db = get_db()
     
-    if current_user.role not in MANAGER_ROLES:
+    # RBAC Migration: Using database-driven role check with fail-closed
+    manager_roles = get_role_group("MANAGER_ROLES", fail_closed=True)
+    if not manager_roles or not has_role(current_user.role, manager_roles):
         raise HTTPException(status_code=403, detail="Only managers can view all approvals")
     
     query = {}
