@@ -395,24 +395,26 @@ function App() {
   };
 
   return (
-    <ThemeProvider>
-      <AuthContext.Provider value={{ user, login, logout }}>
-        <PermissionProvider>
-          <ApprovalProvider>
-            <GuidanceProvider>
-              <Toaster position="top-right" />
-              <PWAInstallPrompt />
-              <BrowserRouter>
-                <StageGuardProvider>
-                  <StageGuardDialog />
-                  <AppRouter user={user} login={login} logout={logout} loading={loading} />
-                </StageGuardProvider>
-              </BrowserRouter>
-            </GuidanceProvider>
-          </ApprovalProvider>
-        </PermissionProvider>
-      </AuthContext.Provider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthContext.Provider value={{ user, login, logout }}>
+          <PermissionProvider>
+            <ApprovalProvider>
+              <GuidanceProvider>
+                <Toaster position="top-right" />
+                <PWAInstallPrompt />
+                <BrowserRouter>
+                  <StageGuardProvider>
+                    <StageGuardDialog />
+                    <AppRouter user={user} login={login} logout={logout} loading={loading} />
+                  </StageGuardProvider>
+                </BrowserRouter>
+              </GuidanceProvider>
+            </ApprovalProvider>
+          </PermissionProvider>
+        </AuthContext.Provider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
