@@ -67,7 +67,7 @@ const FUNNEL_STEPS = [
     checkStatus: 'signed'
   },
   { 
-    id: 'payment', 
+    id: 'record_payment', 
     title: 'Record Payment', 
     icon: CreditCard, 
     description: 'Log payment received - Cheque/NEFT/UPI',
@@ -75,7 +75,7 @@ const FUNNEL_STEPS = [
     checkCollection: 'agreement_payments'
   },
   { 
-    id: 'kickoff', 
+    id: 'kickoff_request', 
     title: 'Kickoff Request', 
     icon: Rocket, 
     description: 'Submit for approval - assign PM, set start date',
@@ -83,7 +83,7 @@ const FUNNEL_STEPS = [
     checkCollection: 'kickoff_requests'
   },
   { 
-    id: 'complete', 
+    id: 'project_created', 
     title: 'Project Created', 
     icon: CheckCircle, 
     description: 'Kickoff approved - project and team assigned',
