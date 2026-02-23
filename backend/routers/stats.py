@@ -161,26 +161,53 @@ async def get_hr_stats(current_user: User = Depends(get_current_user)):
 
 @router.get("/sales")
 async def get_sales_stats(current_user: User = Depends(get_current_user)):
-    """Get sales statistics for dashboard."""
+    """
+    Get sales statistics for dashboard.
+    
+    Access Control (RBAC-driven):
+    - SALES_MANAGER_ROLES: See all sales data + team revenue
+    - SALES_ROLES: See own sales data only
+    - Others: See only own created/assigned data
+    """
     db = get_db()
     
+    # RBAC check for sales access
+    sales_roles = get_role_group("SALES_ROLES", fail_closed=False) or []
+    sales_manager_roles = get_role_group("SALES_MANAGER_ROLES", fail_closed=False) or []
+    
     query = {}
-    # RBAC Migration: Use database-driven role check
-    sales_manager_roles = get_role_group("SALES_MANAGER_ROLES", fail_closed=False) or ['admin', 'manager', 'sales_manager']
-    if not has_role(current_user.role, sales_manager_roles):
+    revenue_query = {}
+    
+    if has_role(current_user.role, sales_manager_roles):
+        # Managers see all sales data
+        pass
+    elif has_role(current_user.role, sales_roles):
+        # Sales team sees their own data
         query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+        revenue_query = {"created_by": current_user.id}
+    else:
+        # Non-sales users see only their own data
+        query['$or'] = [{"assigned_to": current_user.id}, {"created_by": current_user.id}]
+        revenue_query = {"created_by": current_user.id}
     
     total_leads = await db.leads.count_documents(query)
     new_leads = await db.leads.count_documents({**query, "status": "new"})
     qualified = await db.leads.count_documents({**query, "status": "qualified"})
     closed = await db.leads.count_documents({**query, "status": "closed"})
     
-    # Agreements
-    agreements = await db.agreements.count_documents({"status": "signed"})
+    # Agreements - filtered by role
+    agreement_query = {"status": "signed"}
+    if revenue_query:
+        agreement_query.update(revenue_query)
+    agreements = await db.agreements.count_documents(agreement_query)
     
-    # Revenue from agreements
+    # Revenue from agreements - filtered by role to prevent leakage
+    revenue_match = {"status": "signed"}
+    if revenue_query:
+        revenue_match.update(revenue_query)
+    
     revenue_agg = await db.agreements.aggregate([
-        {"$match": {"status": "signed"}},
+        {"$match": revenue_match},
         {"$group": {"_id": None, "total": {"$sum": "$total_value"}}}
     ]).to_list(1)
     total_revenue = revenue_agg[0]["total"] if revenue_agg else 0
