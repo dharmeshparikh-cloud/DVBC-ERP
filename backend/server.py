@@ -73,6 +73,29 @@ async def startup_db_client():
     from routers import deps as router_deps
     router_deps.set_db(db)
     
+    # Initialize RBAC system
+    logger.info("Initializing RBAC system...")
+    try:
+        from routers.rbac_service import rbac
+        from routers.rbac_migration import initialize_rbac_migration
+        
+        # Set database for RBAC service
+        rbac.set_db(db)
+        
+        # Initialize RBAC (seeds defaults if needed, runs consistency checks)
+        await rbac.initialize()
+        
+        # Run migration framework initialization
+        consistency_report = await initialize_rbac_migration(db)
+        logger.info(f"RBAC initialized: {consistency_report['status']}")
+        
+        if consistency_report['issues_found'] > 0:
+            logger.warning(f"RBAC has {consistency_report['issues_found']} consistency issues")
+            
+    except Exception as e:
+        logger.error(f"RBAC initialization error: {e}")
+        # Don't fail startup - RBAC will use defaults with logging
+    
     logger.info(f"Connected to MongoDB: {db_name}")
     logger.info("NETRA ERP started successfully")
 
