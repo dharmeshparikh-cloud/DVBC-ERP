@@ -550,3 +550,253 @@ async def get_lead_funnel_progress(lead_id: str, current_user: User = Depends(ge
         **linked_data
     }
 
+
+
+@router.get("/{lead_id}/funnel-checklist")
+async def get_funnel_step_checklist(lead_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Get detailed checklist for each funnel step with requirements.
+    Helps train/guide new salespeople through the process.
+    """
+    db = get_db()
+    
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Get current funnel progress
+    meetings = await db.meetings.find({"lead_id": lead_id}, {"_id": 0}).to_list(100)
+    pricing = await db.pricing_plans.find_one({"lead_id": lead_id}, {"_id": 0})
+    sow = await db.enhanced_sows.find_one({"lead_id": lead_id}, {"_id": 0})
+    if not sow:
+        sow = await db.sows.find_one({"lead_id": lead_id}, {"_id": 0})
+    quotation = await db.quotations.find_one({"lead_id": lead_id}, {"_id": 0})
+    agreement = await db.agreements.find_one({"lead_id": lead_id}, {"_id": 0})
+    kickoff = await db.kickoff_requests.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Check for offline meeting attachments
+    offline_meetings = [m for m in meetings if m.get("mode") == "offline" or m.get("meeting_type", "").lower() == "offline"]
+    has_offline_attachment = any(m.get("has_attachments") for m in offline_meetings)
+    
+    checklist = {
+        "lead_capture": {
+            "title": "Lead Capture",
+            "description": "Gather initial contact information and qualify the lead",
+            "requirements": [
+                {"item": "Full name collected", "completed": bool(lead.get("first_name") and lead.get("last_name")), "required": True},
+                {"item": "Company name entered", "completed": bool(lead.get("company")), "required": True},
+                {"item": "Contact email provided", "completed": bool(lead.get("email")), "required": True},
+                {"item": "Phone number available", "completed": bool(lead.get("phone")), "required": False},
+                {"item": "Lead source identified", "completed": bool(lead.get("source")), "required": False}
+            ],
+            "tips": ["Verify email validity", "Research company on LinkedIn before meeting", "Note any referral source"],
+            "completed": True  # Always true if lead exists
+        },
+        "record_meeting": {
+            "title": "Record Meeting",
+            "description": "Document all client interactions with Minutes of Meeting (MOM)",
+            "requirements": [
+                {"item": "At least one meeting recorded", "completed": len(meetings) > 0, "required": True},
+                {"item": "Minutes of Meeting (MOM) filled", "completed": any(m.get("mom") for m in meetings), "required": True},
+                {"item": "Client expectations documented", "completed": any(m.get("client_expectations") for m in meetings), "required": False},
+                {"item": "Key commitments noted", "completed": any(m.get("key_commitments") for m in meetings), "required": False},
+                {"item": "Offline meeting has photo/voice attachment", "completed": has_offline_attachment if offline_meetings else True, "required": bool(offline_meetings)}
+            ],
+            "tips": ["Always fill MOM immediately after meeting", "Capture client pain points", "Document any budget discussions"],
+            "completed": len(meetings) > 0 and any(m.get("mom") for m in meetings)
+        },
+        "pricing_plan": {
+            "title": "Pricing Plan",
+            "description": "Create detailed pricing breakdown for client review",
+            "requirements": [
+                {"item": "Pricing plan created", "completed": pricing is not None, "required": True},
+                {"item": "Project type selected", "completed": bool(pricing.get("project_type")) if pricing else False, "required": True},
+                {"item": "Duration estimated", "completed": bool(pricing.get("project_duration_months")) if pricing else False, "required": False},
+                {"item": "Services itemized", "completed": bool(pricing.get("services")) if pricing else False, "required": False}
+            ],
+            "tips": ["Review similar past projects for pricing reference", "Include all potential costs", "Consider phased pricing"],
+            "completed": pricing is not None
+        },
+        "scope_of_work": {
+            "title": "Scope of Work",
+            "description": "Define deliverables, milestones, and project boundaries",
+            "requirements": [
+                {"item": "SOW document created", "completed": sow is not None, "required": True},
+                {"item": "Scope items defined", "completed": bool(sow.get("scope_items")) if sow else False, "required": True},
+                {"item": "Deliverables listed", "completed": bool(sow.get("deliverables")) if sow else False, "required": False},
+                {"item": "Exclusions mentioned", "completed": bool(sow.get("exclusions")) if sow else False, "required": False}
+            ],
+            "tips": ["Be specific about what's included and excluded", "Reference client expectations from meetings", "Set clear milestones"],
+            "completed": sow is not None
+        },
+        "quotation": {
+            "title": "Quotation",
+            "description": "Generate formal quote for client approval",
+            "requirements": [
+                {"item": "Quotation generated", "completed": quotation is not None, "required": True},
+                {"item": "Quotation number assigned", "completed": bool(quotation.get("quotation_number")) if quotation else False, "required": True},
+                {"item": "Terms included", "completed": bool(quotation.get("terms")) if quotation else False, "required": False}
+            ],
+            "tips": ["Double-check all amounts before sending", "Include payment terms", "Set validity period"],
+            "completed": quotation is not None
+        },
+        "agreement": {
+            "title": "Agreement",
+            "description": "Prepare and get service agreement signed",
+            "requirements": [
+                {"item": "Agreement created", "completed": agreement is not None, "required": True},
+                {"item": "Agreement sent to client", "completed": agreement.get("status") in ["sent", "signed", "active"] if agreement else False, "required": True},
+                {"item": "Agreement signed by client", "completed": agreement.get("status") in ["signed", "active"] if agreement else False, "required": True}
+            ],
+            "tips": ["Ensure all stakeholders review before sending", "Follow up if not signed within a week", "Keep signed copy for records"],
+            "completed": agreement is not None and agreement.get("status") in ["signed", "active"]
+        },
+        "record_payment": {
+            "title": "Record Payment",
+            "description": "Verify and document payment received",
+            "requirements": [
+                {"item": "Payment received", "completed": agreement.get("payment_status") == "paid" if agreement else False, "required": True},
+                {"item": "Payment verified", "completed": agreement.get("payment_verified") if agreement else False, "required": True}
+            ],
+            "tips": ["Verify payment against agreement amount", "Update finance team immediately", "Keep transaction proof"],
+            "completed": agreement is not None and agreement.get("payment_status") == "paid"
+        },
+        "kickoff_request": {
+            "title": "Kickoff Request",
+            "description": "Submit project kickoff for PM approval",
+            "requirements": [
+                {"item": "Kickoff request submitted", "completed": kickoff is not None, "required": True},
+                {"item": "PM assigned", "completed": bool(kickoff.get("assigned_pm_id")) if kickoff else False, "required": True},
+                {"item": "Kickoff approved", "completed": kickoff.get("status") == "approved" if kickoff else False, "required": True}
+            ],
+            "tips": ["Include all meeting history and client expectations", "Brief PM on key commitments", "Set realistic start date"],
+            "completed": kickoff is not None and kickoff.get("status") == "approved"
+        },
+        "project_created": {
+            "title": "Project Created",
+            "description": "Project is live and handed over to delivery team",
+            "requirements": [
+                {"item": "Project created in system", "completed": bool(kickoff.get("project_id")) if kickoff else False, "required": True}
+            ],
+            "tips": ["Ensure smooth handover to PM", "Document any special client requirements", "Set follow-up reminders"],
+            "completed": kickoff is not None and bool(kickoff.get("project_id"))
+        }
+    }
+    
+    return checklist
+
+
+@router.post("/{lead_id}/funnel-draft")
+async def save_funnel_draft(
+    lead_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Save/update sales funnel draft for a lead.
+    Tracks current position and allows resume from where left off.
+    """
+    db = get_db()
+    
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Check for existing draft
+    existing = await db.funnel_drafts.find_one({
+        "lead_id": lead_id,
+        "employee_id": current_user.id,
+        "status": "active"
+    }, {"_id": 0})
+    
+    if existing:
+        # Update existing draft
+        await db.funnel_drafts.update_one(
+            {"id": existing["id"]},
+            {"$set": {
+                "current_step": data.get("current_step", existing.get("current_step")),
+                "form_data": data.get("form_data", {}),
+                "meeting_data": data.get("meeting_data"),
+                "pricing_data": data.get("pricing_data"),
+                "sow_data": data.get("sow_data"),
+                "updated_at": now,
+                "version": existing.get("version", 1) + 1
+            }}
+        )
+        
+        updated = await db.funnel_drafts.find_one({"id": existing["id"]}, {"_id": 0})
+        return {"message": "Funnel draft updated", "draft": updated, "action": "updated"}
+    
+    # Create new draft
+    draft_id = str(uuid.uuid4())
+    draft = {
+        "id": draft_id,
+        "lead_id": lead_id,
+        "employee_id": current_user.id,
+        "lead_company": lead.get("company"),
+        "lead_name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+        "current_step": data.get("current_step", "lead_capture"),
+        "form_data": data.get("form_data", {}),
+        "meeting_data": data.get("meeting_data"),
+        "pricing_data": data.get("pricing_data"),
+        "sow_data": data.get("sow_data"),
+        "status": "active",
+        "version": 1,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.funnel_drafts.insert_one(draft)
+    
+    saved = await db.funnel_drafts.find_one({"id": draft_id}, {"_id": 0})
+    return {"message": "Funnel draft created", "draft": saved, "action": "created"}
+
+
+@router.get("/{lead_id}/funnel-draft")
+async def get_funnel_draft(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Get the active funnel draft for a lead."""
+    db = get_db()
+    
+    draft = await db.funnel_drafts.find_one({
+        "lead_id": lead_id,
+        "employee_id": current_user.id,
+        "status": "active"
+    }, {"_id": 0})
+    
+    if draft:
+        return {"has_draft": True, "draft": draft}
+    
+    return {"has_draft": False, "draft": None}
+
+
+@router.delete("/{lead_id}/funnel-draft")
+async def delete_funnel_draft(lead_id: str, current_user: User = Depends(get_current_user)):
+    """Delete/discard the funnel draft for a lead."""
+    db = get_db()
+    
+    result = await db.funnel_drafts.delete_one({
+        "lead_id": lead_id,
+        "employee_id": current_user.id,
+        "status": "active"
+    })
+    
+    if result.deleted_count > 0:
+        return {"message": "Funnel draft deleted", "status": "success"}
+    
+    return {"message": "No draft found to delete", "status": "not_found"}
+
+
+@router.get("/funnel-drafts/all")
+async def get_all_funnel_drafts(current_user: User = Depends(get_current_user)):
+    """Get all active funnel drafts for current user."""
+    db = get_db()
+    
+    drafts = await db.funnel_drafts.find({
+        "employee_id": current_user.id,
+        "status": "active"
+    }, {"_id": 0}).sort("updated_at", -1).to_list(50)
+    
+    return drafts
+
