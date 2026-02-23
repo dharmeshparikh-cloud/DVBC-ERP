@@ -7,7 +7,7 @@ from typing import Optional, List
 from datetime import datetime, timezone, date
 import uuid
 from pydantic import BaseModel
-from .deps import get_db, MANAGER_ROLES, HR_ROLES
+from .deps import get_db, MANAGER_ROLES, HR_ROLES, get_role_group, has_role
 from .models import User
 from .auth import get_current_user
 
