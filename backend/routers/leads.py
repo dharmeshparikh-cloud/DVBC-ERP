@@ -131,8 +131,9 @@ async def get_leads(
     """
     db = get_db()
     
-    # Role-based access check
-    if current_user.role not in LEADS_ACCESS_ROLES:
+    # RBAC Migration: Role-based access check
+    leads_access_roles = get_leads_access_roles()
+    if not has_role(current_user.role, leads_access_roles):
         raise HTTPException(status_code=403, detail="Access denied. Only sales team and admin can view leads.")
     
     query = {}
@@ -141,8 +142,9 @@ async def get_leads(
     if assigned_to:
         query['assigned_to'] = assigned_to
     
-    # Data scoping by role and hierarchy
-    if current_user.role not in ['admin', 'hr_manager']:
+    # RBAC Migration: Data scoping by role and hierarchy
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=False) or ['admin', 'hr_manager']
+    if not has_role(current_user.role, hr_admin_roles):
         # Get current user's employee record
         user_employee = await db.employees.find_one(
             {"user_id": current_user.id}, 
