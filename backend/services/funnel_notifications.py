@@ -312,7 +312,7 @@ def agreement_created_email(
     # Show warning for pending/rejected status
     status_warning = ""
     if status.lower() in ["pending", "rejected", "draft"]:
-        status_warning = f"""
+        status_warning = """
         <div style="margin-top: 15px; padding: 12px; background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 4px;">
             <p style="margin: 0; color: #991b1b; font-size: 13px;">
                 <strong>⚠️ Note:</strong> Lead cannot proceed to next stage until agreement is approved.
