@@ -9,7 +9,7 @@ import uuid
 import base64
 
 from .models import User, UserRole
-from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, ADMIN_ROLES, sanitize_text
+from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, ADMIN_ROLES, sanitize_text, get_role_group, has_role
 from .auth import get_current_user, get_password_hash
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
@@ -24,9 +24,9 @@ async def get_employees(
     """Get all employees with optional filters. HR and Admin only."""
     db = get_db()
     
-    # Role guard - only HR and Admin can access full employee list
-    allowed_roles = HR_ROLES + ADMIN_ROLES
-    if current_user.role not in allowed_roles:
+    # RBAC Migration: Using database-driven role check
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not hr_roles or not has_role(current_user.role, hr_roles):
         raise HTTPException(
             status_code=403, 
             detail="Access denied. HR or Admin role required."
