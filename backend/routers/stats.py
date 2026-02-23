@@ -135,10 +135,6 @@ async def get_dashboard_stats(current_user: User = Depends(get_current_user)):
     await cache.set(cache_key, result, PerformanceCache.TTL_DASHBOARD_STATS)
     
     return result
-        "qualified_leads": qualified_leads,
-        "closed_deals": closed_deals,
-        "active_projects": active_projects
-    }
 
 
 @router.get("/overview")
