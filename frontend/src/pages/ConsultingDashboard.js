@@ -93,6 +93,9 @@ const ConsultingDashboard = () => {
         </div>
       </div>
 
+      {/* RBAC Widget - Shows current permissions */}
+      <RBACWidget />
+
       {/* Quick Attendance Card - Light Blue to Dark Blue Gradient */}
       <Card 
         className="cursor-pointer transition-all hover:shadow-lg bg-gradient-to-r from-sky-400 via-blue-500 to-blue-700 border-blue-500"
