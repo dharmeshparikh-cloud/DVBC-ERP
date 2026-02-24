@@ -59,8 +59,10 @@ const UserManagement = () => {
         axios.get(`${API}/users-with-roles`),
         axios.get(`${API}/roles`)
       ]);
-      setUsers(usersRes.data || []);
-      setRoles(rolesRes.data || []);
+      const usersData = usersRes.data?.items || usersRes.data || [];
+      const rolesData = rolesRes.data?.items || rolesRes.data || [];
+      setUsers(Array.isArray(usersData) ? usersData : []);
+      setRoles(Array.isArray(rolesData) ? rolesData : []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -73,8 +75,9 @@ const UserManagement = () => {
     if (permissionModules) return permissionModules;
     try {
       const res = await axios.get(`${API}/permission-modules`);
-      setPermissionModules(res.data);
-      return res.data;
+      const modules = res.data?.items || res.data || [];
+      setPermissionModules(Array.isArray(modules) ? modules : []);
+      return modules;
     } catch (error) {
       toast.error('Failed to load permission modules');
       return null;
