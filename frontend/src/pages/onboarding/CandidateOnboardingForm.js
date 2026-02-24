@@ -316,6 +316,21 @@ const CandidateOnboardingForm = () => {
       }
     }
     
+    // Work Experience validation (MANDATORY)
+    if (!formData.employment_history || formData.employment_history.length === 0) {
+      toast.error('Please add at least one work experience entry');
+      setCurrentStep(2);
+      return;
+    }
+    for (let i = 0; i < formData.employment_history.length; i++) {
+      const emp = formData.employment_history[i];
+      if (!emp.company || !emp.designation || !emp.from_date || !emp.to_date) {
+        toast.error(`Please complete all fields for work experience entry ${i + 1}`);
+        setCurrentStep(2);
+        return;
+      }
+    }
+    
     // Bank Details validation
     if (!bd.account_holder_name || !bd.account_number || !bd.ifsc_code || !bd.bank_name || !bd.branch) {
       toast.error('Please complete all bank details');
