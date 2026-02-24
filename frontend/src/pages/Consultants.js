@@ -32,7 +32,8 @@ const Consultants = () => {
   const fetchConsultants = async () => {
     try {
       const response = await axios.get(`${API}/consultants`);
-      setConsultants(response.data);
+      const data = response.data?.items || response.data || [];
+      setConsultants(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error('Failed to fetch consultants');
     } finally {
