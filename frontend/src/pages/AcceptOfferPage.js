@@ -140,7 +140,7 @@ const AcceptOfferPage = () => {
               
               <p>
                 We are pleased to offer you the position of <strong>{letter?.designation}</strong> in 
-                our <strong>{letter?.department}</strong> department at D&V Business Consulting Pvt. Ltd.
+                our <strong>{letter?.department}</strong> department at D&V Business Consulting.
               </p>
               
               <div className="bg-gray-50 p-4 rounded-lg my-6">
@@ -243,7 +243,7 @@ const AcceptOfferPage = () => {
         
         {/* Footer */}
         <p className="text-center text-xs text-gray-500 mt-6">
-          This is an official document from D&V Business Consulting Pvt. Ltd.
+          This is an official document from D&V Business Consulting.
           <br />
           For any queries, please contact hr@dvconsulting.co.in
         </p>
