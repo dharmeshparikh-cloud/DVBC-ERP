@@ -37,12 +37,12 @@ const PermissionDashboard = () => {
       const [statsRes, permissionsRes, employeesRes] = await Promise.all([
         axios.get(`${API}/role-management/stats`),
         axios.get(`${API}/role-management/level-permissions`),
-        axios.get(`${API}/employees`)
+        axios.get(`${API}/employees/all`) // Use /all for array response
       ]);
       
       setStats(statsRes.data);
-      setLevelPermissions(permissionsRes.data);
-      setEmployees(employeesRes.data);
+      setLevelPermissions(Array.isArray(permissionsRes.data) ? permissionsRes.data : []);
+      setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast.error('Failed to load permission data');
