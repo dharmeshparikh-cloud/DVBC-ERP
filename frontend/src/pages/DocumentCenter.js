@@ -271,28 +271,31 @@ const DocumentCenter = () => {
       const headers = { 'Authorization': `Bearer ${token}` };
 
       const [employeesRes, templatesRes, historyRes] = await Promise.all([
-        fetch(`${API}/employees`, { headers }),
+        fetch(`${API}/employees/all`, { headers }),
         fetch(`${API}/document-templates`, { headers }).catch(() => ({ ok: false })),
         fetch(`${API}/document-history?limit=100`, { headers })
       ]);
 
       if (employeesRes.ok) {
         const data = await employeesRes.json();
-        setEmployees(data.filter(e => e.is_active !== false));
+        const empList = Array.isArray(data) ? data : (data?.items || []);
+        setEmployees(empList.filter(e => e.is_active !== false));
       }
 
       if (templatesRes.ok) {
         const data = await templatesRes.json();
-        setTemplates(data);
+        const templateList = Array.isArray(data) ? data : (data?.items || []);
+        setTemplates(templateList);
       }
 
       if (historyRes.ok) {
         const data = await historyRes.json();
-        setDocumentHistory(data);
+        const historyList = Array.isArray(data) ? data : (data?.items || []);
+        setDocumentHistory(historyList);
         
         // Calculate stats
         const statsByType = {};
-        data.forEach(doc => {
+        historyList.forEach(doc => {
           statsByType[doc.document_type] = (statsByType[doc.document_type] || 0) + 1;
         });
         setStats({ total: data.length, by_type: statsByType });
