@@ -956,15 +956,17 @@ const CandidateOnboardingForm = () => {
                 { type: 'bank_passbook', label: 'Bank Passbook / Statement', required: false },
               ].map(doc => {
                 const uploaded = submission?.documents?.find(d => d.type === doc.type);
+                const isMissing = doc.required && !uploaded;
                 return (
-                  <Card key={doc.type} className={uploaded ? 'border-green-200 bg-green-50/50' : ''}>
+                  <Card key={doc.type} className={uploaded ? 'border-green-200 bg-green-50/50' : isMissing ? 'border-red-200 bg-red-50/30' : ''}>
                     <CardContent className="pt-4">
                       <div className="flex items-center justify-between mb-2">
                         <Label className="flex items-center gap-2">
                           {doc.label}
-                          {doc.required && <span className="text-red-500">*</span>}
+                          {doc.required && <span className="text-red-500 font-bold">*</span>}
                         </Label>
                         {uploaded && <Badge variant="outline" className="text-green-600 border-green-300">Uploaded</Badge>}
+                        {isMissing && <Badge variant="outline" className="text-red-600 border-red-300">Required</Badge>}
                       </div>
                       <Input
                         type="file"
