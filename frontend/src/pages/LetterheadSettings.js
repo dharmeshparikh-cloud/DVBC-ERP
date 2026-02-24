@@ -19,7 +19,7 @@ const LetterheadSettings = () => {
   const [settings, setSettings] = useState({
     header_image: null,
     footer_image: null,
-    company_name: "D&V Business Consulting Pvt. Ltd.",
+    company_name: "D&V Business Consulting",
     company_address: "123, Business Park, Andheri East, Mumbai - 400069",
     company_phone: "+91 22 1234 5678",
     company_email: "contact@dvconsulting.co.in",

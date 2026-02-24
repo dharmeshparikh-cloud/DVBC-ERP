@@ -9,7 +9,7 @@ const CompanyLetterhead = ({
   showFooter = true,
   headerImage = null,
   footerImage = null,
-  companyName = "D&V Business Consulting Pvt. Ltd.",
+  companyName = "D&V Business Consulting",
   companyAddress = "123, Business Park, Andheri East, Mumbai - 400069",
   companyPhone = "+91 22 1234 5678",
   companyEmail = "contact@dvconsulting.co.in",
@@ -115,7 +115,7 @@ export const HRSignatureBlock = ({ signatureText, signatureImage, hrName, hrDesi
         <div className="border-t border-gray-400 pt-2 min-w-[200px]">
           <p className="font-semibold text-gray-800">{hrName || 'HR Manager'}</p>
           <p className="text-sm text-gray-600">{hrDesignation || 'Human Resources'}</p>
-          <p className="text-xs text-gray-500">D&V Business Consulting Pvt. Ltd.</p>
+          <p className="text-xs text-gray-500">D&V Business Consulting</p>
         </div>
       </div>
     </div>
