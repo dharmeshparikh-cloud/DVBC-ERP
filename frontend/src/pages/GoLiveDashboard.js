@@ -40,11 +40,13 @@ const GoLiveDashboard = () => {
     try {
       setPageError(null);
       const res = await axios.get(`${API}/employees`);
+      // Handle both array and paginated response formats
+      const data = res.data.items || res.data;
       // Filter employees who might need Go-Live
-      const filtered = res.data.filter(emp => 
+      const filtered = data.filter(emp => 
         emp.go_live_status !== 'active' || !emp.go_live_status
       );
-      setEmployees(res.data);
+      setEmployees(data);
     } catch (error) {
       const errorInfo = handleApiError(error, { operation: 'load employees' });
       setPageError(errorInfo);
