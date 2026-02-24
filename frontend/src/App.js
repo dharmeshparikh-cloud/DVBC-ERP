@@ -10,8 +10,6 @@ import { StageGuardProvider } from './contexts/StageGuardContext';
 import StageGuardDialog from './components/StageGuardDialog';
 import { SalesPortalRedirect, HRPortalRedirect } from './components/PortalRedirect';
 import ErrorBoundary from './components/ErrorBoundary';
-import { extractErrorMessage } from './utils/SafeRender';
-import { safeToast } from './utils/apiHelpers';
 
 // React Query for data caching
 import { QueryClientProvider, queryClient } from './lib/queryClient';
