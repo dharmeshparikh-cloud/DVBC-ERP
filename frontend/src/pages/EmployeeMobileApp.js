@@ -121,9 +121,12 @@ const EmployeeMobileApp = () => {
       
       setAttendanceData(attRes.data);
       setLeaveBalance(leaveRes.data);
-      setExpenses(expRes.data?.expenses || []);
-      setClients(clientsRes.data || []);
-      setProjects(projectsRes.data || []);
+      const expData = expRes.data?.expenses || expRes.data?.items || expRes.data || [];
+      setExpenses(Array.isArray(expData) ? expData : []);
+      const clientData = clientsRes.data?.items || clientsRes.data || [];
+      setClients(Array.isArray(clientData) ? clientData : []);
+      const projectData = projectsRes.data?.items || projectsRes.data || [];
+      setProjects(Array.isArray(projectData) ? projectData : []);
       
       // Check if consulting employee (can use client sites)
       const dept = attRes.data?.employee?.department?.toLowerCase() || '';
@@ -144,7 +147,8 @@ const EmployeeMobileApp = () => {
     setLoadingClients(true);
     try {
       const res = await axios.get(`${API}/my/assigned-clients`);
-      setAssignedClients(res.data.clients || []);
+      const clientList = res.data?.clients || res.data?.items || [];
+      setAssignedClients(Array.isArray(clientList) ? clientList : []);
     } catch (e) {
       // Fallback: use projects as client source
       const projectClients = projects.map(p => ({
