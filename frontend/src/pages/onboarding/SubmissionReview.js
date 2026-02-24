@@ -342,6 +342,10 @@ const SubmissionReview = () => {
                 <p className="font-medium">{cd.phone || 'N/A'}</p>
               </div>
               <div>
+                <Label className="text-xs text-zinc-500">Alternate Phone</Label>
+                <p className="font-medium">{cd.alternate_phone || 'N/A'}</p>
+              </div>
+              <div>
                 <Label className="text-xs text-zinc-500">Email</Label>
                 <p className="font-medium">{submission.candidate_email}</p>
               </div>
@@ -354,6 +358,14 @@ const SubmissionReview = () => {
                 <p className="font-medium">{cd.blood_group || 'N/A'}</p>
               </div>
               <div>
+                <Label className="text-xs text-zinc-500">Marital Status</Label>
+                <p className="font-medium capitalize">{cd.marital_status || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-zinc-500">Nationality</Label>
+                <p className="font-medium">{cd.nationality || 'N/A'}</p>
+              </div>
+              <div>
                 <Label className="text-xs text-zinc-500">PAN Number</Label>
                 <p className="font-medium font-mono">{cd.pan_number || 'N/A'}</p>
               </div>
@@ -361,10 +373,20 @@ const SubmissionReview = () => {
                 <Label className="text-xs text-zinc-500">Aadhaar Number</Label>
                 <p className="font-medium font-mono">{cd.aadhaar_number || 'N/A'}</p>
               </div>
+              <div>
+                <Label className="text-xs text-zinc-500">Passport Number</Label>
+                <p className="font-medium">{cd.passport_number || 'N/A'}</p>
+              </div>
               <div className="col-span-2">
                 <Label className="text-xs text-zinc-500">Current Address</Label>
                 <p className="font-medium">
-                  {cd.current_address?.street}, {cd.current_address?.city}, {cd.current_address?.state} - {cd.current_address?.pincode}
+                  {cd.current_address?.street ? `${cd.current_address.street}, ${cd.current_address?.city}, ${cd.current_address?.state} - ${cd.current_address?.pincode}` : 'N/A'}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-zinc-500">Permanent Address</Label>
+                <p className="font-medium">
+                  {cd.permanent_address?.street ? `${cd.permanent_address.street}, ${cd.permanent_address?.city}, ${cd.permanent_address?.state} - ${cd.permanent_address?.pincode}` : 'N/A'}
                 </p>
               </div>
             </CardContent>
