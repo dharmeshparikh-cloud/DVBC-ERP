@@ -1162,6 +1162,29 @@ const CandidateOnboardingForm = () => {
 
             <Card>
               <CardHeader>
+                <CardTitle className="text-base">Professional Reference</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <div><span className="text-zinc-500">Name:</span> {pr.name || 'N/A'}</div>
+                <div><span className="text-zinc-500">Phone:</span> {pr.phone || 'N/A'}</div>
+                <div><span className="text-zinc-500">Company:</span> {pr.company_name || 'N/A'}</div>
+                <div><span className="text-zinc-500">Designation:</span> {pr.designation || 'N/A'}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Personal Reference</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <div><span className="text-zinc-500">Name:</span> {per.name || 'N/A'}</div>
+                <div><span className="text-zinc-500">Phone:</span> {per.phone || 'N/A'}</div>
+                <div className="col-span-2"><span className="text-zinc-500">Address:</span> {per.address || 'N/A'}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle className="text-base">Uploaded Documents ({uploadedDocs.length})</CardTitle>
               </CardHeader>
               <CardContent>
