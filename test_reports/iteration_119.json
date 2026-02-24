@@ -1,0 +1,89 @@
+{
+  "summary": "Comprehensive testing of Onboarding Form References section (Step 5) - Professional and Personal References. Both backend APIs and frontend UI tested successfully. All 9 backend tests passed, frontend tests confirmed References step with proper fields and validation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_tests": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "tests": {
+        "test_01_send_invite_and_get_token": "PASS - Created submission with unique token",
+        "test_02_get_public_submission_structure": "PASS - Response includes professional_reference and personal_reference fields",
+        "test_03_save_professional_reference": "PASS - Saved and verified: name, phone, company_name, designation",
+        "test_04_save_personal_reference": "PASS - Saved and verified: name, phone, address",
+        "test_05_save_both_references_together": "PASS - Both references saved in single request",
+        "test_06_submit_with_references": "PASS - Full form submitted with references data",
+        "test_07_progress_includes_references": "PASS - Progress calculation includes references",
+        "test_08_validate_submission_includes_references": "PASS - HR can view submitted references",
+        "test_09_backend_declaration_text": "PASS - Declaration uses 'D&V Business Consulting' (no Pvt. Ltd.)"
+      }
+    },
+    "frontend_tests": {
+      "references_step": {
+        "status": "PASS",
+        "observations": [
+          "Step 5 of 8: References - correctly positioned",
+          "Professional Reference section with mandatory (*) fields: Name, Phone Number, Company Name, Designation",
+          "Personal Reference section with mandatory (*) fields: Name, Phone Number, Address",
+          "All 7 input fields present and editable",
+          "Save Progress button works correctly",
+          "Step indicator shows checkmark when references are filled"
+        ]
+      },
+      "review_page": {
+        "status": "PASS",
+        "observations": [
+          "Professional Reference section visible with: Name, Phone, Company, Designation",
+          "Personal Reference section visible with: Name, Phone, Address",
+          "Data correctly displays values entered in step 5"
+        ]
+      },
+      "company_branding": {
+        "status": "PASS",
+        "observations": [
+          "Logo shows 'D&V Business Consulting' (correct)",
+          "Declaration text uses 'D&V Business Consulting' (correct)",
+          "No 'Pvt. Ltd.' found anywhere in the form (correct)"
+        ]
+      }
+    }
+  },
+  "features_verified": [
+    "Professional Reference fields (name, phone, company_name, designation) - WORKING",
+    "Personal Reference fields (name, phone, address) - WORKING",
+    "Backend /api/onboarding/public/{token}/save accepts professional_reference and personal_reference - WORKING",
+    "Backend /api/onboarding/public/{token}/submit validates references - WORKING",
+    "Review & Submit page displays both reference sections correctly - WORKING",
+    "Company name 'D&V Business Consulting' used throughout (no 'Pvt. Ltd.') - WORKING",
+    "Progress calculation includes references validation - WORKING"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_onboarding_references.py",
+    "/app/test_reports/pytest/pytest_onboarding_references.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_onboarding_references.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (All UI tests passed)"
+  },
+  "test_credentials": {
+    "admin": "ADMIN001 / admin123 - WORKING",
+    "test_token": "_wlvPty4WeKfYsT_o6gyK1T725KZ_P2CWG3MdIrQh0Q - WORKING"
+  },
+  "seed_data_creation": "Created test submissions during backend testing with unique emails and PAN numbers",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "References section (Step 5) fully tested. Backend endpoints handle professional_reference (name, phone, company_name, designation) and personal_reference (name, phone, address). Progress calculation and validation include references. Company name correctly uses 'D&V Business Consulting' without 'Pvt. Ltd.' throughout form and declaration."
+}
