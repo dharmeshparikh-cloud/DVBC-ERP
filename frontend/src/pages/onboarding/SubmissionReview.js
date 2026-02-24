@@ -464,11 +464,17 @@ const SubmissionReview = () => {
             </p>
           </div>
         </div>
-        {submission.employee_id_generated && (
-          <Badge className="bg-green-100 text-green-700 text-lg px-4 py-2">
-            Employee ID: {submission.employee_id_generated}
-          </Badge>
-        )}
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={handlePrint} data-testid="print-btn">
+            <Printer className="w-4 h-4 mr-2" />
+            Print Form
+          </Button>
+          {submission.employee_id_generated && (
+            <Badge className="bg-green-100 text-green-700 text-lg px-4 py-2">
+              Employee ID: {submission.employee_id_generated}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Completed Alert */}
