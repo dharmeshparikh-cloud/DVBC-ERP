@@ -104,6 +104,13 @@ const Dashboard = () => {
     }
   };
 
+  // Check if user has sales/admin access for leads
+  const canAccessLeads = () => {
+    if (!user) return false;
+    const role = user.role?.toLowerCase() || '';
+    return role === 'admin' || role === 'manager' || role === 'executive' || role === 'sales_manager';
+  };
+
   // Call useEffect BEFORE any conditional returns
   useEffect(() => {
     // Fetch attendance status for all users
@@ -112,7 +119,10 @@ const Dashboard = () => {
     // Only fetch data for admin dashboard
     if (userDomain === 'admin' || userDomain === 'general') {
       fetchStats();
-      fetchHighPriorityLeads();
+      // Only fetch leads if user has access
+      if (canAccessLeads()) {
+        fetchHighPriorityLeads();
+      }
       if (user?.role === 'manager' || user?.role === 'admin') {
         fetchPendingApprovals();
       }
