@@ -556,12 +556,12 @@ const CandidateOnboardingForm = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="alt_phone">Alternate Phone</Label>
+                <Label htmlFor="alt_phone">Alternate Phone *</Label>
                 <Input
                   id="alt_phone"
                   value={formData.candidate_details.alternate_phone}
                   onChange={(e) => updateField('candidate_details.alternate_phone', e.target.value)}
-                  placeholder="Optional"
+                  placeholder="10-digit mobile number"
                 />
               </div>
             </div>
