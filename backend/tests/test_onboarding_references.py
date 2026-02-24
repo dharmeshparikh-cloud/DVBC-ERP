@@ -233,8 +233,8 @@ class TestOnboardingReferences:
                 "nationality": "Indian",
                 "phone": "9876543210",
                 "alternate_phone": "9876543211",
-                "pan_number": "ABCDE1234F",
-                "aadhaar_number": "1234-5678-9012",
+                "pan_number": f"TEST{uuid.uuid4().hex[:5].upper()}",
+                "aadhaar_number": f"{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:4]}",
                 "current_address": {
                     "street": "123 Test Street",
                     "city": "Mumbai",
