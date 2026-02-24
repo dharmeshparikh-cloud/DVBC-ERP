@@ -1302,16 +1302,16 @@ const CandidateOnboardingForm = () => {
                 <button
                   key={step.id}
                   onClick={() => setCurrentStep(index)}
-                  className={`flex flex-col items-center gap-1 text-xs transition-colors ${
+                  className={`flex flex-col items-center gap-1 text-xs transition-colors min-w-[40px] ${
                     isActive ? 'text-black' : isComplete ? 'text-green-600' : 'text-zinc-400'
                   }`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                     isActive ? 'bg-black text-white' : isComplete ? 'bg-green-100' : 'bg-zinc-100'
                   }`}>
-                    {isComplete ? <Check className="w-4 h-4" /> : <StepIcon className="w-4 h-4" />}
+                    {isComplete ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : (index + 1)}
                   </div>
-                  <span className="hidden sm:block">{step.title}</span>
+                  <span className="hidden md:block text-[10px] text-center leading-tight">{step.title}</span>
                 </button>
               );
             })}
