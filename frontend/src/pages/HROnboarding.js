@@ -535,12 +535,13 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
   const downloadMasterFile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/employees`, {
+      const response = await fetch(`${API}/employees/all`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
-        const employees = await response.json();
+        const data = await response.json();
+        const employees = Array.isArray(data) ? data : (data?.items || []);
         
         const headers = 'Employee ID,First Name,Last Name,Email,Phone,Department,Designation,Employment Type,Joining Date,Status\n';
         const rows = employees.map(e => 
