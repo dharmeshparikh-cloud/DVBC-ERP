@@ -14,7 +14,71 @@
 
 ## Completed Work - February 2026
 
-### Phase 51: Go-Live Checklist UX Improvements - February 24, 2026 ✅ (Latest)
+### Phase 52: Self-Service Candidate Onboarding Backend - February 24, 2026 ✅ (Latest)
+
+**Complete Backend Implementation:**
+
+A new module allowing candidates to fill their details via secure link, with HR review and approval before employee creation.
+
+**New API Endpoints (14 total):**
+
+| Endpoint | Purpose | Auth |
+|----------|---------|------|
+| `POST /api/onboarding/invite` | HR sends invite to candidate | HR Only |
+| `GET /api/onboarding/submissions` | List all submissions | HR Only |
+| `GET /api/onboarding/submissions/{id}` | Get submission details | HR Only |
+| `PATCH /api/onboarding/submissions/{id}/hr-assign` | HR assigns dept/manager | HR Only |
+| `POST /api/onboarding/submissions/{id}/verify-documents` | HR verifies docs | HR Manager/Admin |
+| `POST /api/onboarding/submissions/{id}/verify-bank` | HR verifies bank | HR Manager/Admin |
+| `POST /api/onboarding/submissions/{id}/request-revision` | Request candidate revision | HR Only |
+| `POST /api/onboarding/submissions/{id}/reject` | Reject candidate | HR Manager/Admin |
+| `POST /api/onboarding/submissions/{id}/complete` | Generate Employee ID | HR Manager/Admin |
+| `GET /api/onboarding/legacy` | List legacy records | HR Only |
+| `GET /api/onboarding/public/{token}` | Candidate views form | Public |
+| `POST /api/onboarding/public/{token}/save` | Candidate saves progress | Public |
+| `POST /api/onboarding/public/{token}/submit` | Candidate submits form | Public |
+| `POST /api/onboarding/public/{token}/upload` | Candidate uploads docs | Public |
+
+**Key Features:**
+- 🔐 Token-based public access (32-byte secure token, 7-day expiry)
+- 📝 Auto-save progress for candidates (resume later)
+- 📎 Document upload (PDF, JPG, PNG, WEBP - max 5MB)
+- ✅ Validation before completion (2+ docs, HR verifications required)
+- 🆔 Employee ID generation: **DVBC format** (DVBC001, DVBC002...)
+- 📧 Email notifications at key milestones
+- 📊 Full audit trail for all actions
+
+**Workflow:**
+```
+HR sends invite → Candidate fills form → Candidate uploads docs → Candidate submits →
+HR reviews → HR assigns dept/manager → HR verifies docs → HR verifies bank →
+HR completes onboarding → Employee ID generated → Employee record created
+```
+
+**New Database Collection: `onboarding_submissions`:**
+```javascript
+{
+  id, token, status, candidate_email, candidate_name, offered_position,
+  candidate_details: {...}, education: [...], employment_history: [...],
+  bank_details: {...}, emergency_contact: {...}, documents: [...],
+  hr_assigned: {...}, hr_verification: {...},
+  completed_at, employee_id_generated, employee_record_id, audit_log: [...]
+}
+```
+
+**Files Created/Modified:**
+- `/app/backend/routers/onboarding.py` - Complete router (1045 lines)
+- `/app/backend/server.py` - Added router import and inclusion
+- `/app/backend/tests/test_onboarding_self_service.py` - 30 test cases
+
+**Testing Results:**
+- ✅ 30/30 backend tests passed (100%)
+- ✅ E2E flow tested: invite → fill → upload → submit → assign → verify → complete
+- ✅ First employee created: DVBC001 (Priya Sharma)
+
+---
+
+### Phase 51: Go-Live Checklist UX Improvements - February 24, 2026 ✅
 
 **Changes Made:**
 
