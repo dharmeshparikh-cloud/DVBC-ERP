@@ -292,27 +292,10 @@ const Leads = () => {
   };
 
   // Refetch helper for cache invalidation
+  // Refetch helper for cache invalidation
   const fetchLeads = () => {
     refetchLeads();
     queryClient.invalidateQueries({ queryKey: ['leads', 'progress', 'bulk'] });
-  };
-            const suggestionsRes = await axios.get(`${API}/leads/${lead.id}/suggestions`);
-            if (suggestionsRes.data.suggestions.length > 0) {
-              setSuggestions(prev => ({
-                ...prev,
-                [lead.id]: suggestionsRes.data.suggestions
-              }));
-            }
-          } catch (error) {
-            console.error('Failed to fetch suggestions for lead:', lead.id);
-          }
-        }
-      });
-    } catch (error) {
-      toast.error('Failed to fetch leads');
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Navigate to current stage when clicking on lead
