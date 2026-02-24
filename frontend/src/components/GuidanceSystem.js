@@ -582,6 +582,208 @@ export const HelpPanel = () => {
             </div>
           )}
 
+          {/* Help Articles Tab */}
+          {activeTab === 'help' && (
+            <div className="space-y-4">
+              {/* Back Button */}
+              {(selectedTopic || selectedCategory) && (
+                <button
+                  onClick={goBackInHelp}
+                  className={`flex items-center gap-2 text-sm ${isDark ? 'text-zinc-400 hover:text-zinc-200' : 'text-zinc-500 hover:text-zinc-700'}`}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Back
+                </button>
+              )}
+              
+              {/* Topic Detail View */}
+              {selectedTopic && (
+                <HelpTopicDetail 
+                  topic={selectedTopic} 
+                  isDark={isDark} 
+                  onFeedback={sendHelpFeedback}
+                  onOpenRelated={openHelpTopic}
+                />
+              )}
+              
+              {/* Category Topics View */}
+              {selectedCategory && !selectedTopic && (
+                <div className="space-y-3">
+                  <h3 className={`font-semibold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                    {selectedCategory.name}
+                  </h3>
+                  {helpLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+                    </div>
+                  ) : categoryTopics.length > 0 ? (
+                    <div className="space-y-2">
+                      {categoryTopics.map(topic => (
+                        <button
+                          key={topic.id}
+                          onClick={() => openHelpTopic(topic.id)}
+                          className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 hover:border-orange-600' : 'bg-white border-zinc-200 hover:border-orange-400'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <HelpTopicIcon type={topic.type} />
+                            <span className={`text-sm font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{topic.title}</span>
+                            {topic.isNew && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-white rounded">NEW</span>}
+                          </div>
+                          {topic.excerpt && (
+                            <p className={`text-xs mt-1 ml-6 line-clamp-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{topic.excerpt}</p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={`text-center py-4 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>No topics in this category</p>
+                  )}
+                </div>
+              )}
+              
+              {/* Main Help View */}
+              {!selectedTopic && !selectedCategory && (
+                <>
+                  {/* Search */}
+                  <div className={`flex gap-2 p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                    <input
+                      type="text"
+                      value={helpSearchQuery}
+                      onChange={(e) => {
+                        setHelpSearchQuery(e.target.value);
+                        handleHelpSearch(e.target.value);
+                      }}
+                      placeholder="Search help articles..."
+                      className={`flex-1 bg-transparent border-none outline-none text-sm ${
+                        isDark ? 'text-zinc-100 placeholder:text-zinc-500' : 'text-zinc-900 placeholder:text-zinc-400'
+                      }`}
+                    />
+                    {helpLoading && <Loader2 className="w-4 h-4 animate-spin text-orange-500" />}
+                  </div>
+                  
+                  {/* Search Results */}
+                  {helpSearchQuery && helpSearchResults.length > 0 && (
+                    <div className="space-y-2">
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        {helpSearchResults.length} results for "{helpSearchQuery}"
+                      </p>
+                      {helpSearchResults.map(result => (
+                        <button
+                          key={result.id}
+                          onClick={() => openHelpTopic(result.id)}
+                          className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                            isDark ? 'bg-zinc-800 border-zinc-700 hover:border-orange-600' : 'bg-white border-zinc-200 hover:border-orange-400'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <HelpTopicIcon type={result.type} />
+                            <span className={`text-sm font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{result.title}</span>
+                          </div>
+                          {result.excerpt && (
+                            <p className={`text-xs mt-1 ml-6 line-clamp-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{result.excerpt}</p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Context-Aware Topics */}
+                  {!helpSearchQuery && contextTopics.length > 0 && (
+                    <div>
+                      <p className={`text-sm font-medium mb-2 flex items-center gap-2 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                        <Lightbulb className="w-4 h-4" />
+                        Help for this page
+                      </p>
+                      <div className="space-y-2">
+                        {contextTopics.slice(0, 4).map(topic => (
+                          <button
+                            key={topic.id}
+                            onClick={() => openHelpTopic(topic.id)}
+                            className={`w-full text-left p-3 rounded-lg transition-colors ${
+                              isDark ? 'bg-amber-900/30 hover:bg-amber-900/50' : 'bg-amber-50 hover:bg-amber-100'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <HelpTopicIcon type={topic.type} />
+                              <span className={`text-sm ${isDark ? 'text-amber-100' : 'text-amber-900'}`}>{topic.title}</span>
+                              {topic.isNew && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-white rounded">NEW</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* What's New */}
+                  {!helpSearchQuery && whatsNew.length > 0 && (
+                    <div>
+                      <p className={`text-sm font-medium mb-2 flex items-center gap-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                        <Sparkles className="w-4 h-4" />
+                        What's New
+                      </p>
+                      <div className="space-y-2">
+                        {whatsNew.slice(0, 3).map(item => (
+                          <button
+                            key={item.id}
+                            onClick={() => openHelpTopic(item.id)}
+                            className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                              isDark ? 'bg-green-900/20 border-green-800 hover:border-green-600' : 'bg-green-50 border-green-200 hover:border-green-400'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-medium ${isDark ? 'text-green-100' : 'text-green-900'}`}>{item.title}</span>
+                              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-white rounded">NEW</span>
+                            </div>
+                            <p className={`text-xs mt-1 line-clamp-1 ${isDark ? 'text-green-300' : 'text-green-700'}`}>{item.introduction}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Browse Categories */}
+                  {!helpSearchQuery && helpCategories.length > 0 && (
+                    <div>
+                      <p className={`text-sm font-medium mb-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                        Browse by Module
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {helpCategories.map(cat => (
+                          <button
+                            key={cat.id}
+                            onClick={() => openCategory(cat)}
+                            className={`p-3 rounded-lg border text-left transition-colors ${
+                              isDark ? 'bg-zinc-800 border-zinc-700 hover:border-orange-600' : 'bg-white border-zinc-200 hover:border-orange-400'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{cat.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{cat.name}</p>
+                                <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{cat.topicCount} topics</p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Empty State */}
+                  {!helpSearchQuery && contextTopics.length === 0 && helpCategories.length === 0 && (
+                    <div className={`text-center py-8 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      <HelpCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No help content available yet.</p>
+                      <p className="text-sm mt-1">Try asking the AI assistant!</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* AI Tab */}
           {activeTab === 'ai' && (
             <div className="space-y-4">
