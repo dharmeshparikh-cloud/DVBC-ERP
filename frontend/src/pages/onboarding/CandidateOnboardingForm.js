@@ -1363,12 +1363,12 @@ const CandidateOnboardingForm = () => {
                         <ReviewField label="Designation" value={emp.designation} />
                         <ReviewField label="From" value={emp.from_date} />
                         <ReviewField label="To" value={emp.to_date} />
-                        <div className="col-span-2"><ReviewField label="Reason for Leaving" value={emp.reason_for_leaving} required={false} /></div>
+                        <div className="col-span-2"><ReviewField label="Reason for Leaving" value={emp.reason_for_leaving} /></div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-zinc-500 text-sm">No employment history (Optional for freshers)</p>
+                  <p className="text-red-600 text-sm">⚠ No employment history added (Required)</p>
                 )}
               </CardContent>
             </Card>
