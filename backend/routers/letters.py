@@ -796,7 +796,7 @@ async def get_letterhead_settings(current_user: User = Depends(get_current_user)
             "id": "main",
             "header_image": None,
             "footer_image": None,
-            "company_name": "D&V Business Consulting Pvt. Ltd.",
+            "company_name": "D&V Business Consulting",
             "company_address": "123, Business Park, Andheri East, Mumbai - 400069",
             "company_phone": "+91 22 1234 5678",
             "company_email": "contact@dvconsulting.co.in",
