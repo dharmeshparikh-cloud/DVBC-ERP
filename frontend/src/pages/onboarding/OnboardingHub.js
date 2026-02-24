@@ -160,7 +160,7 @@ const OnboardingHub = () => {
           <h1 className="text-2xl font-bold">Onboarding Hub</h1>
           <p className="text-zinc-500 text-sm">Manage candidate self-service onboarding</p>
         </div>
-        <Button onClick={fetchSubmissions} variant="outline" size="sm">
+        <Button onClick={() => refetchSubmissions()} variant="outline" size="sm">
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
