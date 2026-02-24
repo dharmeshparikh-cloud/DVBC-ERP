@@ -28,30 +28,31 @@
 
 2. **Company Branding Fix**
    - Corrected all instances of "D&V Business Consulting Pvt. Ltd." to "D&V Business Consulting"
-   - Files fixed:
-     - CompanyLetterhead.js
-     - LetterheadSettings.js
-     - AcceptOfferPage.js
-     - DocumentBuilder.js
-     - DocumentCenter.js
-     - MySalarySlips.js
-     - letters.py (backend)
 
-**Backend Changes:**
-- `/app/backend/routers/onboarding.py`:
-  - Added `professional_reference` and `personal_reference` to submission structure
-  - Updated `save_public_submission()` to handle reference fields
-  - Updated `submit_public_submission()` to include references
-  - Updated `get_public_submission()` to return references
-  - Updated `calculate_submission_progress()` to include references (8 total items now)
-  - Updated `validate_submission_complete()` to require references
-  - Added references to employee record on completion
+3. **Indian Validation & Mandatory Fields (Added)**
+   - **Indian Phone Validation**: 10 digits starting with 6-9, inline error messages
+   - **PAN Validation**: 5 letters + 4 digits + 1 letter format (auto-uppercase)
+   - **Aadhaar Validation**: Exactly 12 digits
+   - **IFSC Validation**: 4 letters + 0 + 6 alphanumeric
+   - **Pincode Validation**: Exactly 6 digits
+   - **Work Experience**: Now MANDATORY (was optional) - at least one entry required
+   - All fields have * mandatory markers
+   - All Work Experience fields mandatory: Company*, Designation*, From Date*, To Date*, Reason for Leaving*
+
+4. **Step Progress Indicator Fix**
+   - Gray number for incomplete steps
+   - Green checkmark ONLY for fully completed steps with valid data
+   - Step validation uses proper validation functions (not just truthy checks)
+
+5. **Review Section Enhanced**
+   - Shows red "Required" warning for missing Education/Employment History
+   - Shows all captured fields including Employment with validation status
+   - Missing fields highlighted with red "⚠ Missing" markers
 
 **Testing Results:**
-- ✅ 9/9 backend tests passed (100%)
-- ✅ All frontend UI tests passed (100%)
-- ✅ References save and submit working
-- ✅ Company name corrected throughout
+- ✅ 40/40 validation tests passed (100%)
+- ✅ All frontend UI tests passed
+- ✅ Backend API tests passed
 
 ---
 
