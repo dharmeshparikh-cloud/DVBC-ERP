@@ -282,20 +282,61 @@ const GoLiveDashboard = () => {
     );
   };
 
-  const ChecklistItem = ({ label, checked, icon: Icon }) => (
-    <div className={`flex items-center gap-3 p-3 rounded-lg ${
-      checked 
-        ? isDark ? 'bg-emerald-900/20 border border-emerald-700' : 'bg-emerald-50 border border-emerald-200'
-        : isDark ? 'bg-zinc-800 border border-zinc-700' : 'bg-zinc-50 border border-zinc-200'
-    }`}>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-        checked ? 'bg-emerald-500 text-white' : isDark ? 'bg-zinc-700 text-zinc-400' : 'bg-zinc-200 text-zinc-400'
-      }`}>
-        {checked ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
+  // Define URLs for each checklist item action
+  const getChecklistActionUrl = (key, employeeId) => {
+    const urlMap = {
+      personal_details: `/employees?edit=${employeeId}`,
+      official_email: `/employees?edit=${employeeId}&section=email`,
+      department: `/employees?edit=${employeeId}&section=department`,
+      reporting_manager: `/employees?edit=${employeeId}&section=manager`,
+      bank_details: `/employees?edit=${employeeId}&section=bank`,
+      bank_verified: null, // Handled separately with verify button
+      documents: `/document-center?employee=${employeeId}`,
+      portal_access: `/password-management?employee=${employeeId}`
+    };
+    return urlMap[key] || `/employees?edit=${employeeId}`;
+  };
+
+  const handleChecklistItemClick = (key, completed, employeeId) => {
+    if (completed) return; // Don't navigate if already completed
+    
+    const url = getChecklistActionUrl(key, employeeId);
+    if (url) {
+      window.location.href = url;
+    }
+  };
+
+  const ChecklistItem = ({ label, checked, icon: Icon, itemKey, employeeId, onClick }) => {
+    const isClickable = !checked && onClick;
+    
+    return (
+      <div 
+        className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+          checked 
+            ? isDark ? 'bg-emerald-900/20 border border-emerald-700' : 'bg-emerald-50 border border-emerald-200'
+            : isDark ? 'bg-zinc-800 border border-zinc-700 hover:border-blue-500' : 'bg-zinc-50 border border-zinc-200 hover:border-blue-400'
+        } ${isClickable ? 'cursor-pointer hover:shadow-md' : ''}`}
+        onClick={() => isClickable && onClick()}
+        role={isClickable ? 'button' : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        data-testid={`checklist-item-${itemKey}`}
+      >
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          checked ? 'bg-emerald-500 text-white' : isDark ? 'bg-zinc-700 text-zinc-400' : 'bg-zinc-200 text-zinc-400'
+        }`}>
+          {checked ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
+        </div>
+        <div className="flex-1">
+          <span className={checked ? 'text-emerald-600 font-medium' : ''}>{label}</span>
+          {!checked && isClickable && (
+            <p className={`text-xs ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+              Click to complete →
+            </p>
+          )}
+        </div>
       </div>
-      <span className={checked ? 'text-emerald-600 font-medium' : ''}>{label}</span>
-    </div>
-  );
+    );
+  };
 
   const filteredEmployees = employees.filter(emp => {
     if (filter === 'pending') return emp.go_live_status === 'pending' || !emp.go_live_status;
