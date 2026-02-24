@@ -559,6 +559,9 @@ const GoLiveDashboard = () => {
                         label={item.label}
                         checked={item.completed}
                         icon={IconComponent}
+                        itemKey={key}
+                        employeeId={checklist.employee.id}
+                        onClick={() => handleChecklistItemClick(key, item.completed, checklist.employee.id)}
                       />
                     );
                   })}
