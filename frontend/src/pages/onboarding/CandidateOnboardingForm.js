@@ -1502,28 +1502,29 @@ const CandidateOnboardingForm = () => {
                 const hasValue = (val) => val && val.toString().trim() !== '';
                 
                 switch (index) {
-                  case 0: // Personal Details (including alternate phone)
-                    return hasValue(cd.first_name) && hasValue(cd.last_name) && hasValue(cd.phone) && hasValue(cd.alternate_phone) && 
+                  case 0: // Personal Details - includes validation
+                    return hasValue(cd.first_name) && hasValue(cd.last_name) && 
+                           isValidIndianPhone(cd.phone) && isValidIndianPhone(cd.alternate_phone) && 
                            hasValue(cd.date_of_birth) && hasValue(cd.gender) && hasValue(cd.blood_group) && hasValue(cd.marital_status) && 
-                           hasValue(cd.pan_number) && hasValue(cd.aadhaar_number) &&
+                           isValidPAN(cd.pan_number) && isValidAadhaar(cd.aadhaar_number) &&
                            hasValue(cd.current_address?.street) && hasValue(cd.current_address?.city) && 
-                           hasValue(cd.current_address?.state) && hasValue(cd.current_address?.pincode) &&
+                           hasValue(cd.current_address?.state) && isValidPincode(cd.current_address?.pincode) &&
                            hasValue(cd.permanent_address?.street) && hasValue(cd.permanent_address?.city) && 
-                           hasValue(cd.permanent_address?.state) && hasValue(cd.permanent_address?.pincode);
-                  case 1: // Education
+                           hasValue(cd.permanent_address?.state) && isValidPincode(cd.permanent_address?.pincode);
+                  case 1: // Education - at least one complete entry
                     return formData.education && formData.education.length > 0 && 
                            formData.education.every(e => hasValue(e.degree) && hasValue(e.institution) && hasValue(e.year) && hasValue(e.percentage));
-                  case 2: // Work Experience - Optional, always complete if empty or all filled
-                    return !formData.employment_history?.length || 
-                           formData.employment_history.every(e => hasValue(e.company) && hasValue(e.designation) && hasValue(e.from_date));
-                  case 3: // Bank Details
-                    return hasValue(bd.account_holder_name) && hasValue(bd.account_number) && hasValue(bd.ifsc_code) && 
+                  case 2: // Work Experience - Only green if has valid entries, gray if empty
+                    if (!formData.employment_history?.length) return false; // Empty = not green
+                    return formData.employment_history.every(e => hasValue(e.company) && hasValue(e.designation) && hasValue(e.from_date));
+                  case 3: // Bank Details - includes IFSC validation
+                    return hasValue(bd.account_holder_name) && hasValue(bd.account_number) && isValidIFSC(bd.ifsc_code) && 
                            hasValue(bd.bank_name) && hasValue(bd.branch);
-                  case 4: // References
-                    return hasValue(pr.name) && hasValue(pr.phone) && hasValue(pr.company_name) && hasValue(pr.designation) &&
-                           hasValue(per.name) && hasValue(per.phone) && hasValue(per.address);
-                  case 5: // Emergency Contact
-                    return hasValue(ec.name) && hasValue(ec.phone) && hasValue(ec.relationship);
+                  case 4: // References - includes phone validation
+                    return hasValue(pr.name) && isValidIndianPhone(pr.phone) && hasValue(pr.company_name) && hasValue(pr.designation) &&
+                           hasValue(per.name) && isValidIndianPhone(per.phone) && hasValue(per.address);
+                  case 5: // Emergency Contact - includes phone validation
+                    return hasValue(ec.name) && isValidIndianPhone(ec.phone) && hasValue(ec.relationship);
                   case 6: // Documents - Must have PAN and Aadhaar
                     return uploadedDocs.some(d => d.type === 'pan_card') && uploadedDocs.some(d => d.type === 'aadhaar');
                   case 7: // Review & Submit
