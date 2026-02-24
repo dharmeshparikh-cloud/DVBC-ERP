@@ -251,6 +251,32 @@ const CandidateOnboardingForm = () => {
       return;
     }
     
+    // Phone validation
+    if (!isValidIndianPhone(cd.phone)) {
+      toast.error('Please enter a valid 10-digit Indian phone number');
+      setCurrentStep(0);
+      return;
+    }
+    if (!isValidIndianPhone(cd.alternate_phone)) {
+      toast.error('Please enter a valid 10-digit alternate phone number');
+      setCurrentStep(0);
+      return;
+    }
+    
+    // PAN validation
+    if (!isValidPAN(cd.pan_number)) {
+      toast.error('Please enter a valid PAN number (e.g., ABCDE1234F)');
+      setCurrentStep(0);
+      return;
+    }
+    
+    // Aadhaar validation
+    if (!isValidAadhaar(cd.aadhaar_number)) {
+      toast.error('Please enter a valid 12-digit Aadhaar number');
+      setCurrentStep(0);
+      return;
+    }
+    
     // Address validation
     if (!cd.current_address?.street || !cd.current_address?.city || 
         !cd.current_address?.state || !cd.current_address?.pincode) {
@@ -258,9 +284,19 @@ const CandidateOnboardingForm = () => {
       setCurrentStep(0);
       return;
     }
+    if (!isValidPincode(cd.current_address?.pincode)) {
+      toast.error('Please enter a valid 6-digit pincode for current address');
+      setCurrentStep(0);
+      return;
+    }
     if (!cd.permanent_address?.street || !cd.permanent_address?.city || 
         !cd.permanent_address?.state || !cd.permanent_address?.pincode) {
       toast.error('Please complete permanent address');
+      setCurrentStep(0);
+      return;
+    }
+    if (!isValidPincode(cd.permanent_address?.pincode)) {
+      toast.error('Please enter a valid 6-digit pincode for permanent address');
       setCurrentStep(0);
       return;
     }
@@ -286,10 +322,20 @@ const CandidateOnboardingForm = () => {
       setCurrentStep(3);
       return;
     }
+    if (!isValidIFSC(bd.ifsc_code)) {
+      toast.error('Please enter a valid IFSC code (e.g., SBIN0001234)');
+      setCurrentStep(3);
+      return;
+    }
     
     // Professional Reference validation
     if (!pr.name || !pr.phone || !pr.company_name || !pr.designation) {
       toast.error('Please complete professional reference details');
+      setCurrentStep(4);
+      return;
+    }
+    if (!isValidIndianPhone(pr.phone)) {
+      toast.error('Please enter a valid phone number for professional reference');
       setCurrentStep(4);
       return;
     }
@@ -300,10 +346,20 @@ const CandidateOnboardingForm = () => {
       setCurrentStep(4);
       return;
     }
+    if (!isValidIndianPhone(per.phone)) {
+      toast.error('Please enter a valid phone number for personal reference');
+      setCurrentStep(4);
+      return;
+    }
     
     // Emergency Contact validation
     if (!ec.name || !ec.phone || !ec.relationship) {
       toast.error('Please complete all emergency contact details');
+      setCurrentStep(5);
+      return;
+    }
+    if (!isValidIndianPhone(ec.phone)) {
+      toast.error('Please enter a valid phone number for emergency contact');
       setCurrentStep(5);
       return;
     }
