@@ -55,7 +55,8 @@ const AllProjects = () => {
       }
       
       const response = await axios.get(url);
-      setProjects(response.data.projects || []);
+      const projectData = response.data?.projects || response.data?.items || response.data || [];
+      setProjects(Array.isArray(projectData) ? projectData : []);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast.error('Failed to fetch projects');
@@ -67,7 +68,8 @@ const AllProjects = () => {
   const fetchConsultants = async () => {
     try {
       const response = await axios.get(`${API}/consultants`);
-      setConsultants(response.data || []);
+      const consultantData = response.data?.items || response.data || [];
+      setConsultants(Array.isArray(consultantData) ? consultantData : []);
     } catch (error) {
       console.error('Error fetching consultants:', error);
     }
