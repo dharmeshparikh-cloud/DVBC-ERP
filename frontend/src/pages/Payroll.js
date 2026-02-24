@@ -35,16 +35,17 @@ const Payroll = () => {
     setLoading(true);
     try {
       const [empRes, slipsRes, compRes] = await Promise.all([
-        axios.get(`${API}/employees`),
+        axios.get(`${API}/employees/all`), // Use /all for array response
         axios.get(`${API}/payroll/salary-slips?month=${month}`),
         axios.get(`${API}/payroll/salary-components`)
       ]);
-      setEmployees(empRes.data.filter(e => e.salary > 0));
-      setSlips(slipsRes.data);
-      setComponents(compRes.data);
+      const empData = Array.isArray(empRes.data) ? empRes.data : [];
+      setEmployees(empData.filter(e => e.salary > 0));
+      setSlips(Array.isArray(slipsRes.data) ? slipsRes.data : []);
+      setComponents(Array.isArray(compRes.data) ? compRes.data : []);
       if (isHR) {
         const inputRes = await axios.get(`${API}/payroll/inputs?month=${month}`);
-        setPayrollInputs(inputRes.data);
+        setPayrollInputs(Array.isArray(inputRes.data) ? inputRes.data : []);
       }
     } catch (error) {
       toast.error('Failed to fetch data');
