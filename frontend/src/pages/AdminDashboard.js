@@ -30,6 +30,7 @@ const AdminDashboard = () => {
   const { user } = useContext(AuthContext);
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isDark = theme === 'dark';
   
   // Quick Check-in Modal state
