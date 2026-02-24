@@ -102,10 +102,11 @@ const CTCDesigner = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get(`${API}/employees`);
+      const res = await axios.get(`${API}/employees/all`); // Use /all for array response
+      const empData = Array.isArray(res.data) ? res.data : [];
       // For revision mode: Only show employees who have completed onboarding AND have existing CTC
       // For onboarding mode: Show the specific employee from URL param
-      const activeEmployees = res.data.filter(e => e.is_active !== false);
+      const activeEmployees = empData.filter(e => e.is_active !== false);
       
       // Employees eligible for CTC revision (already have CTC set)
       const eligibleForRevision = activeEmployees.filter(e => 
