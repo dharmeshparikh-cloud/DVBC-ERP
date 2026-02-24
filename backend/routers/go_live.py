@@ -8,17 +8,32 @@ This module handles the Go-Live approval process where:
 4. On approval, employee status becomes 'active'
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Response
+from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from typing import Optional
 import uuid
+import os
+import io
 
 from .models import User
 from .deps import get_db, get_role_group, has_role
 from .auth import get_current_user
 from services.email_service import send_email
+from services.bank_validation_service import (
+    validate_ifsc, 
+    validate_account_number, 
+    validate_bank_proof_file,
+    mask_account_number,
+    ALLOWED_BANK_PROOF_TYPES,
+    MAX_BANK_PROOF_SIZE
+)
 
 router = APIRouter(prefix="/go-live", tags=["Go-Live"])
+
+# Directory for storing bank proof documents
+BANK_PROOF_DIR = "/app/backend/uploads/bank_proofs"
+os.makedirs(BANK_PROOF_DIR, exist_ok=True)
 
 
 # ==================== CHECKLIST ENDPOINTS ====================
