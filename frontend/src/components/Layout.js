@@ -217,6 +217,11 @@ const Layout = () => {
             {badge > 99 ? '99+' : badge}
           </span>
         )}
+        {typeof badge === 'string' && badge && (
+          <span className="ml-auto flex-shrink-0 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+            {badge}
+          </span>
+        )}
       </Link>
     );
   };
