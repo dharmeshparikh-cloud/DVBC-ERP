@@ -264,6 +264,12 @@ api_router.include_router(expenses_router.router)
 from routers import go_live as go_live_router
 api_router.include_router(go_live_router.router)
 
+# Bank verification alias (for frontend compatibility)
+@api_router.post("/bank-verify/{employee_id}")
+async def bank_verify_alias(employee_id: str, current_user = Depends(get_current_user)):
+    """Alias for /go-live/bank-verify/{employee_id}"""
+    return await go_live_router.verify_bank_details(employee_id, current_user)
+
 # Sales Module
 api_router.include_router(sales_router.router)
 api_router.include_router(enhanced_sow_router.router)
