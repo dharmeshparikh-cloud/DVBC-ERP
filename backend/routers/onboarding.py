@@ -976,10 +976,14 @@ def calculate_submission_progress(submission: dict) -> dict:
     # Candidate items
     if submission.get("candidate_details"):
         cd = submission["candidate_details"]
-        if cd.get("first_name") and cd.get("last_name") and cd.get("phone"):
+        if cd.get("first_name") and cd.get("last_name") and cd.get("phone") and cd.get("alternate_phone"):
             completed += 1
     
     if submission.get("education") and len(submission["education"]) > 0:
+        completed += 1
+    
+    # Employment history is MANDATORY
+    if submission.get("employment_history") and len(submission["employment_history"]) > 0:
         completed += 1
     
     if submission.get("bank_details"):
@@ -1005,12 +1009,6 @@ def calculate_submission_progress(submission: dict) -> dict:
     
     if submission.get("declaration_signed"):
         completed += 1
-    
-    # Employment history is optional but counts
-    if submission.get("employment_history") and len(submission["employment_history"]) > 0:
-        completed += 1
-    else:
-        total_items -= 1  # Don't count if no history expected
     
     percentage = int((completed / total_items) * 100) if total_items > 0 else 0
     
