@@ -141,27 +141,16 @@ async def send_onboarding_invite(
     onboarding_link = f"{base_url}/onboarding/candidate/{token}"
     
     try:
-        await send_email(
+        await send_onboarding_invite_email(
             to_email=candidate_email,
-            subject=f"Welcome! Complete your onboarding for DVBC",
-            body=f"""
-            Dear {candidate_name},
-            
-            Congratulations! You have been offered the position of {offered_position} at DVBC.
-            
-            Please complete your onboarding by clicking the link below:
-            {onboarding_link}
-            
-            This link will expire on {expires_at.strftime('%B %d, %Y')}.
-            
-            If you have any questions, please contact HR.
-            
-            Best regards,
-            DVBC HR Team
-            """
+            candidate_name=candidate_name,
+            offered_position=offered_position,
+            onboarding_link=onboarding_link,
+            expires_at=expires_at.strftime('%B %d, %Y at %I:%M %p'),
+            hr_name=current_user.full_name
         )
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        print(f"Failed to send invite email: {e}")
         # Continue even if email fails - HR can share link manually
     
     return {
