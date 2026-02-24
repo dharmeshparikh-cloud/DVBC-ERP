@@ -252,7 +252,7 @@ async def get_topic(topic_id: str, role: Optional[str] = Query(None)):
                 rel = await db.help_topics.find_one({"_id": ObjectId(rid)}, {"title": 1})
                 if rel:
                     related.append({"id": str(rel['_id']), "title": rel['title']})
-            except:
+            except Exception:
                 pass
     
     return {
@@ -283,7 +283,7 @@ async def track_topic_view(topic_id: str):
             {"_id": ObjectId(topic_id)},
             {"$inc": {"viewCount": 1}, "$set": {"lastViewedAt": datetime.now(timezone.utc)}}
         )
-    except:
+    except Exception:
         pass
     
     return {"success": True}
@@ -300,7 +300,7 @@ async def submit_feedback(topic_id: str, helpful: bool = Body(..., embed=True)):
             {"_id": ObjectId(topic_id)},
             {"$inc": {field: 1}}
         )
-    except:
+    except Exception:
         pass
     
     return {"success": True}
@@ -417,7 +417,7 @@ async def get_onboarding_steps(feature_id: str, role: Optional[str] = Query(None
             ],
             "requiresOnboarding": True
         })
-    except:
+    except Exception:
         topic = await db.help_topics.find_one({
             "slug": feature_id,
             "requiresOnboarding": True
@@ -791,7 +791,7 @@ async def seed_help_content():
             ("introduction", "text"),
             ("keywords", "text")
         ])
-    except:
+    except Exception:
         pass
     
     return {"message": "Help content seeded successfully", "categories": len(categories), "topics": len(topics)}
