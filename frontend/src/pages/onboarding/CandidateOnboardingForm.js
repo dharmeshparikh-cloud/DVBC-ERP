@@ -324,7 +324,7 @@ const CandidateOnboardingForm = () => {
     }
     for (let i = 0; i < formData.employment_history.length; i++) {
       const emp = formData.employment_history[i];
-      if (!emp.company || !emp.designation || !emp.from_date || !emp.to_date) {
+      if (!emp.company || !emp.designation || !emp.from_date || !emp.to_date || !emp.reason_for_leaving) {
         toast.error(`Please complete all fields for work experience entry ${i + 1}`);
         setCurrentStep(2);
         return;
