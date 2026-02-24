@@ -69,8 +69,8 @@ class UserFeatureProgress(BaseModel):
 # ============== DATABASE ACCESS ==============
 
 def get_db():
-    from server import get_db as server_get_db
-    return server_get_db()
+    from database import get_database
+    return get_database()
 
 # ============== HELPER FUNCTIONS ==============
 
