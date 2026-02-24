@@ -73,22 +73,24 @@ const EmployeePermissions = () => {
       const headers = { 'Authorization': `Bearer ${token}` };
 
       const [employeesRes, rolesRes] = await Promise.all([
-        fetch(`${API}/employees`, { headers }),
+        fetch(`${API}/employees/all`, { headers }),
         fetch(`${API}/roles`, { headers }).catch(() => ({ ok: false }))
       ]);
 
       if (employeesRes.ok) {
         const data = await employeesRes.json();
-        setEmployees(data.filter(e => e.is_active !== false));
+        const empList = Array.isArray(data) ? data : (data?.items || []);
+        setEmployees(empList.filter(e => e.is_active !== false));
         
         // Extract unique departments
-        const depts = [...new Set(data.map(e => e.department).filter(Boolean))];
+        const depts = [...new Set(empList.map(e => e.department).filter(Boolean))];
         setDepartments(depts);
       }
 
       if (rolesRes.ok) {
         const rolesData = await rolesRes.json();
-        setRoles(rolesData);
+        const rolesList = Array.isArray(rolesData) ? rolesData : (rolesData?.items || []);
+        setRoles(rolesList);
       }
 
       // Fetch pending permission changes
