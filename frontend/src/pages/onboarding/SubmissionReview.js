@@ -489,6 +489,58 @@ const SubmissionReview = () => {
             </CardContent>
           </Card>
 
+          {/* Professional Reference */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Briefcase className="w-4 h-4" />
+                Professional Reference
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <Label className="text-xs text-zinc-500">Name</Label>
+                <p className="font-medium">{pr.name || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-zinc-500">Phone</Label>
+                <p className="font-medium">{pr.phone || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-zinc-500">Company</Label>
+                <p className="font-medium">{pr.company_name || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-zinc-500">Designation</Label>
+                <p className="font-medium">{pr.designation || 'N/A'}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Personal Reference */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <User className="w-4 h-4" />
+                Personal Reference
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <Label className="text-xs text-zinc-500">Name</Label>
+                <p className="font-medium">{per.name || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-zinc-500">Phone</Label>
+                <p className="font-medium">{per.phone || 'N/A'}</p>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-zinc-500">Address</Label>
+                <p className="font-medium">{per.address || 'N/A'}</p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Documents */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
