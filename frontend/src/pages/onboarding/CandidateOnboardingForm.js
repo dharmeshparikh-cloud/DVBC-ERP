@@ -640,29 +640,43 @@ const CandidateOnboardingForm = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="phone">Phone *</Label>
+                <Label htmlFor="phone">Phone * <span className="text-xs text-zinc-400">(10 digits)</span></Label>
                 <Input
                   id="phone"
                   data-testid="phone-input"
+                  type="tel"
+                  inputMode="numeric"
                   value={formData.candidate_details.phone}
-                  onChange={(e) => updateField('candidate_details.phone', e.target.value)}
-                  placeholder="10-digit mobile number"
+                  onChange={(e) => updateField('candidate_details.phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="9876543210"
+                  maxLength={10}
+                  className={formData.candidate_details.phone && !isValidIndianPhone(formData.candidate_details.phone) ? 'border-red-300 focus:border-red-500' : ''}
                 />
+                {formData.candidate_details.phone && !isValidIndianPhone(formData.candidate_details.phone) && (
+                  <p className="text-xs text-red-500 mt-1">Enter valid 10-digit number starting with 6-9</p>
+                )}
               </div>
               <div>
-                <Label htmlFor="alt_phone">Alternate Phone *</Label>
+                <Label htmlFor="alt_phone">Alternate Phone * <span className="text-xs text-zinc-400">(10 digits)</span></Label>
                 <Input
                   id="alt_phone"
+                  type="tel"
+                  inputMode="numeric"
                   value={formData.candidate_details.alternate_phone}
-                  onChange={(e) => updateField('candidate_details.alternate_phone', e.target.value)}
-                  placeholder="10-digit mobile number"
+                  onChange={(e) => updateField('candidate_details.alternate_phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="9876543210"
+                  maxLength={10}
+                  className={formData.candidate_details.alternate_phone && !isValidIndianPhone(formData.candidate_details.alternate_phone) ? 'border-red-300 focus:border-red-500' : ''}
                 />
+                {formData.candidate_details.alternate_phone && !isValidIndianPhone(formData.candidate_details.alternate_phone) && (
+                  <p className="text-xs text-red-500 mt-1">Enter valid 10-digit number starting with 6-9</p>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="pan">PAN Number *</Label>
+                <Label htmlFor="pan">PAN Number * <span className="text-xs text-zinc-400">(ABCDE1234F)</span></Label>
                 <Input
                   id="pan"
                   data-testid="pan-input"
@@ -670,17 +684,28 @@ const CandidateOnboardingForm = () => {
                   onChange={(e) => updateField('candidate_details.pan_number', e.target.value.toUpperCase())}
                   placeholder="ABCDE1234F"
                   maxLength={10}
+                  className={formData.candidate_details.pan_number && !isValidPAN(formData.candidate_details.pan_number) ? 'border-red-300 focus:border-red-500' : ''}
                 />
+                {formData.candidate_details.pan_number && !isValidPAN(formData.candidate_details.pan_number) && (
+                  <p className="text-xs text-red-500 mt-1">Enter valid PAN (5 letters, 4 digits, 1 letter)</p>
+                )}
               </div>
               <div>
-                <Label htmlFor="aadhaar">Aadhaar Number *</Label>
+                <Label htmlFor="aadhaar">Aadhaar Number * <span className="text-xs text-zinc-400">(12 digits)</span></Label>
                 <Input
                   id="aadhaar"
                   data-testid="aadhaar-input"
+                  type="tel"
+                  inputMode="numeric"
                   value={formData.candidate_details.aadhaar_number}
-                  onChange={(e) => updateField('candidate_details.aadhaar_number', e.target.value)}
-                  placeholder="1234-5678-9012"
+                  onChange={(e) => updateField('candidate_details.aadhaar_number', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                  placeholder="123456789012"
+                  maxLength={12}
+                  className={formData.candidate_details.aadhaar_number && !isValidAadhaar(formData.candidate_details.aadhaar_number) ? 'border-red-300 focus:border-red-500' : ''}
                 />
+                {formData.candidate_details.aadhaar_number && !isValidAadhaar(formData.candidate_details.aadhaar_number) && (
+                  <p className="text-xs text-red-500 mt-1">Enter valid 12-digit Aadhaar number</p>
+                )}
               </div>
             </div>
 
