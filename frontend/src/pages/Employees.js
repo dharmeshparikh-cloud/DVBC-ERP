@@ -88,6 +88,24 @@ const Employees = () => {
     fetchData();
   }, []);
 
+  // Handle URL parameters for editing (from Go-Live Dashboard)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    const section = params.get('section');
+    
+    if (editId && employees.length > 0) {
+      const emp = employees.find(e => e.id === editId || e.employee_id === editId);
+      if (emp) {
+        setSelectedEmployee(emp);
+        setEditDialog(true);
+        setUrlEditSection(section); // Store which section to highlight
+        // Clear URL params after handling
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, [employees]);
+
   const fetchData = async () => {
     try {
       const [empRes, deptRes] = await Promise.all([
