@@ -862,7 +862,7 @@ const CandidateOnboardingForm = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="bank_name">Bank Name</Label>
+                <Label htmlFor="bank_name">Bank Name *</Label>
                 <Input
                   id="bank_name"
                   value={formData.bank_details.bank_name}
@@ -871,7 +871,7 @@ const CandidateOnboardingForm = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <Label htmlFor="branch">Branch</Label>
+                <Label htmlFor="branch">Branch *</Label>
                 <Input
                   id="branch"
                   value={formData.bank_details.branch}
