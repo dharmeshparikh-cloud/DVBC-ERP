@@ -750,6 +750,74 @@ const GoLiveDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bank Proofs Dialog */}
+      <Dialog open={showBankProofsDialog} onOpenChange={setShowBankProofsDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bank Proof Documents</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {bankProofs.length === 0 ? (
+              <p className="text-center text-zinc-500">No documents uploaded yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {bankProofs.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-8 h-8 text-blue-500" />
+                      <div>
+                        <p className="font-medium text-sm">{doc.original_filename}</p>
+                        <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                          {formatFileSize(doc.file_size)} • Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}
+                        </p>
+                        <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                          By: {doc.uploaded_by_name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownloadProof(selectedEmployee.id, doc.id, doc.original_filename)}
+                        data-testid={`download-${doc.id}`}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      {(isAdmin || user?.role === 'hr_manager') && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-500 hover:text-red-600"
+                          onClick={() => handleDeleteProof(selectedEmployee.id, doc.id)}
+                          data-testid={`delete-${doc.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBankProofsDialog(false)}>Close</Button>
+            {canUploadProof && (
+              <Button onClick={handleUploadClick}>
+                <Upload className="w-4 h-4 mr-2" />
+                Upload More
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
