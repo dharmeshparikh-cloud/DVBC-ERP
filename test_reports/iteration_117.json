@@ -1,0 +1,128 @@
+{
+  "summary": "Complete backend testing of Self-Service Candidate Onboarding Module. All 14 onboarding endpoints tested successfully with 30/30 tests passing. The full E2E workflow (invite -> candidate fills form -> uploads documents -> submits -> HR assigns/verifies -> complete -> Employee ID generated) is working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "total_tests": 30,
+    "passed": 30,
+    "failed": 0,
+    "test_breakdown": {
+      "authentication_tests": {
+        "hr_manager_login": "PASS",
+        "admin_login": "PASS"
+      },
+      "invite_endpoint_tests": {
+        "send_invite_success": "PASS",
+        "send_invite_missing_email": "PASS (400)",
+        "send_invite_missing_name": "PASS (400)",
+        "send_invite_missing_position": "PASS (400)",
+        "send_invite_without_auth": "PASS (401/403)"
+      },
+      "submissions_list_tests": {
+        "list_submissions_success": "PASS",
+        "list_submissions_filter_by_status": "PASS",
+        "list_submissions_without_auth": "PASS (401/403)"
+      },
+      "submission_details_tests": {
+        "get_submission_details": "PASS",
+        "get_nonexistent_submission": "PASS (404)"
+      },
+      "public_endpoints_tests": {
+        "get_public_submission": "PASS",
+        "save_public_submission": "PASS",
+        "submit_public_submission": "PASS",
+        "invalid_token_returns_404": "PASS"
+      },
+      "hr_action_tests": {
+        "hr_assign_details": "PASS",
+        "hr_verify_documents": "PASS",
+        "hr_verify_bank": "PASS",
+        "hr_request_revision": "PASS",
+        "hr_request_revision_without_reason": "PASS (400)"
+      },
+      "reject_tests": {
+        "hr_reject_submission": "PASS",
+        "hr_reject_without_reason": "PASS (400)"
+      },
+      "complete_tests": {
+        "complete_onboarding_generates_employee_id": "PASS (Employee ID format: DVBCxxx)",
+        "complete_already_completed_submission": "PASS (400)"
+      },
+      "legacy_tests": {
+        "list_legacy_records": "PASS",
+        "list_legacy_without_auth": "PASS (401/403)"
+      },
+      "document_upload_tests": {
+        "upload_document_success": "PASS",
+        "upload_invalid_file_type": "PASS (400)"
+      },
+      "e2e_flow_test": {
+        "complete_e2e_onboarding_flow": "PASS"
+      }
+    }
+  },
+  "endpoints_tested": [
+    "POST /api/onboarding/invite - HR sends invite to candidate",
+    "GET /api/onboarding/submissions - HR lists all submissions",
+    "GET /api/onboarding/submissions/{id} - HR views submission details",
+    "GET /api/onboarding/public/{token} - Candidate views form (no auth)",
+    "POST /api/onboarding/public/{token}/save - Candidate saves progress",
+    "POST /api/onboarding/public/{token}/submit - Candidate submits form",
+    "POST /api/onboarding/public/{token}/upload - Candidate uploads documents",
+    "PATCH /api/onboarding/submissions/{id}/hr-assign - HR assigns dept/manager",
+    "POST /api/onboarding/submissions/{id}/verify-documents - HR verifies docs",
+    "POST /api/onboarding/submissions/{id}/verify-bank - HR verifies bank",
+    "POST /api/onboarding/submissions/{id}/complete - Generate Employee ID",
+    "POST /api/onboarding/submissions/{id}/request-revision - HR requests revision",
+    "POST /api/onboarding/submissions/{id}/reject - HR rejects submission",
+    "GET /api/onboarding/legacy - List legacy records"
+  ],
+  "workflow_validation": {
+    "invite_flow": "WORKING - Creates submission with token, sends email",
+    "candidate_flow": "WORKING - Public access, save progress, upload docs, submit",
+    "hr_review_flow": "WORKING - Assign details, verify docs/bank, request revision, reject",
+    "completion_flow": "WORKING - Generates DVBC format Employee ID, creates employee record",
+    "validation_rules": "WORKING - Requires 2+ documents, all HR verifications before complete"
+  },
+  "code_review": {
+    "observations": [
+      "Router properly registered in server.py at line 249 and 270",
+      "Token-based public access implemented securely using secrets.token_urlsafe(32)",
+      "Token expiry set to 7 days with proper validation",
+      "Employee ID generation follows DVBC format (DVBC001, DVBC002, etc.)",
+      "Proper role-based access control (hr_manager, hr_executive, admin)",
+      "Complete validation before employee creation (docs, bank, HR fields)",
+      "Audit log maintained for all actions",
+      "File upload restricted to PDF, JPG, PNG, WEBP with 5MB limit"
+    ],
+    "recommendations": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_onboarding_self_service.py",
+    "/app/test_reports/pytest/pytest_onboarding_self_service.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_onboarding_self_service.py"
+  ],
+  "success_rate": {
+    "backend": "100% (30/30 tests passed)",
+    "frontend": "N/A (backend only testing)"
+  },
+  "test_credentials": {
+    "hr_manager": "HR001 / password123 - WORKING",
+    "admin": "ADMIN001 / admin123 - WORKING"
+  },
+  "seed_data_creation": "Test created multiple submissions during testing with unique emails/PAN numbers",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 14 onboarding endpoints fully tested and working. The complete E2E flow from invite to employee creation (with DVBC format Employee ID) is verified. Key requirement: at least 2 documents must be uploaded, and both document and bank verification must be completed before onboarding can be finalized. Test file at /app/backend/tests/test_onboarding_self_service.py covers all endpoints with 30 test cases."
+}
