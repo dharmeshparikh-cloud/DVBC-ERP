@@ -41,13 +41,16 @@ const PasswordManagement = () => {
   const fetchEmployees = async () => {
     try {
       const [empRes, usersRes] = await Promise.all([
-        axios.get(`${API}/employees`),
+        axios.get(`${API}/employees/all`), // Use /all for array response
         axios.get(`${API}/users-with-roles`)  // HR Manager can access this endpoint
       ]);
       
+      const empData = Array.isArray(empRes.data) ? empRes.data : [];
+      const userData = Array.isArray(usersRes.data) ? usersRes.data : [];
+      
       // Merge employee data with user data
-      const employeesWithAccess = empRes.data.map(emp => {
-        const linkedUser = usersRes.data.find(u => u.email === emp.email);
+      const employeesWithAccess = empData.map(emp => {
+        const linkedUser = userData.find(u => u.email === emp.email);
         return {
           ...emp,
           user_id: linkedUser?.id,
