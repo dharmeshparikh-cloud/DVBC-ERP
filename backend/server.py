@@ -266,6 +266,9 @@ api_router.include_router(ctc_router.router)
 api_router.include_router(letters_router.router)
 api_router.include_router(expenses_router.router)
 
+# Self-Service Candidate Onboarding
+api_router.include_router(onboarding_router.router)
+
 # Go-Live Approval Workflow
 from routers import go_live as go_live_router
 api_router.include_router(go_live_router.router)
