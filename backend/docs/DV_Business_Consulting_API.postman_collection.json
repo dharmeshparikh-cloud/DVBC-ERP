@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://dvbc-intake.preview.emergentagent.com",
+      "value": "https://netra-refs.preview.emergentagent.com",
       "type": "string"
     },
     {
