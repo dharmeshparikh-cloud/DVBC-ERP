@@ -493,6 +493,124 @@ const CandidateOnboardingForm = () => {
     }));
   };
 
+  // Validate current step before moving to next
+  const validateCurrentStep = () => {
+    const cd = formData.candidate_details;
+    const bd = formData.bank_details;
+    const pr = formData.professional_reference;
+    const per = formData.personal_reference;
+    const ec = formData.emergency_contact;
+    const uploadedDocs = submission?.documents || [];
+
+    switch (currentStep) {
+      case 0: // Personal Details
+        if (!cd.first_name?.trim()) { toast.error('First Name is required'); return false; }
+        if (!cd.last_name?.trim()) { toast.error('Last Name is required'); return false; }
+        if (!cd.date_of_birth) { toast.error('Date of Birth is required'); return false; }
+        if (!cd.gender) { toast.error('Gender is required'); return false; }
+        if (!cd.blood_group) { toast.error('Blood Group is required'); return false; }
+        if (!cd.marital_status) { toast.error('Marital Status is required'); return false; }
+        if (!cd.nationality?.trim()) { toast.error('Nationality is required'); return false; }
+        if (!isValidIndianPhone(cd.phone)) { toast.error('Enter valid 10-digit Phone number (starting with 6-9)'); return false; }
+        if (!isValidIndianPhone(cd.alternate_phone)) { toast.error('Enter valid 10-digit Alternate Phone number'); return false; }
+        if (!isValidPAN(cd.pan_number)) { toast.error('Enter valid PAN Number (e.g., ABCDE1234F)'); return false; }
+        if (!isValidAadhaar(cd.aadhaar_number)) { toast.error('Enter valid 12-digit Aadhaar Number'); return false; }
+        if (!cd.current_address?.street?.trim()) { toast.error('Current Address Street is required'); return false; }
+        if (!cd.current_address?.city?.trim()) { toast.error('Current Address City is required'); return false; }
+        if (!cd.current_address?.state?.trim()) { toast.error('Current Address State is required'); return false; }
+        if (!isValidPincode(cd.current_address?.pincode)) { toast.error('Enter valid 6-digit Pincode for Current Address'); return false; }
+        if (!cd.permanent_address?.street?.trim()) { toast.error('Permanent Address Street is required'); return false; }
+        if (!cd.permanent_address?.city?.trim()) { toast.error('Permanent Address City is required'); return false; }
+        if (!cd.permanent_address?.state?.trim()) { toast.error('Permanent Address State is required'); return false; }
+        if (!isValidPincode(cd.permanent_address?.pincode)) { toast.error('Enter valid 6-digit Pincode for Permanent Address'); return false; }
+        return true;
+
+      case 1: // Education
+        if (!formData.education || formData.education.length === 0) {
+          toast.error('Please add at least one education qualification');
+          return false;
+        }
+        for (let i = 0; i < formData.education.length; i++) {
+          const edu = formData.education[i];
+          if (!edu.degree?.trim()) { toast.error(`Education ${i+1}: Degree is required`); return false; }
+          if (!edu.institution?.trim()) { toast.error(`Education ${i+1}: Institution is required`); return false; }
+          if (!edu.year?.trim()) { toast.error(`Education ${i+1}: Year of Passing is required`); return false; }
+          if (!edu.percentage?.trim()) { toast.error(`Education ${i+1}: Percentage/CGPA is required`); return false; }
+        }
+        return true;
+
+      case 2: // Work Experience (MANDATORY)
+        if (!formData.employment_history || formData.employment_history.length === 0) {
+          toast.error('Please add at least one work experience entry');
+          return false;
+        }
+        for (let i = 0; i < formData.employment_history.length; i++) {
+          const emp = formData.employment_history[i];
+          if (!emp.company?.trim()) { toast.error(`Work Experience ${i+1}: Company Name is required`); return false; }
+          if (!emp.designation?.trim()) { toast.error(`Work Experience ${i+1}: Designation is required`); return false; }
+          if (!emp.from_date) { toast.error(`Work Experience ${i+1}: From Date is required`); return false; }
+          if (!emp.to_date) { toast.error(`Work Experience ${i+1}: To Date is required`); return false; }
+          if (!emp.reason_for_leaving?.trim()) { toast.error(`Work Experience ${i+1}: Reason for Leaving is required`); return false; }
+        }
+        return true;
+
+      case 3: // Bank Details
+        if (!bd.account_holder_name?.trim()) { toast.error('Account Holder Name is required'); return false; }
+        if (!bd.account_number?.trim()) { toast.error('Account Number is required'); return false; }
+        if (!isValidIFSC(bd.ifsc_code)) { toast.error('Enter valid IFSC Code (e.g., SBIN0001234)'); return false; }
+        if (!bd.bank_name?.trim()) { toast.error('Bank Name is required'); return false; }
+        if (!bd.branch?.trim()) { toast.error('Branch Name is required'); return false; }
+        return true;
+
+      case 4: // References
+        if (!pr.name?.trim()) { toast.error('Professional Reference Name is required'); return false; }
+        if (!isValidIndianPhone(pr.phone)) { toast.error('Enter valid Phone for Professional Reference'); return false; }
+        if (!pr.company_name?.trim()) { toast.error('Professional Reference Company Name is required'); return false; }
+        if (!pr.designation?.trim()) { toast.error('Professional Reference Designation is required'); return false; }
+        if (!per.name?.trim()) { toast.error('Personal Reference Name is required'); return false; }
+        if (!isValidIndianPhone(per.phone)) { toast.error('Enter valid Phone for Personal Reference'); return false; }
+        if (!per.address?.trim()) { toast.error('Personal Reference Address is required'); return false; }
+        return true;
+
+      case 5: // Emergency Contact
+        if (!ec.name?.trim()) { toast.error('Emergency Contact Name is required'); return false; }
+        if (!isValidIndianPhone(ec.phone)) { toast.error('Enter valid Phone for Emergency Contact'); return false; }
+        if (!ec.relationship?.trim()) { toast.error('Emergency Contact Relationship is required'); return false; }
+        return true;
+
+      case 6: // Documents
+        const hasPAN = uploadedDocs.some(d => d.type === 'pan_card');
+        const hasAadhaar = uploadedDocs.some(d => d.type === 'aadhaar');
+        if (!hasPAN) { toast.error('PAN Card upload is required'); return false; }
+        if (!hasAadhaar) { toast.error('Aadhaar Card upload is required'); return false; }
+        return true;
+
+      default:
+        return true;
+    }
+  };
+
+  // Handle Next button with validation
+  const handleNext = async () => {
+    // Validate current step
+    if (!validateCurrentStep()) {
+      return;
+    }
+    
+    // Save progress before moving to next step
+    try {
+      setSaving(true);
+      await axios.post(`${API}/onboarding/public/${token}/save`, formData);
+      setLastSaved(new Date());
+      setCurrentStep(prev => prev + 1);
+    } catch (err) {
+      console.error('Error saving:', err);
+      toast.error('Failed to save progress');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Error state
   if (error) {
     return (
