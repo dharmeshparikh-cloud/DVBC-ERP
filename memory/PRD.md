@@ -1,7 +1,7 @@
 # DVBC - NETRA: Business Management ERP
 
 ## Tech Stack
-- **Frontend**: React with Shadcn/UI components
+- **Frontend**: React with Shadcn/UI components, React Query (@tanstack/react-query)
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB
 - **Auth**: JWT-based authentication (Employee ID + Client ID)
@@ -14,7 +14,39 @@
 
 ## Completed Work - February 2026
 
-### Phase 55: In-App Help Widget Integration - February 24, 2026 ✅ (Latest)
+### Phase 56: React Query Migration (Priority-Based) - February 24, 2026 ✅ (Latest)
+
+**Completed Implementation:**
+
+1. **Created Centralized Query Hooks** (`/app/frontend/src/hooks/useQueries.js`)
+   - Dashboard queries: `useDashboardStats`, `useHRStats`, `useSalesStats`, `useConsultingStats`
+   - Employee queries: `useEmployees`, `useEmployee`
+   - Lead queries: `useLeads`, `useLead`, `useHighPriorityLeads`
+   - Approval queries: `usePendingApprovalsCount`, `useApprovals`
+   - Attendance queries: `useMyAttendanceStatus`, `useAttendanceRecords`
+   - Security queries: `useSecurityAuditLogs`
+   - Onboarding queries: `useOnboardingSubmissions`
+   - Mutation helpers: `useApiMutation`, `useCreateEmployee`, etc.
+
+2. **Migrated High-Priority Pages:**
+   - `Dashboard.js` - Main dashboard with stats, attendance, leads
+   - `ConsultingDashboard.js` - Consulting stats with caching
+   - `OnboardingHub.js` - Onboarding submissions with cache invalidation
+
+**Benefits Achieved:**
+- 5-minute cache for dashboard stats (reduces API calls)
+- Background refetching keeps data fresh
+- Automatic cache invalidation on mutations
+- Consistent loading/error state management
+
+**Migration Status:**
+- 7 pages now using React Query
+- ~81 pages remaining (will be migrated incrementally)
+- High-traffic dashboards prioritized
+
+---
+
+### Phase 55: In-App Help Widget Integration - February 24, 2026 ✅
 
 **Completed Implementation:**
 
