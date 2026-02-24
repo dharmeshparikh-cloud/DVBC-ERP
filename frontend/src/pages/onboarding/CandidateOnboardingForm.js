@@ -915,7 +915,7 @@ const CandidateOnboardingForm = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="emerg_rel">Relationship</Label>
+                <Label htmlFor="emerg_rel">Relationship *</Label>
                 <Input
                   id="emerg_rel"
                   value={formData.emergency_contact.relationship}
