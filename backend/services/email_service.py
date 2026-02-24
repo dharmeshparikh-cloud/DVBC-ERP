@@ -588,11 +588,12 @@ async def send_onboarding_submission_notification_email(
     <head>
         <meta charset="utf-8">
         <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background: #0f172a; padding: 20px; text-align: center; color: white; border-radius: 8px 8px 0 0; }}
-            .content {{ padding: 30px; background: #f9fafb; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }}
-            .info-box {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f3f4f6; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; }}
+            .header {{ background: #ffffff; padding: 30px; text-align: center; border-bottom: 3px solid #f97316; }}
+            .logo {{ max-height: 70px; width: auto; }}
+            .content {{ padding: 30px; }}
+            .info-box {{ background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb; }}
             .cta-button {{ 
                 display: inline-block; 
                 background: #f97316; 
@@ -602,31 +603,33 @@ async def send_onboarding_submission_notification_email(
                 border-radius: 6px; 
                 font-weight: bold;
             }}
+            .footer {{ background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h2 style="margin: 0;">New Onboarding Submission</h2>
+                <img src="{COMPANY_LOGO_URL}" alt="D&V Business Consulting" class="logo" />
             </div>
             <div class="content">
+                <h2 style="color: #f97316; margin-top: 0;">New Onboarding Submission</h2>
+                
                 <p>Hi {hr_name},</p>
                 
                 <p>A candidate has submitted their onboarding details and is awaiting your review.</p>
                 
                 <div class="info-box">
-                    <p><strong>Candidate:</strong> {candidate_name}</p>
-                    <p><strong>Position:</strong> {offered_position}</p>
-                    <p><strong>Status:</strong> Pending Review</p>
+                    <p style="margin: 5px 0;"><strong>Candidate:</strong> {candidate_name}</p>
+                    <p style="margin: 5px 0;"><strong>Position:</strong> {offered_position}</p>
+                    <p style="margin: 5px 0;"><strong>Status:</strong> Pending Review</p>
                 </div>
                 
-                <p style="text-align: center;">
+                <p style="text-align: center; margin: 30px 0;">
                     <a href="{review_link}" class="cta-button">Review Submission</a>
                 </p>
-                
-                <p style="font-size: 13px; color: #666; margin-top: 30px;">
-                    This notification was sent from NETRA HR Management System.
-                </p>
+            </div>
+            <div class="footer">
+                <p>© All Rights Reserved with D&V Business Consulting Pvt. Ltd.</p>
             </div>
         </div>
     </body>
