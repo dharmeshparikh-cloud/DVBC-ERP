@@ -82,8 +82,10 @@ const Clients = () => {
         axios.get(`${API}/clients`),
         axios.get(`${API}/users-with-roles`)
       ]);
-      setClients(clientsRes.data || []);
-      setUsers(usersRes.data || []);
+      const clientData = clientsRes.data?.items || clientsRes.data || [];
+      const userData = usersRes.data?.items || usersRes.data || [];
+      setClients(Array.isArray(clientData) ? clientData : []);
+      setUsers(Array.isArray(userData) ? userData : []);
       
       if (canManage) {
         try {
