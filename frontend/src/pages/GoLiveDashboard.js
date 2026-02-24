@@ -10,7 +10,7 @@ import { ErrorDisplay } from '../components/ErrorDisplay';
 import { 
   Rocket, CheckCircle, XCircle, Clock, User, Building2, 
   CreditCard, FileText, Key, AlertTriangle, ChevronRight,
-  Shield, Send, Eye
+  Shield, Send, Eye, Mail
 } from 'lucide-react';
 
 const GoLiveDashboard = () => {
