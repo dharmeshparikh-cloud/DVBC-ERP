@@ -653,9 +653,10 @@ pending → internal_approved → approved → converted
 ### P1 - Recently Completed
 - ✅ **RBAC Migration for Expenses** - Replaced all hardcoded role constants with `get_role_group()`
 - ✅ **Audit Trail for Admin/HR Actions** - Added logging for approve, reject, send-back actions
+- ✅ **React Query Hooks Expansion** - Added 25+ new hooks for expenses, projects, agreements, kickoffs, notifications, travel, encashment
 
 ### P1 - In Progress
-1. **Frontend React Query Migration** - Migrate remaining components to `useApi` hook
+1. **Frontend Component Migration** - Continue migrating remaining components to useApi hooks
 2. **Custom Report Builder Backend**: Implement backend logic for generating reports
 3. **Client Dashboard Features**: Project progress, document access, payment history
 
