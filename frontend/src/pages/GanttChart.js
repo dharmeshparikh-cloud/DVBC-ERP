@@ -51,8 +51,10 @@ const GanttChart = () => {
   const fetchProjects = async () => {
     try {
       const res = await axios.get(`${API}/projects`);
-      setProjects(res.data);
-      if (res.data.length > 0) setSelectedProject(res.data[0].id);
+      const data = res.data?.items || res.data || [];
+      const projectList = Array.isArray(data) ? data : [];
+      setProjects(projectList);
+      if (projectList.length > 0) setSelectedProject(projectList[0].id);
     } catch { toast.error('Failed to load projects'); }
     finally { setLoading(false); }
   };
@@ -60,22 +62,26 @@ const GanttChart = () => {
   const fetchTasks = async () => {
     try {
       const res = await axios.get(`${API}/projects/${selectedProject}/tasks-gantt`);
-      setTasks(res.data);
+      const data = res.data?.items || res.data || [];
+      setTasks(Array.isArray(data) ? data : []);
     } catch { toast.error('Failed to load tasks'); }
   };
 
   const fetchSOWs = async () => {
     try {
       const res = await axios.get(`${API}/sows`);
+      const data = res.data?.items || res.data || [];
+      const sowList = Array.isArray(data) ? data : [];
       const proj = projects.find(p => p.id === selectedProject);
-      setSows(res.data.filter(s => s.lead_id === proj?.lead_id || s.project_id === selectedProject));
+      setSows(sowList.filter(s => s.lead_id === proj?.lead_id || s.project_id === selectedProject));
     } catch { /* silent */ }
   };
 
   const fetchCommLogs = async () => {
     try {
       const res = await axios.get(`${API}/client-communications?project_id=${selectedProject}`);
-      setCommLogs(res.data);
+      const data = res.data?.items || res.data || [];
+      setCommLogs(Array.isArray(data) ? data : []);
     } catch { /* silent */ }
   };
 
