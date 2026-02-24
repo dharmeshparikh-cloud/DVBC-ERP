@@ -48,14 +48,16 @@ const Timesheets = () => {
         axios.get(`${API}/projects`).catch(() => ({ data: [] }))
       ]);
       
-      const assignedProjects = assignmentsRes.data || [];
-      setProjects(assignedProjects);
-      setAllProjects(allProjectsRes.data || []);
+      const assignedData = assignmentsRes.data?.items || assignmentsRes.data || [];
+      setProjects(Array.isArray(assignedData) ? assignedData : []);
+      const allProjData = allProjectsRes.data?.items || allProjectsRes.data || [];
+      setAllProjects(Array.isArray(allProjData) ? allProjData : []);
       
       // API returns array of timesheets - get the first one if exists
-      const timesheetRecord = Array.isArray(timesheetRes.data) 
-        ? timesheetRes.data[0] 
-        : timesheetRes.data;
+      const timesheetData = timesheetRes.data?.items || timesheetRes.data;
+      const timesheetRecord = Array.isArray(timesheetData) 
+        ? timesheetData[0] 
+        : timesheetData;
       
       if (timesheetRecord && typeof timesheetRecord === 'object') {
         setTimesheetData(timesheetRecord.entries || {});
