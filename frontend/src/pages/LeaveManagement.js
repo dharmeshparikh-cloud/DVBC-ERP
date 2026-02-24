@@ -29,8 +29,12 @@ const LeaveManagement = () => {
       const promises = [axios.get(`${API}/leave-requests`)];
       if (isHR) promises.push(axios.get(`${API}/leave-requests/all`));
       const results = await Promise.all(promises);
-      setMyRequests(results[0].data);
-      if (results[1]) setAllRequests(results[1].data);
+      const myData = results[0].data?.items || results[0].data || [];
+      setMyRequests(Array.isArray(myData) ? myData : []);
+      if (results[1]) {
+        const allData = results[1].data?.items || results[1].data || [];
+        setAllRequests(Array.isArray(allData) ? allData : []);
+      }
     } catch (error) {
       toast.error('Failed to fetch leave data');
     } finally {
