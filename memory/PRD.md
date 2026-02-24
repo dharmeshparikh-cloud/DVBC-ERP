@@ -922,6 +922,7 @@ pending → internal_approved → approved → converted
 - ✅ **Leave Encashment Approval Endpoint** - Created full approval workflow
 - ✅ **Quotation Finalization Authorization** - Added Reporting Manager check
 - ✅ **Travel Approval Scope Restriction** - Limited to HR roles only
+- ✅ **Self-Service Candidate Onboarding Backend** - Complete with 14 endpoints
 
 ### P1 - Recently Completed
 - ✅ **RBAC Migration for Expenses** - Replaced all hardcoded role constants with `get_role_group()`
@@ -935,27 +936,27 @@ pending → internal_approved → approved → converted
   - `SalesDashboard.js` - Sales analytics with multi-endpoint fetch
   - `Projects.js` - Project listing with cache invalidation
 
+### P0 - Immediate Next Steps
+1. **Build Frontend for Self-Service Onboarding** - Create:
+   - `CandidateOnboarding.js` - Public self-service form (no login)
+   - `OnboardingHub.js` - HR dashboard with Send Invite, Pending Review, In Progress, Completed tabs
+   - `SubmissionReview.js` - HR review and assignment page
+   - `SendInviteForm.js` - HR invite form
+   - Sidebar navigation update
+
 ### P1 - In Progress
-1. **Continue Frontend Migration** - ~80 more components can be migrated
-2. **Custom Report Builder Backend**: Implement backend logic for generating reports
-3. **Client Dashboard Features**: Project progress, document access, payment history
+2. **Continue Frontend Migration** - ~80 more components can be migrated to react-query
+3. **Custom Report Builder Backend**: Implement backend logic for generating reports
+4. **Client Dashboard Features**: Project progress, document access, payment history
 
 ### P2 - Lower Priority
-4. **DVBC Marketing Hub** - Marketing dashboard and campaigns
-5. **Consultant Incentive System** - Commission tracking
-6. **AI Chat & Voice** - OpenAI Whisper integration
-7. **Internal Chat System** - Team messaging
-8. **"Day 0" Onboarding Tour** - Interactive guide
-9. **Standardize Send Back vs Reject Semantics** - Consistent UX across modules
-10. **Refactor kickoff.py** - Break down 1500+ line file into smaller services
-
-### P1 - New Feature Designs
-11. **Self-Service Candidate Onboarding Module** - Design complete, ready for implementation
-    - Design doc: `/app/DESIGN_CANDIDATE_ONBOARDING.md`
-    - Secure token-based public forms for candidates
-    - HR review and approval workflow
-    - Auto employee creation on approval
-    - Estimated: 3-4 weeks implementation
+5. **DVBC Marketing Hub** - Marketing dashboard and campaigns
+6. **Consultant Incentive System** - Commission tracking
+7. **AI Chat & Voice** - OpenAI Whisper integration
+8. **Internal Chat System** - Team messaging
+9. **"Day 0" Onboarding Tour** - Interactive guide
+10. **Standardize Send Back vs Reject Semantics** - Consistent UX across modules
+11. **Refactor kickoff.py** - Break down 1500+ line file into smaller services
 
 ---
 
