@@ -105,11 +105,11 @@ const SubmissionReview = () => {
   };
 
   useEffect(() => {
-    if (token && submissionId) {
+    if (user && submissionId) {
       fetchSubmission();
       fetchManagers();
     }
-  }, [submissionId, token]);
+  }, [submissionId, user]);
 
   // Save HR assignment
   const handleSaveAssignment = async () => {
