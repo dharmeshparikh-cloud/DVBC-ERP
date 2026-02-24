@@ -676,6 +676,14 @@ pending → internal_approved → approved → converted
 9. **Standardize Send Back vs Reject Semantics** - Consistent UX across modules
 10. **Refactor kickoff.py** - Break down 1500+ line file into smaller services
 
+### P1 - New Feature Designs
+11. **Self-Service Candidate Onboarding Module** - Design complete, ready for implementation
+    - Design doc: `/app/DESIGN_CANDIDATE_ONBOARDING.md`
+    - Secure token-based public forms for candidates
+    - HR review and approval workflow
+    - Auto employee creation on approval
+    - Estimated: 3-4 weeks implementation
+
 ---
 
 ## Test Credentials
