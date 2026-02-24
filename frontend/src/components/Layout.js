@@ -334,6 +334,7 @@ const Layout = () => {
     { name: 'Project Payments', href: '/payments', icon: DollarSign },
     { name: 'Email Templates', href: '/email-templates', icon: Mail },
     { name: 'Security Audit', href: '/security-audit', icon: Shield },
+    { name: 'Help Content', href: '/help-admin', icon: HelpCircle },
     { name: 'Downloads', href: '/downloads', icon: Download },
     { name: 'Email Settings', href: '/email-settings', icon: MailCheck },
   ];
