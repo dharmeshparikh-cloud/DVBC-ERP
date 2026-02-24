@@ -200,9 +200,130 @@ export const HelpPanel = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState(null);
   const [suggestedRoute, setSuggestedRoute] = useState(null);
+  
+  // Help Articles state (from backend API)
+  const [helpSearchQuery, setHelpSearchQuery] = useState('');
+  const [helpSearchResults, setHelpSearchResults] = useState([]);
+  const [contextTopics, setContextTopics] = useState([]);
+  const [helpCategories, setHelpCategories] = useState([]);
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoryTopics, setCategoryTopics] = useState([]);
+  const [helpLoading, setHelpLoading] = useState(false);
+  const [whatsNew, setWhatsNew] = useState([]);
 
   const currentPageTips = PAGE_TIPS[location.pathname];
   const relevantWorkflows = getWorkflowsForPage(location.pathname);
+  
+  // Fetch context-aware help topics when panel opens
+  useEffect(() => {
+    if (showHelpPanel && user) {
+      fetchContextTopics();
+      fetchCategories();
+      fetchWhatsNew();
+    }
+  }, [showHelpPanel, location.pathname, user]);
+  
+  const fetchContextTopics = async () => {
+    try {
+      const res = await axios.get(`${API}/help/context`, {
+        params: { route: location.pathname, role: user?.role }
+      });
+      setContextTopics(res.data.topics || []);
+    } catch (err) {
+      console.error('Failed to fetch context topics:', err);
+    }
+  };
+  
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get(`${API}/help/categories`, {
+        params: { role: user?.role }
+      });
+      setHelpCategories(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    }
+  };
+  
+  const fetchWhatsNew = async () => {
+    try {
+      const res = await axios.get(`${API}/help/whats-new`, {
+        params: { role: user?.role, limit: 5 }
+      });
+      setWhatsNew(res.data.items || []);
+    } catch (err) {
+      console.error('Failed to fetch whats new:', err);
+    }
+  };
+  
+  const handleHelpSearch = async (query) => {
+    if (!query.trim()) {
+      setHelpSearchResults([]);
+      return;
+    }
+    setHelpLoading(true);
+    try {
+      const res = await axios.get(`${API}/help/search`, {
+        params: { q: query, role: user?.role }
+      });
+      setHelpSearchResults(res.data.results || []);
+    } catch (err) {
+      console.error('Help search failed:', err);
+    } finally {
+      setHelpLoading(false);
+    }
+  };
+  
+  const openHelpTopic = async (topicId) => {
+    setHelpLoading(true);
+    try {
+      const res = await axios.get(`${API}/help/topics/${topicId}`, {
+        params: { role: user?.role }
+      });
+      setSelectedTopic(res.data);
+      setSelectedCategory(null);
+      // Track view
+      axios.post(`${API}/help/topics/${topicId}/view`).catch(() => {});
+    } catch (err) {
+      console.error('Failed to load topic:', err);
+    } finally {
+      setHelpLoading(false);
+    }
+  };
+  
+  const openCategory = async (category) => {
+    setHelpLoading(true);
+    setSelectedCategory(category);
+    setSelectedTopic(null);
+    try {
+      const res = await axios.get(`${API}/help/categories/${category.id}/topics`, {
+        params: { role: user?.role }
+      });
+      setCategoryTopics(res.data || []);
+    } catch (err) {
+      console.error('Failed to load category topics:', err);
+    } finally {
+      setHelpLoading(false);
+    }
+  };
+  
+  const sendHelpFeedback = async (topicId, helpful) => {
+    try {
+      await axios.post(`${API}/help/topics/${topicId}/feedback`, { helpful });
+    } catch (err) {
+      console.error('Failed to send feedback:', err);
+    }
+  };
+  
+  const goBackInHelp = () => {
+    if (selectedTopic) {
+      setSelectedTopic(null);
+    } else if (selectedCategory) {
+      setSelectedCategory(null);
+      setCategoryTopics([]);
+    }
+  };
 
   // Get all workflows grouped by category
   const workflowCategories = {
