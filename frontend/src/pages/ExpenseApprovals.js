@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
-import { API, AuthContext } from '../App';
+import React, { useState, useContext, useMemo } from 'react';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -9,10 +8,11 @@ import { Textarea } from '../components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { 
   CheckCircle, XCircle, Clock, DollarSign, User, Calendar,
-  FileText, AlertCircle, ChevronRight, Building2, Briefcase
+  FileText, AlertCircle, ChevronRight, Building2, Briefcase, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { usePendingApprovals, useApproveExpense, useRejectExpense } from '../hooks/useApi';
 
 const STATUS_CONFIG = {
   pending: { label: 'Pending Manager', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Clock },
@@ -24,66 +24,40 @@ const STATUS_CONFIG = {
 
 const ExpenseApprovals = () => {
   const { user } = useContext(AuthContext);
-  const [expenses, setExpenses] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [actionDialog, setActionDialog] = useState({ open: false, type: null });
   const [remarks, setRemarks] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
-  const [stats, setStats] = useState({ pending: 0, manager_approved: 0, approved: 0, rejected: 0 });
+
+  // Use React Query hooks for data fetching and mutations
+  const { data: expenses = [], isLoading: loading, refetch } = usePendingApprovals();
+  const approveExpense = useApproveExpense();
+  const rejectExpense = useRejectExpense();
 
   const isHRAdmin = ['admin', 'hr_manager'].includes(user?.role);
 
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
-
-  const fetchExpenses = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API}/expenses/pending-approvals`);
-      const data = res.data || [];
-      setExpenses(data);
-      
-      // Calculate stats
-      const newStats = { pending: 0, manager_approved: 0, approved: 0, rejected: 0 };
-      data.forEach(e => {
-        if (newStats[e.status] !== undefined) newStats[e.status]++;
-      });
-      setStats(newStats);
-    } catch (error) {
-      // Fallback to regular expenses endpoint
-      try {
-        const res = await axios.get(`${API}/expenses`);
-        const data = res.data || [];
-        setExpenses(data);
-        
-        const newStats = { pending: 0, manager_approved: 0, approved: 0, rejected: 0 };
-        data.forEach(e => {
-          if (newStats[e.status] !== undefined) newStats[e.status]++;
-        });
-        setStats(newStats);
-      } catch (err) {
-        toast.error('Failed to load expenses');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Calculate stats from expenses data (memoized)
+  const stats = useMemo(() => {
+    const newStats = { pending: 0, manager_approved: 0, approved: 0, rejected: 0 };
+    expenses.forEach(e => {
+      if (newStats[e.status] !== undefined) newStats[e.status]++;
+    });
+    return newStats;
+  }, [expenses]);
 
   const handleApprove = async () => {
     if (!selectedExpense) return;
     
     try {
-      const res = await axios.post(`${API}/expenses/${selectedExpense.id}/approve`, {
-        remarks: remarks
+      const result = await approveExpense.mutateAsync({ 
+        id: selectedExpense.id, 
+        remarks: remarks 
       });
-      toast.success(res.data.message || 'Expense approved');
+      toast.success(result.message || 'Expense approved');
       setActionDialog({ open: false, type: null });
       setSelectedExpense(null);
       setRemarks('');
-      fetchExpenses();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to approve');
     }
@@ -96,14 +70,14 @@ const ExpenseApprovals = () => {
     }
     
     try {
-      await axios.post(`${API}/expenses/${selectedExpense.id}/reject`, {
-        reason: rejectReason
+      await rejectExpense.mutateAsync({ 
+        id: selectedExpense.id, 
+        reason: rejectReason 
       });
       toast.success('Expense rejected');
       setActionDialog({ open: false, type: null });
       setSelectedExpense(null);
       setRejectReason('');
-      fetchExpenses();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to reject');
     }
