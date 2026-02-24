@@ -125,6 +125,18 @@ const CandidateOnboardingForm = () => {
             bank_details: { ...prev.bank_details, ...response.data.bank_details }
           }));
         }
+        if (response.data.professional_reference) {
+          setFormData(prev => ({
+            ...prev,
+            professional_reference: { ...prev.professional_reference, ...response.data.professional_reference }
+          }));
+        }
+        if (response.data.personal_reference) {
+          setFormData(prev => ({
+            ...prev,
+            personal_reference: { ...prev.personal_reference, ...response.data.personal_reference }
+          }));
+        }
         if (response.data.emergency_contact) {
           setFormData(prev => ({
             ...prev,
