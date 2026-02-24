@@ -535,6 +535,8 @@ const GoLiveDashboard = () => {
                               label={item.label}
                               checked={item.completed}
                               icon={IconComponent}
+                              itemKey={key}
+                              employeeId={checklist.employee.id}
                             />
                           </div>
                           {canVerifyBank && checklist.checklist.bank_details?.completed && !item.completed && (
