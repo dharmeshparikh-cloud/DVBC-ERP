@@ -521,6 +521,137 @@ const GoLiveDashboard = () => {
                   })}
                 </div>
 
+                {/* Bank Validation & Documents Section */}
+                <div className={`mb-6 p-4 rounded-lg border ${isDark ? 'bg-zinc-700/50 border-zinc-600' : 'bg-blue-50/50 border-blue-200'}`}>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-500" />
+                    Bank Verification
+                  </h3>
+                  
+                  {/* Validation Actions */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleValidateBankDetails(selectedEmployee.id)}
+                      disabled={validating}
+                      data-testid="validate-bank-btn"
+                    >
+                      {validating ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      Validate IFSC & Account
+                    </Button>
+                    
+                    {canUploadProof && (
+                      <>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
+                          className="hidden"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleUploadClick}
+                          disabled={uploading}
+                          data-testid="upload-proof-btn"
+                        >
+                          {uploading ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4 mr-2" />
+                          )}
+                          Upload Bank Proof
+                        </Button>
+                      </>
+                    )}
+                    
+                    {bankProofs.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowBankProofsDialog(true)}
+                        data-testid="view-proofs-btn"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        View Documents ({bankProofs.length})
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Validation Results */}
+                  {bankValidation && (
+                    <div className={`p-3 rounded-lg ${
+                      bankValidation.overall_valid 
+                        ? isDark ? 'bg-emerald-900/30' : 'bg-emerald-50'
+                        : isDark ? 'bg-red-900/30' : 'bg-red-50'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        {bankValidation.overall_valid ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                        ) : (
+                          <XOctagon className="w-5 h-5 text-red-500" />
+                        )}
+                        <span className="font-medium">
+                          {bankValidation.overall_valid ? 'Validation Passed' : 'Validation Issues Found'}
+                        </span>
+                      </div>
+                      
+                      {/* IFSC Validation */}
+                      {bankValidation.ifsc_validation && (
+                        <div className="text-sm mb-2">
+                          <span className="font-medium">IFSC: </span>
+                          {bankValidation.ifsc_validation.valid ? (
+                            <span className="text-emerald-600">
+                              ✓ Valid - {bankValidation.ifsc_validation.bank_name}
+                              {bankValidation.ifsc_validation.branch && `, ${bankValidation.ifsc_validation.branch}`}
+                            </span>
+                          ) : (
+                            <span className="text-red-600">
+                              ✗ {bankValidation.ifsc_validation.error}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Account Validation */}
+                      {bankValidation.account_validation && (
+                        <div className="text-sm">
+                          <span className="font-medium">Account: </span>
+                          {bankValidation.account_validation.valid ? (
+                            <span className="text-emerald-600">
+                              ✓ Valid format ({bankValidation.account_validation.actual_length} digits)
+                            </span>
+                          ) : (
+                            <span className="text-red-600">
+                              ✗ {bankValidation.account_validation.error}
+                            </span>
+                          )}
+                          {bankValidation.account_validation.warning && (
+                            <p className="text-amber-600 text-xs mt-1">
+                              ⚠ {bankValidation.account_validation.warning}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Bank Proofs Quick View */}
+                  {bankProofs.length > 0 && (
+                    <div className="mt-3 text-sm">
+                      <span className={isDark ? 'text-zinc-400' : 'text-zinc-600'}>
+                        Uploaded: {bankProofs.map(p => p.original_filename).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Go-Live Request Info */}
                 {checklist.request && (
                   <div className={`p-4 rounded-lg mb-6 border ${
