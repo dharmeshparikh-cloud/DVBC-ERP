@@ -756,6 +756,25 @@ class TestOnboardingComplete:
         token = invite_data["onboarding_link"].split("/")[-1]
         submission_id = invite_data["submission_id"]
         
+        # Upload required documents (at least 2 documents required)
+        pdf_content = b"%PDF-1.4\n%Test PDF for complete test\n"
+        
+        # Upload PAN card document
+        files1 = {'file': ('pan_card.pdf', io.BytesIO(pdf_content), 'application/pdf')}
+        upload1 = requests.post(
+            f"{BASE_URL}/api/onboarding/public/{token}/upload?document_type=pan_card",
+            files=files1
+        )
+        assert upload1.status_code == 200, f"PAN upload failed: {upload1.text}"
+        
+        # Upload Aadhaar document
+        files2 = {'file': ('aadhaar.pdf', io.BytesIO(pdf_content), 'application/pdf')}
+        upload2 = requests.post(
+            f"{BASE_URL}/api/onboarding/public/{token}/upload?document_type=aadhaar",
+            files=files2
+        )
+        assert upload2.status_code == 200, f"Aadhaar upload failed: {upload2.text}"
+        
         # Submit complete form with all required fields
         complete_data = {
             "candidate_details": {
