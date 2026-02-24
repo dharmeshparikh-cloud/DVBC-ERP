@@ -737,9 +737,11 @@ async def send_onboarding_complete_email(
         <style>
             body {{ font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background: #f3f4f6; }}
             .container {{ max-width: 600px; margin: 0 auto; background: white; }}
-            .header {{ background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 40px 30px; text-align: center; }}
-            .header h1 {{ color: white; margin: 0; font-size: 28px; }}
-            .header p {{ color: #bbf7d0; margin-top: 10px; }}
+            .header {{ background: #ffffff; padding: 30px; text-align: center; border-bottom: 3px solid #16a34a; }}
+            .logo {{ max-height: 70px; width: auto; }}
+            .welcome-banner {{ background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 25px; text-align: center; }}
+            .welcome-banner h1 {{ color: white; margin: 0; font-size: 24px; }}
+            .welcome-banner p {{ color: #bbf7d0; margin-top: 5px; margin-bottom: 0; }}
             .content {{ padding: 40px 30px; }}
             .employee-card {{ background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 30px; border-radius: 12px; margin: 20px 0; }}
             .employee-id {{ font-size: 32px; font-weight: bold; color: #f97316; letter-spacing: 2px; }}
@@ -748,12 +750,15 @@ async def send_onboarding_complete_email(
             .detail-label {{ color: #94a3b8; }}
             .detail-value {{ font-weight: 600; }}
             .next-steps {{ background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 25px 0; }}
-            .footer {{ background: #f9fafb; padding: 25px 30px; text-align: center; font-size: 13px; color: #6b7280; }}
+            .footer {{ background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
+                <img src="{COMPANY_LOGO_URL}" alt="D&V Business Consulting" class="logo" />
+            </div>
+            <div class="welcome-banner">
                 <h1>🎉 Welcome to the Team!</h1>
                 <p>Your onboarding is complete</p>
             </div>
@@ -761,7 +766,7 @@ async def send_onboarding_complete_email(
             <div class="content">
                 <p>Dear <strong>{candidate_name}</strong>,</p>
                 
-                <p>We're thrilled to officially welcome you to D&V Business Consulting! Your onboarding process is now complete.</p>
+                <p>We're thrilled to officially welcome you! Your onboarding process is now complete.</p>
                 
                 <div class="employee-card">
                     <p style="margin: 0; color: #94a3b8; font-size: 13px;">YOUR EMPLOYEE ID</p>
@@ -807,14 +812,12 @@ async def send_onboarding_complete_email(
                 
                 <p style="margin-top: 30px;">
                     Best regards,<br>
-                    <strong>HR Team</strong><br>
-                    D&V Business Consulting Pvt. Ltd.
+                    <strong>HR Team</strong>
                 </p>
             </div>
             
             <div class="footer">
-                <p>This email was sent from NETRA HR Management System.</p>
-                <p>© D&V Business Consulting Pvt. Ltd. | All Rights Reserved</p>
+                <p>© All Rights Reserved with D&V Business Consulting Pvt. Ltd.</p>
             </div>
         </div>
     </body>
