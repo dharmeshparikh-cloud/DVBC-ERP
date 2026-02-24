@@ -78,6 +78,17 @@ const CandidateOnboardingForm = () => {
       branch: '',
       account_holder_name: '',
     },
+    professional_reference: {
+      name: '',
+      phone: '',
+      company_name: '',
+      designation: '',
+    },
+    personal_reference: {
+      name: '',
+      phone: '',
+      address: '',
+    },
     emergency_contact: {
       name: '',
       phone: '',
