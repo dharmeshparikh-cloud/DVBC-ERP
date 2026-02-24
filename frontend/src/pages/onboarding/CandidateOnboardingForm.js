@@ -1121,65 +1121,163 @@ const CandidateOnboardingForm = () => {
         const ec = formData.emergency_contact;
         const uploadedDocs = submission?.documents || [];
 
+        // Helper to show field with validation indicator
+        const ReviewField = ({ label, value, required = true }) => {
+          const isEmpty = !value || value === '';
+          return (
+            <div className={isEmpty && required ? 'text-red-600' : ''}>
+              <span className="text-zinc-500">{label}:</span>{' '}
+              <span className={isEmpty ? 'font-medium' : ''}>{value || (required ? '⚠ Missing' : 'N/A')}</span>
+            </div>
+          );
+        };
+
         return (
           <div className="space-y-6">
+            {/* Personal Details */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Personal Details</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div><span className="text-zinc-500">Name:</span> {cd.first_name} {cd.last_name}</div>
-                <div><span className="text-zinc-500">DOB:</span> {cd.date_of_birth}</div>
-                <div><span className="text-zinc-500">Phone:</span> {cd.phone}</div>
-                <div><span className="text-zinc-500">Gender:</span> {cd.gender || 'N/A'}</div>
-                <div><span className="text-zinc-500">PAN:</span> {cd.pan_number || 'N/A'}</div>
-                <div><span className="text-zinc-500">Aadhaar:</span> {cd.aadhaar_number || 'N/A'}</div>
+                <ReviewField label="First Name" value={cd.first_name} />
+                <ReviewField label="Last Name" value={cd.last_name} />
+                <ReviewField label="Date of Birth" value={cd.date_of_birth} />
+                <ReviewField label="Gender" value={cd.gender} />
+                <ReviewField label="Blood Group" value={cd.blood_group} />
+                <ReviewField label="Marital Status" value={cd.marital_status} />
+                <ReviewField label="Nationality" value={cd.nationality} />
+                <ReviewField label="Phone" value={cd.phone} />
+                <ReviewField label="Alternate Phone" value={cd.alternate_phone} />
+                <ReviewField label="PAN Number" value={cd.pan_number} />
+                <ReviewField label="Aadhaar Number" value={cd.aadhaar_number} />
+                <ReviewField label="Passport Number" value={cd.passport_number} required={false} />
+                <ReviewField label="Driving License" value={cd.driving_license} required={false} />
               </CardContent>
             </Card>
 
+            {/* Current Address */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Current Address</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <div className="col-span-2"><ReviewField label="Street/Area" value={cd.current_address?.street} /></div>
+                <ReviewField label="City" value={cd.current_address?.city} />
+                <ReviewField label="State" value={cd.current_address?.state} />
+                <ReviewField label="Pincode" value={cd.current_address?.pincode} />
+              </CardContent>
+            </Card>
+
+            {/* Permanent Address */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Permanent Address</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <div className="col-span-2"><ReviewField label="Street/Area" value={cd.permanent_address?.street} /></div>
+                <ReviewField label="City" value={cd.permanent_address?.city} />
+                <ReviewField label="State" value={cd.permanent_address?.state} />
+                <ReviewField label="Pincode" value={cd.permanent_address?.pincode} />
+              </CardContent>
+            </Card>
+
+            {/* Education */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Education ({formData.education?.length || 0})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {formData.education?.length > 0 ? (
+                  <div className="space-y-3">
+                    {formData.education.map((edu, idx) => (
+                      <div key={idx} className="border-b pb-2 last:border-0 text-sm grid grid-cols-2 gap-2">
+                        <ReviewField label="Degree" value={edu.degree} />
+                        <ReviewField label="Institution" value={edu.institution} />
+                        <ReviewField label="Year" value={edu.year} />
+                        <ReviewField label="Percentage/CGPA" value={edu.percentage} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-red-600 text-sm">⚠ No education added (Required)</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Employment History */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Employment History ({formData.employment_history?.length || 0})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {formData.employment_history?.length > 0 ? (
+                  <div className="space-y-3">
+                    {formData.employment_history.map((emp, idx) => (
+                      <div key={idx} className="border-b pb-2 last:border-0 text-sm grid grid-cols-2 gap-2">
+                        <ReviewField label="Company" value={emp.company} />
+                        <ReviewField label="Designation" value={emp.designation} />
+                        <ReviewField label="From" value={emp.from_date} />
+                        <ReviewField label="To" value={emp.to_date} />
+                        <div className="col-span-2"><ReviewField label="Reason for Leaving" value={emp.reason_for_leaving} required={false} /></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-zinc-500 text-sm">No employment history (Optional for freshers)</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Bank Details */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Bank Details</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div><span className="text-zinc-500">Account Holder:</span> {bd.account_holder_name || 'N/A'}</div>
-                <div><span className="text-zinc-500">Account Number:</span> {bd.account_number ? `****${bd.account_number.slice(-4)}` : 'N/A'}</div>
-                <div><span className="text-zinc-500">IFSC:</span> {bd.ifsc_code || 'N/A'}</div>
-                <div><span className="text-zinc-500">Bank:</span> {bd.bank_name || 'N/A'}</div>
+                <ReviewField label="Account Holder Name" value={bd.account_holder_name} />
+                <div><span className="text-zinc-500">Account Number:</span> {bd.account_number ? `****${bd.account_number.slice(-4)}` : <span className="text-red-600 font-medium">⚠ Missing</span>}</div>
+                <ReviewField label="IFSC Code" value={bd.ifsc_code} />
+                <ReviewField label="Bank Name" value={bd.bank_name} />
+                <ReviewField label="Branch" value={bd.branch} />
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Emergency Contact</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div><span className="text-zinc-500">Name:</span> {ec.name || 'N/A'}</div>
-                <div><span className="text-zinc-500">Phone:</span> {ec.phone || 'N/A'}</div>
-                <div><span className="text-zinc-500">Relationship:</span> {ec.relationship || 'N/A'}</div>
-              </CardContent>
-            </Card>
-
+            {/* Professional Reference */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Professional Reference</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div><span className="text-zinc-500">Name:</span> {pr.name || 'N/A'}</div>
-                <div><span className="text-zinc-500">Phone:</span> {pr.phone || 'N/A'}</div>
-                <div><span className="text-zinc-500">Company:</span> {pr.company_name || 'N/A'}</div>
-                <div><span className="text-zinc-500">Designation:</span> {pr.designation || 'N/A'}</div>
+                <ReviewField label="Name" value={pr.name} />
+                <ReviewField label="Phone" value={pr.phone} />
+                <ReviewField label="Company Name" value={pr.company_name} />
+                <ReviewField label="Designation" value={pr.designation} />
               </CardContent>
             </Card>
 
+            {/* Personal Reference */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Personal Reference</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div><span className="text-zinc-500">Name:</span> {per.name || 'N/A'}</div>
-                <div><span className="text-zinc-500">Phone:</span> {per.phone || 'N/A'}</div>
-                <div className="col-span-2"><span className="text-zinc-500">Address:</span> {per.address || 'N/A'}</div>
+                <ReviewField label="Name" value={per.name} />
+                <ReviewField label="Phone" value={per.phone} />
+                <div className="col-span-2"><ReviewField label="Address" value={per.address} /></div>
+              </CardContent>
+            </Card>
+
+            {/* Emergency Contact */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Emergency Contact</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <ReviewField label="Name" value={ec.name} />
+                <ReviewField label="Phone" value={ec.phone} />
+                <ReviewField label="Relationship" value={ec.relationship} />
+                <ReviewField label="Address" value={ec.address} required={false} />
               </CardContent>
             </Card>
 
