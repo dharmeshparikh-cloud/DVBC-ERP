@@ -463,6 +463,92 @@ const PasswordManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Grant Access Dialog - for employees without portal access */}
+      <Dialog open={grantAccessDialog} onOpenChange={setGrantAccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-emerald-500" />
+              Grant Portal Access
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="font-medium">{selectedEmployee?.first_name} {selectedEmployee?.last_name}</p>
+              <p className="text-sm text-zinc-600">{selectedEmployee?.employee_id} • {selectedEmployee?.email}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Set Initial Password</label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setNewPassword(generatePassword(selectedEmployee?.employee_id))}
+              >
+                Use Default Pattern
+              </Button>
+              <span className="text-xs text-zinc-500">Welcome@{selectedEmployee?.employee_id}</span>
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <p className="text-xs text-emerald-800 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                This will enable the employee to login to the portal.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGrantAccessDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!selectedEmployee || !newPassword) {
+                  toast.error('Please set a password');
+                  return;
+                }
+                try {
+                  await axios.post(`${API}/employees/${selectedEmployee.id}/grant-access`, {
+                    employee_id: selectedEmployee.id,
+                    role: selectedEmployee.designation?.includes('Manager') ? 'manager' : 'consultant',
+                    password: newPassword
+                  });
+                  toast.success('Portal access granted successfully!');
+                  setGrantAccessDialog(false);
+                  setNewPassword('');
+                  fetchEmployees();
+                } catch (error) {
+                  toast.error(error.response?.data?.detail || 'Failed to grant access');
+                }
+              }} 
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              Grant Access
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
