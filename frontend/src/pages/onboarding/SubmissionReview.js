@@ -477,13 +477,23 @@ const SubmissionReview = () => {
         </div>
       </div>
 
-      {/* Completed Alert */}
+      {/* Completed Alert with Go-Live link */}
       {submission.status === 'completed' && (
         <Alert className="border-green-200 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            Onboarding completed on {new Date(submission.completed_at).toLocaleDateString()}.
-            Employee ID <strong>{submission.employee_id_generated}</strong> has been generated.
+          <AlertDescription className="text-green-800 flex items-center justify-between">
+            <span>
+              Onboarding completed on {new Date(submission.completed_at).toLocaleDateString()}.
+              Employee ID <strong>{submission.employee_id_generated}</strong> has been generated.
+            </span>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="ml-4 border-green-300 text-green-700 hover:bg-green-100"
+              onClick={() => navigate('/go-live')}
+            >
+              Go to Go-Live Dashboard →
+            </Button>
           </AlertDescription>
         </Alert>
       )}
