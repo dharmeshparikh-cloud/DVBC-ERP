@@ -700,6 +700,10 @@ async def save_public_submission(token: str, data: dict):
         update_fields["employment_history"] = data["employment_history"]
     if "bank_details" in data:
         update_fields["bank_details"] = data["bank_details"]
+    if "professional_reference" in data:
+        update_fields["professional_reference"] = data["professional_reference"]
+    if "personal_reference" in data:
+        update_fields["personal_reference"] = data["personal_reference"]
     if "emergency_contact" in data:
         update_fields["emergency_contact"] = data["emergency_contact"]
     if "declaration_signed" in data:
@@ -751,6 +755,10 @@ async def submit_public_submission(token: str, data: dict):
         update_fields["employment_history"] = data["employment_history"]
     if "bank_details" in data:
         update_fields["bank_details"] = data["bank_details"]
+    if "professional_reference" in data:
+        update_fields["professional_reference"] = data["professional_reference"]
+    if "personal_reference" in data:
+        update_fields["personal_reference"] = data["personal_reference"]
     if "emergency_contact" in data:
         update_fields["emergency_contact"] = data["emergency_contact"]
     if "declaration_signed" in data:
