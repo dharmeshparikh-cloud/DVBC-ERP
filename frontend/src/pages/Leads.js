@@ -252,10 +252,6 @@ const Leads = () => {
     };
   }, [dialogOpen, registerFormDataGetter]);
 
-  useEffect(() => {
-    fetchLeads();
-  }, [selectedStatus]);
-
   // Update form data with auto-save
   const updateFormData = (field, value) => {
     setFormData(prev => {
@@ -295,29 +291,11 @@ const Leads = () => {
     setDialogOpen(true);
   };
 
-  // Lead progress state
-  const [leadProgress, setLeadProgress] = useState({});
-
-  const fetchLeads = async () => {
-    try {
-      const params = selectedStatus ? { status: selectedStatus } : {};
-      const response = await axios.get(`${API}/leads`, { params });
-      // Sort by lead score descending
-      const sortedLeads = response.data.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0));
-      setLeads(sortedLeads);
-      
-      // Fetch progress for all leads
-      try {
-        const progressRes = await axios.get(`${API}/leads/progress/bulk`);
-        setLeadProgress(progressRes.data || {});
-      } catch (err) {
-        console.error('Failed to fetch lead progress:', err);
-      }
-      
-      // Fetch suggestions for high-scoring leads
-      sortedLeads.forEach(async (lead) => {
-        if (lead.lead_score >= 60) {
-          try {
+  // Refetch helper for cache invalidation
+  const fetchLeads = () => {
+    refetchLeads();
+    queryClient.invalidateQueries({ queryKey: ['leads', 'progress', 'bulk'] });
+  };
             const suggestionsRes = await axios.get(`${API}/leads/${lead.id}/suggestions`);
             if (suggestionsRes.data.suggestions.length > 0) {
               setSuggestions(prev => ({
