@@ -140,13 +140,16 @@ const CandidateOnboardingForm = () => {
     if (!submission || submission.status === 'submitted') return;
     
     const interval = setInterval(() => {
-      handleSave(true);
+      if (submission && submission.status !== 'submitted') {
+        handleSaveInternal(true);
+      }
     }, 30000);
     
     return () => clearInterval(interval);
-  }, [formData, submission]);
+  }, [submission?.status]);
 
-  const handleSave = async (silent = false) => {
+  // Internal save function to avoid dependency issues
+  const handleSaveInternal = async (silent = false) => {
     if (!submission || submission.status === 'submitted') return;
     
     try {
@@ -164,6 +167,10 @@ const CandidateOnboardingForm = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSave = async (silent = false) => {
+    await handleSaveInternal(silent);
   };
 
   const handleSubmit = async () => {
