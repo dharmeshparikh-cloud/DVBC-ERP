@@ -1050,7 +1050,23 @@ const CandidateOnboardingForm = () => {
             </Card>
 
             <Card className={!formData.declaration_signed ? 'border-amber-200' : 'border-green-200'}>
-              <CardContent className="pt-6">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Self Declaration *
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="bg-zinc-50 rounded-lg p-4 mb-4 text-sm text-zinc-600 leading-relaxed">
+                  <p className="mb-3">By submitting this form, I declare that:</p>
+                  <ol className="list-decimal ml-4 space-y-2">
+                    <li>All the information provided above is true, complete, and correct to the best of my knowledge and belief.</li>
+                    <li>I have not withheld any material information that may affect my employment.</li>
+                    <li>I understand that any false statement, misrepresentation, or omission of facts may result in rejection of my application or termination of employment.</li>
+                    <li>I authorize D&V Business Consulting Pvt. Ltd. to verify all information provided and conduct background checks as deemed necessary.</li>
+                    <li>I consent to the storage and processing of my personal data as per company policy and applicable data protection laws.</li>
+                  </ol>
+                </div>
                 <div className="flex items-start gap-3">
                   <Checkbox
                     id="declaration"
@@ -1058,9 +1074,8 @@ const CandidateOnboardingForm = () => {
                     checked={formData.declaration_signed}
                     onCheckedChange={(checked) => updateField('declaration_signed', checked)}
                   />
-                  <Label htmlFor="declaration" className="text-sm leading-relaxed cursor-pointer">
-                    I hereby declare that all the information provided above is true and correct to the best of my knowledge.
-                    I understand that any false information may result in termination of my employment.
+                  <Label htmlFor="declaration" className="text-sm leading-relaxed cursor-pointer font-medium">
+                    I have read and agree to the above declaration. I confirm that all information provided is accurate.
                   </Label>
                 </div>
               </CardContent>
