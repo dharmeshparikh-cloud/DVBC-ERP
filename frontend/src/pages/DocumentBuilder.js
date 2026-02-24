@@ -257,12 +257,13 @@ const DocumentBuilder = () => {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/employees`, {
+      const response = await fetch(`${API}/employees/all`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data.filter(e => e.is_active !== false));
+        const empList = Array.isArray(data) ? data : (data?.items || []);
+        setEmployees(empList.filter(e => e.is_active !== false));
       }
     } catch (error) {
       console.error('Failed to fetch employees:', error);
