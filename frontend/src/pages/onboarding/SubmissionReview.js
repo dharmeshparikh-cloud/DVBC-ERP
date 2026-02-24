@@ -458,10 +458,10 @@ const SubmissionReview = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{submission.candidate_name}</h1>
-            <p className="text-zinc-500 text-sm flex items-center gap-2">
-              {submission.offered_position}
+            <div className="text-zinc-500 text-sm flex items-center gap-2">
+              <span>{submission.offered_position}</span>
               {getStatusBadge(submission.status)}
-            </p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
