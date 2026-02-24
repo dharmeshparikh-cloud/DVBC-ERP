@@ -1053,6 +1053,28 @@ class TestOnboardingE2EFlow:
         assert save_response.status_code == 200
         print(f"  Progress saved - status changed to draft")
         
+        # Step 3.5: Candidate uploads required documents (at least 2)
+        print("Step 3.5: Candidate uploads required documents...")
+        pdf_content = b"%PDF-1.4\n%Test PDF for E2E test\n"
+        
+        # Upload PAN card
+        files1 = {'file': ('pan_card.pdf', io.BytesIO(pdf_content), 'application/pdf')}
+        upload1 = requests.post(
+            f"{BASE_URL}/api/onboarding/public/{token}/upload?document_type=pan_card",
+            files=files1
+        )
+        assert upload1.status_code == 200, f"PAN upload failed: {upload1.text}"
+        print("  Uploaded PAN card")
+        
+        # Upload Aadhaar
+        files2 = {'file': ('aadhaar.pdf', io.BytesIO(pdf_content), 'application/pdf')}
+        upload2 = requests.post(
+            f"{BASE_URL}/api/onboarding/public/{token}/upload?document_type=aadhaar",
+            files=files2
+        )
+        assert upload2.status_code == 200, f"Aadhaar upload failed: {upload2.text}"
+        print("  Uploaded Aadhaar")
+        
         # Step 4: Candidate submits complete form
         print("Step 4: Candidate submits complete form...")
         submit_response = requests.post(
@@ -1133,7 +1155,7 @@ class TestOnboardingE2EFlow:
             f"{BASE_URL}/api/onboarding/submissions/{submission_id}/complete",
             headers={"Authorization": f"Bearer {hr_token}"}
         )
-        assert complete_response.status_code == 200
+        assert complete_response.status_code == 200, f"Complete failed: {complete_response.text}"
         complete_data = complete_response.json()
         
         assert complete_data["employee_id"].startswith("DVBC")
