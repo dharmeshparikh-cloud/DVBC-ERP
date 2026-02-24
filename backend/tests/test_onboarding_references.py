@@ -394,8 +394,8 @@ class TestCompanyNameBranding:
                 "gender": "male",
                 "blood_group": "A+",
                 "marital_status": "single",
-                "pan_number": "TESTC1234F",
-                "aadhaar_number": "1234-5678-9999",
+                "pan_number": f"PAN{uuid.uuid4().hex[:6].upper()}",
+                "aadhaar_number": f"{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:4]}",
                 "current_address": {"street": "Test", "city": "Mumbai", "state": "MH", "pincode": "400001"},
                 "permanent_address": {"street": "Test", "city": "Mumbai", "state": "MH", "pincode": "400001"}
             },
