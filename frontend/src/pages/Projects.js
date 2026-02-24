@@ -67,7 +67,8 @@ const Projects = () => {
     queryKey: ['projects'],
     queryFn: async () => {
       const response = await axios.get(`${API}/projects`);
-      return response.data;
+      const data = response.data?.items || response.data || [];
+      return Array.isArray(data) ? data : [];
     },
     staleTime: 3 * 60 * 1000, // 3 minutes
   });
