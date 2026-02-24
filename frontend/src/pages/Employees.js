@@ -93,7 +93,9 @@ const Employees = () => {
         axios.get(`${API}/employees`),
         axios.get(`${API}/employees/departments/list`)
       ]);
-      setEmployees(empRes.data || []);
+      // Handle both paginated and array responses
+      const empData = empRes.data?.items || empRes.data || [];
+      setEmployees(Array.isArray(empData) ? empData : []);
       setDepartments(deptRes.data || []);
       
       // Fetch stats if HR access
