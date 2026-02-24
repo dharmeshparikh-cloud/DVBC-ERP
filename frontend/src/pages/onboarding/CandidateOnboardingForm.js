@@ -923,7 +923,94 @@ const CandidateOnboardingForm = () => {
           </div>
         );
 
-      case 4: // Emergency Contact
+      case 4: // References
+        return (
+          <div className="space-y-6">
+            {/* Professional Reference */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Briefcase className="w-4 h-4" />
+                  Professional Reference *
+                </CardTitle>
+                <CardDescription>Provide details of a professional contact who can vouch for your work</CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Name *</Label>
+                  <Input
+                    value={formData.professional_reference.name}
+                    onChange={(e) => updateField('professional_reference.name', e.target.value)}
+                    placeholder="Full name"
+                  />
+                </div>
+                <div>
+                  <Label>Phone Number *</Label>
+                  <Input
+                    value={formData.professional_reference.phone}
+                    onChange={(e) => updateField('professional_reference.phone', e.target.value)}
+                    placeholder="10-digit mobile number"
+                  />
+                </div>
+                <div>
+                  <Label>Company Name *</Label>
+                  <Input
+                    value={formData.professional_reference.company_name}
+                    onChange={(e) => updateField('professional_reference.company_name', e.target.value)}
+                    placeholder="Company name"
+                  />
+                </div>
+                <div>
+                  <Label>Designation *</Label>
+                  <Input
+                    value={formData.professional_reference.designation}
+                    onChange={(e) => updateField('professional_reference.designation', e.target.value)}
+                    placeholder="Their job title"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Personal Reference */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Personal Reference *
+                </CardTitle>
+                <CardDescription>Provide details of a personal contact (not a family member)</CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Name *</Label>
+                  <Input
+                    value={formData.personal_reference.name}
+                    onChange={(e) => updateField('personal_reference.name', e.target.value)}
+                    placeholder="Full name"
+                  />
+                </div>
+                <div>
+                  <Label>Phone Number *</Label>
+                  <Input
+                    value={formData.personal_reference.phone}
+                    onChange={(e) => updateField('personal_reference.phone', e.target.value)}
+                    placeholder="10-digit mobile number"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Address *</Label>
+                  <Input
+                    value={formData.personal_reference.address}
+                    onChange={(e) => updateField('personal_reference.address', e.target.value)}
+                    placeholder="Full address"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 5: // Emergency Contact
         return (
           <div className="space-y-6">
             <Alert>
@@ -976,7 +1063,7 @@ const CandidateOnboardingForm = () => {
           </div>
         );
 
-      case 5: // Documents
+      case 6: // Documents
         return (
           <div className="space-y-6">
             <Alert className="border-amber-200 bg-amber-50">
