@@ -1088,21 +1088,20 @@ const CandidateOnboardingForm = () => {
     }
   };
 
-  // Logo URL same as login page
-  const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png";
+  // Logo URL - same as email templates
+  const LOGO_URL = "https://customer-assets.emergentagent.com/job_30a69dc1-a599-4a88-9d0e-e1c06b1b2008/artifacts/tbs0jexj_1001419196.png";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
       {/* Header */}
-      <div className="bg-orange-500 py-6 px-4">
+      <div className="bg-white py-6 px-4 border-b-4 border-orange-500">
         <div className="max-w-4xl mx-auto text-center">
           <img
             src={LOGO_URL}
             alt="D&V Business Consulting"
-            className="h-14 w-auto mx-auto mb-3"
+            className="h-20 w-auto mx-auto mb-3"
           />
-          <h1 className="text-2xl font-bold text-black">D&V Business Consulting</h1>
-          <p className="text-black/70 text-sm mt-1">
+          <p className="text-zinc-600 text-sm mt-2">
             Welcome, {submission?.candidate_name}! Please complete your onboarding details.
           </p>
         </div>
