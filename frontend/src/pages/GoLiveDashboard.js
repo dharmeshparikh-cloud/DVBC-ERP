@@ -124,7 +124,7 @@ const GoLiveDashboard = () => {
 
   const handleVerifyBank = async (employeeId) => {
     try {
-      await axios.post(`${API}/bank-verify/${employeeId}`);
+      await axios.post(`${API}/go-live/bank-verify/${employeeId}`);
       toast.success('Bank details verified');
       fetchChecklist(employeeId);
     } catch (error) {
