@@ -29,7 +29,8 @@ const EmailTemplates = () => {
   const fetchTemplates = async () => {
     try {
       const response = await axios.get(`${API}/email-templates`);
-      setTemplates(response.data);
+      const data = response.data?.items || response.data || [];
+      setTemplates(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error('Failed to fetch email templates');
     } finally {
