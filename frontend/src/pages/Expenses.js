@@ -80,9 +80,12 @@ const Expenses = () => {
         axios.get(`${API}/clients`),
         axios.get(`${API}/projects`)
       ]);
-      setExpenses(expensesRes.data || []);
-      setClients(clientsRes.data || []);
-      setProjects(projectsRes.data || []);
+      const expData = expensesRes.data?.items || expensesRes.data || [];
+      const clientData = clientsRes.data?.items || clientsRes.data || [];
+      const projectData = projectsRes.data?.items || projectsRes.data || [];
+      setExpenses(Array.isArray(expData) ? expData : []);
+      setClients(Array.isArray(clientData) ? clientData : []);
+      setProjects(Array.isArray(projectData) ? projectData : []);
       
       if (isHROrAdmin) {
         try {
