@@ -217,25 +217,33 @@ const ApprovalsCenter = () => {
       
       const results = await Promise.all(requests);
       
-      setPendingApprovals(results[0]?.data || []);
-      setMyRequests(results[1]?.data || []);
+      // Helper to safely extract array from response
+      const extractArr = (res) => {
+        const data = res?.data;
+        if (Array.isArray(data)) return data;
+        if (data?.items && Array.isArray(data.items)) return data.items;
+        return [];
+      };
+      
+      setPendingApprovals(extractArr(results[0]));
+      setMyRequests(extractArr(results[1]));
       
       let agreementApprovalIndex = null;
       let kickoffApprovalIndex = null;
       
       if (isAdmin) {
-        setCtcApprovals(results[2]?.data || []);
-        setGoLiveApprovals(results[3]?.data || []);
-        setPermissionApprovals((results[4]?.data || []).filter(r => r.status === 'pending'));
-        setModificationApprovals(results[5]?.data || []);
+        setCtcApprovals(extractArr(results[2]));
+        setGoLiveApprovals(extractArr(results[3]));
+        setPermissionApprovals(extractArr(results[4]).filter(r => r.status === 'pending'));
+        setModificationApprovals(extractArr(results[5]));
         agreementApprovalIndex = 6; // After the admin-specific requests
         kickoffApprovalIndex = 7; // After agreement approvals
       } else if (user?.role === 'senior_consultant' || user?.role === 'principal_consultant') {
         // Senior/Principal Consultants only see kickoff approvals
         kickoffApprovalIndex = 2; // Right after basic requests
       } else if (isHR) {
-        setBankApprovals(results[2]?.data || []);
-        setProfileChangeApprovals((results[3]?.data || []).filter(r => r.status === 'pending'));
+        setBankApprovals(extractArr(results[2]));
+        setProfileChangeApprovals(extractArr(results[3]).filter(r => r.status === 'pending'));
         agreementApprovalIndex = isManager ? 4 : null; // HR managers get agreement approvals after HR requests
       } else if (isManager) {
         agreementApprovalIndex = 2; // For non-admin managers, right after the basic requests
@@ -243,7 +251,7 @@ const ApprovalsCenter = () => {
       
       // Set agreement approvals if user has permission
       if ((isManager || isAdmin) && agreementApprovalIndex !== null && results[agreementApprovalIndex]) {
-        const agreementData = results[agreementApprovalIndex]?.data || [];
+        const agreementData = extractArr(results[agreementApprovalIndex]);
         // Extract the agreement objects from the response
         setAgreementApprovals(agreementData.map(item => item.agreement || item));
       }
@@ -251,13 +259,14 @@ const ApprovalsCenter = () => {
       // Set kickoff approvals (Senior Consultant, Principal Consultant, Admin)
       if (canApproveKickoffs && kickoffApprovalIndex !== null && results[kickoffApprovalIndex]) {
         const kickoffData = results[kickoffApprovalIndex]?.data;
-        setKickoffApprovals(kickoffData?.requests || kickoffData || []);
+        const kickoffList = kickoffData?.requests || (Array.isArray(kickoffData) ? kickoffData : (kickoffData?.items || []));
+        setKickoffApprovals(Array.isArray(kickoffList) ? kickoffList : []);
       }
       
       // Set expense approvals (managers and HR)
       if (isManager || isHR) {
         const expenseIndex = results.length - 1; // Last item is expense approvals
-        const expenseData = results[expenseIndex]?.data || [];
+        const expenseData = extractArr(results[expenseIndex]);
         // Filter for pending expenses (pending for manager, manager_approved for HR)
         const pendingExpenses = expenseData.filter(e => 
           e.status === 'pending' || e.status === 'manager_approved'
@@ -267,7 +276,7 @@ const ApprovalsCenter = () => {
       
       if (isManager) {
         const allRes = await axios.get(`${API}/approvals/all`).catch(() => ({ data: [] }));
-        setAllApprovals(allRes.data || []);
+        setAllApprovals(extractArr(allRes));
       }
       
       setLastRefresh(new Date());
