@@ -25,6 +25,7 @@ const STEPS = [
   { id: 'education', title: 'Education', icon: GraduationCap },
   { id: 'experience', title: 'Work Experience', icon: Briefcase },
   { id: 'bank', title: 'Bank Details', icon: Building2 },
+  { id: 'references', title: 'References', icon: Users },
   { id: 'emergency', title: 'Emergency Contact', icon: Phone },
   { id: 'documents', title: 'Documents', icon: FileText },
   { id: 'review', title: 'Review & Submit', icon: CheckCircle2 },
