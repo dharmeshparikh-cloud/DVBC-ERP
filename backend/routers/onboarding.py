@@ -131,7 +131,7 @@ async def send_onboarding_invite(
     
     # Send email to candidate
     # Get base URL from environment
-    base_url = os.environ.get("FRONTEND_URL", "https://netra-rbac-hub.preview.emergentagent.com")
+    base_url = os.environ.get("FRONTEND_URL", "https://dvbc-intake.preview.emergentagent.com")
     onboarding_link = f"{base_url}/onboarding/candidate/{token}"
     
     try:
@@ -386,7 +386,7 @@ async def request_revision(
     
     # Send email to candidate
     try:
-        base_url = os.environ.get("FRONTEND_URL", "https://netra-rbac-hub.preview.emergentagent.com")
+        base_url = os.environ.get("FRONTEND_URL", "https://dvbc-intake.preview.emergentagent.com")
         onboarding_link = f"{base_url}/onboarding/candidate/{submission['token']}"
         
         await send_email(
