@@ -19,7 +19,8 @@ import {
   User, Shield, UsersRound, Building2, Receipt, BarChart3, ChevronDown,
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings,
   Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard, KeyRound,
-  FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target, ArrowRight, Circle
+  FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target, ArrowRight, Circle,
+  HelpCircle
 } from 'lucide-react';
 
 // Legacy role-based access (kept for backward compatibility only when API fails)
