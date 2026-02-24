@@ -282,23 +282,31 @@ const GoLiveDashboard = () => {
     );
   };
 
-  // Define URLs for each checklist item action
+  // Define which checklist items are DATA ENTRY (clickable) vs APPROVAL (not clickable)
+  // Data entry items: HR can click to navigate and fill data
+  // Approval items: Require specific approval actions, NOT auto-navigable
+  const DATA_ENTRY_ITEMS = ['personal_details', 'official_email', 'department', 'reporting_manager', 'bank_details', 'documents'];
+  const APPROVAL_ITEMS = ['bank_verified', 'portal_access']; // These require approval workflow
+
+  // Define URLs for DATA ENTRY items only
   const getChecklistActionUrl = (key, employeeId) => {
+    // Only return URLs for data entry items, NOT approval items
+    if (APPROVAL_ITEMS.includes(key)) return null;
+    
     const urlMap = {
       personal_details: `/employees?edit=${employeeId}`,
       official_email: `/employees?edit=${employeeId}&section=email`,
       department: `/employees?edit=${employeeId}&section=department`,
       reporting_manager: `/employees?edit=${employeeId}&section=manager`,
       bank_details: `/employees?edit=${employeeId}&section=bank`,
-      bank_verified: null, // Handled separately with verify button
-      documents: `/document-center?employee=${employeeId}`,
-      portal_access: `/password-management?employee=${employeeId}`
+      documents: `/document-center?employee=${employeeId}`
     };
-    return urlMap[key] || `/employees?edit=${employeeId}`;
+    return urlMap[key] || null;
   };
 
   const handleChecklistItemClick = (key, completed, employeeId) => {
     if (completed) return; // Don't navigate if already completed
+    if (APPROVAL_ITEMS.includes(key)) return; // Don't navigate for approval items
     
     const url = getChecklistActionUrl(key, employeeId);
     if (url) {
@@ -306,15 +314,25 @@ const GoLiveDashboard = () => {
     }
   };
 
+  // Check if item is clickable (data entry only, not approval items)
+  const isItemClickable = (key, completed) => {
+    if (completed) return false;
+    if (APPROVAL_ITEMS.includes(key)) return false;
+    return DATA_ENTRY_ITEMS.includes(key);
+  };
+
   const ChecklistItem = ({ label, checked, icon: Icon, itemKey, employeeId, onClick }) => {
-    const isClickable = !checked && onClick;
+    const isClickable = isItemClickable(itemKey, checked) && onClick;
+    const isApprovalItem = APPROVAL_ITEMS.includes(itemKey);
     
     return (
       <div 
         className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
           checked 
             ? isDark ? 'bg-emerald-900/20 border border-emerald-700' : 'bg-emerald-50 border border-emerald-200'
-            : isDark ? 'bg-zinc-800 border border-zinc-700 hover:border-blue-500' : 'bg-zinc-50 border border-zinc-200 hover:border-blue-400'
+            : isApprovalItem
+              ? isDark ? 'bg-amber-900/20 border border-amber-700' : 'bg-amber-50 border border-amber-200'
+              : isDark ? 'bg-zinc-800 border border-zinc-700 hover:border-blue-500' : 'bg-zinc-50 border border-zinc-200 hover:border-blue-400'
         } ${isClickable ? 'cursor-pointer hover:shadow-md' : ''}`}
         onClick={() => isClickable && onClick()}
         role={isClickable ? 'button' : undefined}
