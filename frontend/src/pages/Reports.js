@@ -68,9 +68,12 @@ const Reports = () => {
         axios.get(`${API}/reports/categories`)
       ]);
       
-      setReports(reportsRes.data.reports || []);
-      setReportsByCategory(reportsRes.data.by_category || {});
-      setCategories(categoriesRes.data || []);
+      const reportsData = reportsRes.data?.reports || reportsRes.data?.items || [];
+      const byCategory = reportsRes.data?.by_category || {};
+      setReports(Array.isArray(reportsData) ? reportsData : []);
+      setReportsByCategory(byCategory);
+      const categoriesData = categoriesRes.data?.items || categoriesRes.data || [];
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       
       // Try to get stats (may fail for non-admin/manager)
       try {
