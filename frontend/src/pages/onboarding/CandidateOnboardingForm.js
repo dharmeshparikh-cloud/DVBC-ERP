@@ -40,6 +40,44 @@ const GENDER_OPTIONS = [
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const MARITAL_STATUS = ['single', 'married', 'divorced', 'widowed'];
 
+// Validation helpers
+const isValidIndianPhone = (phone) => {
+  if (!phone) return false;
+  const cleaned = phone.replace(/[\s-]/g, '');
+  // Indian phone: 10 digits starting with 6, 7, 8, or 9
+  return /^[6-9]\d{9}$/.test(cleaned);
+};
+
+const isValidEmail = (email) => {
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const isValidPAN = (pan) => {
+  if (!pan) return false;
+  // Indian PAN: 5 letters, 4 digits, 1 letter
+  return /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan.toUpperCase());
+};
+
+const isValidAadhaar = (aadhaar) => {
+  if (!aadhaar) return false;
+  const cleaned = aadhaar.replace(/[\s-]/g, '');
+  // Aadhaar: 12 digits
+  return /^\d{12}$/.test(cleaned);
+};
+
+const isValidPincode = (pincode) => {
+  if (!pincode) return false;
+  // Indian pincode: 6 digits
+  return /^\d{6}$/.test(pincode);
+};
+
+const isValidIFSC = (ifsc) => {
+  if (!ifsc) return false;
+  // IFSC: 4 letters, 1 digit (0), 6 alphanumeric
+  return /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc.toUpperCase());
+};
+
 const CandidateOnboardingForm = () => {
   const { token } = useParams();
   const [loading, setLoading] = useState(true);
