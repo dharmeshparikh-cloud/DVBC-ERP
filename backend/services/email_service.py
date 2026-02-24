@@ -532,14 +532,12 @@ async def send_onboarding_invite_email(
                 
                 <p style="margin-top: 30px;">
                     Best regards,<br>
-                    <strong>{hr_name}</strong><br>
-                    D&V Business Consulting Pvt. Ltd.
+                    <strong>{hr_name}</strong>
                 </p>
             </div>
             
             <div class="footer">
-                <p>This is an automated email from NETRA HR Management System.</p>
-                <p>© D&V Business Consulting Pvt. Ltd. | All Rights Reserved</p>
+                <p>© All Rights Reserved with D&V Business Consulting Pvt. Ltd.</p>
             </div>
         </div>
     </body>
@@ -549,7 +547,7 @@ async def send_onboarding_invite_email(
     plain_content = f"""
 Dear {candidate_name},
 
-Congratulations! We are excited to welcome you to D&V Business Consulting as a {offered_position}.
+Congratulations! We are excited to welcome you as a {offered_position}.
 
 Please complete your onboarding details using this link:
 {onboarding_link}
@@ -565,7 +563,8 @@ This link expires on {expires_at}. Please complete your submission before then.
 
 Best regards,
 {hr_name}
-D&V Business Consulting Pvt. Ltd.
+
+© All Rights Reserved with D&V Business Consulting Pvt. Ltd.
     """
     
     return await send_email(to_email, subject, html_content, plain_content)
