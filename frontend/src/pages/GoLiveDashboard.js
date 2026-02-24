@@ -142,6 +142,123 @@ const GoLiveDashboard = () => {
     }
   };
 
+  // Bank Validation Functions
+  const handleValidateBankDetails = async (employeeId) => {
+    setValidating(true);
+    setBankValidation(null);
+    try {
+      const res = await axios.post(`${API}/go-live/validate-bank-details/${employeeId}`);
+      setBankValidation(res.data);
+      if (res.data.overall_valid) {
+        toast.success('Bank details validated successfully');
+      } else {
+        toast.warning('Bank details validation found issues');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to validate bank details');
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  // Bank Proof Upload Functions
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedEmployee) return;
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Allowed: PDF, JPG, PNG, WEBP');
+      return;
+    }
+
+    // Validate file size (5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large. Maximum size: 5 MB');
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      await axios.post(
+        `${API}/go-live/bank-proof/upload/${selectedEmployee.id}`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      toast.success('Bank proof uploaded successfully');
+      fetchBankProofs(selectedEmployee.id);
+      fetchChecklist(selectedEmployee.id);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to upload bank proof');
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const fetchBankProofs = async (employeeId) => {
+    try {
+      const res = await axios.get(`${API}/go-live/bank-proof/list/${employeeId}`);
+      setBankProofs(res.data.documents || []);
+    } catch (error) {
+      console.error('Failed to fetch bank proofs:', error);
+      setBankProofs([]);
+    }
+  };
+
+  const handleDownloadProof = async (employeeId, documentId, filename) => {
+    try {
+      const res = await axios.get(
+        `${API}/go-live/bank-proof/download/${employeeId}/${documentId}`,
+        { responseType: 'blob' }
+      );
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Download started');
+    } catch (error) {
+      toast.error('Failed to download document');
+    }
+  };
+
+  const handleDeleteProof = async (employeeId, documentId) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    
+    try {
+      await axios.delete(`${API}/go-live/bank-proof/delete/${employeeId}/${documentId}`);
+      toast.success('Document deleted');
+      fetchBankProofs(employeeId);
+      fetchChecklist(employeeId);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to delete document');
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  };
+
   const getStatusBadge = (status) => {
     const styles = {
       active: 'bg-emerald-100 text-emerald-700',
