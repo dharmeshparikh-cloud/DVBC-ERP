@@ -201,12 +201,14 @@ const CandidateOnboardingForm = () => {
     // Validate ALL required fields
     const cd = formData.candidate_details;
     const bd = formData.bank_details;
+    const pr = formData.professional_reference;
+    const per = formData.personal_reference;
     const ec = formData.emergency_contact;
     
-    // Personal Details validation
-    if (!cd.first_name || !cd.last_name || !cd.phone || !cd.date_of_birth || 
+    // Personal Details validation (including alternate phone)
+    if (!cd.first_name || !cd.last_name || !cd.phone || !cd.alternate_phone || !cd.date_of_birth || 
         !cd.gender || !cd.blood_group || !cd.marital_status || !cd.pan_number || !cd.aadhaar_number) {
-      toast.error('Please complete all personal details');
+      toast.error('Please complete all personal details including alternate phone');
       setCurrentStep(0);
       return;
     }
@@ -247,10 +249,24 @@ const CandidateOnboardingForm = () => {
       return;
     }
     
+    // Professional Reference validation
+    if (!pr.name || !pr.phone || !pr.company_name || !pr.designation) {
+      toast.error('Please complete professional reference details');
+      setCurrentStep(4);
+      return;
+    }
+    
+    // Personal Reference validation
+    if (!per.name || !per.phone || !per.address) {
+      toast.error('Please complete personal reference details');
+      setCurrentStep(4);
+      return;
+    }
+    
     // Emergency Contact validation
     if (!ec.name || !ec.phone || !ec.relationship) {
       toast.error('Please complete all emergency contact details');
-      setCurrentStep(4);
+      setCurrentStep(5);
       return;
     }
     
@@ -260,14 +276,14 @@ const CandidateOnboardingForm = () => {
     const missingDocs = requiredDocs.filter(d => !uploadedDocs.find(doc => doc.type === d));
     if (missingDocs.length > 0) {
       toast.error(`Please upload required documents: ${missingDocs.join(', ')}`);
-      setCurrentStep(5);
+      setCurrentStep(6);
       return;
     }
     
     // Declaration validation
     if (!formData.declaration_signed) {
       toast.error('Please accept the declaration');
-      setCurrentStep(6);
+      setCurrentStep(7);
       return;
     }
 
