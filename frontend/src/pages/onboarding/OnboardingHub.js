@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext, API } from '../../App';
@@ -24,14 +24,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const OnboardingHub = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('invite');
-  const [loading, setLoading] = useState(true);
-  const [submissions, setSubmissions] = useState([]);
-  const [legacyRecords, setLegacyRecords] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Invite form state
@@ -47,36 +46,27 @@ const OnboardingHub = () => {
   const getToken = () => localStorage.getItem('token');
   const authHeaders = { headers: { Authorization: `Bearer ${getToken()}` } };
 
-  // Fetch submissions
-  const fetchSubmissions = async () => {
-    try {
-      setLoading(true);
+  // Fetch submissions with React Query (caching enabled)
+  const { data: submissions = [], isLoading: loading, refetch: refetchSubmissions } = useQuery({
+    queryKey: ['onboarding-submissions'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/onboarding/submissions`, authHeaders);
-      setSubmissions(response.data || []);
-    } catch (err) {
-      console.error('Error fetching submissions:', err);
-      toast.error('Failed to load submissions');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.data || [];
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
 
-  // Fetch legacy records
-  const fetchLegacyRecords = async () => {
-    try {
+  // Fetch legacy records with React Query
+  const { data: legacyRecords = [] } = useQuery({
+    queryKey: ['onboarding-legacy'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/onboarding/legacy`, authHeaders);
-      setLegacyRecords(response.data || []);
-    } catch (err) {
-      console.error('Error fetching legacy:', err);
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      fetchSubmissions();
-      fetchLegacyRecords();
-    }
-  }, [user]);
+      return response.data || [];
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // Send invite
   const handleSendInvite = async () => {
@@ -91,7 +81,8 @@ const OnboardingHub = () => {
       setInviteResult(response.data);
       toast.success('Invite sent successfully!');
       setInviteForm({ candidate_name: '', candidate_email: '', offered_position: '' });
-      fetchSubmissions();
+      // Invalidate cache to refetch submissions
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submissions'] });
     } catch (err) {
       console.error('Error sending invite:', err);
       toast.error(err.response?.data?.detail || 'Failed to send invite');
