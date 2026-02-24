@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
@@ -8,10 +8,11 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Calendar, Users, IndianRupee, ListTodo, UserPlus, PlayCircle, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, Calendar, Users, IndianRupee, ListTodo, UserPlus, PlayCircle, Clock, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, isPast } from 'date-fns';
 import ProjectConsultantAssignment from '../components/ProjectConsultantAssignment';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Helper function to calculate days remaining/overdue
 const getTimelineInfo = (project) => {
@@ -47,8 +48,7 @@ const Projects = () => {
   const { user } = useContext(AuthContext);
   const { level } = usePermissions();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -62,19 +62,19 @@ const Projects = () => {
     notes: '',
   });
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
-    try {
+  // Fetch projects with React Query
+  const { data: projects = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/projects`);
-      setProjects(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch projects');
-    } finally {
-      setLoading(false);
-    }
+      return response.data;
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+  });
+
+  // Helper to invalidate and refetch
+  const fetchProjects = () => {
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
   };
 
   const handleSubmit = async (e) => {
