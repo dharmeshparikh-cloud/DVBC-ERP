@@ -14,7 +14,48 @@
 
 ## Completed Work - February 2026
 
-### Phase 53: Self-Service Candidate Onboarding Frontend - February 24, 2026 ✅ (Latest)
+### Phase 54: References Section & Company Branding Fix - February 24, 2026 ✅ (Latest)
+
+**Completed Implementation:**
+
+1. **Professional & Personal References Section**
+   - Added new "References" step (Step 5 of 8) to candidate onboarding form
+   - Professional Reference: Name*, Phone*, Company Name*, Designation* (all mandatory)
+   - Personal Reference: Name*, Phone*, Address* (all mandatory)
+   - Updated backend to accept, save, and validate reference data
+   - Updated progress calculation to include references
+   - References displayed on Review & Submit page
+
+2. **Company Branding Fix**
+   - Corrected all instances of "D&V Business Consulting Pvt. Ltd." to "D&V Business Consulting"
+   - Files fixed:
+     - CompanyLetterhead.js
+     - LetterheadSettings.js
+     - AcceptOfferPage.js
+     - DocumentBuilder.js
+     - DocumentCenter.js
+     - MySalarySlips.js
+     - letters.py (backend)
+
+**Backend Changes:**
+- `/app/backend/routers/onboarding.py`:
+  - Added `professional_reference` and `personal_reference` to submission structure
+  - Updated `save_public_submission()` to handle reference fields
+  - Updated `submit_public_submission()` to include references
+  - Updated `get_public_submission()` to return references
+  - Updated `calculate_submission_progress()` to include references (8 total items now)
+  - Updated `validate_submission_complete()` to require references
+  - Added references to employee record on completion
+
+**Testing Results:**
+- ✅ 9/9 backend tests passed (100%)
+- ✅ All frontend UI tests passed (100%)
+- ✅ References save and submit working
+- ✅ Company name corrected throughout
+
+---
+
+### Phase 53: Self-Service Candidate Onboarding Frontend - February 24, 2026 ✅
 
 **Complete Frontend Implementation:**
 
