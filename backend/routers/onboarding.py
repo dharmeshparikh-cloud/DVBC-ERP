@@ -766,7 +766,7 @@ async def submit_public_submission(token: str, data: dict):
                 "All the information provided is true, complete, and correct to the best of my knowledge and belief.",
                 "I have not withheld any material information that may affect my employment.",
                 "I understand that any false statement may result in rejection of application or termination of employment.",
-                "I authorize D&V Business Consulting Pvt. Ltd. to verify all information and conduct background checks.",
+                "I authorize D&V Business Consulting to verify all information and conduct background checks.",
                 "I consent to the storage and processing of my personal data as per company policy."
             ]
         }
