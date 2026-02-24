@@ -577,28 +577,15 @@ async def complete_onboarding(
     
     # Send welcome email to candidate
     try:
-        await send_email(
+        await send_onboarding_complete_email(
             to_email=submission["candidate_email"],
-            subject=f"Welcome to DVBC! Your Employee ID: {employee_id}",
-            body=f"""
-            Dear {candidate['first_name']},
-            
-            Congratulations! Your onboarding is now complete.
-            
-            Your Employee Details:
-            - Employee ID: {employee_id}
-            - Department: {hr_assigned['department']}
-            - Designation: {hr_assigned['designation']}
-            - Joining Date: {hr_assigned['joining_date']}
-            - Official Email: {hr_assigned['official_email']}
-            
-            You will receive your portal login credentials separately.
-            
-            Welcome to the team!
-            
-            Best regards,
-            DVBC HR Team
-            """
+            candidate_name=f"{candidate['first_name']} {candidate['last_name']}",
+            employee_id=employee_id,
+            designation=hr_assigned["designation"],
+            department=hr_assigned["department"],
+            joining_date=hr_assigned["joining_date"],
+            official_email=hr_assigned["official_email"],
+            reporting_manager=hr_assigned["reporting_manager_name"] or "To be assigned"
         )
     except Exception as e:
         print(f"Failed to send welcome email: {e}")
