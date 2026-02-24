@@ -209,11 +209,12 @@ const HROnboarding = () => {
   const generateEmployeeId = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/employees`, {
+      const response = await fetch(`${API}/employees/all`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const employees = await response.json();
+        const data = await response.json();
+        const employees = Array.isArray(data) ? data : (data?.items || []);
         // Find the highest EMP number
         let maxNum = 0;
         employees.forEach(emp => {
@@ -239,11 +240,12 @@ const HROnboarding = () => {
     try {
       const token = localStorage.getItem('token');
       // Fetch from employees endpoint - includes all employees, not just those with login accounts
-      const response = await fetch(`${API}/employees`, {
+      const response = await fetch(`${API}/employees/all`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const employees = await response.json();
+        const data = await response.json();
+        const employees = Array.isArray(data) ? data : (data?.items || []);
         // Transform to manager format - filter for active employees
         const potentialManagers = employees
           .filter(emp => emp.is_active !== false)
