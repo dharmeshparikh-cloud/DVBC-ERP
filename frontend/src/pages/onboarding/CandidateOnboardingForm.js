@@ -899,18 +899,28 @@ const CandidateOnboardingForm = () => {
       case 2: // Work Experience
         return (
           <div className="space-y-6">
+            <Alert className="border-amber-200 bg-amber-50">
+              <Briefcase className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>Work Experience is mandatory.</strong> Please add at least one entry with all required fields.
+              </AlertDescription>
+            </Alert>
+            
             <div className="flex items-center justify-between">
-              <p className="text-sm text-zinc-500">Add your previous work experience (if any)</p>
+              <p className="text-sm text-zinc-500">Add your previous work experience</p>
               <Button variant="outline" size="sm" onClick={addEmployment} data-testid="add-experience-btn">
                 Add Experience
               </Button>
             </div>
 
             {formData.employment_history.length === 0 ? (
-              <div className="text-center py-12 bg-zinc-50 rounded-lg border-2 border-dashed">
-                <Briefcase className="w-12 h-12 mx-auto text-zinc-300 mb-4" />
-                <p className="text-zinc-500">No work experience added</p>
-                <p className="text-xs text-zinc-400 mt-1">Skip this step if you're a fresher</p>
+              <div className="text-center py-12 bg-red-50 rounded-lg border-2 border-dashed border-red-200">
+                <Briefcase className="w-12 h-12 mx-auto text-red-300 mb-4" />
+                <p className="text-red-600 font-medium">No work experience added</p>
+                <p className="text-xs text-red-500 mt-1">At least one work experience entry is required</p>
+                <Button variant="outline" className="mt-4 border-red-300 text-red-600 hover:bg-red-50" onClick={addEmployment}>
+                  Add Experience
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -926,7 +936,7 @@ const CandidateOnboardingForm = () => {
                     </Button>
                     <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label>Company Name</Label>
+                        <Label>Company Name *</Label>
                         <Input
                           value={emp.company}
                           onChange={(e) => {
@@ -938,7 +948,7 @@ const CandidateOnboardingForm = () => {
                         />
                       </div>
                       <div>
-                        <Label>Designation</Label>
+                        <Label>Designation *</Label>
                         <Input
                           value={emp.designation}
                           onChange={(e) => {
@@ -950,7 +960,7 @@ const CandidateOnboardingForm = () => {
                         />
                       </div>
                       <div>
-                        <Label>From Date</Label>
+                        <Label>From Date *</Label>
                         <Input
                           type="date"
                           value={emp.from_date}
@@ -962,7 +972,7 @@ const CandidateOnboardingForm = () => {
                         />
                       </div>
                       <div>
-                        <Label>To Date</Label>
+                        <Label>To Date *</Label>
                         <Input
                           type="date"
                           value={emp.to_date}
@@ -974,7 +984,7 @@ const CandidateOnboardingForm = () => {
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <Label>Reason for Leaving</Label>
+                        <Label>Reason for Leaving *</Label>
                         <Input
                           value={emp.reason_for_leaving}
                           onChange={(e) => {
@@ -982,7 +992,7 @@ const CandidateOnboardingForm = () => {
                             newEmp[index].reason_for_leaving = e.target.value;
                             setFormData(prev => ({ ...prev, employment_history: newEmp }));
                           }}
-                          placeholder="Optional"
+                          placeholder="Reason for leaving previous job"
                         />
                       </div>
                     </CardContent>
