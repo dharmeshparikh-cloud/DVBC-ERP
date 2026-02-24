@@ -410,3 +410,403 @@ async def send_acceptance_confirmation_email(
     """
     
     return await send_email(to_email, subject, html_content)
+
+
+
+# ==================== ONBOARDING EMAIL TEMPLATES ====================
+
+async def send_onboarding_invite_email(
+    to_email: str,
+    candidate_name: str,
+    offered_position: str,
+    onboarding_link: str,
+    expires_at: str,
+    hr_name: str = "HR Team"
+) -> dict:
+    """Send onboarding invite email to candidate with secure link."""
+    
+    subject = f"Welcome to D&V Business Consulting - Complete Your Onboarding"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background: #f3f4f6; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; }}
+            .header {{ background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 40px 30px; text-align: center; }}
+            .logo {{ font-size: 28px; font-weight: bold; color: white; }}
+            .logo span {{ color: #f97316; }}
+            .content {{ padding: 40px 30px; }}
+            .highlight {{ background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }}
+            .position {{ font-size: 18px; font-weight: 600; color: #f97316; }}
+            .cta-button {{ 
+                display: inline-block; 
+                background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); 
+                color: white !important; 
+                padding: 16px 40px; 
+                text-decoration: none; 
+                border-radius: 8px; 
+                font-weight: bold;
+                font-size: 16px;
+                margin: 25px 0;
+                box-shadow: 0 4px 14px 0 rgba(22, 163, 74, 0.4);
+            }}
+            .steps {{ background: #f9fafb; border-radius: 12px; padding: 25px; margin: 25px 0; }}
+            .step {{ display: flex; align-items: flex-start; margin-bottom: 15px; }}
+            .step-number {{ 
+                background: #0f172a; 
+                color: white; 
+                width: 28px; 
+                height: 28px; 
+                border-radius: 50%; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                font-weight: bold; 
+                font-size: 14px;
+                margin-right: 15px;
+                flex-shrink: 0;
+            }}
+            .step-text {{ color: #4b5563; }}
+            .expiry {{ color: #dc2626; font-weight: 500; }}
+            .footer {{ 
+                background: #f9fafb; 
+                padding: 25px 30px; 
+                text-align: center; 
+                font-size: 13px; 
+                color: #6b7280; 
+                border-top: 1px solid #e5e7eb;
+            }}
+            .help-text {{ font-size: 14px; color: #6b7280; margin-top: 20px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo">D&V <span>Business Consulting</span></div>
+                <p style="color: #94a3b8; margin-top: 10px; font-size: 14px;">Employee Onboarding Portal</p>
+            </div>
+            
+            <div class="content">
+                <p>Dear <strong>{candidate_name}</strong>,</p>
+                
+                <p>Congratulations! We are excited to welcome you to D&V Business Consulting as a <span class="position">{offered_position}</span>.</p>
+                
+                <div class="highlight">
+                    <p style="margin: 0;"><strong>Next Step:</strong> Please complete your onboarding details using the secure link below.</p>
+                </div>
+                
+                <div style="text-align: center;">
+                    <a href="{onboarding_link}" class="cta-button">Complete Your Onboarding</a>
+                </div>
+                
+                <div class="steps">
+                    <h3 style="margin-top: 0; color: #1f2937;">What to Prepare:</h3>
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <span class="step-text">Personal details (Date of birth, address, emergency contact)</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <span class="step-text">Educational qualifications</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <span class="step-text">Previous employment history (if applicable)</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">4</span>
+                        <span class="step-text">Bank account details for salary processing</span>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">5</span>
+                        <span class="step-text">Scanned copies of PAN Card, Aadhaar, and other documents</span>
+                    </div>
+                </div>
+                
+                <p class="expiry">⏰ This link expires on <strong>{expires_at}</strong>. Please complete your submission before then.</p>
+                
+                <p class="help-text">If you have any questions or face any issues, please contact our HR team.</p>
+                
+                <p style="margin-top: 30px;">
+                    Best regards,<br>
+                    <strong>{hr_name}</strong><br>
+                    D&V Business Consulting Pvt. Ltd.
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>This is an automated email from NETRA HR Management System.</p>
+                <p>© D&V Business Consulting Pvt. Ltd. | All Rights Reserved</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    plain_content = f"""
+Dear {candidate_name},
+
+Congratulations! We are excited to welcome you to D&V Business Consulting as a {offered_position}.
+
+Please complete your onboarding details using this link:
+{onboarding_link}
+
+What to prepare:
+1. Personal details (Date of birth, address, emergency contact)
+2. Educational qualifications
+3. Previous employment history (if applicable)
+4. Bank account details for salary processing
+5. Scanned copies of PAN Card, Aadhaar, and other documents
+
+This link expires on {expires_at}. Please complete your submission before then.
+
+Best regards,
+{hr_name}
+D&V Business Consulting Pvt. Ltd.
+    """
+    
+    return await send_email(to_email, subject, html_content, plain_content)
+
+
+async def send_onboarding_submission_notification_email(
+    to_email: str,
+    hr_name: str,
+    candidate_name: str,
+    offered_position: str,
+    review_link: str
+) -> dict:
+    """Send notification to HR when candidate submits their onboarding form."""
+    
+    subject = f"New Onboarding Submission - {candidate_name} ({offered_position})"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: #0f172a; padding: 20px; text-align: center; color: white; border-radius: 8px 8px 0 0; }}
+            .content {{ padding: 30px; background: #f9fafb; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }}
+            .info-box {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+            .cta-button {{ 
+                display: inline-block; 
+                background: #f97316; 
+                color: white !important; 
+                padding: 12px 30px; 
+                text-decoration: none; 
+                border-radius: 6px; 
+                font-weight: bold;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2 style="margin: 0;">New Onboarding Submission</h2>
+            </div>
+            <div class="content">
+                <p>Hi {hr_name},</p>
+                
+                <p>A candidate has submitted their onboarding details and is awaiting your review.</p>
+                
+                <div class="info-box">
+                    <p><strong>Candidate:</strong> {candidate_name}</p>
+                    <p><strong>Position:</strong> {offered_position}</p>
+                    <p><strong>Status:</strong> Pending Review</p>
+                </div>
+                
+                <p style="text-align: center;">
+                    <a href="{review_link}" class="cta-button">Review Submission</a>
+                </p>
+                
+                <p style="font-size: 13px; color: #666; margin-top: 30px;">
+                    This notification was sent from NETRA HR Management System.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return await send_email(to_email, subject, html_content)
+
+
+async def send_onboarding_revision_request_email(
+    to_email: str,
+    candidate_name: str,
+    offered_position: str,
+    revision_reason: str,
+    onboarding_link: str,
+    hr_name: str = "HR Team"
+) -> dict:
+    """Send email to candidate when HR requests revision of their submission."""
+    
+    subject = f"Action Required - Please Update Your Onboarding Details"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: #f59e0b; padding: 20px; text-align: center; color: white; border-radius: 8px 8px 0 0; }}
+            .content {{ padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }}
+            .reason-box {{ background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0; }}
+            .cta-button {{ 
+                display: inline-block; 
+                background: #16a34a; 
+                color: white !important; 
+                padding: 14px 35px; 
+                text-decoration: none; 
+                border-radius: 6px; 
+                font-weight: bold;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2 style="margin: 0;">⚠️ Revision Requested</h2>
+            </div>
+            <div class="content">
+                <p>Dear <strong>{candidate_name}</strong>,</p>
+                
+                <p>Our HR team has reviewed your onboarding submission for the <strong>{offered_position}</strong> position and requires some updates.</p>
+                
+                <div class="reason-box">
+                    <p style="margin: 0;"><strong>Reason:</strong></p>
+                    <p style="margin: 10px 0 0 0;">{revision_reason}</p>
+                </div>
+                
+                <p>Please update your details using the link below:</p>
+                
+                <p style="text-align: center;">
+                    <a href="{onboarding_link}" class="cta-button">Update My Details</a>
+                </p>
+                
+                <p>If you have any questions, please contact our HR team.</p>
+                
+                <p>Best regards,<br><strong>{hr_name}</strong><br>D&V Business Consulting Pvt. Ltd.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return await send_email(to_email, subject, html_content)
+
+
+async def send_onboarding_complete_email(
+    to_email: str,
+    candidate_name: str,
+    employee_id: str,
+    designation: str,
+    department: str,
+    joining_date: str,
+    official_email: str,
+    reporting_manager: str
+) -> dict:
+    """Send email to new employee when onboarding is complete."""
+    
+    subject = f"Welcome Aboard! Your Employee ID: {employee_id}"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background: #f3f4f6; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; }}
+            .header {{ background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 40px 30px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 28px; }}
+            .header p {{ color: #bbf7d0; margin-top: 10px; }}
+            .content {{ padding: 40px 30px; }}
+            .employee-card {{ background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 30px; border-radius: 12px; margin: 20px 0; }}
+            .employee-id {{ font-size: 32px; font-weight: bold; color: #f97316; letter-spacing: 2px; }}
+            .details-grid {{ display: grid; gap: 15px; margin-top: 20px; }}
+            .detail-item {{ display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 10px; }}
+            .detail-label {{ color: #94a3b8; }}
+            .detail-value {{ font-weight: 600; }}
+            .next-steps {{ background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 25px 0; }}
+            .footer {{ background: #f9fafb; padding: 25px 30px; text-align: center; font-size: 13px; color: #6b7280; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Welcome to the Team!</h1>
+                <p>Your onboarding is complete</p>
+            </div>
+            
+            <div class="content">
+                <p>Dear <strong>{candidate_name}</strong>,</p>
+                
+                <p>We're thrilled to officially welcome you to D&V Business Consulting! Your onboarding process is now complete.</p>
+                
+                <div class="employee-card">
+                    <p style="margin: 0; color: #94a3b8; font-size: 13px;">YOUR EMPLOYEE ID</p>
+                    <p class="employee-id">{employee_id}</p>
+                    
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Designation</span>
+                            <span class="detail-value">{designation}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Department</span>
+                            <span class="detail-value">{department}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Joining Date</span>
+                            <span class="detail-value">{joining_date}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Official Email</span>
+                            <span class="detail-value">{official_email}</span>
+                        </div>
+                        <div class="detail-item" style="border: none;">
+                            <span class="detail-label">Reporting Manager</span>
+                            <span class="detail-value">{reporting_manager}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="next-steps">
+                    <h3 style="margin-top: 0; color: #16a34a;">📋 Next Steps:</h3>
+                    <ul style="margin: 0; padding-left: 20px; color: #4b5563;">
+                        <li>You will receive your official email credentials shortly</li>
+                        <li>Report to your manager on your joining date</li>
+                        <li>Complete any remaining documentation on Day 1</li>
+                        <li>HR will guide you through the "Go-Live" process</li>
+                    </ul>
+                </div>
+                
+                <p>If you have any questions before your start date, feel free to reach out to our HR team.</p>
+                
+                <p>We're excited to have you on board!</p>
+                
+                <p style="margin-top: 30px;">
+                    Best regards,<br>
+                    <strong>HR Team</strong><br>
+                    D&V Business Consulting Pvt. Ltd.
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>This email was sent from NETRA HR Management System.</p>
+                <p>© D&V Business Consulting Pvt. Ltd. | All Rights Reserved</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return await send_email(to_email, subject, html_content)
