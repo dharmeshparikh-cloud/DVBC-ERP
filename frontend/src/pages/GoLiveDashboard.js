@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { AuthContext, API, handleApiError } from '../App';
@@ -10,7 +10,8 @@ import { ErrorDisplay } from '../components/ErrorDisplay';
 import { 
   Rocket, CheckCircle, XCircle, Clock, User, Building2, 
   CreditCard, FileText, Key, AlertTriangle, ChevronRight,
-  Shield, Send, Eye, Mail
+  Shield, Send, Eye, Mail, Upload, Download, Trash2, Loader2,
+  CheckCircle2, XOctagon, RefreshCw
 } from 'lucide-react';
 
 const GoLiveDashboard = () => {
@@ -25,9 +26,18 @@ const GoLiveDashboard = () => {
   const [notes, setNotes] = useState('');
   const [filter, setFilter] = useState('all');
   const [pageError, setPageError] = useState(null);
+  // Bank validation state
+  const [bankValidation, setBankValidation] = useState(null);
+  const [validating, setValidating] = useState(false);
+  const [bankProofs, setBankProofs] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [showBankProofsDialog, setShowBankProofsDialog] = useState(false);
+  const fileInputRef = useRef(null);
+  
   const isAdmin = user?.role === 'admin';
   const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
   const canVerifyBank = isAdmin || user?.role === 'hr_manager';
+  const canUploadProof = isAdmin || isHR;
 
   useEffect(() => {
     fetchEmployees();
