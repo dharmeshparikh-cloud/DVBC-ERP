@@ -132,7 +132,7 @@ const ConsultingDashboard = () => {
       {/* Quick Check-in Modal */}
       <QuickCheckInModal 
         isOpen={showQuickCheckIn} 
-        onClose={() => { setShowQuickCheckIn(false); fetchAttendanceStatus(); }} 
+        onClose={() => { setShowQuickCheckIn(false); refetchAttendance(); }} 
         user={user} 
       />
 
