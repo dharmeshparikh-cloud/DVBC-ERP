@@ -1254,7 +1254,7 @@ const CandidateOnboardingForm = () => {
           <Progress value={((currentStep + 1) / STEPS.length) * 100} className="h-2" />
           
           {/* Step indicators */}
-          <div className="flex justify-between mt-4">
+          <div className="flex justify-between mt-4 overflow-x-auto pb-2">
             {STEPS.map((step, index) => {
               const StepIcon = step.icon;
               const isActive = index === currentStep;
@@ -1263,12 +1263,14 @@ const CandidateOnboardingForm = () => {
               const isStepComplete = () => {
                 const cd = formData.candidate_details;
                 const bd = formData.bank_details;
+                const pr = formData.professional_reference;
+                const per = formData.personal_reference;
                 const ec = formData.emergency_contact;
                 const uploadedDocs = submission?.documents || [];
                 
                 switch (index) {
-                  case 0: // Personal Details
-                    return cd.first_name && cd.last_name && cd.phone && cd.date_of_birth && 
+                  case 0: // Personal Details (including alternate phone)
+                    return cd.first_name && cd.last_name && cd.phone && cd.alternate_phone && cd.date_of_birth && 
                            cd.gender && cd.blood_group && cd.marital_status && cd.pan_number && cd.aadhaar_number &&
                            cd.current_address?.street && cd.current_address?.city && cd.current_address?.state && cd.current_address?.pincode &&
                            cd.permanent_address?.street && cd.permanent_address?.city && cd.permanent_address?.state && cd.permanent_address?.pincode;
@@ -1280,11 +1282,14 @@ const CandidateOnboardingForm = () => {
                            formData.employment_history.every(e => e.company && e.designation && e.from_date);
                   case 3: // Bank Details
                     return bd.account_holder_name && bd.account_number && bd.ifsc_code && bd.bank_name && bd.branch;
-                  case 4: // Emergency Contact
+                  case 4: // References
+                    return pr.name && pr.phone && pr.company_name && pr.designation &&
+                           per.name && per.phone && per.address;
+                  case 5: // Emergency Contact
                     return ec.name && ec.phone && ec.relationship;
-                  case 5: // Documents
+                  case 6: // Documents
                     return uploadedDocs.some(d => d.type === 'pan_card') && uploadedDocs.some(d => d.type === 'aadhaar');
-                  case 6: // Review & Submit
+                  case 7: // Review & Submit
                     return formData.declaration_signed;
                   default:
                     return false;
