@@ -1,15 +1,22 @@
-import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API, AuthContext } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, ClipboardCheck, ArrowRight, Shield, AlertTriangle, CheckCircle, XCircle, Building2, Calendar, Clock, LogIn } from 'lucide-react';
-import { toast } from 'sonner';
 import { sanitizeDisplayText } from '../utils/sanitize';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
+
+// React Query hooks for data fetching with caching
+import { 
+  useDashboardStats, 
+  useHighPriorityLeads, 
+  usePendingApprovalsCount, 
+  useMyAttendanceStatus,
+  useSecurityAuditLogs 
+} from '../hooks/useQueries';
 
 // Note: Domain-specific dashboards (Sales, HR, Consulting) are now handled in App.js
 // This Dashboard.js serves as the generic/fallback dashboard
@@ -38,72 +45,12 @@ const getUserDomain = (user) => {
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
-  const [highPriorityLeads, setHighPriorityLeads] = useState([]);
-  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
-  const [loginActivity, setLoginActivity] = useState({ logs: [], total: 0, failedCount: 0, successCount: 0 });
-  const [loading, setLoading] = useState(true);
-  
-  // Quick Check-in Modal state
-  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
-  const [attendanceStatus, setAttendanceStatus] = useState(null);
+  const [showQuickCheckIn, setShowQuickCheckIn] = React.useState(false);
   
   // Determine user domain
   const userDomain = getUserDomain(user);
-
-  const fetchLoginActivity = async () => {
-    try {
-      const resp = await axios.get(`${API}/security-audit-logs?limit=8`);
-      const logs = resp.data.logs || [];
-      const failedCount = logs.filter(l => l.event_type?.includes('failed') || l.event_type?.includes('rejected')).length;
-      const successCount = logs.filter(l => l.event_type?.includes('success')).length;
-      setLoginActivity({ logs, total: resp.data.total, failedCount, successCount });
-    } catch (err) {
-      console.error('Failed to fetch login activity');
-    }
-  };
-
-  const fetchAttendanceStatus = async () => {
-    try {
-      const res = await axios.get(`${API}/my/check-status`);
-      setAttendanceStatus(res.data);
-    } catch (err) {
-      console.error('Failed to fetch attendance status');
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await axios.get(`${API}/stats/dashboard`);
-      setStats(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch dashboard stats');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchHighPriorityLeads = async () => {
-    try {
-      const response = await axios.get(`${API}/leads`);
-      const topLeads = response.data
-        .sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0))
-        .slice(0, 3);
-      setHighPriorityLeads(topLeads);
-    } catch (error) {
-      console.error('Failed to fetch high priority leads');
-    }
-  };
-
-  const fetchPendingApprovals = async () => {
-    try {
-      const response = await axios.get(`${API}/approvals?status=pending`);
-      setPendingApprovalsCount(response.data.length);
-    } catch (error) {
-      console.error('Failed to fetch pending approvals');
-    }
-  };
-
+  const isAdminOrGeneral = userDomain === 'admin' || userDomain === 'general';
+  
   // Check if user has sales/admin access for leads
   const canAccessLeads = () => {
     if (!user) return false;
@@ -111,26 +58,17 @@ const Dashboard = () => {
     return role === 'admin' || role === 'manager' || role === 'executive' || role === 'sales_manager';
   };
 
-  // Call useEffect BEFORE any conditional returns
-  useEffect(() => {
-    // Fetch attendance status for all users
-    fetchAttendanceStatus();
-    
-    // Only fetch data for admin dashboard
-    if (userDomain === 'admin' || userDomain === 'general') {
-      fetchStats();
-      // Only fetch leads if user has access
-      if (canAccessLeads()) {
-        fetchHighPriorityLeads();
-      }
-      if (user?.role === 'manager' || user?.role === 'admin') {
-        fetchPendingApprovals();
-      }
-      if (user?.role === 'admin') {
-        fetchLoginActivity();
-      }
-    }
-  }, [user, userDomain]);
+  // React Query hooks - data fetching with automatic caching
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(isAdminOrGeneral);
+  const { data: highPriorityLeads = [] } = useHighPriorityLeads(isAdminOrGeneral && canAccessLeads());
+  const { data: pendingApprovalsCount = 0 } = usePendingApprovalsCount(
+    isAdminOrGeneral && (user?.role === 'manager' || user?.role === 'admin')
+  );
+  const { data: attendanceStatus, refetch: refetchAttendance } = useMyAttendanceStatus();
+  const { data: loginActivity = { logs: [], total: 0, failedCount: 0, successCount: 0 } } = useSecurityAuditLogs(
+    8, 
+    user?.role === 'admin'
+  );
 
   // Note: Domain-specific routing is handled in App.js via getDefaultDashboard()
   // Dashboard.js now serves only as the generic/fallback dashboard for 'admin' and 'general' domains
@@ -173,7 +111,7 @@ const Dashboard = () => {
     },
   ];
 
-  if (loading) {
+  if (statsLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-zinc-500">Loading dashboard...</div>
@@ -235,7 +173,7 @@ const Dashboard = () => {
       {/* Quick Check-in Modal */}
       <QuickCheckInModal 
         isOpen={showQuickCheckIn} 
-        onClose={() => { setShowQuickCheckIn(false); fetchAttendanceStatus(); }} 
+        onClose={() => { setShowQuickCheckIn(false); refetchAttendance(); }} 
         user={user} 
       />
 
