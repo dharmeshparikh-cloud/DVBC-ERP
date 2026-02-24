@@ -1536,12 +1536,12 @@ const CandidateOnboardingForm = () => {
                            hasValue(cd.current_address?.state) && isValidPincode(cd.current_address?.pincode) &&
                            hasValue(cd.permanent_address?.street) && hasValue(cd.permanent_address?.city) && 
                            hasValue(cd.permanent_address?.state) && isValidPincode(cd.permanent_address?.pincode);
-                  case 1: // Education - at least one complete entry
+                  case 1: // Education - at least one complete entry (MANDATORY)
                     return formData.education && formData.education.length > 0 && 
                            formData.education.every(e => hasValue(e.degree) && hasValue(e.institution) && hasValue(e.year) && hasValue(e.percentage));
-                  case 2: // Work Experience - Only green if has valid entries, gray if empty
-                    if (!formData.employment_history?.length) return false; // Empty = not green
-                    return formData.employment_history.every(e => hasValue(e.company) && hasValue(e.designation) && hasValue(e.from_date));
+                  case 2: // Work Experience - at least one complete entry (MANDATORY)
+                    return formData.employment_history && formData.employment_history.length > 0 &&
+                           formData.employment_history.every(e => hasValue(e.company) && hasValue(e.designation) && hasValue(e.from_date) && hasValue(e.to_date));
                   case 3: // Bank Details - includes IFSC validation
                     return hasValue(bd.account_holder_name) && hasValue(bd.account_number) && isValidIFSC(bd.ifsc_code) && 
                            hasValue(bd.bank_name) && hasValue(bd.branch);
