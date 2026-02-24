@@ -1005,22 +1005,23 @@ const CandidateOnboardingForm = () => {
     }
   };
 
+  // Logo URL same as login page
+  const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
       {/* Header */}
-      <div className="bg-black text-white py-6 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">DVBC Onboarding</h1>
-              <p className="text-zinc-400 text-sm mt-1">
-                Welcome, {submission?.candidate_name}! Please complete your onboarding details.
-              </p>
-            </div>
-            <Badge variant="outline" className="text-white border-zinc-600">
-              {submission?.offered_position}
-            </Badge>
-          </div>
+      <div className="bg-orange-500 py-6 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <img
+            src={LOGO_URL}
+            alt="D&V Business Consulting"
+            className="h-14 w-auto mx-auto mb-3"
+          />
+          <h1 className="text-2xl font-bold text-black">D&V Business Consulting</h1>
+          <p className="text-black/70 text-sm mt-1">
+            Welcome, {submission?.candidate_name}! Please complete your onboarding details.
+          </p>
         </div>
       </div>
 
