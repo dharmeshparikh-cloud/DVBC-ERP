@@ -234,7 +234,7 @@ async def get_topic(topic_id: str, role: Optional[str] = Query(None)):
     
     try:
         topic = await db.help_topics.find_one({"_id": ObjectId(topic_id)})
-    except:
+    except Exception:
         # Try by slug
         topic = await db.help_topics.find_one({"slug": topic_id})
     
