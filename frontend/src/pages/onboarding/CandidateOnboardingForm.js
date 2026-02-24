@@ -1566,7 +1566,7 @@ const CandidateOnboardingForm = () => {
                            formData.education.every(e => hasValue(e.degree) && hasValue(e.institution) && hasValue(e.year) && hasValue(e.percentage));
                   case 2: // Work Experience - at least one complete entry (MANDATORY)
                     return formData.employment_history && formData.employment_history.length > 0 &&
-                           formData.employment_history.every(e => hasValue(e.company) && hasValue(e.designation) && hasValue(e.from_date) && hasValue(e.to_date));
+                           formData.employment_history.every(e => hasValue(e.company) && hasValue(e.designation) && hasValue(e.from_date) && hasValue(e.to_date) && hasValue(e.reason_for_leaving));
                   case 3: // Bank Details - includes IFSC validation
                     return hasValue(bd.account_holder_name) && hasValue(bd.account_number) && isValidIFSC(bd.ifsc_code) && 
                            hasValue(bd.bank_name) && hasValue(bd.branch);
