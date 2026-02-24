@@ -253,6 +253,8 @@ const SubmissionReview = () => {
   const cd = submission.candidate_details || {};
   const bd = submission.bank_details || {};
   const ec = submission.emergency_contact || {};
+  const pr = submission.professional_reference || {};
+  const per = submission.personal_reference || {};
   const hv = submission.hr_verification || {};
   const readinessErrors = checkReadiness();
   const isReady = readinessErrors.length === 0 && submission.status === 'submitted';
