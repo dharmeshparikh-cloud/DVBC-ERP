@@ -1389,29 +1389,36 @@ const CandidateOnboardingForm = () => {
                 const ec = formData.emergency_contact;
                 const uploadedDocs = submission?.documents || [];
                 
+                // Helper to check if value is non-empty
+                const hasValue = (val) => val && val.toString().trim() !== '';
+                
                 switch (index) {
                   case 0: // Personal Details (including alternate phone)
-                    return cd.first_name && cd.last_name && cd.phone && cd.alternate_phone && cd.date_of_birth && 
-                           cd.gender && cd.blood_group && cd.marital_status && cd.pan_number && cd.aadhaar_number &&
-                           cd.current_address?.street && cd.current_address?.city && cd.current_address?.state && cd.current_address?.pincode &&
-                           cd.permanent_address?.street && cd.permanent_address?.city && cd.permanent_address?.state && cd.permanent_address?.pincode;
+                    return hasValue(cd.first_name) && hasValue(cd.last_name) && hasValue(cd.phone) && hasValue(cd.alternate_phone) && 
+                           hasValue(cd.date_of_birth) && hasValue(cd.gender) && hasValue(cd.blood_group) && hasValue(cd.marital_status) && 
+                           hasValue(cd.pan_number) && hasValue(cd.aadhaar_number) &&
+                           hasValue(cd.current_address?.street) && hasValue(cd.current_address?.city) && 
+                           hasValue(cd.current_address?.state) && hasValue(cd.current_address?.pincode) &&
+                           hasValue(cd.permanent_address?.street) && hasValue(cd.permanent_address?.city) && 
+                           hasValue(cd.permanent_address?.state) && hasValue(cd.permanent_address?.pincode);
                   case 1: // Education
                     return formData.education && formData.education.length > 0 && 
-                           formData.education.every(e => e.degree && e.institution && e.year && e.percentage);
-                  case 2: // Work Experience - Optional but if added, must be complete
+                           formData.education.every(e => hasValue(e.degree) && hasValue(e.institution) && hasValue(e.year) && hasValue(e.percentage));
+                  case 2: // Work Experience - Optional, always complete if empty or all filled
                     return !formData.employment_history?.length || 
-                           formData.employment_history.every(e => e.company && e.designation && e.from_date);
+                           formData.employment_history.every(e => hasValue(e.company) && hasValue(e.designation) && hasValue(e.from_date));
                   case 3: // Bank Details
-                    return bd.account_holder_name && bd.account_number && bd.ifsc_code && bd.bank_name && bd.branch;
+                    return hasValue(bd.account_holder_name) && hasValue(bd.account_number) && hasValue(bd.ifsc_code) && 
+                           hasValue(bd.bank_name) && hasValue(bd.branch);
                   case 4: // References
-                    return pr.name && pr.phone && pr.company_name && pr.designation &&
-                           per.name && per.phone && per.address;
+                    return hasValue(pr.name) && hasValue(pr.phone) && hasValue(pr.company_name) && hasValue(pr.designation) &&
+                           hasValue(per.name) && hasValue(per.phone) && hasValue(per.address);
                   case 5: // Emergency Contact
-                    return ec.name && ec.phone && ec.relationship;
-                  case 6: // Documents
+                    return hasValue(ec.name) && hasValue(ec.phone) && hasValue(ec.relationship);
+                  case 6: // Documents - Must have PAN and Aadhaar
                     return uploadedDocs.some(d => d.type === 'pan_card') && uploadedDocs.some(d => d.type === 'aadhaar');
                   case 7: // Review & Submit
-                    return formData.declaration_signed;
+                    return formData.declaration_signed === true;
                   default:
                     return false;
                 }
