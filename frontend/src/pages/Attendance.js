@@ -96,13 +96,13 @@ const Attendance = () => {
       const endDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
       
       const [empRes, summaryRes, recordsRes] = await Promise.all([
-        axios.get(`${API}/employees`),
+        axios.get(`${API}/employees/all`), // Use /all for array response
         axios.get(`${API}/attendance/summary?month=${monthNum}&year=${year}`),
         axios.get(`${API}/attendance?date_from=${startDate}&date_to=${endDate}`)
       ]);
-      setEmployees(empRes.data);
+      setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
       setSummary(summaryRes.data);
-      setRecords(recordsRes.data);
+      setRecords(Array.isArray(recordsRes.data) ? recordsRes.data : []);
     } catch (error) {
       console.error('Attendance fetch error:', error);
       toast.error('Failed to fetch data');
