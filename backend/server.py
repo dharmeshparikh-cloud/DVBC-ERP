@@ -141,8 +141,11 @@ async def api_health_check():
 
 # ==================== ROUTER IMPORTS AND INCLUSION ====================
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 api_router = APIRouter(prefix="/api")
+
+# Import get_current_user for alias endpoints
+from routers.auth import get_current_user
 
 # Core routers
 from routers import auth as auth_router
