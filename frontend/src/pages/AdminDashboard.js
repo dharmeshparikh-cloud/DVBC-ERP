@@ -24,7 +24,7 @@ import {
   PieChart as RechartsPie, Pie, Cell, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const AdminDashboard = () => {
   const { user } = useContext(AuthContext);
