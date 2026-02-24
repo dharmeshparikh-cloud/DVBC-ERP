@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -6,55 +6,50 @@ import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { 
   Users, Calendar, Clock, DollarSign, FileText,
-  UserCheck, UserX, Briefcase, CheckCircle, AlertCircle, LogIn, Book, Download, Mail, ArrowRight
+  UserCheck, UserX, Briefcase, CheckCircle, AlertCircle, LogIn, Book, Download, Mail, ArrowRight, RefreshCw
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 const HRDashboard = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   
   // Quick Check-in state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
-  const [attendanceStatus, setAttendanceStatus] = useState(null);
   
   // Documentation generation state
   const [generatingDocs, setGeneratingDocs] = useState(false);
   const [docResult, setDocResult] = useState(null);
 
-  useEffect(() => {
-    fetchStats();
-    fetchAttendanceStatus();
-  }, []);
-
-  const fetchAttendanceStatus = async () => {
-    try {
-      const res = await axios.get(`${API}/my/check-status`);
-      setAttendanceStatus(res.data);
-    } catch (err) {
-      console.error('Failed to fetch attendance status');
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
+  // Fetch HR stats with React Query
+  const { data: stats, isLoading: loading, refetch } = useQuery({
+    queryKey: ['hr-dashboard-stats'],
+    queryFn: async () => {
       const response = await fetch(`${API}/stats/hr-dashboard`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+        return response.json();
       }
-    } catch (error) {
-      console.error('Failed to fetch HR stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return null;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch attendance status
+  const { data: attendanceStatus } = useQuery({
+    queryKey: ['attendance-status'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/my/check-status`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
   const generateDocumentation = async (emailTo = null) => {
     setGeneratingDocs(true);
