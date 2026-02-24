@@ -215,11 +215,11 @@ async def send_offer_letter_email(
                 
                 <p>Best regards,<br>
                 <strong>HR Team</strong><br>
-                D&V Business Consulting Pvt. Ltd.</p>
+                D&V Business Consulting</p>
             </div>
             
             <div class="footer">
-                <p>D&V Business Consulting Pvt. Ltd.</p>
+                <p>D&V Business Consulting</p>
                 <p>This is an automated message. Please do not reply directly to this email.</p>
             </div>
         </div>
@@ -240,7 +240,7 @@ async def send_offer_letter_email(
     
     Best regards,
     HR Team
-    D&V Business Consulting Pvt. Ltd.
+    D&V Business Consulting
     """
     
     return await send_email(to_email, subject, html_content, plain_content)
@@ -323,11 +323,11 @@ async def send_appointment_letter_email(
                 
                 <p>Best regards,<br>
                 <strong>HR Team</strong><br>
-                D&V Business Consulting Pvt. Ltd.</p>
+                D&V Business Consulting</p>
             </div>
             
             <div class="footer">
-                <p>D&V Business Consulting Pvt. Ltd.</p>
+                <p>D&V Business Consulting</p>
                 <p>This is an automated message. Please do not reply directly to this email.</p>
             </div>
         </div>
@@ -347,7 +347,7 @@ async def send_appointment_letter_email(
     
     Best regards,
     HR Team
-    D&V Business Consulting Pvt. Ltd.
+    D&V Business Consulting
     """
     
     return await send_email(to_email, subject, html_content, plain_content)
@@ -400,9 +400,9 @@ async def send_acceptance_confirmation_email(
                 <h2 style="color: #16a34a;">Confirmation</h2>
             </div>
             {message}
-            <p>Best regards,<br>HR Team<br>D&V Business Consulting Pvt. Ltd.</p>
+            <p>Best regards,<br>HR Team<br>D&V Business Consulting</p>
             <div class="footer">
-                <p>© D&V Business Consulting Pvt. Ltd.</p>
+                <p>© D&V Business Consulting</p>
             </div>
         </div>
     </body>
@@ -538,7 +538,7 @@ async def send_onboarding_invite_email(
             </div>
             
             <div class="footer">
-                <p>© All Rights Reserved with D&V Business Consulting Pvt. Ltd.</p>
+                <p>© All Rights Reserved with D&V Business Consulting</p>
             </div>
         </div>
     </body>
@@ -565,7 +565,7 @@ This link expires on {expires_at}. Please complete your submission before then.
 Best regards,
 {hr_name}
 
-© All Rights Reserved with D&V Business Consulting Pvt. Ltd.
+© All Rights Reserved with D&V Business Consulting
     """
     
     return await send_email(to_email, subject, html_content, plain_content)
@@ -629,7 +629,7 @@ async def send_onboarding_submission_notification_email(
                 </p>
             </div>
             <div class="footer">
-                <p>© All Rights Reserved with D&V Business Consulting Pvt. Ltd.</p>
+                <p>© All Rights Reserved with D&V Business Consulting</p>
             </div>
         </div>
     </body>
@@ -705,7 +705,7 @@ async def send_onboarding_revision_request_email(
                 <p>Best regards,<br><strong>{hr_name}</strong></p>
             </div>
             <div class="footer">
-                <p>© All Rights Reserved with D&V Business Consulting Pvt. Ltd.</p>
+                <p>© All Rights Reserved with D&V Business Consulting</p>
             </div>
         </div>
     </body>
@@ -817,7 +817,7 @@ async def send_onboarding_complete_email(
             </div>
             
             <div class="footer">
-                <p>© All Rights Reserved with D&V Business Consulting Pvt. Ltd.</p>
+                <p>© All Rights Reserved with D&V Business Consulting</p>
             </div>
         </div>
     </body>
