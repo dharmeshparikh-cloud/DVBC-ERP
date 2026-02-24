@@ -26,10 +26,10 @@ import {
 } from "../../components/ui/dropdown-menu";
 
 const OnboardingHub = () => {
-  const { user, token } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('invite');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
   const [legacyRecords, setLegacyRecords] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +43,9 @@ const OnboardingHub = () => {
   const [sending, setSending] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
 
-  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+  // Get token from localStorage (same as App.js pattern)
+  const getToken = () => localStorage.getItem('token');
+  const authHeaders = { headers: { Authorization: `Bearer ${getToken()}` } };
 
   // Fetch submissions
   const fetchSubmissions = async () => {
