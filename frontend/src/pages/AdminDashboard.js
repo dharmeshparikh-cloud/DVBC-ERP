@@ -219,14 +219,14 @@ const AdminDashboard = () => {
           isDark={isDark}
           title="Total Revenue (YTD)"
           expandedContent={<RevenueExpanded data={stats} isDark={isDark} />}
-          lockedValues={{ revenue: stats.finance?.revenue }}
+          lockedValues={{ revenue: stats?.finance?.revenue }}
         >
           <CardContent className="pt-4 md:pt-6 h-full flex flex-col justify-between relative z-10">
             <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-yellow-300/30 rounded-full blur-3xl"></div>
             <div className="relative">
               <p className="text-white/80 text-xs md:text-sm font-medium">Total Revenue (YTD)</p>
               <p className="text-3xl md:text-5xl font-bold mt-1 md:mt-2 text-white">
-                {formatCurrency(stats.finance?.revenue || 45000000).replace('₹', '')}
+                {formatCurrency(stats?.finance?.revenue || 45000000).replace('₹', '')}
               </p>
             </div>
             <div className="flex items-center gap-2 md:gap-4 relative mt-2">
@@ -270,7 +270,7 @@ const AdminDashboard = () => {
             <Target className={`w-5 h-5 md:w-6 md:h-6 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             <div>
               <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                {stats.sales?.ratios?.lead_to_closure || 20.1}%
+                {stats?.sales?.ratios?.lead_to_closure || 20.1}%
               </p>
               <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Conversion Rate</p>
             </div>
@@ -356,7 +356,7 @@ const AdminDashboard = () => {
           <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
             <Calendar className="w-5 h-5 md:w-6 md:h-6 opacity-80" />
             <div>
-              <p className="text-2xl md:text-3xl font-bold">{stats.sales?.meetings?.today || 8}</p>
+              <p className="text-2xl md:text-3xl font-bold">{stats?.sales?.meetings?.today || 8}</p>
               <p className="text-blue-100 text-xs md:text-sm">Meetings Today</p>
             </div>
           </CardContent>
@@ -501,7 +501,7 @@ const AdminDashboard = () => {
             <Flame className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
             <div>
               <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                {stats.sales?.temperature?.hot || 47}
+                {stats?.sales?.temperature?.hot || 47}
               </p>
               <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Hot Leads</p>
             </div>
@@ -519,7 +519,7 @@ const AdminDashboard = () => {
             <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
             <div>
               <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                {stats.sales?.closures?.this_month || 12}
+                {stats?.sales?.closures?.this_month || 12}
               </p>
               <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Closed This Month</p>
             </div>
