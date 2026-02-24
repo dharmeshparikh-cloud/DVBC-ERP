@@ -77,9 +77,12 @@ const GoLiveDashboard = () => {
   const fetchChecklist = async (employeeId) => {
     try {
       setPageError(null);
+      setBankValidation(null); // Reset validation when switching employees
       const res = await axios.get(`${API}/go-live/checklist/${employeeId}`);
       setChecklist(res.data);
       setSelectedEmployee(res.data.employee);
+      // Also fetch bank proofs
+      fetchBankProofs(res.data.employee.id || employeeId);
     } catch (error) {
       const errorInfo = handleApiError(error, { operation: 'load Go-Live checklist' });
       setPageError(errorInfo);
