@@ -492,7 +492,7 @@ const DocumentBuilder = () => {
         </div>
         ${previewHtml}
         <div class="footer">
-          D&V Business Consulting Pvt. Ltd. | CIN: U74999KA2020PTC123456 | www.dvbconsulting.com
+          D&V Business Consulting | CIN: U74999KA2020PTC123456 | www.dvbconsulting.com
         </div>
       </body>
       </html>
@@ -839,7 +839,7 @@ const DocumentBuilder = () => {
                   dangerouslySetInnerHTML={{ __html: previewHtml || '<p class="text-zinc-400 italic">Select an employee to see preview...</p>' }}
                 />
                 <div className="p-3 border-t bg-zinc-50 text-center text-xs text-zinc-500">
-                  D&V Business Consulting Pvt. Ltd. | CIN: U74999KA2020PTC123456
+                  D&V Business Consulting | CIN: U74999KA2020PTC123456
                 </div>
               </div>
 
@@ -1046,7 +1046,7 @@ const DocumentBuilder = () => {
               dangerouslySetInnerHTML={{ __html: previewHtml }}
             />
             <div className="p-3 border-t bg-zinc-50 text-center text-xs text-zinc-500">
-              D&V Business Consulting Pvt. Ltd.
+              D&V Business Consulting
             </div>
           </div>
 

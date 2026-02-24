@@ -495,7 +495,7 @@ const DocumentCenter = () => {
           123 Business Park, Bangalore - 560001 | +91 80 1234 5678 | hr@dvbconsulting.com</div>
         </div>
         ${previewHtml}
-        <div class="footer">D&V Business Consulting Pvt. Ltd. | CIN: U74999KA2020PTC123456</div>
+        <div class="footer">D&V Business Consulting | CIN: U74999KA2020PTC123456</div>
       </body>
       </html>
     `);
@@ -806,7 +806,7 @@ const DocumentCenter = () => {
                     dangerouslySetInnerHTML={{ __html: previewHtml || '<p class="text-zinc-400 italic">Select an employee to see preview...</p>' }}
                   />
                   <div className="p-3 border-t bg-zinc-50 text-center text-xs text-zinc-500 sticky bottom-0">
-                    D&V Business Consulting Pvt. Ltd. | CIN: U74999KA2020PTC123456
+                    D&V Business Consulting | CIN: U74999KA2020PTC123456
                   </div>
                 </div>
 
@@ -1064,7 +1064,7 @@ const DocumentCenter = () => {
             </div>
             <div className="p-6 text-sm text-zinc-800" dangerouslySetInnerHTML={{ __html: previewHtml }} />
             <div className="p-3 border-t bg-zinc-50 text-center text-xs text-zinc-500">
-              D&V Business Consulting Pvt. Ltd.
+              D&V Business Consulting
             </div>
           </div>
 

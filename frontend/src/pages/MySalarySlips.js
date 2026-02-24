@@ -181,7 +181,7 @@ const SalarySlipDocument = ({ slip, printRef }) => {
             This document is confidential and intended solely for the named employee.
           </p>
           <p className="text-[9px] text-zinc-300 text-center mt-1">
-            Generated on {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })} | D&V Business Consulting Pvt. Ltd.
+            Generated on {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })} | D&V Business Consulting
           </p>
         </div>
       </div>
