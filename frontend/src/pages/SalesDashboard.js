@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -16,32 +16,21 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import RBACWidget from '../components/RBACWidget';
 import { usePermissions } from '../contexts/PermissionContext';
+import { useQuery } from '@tanstack/react-query';
 
 const SalesDashboard = () => {
   const { user } = useContext(AuthContext);
   const { isManagerOrAbove } = usePermissions();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
-  const [funnelData, setFunnelData] = useState(null);
-  const [myFunnelData, setMyFunnelData] = useState(null);
-  const [trendsData, setTrendsData] = useState(null);
-  const [bottleneckData, setBottleneckData] = useState(null);
-  const [forecastData, setForecastData] = useState(null);
-  const [timeInStageData, setTimeInStageData] = useState(null);
-  const [winLossData, setWinLossData] = useState(null);
-  const [velocityData, setVelocityData] = useState(null);
 
   // Use RBAC-driven check instead of hardcoded roles
   const isManager = isManagerOrAbove();
 
-  useEffect(() => {
-    fetchAllData();
-  }, [period]);
-
-  const fetchAllData = async () => {
-    setLoading(true);
-    try {
+  // Fetch all sales analytics data with React Query
+  const { data: analyticsData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['sales-dashboard', period, isManager],
+    queryFn: async () => {
       const promises = [
         axios.get(`${API}/analytics/my-funnel-summary?period=${period}`),
       ];
@@ -57,24 +46,32 @@ const SalesDashboard = () => {
       }
       
       const results = await Promise.all(promises);
-      setMyFunnelData(results[0].data);
       
-      if (isManager) {
-        setFunnelData(results[1].data);
-        setTrendsData(results[2].data);
-        setBottleneckData(results[3].data);
-        setForecastData(results[4].data);
-        setTimeInStageData(results[5].data);
-        setWinLossData(results[6].data);
-        setVelocityData(results[7].data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        myFunnelData: results[0].data,
+        funnelData: isManager ? results[1].data : null,
+        trendsData: isManager ? results[2].data : null,
+        bottleneckData: isManager ? results[3].data : null,
+        forecastData: isManager ? results[4].data : null,
+        timeInStageData: isManager ? results[5].data : null,
+        winLossData: isManager ? results[6].data : null,
+        velocityData: isManager ? results[7].data : null,
+      };
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+  });
+
+  // Destructure data for easier access
+  const {
+    myFunnelData = null,
+    funnelData = null,
+    trendsData = null,
+    bottleneckData = null,
+    forecastData = null,
+    timeInStageData = null,
+    winLossData = null,
+    velocityData = null,
+  } = analyticsData || {};
 
   const formatCurrency = (amount) => {
     if (amount >= 100000) {
