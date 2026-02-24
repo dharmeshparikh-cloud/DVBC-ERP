@@ -1281,23 +1281,38 @@ const CandidateOnboardingForm = () => {
               </CardContent>
             </Card>
 
+            {/* Uploaded Documents */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Uploaded Documents ({uploadedDocs.length})</CardTitle>
+                <CardTitle className="text-base">Uploaded Documents</CardTitle>
               </CardHeader>
               <CardContent>
-                {uploadedDocs.length === 0 ? (
-                  <p className="text-zinc-500 text-sm">No documents uploaded</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {uploadedDocs.map(doc => (
-                      <Badge key={doc.id} variant="secondary">
-                        <Check className="w-3 h-3 mr-1" />
-                        {doc.type.replace('_', ' ')}
-                      </Badge>
-                    ))}
+                <div className="space-y-2 text-sm">
+                  {/* Required Documents */}
+                  <div className="flex items-center gap-2">
+                    {uploadedDocs.some(d => d.type === 'pan_card') ? (
+                      <Badge variant="outline" className="text-green-600 border-green-300"><Check className="w-3 h-3 mr-1" />PAN Card</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-red-600 border-red-300"><XCircle className="w-3 h-3 mr-1" />PAN Card (Required)</Badge>
+                    )}
+                    {uploadedDocs.some(d => d.type === 'aadhaar') ? (
+                      <Badge variant="outline" className="text-green-600 border-green-300"><Check className="w-3 h-3 mr-1" />Aadhaar Card</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-red-600 border-red-300"><XCircle className="w-3 h-3 mr-1" />Aadhaar Card (Required)</Badge>
+                    )}
                   </div>
-                )}
+                  {/* Optional Documents */}
+                  {uploadedDocs.filter(d => !['pan_card', 'aadhaar'].includes(d.type)).length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {uploadedDocs.filter(d => !['pan_card', 'aadhaar'].includes(d.type)).map(doc => (
+                        <Badge key={doc.id} variant="secondary">
+                          <Check className="w-3 h-3 mr-1" />
+                          {doc.type.replace(/_/g, ' ')}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
