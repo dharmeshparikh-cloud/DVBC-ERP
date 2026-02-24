@@ -136,6 +136,11 @@ const Chat = lazy(() => import('./pages/Chat'));
 const AIAssistant = lazy(() => import('./pages/AIAssistant'));
 const EmailSettings = lazy(() => import('./pages/admin/EmailSettings'));
 
+// Self-Service Candidate Onboarding
+const OnboardingHub = lazy(() => import('./pages/onboarding/OnboardingHub'));
+const SubmissionReview = lazy(() => import('./pages/onboarding/SubmissionReview'));
+const CandidateOnboardingForm = lazy(() => import('./pages/onboarding/CandidateOnboardingForm'));
+
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { setupAxiosInterceptors } from './utils/useApi';
 import './App.css';
