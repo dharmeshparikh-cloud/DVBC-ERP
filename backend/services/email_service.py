@@ -657,11 +657,13 @@ async def send_onboarding_revision_request_email(
     <head>
         <meta charset="utf-8">
         <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background: #f59e0b; padding: 20px; text-align: center; color: white; border-radius: 8px 8px 0 0; }}
-            .content {{ padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }}
-            .reason-box {{ background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0; }}
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f3f4f6; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; }}
+            .header {{ background: #ffffff; padding: 30px; text-align: center; border-bottom: 3px solid #f59e0b; }}
+            .logo {{ max-height: 70px; width: auto; }}
+            .content {{ padding: 30px; }}
+            .alert-banner {{ background: #fef3c7; padding: 15px 20px; text-align: center; border-bottom: 1px solid #fcd34d; }}
+            .reason-box {{ background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }}
             .cta-button {{ 
                 display: inline-block; 
                 background: #16a34a; 
@@ -671,12 +673,16 @@ async def send_onboarding_revision_request_email(
                 border-radius: 6px; 
                 font-weight: bold;
             }}
+            .footer {{ background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }}
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h2 style="margin: 0;">⚠️ Revision Requested</h2>
+                <img src="{COMPANY_LOGO_URL}" alt="D&V Business Consulting" class="logo" />
+            </div>
+            <div class="alert-banner">
+                <strong>⚠️ Revision Requested</strong>
             </div>
             <div class="content">
                 <p>Dear <strong>{candidate_name}</strong>,</p>
@@ -690,13 +696,16 @@ async def send_onboarding_revision_request_email(
                 
                 <p>Please update your details using the link below:</p>
                 
-                <p style="text-align: center;">
+                <p style="text-align: center; margin: 30px 0;">
                     <a href="{onboarding_link}" class="cta-button">Update My Details</a>
                 </p>
                 
                 <p>If you have any questions, please contact our HR team.</p>
                 
-                <p>Best regards,<br><strong>{hr_name}</strong><br>D&V Business Consulting Pvt. Ltd.</p>
+                <p>Best regards,<br><strong>{hr_name}</strong></p>
+            </div>
+            <div class="footer">
+                <p>© All Rights Reserved with D&V Business Consulting Pvt. Ltd.</p>
             </div>
         </div>
     </body>
