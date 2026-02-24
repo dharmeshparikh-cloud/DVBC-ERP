@@ -1242,4 +1242,154 @@ export const NewFeatureBadge = ({ featureId }) => {
   );
 };
 
+// Help Topic Icon Component
+const HelpTopicIcon = ({ type }) => {
+  switch (type) {
+    case 'guide':
+      return <List className="w-4 h-4 text-blue-500" />;
+    case 'troubleshoot':
+      return <AlertCircle className="w-4 h-4 text-amber-500" />;
+    case 'video':
+      return <Circle className="w-4 h-4 text-red-500" />;
+    case 'faq':
+      return <HelpCircle className="w-4 h-4 text-green-500" />;
+    default:
+      return <List className="w-4 h-4 text-zinc-500" />;
+  }
+};
+
+// Help Topic Detail Component
+const HelpTopicDetail = ({ topic, isDark, onFeedback, onOpenRelated }) => {
+  const [feedbackGiven, setFeedbackGiven] = useState(null);
+  
+  const handleFeedback = (helpful) => {
+    setFeedbackGiven(helpful);
+    onFeedback(topic.id, helpful);
+  };
+  
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`px-2 py-0.5 text-xs rounded ${
+            topic.type === 'troubleshoot' 
+              ? 'bg-amber-100 text-amber-700' 
+              : 'bg-blue-100 text-blue-700'
+          }`}>
+            {topic.type === 'guide' && 'Guide'}
+            {topic.type === 'troubleshoot' && 'Troubleshooting'}
+            {topic.type === 'video' && 'Video'}
+            {topic.type === 'faq' && 'FAQ'}
+          </span>
+          <span className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{topic.category}</span>
+        </div>
+        <h2 className={`text-lg font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{topic.title}</h2>
+      </div>
+      
+      {/* Introduction */}
+      {topic.introduction && (
+        <p className={`text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>{topic.introduction}</p>
+      )}
+      
+      {/* Steps */}
+      {topic.steps && topic.steps.length > 0 && (
+        <div className="space-y-3">
+          <h3 className={`font-semibold text-sm flex items-center gap-2 ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>
+            <CheckCircle2 className="w-4 h-4 text-green-500" />
+            Step-by-Step Instructions
+          </h3>
+          {topic.steps.map((step, idx) => (
+            <div key={idx} className={`flex gap-3 p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+              <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">
+                {idx + 1}
+              </div>
+              <div className="flex-1">
+                <p className={`font-medium text-sm ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{step.title}</p>
+                <p className={`text-xs mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-600'}`}>{step.description}</p>
+                {step.tip && (
+                  <div className={`mt-2 p-2 rounded text-xs flex items-start gap-1 ${isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
+                    <Lightbulb className="w-3 h-3 mt-0.5 shrink-0" />
+                    <span>{step.tip}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Troubleshooting */}
+      {topic.troubleshooting && topic.troubleshooting.length > 0 && (
+        <div className="space-y-2">
+          <h3 className={`font-semibold text-sm flex items-center gap-2 ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>
+            <AlertCircle className="w-4 h-4 text-amber-500" />
+            Common Issues & Solutions
+          </h3>
+          {topic.troubleshooting.map((item, idx) => (
+            <details key={idx} className={`group rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+              <summary className={`p-3 cursor-pointer font-medium text-sm flex items-center justify-between ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                <span>{item.problem}</span>
+                <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" />
+              </summary>
+              <div className={`px-3 pb-3 text-sm ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                <p className={`font-medium mb-1 ${isDark ? 'text-green-400' : 'text-green-600'}`}>Solution:</p>
+                <p>{item.solution}</p>
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
+      
+      {/* Notes */}
+      {topic.notes && (
+        <div className={`p-3 rounded-lg text-sm ${isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
+          <p className="font-medium mb-1">Note:</p>
+          <p>{topic.notes}</p>
+        </div>
+      )}
+      
+      {/* Related Topics */}
+      {topic.relatedTopics && topic.relatedTopics.length > 0 && (
+        <div>
+          <h3 className={`font-semibold text-sm mb-2 ${isDark ? 'text-zinc-200' : 'text-zinc-800'}`}>Related Topics</h3>
+          <div className="space-y-1">
+            {topic.relatedTopics.map(related => (
+              <button
+                key={related.id}
+                onClick={() => onOpenRelated(related.id)}
+                className={`w-full text-left p-2 text-sm rounded flex items-center gap-2 ${isDark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-600'}`}
+              >
+                <ChevronRight className="w-4 h-4" />
+                {related.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Feedback */}
+      <div className={`pt-4 border-t ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+        <p className={`text-sm text-center mb-3 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>Was this helpful?</p>
+        {feedbackGiven === null ? (
+          <div className="flex justify-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => handleFeedback(true)}>
+              <CheckCircle2 className="w-4 h-4 mr-1 text-green-500" />
+              Yes
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleFeedback(false)}>
+              <X className="w-4 h-4 mr-1 text-red-500" />
+              No
+            </Button>
+          </div>
+        ) : (
+          <p className={`text-sm text-center ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+            Thanks for your feedback!
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default { FloatingHelpButton, HelpPanel, WorkflowOverlay, SmartTip, NewFeatureBadge };
