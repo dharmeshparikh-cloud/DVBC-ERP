@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -12,46 +11,40 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 const ConsultingDashboard = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   
   // Quick Check-in state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
-  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
-  useEffect(() => {
-    fetchStats();
-    fetchAttendanceStatus();
-  }, []);
-
-  const fetchAttendanceStatus = async () => {
-    try {
-      const res = await axios.get(`${API}/my/check-status`);
-      setAttendanceStatus(res.data);
-    } catch (err) {
-      console.error('Failed to fetch attendance status');
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
+  // Fetch consulting stats with React Query (caching enabled)
+  const { data: stats, isLoading: loading } = useQuery({
+    queryKey: ['consulting-dashboard-stats'],
+    queryFn: async () => {
       const response = await fetch(`${API}/stats/consulting-dashboard`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+        return response.json();
       }
-    } catch (error) {
-      console.error('Failed to fetch consulting stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return null;
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+  });
+
+  // Fetch attendance status with React Query
+  const { data: attendanceStatus, refetch: refetchAttendance } = useQuery({
+    queryKey: ['my-attendance-status'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/my/check-status`);
+      return res.data;
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
 
   if (loading) {
     return (
