@@ -1704,13 +1704,29 @@ const CandidateOnboardingForm = () => {
               
               const isComplete = isStepComplete();
               
+              // Can only go back, or to the next immediate step if current is complete
+              const canNavigate = index <= currentStep || (index === currentStep + 1 && validateCurrentStep());
+              
+              const handleStepClick = () => {
+                if (index < currentStep) {
+                  // Can always go back
+                  setCurrentStep(index);
+                } else if (index === currentStep) {
+                  // Already on this step
+                  return;
+                } else {
+                  // Trying to go forward - validate current step first
+                  toast.error('Please complete the current step before proceeding');
+                }
+              };
+              
               return (
                 <button
                   key={step.id}
-                  onClick={() => setCurrentStep(index)}
+                  onClick={handleStepClick}
                   className={`flex flex-col items-center gap-1 text-xs transition-colors min-w-[40px] ${
                     isActive ? 'text-black' : isComplete ? 'text-green-600' : 'text-zinc-400'
-                  }`}
+                  } ${index > currentStep ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
                   <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                     isActive ? 'bg-black text-white' : isComplete ? 'bg-green-100' : 'bg-zinc-100'
