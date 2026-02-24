@@ -939,10 +939,10 @@ const CandidateOnboardingForm = () => {
       case 5: // Documents
         return (
           <div className="space-y-6">
-            <Alert>
-              <Upload className="h-4 w-4" />
-              <AlertDescription>
-                Upload clear scans or photos of your documents. Accepted formats: PDF, JPG, PNG (max 5 MB each).
+            <Alert className="border-amber-200 bg-amber-50">
+              <Upload className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>PAN Card and Aadhaar Card are mandatory.</strong> Upload clear scans or photos. Accepted formats: PDF, JPG, PNG (max 5 MB each).
               </AlertDescription>
             </Alert>
 
