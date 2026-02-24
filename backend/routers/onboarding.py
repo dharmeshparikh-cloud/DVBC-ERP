@@ -756,6 +756,21 @@ async def submit_public_submission(token: str, data: dict):
     if "declaration_signed" in data:
         update_fields["declaration_signed"] = data["declaration_signed"]
     
+    # Store declaration details
+    if "declaration" in data:
+        update_fields["declaration"] = {
+            "signed": data["declaration"].get("signed", True),
+            "signed_at": data["declaration"].get("signed_at", now.isoformat()),
+            "text": data["declaration"].get("text", "I hereby declare that all the information provided is true and correct."),
+            "declaration_points": [
+                "All the information provided is true, complete, and correct to the best of my knowledge and belief.",
+                "I have not withheld any material information that may affect my employment.",
+                "I understand that any false statement may result in rejection of application or termination of employment.",
+                "I authorize D&V Business Consulting Pvt. Ltd. to verify all information and conduct background checks.",
+                "I consent to the storage and processing of my personal data as per company policy."
+            ]
+        }
+    
     # Check for duplicates before submission
     candidate_details = data.get("candidate_details") or submission.get("candidate_details")
     if candidate_details:
