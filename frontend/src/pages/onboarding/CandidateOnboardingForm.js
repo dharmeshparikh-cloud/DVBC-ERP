@@ -679,7 +679,7 @@ const CandidateOnboardingForm = () => {
                         />
                       </div>
                       <div>
-                        <Label>Institution</Label>
+                        <Label>Institution *</Label>
                         <Input
                           value={edu.institution}
                           onChange={(e) => {
@@ -691,7 +691,7 @@ const CandidateOnboardingForm = () => {
                         />
                       </div>
                       <div>
-                        <Label>Year of Passing</Label>
+                        <Label>Year of Passing *</Label>
                         <Input
                           value={edu.year}
                           onChange={(e) => {
@@ -703,7 +703,7 @@ const CandidateOnboardingForm = () => {
                         />
                       </div>
                       <div>
-                        <Label>Percentage / CGPA</Label>
+                        <Label>Percentage / CGPA *</Label>
                         <Input
                           value={edu.percentage}
                           onChange={(e) => {
