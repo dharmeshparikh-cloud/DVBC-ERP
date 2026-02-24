@@ -149,8 +149,8 @@ const OnboardingHub = () => {
   const inProgressCount = submissions.filter(s => ['invited', 'draft'].includes(s.status)).length;
   const completedCount = submissions.filter(s => ['completed', 'rejected'].includes(s.status)).length;
 
-  // Show loading if no token yet or initial data loading
-  if (!token || !user) {
+  // Show loading if no user yet or initial data loading
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
