@@ -1113,9 +1113,11 @@ const CandidateOnboardingForm = () => {
           </div>
         );
 
-      case 6: // Review & Submit
+      case 7: // Review & Submit
         const cd = formData.candidate_details;
         const bd = formData.bank_details;
+        const pr = formData.professional_reference;
+        const per = formData.personal_reference;
         const ec = formData.emergency_contact;
         const uploadedDocs = submission?.documents || [];
 
