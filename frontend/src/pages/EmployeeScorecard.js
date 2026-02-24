@@ -32,10 +32,10 @@ const EmployeeScorecard = () => {
     try {
       const [statsRes, employeesRes] = await Promise.all([
         axios.get(`${API}/employees/stats/summary`),
-        axios.get(`${API}/employees`)
+        axios.get(`${API}/employees/all`) // Use /all for array response
       ]);
       setStats(statsRes.data);
-      setEmployees(employeesRes.data);
+      setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast.error('Failed to load employee data');
