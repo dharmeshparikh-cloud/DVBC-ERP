@@ -805,7 +805,24 @@ async def submit_public_submission(token: str, data: dict):
     )
     
     # Notify HR about new submission
-    # (In production, send email to HR team)
+    try:
+        # Get the HR who sent the invite
+        invited_by_id = submission.get("invited_by")
+        if invited_by_id:
+            inviter = await db.employees.find_one({"id": invited_by_id}, {"email": 1, "full_name": 1})
+            if inviter and inviter.get("email"):
+                base_url = os.environ.get("FRONTEND_URL", "https://dvbc-intake.preview.emergentagent.com")
+                review_link = f"{base_url}/onboarding/review/{submission['id']}"
+                
+                await send_onboarding_submission_notification_email(
+                    to_email=inviter["email"],
+                    hr_name=inviter.get("full_name", "HR"),
+                    candidate_name=submission["candidate_name"],
+                    offered_position=submission["offered_position"],
+                    review_link=review_link
+                )
+    except Exception as e:
+        print(f"Failed to send HR notification email: {e}")
     
     return {"message": "Submission completed successfully. HR will review your details."}
 
