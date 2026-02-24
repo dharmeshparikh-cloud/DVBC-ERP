@@ -1060,10 +1060,10 @@ const CandidateOnboardingForm = () => {
                 <div className="bg-zinc-50 rounded-lg p-4 mb-4 text-sm text-zinc-600 leading-relaxed">
                   <p className="mb-3">By submitting this form, I declare that:</p>
                   <ol className="list-decimal ml-4 space-y-2">
-                    <li>All the information provided above is true, complete, and correct to the best of my knowledge and belief.</li>
+                    <li>All the information provided is true, complete, and correct to the best of my knowledge and belief.</li>
                     <li>I have not withheld any material information that may affect my employment.</li>
                     <li>I understand that any false statement, misrepresentation, or omission of facts may result in rejection of my application or termination of employment.</li>
-                    <li>I authorize D&V Business Consulting Pvt. Ltd. to verify all information provided and conduct background checks as deemed necessary.</li>
+                    <li>I authorize D&V Business Consulting to verify all information provided and conduct background checks as deemed necessary.</li>
                     <li>I consent to the storage and processing of my personal data as per company policy and applicable data protection laws.</li>
                   </ol>
                 </div>
