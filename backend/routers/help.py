@@ -111,14 +111,21 @@ async def get_context_topics(
     filtered = []
     for topic in topics:
         if check_role_access(topic.get('roles', []), role):
+            # Handle timezone-aware comparison for newUntil
+            is_new = topic.get('isNew', False)
+            if is_new and topic.get('newUntil'):
+                new_until = topic['newUntil']
+                # Make timezone-aware if naive
+                if new_until.tzinfo is None:
+                    new_until = new_until.replace(tzinfo=timezone.utc)
+                is_new = new_until > datetime.now(timezone.utc)
+            
             filtered.append({
                 "id": str(topic['_id']),
                 "title": topic['title'],
                 "type": topic['type'],
                 "excerpt": topic.get('introduction', '')[:100] + '...' if topic.get('introduction') else '',
-                "isNew": topic.get('isNew', False) and (
-                    not topic.get('newUntil') or topic['newUntil'] > datetime.now(timezone.utc)
-                ),
+                "isNew": is_new,
                 "requiresOnboarding": topic.get('requiresOnboarding', False)
             })
     
