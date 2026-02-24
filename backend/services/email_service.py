@@ -415,6 +415,9 @@ async def send_acceptance_confirmation_email(
 
 # ==================== ONBOARDING EMAIL TEMPLATES ====================
 
+# Company logo URL
+COMPANY_LOGO_URL = "https://customer-assets.emergentagent.com/job_30a69dc1-a599-4a88-9d0e-e1c06b1b2008/artifacts/tbs0jexj_1001419196.png"
+
 async def send_onboarding_invite_email(
     to_email: str,
     candidate_name: str,
@@ -435,9 +438,8 @@ async def send_onboarding_invite_email(
         <style>
             body {{ font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background: #f3f4f6; }}
             .container {{ max-width: 600px; margin: 0 auto; background: white; }}
-            .header {{ background: #f97316; padding: 30px; text-align: center; }}
-            .logo {{ max-height: 60px; margin-bottom: 10px; }}
-            .header-title {{ font-size: 20px; font-weight: bold; color: #000; margin: 0; }}
+            .header {{ background: #ffffff; padding: 40px 30px; text-align: center; border-bottom: 3px solid #f97316; }}
+            .logo {{ max-height: 80px; width: auto; }}
             .content {{ padding: 40px 30px; }}
             .highlight {{ background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }}
             .position {{ font-size: 18px; font-weight: 600; color: #f97316; }}
@@ -485,8 +487,7 @@ async def send_onboarding_invite_email(
     <body>
         <div class="container">
             <div class="header">
-                <img src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png" alt="Logo" class="logo" />
-                <p class="header-title">Employee Onboarding Portal</p>
+                <img src="{COMPANY_LOGO_URL}" alt="D&V Business Consulting" class="logo" />
             </div>
             
             <div class="content">
