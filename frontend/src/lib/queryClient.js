@@ -41,11 +41,17 @@ export const queryKeys = {
   employees: (filters = {}) => ['employees', filters],
   leads: (filters = {}) => ['leads', filters],
   projects: (filters = {}) => ['projects', filters],
+  expenses: (filters = {}) => ['expenses', filters],
+  agreements: (filters = {}) => ['agreements', filters],
+  kickoffRequests: (filters = {}) => ['kickoff-requests', filters],
+  encashmentRequests: (filters = {}) => ['encashment-requests', filters],
+  travelReimbursements: (filters = {}) => ['travel-reimbursements', filters],
   
   // Single items
   employee: (id) => ['employee', id],
   lead: (id) => ['lead', id],
   project: (id) => ['project', id],
+  agreement: (id) => ['agreement', id],
   
   // Analytics
   funnelSummary: (period) => ['analytics', 'funnel', period],
@@ -54,6 +60,9 @@ export const queryKeys = {
   
   // User permissions
   userPermissions: ['user', 'permissions'],
+  
+  // Notifications
+  notifications: ['notifications'],
 };
 
 // Cache invalidation helpers
@@ -81,6 +90,26 @@ export const invalidateCache = {
   projects: () => {
     queryClient.invalidateQueries({ queryKey: ['projects'] });
     queryClient.invalidateQueries({ queryKey: ['consulting', 'stats'] });
+  },
+  
+  // Invalidate expense-related caches
+  expenses: () => {
+    queryClient.invalidateQueries({ queryKey: ['expenses'] });
+  },
+  
+  // Invalidate agreement-related caches
+  agreements: () => {
+    queryClient.invalidateQueries({ queryKey: ['agreements'] });
+  },
+  
+  // Invalidate kickoff-related caches
+  kickoffs: () => {
+    queryClient.invalidateQueries({ queryKey: ['kickoff-requests'] });
+  },
+  
+  // Invalidate notifications
+  notifications: () => {
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
   },
   
   // Invalidate all caches
