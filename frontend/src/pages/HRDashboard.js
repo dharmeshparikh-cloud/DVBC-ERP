@@ -146,7 +146,10 @@ const HRDashboard = () => {
       {/* Quick Check-in Modal */}
       <QuickCheckInModal 
         isOpen={showQuickCheckIn} 
-        onClose={() => { setShowQuickCheckIn(false); fetchAttendanceStatus(); }} 
+        onClose={() => { 
+          setShowQuickCheckIn(false); 
+          queryClient.invalidateQueries({ queryKey: ['attendance-status'] }); 
+        }} 
         user={user} 
       />
 
