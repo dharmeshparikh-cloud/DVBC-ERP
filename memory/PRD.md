@@ -654,9 +654,16 @@ pending → internal_approved → approved → converted
 - ✅ **RBAC Migration for Expenses** - Replaced all hardcoded role constants with `get_role_group()`
 - ✅ **Audit Trail for Admin/HR Actions** - Added logging for approve, reject, send-back actions
 - ✅ **React Query Hooks Expansion** - Added 25+ new hooks for expenses, projects, agreements, kickoffs, notifications, travel, encashment
+- ✅ **React Query Component Migration** - Migrated 6 high-traffic components:
+  - `ExpenseApprovals.js` - Expense approval workflow with caching
+  - `AdminDashboard.js` - All stats fetching with 5-min cache
+  - `Leads.js` - Lead listing with progress bulk fetch
+  - `HRDashboard.js` - HR stats with attendance status
+  - `SalesDashboard.js` - Sales analytics with multi-endpoint fetch
+  - `Projects.js` - Project listing with cache invalidation
 
 ### P1 - In Progress
-1. **Frontend Component Migration** - Continue migrating remaining components to useApi hooks
+1. **Continue Frontend Migration** - ~80 more components can be migrated
 2. **Custom Report Builder Backend**: Implement backend logic for generating reports
 3. **Client Dashboard Features**: Project progress, document access, payment history
 
