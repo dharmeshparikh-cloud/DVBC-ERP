@@ -95,6 +95,7 @@ const RBACAdmin = lazy(() => import('./pages/RBACAdmin'));
 const LetterheadSettings = lazy(() => import('./pages/LetterheadSettings'));
 const AcceptOfferPage = lazy(() => import('./pages/AcceptOfferPage'));
 const AdminDashboardMockups = lazy(() => import('./pages/admin/AdminDashboardMockups'));
+const HelpContentAdmin = lazy(() => import('./pages/admin/HelpContentAdmin'));
 const FlowDiagram = lazy(() => import('./pages/FlowDiagram'));
 const ProjectPayments = lazy(() => import('./pages/ProjectPayments'));
 const ProjectPaymentDetails = lazy(() => import('./pages/ProjectPaymentDetails'));
