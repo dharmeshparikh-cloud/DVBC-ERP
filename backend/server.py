@@ -248,6 +248,9 @@ from routers import client_auth as client_auth_router
 # Self-Service Candidate Onboarding
 from routers import onboarding as onboarding_router
 
+# Help Content Management
+from routers import help as help_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
