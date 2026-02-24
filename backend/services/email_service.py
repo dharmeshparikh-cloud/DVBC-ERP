@@ -425,7 +425,7 @@ async def send_onboarding_invite_email(
 ) -> dict:
     """Send onboarding invite email to candidate with secure link."""
     
-    subject = f"Welcome to D&V Business Consulting - Complete Your Onboarding"
+    subject = f"Complete Your Onboarding - {offered_position}"
     
     html_content = f"""
     <!DOCTYPE html>
@@ -435,9 +435,9 @@ async def send_onboarding_invite_email(
         <style>
             body {{ font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background: #f3f4f6; }}
             .container {{ max-width: 600px; margin: 0 auto; background: white; }}
-            .header {{ background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 40px 30px; text-align: center; }}
-            .logo {{ font-size: 28px; font-weight: bold; color: white; }}
-            .logo span {{ color: #f97316; }}
+            .header {{ background: #f97316; padding: 30px; text-align: center; }}
+            .logo {{ max-height: 60px; margin-bottom: 10px; }}
+            .header-title {{ font-size: 20px; font-weight: bold; color: #000; margin: 0; }}
             .content {{ padding: 40px 30px; }}
             .highlight {{ background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }}
             .position {{ font-size: 18px; font-weight: 600; color: #f97316; }}
@@ -485,14 +485,14 @@ async def send_onboarding_invite_email(
     <body>
         <div class="container">
             <div class="header">
-                <div class="logo">D&V <span>Business Consulting</span></div>
-                <p style="color: #94a3b8; margin-top: 10px; font-size: 14px;">Employee Onboarding Portal</p>
+                <img src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png" alt="Logo" class="logo" />
+                <p class="header-title">Employee Onboarding Portal</p>
             </div>
             
             <div class="content">
                 <p>Dear <strong>{candidate_name}</strong>,</p>
                 
-                <p>Congratulations! We are excited to welcome you to D&V Business Consulting as a <span class="position">{offered_position}</span>.</p>
+                <p>Congratulations! We are excited to welcome you as a <span class="position">{offered_position}</span>.</p>
                 
                 <div class="highlight">
                     <p style="margin: 0;"><strong>Next Step:</strong> Please complete your onboarding details using the secure link below.</p>
