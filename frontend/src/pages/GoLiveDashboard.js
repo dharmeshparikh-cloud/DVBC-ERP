@@ -321,109 +321,113 @@ const GoLiveDashboard = () => {
                       {checklist.employee.employee_id} • {checklist.employee.department} • {checklist.employee.designation}
                     </p>
                   </div>
-                  {getStatusBadge(checklist.checklist.go_live_status)}
+                  {getStatusBadge(checklist.employee.go_live_status)}
                 </div>
 
-                {/* Checklist Items */}
+                {/* Progress Summary */}
+                <div className={`mb-6 p-4 rounded-lg ${isDark ? 'bg-zinc-700' : 'bg-zinc-100'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Readiness Progress</span>
+                    <span className="text-sm font-bold">{checklist.summary.percentage}%</span>
+                  </div>
+                  <div className="w-full bg-zinc-300 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${checklist.summary.is_ready ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                      style={{ width: `${checklist.summary.percentage}%` }}
+                    />
+                  </div>
+                  <p className={`text-xs mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    {checklist.summary.completed} of {checklist.summary.total} items complete
+                  </p>
+                </div>
+
+                {/* Checklist Items - mapped from backend response */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                  <ChecklistItem 
-                    label="Onboarding Complete" 
-                    checked={checklist.checklist.onboarding_complete}
-                    icon={User}
-                  />
-                  <ChecklistItem 
-                    label="CTC Approved" 
-                    checked={checklist.checklist.ctc_approved}
-                    icon={Building2}
-                  />
-                  <ChecklistItem 
-                    label="Bank Details Added" 
-                    checked={checklist.checklist.bank_details_added}
-                    icon={CreditCard}
-                  />
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
+                  {Object.entries(checklist.checklist).map(([key, item]) => {
+                    const iconMap = {
+                      User: User,
+                      Building2: Building2,
+                      CreditCard: CreditCard,
+                      Shield: Shield,
+                      FileText: FileText,
+                      Key: Key,
+                      Mail: User
+                    };
+                    const IconComponent = iconMap[item.icon] || User;
+                    
+                    // Special handling for bank_verified to show verify button
+                    if (key === 'bank_verified') {
+                      return (
+                        <div key={key} className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <ChecklistItem 
+                              label={item.label}
+                              checked={item.completed}
+                              icon={IconComponent}
+                            />
+                          </div>
+                          {canVerifyBank && checklist.checklist.bank_details?.completed && !item.completed && (
+                            <Button
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700"
+                              onClick={() => handleVerifyBank(checklist.employee.id)}
+                              data-testid="verify-bank-btn"
+                            >
+                              Verify
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    }
+                    
+                    return (
                       <ChecklistItem 
-                        label="Bank Verified" 
-                        checked={checklist.checklist.bank_verified}
-                        icon={Shield}
+                        key={key}
+                        label={item.label}
+                        checked={item.completed}
+                        icon={IconComponent}
                       />
-                    </div>
-                    {canVerifyBank && checklist.checklist.bank_details_added && !checklist.checklist.bank_verified && (
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => handleVerifyBank(checklist.employee.id)}
-                        data-testid="verify-bank-btn"
-                      >
-                        Verify
-                      </Button>
-                    )}
-                  </div>
-                  <ChecklistItem 
-                    label="Documents Generated" 
-                    checked={checklist.checklist.documents_generated}
-                    icon={FileText}
-                  />
-                  <ChecklistItem 
-                    label="Portal Access Granted" 
-                    checked={checklist.checklist.portal_access_granted}
-                    icon={Key}
-                  />
+                    );
+                  })}
                 </div>
-
-                {/* CTC Details */}
-                {checklist.ctc_details && (
-                  <div className={`p-4 rounded-lg mb-6 ${
-                    isDark ? 'bg-zinc-700' : 'bg-zinc-100'
-                  }`}>
-                    <h3 className="font-medium mb-2">CTC Details</h3>
-                    <p className="text-2xl font-bold text-emerald-500">
-                      ₹{(checklist.ctc_details.annual_ctc / 100000).toFixed(2)} LPA
-                    </p>
-                    <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                      Effective from: {checklist.ctc_details.effective_from}
-                    </p>
-                  </div>
-                )}
 
                 {/* Go-Live Request Info */}
-                {checklist.go_live_request && (
+                {checklist.request && (
                   <div className={`p-4 rounded-lg mb-6 border ${
-                    checklist.go_live_request.status === 'approved'
-                      ? 'bg-emerald-50 border-emerald-200'
-                      : checklist.go_live_request.status === 'rejected'
-                      ? 'bg-red-50 border-red-200'
-                      : 'bg-amber-50 border-amber-200'
+                    checklist.request.status === 'approved'
+                      ? isDark ? 'bg-emerald-900/30 border-emerald-700' : 'bg-emerald-50 border-emerald-200'
+                      : checklist.request.status === 'rejected'
+                      ? isDark ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-200'
+                      : isDark ? 'bg-amber-900/30 border-amber-700' : 'bg-amber-50 border-amber-200'
                   }`}>
                     <h3 className="font-medium mb-1">Go-Live Request</h3>
-                    <p className="text-sm">Status: {checklist.go_live_request.status}</p>
-                    <p className="text-sm">Submitted by: {checklist.go_live_request.submitted_by_name}</p>
-                    {checklist.go_live_request.approved_by_name && (
+                    <p className="text-sm">Status: <span className="capitalize font-medium">{checklist.request.status}</span></p>
+                    <p className="text-sm">Submitted by: {checklist.request.submitted_by_name}</p>
+                    {checklist.request.approved_by_name && (
                       <p className="text-sm">
-                        {checklist.go_live_request.status === 'approved' ? 'Approved' : 'Rejected'} by: {checklist.go_live_request.approved_by_name}
+                        {checklist.request.status === 'approved' ? 'Approved' : 'Rejected'} by: {checklist.request.approved_by_name}
                       </p>
                     )}
-                    {checklist.go_live_request.rejection_reason && (
-                      <p className="text-sm text-red-600">Reason: {checklist.go_live_request.rejection_reason}</p>
+                    {checklist.request.rejection_reason && (
+                      <p className="text-sm text-red-600">Reason: {checklist.request.rejection_reason}</p>
                     )}
                   </div>
                 )}
 
                 {/* Actions */}
                 <div className="flex gap-3">
-                  {!isAdmin && checklist.checklist.go_live_status === 'not_submitted' && (
+                  {(isHR || isAdmin) && checklist.employee.go_live_status === 'not_submitted' && (
                     <Button
                       className="bg-emerald-600 hover:bg-emerald-700"
                       onClick={() => setShowSubmitDialog(true)}
-                      disabled={!checklist.checklist.ctc_approved || !checklist.checklist.bank_details_added}
+                      disabled={!checklist.summary.is_ready}
                       data-testid="submit-golive-btn"
                     >
                       <Send className="w-4 h-4 mr-2" />
                       Submit for Go-Live Approval
                     </Button>
                   )}
-                  {checklist.checklist.go_live_status === 'active' && (
+                  {checklist.employee.go_live_status === 'active' && (
                     <div className="flex items-center gap-2 text-emerald-600">
                       <CheckCircle className="w-5 h-5" />
                       <span className="font-medium">Employee is LIVE!</span>
@@ -432,14 +436,15 @@ const GoLiveDashboard = () => {
                 </div>
 
                 {/* Warning if not ready */}
-                {(!checklist.checklist.ctc_approved || !checklist.checklist.bank_details_added) && (
-                  <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-2">
+                {!checklist.summary.is_ready && (
+                  <div className={`mt-4 p-3 rounded-lg flex items-start gap-2 ${
+                    isDark ? 'bg-amber-900/30 border border-amber-700' : 'bg-amber-50 border border-amber-200'
+                  }`}>
                     <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5" />
                     <div>
-                      <p className="font-medium text-amber-700">Not Ready for Go-Live</p>
-                      <p className="text-sm text-amber-600">
-                        {!checklist.checklist.ctc_approved && 'CTC approval is required. '}
-                        {!checklist.checklist.bank_details_added && 'Bank details are required.'}
+                      <p className={`font-medium ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>Not Ready for Go-Live</p>
+                      <p className={`text-sm ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>
+                        Complete all checklist items before submitting for approval.
                       </p>
                     </div>
                   </div>
