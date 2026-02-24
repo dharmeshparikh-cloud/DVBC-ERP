@@ -132,8 +132,8 @@ const SalesDashboard = () => {
               <SelectItem value="year">This Year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={fetchAllData}>
-            <RefreshCw className="w-4 h-4" />
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
