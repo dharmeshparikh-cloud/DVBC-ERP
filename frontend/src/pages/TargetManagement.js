@@ -50,9 +50,11 @@ const TargetManagement = () => {
         axios.get(`${API}/manager/target-vs-achievement?year=${selectedYear}`)
       ]);
       
-      setTargets(targetsRes.data || []);
-      setSubordinates(subordinatesRes.data.subordinates || []);
-      setTotalClients(kpiRes.data.total_clients || 0);
+      const targetsData = targetsRes.data?.items || targetsRes.data || [];
+      setTargets(Array.isArray(targetsData) ? targetsData : []);
+      const subData = subordinatesRes.data?.subordinates || subordinatesRes.data?.items || [];
+      setSubordinates(Array.isArray(subData) ? subData : []);
+      setTotalClients(kpiRes.data?.total_clients || 0);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load targets');
