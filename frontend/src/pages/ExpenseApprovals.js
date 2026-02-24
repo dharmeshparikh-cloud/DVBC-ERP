@@ -119,9 +119,21 @@ const ExpenseApprovals = () => {
   return (
     <div className="p-4 md:p-6 space-y-6" data-testid="expense-approvals-page">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Expense Approvals</h1>
-        <p className="text-muted-foreground">Review and approve employee expense claims</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Expense Approvals</h1>
+          <p className="text-muted-foreground">Review and approve employee expense claims</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => refetch()}
+          disabled={loading}
+          data-testid="refresh-expenses-btn"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats Cards */}
