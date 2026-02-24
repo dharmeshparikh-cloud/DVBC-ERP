@@ -695,9 +695,14 @@ async def save_public_submission(token: str, data: dict):
         raise HTTPException(status_code=404, detail="Invalid link")
     
     # Check expiry and status
-    expires_at = datetime.fromisoformat(submission["link_expires_at"].replace("Z", "+00:00"))
-    if datetime.now(timezone.utc) > expires_at:
-        raise HTTPException(status_code=410, detail="Link expired")
+    link_expires = submission.get("link_expires_at")
+    if link_expires:
+        if isinstance(link_expires, str):
+            expires_at = datetime.fromisoformat(link_expires.replace("Z", "+00:00"))
+        else:
+            expires_at = link_expires.replace(tzinfo=timezone.utc) if link_expires.tzinfo is None else link_expires
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(status_code=410, detail="Link expired")
     
     if submission["status"] in ["completed", "rejected"]:
         raise HTTPException(status_code=400, detail="Cannot modify completed submission")
