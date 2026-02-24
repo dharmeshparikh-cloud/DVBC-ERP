@@ -174,32 +174,93 @@ const CandidateOnboardingForm = () => {
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
+    // Validate ALL required fields
     const cd = formData.candidate_details;
-    if (!cd.first_name || !cd.last_name || !cd.phone || !cd.date_of_birth) {
-      toast.error('Please complete all required personal details');
+    const bd = formData.bank_details;
+    const ec = formData.emergency_contact;
+    
+    // Personal Details validation
+    if (!cd.first_name || !cd.last_name || !cd.phone || !cd.date_of_birth || 
+        !cd.gender || !cd.blood_group || !cd.marital_status || !cd.pan_number || !cd.aadhaar_number) {
+      toast.error('Please complete all personal details');
       setCurrentStep(0);
       return;
     }
-    if (!formData.bank_details.account_number || !formData.bank_details.ifsc_code) {
-      toast.error('Please complete bank details');
+    
+    // Address validation
+    if (!cd.current_address?.street || !cd.current_address?.city || 
+        !cd.current_address?.state || !cd.current_address?.pincode) {
+      toast.error('Please complete current address');
+      setCurrentStep(0);
+      return;
+    }
+    if (!cd.permanent_address?.street || !cd.permanent_address?.city || 
+        !cd.permanent_address?.state || !cd.permanent_address?.pincode) {
+      toast.error('Please complete permanent address');
+      setCurrentStep(0);
+      return;
+    }
+    
+    // Education validation
+    if (!formData.education || formData.education.length === 0) {
+      toast.error('Please add at least one education qualification');
+      setCurrentStep(1);
+      return;
+    }
+    for (let i = 0; i < formData.education.length; i++) {
+      const edu = formData.education[i];
+      if (!edu.degree || !edu.institution || !edu.year || !edu.percentage) {
+        toast.error(`Please complete all fields for education entry ${i + 1}`);
+        setCurrentStep(1);
+        return;
+      }
+    }
+    
+    // Bank Details validation
+    if (!bd.account_holder_name || !bd.account_number || !bd.ifsc_code || !bd.bank_name || !bd.branch) {
+      toast.error('Please complete all bank details');
       setCurrentStep(3);
       return;
     }
-    if (!formData.emergency_contact.name || !formData.emergency_contact.phone) {
-      toast.error('Please provide emergency contact details');
+    
+    // Emergency Contact validation
+    if (!ec.name || !ec.phone || !ec.relationship) {
+      toast.error('Please complete all emergency contact details');
       setCurrentStep(4);
       return;
     }
+    
+    // Documents validation
+    const uploadedDocs = submission?.documents || [];
+    const requiredDocs = ['pan_card', 'aadhaar'];
+    const missingDocs = requiredDocs.filter(d => !uploadedDocs.find(doc => doc.type === d));
+    if (missingDocs.length > 0) {
+      toast.error(`Please upload required documents: ${missingDocs.join(', ')}`);
+      setCurrentStep(5);
+      return;
+    }
+    
+    // Declaration validation
     if (!formData.declaration_signed) {
       toast.error('Please accept the declaration');
       setCurrentStep(6);
       return;
     }
 
+    // Add declaration timestamp and details
+    const submissionData = {
+      ...formData,
+      declaration: {
+        signed: true,
+        signed_at: new Date().toISOString(),
+        text: "I hereby declare that all the information provided above is true and correct to the best of my knowledge. I understand that any false information may result in termination of my employment. I authorize D&V Business Consulting to verify this information and store my data as per company policy.",
+        ip_address: "captured_by_backend"
+      }
+    };
+
     try {
       setSubmitting(true);
-      await axios.post(`${API}/onboarding/public/${token}/submit`, formData);
+      await axios.post(`${API}/onboarding/public/${token}/submit`, submissionData);
       toast.success('Form submitted successfully! HR will review your details.');
       // Refresh to show submitted state
       const response = await axios.get(`${API}/onboarding/public/${token}`);
