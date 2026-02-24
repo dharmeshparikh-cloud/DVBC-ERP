@@ -53,7 +53,7 @@ const PasswordManagement = () => {
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
-  }, [employees]);
+  }, [canManage]);
 
   const fetchEmployees = async () => {
     try {
