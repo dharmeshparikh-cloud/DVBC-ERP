@@ -563,6 +563,388 @@ async def verify_bank_details(
     return {"message": "Bank details verified successfully"}
 
 
+# ==================== BANK VALIDATION ENDPOINTS ====================
+
+@router.post("/validate-ifsc")
+async def validate_ifsc_code(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Validate IFSC code format and lookup bank details.
+    
+    Request: { "ifsc_code": "SBIN0001234" }
+    
+    Returns bank name, branch, city, state if valid.
+    """
+    ifsc_code = data.get("ifsc_code", "")
+    result = await validate_ifsc(ifsc_code)
+    return result
+
+
+@router.post("/validate-account")
+async def validate_account_number_endpoint(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Validate bank account number format.
+    
+    Request: { "account_number": "12345678901", "ifsc_code": "SBIN0001234" }
+    
+    If IFSC is provided, validates against bank-specific patterns.
+    """
+    account_number = data.get("account_number", "")
+    ifsc_code = data.get("ifsc_code", "")
+    result = validate_account_number(account_number, ifsc_code)
+    return result
+
+
+@router.post("/validate-bank-details/{employee_id}")
+async def validate_employee_bank_details(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Validate bank details for an employee and store validation results.
+    
+    Validates both IFSC and account number, updates employee record with results.
+    """
+    db = get_db()
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Get bank details
+    ifsc_code = employee.get("ifsc_code") or employee.get("bank_ifsc")
+    account_number = employee.get("bank_account_number") or employee.get("account_number")
+    
+    if not ifsc_code and not account_number:
+        raise HTTPException(status_code=400, detail="No bank details found for this employee")
+    
+    results = {
+        "ifsc_validation": None,
+        "account_validation": None,
+        "overall_valid": False
+    }
+    
+    # Validate IFSC
+    if ifsc_code:
+        results["ifsc_validation"] = await validate_ifsc(ifsc_code)
+    
+    # Validate account number
+    if account_number:
+        results["account_validation"] = validate_account_number(account_number, ifsc_code)
+    
+    # Determine overall validity
+    ifsc_valid = results["ifsc_validation"]["valid"] if results["ifsc_validation"] else True
+    account_valid = results["account_validation"]["valid"] if results["account_validation"] else True
+    results["overall_valid"] = ifsc_valid and account_valid
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Store validation results
+    await db.employees.update_one(
+        {"id": employee.get("id", employee_id)},
+        {"$set": {
+            "bank_validation_results": results,
+            "bank_validation_at": now,
+            "bank_validation_by": current_user.id
+        }}
+    )
+    
+    # Audit log
+    await db.go_live_audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "employee_id": employee.get("id", employee_id),
+        "action": "bank_validated",
+        "actor_id": current_user.id,
+        "actor_name": current_user.full_name,
+        "actor_role": current_user.role,
+        "details": {
+            "ifsc_valid": ifsc_valid,
+            "account_valid": account_valid,
+            "overall_valid": results["overall_valid"]
+        },
+        "timestamp": now
+    })
+    
+    return results
+
+
+# ==================== BANK PROOF DOCUMENT ENDPOINTS ====================
+
+@router.post("/bank-proof/upload/{employee_id}")
+async def upload_bank_proof(
+    employee_id: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload bank proof document (cancelled cheque, passbook, etc.)
+    
+    Allowed types: PDF, JPG, PNG, WEBP
+    Max size: 5 MB
+    """
+    db = get_db()
+    
+    # Authorization
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    allowed_roles = list(set(hr_roles + hr_admin_roles + admin_roles))
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only HR or Admin can upload bank proofs")
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Read file content
+    content = await file.read()
+    file_size = len(content)
+    
+    # Validate file
+    validation = validate_bank_proof_file(file.content_type, file_size)
+    if not validation["valid"]:
+        raise HTTPException(status_code=400, detail=validation["error"])
+    
+    # Generate unique filename
+    file_ext = ALLOWED_BANK_PROOF_TYPES.get(file.content_type, '.bin')
+    document_id = str(uuid.uuid4())
+    filename = f"{employee.get('id', employee_id)}_{document_id}{file_ext}"
+    file_path = os.path.join(BANK_PROOF_DIR, filename)
+    
+    # Save file
+    with open(file_path, 'wb') as f:
+        f.write(content)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Store document metadata
+    document_record = {
+        "id": document_id,
+        "employee_id": employee.get("id", employee_id),
+        "original_filename": file.filename,
+        "stored_filename": filename,
+        "file_path": file_path,
+        "file_size": file_size,
+        "content_type": file.content_type,
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": current_user.full_name,
+        "uploaded_at": now,
+        "document_type": "bank_proof"
+    }
+    
+    # Update employee with bank proof reference
+    await db.employees.update_one(
+        {"id": employee.get("id", employee_id)},
+        {
+            "$set": {"bank_proof_uploaded": True, "bank_proof_uploaded_at": now},
+            "$push": {"bank_proof_documents": document_record}
+        }
+    )
+    
+    # Audit log
+    await db.go_live_audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "employee_id": employee.get("id", employee_id),
+        "action": "bank_proof_uploaded",
+        "actor_id": current_user.id,
+        "actor_name": current_user.full_name,
+        "actor_role": current_user.role,
+        "details": {
+            "document_id": document_id,
+            "filename": file.filename,
+            "file_size": file_size
+        },
+        "timestamp": now
+    })
+    
+    return {
+        "message": "Bank proof uploaded successfully",
+        "document_id": document_id,
+        "filename": file.filename
+    }
+
+
+@router.get("/bank-proof/download/{employee_id}/{document_id}")
+async def download_bank_proof(
+    employee_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Download bank proof document.
+    """
+    db = get_db()
+    
+    # Authorization
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    allowed_roles = list(set(hr_roles + hr_admin_roles + admin_roles))
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Find document
+    documents = employee.get("bank_proof_documents", [])
+    document = next((d for d in documents if d["id"] == document_id), None)
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    file_path = document.get("file_path")
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+    
+    # Read and return file
+    with open(file_path, 'rb') as f:
+        content = f.read()
+    
+    return Response(
+        content=content,
+        media_type=document.get("content_type", "application/octet-stream"),
+        headers={
+            "Content-Disposition": f"attachment; filename=\"{document.get('original_filename', 'bank_proof')}\""
+        }
+    )
+
+
+@router.get("/bank-proof/list/{employee_id}")
+async def list_bank_proofs(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    List all bank proof documents for an employee.
+    """
+    db = get_db()
+    
+    # Authorization
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    
+    allowed_roles = list(set(hr_roles + hr_admin_roles + admin_roles))
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    documents = employee.get("bank_proof_documents", [])
+    
+    # Remove file_path from response for security
+    safe_documents = []
+    for doc in documents:
+        safe_doc = {k: v for k, v in doc.items() if k != "file_path"}
+        safe_documents.append(safe_doc)
+    
+    return {
+        "employee_id": employee.get("id", employee_id),
+        "employee_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "documents": safe_documents,
+        "total": len(safe_documents)
+    }
+
+
+@router.delete("/bank-proof/delete/{employee_id}/{document_id}")
+async def delete_bank_proof(
+    employee_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete a bank proof document.
+    """
+    db = get_db()
+    
+    # Authorization - Admin only can delete
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    
+    if not has_role(current_user.role, admin_roles + hr_admin_roles):
+        raise HTTPException(status_code=403, detail="Only Admin or HR Admin can delete bank proofs")
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Find and remove document
+    documents = employee.get("bank_proof_documents", [])
+    document = next((d for d in documents if d["id"] == document_id), None)
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Delete file from disk
+    file_path = document.get("file_path")
+    if file_path and os.path.exists(file_path):
+        os.remove(file_path)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Remove from database
+    await db.employees.update_one(
+        {"id": employee.get("id", employee_id)},
+        {"$pull": {"bank_proof_documents": {"id": document_id}}}
+    )
+    
+    # Check if any documents remain
+    remaining = len(documents) - 1
+    if remaining == 0:
+        await db.employees.update_one(
+            {"id": employee.get("id", employee_id)},
+            {"$set": {"bank_proof_uploaded": False}}
+        )
+    
+    # Audit log
+    await db.go_live_audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "employee_id": employee.get("id", employee_id),
+        "action": "bank_proof_deleted",
+        "actor_id": current_user.id,
+        "actor_name": current_user.full_name,
+        "actor_role": current_user.role,
+        "details": {
+            "document_id": document_id,
+            "filename": document.get("original_filename")
+        },
+        "timestamp": now
+    })
+    
+    return {"message": "Bank proof deleted successfully"}
+
+
 # ==================== STATISTICS ====================
 
 @router.get("/stats")
