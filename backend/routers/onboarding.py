@@ -384,22 +384,13 @@ async def request_revision(
         base_url = os.environ.get("FRONTEND_URL", "https://dvbc-intake.preview.emergentagent.com")
         onboarding_link = f"{base_url}/onboarding/candidate/{submission['token']}"
         
-        await send_email(
+        await send_onboarding_revision_request_email(
             to_email=submission["candidate_email"],
-            subject="Action Required: Update your onboarding details",
-            body=f"""
-            Dear {submission['candidate_name']},
-            
-            Our HR team has reviewed your onboarding submission and requires some updates:
-            
-            Reason: {reason}
-            
-            Please click the link below to update your details:
-            {onboarding_link}
-            
-            Best regards,
-            DVBC HR Team
-            """
+            candidate_name=submission["candidate_name"],
+            offered_position=submission["offered_position"],
+            revision_reason=reason,
+            onboarding_link=onboarding_link,
+            hr_name=current_user.full_name
         )
     except Exception as e:
         print(f"Failed to send revision email: {e}")
