@@ -49,6 +49,7 @@ const Employees = () => {
   const [linkUserDialog, setLinkUserDialog] = useState(false);
   const [grantAccessDialog, setGrantAccessDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [urlEditSection, setUrlEditSection] = useState(null); // Track section to highlight from URL
   
   // Grant access form
   const [accessFormData, setAccessFormData] = useState({
