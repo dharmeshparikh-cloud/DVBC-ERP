@@ -38,7 +38,7 @@ class LetterheadSettings(BaseModel):
     """Letterhead header and footer settings."""
     header_image: Optional[str] = None  # Base64 encoded image
     footer_image: Optional[str] = None  # Base64 encoded image
-    company_name: Optional[str] = "D&V Business Consulting Pvt. Ltd."
+    company_name: Optional[str] = "D&V Business Consulting"
     company_address: Optional[str] = None
     company_phone: Optional[str] = None
     company_email: Optional[str] = None

@@ -531,6 +531,10 @@ async def complete_onboarding(
         "education": submission.get("education", []),
         "employment_history": submission.get("employment_history", []),
         
+        # References
+        "professional_reference": submission.get("professional_reference"),
+        "personal_reference": submission.get("personal_reference"),
+        
         # Emergency contact
         "emergency_contact": submission.get("emergency_contact"),
         
