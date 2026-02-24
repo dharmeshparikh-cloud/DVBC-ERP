@@ -26,6 +26,7 @@ const PasswordManagement = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [grantAccessDialog, setGrantAccessDialog] = useState(false);
 
   // Check if current user is Admin or HR
   const isAdmin = user?.role === 'admin';
@@ -37,6 +38,22 @@ const PasswordManagement = () => {
       fetchEmployees();
     }
   }, [canManage]);
+
+  // Handle URL parameters for portal access (from Go-Live Dashboard)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const employeeId = params.get('employee');
+    
+    if (employeeId && employees.length > 0) {
+      const emp = employees.find(e => e.id === employeeId || e.employee_id === employeeId);
+      if (emp && !emp.has_access) {
+        setSelectedEmployee(emp);
+        setGrantAccessDialog(true);
+        // Clear URL params after handling
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, [employees]);
 
   const fetchEmployees = async () => {
     try {
