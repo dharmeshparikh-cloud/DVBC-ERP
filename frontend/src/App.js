@@ -335,6 +335,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="rbac-admin" element={<RBACAdmin />} />
         <Route path="letterhead-settings" element={<LetterheadSettings />} />
         <Route path="admin-dashboard-mockups" element={<AdminDashboardMockups />} />
+        <Route path="help-admin" element={<HelpContentAdmin />} />
         <Route path="admin-dashboard" element={<AdminDashboard />} />
         <Route path="office-locations" element={<OfficeLocationsSettings />} />
         <Route path="flow-diagram" element={<FlowDiagram />} />
