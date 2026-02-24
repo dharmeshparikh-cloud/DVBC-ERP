@@ -88,10 +88,10 @@ const AdminDashboard = () => {
     return `₹${value}`;
   };
 
-  // Extract data from stats
-  const salesPipeline = stats.sales?.pipeline || {};
-  const hrStats = stats.hr || {};
-  const consultingStats = stats.consulting || {};
+  // Extract data from stats with null safety
+  const salesPipeline = stats?.sales?.pipeline || {};
+  const hrStats = stats?.hr || {};
+  const consultingStats = stats?.consulting || {};
   
   // Project status for pie chart
   const projectStatus = [
