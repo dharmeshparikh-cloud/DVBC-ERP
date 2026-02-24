@@ -1033,6 +1033,18 @@ def validate_submission_complete(submission: dict) -> list:
         errors.append("Personal details missing")
     elif not cd.get("first_name") or not cd.get("last_name"):
         errors.append("Candidate name incomplete")
+    elif not cd.get("phone") or not cd.get("alternate_phone"):
+        errors.append("Phone numbers incomplete")
+    elif not cd.get("pan_number") or not cd.get("aadhaar_number"):
+        errors.append("PAN/Aadhaar incomplete")
+    
+    # Education
+    if not submission.get("education") or len(submission["education"]) == 0:
+        errors.append("Education details missing")
+    
+    # Employment history (MANDATORY)
+    if not submission.get("employment_history") or len(submission["employment_history"]) == 0:
+        errors.append("Employment history missing")
     
     # Bank details
     bd = submission.get("bank_details")
