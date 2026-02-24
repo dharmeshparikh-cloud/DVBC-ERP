@@ -70,9 +70,11 @@ const OnboardingHub = () => {
   };
 
   useEffect(() => {
-    fetchSubmissions();
-    fetchLegacyRecords();
-  }, []);
+    if (token) {
+      fetchSubmissions();
+      fetchLegacyRecords();
+    }
+  }, [token]);
 
   // Send invite
   const handleSendInvite = async () => {
