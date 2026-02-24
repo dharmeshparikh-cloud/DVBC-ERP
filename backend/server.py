@@ -245,6 +245,9 @@ from routers import test_email_preview as test_email_preview_router
 # Client Portal Authentication
 from routers import client_auth as client_auth_router
 
+# Self-Service Candidate Onboarding
+from routers import onboarding as onboarding_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
