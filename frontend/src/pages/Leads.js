@@ -126,8 +126,7 @@ const Leads = () => {
   const { user } = useContext(AuthContext);
   const { isManagerOrAbove, canApproveRequests, level } = usePermissions();
   const navigate = useNavigate();
-  const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [csvData, setCsvData] = useState('');
@@ -140,6 +139,51 @@ const Leads = () => {
   const [suggestions, setSuggestions] = useState({});
   const [viewMode, setViewMode] = useState('list'); // Default to list view
   const [showDraftSelector, setShowDraftSelector] = useState(false);
+
+  // Fetch leads with React Query
+  const { data: leadsData, isLoading: loading, refetch: refetchLeads } = useQuery({
+    queryKey: ['leads', { status: selectedStatus }],
+    queryFn: async () => {
+      const params = selectedStatus ? { status: selectedStatus } : {};
+      const response = await axios.get(`${API}/leads`, { params });
+      // Sort by lead score descending
+      return response.data.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0));
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+  });
+
+  // Fetch lead progress in bulk
+  const { data: leadProgress = {} } = useQuery({
+    queryKey: ['leads', 'progress', 'bulk'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/leads/progress/bulk`);
+      return res.data || {};
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
+  const leads = leadsData || [];
+
+  // Fetch suggestions for high-scoring leads
+  useEffect(() => {
+    if (leads.length > 0) {
+      leads.forEach(async (lead) => {
+        if (lead.lead_score >= 60 && !suggestions[lead.id]) {
+          try {
+            const suggestionsRes = await axios.get(`${API}/leads/${lead.id}/suggestions`);
+            if (suggestionsRes.data.suggestions?.length > 0) {
+              setSuggestions(prev => ({
+                ...prev,
+                [lead.id]: suggestionsRes.data.suggestions
+              }));
+            }
+          } catch (error) {
+            // Silently fail for suggestions
+          }
+        }
+      });
+    }
+  }, [leads]);
   
   // Lead status options for dropdown filter
   const leadStatusOptions = [
