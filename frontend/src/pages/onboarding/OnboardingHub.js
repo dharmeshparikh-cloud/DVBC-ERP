@@ -72,11 +72,11 @@ const OnboardingHub = () => {
   };
 
   useEffect(() => {
-    if (token) {
+    if (user) {
       fetchSubmissions();
       fetchLegacyRecords();
     }
-  }, [token]);
+  }, [user]);
 
   // Send invite
   const handleSendInvite = async () => {
