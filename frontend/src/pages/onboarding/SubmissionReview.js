@@ -233,6 +233,181 @@ const SubmissionReview = () => {
     return errors;
   };
 
+  // Print onboarding form
+  const handlePrint = () => {
+    const cd = submission.candidate_details || {};
+    const bd = submission.bank_details || {};
+    const ec = submission.emergency_contact || {};
+    const pr = submission.professional_reference || {};
+    const per = submission.personal_reference || {};
+    const ha = submission.hr_assigned || {};
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Onboarding Form - ${submission.candidate_name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; color: #333; }
+          .header { text-align: center; border-bottom: 2px solid #f97316; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h1 { margin: 0; font-size: 18px; color: #000; }
+          .header p { margin: 5px 0 0; color: #666; font-size: 11px; }
+          .section { margin-bottom: 20px; page-break-inside: avoid; }
+          .section-title { background: #f5f5f5; padding: 8px 12px; font-weight: bold; font-size: 13px; margin-bottom: 10px; border-left: 3px solid #f97316; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+          .field { margin-bottom: 8px; }
+          .field-label { font-size: 10px; color: #666; text-transform: uppercase; }
+          .field-value { font-weight: 500; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+          th { background: #f5f5f5; font-weight: 600; }
+          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 10px; color: #666; }
+          .signature-box { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
+          .signature { border-top: 1px solid #333; padding-top: 5px; text-align: center; }
+          .status-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+          .status-completed { background: #dcfce7; color: #166534; }
+          .status-pending { background: #fef3c7; color: #92400e; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>D&V Business Consulting</h1>
+          <p>Employee Onboarding Form</p>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+          <div><strong>Candidate:</strong> ${submission.candidate_name}</div>
+          <div><strong>Position:</strong> ${submission.offered_position}</div>
+          <div><span class="status-badge ${submission.status === 'completed' ? 'status-completed' : 'status-pending'}">${submission.status?.toUpperCase()}</span></div>
+        </div>
+        
+        ${submission.employee_id_generated ? `<div style="background:#dcfce7;padding:10px;margin-bottom:15px;border-radius:4px;"><strong>Employee ID:</strong> ${submission.employee_id_generated}</div>` : ''}
+        
+        <div class="section">
+          <div class="section-title">Personal Details</div>
+          <div class="grid">
+            <div class="field"><div class="field-label">Full Name</div><div class="field-value">${cd.first_name || ''} ${cd.last_name || ''}</div></div>
+            <div class="field"><div class="field-label">Date of Birth</div><div class="field-value">${cd.date_of_birth || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Gender</div><div class="field-value">${cd.gender || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Blood Group</div><div class="field-value">${cd.blood_group || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Marital Status</div><div class="field-value">${cd.marital_status || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Nationality</div><div class="field-value">${cd.nationality || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Phone</div><div class="field-value">${cd.phone || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Alternate Phone</div><div class="field-value">${cd.alternate_phone || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Email</div><div class="field-value">${submission.candidate_email}</div></div>
+            <div class="field"><div class="field-label">PAN Number</div><div class="field-value">${cd.pan_number || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Aadhaar Number</div><div class="field-value">${cd.aadhaar_number || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Passport</div><div class="field-value">${cd.passport_number || 'N/A'}</div></div>
+          </div>
+          <div class="field" style="margin-top:10px;"><div class="field-label">Current Address</div><div class="field-value">${cd.current_address?.street || ''}, ${cd.current_address?.city || ''}, ${cd.current_address?.state || ''} - ${cd.current_address?.pincode || ''}</div></div>
+          <div class="field"><div class="field-label">Permanent Address</div><div class="field-value">${cd.permanent_address?.street || ''}, ${cd.permanent_address?.city || ''}, ${cd.permanent_address?.state || ''} - ${cd.permanent_address?.pincode || ''}</div></div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">Education</div>
+          <table>
+            <thead><tr><th>Degree</th><th>Institution</th><th>Year</th><th>%/CGPA</th></tr></thead>
+            <tbody>
+              ${(submission.education || []).map(e => `<tr><td>${e.degree}</td><td>${e.institution}</td><td>${e.year}</td><td>${e.percentage}</td></tr>`).join('')}
+              ${(submission.education || []).length === 0 ? '<tr><td colspan="4" style="text-align:center;color:#999;">No education details</td></tr>' : ''}
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">Work Experience</div>
+          <table>
+            <thead><tr><th>Company</th><th>Designation</th><th>From</th><th>To</th><th>Reason for Leaving</th></tr></thead>
+            <tbody>
+              ${(submission.employment_history || []).map(e => `<tr><td>${e.company}</td><td>${e.designation}</td><td>${e.from_date}</td><td>${e.to_date || 'Present'}</td><td>${e.reason_for_leaving || '-'}</td></tr>`).join('')}
+              ${(submission.employment_history || []).length === 0 ? '<tr><td colspan="5" style="text-align:center;color:#999;">No work experience</td></tr>' : ''}
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">Bank Details</div>
+          <div class="grid">
+            <div class="field"><div class="field-label">Account Holder</div><div class="field-value">${bd.account_holder_name || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Account Number</div><div class="field-value">${bd.account_number || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">IFSC Code</div><div class="field-value">${bd.ifsc_code || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Bank / Branch</div><div class="field-value">${bd.bank_name || ''} - ${bd.branch || 'N/A'}</div></div>
+          </div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">References</div>
+          <div class="grid">
+            <div>
+              <strong style="font-size:11px;">Professional Reference</strong>
+              <div class="field"><div class="field-label">Name</div><div class="field-value">${pr.name || 'N/A'}</div></div>
+              <div class="field"><div class="field-label">Phone</div><div class="field-value">${pr.phone || 'N/A'}</div></div>
+              <div class="field"><div class="field-label">Company</div><div class="field-value">${pr.company_name || 'N/A'}</div></div>
+              <div class="field"><div class="field-label">Designation</div><div class="field-value">${pr.designation || 'N/A'}</div></div>
+            </div>
+            <div>
+              <strong style="font-size:11px;">Personal Reference</strong>
+              <div class="field"><div class="field-label">Name</div><div class="field-value">${per.name || 'N/A'}</div></div>
+              <div class="field"><div class="field-label">Phone</div><div class="field-value">${per.phone || 'N/A'}</div></div>
+              <div class="field"><div class="field-label">Address</div><div class="field-value">${per.address || 'N/A'}</div></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">Emergency Contact</div>
+          <div class="grid">
+            <div class="field"><div class="field-label">Name</div><div class="field-value">${ec.name || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Phone</div><div class="field-value">${ec.phone || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Relationship</div><div class="field-value">${ec.relationship || 'N/A'}</div></div>
+          </div>
+        </div>
+        
+        ${ha.department ? `
+        <div class="section">
+          <div class="section-title">HR Assignment (Internal)</div>
+          <div class="grid">
+            <div class="field"><div class="field-label">Department</div><div class="field-value">${ha.department || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Designation</div><div class="field-value">${ha.designation || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Joining Date</div><div class="field-value">${ha.joining_date || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Official Email</div><div class="field-value">${ha.official_email || 'N/A'}</div></div>
+            <div class="field"><div class="field-label">Reporting Manager</div><div class="field-value">${ha.reporting_manager_name || 'N/A'}</div></div>
+          </div>
+        </div>
+        ` : ''}
+        
+        <div class="section">
+          <div class="section-title">Documents Uploaded</div>
+          <ul style="margin:0;padding-left:20px;">
+            ${(submission.documents || []).map(d => `<li>${d.type?.replace(/_/g, ' ')} - ${d.filename}</li>`).join('')}
+            ${(submission.documents || []).length === 0 ? '<li style="color:#999;">No documents uploaded</li>' : ''}
+          </ul>
+        </div>
+        
+        <div class="signature-box">
+          <div>
+            <div class="signature">Employee Signature</div>
+          </div>
+          <div>
+            <div class="signature">HR Signature</div>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>Generated on: ${new Date().toLocaleString()} | D&V Business Consulting - NETRA ERP</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 250);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
