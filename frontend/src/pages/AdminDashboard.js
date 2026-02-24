@@ -133,12 +133,13 @@ const AdminDashboard = () => {
             All Systems Operational
           </Badge>
           <Button
-            onClick={fetchAllStats}
+            onClick={() => refetch()}
             variant="outline"
             size="sm"
+            disabled={loading}
             className={`gap-1 md:gap-2 text-xs md:text-sm ${isDark ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : ''}`}
           >
-            <RefreshCw className="w-3 h-3 md:w-4 md:h-4" />
+            <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
