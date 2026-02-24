@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://netra-refs.preview.emergentagent.com",
+      "value": "https://help-admin-hub.preview.emergentagent.com",
       "type": "string"
     },
     {
