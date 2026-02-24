@@ -1127,7 +1127,41 @@ const CandidateOnboardingForm = () => {
             {STEPS.map((step, index) => {
               const StepIcon = step.icon;
               const isActive = index === currentStep;
-              const isComplete = index < currentStep;
+              
+              // Check if step is actually complete based on data
+              const isStepComplete = () => {
+                const cd = formData.candidate_details;
+                const bd = formData.bank_details;
+                const ec = formData.emergency_contact;
+                const uploadedDocs = submission?.documents || [];
+                
+                switch (index) {
+                  case 0: // Personal Details
+                    return cd.first_name && cd.last_name && cd.phone && cd.date_of_birth && 
+                           cd.gender && cd.blood_group && cd.marital_status && cd.pan_number && cd.aadhaar_number &&
+                           cd.current_address?.street && cd.current_address?.city && cd.current_address?.state && cd.current_address?.pincode &&
+                           cd.permanent_address?.street && cd.permanent_address?.city && cd.permanent_address?.state && cd.permanent_address?.pincode;
+                  case 1: // Education
+                    return formData.education && formData.education.length > 0 && 
+                           formData.education.every(e => e.degree && e.institution && e.year && e.percentage);
+                  case 2: // Work Experience - Optional but if added, must be complete
+                    return !formData.employment_history?.length || 
+                           formData.employment_history.every(e => e.company && e.designation && e.from_date);
+                  case 3: // Bank Details
+                    return bd.account_holder_name && bd.account_number && bd.ifsc_code && bd.bank_name && bd.branch;
+                  case 4: // Emergency Contact
+                    return ec.name && ec.phone && ec.relationship;
+                  case 5: // Documents
+                    return uploadedDocs.some(d => d.type === 'pan_card') && uploadedDocs.some(d => d.type === 'aadhaar');
+                  case 6: // Review & Submit
+                    return formData.declaration_signed;
+                  default:
+                    return false;
+                }
+              };
+              
+              const isComplete = isStepComplete();
+              
               return (
                 <button
                   key={step.id}
