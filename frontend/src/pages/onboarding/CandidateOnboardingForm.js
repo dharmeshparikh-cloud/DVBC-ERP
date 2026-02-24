@@ -1778,8 +1778,9 @@ const CandidateOnboardingForm = () => {
                   Submit Application
                 </Button>
               ) : (
-                <Button onClick={() => setCurrentStep(prev => prev + 1)} data-testid="next-step-btn">
-                  Next
+                <Button onClick={handleNext} disabled={saving} data-testid="next-step-btn">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                  Save & Next
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               )}
