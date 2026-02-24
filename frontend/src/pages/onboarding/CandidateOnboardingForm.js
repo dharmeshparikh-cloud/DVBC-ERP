@@ -471,7 +471,7 @@ const CandidateOnboardingForm = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="gender">Gender</Label>
+                <Label htmlFor="gender">Gender *</Label>
                 <Select
                   value={formData.candidate_details.gender}
                   onValueChange={(v) => updateField('candidate_details.gender', v)}
@@ -487,7 +487,7 @@ const CandidateOnboardingForm = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="blood_group">Blood Group</Label>
+                <Label htmlFor="blood_group">Blood Group *</Label>
                 <Select
                   value={formData.candidate_details.blood_group}
                   onValueChange={(v) => updateField('candidate_details.blood_group', v)}
@@ -528,7 +528,7 @@ const CandidateOnboardingForm = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="pan">PAN Number</Label>
+                <Label htmlFor="pan">PAN Number *</Label>
                 <Input
                   id="pan"
                   data-testid="pan-input"
@@ -539,7 +539,7 @@ const CandidateOnboardingForm = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="aadhaar">Aadhaar Number</Label>
+                <Label htmlFor="aadhaar">Aadhaar Number *</Label>
                 <Input
                   id="aadhaar"
                   data-testid="aadhaar-input"
@@ -552,7 +552,7 @@ const CandidateOnboardingForm = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="marital">Marital Status</Label>
+                <Label htmlFor="marital">Marital Status *</Label>
                 <Select
                   value={formData.candidate_details.marital_status}
                   onValueChange={(v) => updateField('candidate_details.marital_status', v)}
@@ -568,7 +568,7 @@ const CandidateOnboardingForm = () => {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="nationality">Nationality</Label>
+                <Label htmlFor="nationality">Nationality *</Label>
                 <Input
                   id="nationality"
                   value={formData.candidate_details.nationality}
@@ -578,27 +578,27 @@ const CandidateOnboardingForm = () => {
             </div>
 
             <div className="space-y-4">
-              <h4 className="font-medium text-sm text-zinc-700">Current Address</h4>
+              <h4 className="font-medium text-sm text-zinc-700">Current Address *</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <Input
-                    placeholder="Street / Area"
+                    placeholder="Street / Area *"
                     value={formData.candidate_details.current_address?.street || ''}
                     onChange={(e) => updateField('candidate_details.current_address.street', e.target.value)}
                   />
                 </div>
                 <Input
-                  placeholder="City"
+                  placeholder="City *"
                   value={formData.candidate_details.current_address?.city || ''}
                   onChange={(e) => updateField('candidate_details.current_address.city', e.target.value)}
                 />
                 <Input
-                  placeholder="State"
+                  placeholder="State *"
                   value={formData.candidate_details.current_address?.state || ''}
                   onChange={(e) => updateField('candidate_details.current_address.state', e.target.value)}
                 />
                 <Input
-                  placeholder="Pincode"
+                  placeholder="Pincode *"
                   value={formData.candidate_details.current_address?.pincode || ''}
                   onChange={(e) => updateField('candidate_details.current_address.pincode', e.target.value)}
                 />
@@ -606,27 +606,27 @@ const CandidateOnboardingForm = () => {
             </div>
 
             <div className="space-y-4">
-              <h4 className="font-medium text-sm text-zinc-700">Permanent Address</h4>
+              <h4 className="font-medium text-sm text-zinc-700">Permanent Address *</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <Input
-                    placeholder="Street / Area"
+                    placeholder="Street / Area *"
                     value={formData.candidate_details.permanent_address?.street || ''}
                     onChange={(e) => updateField('candidate_details.permanent_address.street', e.target.value)}
                   />
                 </div>
                 <Input
-                  placeholder="City"
+                  placeholder="City *"
                   value={formData.candidate_details.permanent_address?.city || ''}
                   onChange={(e) => updateField('candidate_details.permanent_address.city', e.target.value)}
                 />
                 <Input
-                  placeholder="State"
+                  placeholder="State *"
                   value={formData.candidate_details.permanent_address?.state || ''}
                   onChange={(e) => updateField('candidate_details.permanent_address.state', e.target.value)}
                 />
                 <Input
-                  placeholder="Pincode"
+                  placeholder="Pincode *"
                   value={formData.candidate_details.permanent_address?.pincode || ''}
                   onChange={(e) => updateField('candidate_details.permanent_address.pincode', e.target.value)}
                 />
