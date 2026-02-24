@@ -379,13 +379,6 @@ const Employees = () => {
         {canManage && (
           <div className="flex items-center gap-2">
             <MobileAppWidget compact />
-            <Button 
-              onClick={() => window.location.href = '/onboarding'}
-              className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Onboard New Employee
-            </Button>
           </div>
         )}
       </div>
