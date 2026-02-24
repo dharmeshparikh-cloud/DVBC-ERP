@@ -707,7 +707,7 @@ const CandidateOnboardingForm = () => {
                     </Button>
                     <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label>Degree / Qualification</Label>
+                        <Label>Degree / Qualification *</Label>
                         <Input
                           value={edu.degree}
                           onChange={(e) => {
