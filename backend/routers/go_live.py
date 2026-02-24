@@ -66,7 +66,7 @@ async def get_go_live_checklist(
         },
         "official_email": {
             "label": "Official Email Assigned",
-            "completed": bool(employee.get("official_email")),
+            "completed": bool(employee.get("official_email") or employee.get("email")),
             "icon": "Mail"
         },
         "department_assigned": {
