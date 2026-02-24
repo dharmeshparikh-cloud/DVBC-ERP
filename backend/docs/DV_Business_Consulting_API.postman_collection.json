@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://approval-workflows.preview.emergentagent.com",
+      "value": "https://netra-rbac-hub.preview.emergentagent.com",
       "type": "string"
     },
     {
