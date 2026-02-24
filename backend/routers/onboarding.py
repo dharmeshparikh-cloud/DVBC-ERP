@@ -645,9 +645,14 @@ async def get_public_submission(token: str):
         raise HTTPException(status_code=404, detail="Invalid or expired link")
     
     # Check expiry
-    expires_at = datetime.fromisoformat(submission["link_expires_at"].replace("Z", "+00:00"))
-    if datetime.now(timezone.utc) > expires_at:
-        raise HTTPException(status_code=410, detail="This link has expired. Please contact HR.")
+    link_expires = submission.get("link_expires_at")
+    if link_expires:
+        if isinstance(link_expires, str):
+            expires_at = datetime.fromisoformat(link_expires.replace("Z", "+00:00"))
+        else:
+            expires_at = link_expires.replace(tzinfo=timezone.utc) if link_expires.tzinfo is None else link_expires
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(status_code=410, detail="This link has expired. Please contact HR.")
     
     # Check status
     if submission["status"] == "completed":
