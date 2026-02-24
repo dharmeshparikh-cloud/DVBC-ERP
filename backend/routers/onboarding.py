@@ -19,7 +19,13 @@ import secrets
 from .models import User
 from .deps import get_db, get_role_group, has_role
 from .auth import get_current_user
-from services.email_service import send_email
+from services.email_service import (
+    send_email,
+    send_onboarding_invite_email,
+    send_onboarding_submission_notification_email,
+    send_onboarding_revision_request_email,
+    send_onboarding_complete_email
+)
 
 router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
 
