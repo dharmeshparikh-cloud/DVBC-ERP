@@ -90,11 +90,11 @@ const Employees = () => {
   const fetchData = async () => {
     try {
       const [empRes, deptRes] = await Promise.all([
-        axios.get(`${API}/employees`),
+        axios.get(`${API}/employees/all`), // Use /all endpoint for array response
         axios.get(`${API}/employees/departments/list`)
       ]);
-      // Handle both paginated and array responses
-      const empData = empRes.data?.items || empRes.data || [];
+      // Handle response - /all returns array directly
+      const empData = empRes.data;
       setEmployees(Array.isArray(empData) ? empData : []);
       setDepartments(deptRes.data || []);
       
