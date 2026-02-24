@@ -348,7 +348,12 @@ const GoLiveDashboard = () => {
           <span className={checked ? 'text-emerald-600 font-medium' : ''}>{label}</span>
           {!checked && isClickable && (
             <p className={`text-xs ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-              Click to complete →
+              Click to update →
+            </p>
+          )}
+          {!checked && isApprovalItem && (
+            <p className={`text-xs ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+              Requires approval action
             </p>
           )}
         </div>
