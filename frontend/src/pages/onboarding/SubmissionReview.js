@@ -31,7 +31,7 @@ const EMPLOYMENT_TYPES = [
 const SubmissionReview = () => {
   const { submissionId } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState(null);
@@ -56,7 +56,9 @@ const SubmissionReview = () => {
   const [revisionReason, setRevisionReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
 
-  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+  // Get token from localStorage (same as App.js pattern)
+  const getToken = () => localStorage.getItem('token');
+  const authHeaders = { headers: { Authorization: `Bearer ${getToken()}` } };
   const canApprove = user?.role === 'hr_manager' || user?.role === 'admin';
 
   // Fetch submission
