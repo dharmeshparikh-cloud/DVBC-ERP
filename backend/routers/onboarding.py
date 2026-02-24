@@ -966,7 +966,7 @@ async def generate_employee_id(db) -> str:
 def calculate_submission_progress(submission: dict) -> dict:
     """Calculate completion progress of a submission."""
     
-    total_items = 7
+    total_items = 8  # Increased to include references
     completed = 0
     
     # Candidate items
@@ -982,6 +982,14 @@ def calculate_submission_progress(submission: dict) -> dict:
         bd = submission["bank_details"]
         if bd.get("account_number") and bd.get("ifsc_code"):
             completed += 1
+    
+    # Professional & Personal References
+    pr = submission.get("professional_reference")
+    per = submission.get("personal_reference")
+    if pr and per:
+        if pr.get("name") and pr.get("phone") and pr.get("company_name") and pr.get("designation"):
+            if per.get("name") and per.get("phone") and per.get("address"):
+                completed += 1
     
     if submission.get("emergency_contact"):
         ec = submission["emergency_contact"]
@@ -1026,6 +1034,16 @@ def validate_submission_complete(submission: dict) -> list:
     bd = submission.get("bank_details")
     if not bd or not bd.get("account_number") or not bd.get("ifsc_code"):
         errors.append("Bank details incomplete")
+    
+    # Professional Reference
+    pr = submission.get("professional_reference")
+    if not pr or not pr.get("name") or not pr.get("phone") or not pr.get("company_name") or not pr.get("designation"):
+        errors.append("Professional reference incomplete")
+    
+    # Personal Reference
+    per = submission.get("personal_reference")
+    if not per or not per.get("name") or not per.get("phone") or not per.get("address"):
+        errors.append("Personal reference incomplete")
     
     # Emergency contact
     ec = submission.get("emergency_contact")
