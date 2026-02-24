@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
@@ -24,6 +24,7 @@ import {
   PieChart as RechartsPie, Pie, Cell, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
 
 const AdminDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -31,36 +32,13 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const isDark = theme === 'dark';
   
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    sales: null,
-    hr: null,
-    consulting: null,
-    finance: null
-  });
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-  
   // Quick Check-in Modal state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
-  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
-  useEffect(() => {
-    fetchAllStats();
-    fetchAttendanceStatus();
-  }, []);
-
-  const fetchAttendanceStatus = async () => {
-    try {
-      const res = await axios.get(`${API}/my/check-status`);
-      setAttendanceStatus(res.data);
-    } catch (err) {
-      console.error('Failed to fetch attendance status');
-    }
-  };
-
-  const fetchAllStats = async () => {
-    setLoading(true);
-    try {
+  // Fetch all stats using React Query for caching
+  const { data: stats, isLoading: loading, refetch, dataUpdatedAt } = useQuery({
+    queryKey: ['admin-dashboard-stats'],
+    queryFn: async () => {
       const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
       
       // Fetch all department stats in parallel
@@ -74,7 +52,7 @@ const AdminDashboard = () => {
       const hrData = hrRes?.ok ? await hrRes.json() : null;
       const consultingData = consultingRes?.ok ? await consultingRes.json() : null;
 
-      setStats({
+      return {
         sales: salesData,
         hr: hrData,
         consulting: consultingData,
@@ -84,14 +62,22 @@ const AdminDashboard = () => {
           receivables: 12500000,
           profitMargin: 32 
         }
-      });
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch attendance status
+  const { data: attendanceStatus } = useQuery({
+    queryKey: ['attendance-status'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/my/check-status`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  const lastUpdated = dataUpdatedAt ? new Date(dataUpdatedAt) : new Date();
 
   const formatCurrency = (value) => {
     if (!value) return '₹0';
