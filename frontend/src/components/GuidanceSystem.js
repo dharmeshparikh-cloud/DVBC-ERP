@@ -445,6 +445,7 @@ export const HelpPanel = () => {
         <div className={`flex border-b ${isDark ? 'border-zinc-700' : 'border-zinc-200'} -mx-6 px-6 overflow-x-auto`}>
           {[
             { id: 'smart', label: 'Smart Suggestions', icon: Bell, badge: smartRecommendations?.totalPending },
+            { id: 'help', label: 'Help Articles', icon: HelpCircle, badge: whatsNew.length > 0 ? whatsNew.length : null },
             { id: 'ai', label: 'Ask AI', icon: Bot },
             { id: 'workflows', label: 'Guides', icon: List },
             { id: 'tips', label: 'Tips', icon: Lightbulb }
