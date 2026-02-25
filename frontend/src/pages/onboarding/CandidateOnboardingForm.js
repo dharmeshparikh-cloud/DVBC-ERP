@@ -652,40 +652,75 @@ const CandidateOnboardingForm = () => {
     );
   }
 
-  // Submitted state
+  // Submitted state - Thank You Page
   if (submission?.status === 'submitted') {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center p-4">
+        <Card className="max-w-md w-full shadow-lg">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4 animate-bounce">
+              <CheckCircle2 className="w-10 h-10 text-green-600" />
             </div>
-            <CardTitle className="text-green-600">Application Submitted!</CardTitle>
-            <CardDescription>
-              Thank you, {submission.candidate_name}! Your onboarding details have been submitted successfully.
+            <CardTitle className="text-2xl text-green-600">Application Submitted!</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Thank you, <span className="font-semibold">{submission.candidate_name}</span>!<br />
+              Your onboarding details have been submitted successfully.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-zinc-50 rounded-lg p-4 space-y-2 text-sm">
+            <div className="bg-zinc-50 rounded-lg p-4 space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-zinc-500">Position</span>
-                <span className="font-medium">{submission.offered_position}</span>
+                <span className="text-zinc-500">Position Applied</span>
+                <span className="font-medium text-zinc-900">{submission.offered_position}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Submitted On</span>
-                <span className="font-medium">
-                  {new Date(submission.submitted_at).toLocaleDateString()}
+                <span className="font-medium text-zinc-900">
+                  {new Date(submission.submitted_at).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Reference Number</span>
+                <span className="font-mono text-xs text-zinc-700">{submission.id?.slice(0, 8).toUpperCase()}</span>
+              </div>
             </div>
-            <Alert>
-              <Clock className="h-4 w-4" />
-              <AlertDescription>
-                Our HR team will review your details and contact you soon.
+            
+            <Alert className="bg-blue-50 border-blue-200">
+              <Clock className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>What happens next?</strong><br />
+                Our HR team will review your details and contact you within 2-3 business days. 
+                Please keep your phone accessible.
               </AlertDescription>
             </Alert>
+
+            <div className="pt-4 border-t text-center">
+              <p className="text-sm text-zinc-500 mb-3">
+                You can safely close this window now.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.close()}
+                className="w-full"
+              >
+                Close Window
+              </Button>
+              <p className="text-xs text-zinc-400 mt-2">
+                If the window doesn't close, you can close this tab manually.
+              </p>
+            </div>
           </CardContent>
+          <CardFooter className="flex justify-center pt-0">
+            <p className="text-xs text-zinc-400">
+              D&V Business Consulting
+            </p>
+          </CardFooter>
         </Card>
       </div>
     );
