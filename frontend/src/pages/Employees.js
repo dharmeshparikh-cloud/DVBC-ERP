@@ -163,7 +163,7 @@ const Employees = () => {
       await axios.patch(`${API}/employees/${selectedEmployee.id}`, payload);
       toast.success('Employee updated successfully');
       setEditDialog(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update employee');
     }
@@ -175,7 +175,7 @@ const Employees = () => {
     try {
       await axios.delete(`${API}/employees/${employeeId}`);
       toast.success('Employee deactivated');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to deactivate employee');
     }
@@ -188,7 +188,7 @@ const Employees = () => {
       await axios.post(`${API}/employees/${selectedEmployee.id}/link-user?user_id=${userId}`);
       toast.success('Employee linked to user');
       setLinkUserDialog(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to link user');
     }
@@ -206,7 +206,7 @@ const Employees = () => {
       toast.success(`System access granted! Email: ${res.data.email}, Password: ${res.data.temporary_password}`);
       setGrantAccessDialog(false);
       setAccessFormData({ role: 'consultant', password: 'Welcome@123' });
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to grant access');
     }
@@ -218,7 +218,7 @@ const Employees = () => {
     try {
       await axios.delete(`${API}/employees/${employeeId}/revoke-access`);
       toast.success('System access revoked');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to revoke access');
     }
@@ -230,7 +230,7 @@ const Employees = () => {
     try {
       await axios.post(`${API}/employees/${employeeId}/unlink-user`);
       toast.success('User unlinked');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to unlink user');
     }
@@ -243,7 +243,7 @@ const Employees = () => {
         reason: currentlyDisabled ? '' : 'Disabled by admin'
       });
       toast.success(`Mobile app access ${currentlyDisabled ? 'enabled' : 'disabled'}`);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to toggle mobile access');
     }
