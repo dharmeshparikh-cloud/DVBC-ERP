@@ -15,6 +15,7 @@ import { formatINR } from '../../utils/currency';
 import useDraft from '../../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../../components/DraftSelector';
 import { StageResumeBar } from '../../components/sales-funnel/BusinessLogicUI';
+import { useQuery } from '@tanstack/react-query';
 
 // Duration type to months mapping
 const DURATION_TYPE_MONTHS = {
