@@ -38,7 +38,7 @@ const MyExpenses = () => {
   
   // Draft support
   const {
-    drafts,
+    drafts = [],
     loadingDrafts,
     saving: savingDraft,
     lastSaved,
