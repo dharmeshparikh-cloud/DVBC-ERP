@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -11,13 +11,12 @@ import {
   ChevronDown, ChevronUp, Settings, UserPlus, Key, Save
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const UserManagement = () => {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('users');
-  const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   
@@ -49,26 +48,29 @@ const UserManagement = () => {
   
   const isAdmin = user?.role === 'admin';
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
+  // Fetch users and roles with React Query
+  const { data: usersRolesData, isLoading: loading } = useQuery({
+    queryKey: ['users-roles-management'],
+    queryFn: async () => {
       const [usersRes, rolesRes] = await Promise.all([
         axios.get(`${API}/users-with-roles`),
         axios.get(`${API}/roles`)
       ]);
       const usersData = usersRes.data?.items || usersRes.data || [];
       const rolesData = rolesRes.data?.items || rolesRes.data || [];
-      setUsers(Array.isArray(usersData) ? usersData : []);
-      setRoles(Array.isArray(rolesData) ? rolesData : []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+      return {
+        users: Array.isArray(usersData) ? usersData : [],
+        roles: Array.isArray(rolesData) ? rolesData : []
+      };
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+  });
+
+  const users = usersRolesData?.users || [];
+  const roles = usersRolesData?.roles || [];
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['users-roles-management'] });
   };
 
   const fetchPermissionModules = async () => {
