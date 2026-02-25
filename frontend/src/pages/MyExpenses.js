@@ -239,7 +239,7 @@ const MyExpenses = () => {
             </DialogHeader>
             
             {/* Draft Selector */}
-            {drafts.length > 0 && (
+            {drafts && drafts.length > 0 && (
               <DraftSelector 
                 drafts={drafts}
                 onLoadDraft={handleLoadDraft}
