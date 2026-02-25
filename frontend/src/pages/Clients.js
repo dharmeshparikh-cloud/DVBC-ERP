@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -12,6 +12,7 @@ import {
   Globe, Users as UsersIcon, TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const INDUSTRIES = [
   'Technology', 'Healthcare', 'Finance', 'Manufacturing', 
@@ -21,12 +22,9 @@ const INDUSTRIES = [
 
 const Clients = () => {
   const { user } = useContext(AuthContext);
-  const [clients, setClients] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
-  const [stats, setStats] = useState(null);
 
   // Dialogs
   const [createDialog, setCreateDialog] = useState(false);
