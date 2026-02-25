@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Clock, CheckCircle, XCircle, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const STATUS_STYLES = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -15,32 +16,33 @@ const STATUS_STYLES = {
 
 const LeaveManagement = () => {
   const { user } = useContext(AuthContext);
-  const [myRequests, setMyRequests] = useState([]);
-  const [allRequests, setAllRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('my');
 
   const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
 
-  useEffect(() => { fetchData(); }, []);
-
-  const fetchData = async () => {
-    try {
+  // Fetch leave requests with React Query
+  const { data: leaveData, isLoading: loading } = useQuery({
+    queryKey: ['leave-requests', isHR],
+    queryFn: async () => {
       const promises = [axios.get(`${API}/leave-requests`)];
       if (isHR) promises.push(axios.get(`${API}/leave-requests/all`));
       const results = await Promise.all(promises);
       const myData = results[0].data?.items || results[0].data || [];
-      setMyRequests(Array.isArray(myData) ? myData : []);
+      let allData = [];
       if (results[1]) {
-        const allData = results[1].data?.items || results[1].data || [];
-        setAllRequests(Array.isArray(allData) ? allData : []);
+        allData = results[1].data?.items || results[1].data || [];
       }
-    } catch (error) {
-      toast.error('Failed to fetch leave data');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        myRequests: Array.isArray(myData) ? myData : [],
+        allRequests: Array.isArray(allData) ? allData : []
+      };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const myRequests = leaveData?.myRequests || [];
+  const allRequests = leaveData?.allRequests || [];
 
   const displayRequests = activeTab === 'all' ? allRequests : myRequests;
   const pendingCount = myRequests.filter(r => r.status === 'pending').length;
