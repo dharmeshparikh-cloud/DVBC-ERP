@@ -388,7 +388,7 @@ const MyExpenses = () => {
       {/* Expense List */}
       {loading ? (
         <div className="flex items-center justify-center h-40"><div className="text-zinc-500">Loading...</div></div>
-      ) : data.expenses.length === 0 ? (
+      ) : (!data.expenses || data.expenses.length === 0) ? (
         <Card className="border-zinc-200 shadow-none rounded-sm">
           <CardContent className="flex flex-col items-center justify-center h-40">
             <Receipt className="w-10 h-10 text-zinc-300 mb-3" />
