@@ -71,10 +71,61 @@ const PricingPlanBuilder = () => {
     clearDraft
   } = useDraft('pricing_plan', generatePricingDraftTitle);
   
-  // Masters data from Admin
-  const [tenureTypes, setTenureTypes] = useState([]);
-  const [consultantRoles, setConsultantRoles] = useState([]);
-  const [meetingTypes, setMeetingTypes] = useState([]);
+  // Masters data from Admin - fetched with React Query
+  const { data: mastersData, isLoading: mastersLoading } = useQuery({
+    queryKey: ['pricing-plan-masters'],
+    queryFn: async () => {
+      const [tenureRes, rolesRes, meetingsRes] = await Promise.all([
+        axios.get(`${API}/masters/tenure-types`),
+        axios.get(`${API}/masters/consultant-roles`),
+        axios.get(`${API}/masters/meeting-types`)
+      ]);
+      return {
+        tenureTypes: tenureRes.data || [],
+        consultantRoles: rolesRes.data || [],
+        meetingTypes: meetingsRes.data || []
+      };
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutes for masters
+  });
+
+  const tenureTypes = mastersData?.tenureTypes || [];
+  const consultantRoles = mastersData?.consultantRoles || [];
+  const meetingTypes = mastersData?.meetingTypes || [];
+
+  // Fetch lead info with React Query
+  const { data: lead } = useQuery({
+    queryKey: ['lead', leadId],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/leads/${leadId}`);
+      return response.data;
+    },
+    enabled: !!leadId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Check meeting access with React Query
+  const { data: meetingAccessData } = useQuery({
+    queryKey: ['lead-meeting-access', leadId],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/leads/${leadId}/can-access-pricing`);
+      return response.data;
+    },
+    enabled: !!leadId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (meetingAccessData) {
+      if (!meetingAccessData.can_access) {
+        setMeetingAccessBlocked(true);
+        setMeetingAccessReason(meetingAccessData.reason);
+      } else {
+        setMeetingAccessBlocked(false);
+        setMeetingAccessReason('');
+      }
+    }
+  }, [meetingAccessData]);
   
   // TOP-DOWN: Total Investment is the primary input
   const [totalInvestment, setTotalInvestment] = useState(0);
