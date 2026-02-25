@@ -31,11 +31,6 @@ const CATEGORY_COLORS = {
 const Reports = () => {
   const { user } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
-  const [reports, setReports] = useState([]);
-  const [reportsByCategory, setReportsByCategory] = useState({});
-  const [categories, setCategories] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   
@@ -58,38 +53,41 @@ const Reports = () => {
   // Download state
   const [downloading, setDownloading] = useState({});
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
+  // Fetch reports with React Query (caching enabled)
+  const { data: reportsData, isLoading: loading } = useQuery({
+    queryKey: ['reports-all'],
+    queryFn: async () => {
       const [reportsRes, categoriesRes] = await Promise.all([
         axios.get(`${API}/reports`),
         axios.get(`${API}/reports/categories`)
       ]);
       
-      const reportsData = reportsRes.data?.reports || reportsRes.data?.items || [];
+      const reportsArr = reportsRes.data?.reports || reportsRes.data?.items || [];
       const byCategory = reportsRes.data?.by_category || {};
-      setReports(Array.isArray(reportsData) ? reportsData : []);
-      setReportsByCategory(byCategory);
-      const categoriesData = categoriesRes.data?.items || categoriesRes.data || [];
-      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      const categoriesArr = categoriesRes.data?.items || categoriesRes.data || [];
       
-      // Try to get stats (may fail for non-admin/manager)
+      let stats = null;
       try {
         const statsRes = await axios.get(`${API}/reports/stats`);
-        setStats(statsRes.data);
+        stats = statsRes.data;
       } catch (e) {
-        console.log('Stats not available for this role');
+        // Stats not available for this role
       }
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-      toast.error('Failed to load reports');
-    } finally {
-      setLoading(false);
-    }
-  };
+      
+      return {
+        reports: Array.isArray(reportsArr) ? reportsArr : [],
+        reportsByCategory: byCategory,
+        categories: Array.isArray(categoriesArr) ? categoriesArr : [],
+        stats
+      };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const reports = reportsData?.reports || [];
+  const reportsByCategory = reportsData?.reportsByCategory || {};
+  const categories = reportsData?.categories || [];
+  const stats = reportsData?.stats;
 
   const handlePreview = async (reportId) => {
     setPreviewLoading(true);
