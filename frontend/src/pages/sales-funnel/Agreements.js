@@ -277,7 +277,7 @@ const Agreements = () => {
         project_tenure_months: 12,
         team_deployment: []
       });
-      fetchData();
+      invalidateData();
     } catch (error) {
       const detail = error.response?.data?.detail;
       // Handle Pydantic validation errors (array format)
@@ -305,7 +305,7 @@ const Agreements = () => {
       toast.success('Agreement email sent to client');
       setEmailDialogOpen(false);
       setSelectedAgreement(null);
-      fetchData();
+      invalidateData();
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
