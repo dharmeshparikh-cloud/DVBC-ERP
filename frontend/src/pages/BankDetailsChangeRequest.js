@@ -96,54 +96,6 @@ const BankDetailsChangeRequest = () => {
     }
   };
 
-  const fetchEmployeeData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      // Get employee data linked to current user
-      const response = await axios.get(`${API}/my/profile`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setEmployee(response.data);
-      
-      // Pre-fill form with existing bank details
-      // Handle both old format (bank_details object) and new format (individual fields)
-      const bd = response.data?.bank_details || {};
-      const bankName = bd.bank_name || response.data?.bank_name || '';
-      const accountNumber = bd.account_number || response.data?.account_number || '';
-      const ifscCode = bd.ifsc_code || response.data?.ifsc_code || '';
-      const branchName = bd.branch_name || bd.branch || response.data?.bank_branch || '';
-      const holderName = bd.account_holder_name || `${response.data?.first_name || ''} ${response.data?.last_name || ''}`.trim();
-      
-      if (bankName || accountNumber) {
-        setFormData(prev => ({
-          ...prev,
-          account_holder_name: holderName,
-          account_number: accountNumber,
-          confirm_account_number: accountNumber,
-          bank_name: bankName,
-          ifsc_code: ifscCode,
-          branch_name: branchName
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching employee data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPendingRequests = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/my/bank-change-requests`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setPendingRequests(response.data || []);
-    } catch (error) {
-      console.error('Error fetching pending requests:', error);
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
