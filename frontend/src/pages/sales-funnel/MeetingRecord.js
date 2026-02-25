@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../../App';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -17,22 +17,22 @@ import {
   Download, X, File
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const MeetingRecord = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   const fileInputRef = useRef(null);
   
-  const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [meetings, setMeetings] = useState([]);
   const [showMOMDialog, setShowMOMDialog] = useState(false);
   const [showViewMOMDialog, setShowViewMOMDialog] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [pendingAttachments, setPendingAttachments] = useState([]); // For new meeting
+  const [pendingAttachments, setPendingAttachments] = useState([]);
   
   // Meeting basic info
   const [formData, setFormData] = useState({
@@ -55,6 +55,30 @@ const MeetingRecord = () => {
     next_steps: ''
   });
 
+  // Fetch lead and meetings with React Query
+  const { data: meetingData } = useQuery({
+    queryKey: ['meeting-records', leadId],
+    queryFn: async () => {
+      const [leadRes, meetingsRes] = await Promise.all([
+        axios.get(`${API}/leads/${leadId}`),
+        axios.get(`${API}/leads/${leadId}/meetings`).catch(() => ({ data: [] }))
+      ]);
+      return {
+        lead: leadRes.data,
+        meetings: meetingsRes.data || []
+      };
+    },
+    enabled: !!leadId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const lead = meetingData?.lead;
+  const meetings = meetingData?.meetings || [];
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['meeting-records', leadId] });
+  };
+
   // Check if this is the first offline meeting
   const isFirstOfflineMeeting = () => {
     const offlineMeetings = meetings.filter(m => 
@@ -62,12 +86,6 @@ const MeetingRecord = () => {
     );
     return offlineMeetings.length === 0 && formData.meeting_type === 'Offline';
   };
-
-  useEffect(() => {
-    if (leadId) {
-      fetchLead();
-      fetchMeetings();
-    } else {
       toast.error('No lead ID provided');
       navigate('/leads');
     }
