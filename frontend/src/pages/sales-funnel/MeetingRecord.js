@@ -86,30 +86,6 @@ const MeetingRecord = () => {
     );
     return offlineMeetings.length === 0 && formData.meeting_type === 'Offline';
   };
-      toast.error('No lead ID provided');
-      navigate('/leads');
-    }
-  }, [leadId]);
-
-  const fetchLead = async () => {
-    try {
-      const response = await axios.get(`${API}/leads/${leadId}`);
-      setLead(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch lead');
-      navigate('/leads');
-    }
-  };
-
-  const fetchMeetings = async () => {
-    try {
-      const response = await axios.get(`${API}/meetings/lead/${leadId}`);
-      setMeetings(response.data || []);
-    } catch (error) {
-      console.error('Error fetching meetings:', error);
-      setMeetings([]);
-    }
-  };
 
   const handleAddAttendee = () => {
     setFormData(prev => ({
