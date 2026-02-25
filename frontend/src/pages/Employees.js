@@ -33,16 +33,11 @@ const DOCUMENT_TYPES = [
 
 const Employees = () => {
   const { user } = useContext(AuthContext);
-  const [employees, setEmployees] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
-  const [departments, setDepartments] = useState([]);
-  const [stats, setStats] = useState(null);
   const [activeView, setActiveView] = useState('directory'); // directory, orgchart
   const [viewMode, setViewMode] = useState('list'); // list, card (for directory tab)
-  const [orgChart, setOrgChart] = useState([]);
 
   // Dialogs
   const [viewDialog, setViewDialog] = useState(false);
