@@ -761,10 +761,16 @@ const SubmissionReview = () => {
                 <FileText className="w-4 h-4" />
                 Documents ({submission.documents?.length || 0})
               </CardTitle>
-              {hv.documents_verified ? (
+              {/* Only show Verified badge if documents exist AND are verified */}
+              {hv.documents_verified && (submission.documents?.length || 0) > 0 ? (
                 <Badge className="bg-green-100 text-green-700">
                   <CheckCircle2 className="w-3 h-3 mr-1" />
                   Verified
+                </Badge>
+              ) : (submission.documents?.length || 0) === 0 ? (
+                <Badge className="bg-amber-100 text-amber-700">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  No Documents
                 </Badge>
               ) : canApprove && submission.status === 'submitted' ? (
                 <Button size="sm" onClick={handleVerifyDocuments} disabled={processing}>
@@ -791,7 +797,28 @@ const SubmissionReview = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-zinc-500 text-sm">No documents uploaded</p>
+                <div className="text-center py-4">
+                  <p className="text-zinc-500 text-sm mb-3">No documents uploaded by candidate</p>
+                  {canApprove && (
+                    <HRDocumentUpload 
+                      submissionId={submissionId} 
+                      onUploadComplete={fetchSubmission}
+                      authHeaders={authHeaders}
+                    />
+                  )}
+                </div>
+              )}
+              
+              {/* HR Document Upload Section - always visible for HR */}
+              {canApprove && (submission.documents?.length || 0) > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-sm font-medium mb-2">Upload Additional Documents</p>
+                  <HRDocumentUpload 
+                    submissionId={submissionId} 
+                    onUploadComplete={fetchSubmission}
+                    authHeaders={authHeaders}
+                  />
+                </div>
               )}
             </CardContent>
           </Card>
