@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import useDraft from '../hooks/useDraft';
 import DraftIndicator from '../components/DraftIndicator';
 import DraftSelector from '../components/DraftSelector';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const LEAVE_TYPES = [
   { value: 'casual_leave', label: 'Casual Leave', key: 'casual' },
@@ -34,9 +35,7 @@ const generateLeaveDraftTitle = (data) => {
 };
 
 const MyLeaves = () => {
-  const [requests, setRequests] = useState([]);
-  const [balance, setBalance] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [withdrawingId, setWithdrawingId] = useState(null);
   
@@ -86,21 +85,27 @@ const MyLeaves = () => {
     }
   }, [formData, dialogOpen, autoSave]);
 
-  useEffect(() => { fetchData(); }, []);
-
-  const fetchData = async () => {
-    try {
+  // Fetch leave data with React Query
+  const { data: leaveData, isLoading: loading } = useQuery({
+    queryKey: ['my-leaves'],
+    queryFn: async () => {
       const [reqRes, balRes] = await Promise.all([
         axios.get(`${API}/leave-requests`),
         axios.get(`${API}/my/leave-balance`).catch(() => ({ data: null }))
       ]);
-      setRequests(reqRes.data);
-      setBalance(balRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
+      return {
+        requests: reqRes.data || [],
+        balance: balRes.data
+      };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const requests = leaveData?.requests || [];
+  const balance = leaveData?.balance;
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['my-leaves'] });
   };
   
   // Load a saved draft
@@ -125,7 +130,7 @@ const MyLeaves = () => {
       clearDraft();
       setDialogOpen(false);
       setFormData({ leave_type: 'casual_leave', start_date: '', end_date: '', reason: '', is_half_day: false, half_day_type: 'first_half' });
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to submit');
     }
