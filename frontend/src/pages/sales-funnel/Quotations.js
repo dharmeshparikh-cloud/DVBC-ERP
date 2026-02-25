@@ -154,7 +154,7 @@ const Quotations = () => {
       clearDraft();
       setDialogOpen(false);
       setSelectedPlanDetails(null);
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create quotation');
     }
@@ -164,7 +164,7 @@ const Quotations = () => {
     try {
       await axios.patch(`${API}/quotations/${quotationId}/finalize`);
       toast.success('Quotation finalized');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error('Failed to finalize quotation');
     }
