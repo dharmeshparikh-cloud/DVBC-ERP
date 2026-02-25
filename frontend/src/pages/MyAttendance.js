@@ -185,7 +185,7 @@ const MyAttendance = () => {
         isOpen={showQuickCheckIn} 
         onClose={() => {
           setShowQuickCheckIn(false);
-          fetchData(); // Refresh data after check-in/out
+          queryClient.invalidateQueries({ queryKey: ['my', 'attendance'] }); // Refresh data after check-in/out
         }} 
         user={user} 
       />
