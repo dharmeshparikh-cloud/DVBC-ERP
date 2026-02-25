@@ -45,33 +45,28 @@ const EVENT_LABELS = {
 
 const SecurityAuditLog = () => {
   const { user } = useContext(AuthContext);
-  const [logs, setLogs] = useState([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [searchEmail, setSearchEmail] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [loading, setLoading] = useState(true);
   const limit = 25;
 
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
+  // Fetch logs with React Query
+  const { data: logsData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['security-audit-logs', page, filterType, searchEmail],
+    queryFn: async () => {
       const params = new URLSearchParams({ skip: page * limit, limit });
       if (searchEmail) params.append('email', searchEmail);
       if (filterType) params.append('event_type', filterType);
       const resp = await axios.get(`${API}/security-audit-logs?${params}`);
-      setLogs(resp.data.logs);
-      setTotal(resp.data.total);
-    } catch (err) {
-      toast.error('Failed to load audit logs');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return { logs: resp.data.logs, total: resp.data.total };
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
 
-  useEffect(() => { fetchLogs(); }, [page, filterType]);
+  const logs = logsData?.logs || [];
+  const total = logsData?.total || 0;
 
-  const handleSearch = () => { setPage(0); fetchLogs(); };
+  const handleSearch = () => { setPage(0); refetch(); };
 
   const downloadCSV = () => {
     const headers = ['Timestamp', 'Event', 'Email', 'IP Address', 'User Agent', 'Details'];
