@@ -154,7 +154,7 @@ const ConsultingMeetings = () => {
         next_meeting_date: momData.next_meeting_date ? new Date(momData.next_meeting_date).toISOString() : null
       });
       toast.success('Consulting MOM saved');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
     } catch { toast.error('Failed to save MOM'); }
   };
 
@@ -168,7 +168,7 @@ const ConsultingMeetings = () => {
       toast.success('Action item added');
       setMomData(prev => ({ ...prev, action_items: [...prev.action_items, res.data.action_item] }));
       setNewActionItem({ description: '', assigned_to_id: '', due_date: '', priority: 'medium', create_follow_up_task: true, notify_reporting_manager: true });
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
     } catch { toast.error('Failed to add action item'); }
   };
 
@@ -177,7 +177,7 @@ const ConsultingMeetings = () => {
       await axios.patch(`${API}/meetings/${selectedMeeting.id}/action-items/${actionItemId}?status=${status}`);
       setMomData(prev => ({ ...prev, action_items: prev.action_items.map(i => i.id === actionItemId ? { ...i, status } : i) }));
       toast.success('Status updated');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
     } catch { toast.error('Failed to update'); }
   };
 
@@ -185,7 +185,7 @@ const ConsultingMeetings = () => {
     try {
       const res = await axios.post(`${API}/meetings/${selectedMeeting.id}/send-mom`);
       toast.success(`MOM sent to ${res.data.client_name || res.data.client_email}`);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
       setMomDialogOpen(false);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to send MOM');
