@@ -23,15 +23,11 @@ const generateQuotationDraftTitle = (data) => {
 const Quotations = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   const pricingPlanIdFromUrl = searchParams.get('pricing_plan_id');
   
-  const [quotations, setQuotations] = useState([]);
-  const [pricingPlans, setPricingPlans] = useState([]);
-  const [leads, setLeads] = useState([]);
-  const [agreements, setAgreements] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState(null);
@@ -52,7 +48,7 @@ const Quotations = () => {
     convertDraft,
     clearDraft,
     registerFormDataGetter
-  } = useDraft('quotation', generateQuotationDraftTitle, 3000, leadId);  // Filter by lead_id
+  } = useDraft('quotation', generateQuotationDraftTitle, 3000, leadId);
   
   const [formData, setFormData] = useState({
     pricing_plan_id: pricingPlanIdFromUrl || '',
@@ -62,7 +58,6 @@ const Quotations = () => {
     terms_and_conditions: 'Standard terms and conditions apply.\n\n1. Payment due within 15 days of invoice.\n2. Services subject to availability.\n3. This quotation is valid for 30 days.'
   });
   
-  // Register form data getter for save-on-leave
   const formDataRef = useRef(formData);
   useEffect(() => {
     formDataRef.current = formData;
@@ -84,9 +79,34 @@ const Quotations = () => {
     }
   }, [formData, dialogOpen, autoSave]);
 
-  useEffect(() => {
-    fetchData();
-  }, [leadId]);
+  // Fetch quotations data with React Query
+  const { data: quotationsData, isLoading: loading } = useQuery({
+    queryKey: ['quotations-data', leadId],
+    queryFn: async () => {
+      const [quotationsRes, plansRes, leadsRes, agreementsRes] = await Promise.all([
+        axios.get(`${API}/quotations`, { params: leadId ? { lead_id: leadId } : {} }),
+        axios.get(`${API}/pricing-plans`, { params: leadId ? { lead_id: leadId } : {} }),
+        axios.get(`${API}/leads`),
+        axios.get(`${API}/agreements`).catch(() => ({ data: [] }))
+      ]);
+      return {
+        quotations: quotationsRes.data || [],
+        pricingPlans: plansRes.data || [],
+        leads: leadsRes.data || [],
+        agreements: agreementsRes.data || []
+      };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const quotations = quotationsData?.quotations || [];
+  const pricingPlans = quotationsData?.pricingPlans || [];
+  const leads = quotationsData?.leads || [];
+  const agreements = quotationsData?.agreements || [];
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['quotations-data'] });
+  };
 
   // Auto-open dialog with pre-selected plan when coming from SOW selection
   useEffect(() => {
@@ -104,25 +124,6 @@ const Quotations = () => {
       }
     }
   }, [loading, pricingPlanIdFromUrl, pricingPlans, autoOpenHandled]);
-
-  const fetchData = async () => {
-    try {
-      const [quotationsRes, plansRes, leadsRes, agreementsRes] = await Promise.all([
-        axios.get(`${API}/quotations`, { params: leadId ? { lead_id: leadId } : {} }),
-        axios.get(`${API}/pricing-plans`, { params: leadId ? { lead_id: leadId } : {} }),
-        axios.get(`${API}/leads`),
-        axios.get(`${API}/agreements`).catch(() => ({ data: [] }))
-      ]);
-      setQuotations(quotationsRes.data);
-      setPricingPlans(plansRes.data);
-      setLeads(leadsRes.data);
-      setAgreements(agreementsRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // When pricing plan is selected, show its details
   const handlePlanSelect = (planId) => {
