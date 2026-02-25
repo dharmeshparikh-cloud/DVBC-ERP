@@ -43,9 +43,7 @@ const PricingPlanBuilder = () => {
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   
-  const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [mastersLoading, setMastersLoading] = useState(true);
   const [showDraftSelector, setShowDraftSelector] = useState(false);
   const [meetingAccessBlocked, setMeetingAccessBlocked] = useState(false);
   const [meetingAccessReason, setMeetingAccessReason] = useState('');
