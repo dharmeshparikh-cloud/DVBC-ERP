@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -12,6 +12,7 @@ import {
   Building2, Trash2, FileText, Upload, Image
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const EXPENSE_CATEGORIES = [
   { value: 'travel', label: 'Travel' },
@@ -34,12 +35,8 @@ const STATUS_STYLES = {
 
 const Expenses = () => {
   const { user } = useContext(AuthContext);
-  const [expenses, setExpenses] = useState([]);
-  const [clients, setClients] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState('');
-  const [stats, setStats] = useState(null);
 
   // Dialogs
   const [createDialog, setCreateDialog] = useState(false);
@@ -69,15 +66,44 @@ const Expenses = () => {
 
   const isHROrAdmin = ['admin', 'hr_manager', 'manager'].includes(user?.role);
 
-  useEffect(() => {
-    fetchData();
-  }, [filterStatus]);
-
-  const fetchData = async () => {
-    try {
+  // Fetch expenses with React Query
+  const { data: expensesData, isLoading: loading } = useQuery({
+    queryKey: ['expenses-data', filterStatus],
+    queryFn: async () => {
       const [expensesRes, clientsRes, projectsRes] = await Promise.all([
         axios.get(`${API}/expenses${filterStatus ? `?status=${filterStatus}` : ''}`),
         axios.get(`${API}/clients`),
+        axios.get(`${API}/projects`)
+      ]);
+      
+      let stats = null;
+      if (isHROrAdmin) {
+        try {
+          const statsRes = await axios.get(`${API}/expenses/stats`);
+          stats = statsRes.data;
+        } catch (e) {
+          // Stats might not be available
+        }
+      }
+      
+      return {
+        expenses: expensesRes.data || [],
+        clients: clientsRes.data || [],
+        projects: projectsRes.data || [],
+        stats
+      };
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  const expenses = expensesData?.expenses || [];
+  const clients = expensesData?.clients || [];
+  const projects = expensesData?.projects || [];
+  const stats = expensesData?.stats;
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['expenses-data'] });
+  };
         axios.get(`${API}/projects`)
       ]);
       const expData = expensesRes.data?.items || expensesRes.data || [];
