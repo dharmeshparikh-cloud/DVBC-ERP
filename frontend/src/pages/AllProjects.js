@@ -39,7 +39,7 @@ const AllProjects = () => {
   });
 
   // React Query: Projects for Assignment
-  const { data: projects = [], isLoading: loading } = useQuery({
+  const { data: projects = [], isLoading: loading, refetch: refetchProjects } = useQuery({
     queryKey: ['projects', 'for-assignment', filter],
     queryFn: async () => {
       let url = `${API}/projects/all/for-assignment`;
