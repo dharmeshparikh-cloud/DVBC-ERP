@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { 
   Key, Search, Shield, UserX, UserCheck, RefreshCw, 
-  Lock, Unlock, AlertTriangle, Copy, Eye, EyeOff
+  Lock, Unlock, AlertTriangle, Copy, Eye, EyeOff, CheckCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
