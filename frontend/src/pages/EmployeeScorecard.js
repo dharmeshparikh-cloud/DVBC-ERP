@@ -16,34 +16,31 @@ import { toast } from 'sonner';
 
 const EmployeeScorecard = () => {
   const { user } = useContext(AuthContext);
-  const [stats, setStats] = useState(null);
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [employeeTimeline, setEmployeeTimeline] = useState(null);
   const [linkedRecords, setLinkedRecords] = useState(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // React Query: Stats Summary
+  const { data: stats } = useQuery({
+    queryKey: ['employees', 'stats', 'summary'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/stats/summary`);
+      return res.data;
+    },
+    staleTime: 3 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      const [statsRes, employeesRes] = await Promise.all([
-        axios.get(`${API}/employees/stats/summary`),
-        axios.get(`${API}/employees/all`) // Use /all for array response
-      ]);
-      setStats(statsRes.data);
-      setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error('Failed to load employee data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: All Employees
+  const { data: employees = [], isLoading: loading } = useQuery({
+    queryKey: ['employees', 'all'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/all`);
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    staleTime: 3 * 60 * 1000,
+  });
 
   const handleViewEmployee = async (employee) => {
     setSelectedEmployee(employee);
