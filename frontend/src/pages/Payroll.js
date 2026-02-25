@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
@@ -8,16 +8,13 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { DollarSign, FileText, RefreshCw, Users as UsersIcon, Plus, Trash2, Save, Table2, Settings, Receipt, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 
 const Payroll = () => {
   const { user } = useContext(AuthContext);
-  const [employees, setEmployees] = useState([]);
-  const [slips, setSlips] = useState([]);
-  const [components, setComponents] = useState(null);
-  const [payrollInputs, setPayrollInputs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [addCompDialog, setAddCompDialog] = useState(false);
@@ -26,33 +23,45 @@ const Payroll = () => {
   const [activeTab, setActiveTab] = useState('slips');
   const [savingInputs, setSavingInputs] = useState(false);
   const [newComp, setNewComp] = useState({ type: 'earnings', name: '', calcType: 'fixed', value: '' });
+  const [payrollInputs, setPayrollInputs] = useState([]);
 
   const isHR = ['admin', 'hr_manager'].includes(user?.role);
 
-  useEffect(() => { fetchData(); }, [month]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  // Fetch payroll data with React Query
+  const { data: payrollData, isLoading: loading, refetch: refetchPayroll } = useQuery({
+    queryKey: ['payroll-data', month],
+    queryFn: async () => {
       const [empRes, slipsRes, compRes] = await Promise.all([
-        axios.get(`${API}/employees/all`), // Use /all for array response
+        axios.get(`${API}/employees/all`),
         axios.get(`${API}/payroll/salary-slips?month=${month}`),
         axios.get(`${API}/payroll/salary-components`)
       ]);
-      const empData = Array.isArray(empRes.data) ? empRes.data : [];
-      setEmployees(empData.filter(e => e.salary > 0));
-      setSlips(Array.isArray(slipsRes.data) ? slipsRes.data : []);
-      setComponents(Array.isArray(compRes.data) ? compRes.data : []);
+      
+      let inputs = [];
       if (isHR) {
         const inputRes = await axios.get(`${API}/payroll/inputs?month=${month}`);
-        setPayrollInputs(Array.isArray(inputRes.data) ? inputRes.data : []);
+        inputs = Array.isArray(inputRes.data) ? inputRes.data : [];
       }
-    } catch (error) {
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
+      
+      const empData = Array.isArray(empRes.data) ? empRes.data : [];
+      return {
+        employees: empData.filter(e => e.salary > 0),
+        slips: Array.isArray(slipsRes.data) ? slipsRes.data : [],
+        components: Array.isArray(compRes.data) ? compRes.data : [],
+        inputs
+      };
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    onSuccess: (data) => {
+      if (isHR && data.inputs) {
+        setPayrollInputs(data.inputs);
+      }
     }
-  };
+  });
+
+  const employees = payrollData?.employees || [];
+  const slips = payrollData?.slips || [];
+  const components = payrollData?.components || [];
 
   const handleGenerate = async () => {
     try {
