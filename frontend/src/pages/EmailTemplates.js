@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -8,11 +8,11 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Plus, Mail, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const EmailTemplates = () => {
   const { user } = useContext(AuthContext);
-  const [templates, setTemplates] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -22,20 +22,19 @@ const EmailTemplates = () => {
     variables: [],
   });
 
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  const fetchTemplates = async () => {
-    try {
+  // Fetch templates with React Query
+  const { data: templates = [], isLoading: loading } = useQuery({
+    queryKey: ['email-templates'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/email-templates`);
       const data = response.data?.items || response.data || [];
-      setTemplates(Array.isArray(data) ? data : []);
-    } catch (error) {
-      toast.error('Failed to fetch email templates');
-    } finally {
-      setLoading(false);
-    }
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['email-templates'] });
   };
 
   const handleSubmit = async (e) => {
@@ -51,7 +50,7 @@ const EmailTemplates = () => {
         template_type: 'proposal',
         variables: [],
       });
-      fetchTemplates();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create email template');
     }
