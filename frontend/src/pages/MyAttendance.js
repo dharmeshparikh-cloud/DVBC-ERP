@@ -73,7 +73,7 @@ const MyAttendance = () => {
                 <><Clock className="w-4 h-4" /> <span className="text-sm">Not checked in</span></>
               )}
             </div>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">{today}</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{todayFormatted}</span>
           </div>
           
           {/* Quick Check-in Button - Single entry point for attendance */}
