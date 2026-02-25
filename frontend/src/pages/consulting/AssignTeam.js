@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API, AuthContext } from '../../App';
@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import ConsultingStageNav from '../../components/ConsultingStageNav';
 import { sanitizeDisplayText } from '../../utils/sanitize';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const CONSULTANT_ROLES = [
   { value: 'lead_consultant', label: 'Lead Consultant' },
@@ -28,12 +29,9 @@ const AssignTeam = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [project, setProject] = useState(null);
-  const [kickoffRequest, setKickoffRequest] = useState(null);
-  const [consultants, setConsultants] = useState([]);
   const [assignedTeam, setAssignedTeam] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -43,31 +41,46 @@ const AssignTeam = () => {
   // Team Assignment permission - Only Admin, Manager, Project Manager, Principal Consultant can assign
   const canAssignTeam = ['admin', 'manager', 'project_manager', 'principal_consultant'].includes(user?.role);
 
-  useEffect(() => {
-    fetchData();
-  }, [projectId]);
-
-  const fetchData = async () => {
-    try {
+  // Fetch data with React Query
+  const { data: teamData, isLoading: loading } = useQuery({
+    queryKey: ['assign-team', projectId],
+    queryFn: async () => {
       const [projectRes, consultantsRes, kickoffRes] = await Promise.all([
         axios.get(`${API}/projects/${projectId}`).catch(() => ({ data: null })),
         axios.get(`${API}/employees/consultants`).catch(() => ({ data: [] })),
         axios.get(`${API}/kickoff-requests`).catch(() => ({ data: [] }))
       ]);
       
-      setProject(projectRes.data);
-      setConsultants(consultantsRes.data || []);
+      const project = projectRes.data;
+      const consultants = consultantsRes.data || [];
       
       // Find the kickoff request for this project
       const relatedKickoff = (kickoffRes.data || []).find(k => 
-        k.project_id === projectId || k.id === projectRes.data?.kickoff_request_id
+        k.project_id === projectId || k.id === project?.kickoff_request_id
       );
-      setKickoffRequest(relatedKickoff);
       
-      // Load existing assignments
-      if (projectRes.data?.assigned_consultants) {
-        setAssignedTeam(projectRes.data.assigned_consultants);
+      return {
+        project,
+        consultants,
+        kickoffRequest: relatedKickoff,
+        initialTeam: project?.assigned_consultants || []
+      };
+    },
+    staleTime: 2 * 60 * 1000,
+    onSuccess: (data) => {
+      if (data?.initialTeam) {
+        setAssignedTeam(data.initialTeam);
       }
+    }
+  });
+
+  const project = teamData?.project;
+  const consultants = teamData?.consultants || [];
+  const kickoffRequest = teamData?.kickoffRequest;
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['assign-team', projectId] });
+  };
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load project data');
