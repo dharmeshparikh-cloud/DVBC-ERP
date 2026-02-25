@@ -73,7 +73,7 @@ const Payroll = () => {
         toast.success('Salary slip generated');
       }
       setGenerateDialogOpen(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['payroll-data', month] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to generate');
     }
@@ -90,7 +90,7 @@ const Payroll = () => {
       toast.success(`${newComp.name} added`);
       setAddCompDialog(false);
       setNewComp({ type: 'earnings', name: '', calcType: 'fixed', value: '' });
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['payroll-data', month] });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to add');
     }
@@ -101,7 +101,7 @@ const Payroll = () => {
     try {
       await axios.delete(`${API}/payroll/salary-components/${type}/${key}`);
       toast.success(`${name} removed`);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['payroll-data', month] });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to remove');
     }
