@@ -419,9 +419,18 @@ async def approve_go_live_request(
         user = await db.users.find_one({"id": employee_full.get("user_id")}, {"_id": 0})
         employee_email = employee_full.get("email") or employee_full.get("personal_email")
         
-        if employee_email and user:
+        # Get reporting manager name
+        reporting_manager_name = employee_full.get("reporting_manager_name", "")
+        if not reporting_manager_name and employee_full.get("reporting_manager_id"):
+            manager = await db.employees.find_one({"id": employee_full.get("reporting_manager_id")}, {"_id": 0, "full_name": 1})
+            reporting_manager_name = manager.get("full_name") if manager else "To be assigned"
+        
+        # ERP Login URL
+        erp_login_url = os.environ.get("FRONTEND_URL", "https://help-admin-hub.preview.emergentagent.com") + "/login"
+        
+        if employee_email:
             try:
-                # Email to Employee
+                # Email to Employee with login details
                 await send_email(
                     to_email=employee_email,
                     subject="Welcome to D&V Business Consulting - Your Account is Now Active!",
@@ -429,6 +438,7 @@ async def approve_go_live_request(
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                         <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center;">
                             <h1 style="color: white; margin: 0;">Welcome Aboard!</h1>
+                            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">D&V Business Consulting</p>
                         </div>
                         <div style="padding: 30px; background: #f9f9f9;">
                             <p>Dear <strong>{employee_full.get('full_name', 'Employee')}</strong>,</p>
@@ -436,16 +446,31 @@ async def approve_go_live_request(
                             
                             <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f97316;">
                                 <h3 style="margin-top: 0; color: #333;">Your Login Details</h3>
-                                <p><strong>Employee ID:</strong> {employee_full.get('employee_id')}</p>
-                                <p><strong>Official Email:</strong> {employee_full.get('email')}</p>
-                                <p><strong>Department:</strong> {employee_full.get('department')}</p>
-                                <p><strong>Designation:</strong> {employee_full.get('designation')}</p>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr><td style="padding: 8px 0; color: #666;">Employee ID:</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('employee_id')}</td></tr>
+                                    <tr><td style="padding: 8px 0; color: #666;">Official Email:</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('email')}</td></tr>
+                                    <tr><td style="padding: 8px 0; color: #666;">Department:</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('department')}</td></tr>
+                                    <tr><td style="padding: 8px 0; color: #666;">Designation:</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('designation')}</td></tr>
+                                    <tr><td style="padding: 8px 0; color: #666;">Reporting Manager:</td><td style="padding: 8px 0; font-weight: bold;">{reporting_manager_name or 'To be assigned'}</td></tr>
+                                </table>
                             </div>
                             
-                            <p>Please login using your Employee ID and the password shared during onboarding.</p>
-                            <p>If you have any questions, please contact HR.</p>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{erp_login_url}" style="display: inline-block; background: #f97316; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                    Login to NETRA ERP
+                                </a>
+                            </div>
+                            
+                            <p style="background: #fef3c7; padding: 12px; border-radius: 6px; font-size: 14px;">
+                                <strong>Note:</strong> Use your <strong>Employee ID</strong> and the password shared during onboarding to login.
+                            </p>
+                            
+                            <p>If you have any questions or need assistance, please contact HR.</p>
                             
                             <p style="margin-top: 30px;">Best Regards,<br><strong>D&V Business Consulting</strong></p>
+                        </div>
+                        <div style="background: #333; padding: 15px; text-align: center;">
+                            <p style="color: #999; margin: 0; font-size: 12px;">This is an automated email from NETRA ERP</p>
                         </div>
                     </div>
                     """
