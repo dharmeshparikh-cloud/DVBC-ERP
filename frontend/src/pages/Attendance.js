@@ -281,6 +281,40 @@ const Attendance = () => {
     return R * c;
   };
 
+  // Mutation: Create Attendance
+  const createAttendanceMutation = useMutation({
+    mutationFn: async (payload) => {
+      const { data } = await axios.post(`${API}/attendance`, payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      toast.success('Attendance recorded');
+      setDialogOpen(false);
+      resetForm();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to record attendance');
+    }
+  });
+
+  // Mutation: Bulk Upload
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (records) => {
+      const { data } = await axios.post(`${API}/attendance/bulk`, records);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      toast.success(`${data.created} created, ${data.updated} updated`);
+      setUploadDialogOpen(false);
+      setUploadText('');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Upload failed');
+    }
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -297,15 +331,7 @@ const Attendance = () => {
       selfie: selfieData
     };
     
-    try {
-      await axios.post(`${API}/attendance`, payload);
-      toast.success('Attendance recorded');
-      setDialogOpen(false);
-      resetForm();
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to record attendance');
-    }
+    createAttendanceMutation.mutate(payload);
   };
 
   const resetForm = () => {
