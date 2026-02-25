@@ -466,17 +466,17 @@ const Notifications = () => {
                 <Button
                   variant="destructive"
                   onClick={() => handleAction('reject')}
-                  disabled={actionLoading}
+                  disabled={actionMutation.isPending}
                 >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
+                  {actionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
                   Reject
                 </Button>
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700"
                   onClick={() => handleAction('approve')}
-                  disabled={actionLoading}
+                  disabled={actionMutation.isPending}
                 >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                  {actionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-1" />}
                   Approve
                 </Button>
               </DialogFooter>
