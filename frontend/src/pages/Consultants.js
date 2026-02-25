@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -14,8 +15,7 @@ import { formatINR } from '../utils/currency';
 const Consultants = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [consultants, setConsultants] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -25,36 +25,40 @@ const Consultants = () => {
     department: ''
   });
 
-  useEffect(() => {
-    fetchConsultants();
-  }, []);
-
-  const fetchConsultants = async () => {
-    try {
+  // React Query: Consultants
+  const { data: consultantsData, isLoading: loading } = useQuery({
+    queryKey: ['consultants'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/consultants`);
       const data = response.data?.items || response.data || [];
-      setConsultants(Array.isArray(data) ? data : []);
-    } catch (error) {
-      toast.error('Failed to fetch consultants');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+  const consultants = consultantsData || [];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
+  // Mutation: Create Consultant
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
       await axios.post(`${API}/consultants`, {
-        ...formData,
+        ...data,
         role: 'consultant'
       });
+    },
+    onSuccess: () => {
       toast.success('Consultant created successfully');
       setDialogOpen(false);
       setFormData({ email: '', password: '', full_name: '', department: '' });
-      fetchConsultants();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['consultants'] });
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to create consultant');
-    }
+    },
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    createMutation.mutate(formData);
   };
 
   const getBandwidthColor = (percentage) => {
