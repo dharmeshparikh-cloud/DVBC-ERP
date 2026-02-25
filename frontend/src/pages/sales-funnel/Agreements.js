@@ -73,19 +73,14 @@ const calculateCommittedMeetings = (frequency, tenureMonths) => {
 const Agreements = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const quotationId = searchParams.get('quotationId');
   const leadId = searchParams.get('leadId');
   
-  const [agreements, setAgreements] = useState([]);
-  const [quotations, setQuotations] = useState([]);
-  const [pricingPlans, setPricingPlans] = useState([]);
-  const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [selectedAgreement, setSelectedAgreement] = useState(null);
-  const [emailTemplates, setEmailTemplates] = useState([]);
   const [emailData, setEmailData] = useState({
     template_id: '',
     custom_message: '',
@@ -103,13 +98,11 @@ const Agreements = () => {
     special_conditions: '',
     start_date: '',
     end_date: '',
-    // New Team Deployment fields
     meeting_frequency: 'Monthly',
     project_tenure_months: 12,
     team_deployment: []
   });
 
-  // New team member form
   const [newTeamMember, setNewTeamMember] = useState({
     role: '',
     meeting_type: '',
@@ -123,9 +116,37 @@ const Agreements = () => {
 
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [leadId]);
+  // Fetch agreements data with React Query
+  const { data: agreementsData, isLoading: loading } = useQuery({
+    queryKey: ['agreements-data', leadId],
+    queryFn: async () => {
+      const [agreementsRes, quotationsRes, leadsRes, templatesRes, plansRes] = await Promise.all([
+        axios.get(`${API}/agreements`, { params: leadId ? { lead_id: leadId } : {} }),
+        axios.get(`${API}/quotations`),
+        axios.get(`${API}/leads`),
+        axios.get(`${API}/email-templates`),
+        axios.get(`${API}/pricing-plans`)
+      ]);
+      return {
+        agreements: agreementsRes.data || [],
+        quotations: quotationsRes.data || [],
+        leads: leadsRes.data || [],
+        emailTemplates: templatesRes.data?.templates || templatesRes.data || [],
+        pricingPlans: plansRes.data || []
+      };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const agreements = agreementsData?.agreements || [];
+  const quotations = agreementsData?.quotations || [];
+  const leads = agreementsData?.leads || [];
+  const emailTemplates = agreementsData?.emailTemplates || [];
+  const pricingPlans = agreementsData?.pricingPlans || [];
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['agreements-data'] });
+  };
 
   // Auto-open dialog when coming from Proforma Invoice flow
   useEffect(() => {
@@ -141,14 +162,6 @@ const Agreements = () => {
       }
     }
   }, [loading, quotationId, quotations, pricingPlans, autoOpenHandled]);
-
-  const fetchData = async () => {
-    try {
-      const [agreementsRes, quotationsRes, leadsRes, templatesRes, plansRes] = await Promise.all([
-        axios.get(`${API}/agreements`, { params: leadId ? { lead_id: leadId } : {} }),
-        axios.get(`${API}/quotations`),
-        axios.get(`${API}/leads`),
-        axios.get(`${API}/email-templates`),
         axios.get(`${API}/pricing-plans`)
       ]);
       setAgreements(agreementsRes.data);
