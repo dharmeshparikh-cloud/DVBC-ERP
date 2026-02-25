@@ -80,9 +80,56 @@ const Employees = () => {
   const isHRManager = user?.role === 'hr_manager';
   const canManage = isAdmin || isHRManager;
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Fetch employees with React Query (caching enabled)
+  const { data: employeesData, isLoading: loading, refetch: refetchEmployees } = useQuery({
+    queryKey: ['employees-all'],
+    queryFn: async () => {
+      const [empRes, deptRes] = await Promise.all([
+        axios.get(`${API}/employees/all`),
+        axios.get(`${API}/employees/departments/list`)
+      ]);
+      return {
+        employees: Array.isArray(empRes.data) ? empRes.data : [],
+        departments: deptRes.data || []
+      };
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+  });
+
+  const employees = employeesData?.employees || [];
+  const departments = employeesData?.departments || [];
+
+  // Fetch stats for HR (separate query)
+  const { data: stats } = useQuery({
+    queryKey: ['employees-stats'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/stats/summary`);
+      return res.data;
+    },
+    enabled: canManage,
+    staleTime: 3 * 60 * 1000,
+  });
+
+  // Fetch users for linking
+  const { data: users = [] } = useQuery({
+    queryKey: ['users-with-roles'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/users-with-roles`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch org chart when needed
+  const { data: orgChart = [], refetch: refetchOrgChart } = useQuery({
+    queryKey: ['employees-org-chart'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/org-chart/hierarchy`);
+      return res.data || [];
+    },
+    enabled: activeView === 'orgchart',
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Handle URL parameters for editing (from Go-Live Dashboard)
   useEffect(() => {
@@ -101,58 +148,6 @@ const Employees = () => {
       }
     }
   }, [employees]);
-
-  const fetchData = async () => {
-    try {
-      const [empRes, deptRes] = await Promise.all([
-        axios.get(`${API}/employees/all`), // Use /all endpoint for array response
-        axios.get(`${API}/employees/departments/list`)
-      ]);
-      // Handle response - /all returns array directly
-      const empData = empRes.data;
-      setEmployees(Array.isArray(empData) ? empData : []);
-      setDepartments(deptRes.data || []);
-      
-      // Fetch stats if HR access
-      if (canManage) {
-        try {
-          const statsRes = await axios.get(`${API}/employees/stats/summary`);
-          setStats(statsRes.data);
-        } catch (e) {
-          console.error('Error fetching stats:', e);
-        }
-      }
-      
-      // Fetch users for linking
-      try {
-        const usersRes = await axios.get(`${API}/users-with-roles`);
-        setUsers(usersRes.data || []);
-      } catch (e) {
-        console.error('Error fetching users:', e);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load employees');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchOrgChart = async () => {
-    try {
-      const res = await axios.get(`${API}/employees/org-chart/hierarchy`);
-      setOrgChart(res.data || []);
-    } catch (error) {
-      console.error('Error fetching org chart:', error);
-      toast.error('Failed to load org chart');
-    }
-  };
-
-  useEffect(() => {
-    if (activeView === 'orgchart') {
-      fetchOrgChart();
-    }
-  }, [activeView]);
 
   const handleUpdateEmployee = async () => {
     if (!selectedEmployee) return;
