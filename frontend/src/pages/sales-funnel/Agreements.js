@@ -162,14 +162,6 @@ const Agreements = () => {
       }
     }
   }, [loading, quotationId, quotations, pricingPlans, autoOpenHandled]);
-        }
-      }
-    } catch (error) {
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Auto-populate team deployment from pricing plan
   const autoPopulateFromPlan = (plan, quotation) => {
