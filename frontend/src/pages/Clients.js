@@ -70,35 +70,44 @@ const Clients = () => {
 
   const canManage = ['admin', 'project_manager', 'sales_manager', 'executive', 'manager'].includes(user?.role);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const canManage = ['admin', 'manager', 'sales_manager'].includes(user?.role);
 
-  const fetchData = async () => {
-    try {
+  // Fetch clients with React Query
+  const { data: clientsData, isLoading: loading } = useQuery({
+    queryKey: ['clients-all'],
+    queryFn: async () => {
       const [clientsRes, usersRes] = await Promise.all([
         axios.get(`${API}/clients`),
         axios.get(`${API}/users-with-roles`)
       ]);
       const clientData = clientsRes.data?.items || clientsRes.data || [];
       const userData = usersRes.data?.items || usersRes.data || [];
-      setClients(Array.isArray(clientData) ? clientData : []);
-      setUsers(Array.isArray(userData) ? userData : []);
       
+      let stats = null;
       if (canManage) {
         try {
           const statsRes = await axios.get(`${API}/clients/stats/summary`);
-          setStats(statsRes.data);
+          stats = statsRes.data;
         } catch (e) {
-          console.error('Error fetching stats:', e);
+          // Stats not available
         }
       }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load clients');
-    } finally {
-      setLoading(false);
-    }
+      
+      return {
+        clients: Array.isArray(clientData) ? clientData : [],
+        users: Array.isArray(userData) ? userData : [],
+        stats
+      };
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
+  const clients = clientsData?.clients || [];
+  const users = clientsData?.users || [];
+  const stats = clientsData?.stats;
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['clients-all'] });
   };
 
   const handleCreateClient = async () => {
@@ -117,7 +126,7 @@ const Clients = () => {
       toast.success('Client created successfully');
       setCreateDialog(false);
       resetForm();
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create client');
     }
