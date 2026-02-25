@@ -915,6 +915,72 @@ async def upload_public_document(
     }
 
 
+@router.post("/submissions/{submission_id}/upload-document")
+async def hr_upload_document(
+    submission_id: str,
+    document_type: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    HR uploads a document on behalf of or to supplement candidate's submission.
+    This allows HR to add missing documents or replace incorrect ones.
+    """
+    db = get_db()
+    
+    # Authorization - HR roles only
+    hr_roles = ["hr_manager", "hr_executive", "admin"]
+    if not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR can upload documents for submissions")
+    
+    # Find submission
+    submission = await db.onboarding_submissions.find_one({"id": submission_id})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    # Validate file
+    allowed_types = ["application/pdf", "image/jpeg", "image/png", "image/jpg"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Only PDF, JPG, PNG files allowed")
+    
+    # Size limit (10MB)
+    file_content = await file.read()
+    if len(file_content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+    
+    # Generate file ID and save
+    file_id = str(uuid.uuid4())
+    ext = os.path.splitext(file.filename)[1] or ".pdf"
+    filename = f"{file_id}{ext}"
+    filepath = os.path.join(ONBOARDING_DOCS_DIR, filename)
+    
+    with open(filepath, "wb") as f:
+        f.write(file_content)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    document_record = {
+        "id": file_id,
+        "type": document_type,
+        "filename": filename,
+        "original_filename": file.filename,
+        "uploaded_at": now,
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": current_user.full_name,
+        "uploaded_by_hr": True  # Flag to indicate HR uploaded
+    }
+    
+    await db.onboarding_submissions.update_one(
+        {"id": submission_id},
+        {"$push": {"documents": document_record}}
+    )
+    
+    return {
+        "message": "Document uploaded successfully by HR",
+        "document_id": file_id,
+        "document_type": document_type
+    }
+
+
 # ==================== HELPER FUNCTIONS ====================
 
 async def check_duplicate_candidate(
