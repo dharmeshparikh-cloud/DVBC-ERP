@@ -183,24 +183,14 @@ const MyExpenses = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const payload = {
-        ...formData,
-        line_items: formData.line_items.map(li => ({
-          ...li, amount: parseFloat(li.amount) || 0,
-          date: new Date(li.date).toISOString()
-        }))
-      };
-      await axios.post(`${API}/expenses`, payload);
-      toast.success('Expense created as draft');
-      convertDraft(); // Mark draft as converted
-      clearDraft(); // Clear the draft
-      setDialogOpen(false);
-      setFormData({ client_id: '', client_name: '', project_id: '', project_name: '', is_office_expense: false, notes: '', line_items: [{ category: 'Travel', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }] });
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create expense');
-    }
+    const payload = {
+      ...formData,
+      line_items: formData.line_items.map(li => ({
+        ...li, amount: parseFloat(li.amount) || 0,
+        date: new Date(li.date).toISOString()
+      }))
+    };
+    createExpenseMutation.mutate(payload);
   };
 
   // Load a saved draft
@@ -212,32 +202,13 @@ const MyExpenses = () => {
     }
   };
 
-  const handleSubmitForApproval = async (expenseId) => {
-    try {
-      await axios.post(`${API}/expenses/${expenseId}/submit`);
-      toast.success('Expense submitted for approval');
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit');
-    }
+  const handleSubmitForApproval = (expenseId) => {
+    submitMutation.mutate(expenseId);
   };
 
-  const handleDeleteExpense = async (expenseId) => {
+  const handleDeleteExpense = (expenseId) => {
     if (!window.confirm('Are you sure you want to delete this expense?')) return;
-    try {
-      await axios.delete(`${API}/expenses/${expenseId}`);
-      toast.success('Expense deleted');
-      fetchData();
-    } catch (error) {
-      const detail = error.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
-      } else if (typeof detail === 'string') {
-        toast.error(detail);
-      } else {
-        toast.error('Failed to delete expense');
-      }
-    }
+    deleteMutation.mutate(expenseId);
   };
 
   const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN')}`;
