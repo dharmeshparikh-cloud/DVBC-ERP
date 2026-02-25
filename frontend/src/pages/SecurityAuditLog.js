@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { Shield, Search, Download, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 const EVENT_COLORS = {
   google_login_success: 'bg-emerald-100 text-emerald-800',
