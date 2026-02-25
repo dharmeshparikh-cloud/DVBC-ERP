@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import MobileAppWidget from '../components/MobileAppWidget';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const EMPLOYMENT_TYPES = [
   { value: 'full_time', label: 'Full Time' },
