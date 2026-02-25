@@ -72,8 +72,59 @@ const Attendance = () => {
   const [submittingTravel, setSubmittingTravel] = useState(false);
 
   const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
+  const queryClient = useQueryClient();
 
-  useEffect(() => { fetchData(); fetchOfficeLocations(); }, [month]);
+  // Parse month for API calls
+  const [yearStr, monthStr] = month.split('-');
+  const year = parseInt(yearStr, 10);
+  const monthNum = parseInt(monthStr, 10);
+  const startDate = `${year}-${monthStr}-01`;
+  const lastDay = new Date(year, monthNum, 0).getDate();
+  const endDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+
+  // React Query: Employees
+  const { data: employeesData } = useQuery({
+    queryKey: ['employees', 'all'],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/employees/all`);
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const employees = employeesData || [];
+
+  // React Query: Attendance Summary
+  const { data: summaryData } = useQuery({
+    queryKey: ['attendance', 'summary', monthNum, year],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/attendance/summary?month=${monthNum}&year=${year}`);
+      return data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const summary = summaryData || [];
+
+  // React Query: Attendance Records
+  const { data: recordsData, isLoading: loading } = useQuery({
+    queryKey: ['attendance', 'records', startDate, endDate],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/attendance?date_from=${startDate}&date_to=${endDate}`);
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const records = recordsData || [];
+
+  // React Query: Office Locations
+  const { data: officeLocationsData } = useQuery({
+    queryKey: ['settings', 'office-locations'],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/settings/office-locations`);
+      return data?.locations || [{ name: 'Main Office', latitude: 12.9716, longitude: 77.5946, radius: 500 }];
+    },
+    staleTime: 30 * 60 * 1000, // Office locations rarely change
+  });
+  const officeLocations = officeLocationsData || [];
   
   // Cleanup camera stream on unmount
   useEffect(() => {
@@ -83,43 +134,6 @@ const Attendance = () => {
       }
     };
   }, [stream]);
-
-  const fetchData = async () => {
-    try {
-      // Parse month string (YYYY-MM) into month and year integers
-      const [yearStr, monthStr] = month.split('-');
-      const year = parseInt(yearStr, 10);
-      const monthNum = parseInt(monthStr, 10);
-      
-      // Calculate date range for the month
-      const startDate = `${year}-${monthStr}-01`;
-      const lastDay = new Date(year, monthNum, 0).getDate();
-      const endDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
-      
-      const [empRes, summaryRes, recordsRes] = await Promise.all([
-        axios.get(`${API}/employees/all`), // Use /all for array response
-        axios.get(`${API}/attendance/summary?month=${monthNum}&year=${year}`),
-        axios.get(`${API}/attendance?date_from=${startDate}&date_to=${endDate}`)
-      ]);
-      setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
-      setSummary(summaryRes.data);
-      setRecords(Array.isArray(recordsRes.data) ? recordsRes.data : []);
-    } catch (error) {
-      console.error('Attendance fetch error:', error);
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchOfficeLocations = async () => {
-    try {
-      const res = await axios.get(`${API}/settings/office-locations`);
-      setOfficeLocations(res.data.locations || []);
-    } catch (e) {
-      setOfficeLocations([{ name: 'Main Office', latitude: 12.9716, longitude: 77.5946, radius: 500 }]);
-    }
-  };
   
   // Fetch assigned clients when On-Site is selected
   const fetchAssignedClients = async () => {
