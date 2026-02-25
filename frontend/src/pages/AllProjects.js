@@ -248,7 +248,7 @@ const AllProjects = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={fetchProjects}
+            onClick={() => refetchProjects()}
             className="text-black/60"
           >
             <RefreshCw className="w-4 h-4" />
