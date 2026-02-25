@@ -423,21 +423,18 @@ const Attendance = () => {
   };
 
   const handleBulkUpload = async () => {
-    try {
-      const lines = uploadText.trim().split('\n');
-      const records = lines.slice(1).map(line => {
-        const cols = line.split(',').map(c => c.trim());
-        return { employee_id: cols[0], date: cols[1], status: cols[2] || 'present', remarks: cols[3] || '' };
-      }).filter(r => r.employee_id && r.date);
-      if (records.length === 0) { toast.error('No valid records found'); return; }
-      const res = await axios.post(`${API}/attendance/bulk`, records);
-      toast.success(`${res.data.created} created, ${res.data.updated} updated`);
-      setUploadDialogOpen(false);
-      setUploadText('');
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Upload failed');
+    const lines = uploadText.trim().split('\n');
+    const records = lines.slice(1).map(line => {
+      const cols = line.split(',').map(c => c.trim());
+      return { employee_id: cols[0], date: cols[1], status: cols[2] || 'present', remarks: cols[3] || '' };
+    }).filter(r => r.employee_id && r.date);
+    
+    if (records.length === 0) { 
+      toast.error('No valid records found'); 
+      return; 
     }
+    
+    bulkUploadMutation.mutate(records);
   };
 
   const getStatusBadge = (status) => {
