@@ -19,55 +19,49 @@ const HOURS_OPTIONS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7
 
 const Timesheets = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [projects, setProjects] = useState([]);
   const [timesheetData, setTimesheetData] = useState({});
   const [timesheetStatus, setTimesheetStatus] = useState('draft'); // draft, submitted, approved, rejected
   const [showAddProjectDialog, setShowAddProjectDialog] = useState(false);
   const [selectedProjectToAdd, setSelectedProjectToAdd] = useState(null);
-  const [allProjects, setAllProjects] = useState([]);
   const [notes, setNotes] = useState({});
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i));
   const weekEndDate = endOfWeek(currentWeek, { weekStartsOn: 1 });
+  const weekStart = format(currentWeek, 'yyyy-MM-dd');
+  const weekEnd = format(weekEndDate, 'yyyy-MM-dd');
 
-  useEffect(() => {
-    fetchData();
-  }, [currentWeek]);
+  // React Query: My Assigned Projects
+  const { data: projects = [] } = useQuery({
+    queryKey: ['consultants', 'my', 'projects'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consultants/my/projects`);
+      const data = res.data?.items || res.data || [];
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const weekStart = format(currentWeek, 'yyyy-MM-dd');
-      const weekEnd = format(weekEndDate, 'yyyy-MM-dd');
-      
-      const [assignmentsRes, timesheetRes, allProjectsRes] = await Promise.all([
-        axios.get(`${API}/consultants/my/projects`).catch(() => ({ data: [] })),
-        axios.get(`${API}/timesheets?week_start=${weekStart}`).catch(() => ({ data: null })),
-        axios.get(`${API}/projects`).catch(() => ({ data: [] }))
-      ]);
-      
-      const assignedData = assignmentsRes.data?.items || assignmentsRes.data || [];
-      setProjects(Array.isArray(assignedData) ? assignedData : []);
-      const allProjData = allProjectsRes.data?.items || allProjectsRes.data || [];
-      setAllProjects(Array.isArray(allProjData) ? allProjData : []);
-      
-      // API returns array of timesheets - get the first one if exists
-      const timesheetData = timesheetRes.data?.items || timesheetRes.data;
-      const timesheetRecord = Array.isArray(timesheetData) 
-        ? timesheetData[0] 
-        : timesheetData;
-      
-      if (timesheetRecord && typeof timesheetRecord === 'object') {
-        setTimesheetData(timesheetRecord.entries || {});
-        setTimesheetStatus(timesheetRecord.status || 'draft');
-        setNotes(timesheetRecord.notes || {});
+  // React Query: Timesheet for current week
+  const { data: timesheetRecord, isLoading: loading } = useQuery({
+    queryKey: ['timesheets', weekStart],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/timesheets?week_start=${weekStart}`);
+      const data = res.data?.items || res.data;
+      return Array.isArray(data) ? data[0] : data;
+    },
+    staleTime: 2 * 60 * 1000,
+    onSuccess: (data) => {
+      if (data && typeof data === 'object') {
+        setTimesheetData(data.entries || {});
+        setTimesheetStatus(data.status || 'draft');
+        setNotes(data.notes || {});
       } else {
         // Initialize empty timesheet
         const emptyData = {};
-        assignedProjects.forEach(p => {
+        projects.forEach(p => {
           emptyData[p.id] = weekDays.reduce((acc, day) => {
             acc[format(day, 'yyyy-MM-dd')] = 0;
             return acc;
@@ -77,13 +71,44 @@ const Timesheets = () => {
         setTimesheetStatus('draft');
         setNotes({});
       }
-    } catch (error) {
-      console.error('Failed to fetch timesheet data:', error);
-      toast.error('Failed to load timesheet');
-    } finally {
-      setLoading(false);
     }
-  };
+  });
+
+  // React Query: All Projects (for adding to timesheet)
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ['projects', 'list'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects`);
+      const data = res.data?.items || res.data || [];
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Mutation: Save Timesheet
+  const saveMutation = useMutation({
+    mutationFn: async ({ submitForApproval }) => {
+      await axios.post(`${API}/timesheets`, {
+        week_start: weekStart,
+        entries: timesheetData,
+        notes: notes,
+        status: submitForApproval ? 'submitted' : 'draft'
+      });
+      return submitForApproval;
+    },
+    onSuccess: (submitForApproval) => {
+      if (submitForApproval) {
+        setTimesheetStatus('submitted');
+        toast.success('Timesheet submitted for approval');
+      } else {
+        toast.success('Timesheet saved as draft');
+      }
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save timesheet');
+    },
+  });
 
   const handleHoursChange = (projectId, date, hours) => {
     setTimesheetData(prev => ({
