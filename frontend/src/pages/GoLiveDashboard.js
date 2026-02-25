@@ -18,11 +18,9 @@ import {
 const GoLiveDashboard = () => {
   const { user } = useContext(AuthContext);
   const { isDark } = useTheme();
-  const [employees, setEmployees] = useState([]);
+  const queryClient = useQueryClient();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [checklist, setChecklist] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [pendingRequests, setPendingRequests] = useState([]);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [filter, setFilter] = useState('all');
@@ -40,40 +38,27 @@ const GoLiveDashboard = () => {
   const canVerifyBank = isAdmin || user?.role === 'hr_manager';
   const canUploadProof = isAdmin || isHR;
 
-  useEffect(() => {
-    fetchEmployees();
-    if (isAdmin) {
-      fetchPendingRequests();
-    }
-  }, [isAdmin]);
-
-  const fetchEmployees = async () => {
-    try {
-      setPageError(null);
+  // React Query: Employees
+  const { data: employeesData, isLoading: loading } = useQuery({
+    queryKey: ['employees', 'go-live'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/employees`);
-      // Handle both array and paginated response formats
-      const data = res.data.items || res.data;
-      // Filter employees who might need Go-Live
-      const filtered = data.filter(emp => 
-        emp.go_live_status !== 'active' || !emp.go_live_status
-      );
-      setEmployees(data);
-    } catch (error) {
-      const errorInfo = handleApiError(error, { operation: 'load employees' });
-      setPageError(errorInfo);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data.items || res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const employees = employeesData || [];
 
-  const fetchPendingRequests = async () => {
-    try {
+  // React Query: Pending Requests (Admin only)
+  const { data: pendingRequests = [] } = useQuery({
+    queryKey: ['go-live', 'pending'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/go-live/pending`);
-      setPendingRequests(res.data);
-    } catch (error) {
-      console.error('Error fetching pending requests:', error);
-    }
-  };
+      return res.data || [];
+    },
+    enabled: isAdmin,
+    staleTime: 2 * 60 * 1000,
+  });
 
   const fetchChecklist = async (employeeId) => {
     try {
@@ -90,60 +75,96 @@ const GoLiveDashboard = () => {
     }
   };
 
-  const handleSubmitGoLive = async () => {
-    if (!selectedEmployee) return;
-    
-    try {
-      setPageError(null);
-      await axios.post(`${API}/go-live/submit/${selectedEmployee.id}`, {
-        checklist: checklist?.checklist,
+  // Mutation: Submit Go-Live
+  const submitGoLiveMutation = useMutation({
+    mutationFn: async ({ employeeId, checklistData, notes }) => {
+      await axios.post(`${API}/go-live/submit/${employeeId}`, {
+        checklist: checklistData,
         notes
       });
+    },
+    onSuccess: () => {
       toast.success('Go-Live request submitted for approval');
       setShowSubmitDialog(false);
       setNotes('');
-      fetchEmployees();
-      fetchChecklist(selectedEmployee.id);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit request');
-    }
-  };
-
-  const handleApprove = async (requestId) => {
-    try {
-      await axios.post(`${API}/go-live/${requestId}/approve`);
-      toast.success('Go-Live approved! Employee is now active.');
-      fetchPendingRequests();
-      fetchEmployees();
+      queryClient.invalidateQueries({ queryKey: ['employees', 'go-live'] });
       if (selectedEmployee) {
         fetchChecklist(selectedEmployee.id);
       }
-    } catch (error) {
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to submit request');
+    },
+  });
+
+  // Mutation: Approve Go-Live
+  const approveMutation = useMutation({
+    mutationFn: async (requestId) => {
+      await axios.post(`${API}/go-live/${requestId}/approve`);
+    },
+    onSuccess: () => {
+      toast.success('Go-Live approved! Employee is now active.');
+      queryClient.invalidateQueries({ queryKey: ['go-live', 'pending'] });
+      queryClient.invalidateQueries({ queryKey: ['employees', 'go-live'] });
+      if (selectedEmployee) {
+        fetchChecklist(selectedEmployee.id);
+      }
+    },
+    onError: () => {
       toast.error('Failed to approve');
-    }
+    },
+  });
+
+  // Mutation: Reject Go-Live
+  const rejectMutation = useMutation({
+    mutationFn: async ({ requestId, reason }) => {
+      await axios.post(`${API}/go-live/${requestId}/reject`, { reason });
+    },
+    onSuccess: () => {
+      toast.success('Go-Live request rejected');
+      queryClient.invalidateQueries({ queryKey: ['go-live', 'pending'] });
+    },
+    onError: () => {
+      toast.error('Failed to reject');
+    },
+  });
+
+  // Mutation: Verify Bank
+  const verifyBankMutation = useMutation({
+    mutationFn: async (employeeId) => {
+      await axios.post(`${API}/go-live/bank-verify/${employeeId}`);
+      return employeeId;
+    },
+    onSuccess: (employeeId) => {
+      toast.success('Bank details verified');
+      fetchChecklist(employeeId);
+    },
+    onError: () => {
+      toast.error('Failed to verify bank details');
+    },
+  });
+
+  const handleSubmitGoLive = async () => {
+    if (!selectedEmployee) return;
+    submitGoLiveMutation.mutate({
+      employeeId: selectedEmployee.id,
+      checklistData: checklist?.checklist,
+      notes
+    });
+  };
+
+  const handleApprove = async (requestId) => {
+    approveMutation.mutate(requestId);
   };
 
   const handleReject = async (requestId) => {
     const reason = prompt('Enter rejection reason:');
     if (!reason) return;
-    
-    try {
-      await axios.post(`${API}/go-live/${requestId}/reject`, { reason });
-      toast.success('Go-Live request rejected');
-      fetchPendingRequests();
-    } catch (error) {
-      toast.error('Failed to reject');
-    }
+    rejectMutation.mutate({ requestId, reason });
   };
 
   const handleVerifyBank = async (employeeId) => {
-    try {
-      await axios.post(`${API}/go-live/bank-verify/${employeeId}`);
-      toast.success('Bank details verified');
-      fetchChecklist(employeeId);
-    } catch (error) {
-      toast.error('Failed to verify bank details');
-    }
+    verifyBankMutation.mutate(employeeId);
   };
 
   // Bank Validation Functions
