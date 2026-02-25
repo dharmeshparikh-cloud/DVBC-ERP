@@ -141,46 +141,101 @@ const timeAgo = (dateStr) => {
 const Notifications = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all'); // all, unread, actionable
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [actionDialog, setActionDialog] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  // React Query: Notifications
+  const { data: notifications = [], isLoading: loading } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/notifications`);
+      return data || [];
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute for notifications
+    refetchInterval: 60000, // Refetch every minute
+  });
 
-  const fetchNotifications = async () => {
-    try {
-      const resp = await axios.get(`${API}/notifications`);
-      setNotifications(resp.data);
-    } catch (error) {
-      toast.error('Failed to load notifications');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAsRead = async (id) => {
-    try {
+  // Mutation: Mark as Read
+  const markReadMutation = useMutation({
+    mutationFn: async (id) => {
       await axios.patch(`${API}/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
-    }
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.setQueryData(['notifications'], (old) =>
+        old?.map(n => n.id === id ? { ...n, is_read: true } : n) || []
+      );
+    },
+  });
+
+  // Mutation: Mark All as Read
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      await axios.patch(`${API}/notifications/mark-all-read`);
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(['notifications'], (old) =>
+        old?.map(n => ({ ...n, is_read: true })) || []
+      );
+      toast.success('All notifications marked as read');
+    },
+    onError: () => {
+      toast.error('Failed to mark all as read');
+    },
+  });
+
+  // Mutation: Action on notification
+  const actionMutation = useMutation({
+    mutationFn: async ({ notificationId, action, referenceId, config, reason }) => {
+      if (action === 'approve' && config.approveEndpoint) {
+        const endpoint = config.approveEndpoint.replace('{id}', referenceId);
+        await axios.post(`${API}${endpoint}`);
+      } else if (action === 'reject' && config.rejectEndpoint) {
+        const endpoint = config.rejectEndpoint.replace('{id}', referenceId);
+        await axios.post(`${API}${endpoint}`, { reason: reason || 'Rejected' });
+      }
+      
+      await axios.patch(`${API}/notifications/${notificationId}/action`, { 
+        action,
+        actioned_at: new Date().toISOString()
+      });
+      
+      return { notificationId, action };
+    },
+    onSuccess: ({ notificationId, action }, variables) => {
+      queryClient.setQueryData(['notifications'], (old) =>
+        old?.map(n => 
+          n.id === notificationId 
+            ? { ...n, status: 'actioned', action_taken: action } 
+            : n
+        ) || []
+      );
+      toast.success(action === 'approve' ? 'Approved successfully' : 'Rejected successfully');
+      setActionDialog(false);
+      setSelectedNotification(null);
+      setRejectionReason('');
+      
+      // Navigate to onward link if available
+      const config = NOTIFICATION_CONFIG[variables.notifType] || {};
+      if (config.onwardLink) {
+        navigate(config.onwardLink);
+      }
+    },
+    onError: (error, variables) => {
+      toast.error(error.response?.data?.detail || `Failed to ${variables.action}`);
+    },
+  });
+
+  const markAsRead = (id) => {
+    markReadMutation.mutate(id);
   };
 
-  const markAllRead = async () => {
-    try {
-      await axios.patch(`${API}/notifications/mark-all-read`);
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      toast.success('All notifications marked as read');
-    } catch (error) {
-      toast.error('Failed to mark all as read');
-    }
+  const markAllRead = () => {
+    markAllReadMutation.mutate();
   };
 
   const handleNotificationClick = (notif) => {
