@@ -245,50 +245,6 @@ const PricingPlanBuilder = () => {
     }
   }, [totalInvestment, formData.project_duration_months]);
 
-  const fetchMasters = async () => {
-    try {
-      setMastersLoading(true);
-      const [tenureRes, rolesRes, meetingsRes] = await Promise.all([
-        axios.get(`${API}/masters/tenure-types`),
-        axios.get(`${API}/masters/consultant-roles`),
-        axios.get(`${API}/masters/meeting-types`)
-      ]);
-      setTenureTypes(tenureRes.data);
-      setConsultantRoles(rolesRes.data);
-      setMeetingTypes(meetingsRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch master data. Please ensure masters are seeded.');
-    } finally {
-      setMastersLoading(false);
-    }
-  };
-
-  const fetchLead = async () => {
-    try {
-      const response = await axios.get(`${API}/leads/${leadId}`);
-      setLead(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch lead');
-    }
-  };
-
-  // Check if user can access pricing plan (requires meeting record)
-  const checkMeetingAccess = async () => {
-    if (!leadId) return;
-    try {
-      const response = await axios.get(`${API}/leads/${leadId}/can-access-pricing`);
-      if (!response.data.can_access) {
-        setMeetingAccessBlocked(true);
-        setMeetingAccessReason(response.data.reason);
-      } else {
-        setMeetingAccessBlocked(false);
-        setMeetingAccessReason('');
-      }
-    } catch (error) {
-      console.error('Error checking meeting access:', error);
-    }
-  };
-
   // Check meeting access on mount
   useEffect(() => {
     if (leadId) {
