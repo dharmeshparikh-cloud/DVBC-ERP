@@ -37,11 +37,6 @@ const MyProjects = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   
-  const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState([]);
-  const [sowList, setSowList] = useState([]);
-  const [leads, setLeads] = useState([]);
-  const [employees, setEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('card');
@@ -51,12 +46,10 @@ const MyProjects = () => {
   const isManager = user?.role === 'manager' || user?.role === 'project_manager';
   const isConsultant = user?.role?.includes('consultant');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
+  // Fetch all data with React Query
+  const { data: projectsData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['my-projects', user?.id, isConsultant, isAdmin, isManager],
+    queryFn: async () => {
       const [projectsRes, sowRes, leadsRes, employeesRes] = await Promise.all([
         axios.get(`${API}/projects`).catch(() => ({ data: [] })),
         axios.get(`${API}/enhanced-sow/list?role=consulting`).catch(() => ({ data: [] })),
@@ -76,17 +69,20 @@ const MyProjects = () => {
         );
       }
       
-      setProjects(filteredProjects);
-      setSowList(handedOverSOWs);
-      setLeads(leadsRes.data || []);
-      setEmployees(employeesRes.data || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load projects');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        projects: filteredProjects,
+        sowList: handedOverSOWs,
+        leads: leadsRes.data || [],
+        employees: employeesRes.data || []
+      };
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+  });
+
+  const projects = projectsData?.projects || [];
+  const sowList = projectsData?.sowList || [];
+  const leads = projectsData?.leads || [];
+  const employees = projectsData?.employees || [];
 
   // Get lead info for a SOW
   const getLeadInfo = (sow) => {
