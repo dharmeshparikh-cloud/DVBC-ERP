@@ -27,10 +27,6 @@ const WORK_LOCATIONS = [
 
 const Attendance = () => {
   const { user } = useContext(AuthContext);
-  const [employees, setEmployees] = useState([]);
-  const [summary, setSummary] = useState([]);
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -55,7 +51,6 @@ const Attendance = () => {
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationVerified, setLocationVerified] = useState(false);
-  const [officeLocations, setOfficeLocations] = useState([]);
   const [cameraActive, setCameraActive] = useState(false);
   const [stream, setStream] = useState(null);
   const videoRef = useRef(null);
