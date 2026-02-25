@@ -410,10 +410,22 @@ const CandidateOnboardingForm = () => {
     try {
       setSubmitting(true);
       await axios.post(`${API}/onboarding/public/${token}/submit`, submissionData);
-      toast.success('Form submitted successfully! HR will review your details.');
-      // Refresh to show submitted state
-      const response = await axios.get(`${API}/onboarding/public/${token}`);
-      setSubmission(response.data);
+      toast.success('Form submitted successfully! Thank you!');
+      // Set submission status to submitted to show thank you page immediately
+      setSubmission(prev => ({
+        ...prev,
+        status: 'submitted',
+        submitted_at: new Date().toISOString()
+      }));
+      // Also refresh to get server data
+      setTimeout(async () => {
+        try {
+          const response = await axios.get(`${API}/onboarding/public/${token}`);
+          setSubmission(response.data);
+        } catch (e) {
+          // If refresh fails, the local state update above will still show thank you page
+        }
+      }, 1000);
     } catch (err) {
       console.error('Error submitting:', err);
       toast.error(err.response?.data?.detail || 'Failed to submit form');
