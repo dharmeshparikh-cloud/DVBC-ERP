@@ -9,43 +9,46 @@ import { ArrowLeft, CheckCircle, XCircle, Clock, FileCheck, AlertTriangle } from
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import { usePermissions } from '../../contexts/PermissionContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const ManagerApprovals = () => {
   const { user } = useContext(AuthContext);
   const { isManagerOrAbove, canApproveRequests } = usePermissions();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
-  const [pendingApprovals, setPendingApprovals] = useState([]);
-  const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
+  // Fetch approvals with React Query
+  const { data: approvalsData, isLoading: loading } = useQuery({
+    queryKey: ['manager-approvals'],
+    queryFn: async () => {
       const [approvalsRes, leadsRes] = await Promise.all([
         axios.get(`${API}/agreements/pending-approval`),
         axios.get(`${API}/leads`)
       ]);
-      setPendingApprovals(approvalsRes.data);
-      setLeads(leadsRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch pending approvals');
-    } finally {
-      setLoading(false);
-    }
+      return {
+        pendingApprovals: approvalsRes.data || [],
+        leads: leadsRes.data || []
+      };
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute for approvals
+  });
+
+  const pendingApprovals = approvalsData?.pendingApprovals || [];
+  const leads = approvalsData?.leads || [];
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['manager-approvals'] });
   };
 
   const handleApprove = async (agreementId) => {
     try {
       await axios.patch(`${API}/agreements/${agreementId}/approve`);
       toast.success('Agreement approved successfully');
-      fetchData();
+      invalidateData();
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
@@ -75,7 +78,7 @@ const ManagerApprovals = () => {
       toast.success('Agreement rejected');
       setRejectDialogOpen(false);
       setSelectedAgreement(null);
-      fetchData();
+      invalidateData();
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
