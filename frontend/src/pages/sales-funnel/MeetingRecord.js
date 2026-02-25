@@ -269,7 +269,7 @@ const MeetingRecord = () => {
       });
       
       // Refresh meetings list
-      await fetchMeetings();
+      await invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record meeting');
     } finally {
