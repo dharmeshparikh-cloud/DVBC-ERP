@@ -12,6 +12,7 @@ import {
   TrendingUp, Clock, CheckCircle, Filter, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 const CATEGORY_ICONS = {
   'Sales': TrendingUp,
