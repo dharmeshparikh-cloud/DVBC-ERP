@@ -130,22 +130,7 @@ const Timesheets = () => {
   const handleSave = async (submitForApproval = false) => {
     setSaving(true);
     try {
-      const weekStart = format(currentWeek, 'yyyy-MM-dd');
-      await axios.post(`${API}/timesheets`, {
-        week_start: weekStart,
-        entries: timesheetData,
-        notes: notes,
-        status: submitForApproval ? 'submitted' : 'draft'
-      });
-      
-      if (submitForApproval) {
-        setTimesheetStatus('submitted');
-        toast.success('Timesheet submitted for approval');
-      } else {
-        toast.success('Timesheet saved as draft');
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save timesheet');
+      await saveMutation.mutateAsync({ submitForApproval });
     } finally {
       setSaving(false);
     }
