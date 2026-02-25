@@ -143,7 +143,7 @@ const MyLeaves = () => {
     try {
       await axios.post(`${API}/leave-requests/${leaveId}/withdraw`);
       toast.success('Leave request withdrawn successfully');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to withdraw leave request');
     } finally {
