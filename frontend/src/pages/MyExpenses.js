@@ -212,7 +212,7 @@ const MyExpenses = () => {
   };
 
   const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN')}`;
-  const sm = data.summary;
+  const sm = data.summary || {};
 
   return (
     <div data-testid="my-expenses-page">
