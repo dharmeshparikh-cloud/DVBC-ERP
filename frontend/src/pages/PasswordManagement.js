@@ -17,8 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const PasswordManagement = () => {
   const { user } = useContext(AuthContext);
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   
   // Dialogs
@@ -34,24 +33,20 @@ const PasswordManagement = () => {
   const isHR = user?.role === 'hr_manager' || user?.department === 'HR';
   const canManage = isAdmin || isHR;
 
-  useEffect(() => {
-    if (canManage) {
-      fetchEmployees();
-    }
-  }, [canManage]);
-
-  const fetchEmployees = async () => {
-    try {
+  // React Query: Employees with access data
+  const { data: employees = [], isLoading: loading } = useQuery({
+    queryKey: ['employees', 'with-access'],
+    queryFn: async () => {
       const [empRes, usersRes] = await Promise.all([
-        axios.get(`${API}/employees/all`), // Use /all for array response
-        axios.get(`${API}/users-with-roles`)  // HR Manager can access this endpoint
+        axios.get(`${API}/employees/all`),
+        axios.get(`${API}/users-with-roles`)
       ]);
       
       const empData = Array.isArray(empRes.data) ? empRes.data : [];
       const userData = Array.isArray(usersRes.data) ? usersRes.data : [];
       
       // Merge employee data with user data
-      const employeesWithAccess = empData.map(emp => {
+      return empData.map(emp => {
         const linkedUser = userData.find(u => u.email === emp.email);
         return {
           ...emp,
@@ -62,15 +57,51 @@ const PasswordManagement = () => {
           last_login: linkedUser?.last_login
         };
       });
-      
-      setEmployees(employeesWithAccess);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-      toast.error('Failed to load employees');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    enabled: canManage,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Mutation: Reset Password
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ employeeId, password }) => {
+      await axios.post(`${API}/auth/admin/reset-employee-password`, {
+        employee_id: employeeId,
+        new_password: password
+      });
+      return password;
+    },
+    onSuccess: (password, { firstName, lastName }) => {
+      toast.success(`Password reset successfully for ${firstName} ${lastName}`);
+      toast.info(`New password: ${password}`);
+      setResetDialog(false);
+      setNewPassword('');
+      setSelectedEmployee(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to reset password');
+    },
+  });
+
+  // Mutation: Toggle Access
+  const toggleAccessMutation = useMutation({
+    mutationFn: async ({ employeeId, isActive }) => {
+      await axios.post(`${API}/auth/admin/toggle-employee-access`, {
+        employee_id: employeeId,
+        is_active: !isActive
+      });
+      return !isActive;
+    },
+    onSuccess: (newStatus, { firstName, lastName }) => {
+      toast.success(`Access ${newStatus ? 'enabled' : 'disabled'} for ${firstName} ${lastName}`);
+      setDisableDialog(false);
+      setSelectedEmployee(null);
+      queryClient.invalidateQueries({ queryKey: ['employees', 'with-access'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to toggle access');
+    },
+  });
 
   const generatePassword = (employeeId) => {
     return `Welcome@${employeeId}`;
