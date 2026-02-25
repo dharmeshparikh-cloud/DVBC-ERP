@@ -81,14 +81,6 @@ const AssignTeam = () => {
   const invalidateData = () => {
     queryClient.invalidateQueries({ queryKey: ['assign-team', projectId] });
   };
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load project data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAddConsultant = () => {
     if (!selectedConsultant) {
       toast.error('Please select a consultant');
