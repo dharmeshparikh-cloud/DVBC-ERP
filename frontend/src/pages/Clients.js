@@ -144,7 +144,7 @@ const Clients = () => {
       await axios.patch(`${API}/clients/${selectedClient.id}`, payload);
       toast.success('Client updated successfully');
       setEditDialog(false);
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update client');
     }
@@ -156,7 +156,7 @@ const Clients = () => {
     try {
       await axios.delete(`${API}/clients/${clientId}`);
       toast.success('Client deactivated');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to deactivate client');
     }
@@ -177,7 +177,7 @@ const Clients = () => {
       // Refresh client data
       const res = await axios.get(`${API}/clients/${selectedClient.id}`);
       setSelectedClient(res.data);
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to add contact');
     }
@@ -202,7 +202,7 @@ const Clients = () => {
       // Refresh client data
       const res = await axios.get(`${API}/clients/${selectedClient.id}`);
       setSelectedClient(res.data);
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to add revenue');
     }
