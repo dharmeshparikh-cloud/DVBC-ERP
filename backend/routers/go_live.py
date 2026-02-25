@@ -425,7 +425,7 @@ async def approve_go_live_request(
             reporting_manager_name = manager.get("full_name") if manager else "To be assigned"
         
         # ERP Login URL
-        erp_login_url = os.environ.get("FRONTEND_URL", "https://help-admin-hub.preview.emergentagent.com") + "/login"
+        erp_login_url = os.environ.get("FRONTEND_URL", "https://performance-boost-68.preview.emergentagent.com") + "/login"
         
         if employee_email:
             try:
@@ -505,7 +505,7 @@ async def approve_go_live_request(
                                 </div>
                                 
                                 <p>The employee can now login to NETRA ERP using their Employee ID.</p>
-                                <p>You can view their details in the <a href="https://help-admin-hub.preview.emergentagent.com/employees?edit={employee_full.get('id')}">Employee Directory</a>.</p>
+                                <p>You can view their details in the <a href="https://performance-boost-68.preview.emergentagent.com/employees?edit={employee_full.get('id')}">Employee Directory</a>.</p>
                             </div>
                         </div>
                         """
