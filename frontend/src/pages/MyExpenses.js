@@ -33,10 +33,7 @@ const generateExpenseDraftTitle = (data) => {
 
 const MyExpenses = () => {
   const { user } = useContext(AuthContext);
-  const [data, setData] = useState({ expenses: [], summary: {} });
-  const [clients, setClients] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   
   // Draft support
@@ -82,24 +79,89 @@ const MyExpenses = () => {
     }
   }, [formData, dialogOpen, autoSave]);
 
-  useEffect(() => { fetchData(); }, []);
+  // React Query: My Expenses Data
+  const { data: expenseData, isLoading: loading } = useQuery({
+    queryKey: ['my', 'expenses'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/my/expenses`);
+      return res.data || { expenses: [], summary: {} };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const data = expenseData || { expenses: [], summary: {} };
 
-  const fetchData = async () => {
-    try {
-      const [expRes, clientsRes, projectsRes] = await Promise.all([
-        axios.get(`${API}/my/expenses`),
-        axios.get(`${API}/clients`).catch(() => ({ data: [] })),
-        axios.get(`${API}/projects`).catch(() => ({ data: [] }))
-      ]);
-      setData(expRes.data);
-      setClients(clientsRes.data);
-      setProjects(projectsRes.data);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to fetch expenses');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Clients
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/clients`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Projects
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects', 'list'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Mutation: Create Expense
+  const createExpenseMutation = useMutation({
+    mutationFn: async (payload) => {
+      await axios.post(`${API}/expenses`, payload);
+    },
+    onSuccess: () => {
+      toast.success('Expense created as draft');
+      convertDraft();
+      clearDraft();
+      setDialogOpen(false);
+      setFormData({ client_id: '', client_name: '', project_id: '', project_name: '', is_office_expense: false, notes: '', line_items: [{ category: 'Travel', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }] });
+      queryClient.invalidateQueries({ queryKey: ['my', 'expenses'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to create expense');
+    },
+  });
+
+  // Mutation: Submit for Approval
+  const submitMutation = useMutation({
+    mutationFn: async (expenseId) => {
+      await axios.post(`${API}/expenses/${expenseId}/submit`);
+    },
+    onSuccess: () => {
+      toast.success('Expense submitted for approval');
+      queryClient.invalidateQueries({ queryKey: ['my', 'expenses'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to submit');
+    },
+  });
+
+  // Mutation: Delete Expense
+  const deleteMutation = useMutation({
+    mutationFn: async (expenseId) => {
+      await axios.delete(`${API}/expenses/${expenseId}`);
+    },
+    onSuccess: () => {
+      toast.success('Expense deleted');
+      queryClient.invalidateQueries({ queryKey: ['my', 'expenses'] });
+    },
+    onError: (error) => {
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to delete expense');
+      }
+    },
+  });
 
   const addLineItem = () => {
     setFormData({ ...formData, line_items: [...formData.line_items, { category: 'Travel', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }] });
