@@ -170,7 +170,7 @@ const Expenses = () => {
       toast.success('Expense request created');
       setCreateDialog(false);
       resetForm();
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create expense');
     }
@@ -180,7 +180,7 @@ const Expenses = () => {
     try {
       await axios.post(`${API}/expenses/${expenseId}/submit`);
       toast.success('Expense submitted for approval');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to submit expense');
     }
@@ -190,7 +190,7 @@ const Expenses = () => {
     try {
       await axios.post(`${API}/expenses/${expenseId}/mark-reimbursed`);
       toast.success('Expense marked as reimbursed');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to mark as reimbursed');
     }
@@ -200,7 +200,7 @@ const Expenses = () => {
     try {
       await axios.post(`${API}/expenses/${expenseId}/approve`);
       toast.success('Expense approved successfully');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to approve expense');
     }
@@ -210,7 +210,7 @@ const Expenses = () => {
     try {
       await axios.post(`${API}/expenses/${expenseId}/reject`, { reason: reason || 'Rejected by HR/Admin' });
       toast.success('Expense rejected');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to reject expense');
     }
