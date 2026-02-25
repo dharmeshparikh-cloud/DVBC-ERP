@@ -110,23 +110,14 @@ const PasswordManagement = () => {
   const handleResetPassword = async () => {
     if (!selectedEmployee) return;
     
-    try {
-      const passwordToSet = newPassword || generatePassword(selectedEmployee.employee_id);
-      
-      await axios.post(`${API}/auth/admin/reset-employee-password`, {
-        employee_id: selectedEmployee.employee_id,
-        new_password: passwordToSet
-      });
-      
-      toast.success(`Password reset successfully for ${selectedEmployee.first_name} ${selectedEmployee.last_name}`);
-      toast.info(`New password: ${passwordToSet}`);
-      
-      setResetDialog(false);
-      setNewPassword('');
-      setSelectedEmployee(null);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to reset password');
-    }
+    const passwordToSet = newPassword || generatePassword(selectedEmployee.employee_id);
+    
+    resetPasswordMutation.mutate({
+      employeeId: selectedEmployee.employee_id,
+      password: passwordToSet,
+      firstName: selectedEmployee.first_name,
+      lastName: selectedEmployee.last_name
+    });
   };
 
   const handleToggleAccess = async () => {
@@ -139,20 +130,12 @@ const PasswordManagement = () => {
       return;
     }
     
-    try {
-      await axios.post(`${API}/auth/admin/toggle-employee-access`, {
-        employee_id: selectedEmployee.employee_id,
-        is_active: !selectedEmployee.is_active
-      });
-      
-      toast.success(`Access ${selectedEmployee.is_active ? 'disabled' : 'enabled'} for ${selectedEmployee.first_name} ${selectedEmployee.last_name}`);
-      
-      setDisableDialog(false);
-      setSelectedEmployee(null);
-      fetchEmployees();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to toggle access');
-    }
+    toggleAccessMutation.mutate({
+      employeeId: selectedEmployee.employee_id,
+      isActive: selectedEmployee.is_active,
+      firstName: selectedEmployee.first_name,
+      lastName: selectedEmployee.last_name
+    });
   };
 
   const openResetDialog = (emp) => {
