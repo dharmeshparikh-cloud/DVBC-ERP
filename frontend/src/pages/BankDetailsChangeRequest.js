@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { API, AuthContext } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -13,19 +13,18 @@ import {
   Clock, AlertCircle, Info, Trash2, Eye, Loader2, Shield, User, Search
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const BankDetailsChangeRequest = () => {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const fileInputRef = useRef(null);
 
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [verifyingIfsc, setVerifyingIfsc] = useState(false);
   const [ifscVerified, setIfscVerified] = useState(false);
-  const [employee, setEmployee] = useState(null);
-  const [pendingRequests, setPendingRequests] = useState([]);
   const [formData, setFormData] = useState({
     account_holder_name: '',
     account_number: '',
@@ -38,10 +37,28 @@ const BankDetailsChangeRequest = () => {
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState(null);
 
-  useEffect(() => {
-    fetchEmployeeData();
-    fetchPendingRequests();
-  }, []);
+  // Fetch employee and pending requests with React Query
+  const { data: bankData, isLoading: loading } = useQuery({
+    queryKey: ['bank-change-requests', user?.id],
+    queryFn: async () => {
+      const [empRes, reqRes] = await Promise.all([
+        axios.get(`${API}/employees/me`).catch(() => ({ data: null })),
+        axios.get(`${API}/bank-change-requests/my`).catch(() => ({ data: [] }))
+      ]);
+      return {
+        employee: empRes.data,
+        pendingRequests: reqRes.data || []
+      };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const employee = bankData?.employee;
+  const pendingRequests = bankData?.pendingRequests || [];
+
+  const invalidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ['bank-change-requests'] });
+  };
 
   // IFSC verification function
   const verifyIFSC = async (ifscCode) => {
