@@ -413,6 +413,82 @@ async def approve_go_live_request(
         "timestamp": now
     })
     
+    # Send activation email to employee and HR
+    employee_full = await db.employees.find_one({"id": request.get("employee_id")}, {"_id": 0})
+    if employee_full:
+        user = await db.users.find_one({"id": employee_full.get("user_id")}, {"_id": 0})
+        employee_email = employee_full.get("email") or employee_full.get("personal_email")
+        
+        if employee_email and user:
+            try:
+                # Email to Employee
+                await send_email(
+                    to_email=employee_email,
+                    subject="Welcome to D&V Business Consulting - Your Account is Now Active!",
+                    html_content=f"""
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center;">
+                            <h1 style="color: white; margin: 0;">Welcome Aboard!</h1>
+                        </div>
+                        <div style="padding: 30px; background: #f9f9f9;">
+                            <p>Dear <strong>{employee_full.get('full_name', 'Employee')}</strong>,</p>
+                            <p>Congratulations! Your employee account has been activated. You can now access the NETRA ERP portal.</p>
+                            
+                            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f97316;">
+                                <h3 style="margin-top: 0; color: #333;">Your Login Details</h3>
+                                <p><strong>Employee ID:</strong> {employee_full.get('employee_id')}</p>
+                                <p><strong>Official Email:</strong> {employee_full.get('email')}</p>
+                                <p><strong>Department:</strong> {employee_full.get('department')}</p>
+                                <p><strong>Designation:</strong> {employee_full.get('designation')}</p>
+                            </div>
+                            
+                            <p>Please login using your Employee ID and the password shared during onboarding.</p>
+                            <p>If you have any questions, please contact HR.</p>
+                            
+                            <p style="margin-top: 30px;">Best Regards,<br><strong>D&V Business Consulting</strong></p>
+                        </div>
+                    </div>
+                    """
+                )
+            except Exception as e:
+                print(f"Failed to send activation email to employee: {e}")
+        
+        # Email to HR who submitted the request
+        if request.get("submitted_by"):
+            hr_user = await db.users.find_one({"id": request["submitted_by"]}, {"_id": 0})
+            if hr_user and hr_user.get("email"):
+                try:
+                    await send_email(
+                        to_email=hr_user["email"],
+                        subject=f"Go-Live Approved: {employee_full.get('full_name')} is Now Active",
+                        html_content=f"""
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <div style="background: #16a34a; padding: 20px; text-align: center;">
+                                <h2 style="color: white; margin: 0;">Go-Live Approved ✓</h2>
+                            </div>
+                            <div style="padding: 30px; background: #f9f9f9;">
+                                <p>Hi {hr_user.get('full_name', 'HR')},</p>
+                                <p>The Go-Live request for <strong>{employee_full.get('full_name')}</strong> has been approved by <strong>{current_user.full_name}</strong>.</p>
+                                
+                                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <h3 style="margin-top: 0;">Employee Details</h3>
+                                    <p><strong>Employee ID:</strong> {employee_full.get('employee_id')}</p>
+                                    <p><strong>Name:</strong> {employee_full.get('full_name')}</p>
+                                    <p><strong>Email:</strong> {employee_full.get('email')}</p>
+                                    <p><strong>Department:</strong> {employee_full.get('department')}</p>
+                                    <p><strong>Designation:</strong> {employee_full.get('designation')}</p>
+                                    <p><strong>Status:</strong> <span style="color: #16a34a; font-weight: bold;">ACTIVE</span></p>
+                                </div>
+                                
+                                <p>The employee can now login to NETRA ERP using their Employee ID.</p>
+                                <p>You can view their details in the <a href="https://help-admin-hub.preview.emergentagent.com/employees?edit={employee_full.get('id')}">Employee Directory</a>.</p>
+                            </div>
+                        </div>
+                        """
+                    )
+                except Exception as e:
+                    print(f"Failed to send Go-Live approval email to HR: {e}")
+    
     return {
         "message": "Go-Live approved. Employee is now active.",
         "status": "approved",
