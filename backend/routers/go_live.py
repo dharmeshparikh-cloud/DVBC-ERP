@@ -416,7 +416,6 @@ async def approve_go_live_request(
     # Send activation email to employee and HR
     employee_full = await db.employees.find_one({"id": request.get("employee_id")}, {"_id": 0})
     if employee_full:
-        user = await db.users.find_one({"id": employee_full.get("user_id")}, {"_id": 0})
         employee_email = employee_full.get("email") or employee_full.get("personal_email")
         
         # Get reporting manager name
