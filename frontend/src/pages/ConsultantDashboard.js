@@ -12,42 +12,40 @@ import RBACWidget from '../components/RBACWidget';
 
 const ConsultantDashboard = () => {
   const { user } = useContext(AuthContext);
-  const [stats, setStats] = useState(null);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   
   // Quick Check-in state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
-  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-    fetchAttendanceStatus();
-  }, []);
+  // React Query: Dashboard Stats
+  const { data: stats } = useQuery({
+    queryKey: ['consultant', 'dashboard-stats'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consultant/dashboard-stats`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchAttendanceStatus = async () => {
-    try {
+  // React Query: My Projects
+  const { data: projects = [], isLoading: loading } = useQuery({
+    queryKey: ['consultant', 'my-projects'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consultant/my-projects`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // React Query: Attendance Status
+  const { data: attendanceStatus } = useQuery({
+    queryKey: ['my', 'check-status'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/my/check-status`);
-      setAttendanceStatus(res.data);
-    } catch (err) {
-      console.error('Failed to fetch attendance status');
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      const [statsRes, projectsRes] = await Promise.all([
-        axios.get(`${API}/consultant/dashboard-stats`),
-        axios.get(`${API}/consultant/my-projects`)
-      ]);
-      setStats(statsRes.data);
-      setProjects(projectsRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data;
+    },
+    staleTime: 1 * 60 * 1000,
+  });
 
   const getStatusColor = (status) => {
     const colors = {
