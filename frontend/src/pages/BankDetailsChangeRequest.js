@@ -199,7 +199,7 @@ const BankDetailsChangeRequest = () => {
         );
         
         toast.success('Bank details change request submitted successfully');
-        fetchPendingRequests();
+        invalidateData();
         
         // Reset form
         setProofFile(null);
