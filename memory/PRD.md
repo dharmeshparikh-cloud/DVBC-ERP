@@ -28,12 +28,13 @@
    - Onboarding queries: `useOnboardingSubmissions`
    - Mutation helpers: `useApiMutation`, `useCreateEmployee`, etc.
 
-2. **Migrated 16 High-Priority Pages:**
+2. **Migrated 22 High-Priority Pages:**
    - **Dashboards:** Dashboard.js, AdminDashboard.js, HRDashboard.js, SalesDashboard.js, ConsultingDashboard.js
    - **Core Modules:** Employees.js, Leads.js, Projects.js, MyProjects.js
-   - **HR:** OnboardingHub.js, Payroll.js
-   - **Admin:** Reports.js, SecurityAuditLog.js, UserManagement.js, Expenses.js
-   - **Sales Funnel:** Agreements.js, Quotations.js
+   - **HR:** OnboardingHub.js, Payroll.js, LeaveManagement.js, MyLeaves.js
+   - **Admin:** Reports.js, SecurityAuditLog.js, UserManagement.js, Expenses.js, EmailTemplates.js
+   - **Sales Funnel:** Agreements.js, Quotations.js, PricingPlanBuilder.js, ManagerApprovals.js
+   - **Consulting:** ConsultingSOWList.js
 
 **Benefits Achieved:**
 - 2-5 minute cache for different data types (reduces API calls)
@@ -43,8 +44,8 @@
 - Improved user experience with faster navigation
 
 **Migration Status:**
-- ✅ 16 pages now using React Query
-- 72 pages remaining (will be migrated incrementally)
+- ✅ 22 pages now using React Query
+- 66 pages remaining (will be migrated incrementally)
 - All high-traffic dashboards and core modules migrated
 
 ---
