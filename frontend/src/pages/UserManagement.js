@@ -97,7 +97,7 @@ const UserManagement = () => {
       toast.success('User created successfully');
       setCreateUserDialog(false);
       setNewUserData({ email: '', password: '', full_name: '', role: 'consultant', department: '' });
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create user');
     }
@@ -107,7 +107,7 @@ const UserManagement = () => {
     try {
       await axios.patch(`${API}/users/${userId}/role?role=${newRole}`);
       toast.success('User role updated');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update role');
     }
@@ -131,7 +131,7 @@ const UserManagement = () => {
       toast.success('Role created successfully');
       setCreateRoleDialog(false);
       setNewRoleData({ id: '', name: '', description: '' });
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create role');
     }
@@ -143,7 +143,7 @@ const UserManagement = () => {
     try {
       await axios.delete(`${API}/roles/${roleId}`);
       toast.success('Role deleted');
-      fetchData();
+      invalidateData();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to delete role');
     }
