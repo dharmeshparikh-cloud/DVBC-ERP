@@ -245,13 +245,6 @@ const PricingPlanBuilder = () => {
     }
   }, [totalInvestment, formData.project_duration_months]);
 
-  // Check meeting access on mount
-  useEffect(() => {
-    if (leadId) {
-      checkMeetingAccess();
-    }
-  }, [leadId]);
-
   // Handle duration type change
   const handleDurationTypeChange = (type) => {
     const months = DURATION_TYPE_MONTHS[type];
