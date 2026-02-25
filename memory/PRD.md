@@ -28,21 +28,32 @@
    - Onboarding queries: `useOnboardingSubmissions`
    - Mutation helpers: `useApiMutation`, `useCreateEmployee`, etc.
 
-2. **Migrated High-Priority Pages:**
+2. **Migrated 12 High-Priority Pages:**
    - `Dashboard.js` - Main dashboard with stats, attendance, leads
-   - `ConsultingDashboard.js` - Consulting stats with caching
-   - `OnboardingHub.js` - Onboarding submissions with cache invalidation
+   - `AdminDashboard.js` - Admin overview
+   - `HRDashboard.js` - HR stats and management
+   - `SalesDashboard.js` - Sales analytics
+   - `ConsultingDashboard.js` - Consulting stats
+   - `Employees.js` - Employee directory (1200+ lines)
+   - `Leads.js` - Lead management
+   - `Projects.js` - Project management
+   - `MyProjects.js` - Consultant project view
+   - `Payroll.js` - Payroll processing
+   - `Reports.js` - Report generation
+   - `SecurityAuditLog.js` - Security audit
+   - `OnboardingHub.js` - HR onboarding workflow
 
 **Benefits Achieved:**
-- 5-minute cache for dashboard stats (reduces API calls)
+- 2-5 minute cache for different data types (reduces API calls)
 - Background refetching keeps data fresh
 - Automatic cache invalidation on mutations
 - Consistent loading/error state management
+- Improved user experience with faster navigation
 
 **Migration Status:**
-- 7 pages now using React Query
-- ~81 pages remaining (will be migrated incrementally)
-- High-traffic dashboards prioritized
+- ✅ 12 pages now using React Query
+- 76 pages remaining (will be migrated incrementally)
+- All high-traffic dashboards and core modules migrated
 
 ---
 
