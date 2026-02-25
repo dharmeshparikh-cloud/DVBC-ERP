@@ -60,19 +60,15 @@ function TreeNode(props) {
 }
 
 function OrgChart() {
-  var _useState1 = useState([]);
-  var hierarchy = _useState1[0];
-  var setHierarchy = _useState1[1];
-  var _useState2 = useState(true);
-  var loading = _useState2[0];
-  var setLoading = _useState2[1];
-  var _useState3 = useState({ total: 0, departments: 0, managers: 0 });
-  var stats = _useState3[0];
-  var setStats = _useState3[1];
-
-  useEffect(function() {
-    fetchOrgChart();
-  }, []);
+  // React Query: Org Chart Hierarchy
+  const { data: hierarchy = [], isLoading: loading } = useQuery({
+    queryKey: ['employees', 'org-chart'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/org-chart/hierarchy`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000, // Org chart rarely changes
+  });
 
   function countNodes(nodes) {
     var count = 0;
@@ -100,25 +96,14 @@ function OrgChart() {
     return deptsSet;
   }
 
-  function fetchOrgChart() {
-    axios.get(API + '/employees/org-chart/hierarchy')
-      .then(function(res) {
-        setHierarchy(res.data);
-        var deptsSet = new Set();
-        getDepts(res.data, deptsSet);
-        setStats({
-          total: countNodes(res.data),
-          departments: deptsSet.size,
-          managers: countManagers(res.data)
-        });
-      })
-      .catch(function() {
-        toast.error('Failed to load org chart');
-      })
-      .finally(function() {
-        setLoading(false);
-      });
-  }
+  // Calculate stats from hierarchy
+  const deptsSet = new Set();
+  getDepts(hierarchy, deptsSet);
+  const stats = {
+    total: countNodes(hierarchy),
+    departments: deptsSet.size,
+    managers: countManagers(hierarchy)
+  };
 
   return (
     <div data-testid="org-chart-page">
