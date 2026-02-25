@@ -20,9 +20,7 @@ import {
 const AllProjects = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [consultants, setConsultants] = useState([]);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all'); // all, needs_assignment, assigned
   const [search, setSearch] = useState('');
   
@@ -40,14 +38,10 @@ const AllProjects = () => {
     notes: ''
   });
 
-  useEffect(() => {
-    fetchProjects();
-    fetchConsultants();
-  }, [filter]);
-
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
+  // React Query: Projects for Assignment
+  const { data: projects = [], isLoading: loading } = useQuery({
+    queryKey: ['projects', 'for-assignment', filter],
+    queryFn: async () => {
       let url = `${API}/projects/all/for-assignment`;
       if (filter === 'needs_assignment') {
         url += '?needs_assignment=true';
@@ -57,50 +51,61 @@ const AllProjects = () => {
       
       const response = await axios.get(url);
       const projectData = response.data?.projects || response.data?.items || response.data || [];
-      setProjects(Array.isArray(projectData) ? projectData : []);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-      toast.error('Failed to fetch projects');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(projectData) ? projectData : [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchConsultants = async () => {
-    try {
+  // React Query: Consultants
+  const { data: consultants = [] } = useQuery({
+    queryKey: ['consultants'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/consultants`);
       const consultantData = response.data?.items || response.data || [];
-      setConsultants(Array.isArray(consultantData) ? consultantData : []);
-    } catch (error) {
-      console.error('Error fetching consultants:', error);
-    }
-  };
+      return Array.isArray(consultantData) ? consultantData : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Mutation: Assign Consultant
+  const assignMutation = useMutation({
+    mutationFn: async ({ projectId, data }) => {
+      await axios.post(`${API}/projects/${projectId}/assign-consultant`, data);
+    },
+    onSuccess: () => {
+      toast.success('Consultant assigned successfully');
+      setAssignDialogOpen(false);
+      setFormData({ consultant_id: '', role_in_project: 'consultant', meetings_committed: 0, notes: '' });
+      queryClient.invalidateQueries({ queryKey: ['projects', 'for-assignment'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to assign consultant');
+    },
+  });
+
+  // Mutation: Unassign Consultant
+  const unassignMutation = useMutation({
+    mutationFn: async ({ projectId, consultantId }) => {
+      await axios.delete(`${API}/projects/${projectId}/unassign-consultant/${consultantId}`);
+    },
+    onSuccess: () => {
+      toast.success('Consultant removed from project');
+      queryClient.invalidateQueries({ queryKey: ['projects', 'for-assignment'] });
+    },
+    onError: () => {
+      toast.error('Failed to remove consultant');
+    },
+  });
 
   const handleAssignConsultant = async (e) => {
     e.preventDefault();
     if (!selectedProject || !formData.consultant_id) return;
-    
-    try {
-      await axios.post(`${API}/projects/${selectedProject.id}/assign-consultant`, formData);
-      toast.success('Consultant assigned successfully');
-      setAssignDialogOpen(false);
-      setFormData({ consultant_id: '', role_in_project: 'consultant', meetings_committed: 0, notes: '' });
-      fetchProjects();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to assign consultant');
-    }
+    assignMutation.mutate({ projectId: selectedProject.id, data: formData });
   };
 
   const handleUnassignConsultant = async (projectId, consultantId, consultantName) => {
     if (!window.confirm(`Remove ${consultantName} from this project?`)) return;
-    
-    try {
-      await axios.delete(`${API}/projects/${projectId}/unassign-consultant/${consultantId}`);
-      toast.success('Consultant removed from project');
-      fetchProjects();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to remove consultant');
-    }
+    unassignMutation.mutate({ projectId, consultantId });
   };
 
   const fetchAssignmentHistory = async (projectId) => {
