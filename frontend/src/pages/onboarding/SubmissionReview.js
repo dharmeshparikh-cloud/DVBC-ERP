@@ -16,7 +16,7 @@ import { Separator } from '../../components/ui/separator';
 import { 
   ArrowLeft, User, GraduationCap, Briefcase, Building2, Phone, FileText,
   CheckCircle2, XCircle, AlertTriangle, Loader2, Download, ExternalLink,
-  Calendar, Mail, Shield, CreditCard, Clock, Send, Edit, Check, Printer
+  Calendar, Mail, Shield, CreditCard, Clock, Send, Edit, Check, Printer, Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -27,6 +27,96 @@ const EMPLOYMENT_TYPES = [
   { value: 'intern', label: 'Intern' },
   { value: 'part_time', label: 'Part Time' },
 ];
+
+const DOCUMENT_TYPES = [
+  { value: 'pan_card', label: 'PAN Card' },
+  { value: 'aadhaar_card', label: 'Aadhaar Card' },
+  { value: 'passport_photo', label: 'Passport Photo' },
+  { value: 'education_certificate', label: 'Education Certificate' },
+  { value: 'experience_certificate', label: 'Experience Certificate' },
+  { value: 'offer_letter', label: 'Previous Offer Letter' },
+  { value: 'relieving_letter', label: 'Relieving Letter' },
+  { value: 'salary_slip', label: 'Salary Slip' },
+  { value: 'bank_statement', label: 'Bank Statement' },
+  { value: 'other', label: 'Other Document' },
+];
+
+// HR Document Upload Component
+const HRDocumentUpload = ({ submissionId, onUploadComplete, authHeaders }) => {
+  const [uploading, setUploading] = useState(false);
+  const [selectedType, setSelectedType] = useState('');
+  const fileInputRef = React.useRef(null);
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedType) {
+      toast.error('Please select a document type first');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setUploading(true);
+      await axios.post(
+        `${API}/onboarding/submissions/${submissionId}/upload-document?document_type=${selectedType}`,
+        formData,
+        { 
+          ...authHeaders,
+          headers: { 
+            ...authHeaders.headers,
+            'Content-Type': 'multipart/form-data' 
+          }
+        }
+      );
+      toast.success(`${selectedType.replace('_', ' ')} uploaded successfully`);
+      setSelectedType('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      onUploadComplete();
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error(err.response?.data?.detail || 'Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={selectedType} onValueChange={setSelectedType}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Document type" />
+        </SelectTrigger>
+        <SelectContent>
+          {DOCUMENT_TYPES.map(dt => (
+            <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileSelect}
+        accept=".pdf,.jpg,.jpeg,.png"
+      />
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={!selectedType || uploading}
+      >
+        {uploading ? (
+          <Loader2 className="w-4 h-4 animate-spin mr-1" />
+        ) : (
+          <Upload className="w-4 h-4 mr-1" />
+        )}
+        Upload
+      </Button>
+    </div>
+  );
+};
 
 const SubmissionReview = () => {
   const { submissionId } = useParams();
