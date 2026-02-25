@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Car, Bike, MapPin, Calendar, CheckCircle, XCircle, 
   Clock, TrendingUp, IndianRupee, Filter, Search,
@@ -10,78 +11,92 @@ import { toast } from 'sonner';
 
 const TravelReimbursement = () => {
   const { user } = useContext(AuthContext);
-  const [claims, setClaims] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState(null);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all'); // all, pending, approved, rejected
   const [selectedMonth, setSelectedMonth] = useState(''); // Empty to show all by default
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchClaims = async () => {
-    setLoading(true);
-    try {
+  // React Query: Travel Claims
+  const { data: claimsData, isLoading: loading } = useQuery({
+    queryKey: ['travel', 'reimbursements', filter, selectedMonth],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (filter !== 'all') params.append('status', filter);
-      // Only apply month filter if selectedMonth is set (not empty string)
       if (selectedMonth && selectedMonth.trim() !== '') params.append('month', selectedMonth);
       
       const response = await axios.get(`${API}/travel/reimbursements?${params.toString()}`);
-      setClaims(response.data.records || []);
-    } catch (error) {
-      toast.error('Failed to fetch travel claims');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.data.records || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const claims = claimsData || [];
 
-  const fetchStats = async () => {
-    try {
+  // React Query: Travel Stats
+  const { data: stats } = useQuery({
+    queryKey: ['travel', 'stats', selectedMonth],
+    queryFn: async () => {
       const params = selectedMonth ? `?month=${selectedMonth}` : '';
       const response = await axios.get(`${API}/travel/stats${params}`);
-      setStats(response.data);
-    } catch (error) {
-      console.error('Failed to fetch stats');
-    }
-  };
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchClaims();
-    fetchStats();
-  }, [filter, selectedMonth]);
-
-  const handleApprove = async (claimId) => {
-    try {
+  // Mutation: Approve Claim
+  const approveMutation = useMutation({
+    mutationFn: async (claimId) => {
       await axios.post(`${API}/travel/reimbursements/${claimId}/approve`);
+    },
+    onSuccess: () => {
       toast.success('Travel claim approved');
-      fetchClaims();
-      fetchStats();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['travel'] });
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to approve');
-    }
+    },
+  });
+
+  // Mutation: Reject Claim
+  const rejectMutation = useMutation({
+    mutationFn: async ({ claimId, reason }) => {
+      await axios.post(`${API}/travel/reimbursements/${claimId}/reject`, { reason });
+    },
+    onSuccess: () => {
+      toast.success('Travel claim rejected');
+      queryClient.invalidateQueries({ queryKey: ['travel'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to reject');
+    },
+  });
+
+  // Mutation: Convert to Expense
+  const convertMutation = useMutation({
+    mutationFn: async (claimId) => {
+      const response = await axios.post(`${API}/travel/reimbursements/${claimId}/convert-to-expense`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Converted to expense: ${data.expense_id}`);
+      queryClient.invalidateQueries({ queryKey: ['travel'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to convert');
+    },
+  });
+
+  const handleApprove = (claimId) => {
+    approveMutation.mutate(claimId);
   };
 
-  const handleReject = async (claimId) => {
+  const handleReject = (claimId) => {
     const reason = prompt('Please enter rejection reason:');
     if (!reason) return;
-    
-    try {
-      await axios.post(`${API}/travel/reimbursements/${claimId}/reject`, { reason });
-      toast.success('Travel claim rejected');
-      fetchClaims();
-      fetchStats();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to reject');
-    }
+    rejectMutation.mutate({ claimId, reason });
   };
 
-  const handleConvertToExpense = async (claimId) => {
-    try {
-      const response = await axios.post(`${API}/travel/reimbursements/${claimId}/convert-to-expense`);
-      toast.success(`Converted to expense: ${response.data.expense_id}`);
-      fetchClaims();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to convert');
-    }
+  const handleConvertToExpense = (claimId) => {
+    convertMutation.mutate(claimId);
   };
 
   const filteredClaims = claims.filter(claim => {
