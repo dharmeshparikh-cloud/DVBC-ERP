@@ -20,34 +20,28 @@ const STATUS_STYLES = {
 
 const MyAttendance = () => {
   const { user } = useContext(AuthContext);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [todayCheckedIn, setTodayCheckedIn] = useState(false);
-  const [todayCheckedOut, setTodayCheckedOut] = useState(false);
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => { fetchData(); }, [month]);
+  // React Query: My Attendance
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['my', 'attendance', month],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/my/attendance?month=${month}`);
+      return data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API}/my/attendance?month=${month}`);
-      setData(res.data);
-      // Check today's status
-      const today = new Date().toISOString().split('T')[0];
-      const todayRecord = res.data?.records?.find(r => r.date === today);
-      setTodayCheckedIn(!!todayRecord?.check_in_time);
-      setTodayCheckedOut(!!todayRecord?.check_out_time);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to fetch attendance');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Check today's status
+  const today = new Date().toISOString().split('T')[0];
+  const todayRecord = data?.records?.find(r => r.date === today);
+  const todayCheckedIn = !!todayRecord?.check_in_time;
+  const todayCheckedOut = !!todayRecord?.check_out_time;
 
   const s = data?.summary || {};
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const todayFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div data-testid="my-attendance-page">
