@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../../App';
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 
 const STATUS_CONFIG = {
   pending_kickoff: { label: 'Pending Kickoff', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -24,18 +25,13 @@ const ConsultingSOWList = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   
-  const [loading, setLoading] = useState(true);
-  const [sowList, setSowList] = useState([]);
-  const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
+  // Fetch SOW list with React Query
+  const { data: sowData, isLoading: loading } = useQuery({
+    queryKey: ['consulting-sow-list'],
+    queryFn: async () => {
       const [sowRes, leadsRes] = await Promise.all([
         axios.get(`${API}/enhanced-sow/list?role=consulting`).catch(() => ({ data: [] })),
         axios.get(`${API}/leads`)
@@ -43,15 +39,16 @@ const ConsultingSOWList = () => {
       
       // Filter to only show handed-over SOWs for consulting
       const handedOverSOWs = (sowRes.data || []).filter(sow => sow.sales_handover_complete);
-      setSowList(handedOverSOWs);
-      setLeads(leadsRes.data || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load project list');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        sowList: handedOverSOWs,
+        leads: leadsRes.data || []
+      };
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
+  const sowList = sowData?.sowList || [];
+  const leads = sowData?.leads || [];
 
   // Get lead info for a SOW
   const getLeadInfo = (sow) => {
