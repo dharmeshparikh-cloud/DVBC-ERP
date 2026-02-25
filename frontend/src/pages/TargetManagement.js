@@ -16,10 +16,7 @@ import { toast } from 'sonner';
 
 const TargetManagement = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
-  const [targets, setTargets] = useState([]);
-  const [subordinates, setSubordinates] = useState([]);
-  const [totalClients, setTotalClients] = useState(0);
+  const queryClient = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTarget, setEditingTarget] = useState(null);
@@ -38,31 +35,72 @@ const TargetManagement = () => {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedYear]);
+  // React Query: Targets
+  const { data: targets = [], isLoading: loadingTargets } = useQuery({
+    queryKey: ['sales-targets', selectedYear],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/sales-targets?year=${selectedYear}`);
+      const targetsData = res.data?.items || res.data || [];
+      return Array.isArray(targetsData) ? targetsData : [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [targetsRes, subordinatesRes, kpiRes] = await Promise.all([
-        axios.get(`${API}/sales-targets?year=${selectedYear}`),
-        axios.get(`${API}/manager/subordinate-leads`),
-        axios.get(`${API}/manager/target-vs-achievement?year=${selectedYear}`)
-      ]);
-      
-      const targetsData = targetsRes.data?.items || targetsRes.data || [];
-      setTargets(Array.isArray(targetsData) ? targetsData : []);
-      const subData = subordinatesRes.data?.subordinates || subordinatesRes.data?.items || [];
-      setSubordinates(Array.isArray(subData) ? subData : []);
-      setTotalClients(kpiRes.data?.total_clients || 0);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load targets');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Subordinates
+  const { data: subordinates = [] } = useQuery({
+    queryKey: ['manager', 'subordinate-leads'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/manager/subordinate-leads`);
+      const subData = res.data?.subordinates || res.data?.items || [];
+      return Array.isArray(subData) ? subData : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: KPI Data
+  const { data: kpiData } = useQuery({
+    queryKey: ['manager', 'target-vs-achievement', selectedYear],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/manager/target-vs-achievement?year=${selectedYear}`);
+      return res.data || {};
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const totalClients = kpiData?.total_clients || 0;
+  const loading = loadingTargets;
+
+  // Mutation: Save Target
+  const saveMutation = useMutation({
+    mutationFn: async (data) => {
+      if (editingTarget) {
+        await axios.patch(`${API}/sales-targets/${editingTarget.id}`, data);
+      } else {
+        await axios.post(`${API}/sales-targets`, data);
+      }
+    },
+    onSuccess: () => {
+      toast.success(editingTarget ? 'Target updated successfully' : 'Target created successfully');
+      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['sales-targets'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save target');
+    },
+  });
+
+  // Mutation: Delete Target
+  const deleteMutation = useMutation({
+    mutationFn: async (targetId) => {
+      await axios.delete(`${API}/sales-targets/${targetId}`);
+    },
+    onSuccess: () => {
+      toast.success('Target deleted');
+      queryClient.invalidateQueries({ queryKey: ['sales-targets'] });
+    },
+    onError: () => {
+      toast.error('Failed to delete target');
+    },
+  });
 
   const handleOpenDialog = (target = null) => {
     if (target) {
