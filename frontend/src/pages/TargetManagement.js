@@ -152,32 +152,12 @@ const TargetManagement = () => {
       toast.error('Please select an employee');
       return;
     }
-
-    try {
-      if (editingTarget) {
-        await axios.patch(`${API}/sales-targets/${editingTarget.id}`, formData);
-        toast.success('Target updated successfully');
-      } else {
-        await axios.post(`${API}/sales-targets`, formData);
-        toast.success('Target created successfully');
-      }
-      setDialogOpen(false);
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save target');
-    }
+    saveMutation.mutate(formData);
   };
 
   const handleDelete = async (targetId) => {
     if (!confirm('Are you sure you want to delete this target?')) return;
-    
-    try {
-      await axios.delete(`${API}/sales-targets/${targetId}`);
-      toast.success('Target deleted');
-      fetchData();
-    } catch (error) {
-      toast.error('Failed to delete target');
-    }
+    deleteMutation.mutate(targetId);
   };
 
   const formatCurrency = (value) => {
