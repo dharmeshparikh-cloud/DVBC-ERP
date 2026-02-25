@@ -70,8 +70,6 @@ const Clients = () => {
 
   const canManage = ['admin', 'project_manager', 'sales_manager', 'executive', 'manager'].includes(user?.role);
 
-  const canManage = ['admin', 'manager', 'sales_manager'].includes(user?.role);
-
   // Fetch clients with React Query
   const { data: clientsData, isLoading: loading } = useQuery({
     queryKey: ['clients-all'],
