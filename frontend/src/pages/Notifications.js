@@ -259,47 +259,17 @@ const Notifications = () => {
   const handleAction = async (action) => {
     if (!selectedNotification) return;
     
-    setActionLoading(true);
     const config = NOTIFICATION_CONFIG[selectedNotification.type] || {};
+    const referenceId = selectedNotification.reference_id;
     
-    try {
-      const referenceId = selectedNotification.reference_id;
-      
-      if (action === 'approve' && config.approveEndpoint) {
-        const endpoint = config.approveEndpoint.replace('{id}', referenceId);
-        await axios.post(`${API}${endpoint}`);
-        toast.success('Approved successfully');
-      } else if (action === 'reject' && config.rejectEndpoint) {
-        const endpoint = config.rejectEndpoint.replace('{id}', referenceId);
-        await axios.post(`${API}${endpoint}`, { reason: rejectionReason || 'Rejected' });
-        toast.success('Rejected successfully');
-      }
-      
-      // Update notification status
-      await axios.patch(`${API}/notifications/${selectedNotification.id}/action`, { 
-        action,
-        actioned_at: new Date().toISOString()
-      });
-      
-      setNotifications(prev => prev.map(n => 
-        n.id === selectedNotification.id 
-          ? { ...n, status: 'actioned', action_taken: action } 
-          : n
-      ));
-      
-      setActionDialog(false);
-      setSelectedNotification(null);
-      setRejectionReason('');
-      
-      // Navigate to onward link if available
-      if (config.onwardLink) {
-        navigate(config.onwardLink);
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.detail || `Failed to ${action}`);
-    } finally {
-      setActionLoading(false);
-    }
+    actionMutation.mutate({
+      notificationId: selectedNotification.id,
+      action,
+      referenceId,
+      config,
+      reason: rejectionReason,
+      notifType: selectedNotification.type
+    });
   };
 
   const filteredNotifications = notifications.filter(n => {
