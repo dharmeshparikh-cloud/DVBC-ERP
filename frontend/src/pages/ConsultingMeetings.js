@@ -26,13 +26,8 @@ const PRIORITY_OPTIONS = [
 
 const ConsultingMeetings = () => {
   const { user } = useContext(AuthContext);
-  const [meetings, setMeetings] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [clients, setClients] = useState([]);
+  const queryClient = useQueryClient();
   const [sows, setSows] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [tracking, setTracking] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [momDialogOpen, setMomDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
@@ -57,45 +52,80 @@ const ConsultingMeetings = () => {
 
   const canEdit = CONSULTING_ROLES.includes(user?.role) && user?.role !== 'manager';
 
-  useEffect(() => { fetchData(); }, []);
+  // React Query: Meetings
+  const { data: meetings = [], isLoading: loading } = useQuery({
+    queryKey: ['meetings', 'consulting'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/meetings?meeting_type=consulting`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      const [meetingsRes, projectsRes, clientsRes, usersRes, trackingRes] = await Promise.all([
-        axios.get(`${API}/meetings?meeting_type=consulting`),
-        axios.get(`${API}/projects`),
-        axios.get(`${API}/clients`).catch(() => ({ data: [] })),
-        axios.get(`${API}/users`),
-        axios.get(`${API}/consulting-meetings/tracking`).catch(() => ({ data: [] }))
-      ]);
-      setMeetings(meetingsRes.data);
-      setProjects(projectsRes.data);
-      setClients(clientsRes.data);
-      setUsers(usersRes.data);
-      setTracking(trackingRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Projects
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects', 'list'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
+  // React Query: Clients
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/clients`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Users
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/users`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Tracking
+  const { data: tracking = [] } = useQuery({
+    queryKey: ['consulting-meetings', 'tracking'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consulting-meetings/tracking`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Mutation: Create Meeting
+  const createMeetingMutation = useMutation({
+    mutationFn: async (data) => {
       await axios.post(`${API}/meetings`, {
-        ...formData, type: 'consulting',
-        meeting_date: new Date(formData.meeting_date).toISOString(),
-        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
-        agenda: formData.agenda.filter(a => a.trim())
+        ...data, type: 'consulting',
+        meeting_date: new Date(data.meeting_date).toISOString(),
+        duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
+        agenda: data.agenda.filter(a => a.trim())
       });
+    },
+    onSuccess: () => {
       toast.success('Consulting meeting created');
       setDialogOpen(false);
       setFormData({ title: '', project_id: '', client_id: '', sow_id: '', meeting_date: '', mode: 'online', duration_minutes: '', notes: '', is_delivered: false, agenda: [''], attendees: [], attendee_names: [] });
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to create meeting');
-    }
+    },
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    createMeetingMutation.mutate(formData);
   };
 
   const openMOMDialog = async (meeting) => {
