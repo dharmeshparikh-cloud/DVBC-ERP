@@ -104,30 +104,6 @@ const Expenses = () => {
   const invalidateData = () => {
     queryClient.invalidateQueries({ queryKey: ['expenses-data'] });
   };
-        axios.get(`${API}/projects`)
-      ]);
-      const expData = expensesRes.data?.items || expensesRes.data || [];
-      const clientData = clientsRes.data?.items || clientsRes.data || [];
-      const projectData = projectsRes.data?.items || projectsRes.data || [];
-      setExpenses(Array.isArray(expData) ? expData : []);
-      setClients(Array.isArray(clientData) ? clientData : []);
-      setProjects(Array.isArray(projectData) ? projectData : []);
-      
-      if (isHROrAdmin) {
-        try {
-          const statsRes = await axios.get(`${API}/expenses/stats/summary`);
-          setStats(statsRes.data);
-        } catch (e) {
-          console.error('Error fetching stats:', e);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load expenses');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const addLineItem = () => {
     if (!lineItemForm.description || !lineItemForm.amount) {
