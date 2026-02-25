@@ -162,22 +162,6 @@ const Agreements = () => {
       }
     }
   }, [loading, quotationId, quotations, pricingPlans, autoOpenHandled]);
-        axios.get(`${API}/pricing-plans`)
-      ]);
-      setAgreements(agreementsRes.data);
-      setQuotations(quotationsRes.data.filter(q => q.is_final));
-      setLeads(leadsRes.data);
-      setEmailTemplates(templatesRes.data);
-      setPricingPlans(plansRes.data);
-      
-      // If quotationId is provided, auto-populate from the pricing plan
-      if (quotationId) {
-        const quotation = quotationsRes.data.find(q => q.id === quotationId);
-        if (quotation) {
-          const plan = plansRes.data.find(p => p.id === quotation.pricing_plan_id);
-          if (plan) {
-            autoPopulateFromPlan(plan, quotation);
-          }
         }
       }
     } catch (error) {
