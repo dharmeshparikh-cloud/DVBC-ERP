@@ -128,7 +128,10 @@ const ConsultantDashboard = () => {
       {/* Quick Check-in Modal */}
       <QuickCheckInModal 
         isOpen={showQuickCheckIn} 
-        onClose={() => { setShowQuickCheckIn(false); fetchAttendanceStatus(); }} 
+        onClose={() => { 
+          setShowQuickCheckIn(false); 
+          queryClient.invalidateQueries({ queryKey: ['my', 'check-status'] }); 
+        }} 
         user={user} 
       />
 
