@@ -14,21 +14,17 @@ const MOBILE_APP_PATH = '/mobile';
 
 const MobileAppDownload = () => {
   const { user } = useContext(AuthContext);
-  const [stats, setStats] = useState(null);
   const mobileAppUrl = `${window.location.origin}${MOBILE_APP_PATH}`;
 
-  useEffect(() => {
-    fetchMobileStats();
-  }, []);
-
-  const fetchMobileStats = async () => {
-    try {
-      const response = await axios.get(`${API}/attendance/mobile-stats`);
-      setStats(response.data);
-    } catch (error) {
-      console.error('Failed to fetch mobile stats');
-    }
-  };
+  // React Query: Mobile Stats
+  const { data: stats } = useQuery({
+    queryKey: ['attendance', 'mobile-stats'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/attendance/mobile-stats`);
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const features = [
     { icon: Camera, title: 'Selfie Check-in', desc: 'Secure attendance with photo verification' },
