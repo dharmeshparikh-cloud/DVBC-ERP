@@ -26,7 +26,7 @@ class TestGoLiveNewFlow:
         """Get admin authentication token"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"login_id": "ADMIN001", "password": "admin123"}
+            json={"employee_id": "ADMIN001", "password": "admin123"}
         )
         assert response.status_code == 200, f"Admin login failed: {response.text}"
         data = response.json()
@@ -38,7 +38,7 @@ class TestGoLiveNewFlow:
         """Get HR Manager authentication token"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"login_id": "DVC037", "password": "test123"}
+            json={"employee_id": "DVC037", "password": "test123"}
         )
         assert response.status_code == 200, f"HR login failed: {response.text}"
         data = response.json()
@@ -379,7 +379,7 @@ class TestGoLiveSubmission:
         """Get HR Manager authentication token"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
-            json={"login_id": "DVC037", "password": "test123"}
+            json={"employee_id": "DVC037", "password": "test123"}
         )
         assert response.status_code == 200
         return response.json()["access_token"]
