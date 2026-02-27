@@ -645,7 +645,7 @@ async def run_integrity_check(current_user: User = Depends(get_current_user)):
                     "type": "circular_reporting",
                     "employee_id": emp["employee_id"],
                     "employee_name": emp.get("full_name"),
-                    "message": f"Circular reporting chain detected"
+                    "message": "Circular reporting chain detected"
                 })
                 break
             chain.add(current["id"])
