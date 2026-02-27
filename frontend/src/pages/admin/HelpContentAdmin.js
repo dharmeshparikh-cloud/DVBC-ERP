@@ -22,11 +22,8 @@ import { toast } from 'sonner';
 
 const HelpContentAdmin = () => {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('topics');
-  const [topics, setTopics] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -37,61 +34,84 @@ const HelpContentAdmin = () => {
   const [editingTopic, setEditingTopic] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   
-  useEffect(() => {
-    fetchData();
-  }, [filterCategory, filterType]);
-  
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [topicsRes, categoriesRes, analyticsRes] = await Promise.all([
-        axios.get(`${API}/help/admin/topics`, {
-          params: {
-            category: filterCategory !== 'all' ? filterCategory : undefined,
-            type: filterType !== 'all' ? filterType : undefined
-          }
-        }),
-        axios.get(`${API}/help/admin/categories`),
-        axios.get(`${API}/help/admin/analytics`)
-      ]);
-      
-      setTopics(topicsRes.data.topics || []);
-      setCategories(categoriesRes.data || []);
-      setAnalytics(analyticsRes.data);
-    } catch (err) {
-      console.error('Failed to fetch data:', err);
-      toast.error('Failed to load help content');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleSeedContent = async () => {
-    try {
+  // Fetch topics using React Query
+  const { data: topicsData = [], isLoading: topicsLoading, refetch: refetchTopics } = useQuery({
+    queryKey: ['help-topics', filterCategory, filterType],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/help/admin/topics`, {
+        params: {
+          category: filterCategory !== 'all' ? filterCategory : undefined,
+          type: filterType !== 'all' ? filterType : undefined
+        }
+      });
+      return res.data.topics || [];
+    },
+    staleTime: 2 * 60 * 1000
+  });
+
+  const topics = topicsData;
+
+  // Fetch categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['help-categories'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/help/admin/categories`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
+  // Fetch analytics
+  const { data: analytics = null } = useQuery({
+    queryKey: ['help-analytics'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/help/admin/analytics`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000
+  });
+
+  const loading = topicsLoading;
+
+  // Seed content mutation
+  const seedContentMutation = useMutation({
+    mutationFn: async () => {
       const res = await axios.post(`${API}/help/admin/seed`);
-      toast.success(res.data.message);
-      fetchData();
-    } catch (err) {
-      toast.error('Failed to seed content');
-    }
-  };
-  
-  const handleDeleteTopic = async (topicId) => {
-    if (!confirm('Are you sure you want to delete this topic?')) return;
-    
-    try {
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ['help-topics'] });
+      queryClient.invalidateQueries({ queryKey: ['help-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['help-analytics'] });
+    },
+    onError: () => toast.error('Failed to seed content')
+  });
+
+  const handleSeedContent = () => seedContentMutation.mutate();
+
+  // Delete topic mutation
+  const deleteTopicMutation = useMutation({
+    mutationFn: async (topicId) => {
       await axios.delete(`${API}/help/admin/topics/${topicId}`);
+    },
+    onSuccess: () => {
       toast.success('Topic deleted');
-      fetchData();
-    } catch (err) {
-      toast.error('Failed to delete topic');
-    }
+      queryClient.invalidateQueries({ queryKey: ['help-topics'] });
+      queryClient.invalidateQueries({ queryKey: ['help-analytics'] });
+    },
+    onError: () => toast.error('Failed to delete topic')
+  });
+
+  const handleDeleteTopic = (topicId) => {
+    if (!confirm('Are you sure you want to delete this topic?')) return;
+    deleteTopicMutation.mutate(topicId);
   };
   
-  const filteredTopics = topics.filter(topic => 
+  const filteredTopics = Array.isArray(topics) ? topics.filter(topic => 
     topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     topic.category?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) : [];
   
   const getTypeIcon = (type) => {
     switch (type) {
