@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -19,161 +19,152 @@ import {
   RadialBarChart, RadialBar, ComposedChart
 } from 'recharts';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 const LOCATION_COLORS = { in_office: '#3b82f6', onsite: '#10b981', wfh: '#f59e0b' };
 
 const PerformanceDashboard = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('month');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
-  const [performanceData, setPerformanceData] = useState({
-    summary: {},
-    consultants: [],
-    sales: [],
-    trends: [],
-    leaderboard: []
-  });
-  const [attendanceData, setAttendanceData] = useState(null);
 
   // Check if user is HR (should not see financial data)
   const isHRRole = ['hr_manager', 'hr_executive'].includes(user?.role);
   const canSeeFinancials = !isHRRole;
 
-  useEffect(() => {
-    fetchPerformanceData();
-    fetchAttendanceAnalytics();
-  }, [timeRange, selectedDepartment]);
-
-  const fetchAttendanceAnalytics = async () => {
-    try {
-      const token = localStorage.getItem('token');
+  // Query: Fetch attendance analytics
+  const { data: attendanceData } = useQuery({
+    queryKey: ['attendance-analytics', timeRange, selectedDepartment],
+    queryFn: async () => {
       const months = timeRange === 'week' ? 1 : timeRange === 'month' ? 1 : timeRange === 'quarter' ? 3 : 6;
-      const response = await fetch(
-        `${API}/attendance/analytics?months=${months}&department=${selectedDepartment}`,
-        { headers: { 'Authorization': `Bearer ${token}` }}
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setAttendanceData(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch attendance analytics:', error);
+      const res = await axios.get(`${API}/attendance/analytics?months=${months}&department=${selectedDepartment}`);
+      return res.data;
     }
-  };
+  });
 
-  const fetchPerformanceData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+  // Query: Fetch consultants
+  const { data: consultants = [] } = useQuery({
+    queryKey: ['consultants-performance'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consultants`);
+      return res.data;
+    }
+  });
 
-      // Fetch consultants for performance metrics
-      const consultantsRes = await fetch(`${API}/consultants`, { headers });
-      const consultants = consultantsRes.ok ? await consultantsRes.json() : [];
+  // Query: Fetch projects
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects-performance'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects`);
+      return res.data;
+    }
+  });
 
-      // Fetch projects for delivery metrics
-      const projectsRes = await fetch(`${API}/projects`, { headers });
-      const projects = projectsRes.ok ? await projectsRes.json() : [];
+  // Query: Fetch users (for sales)
+  const { data: users = [] } = useQuery({
+    queryKey: ['users-performance'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/users`);
+      return res.data;
+    },
+    enabled: canSeeFinancials
+  });
 
-      // Fetch users for sales team (only if can see financials)
-      let salesPerformance = [];
-      if (canSeeFinancials) {
-        const usersRes = await fetch(`${API}/users`, { headers });
-        const users = usersRes.ok ? await usersRes.json() : [];
-        const salesUsers = users.filter(u => ['executive', 'sales_manager'].includes(u.role));
-        
-        salesPerformance = salesUsers.map(s => ({
-          id: s.id,
-          name: s.full_name,
-          email: s.email,
-          role: s.role,
-          leadsConverted: Math.floor(Math.random() * 15) + 5,
-          revenue: Math.floor(Math.random() * 5000000) + 1000000,
-          meetingsHeld: Math.floor(Math.random() * 30) + 10,
-          conversionRate: Math.floor(Math.random() * 30) + 20,
-          avgDealSize: Math.floor(Math.random() * 500000) + 200000,
-          target: 5000000,
-          achieved: Math.floor(Math.random() * 5000000) + 2000000,
-          trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable'
-        }));
-      }
-
-      // Build consultant performance data
-      const consultantPerformance = consultants.map(c => ({
-        id: c.id,
-        name: c.full_name,
-        email: c.email,
-        role: c.role,
-        utilization: c.bandwidth_percentage || Math.floor(Math.random() * 40) + 50,
-        projectsDelivered: Math.floor(Math.random() * 8) + 1,
-        meetingsAttended: Math.floor(Math.random() * 20) + 5,
-        clientRating: (Math.random() * 2 + 3).toFixed(1),
-        tasksCompleted: Math.floor(Math.random() * 50) + 10,
-        onTimeDelivery: Math.floor(Math.random() * 30) + 70,
-        inOfficeDays: Math.floor(Math.random() * 15) + 5,
-        onsiteDays: Math.floor(Math.random() * 10) + 2,
-        wfhDays: Math.floor(Math.random() * 5) + 1,
+  // Compute performance data (memoized)
+  const performanceData = useMemo(() => {
+    // Build sales performance (only if can see financials)
+    let salesPerformance = [];
+    if (canSeeFinancials && users.length > 0) {
+      const salesUsers = users.filter(u => ['executive', 'sales_manager'].includes(u.role));
+      salesPerformance = salesUsers.map(s => ({
+        id: s.id,
+        name: s.full_name,
+        email: s.email,
+        role: s.role,
+        leadsConverted: Math.floor(Math.random() * 15) + 5,
+        revenue: Math.floor(Math.random() * 5000000) + 1000000,
+        meetingsHeld: Math.floor(Math.random() * 30) + 10,
+        conversionRate: Math.floor(Math.random() * 30) + 20,
+        avgDealSize: Math.floor(Math.random() * 500000) + 200000,
+        target: 5000000,
+        achieved: Math.floor(Math.random() * 5000000) + 2000000,
         trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable'
       }));
-
-      // Generate trend data
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-      const trends = months.map(month => ({
-        month,
-        utilization: Math.floor(Math.random() * 30) + 60,
-        delivery: Math.floor(Math.random() * 20) + 75,
-        satisfaction: Math.floor(Math.random() * 15) + 80,
-        attendance: Math.floor(Math.random() * 10) + 85,
-        ...(canSeeFinancials ? { revenue: Math.floor(Math.random() * 3000000) + 2000000 } : {})
-      }));
-
-      // Calculate summary
-      const summary = {
-        avgUtilization: consultantPerformance.length > 0 
-          ? Math.round(consultantPerformance.reduce((sum, c) => sum + c.utilization, 0) / consultantPerformance.length)
-          : 0,
-        totalProjectsDelivered: consultantPerformance.reduce((sum, c) => sum + c.projectsDelivered, 0),
-        avgClientRating: consultantPerformance.length > 0
-          ? (consultantPerformance.reduce((sum, c) => sum + parseFloat(c.clientRating), 0) / consultantPerformance.length).toFixed(1)
-          : 0,
-        activeProjects: projects.filter(p => p.status === 'active').length,
-        totalConsultants: consultants.length,
-        totalSalesTeam: salesPerformance.length
-      };
-
-      // Only add financial metrics if allowed
-      if (canSeeFinancials) {
-        summary.totalRevenue = salesPerformance.reduce((sum, s) => sum + s.achieved, 0);
-        summary.avgConversionRate = salesPerformance.length > 0
-          ? Math.round(salesPerformance.reduce((sum, s) => sum + s.conversionRate, 0) / salesPerformance.length)
-          : 0;
-      }
-
-      // Leaderboard - top performers (exclude financial metrics for HR)
-      const leaderboard = consultantPerformance
-        .map(c => ({ 
-          ...c, 
-          type: 'consultant', 
-          score: c.utilization + c.onTimeDelivery + (parseFloat(c.clientRating) * 10) 
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
-
-      setPerformanceData({
-        summary,
-        consultants: consultantPerformance,
-        sales: salesPerformance,
-        trends,
-        leaderboard
-      });
-    } catch (error) {
-      console.error('Failed to fetch performance data:', error);
-      toast.error('Failed to load performance data');
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // Build consultant performance data
+    const consultantPerformance = consultants.map(c => ({
+      id: c.id,
+      name: c.full_name,
+      email: c.email,
+      role: c.role,
+      utilization: c.bandwidth_percentage || Math.floor(Math.random() * 40) + 50,
+      projectsDelivered: Math.floor(Math.random() * 8) + 1,
+      meetingsAttended: Math.floor(Math.random() * 20) + 5,
+      clientRating: (Math.random() * 2 + 3).toFixed(1),
+      tasksCompleted: Math.floor(Math.random() * 50) + 10,
+      onTimeDelivery: Math.floor(Math.random() * 30) + 70,
+      inOfficeDays: Math.floor(Math.random() * 15) + 5,
+      onsiteDays: Math.floor(Math.random() * 10) + 2,
+      wfhDays: Math.floor(Math.random() * 5) + 1,
+      trend: Math.random() > 0.5 ? 'up' : Math.random() > 0.5 ? 'down' : 'stable'
+    }));
+
+    // Generate trend data
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const trends = months.map(month => ({
+      month,
+      utilization: Math.floor(Math.random() * 30) + 60,
+      delivery: Math.floor(Math.random() * 20) + 75,
+      satisfaction: Math.floor(Math.random() * 15) + 80,
+      attendance: Math.floor(Math.random() * 10) + 85,
+      ...(canSeeFinancials ? { revenue: Math.floor(Math.random() * 3000000) + 2000000 } : {})
+    }));
+
+    // Calculate summary
+    const summary = {
+      avgUtilization: consultantPerformance.length > 0 
+        ? Math.round(consultantPerformance.reduce((sum, c) => sum + c.utilization, 0) / consultantPerformance.length)
+        : 0,
+      totalProjectsDelivered: consultantPerformance.reduce((sum, c) => sum + c.projectsDelivered, 0),
+      avgClientRating: consultantPerformance.length > 0
+        ? (consultantPerformance.reduce((sum, c) => sum + parseFloat(c.clientRating), 0) / consultantPerformance.length).toFixed(1)
+        : 0,
+      activeProjects: projects.filter(p => p.status === 'active').length,
+      totalConsultants: consultants.length,
+      totalSalesTeam: salesPerformance.length
+    };
+
+    // Only add financial metrics if allowed
+    if (canSeeFinancials) {
+      summary.totalRevenue = salesPerformance.reduce((sum, s) => sum + s.achieved, 0);
+      summary.avgConversionRate = salesPerformance.length > 0
+        ? Math.round(salesPerformance.reduce((sum, s) => sum + s.conversionRate, 0) / salesPerformance.length)
+        : 0;
+    }
+
+    // Leaderboard - top performers
+    const leaderboard = consultantPerformance
+      .map(c => ({ 
+        ...c, 
+        type: 'consultant', 
+        score: c.utilization + c.onTimeDelivery + (parseFloat(c.clientRating) * 10) 
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    return {
+      summary,
+      consultants: consultantPerformance,
+      sales: salesPerformance,
+      trends,
+      leaderboard
+    };
+  }, [consultants, projects, users, canSeeFinancials]);
+
+  const loading = !performanceData.consultants;
 
   const getTrendIcon = (trend) => {
     if (trend === 'up') return <ArrowUpRight className="w-4 h-4 text-emerald-500" />;
