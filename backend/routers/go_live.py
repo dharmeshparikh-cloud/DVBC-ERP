@@ -328,6 +328,112 @@ async def get_all_go_live_requests(
     return requests
 
 
+@router.get("/request/{request_id}/details")
+async def get_go_live_request_details(
+    request_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get detailed Go-Live request info for Admin approval review.
+    Includes all employee details, CTC structure, documents, etc.
+    
+    ACCESS: Admin only.
+    """
+    db = get_db()
+    
+    # Authorization: Admin only
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    allowed_roles = list(set(admin_roles + hr_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get request
+    request = await db.go_live_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Go-Live request not found")
+    
+    # Get employee details
+    employee = await db.employees.find_one({"id": request.get("employee_id")}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Get CTC structure if exists
+    ctc_structure = None
+    if employee.get("ctc_structure_id"):
+        ctc_structure = await db.ctc_structures.find_one(
+            {"id": employee["ctc_structure_id"]}, {"_id": 0}
+        )
+    
+    # Get onboarding submission if exists
+    submission = None
+    if employee.get("onboarding_submission_id"):
+        submission = await db.onboarding_submissions.find_one(
+            {"id": employee["onboarding_submission_id"]}, {"_id": 0}
+        )
+    
+    # Get manager details if exists
+    reporting_manager = None
+    if employee.get("reporting_manager_id"):
+        reporting_manager = await db.employees.find_one(
+            {"id": employee["reporting_manager_id"]},
+            {"_id": 0, "id": 1, "employee_id": 1, "full_name": 1, "designation": 1}
+        )
+    
+    # Generate preview Employee ID (what will be assigned on approval)
+    preview_employee_id = None
+    if not employee.get("employee_id") or employee.get("employee_id_pending"):
+        preview_employee_id = await generate_employee_id(db)
+    
+    return {
+        "request": request,
+        "employee": {
+            "id": employee.get("id"),
+            "current_employee_id": employee.get("employee_id"),
+            "employee_id_pending": employee.get("employee_id_pending", False),
+            "preview_employee_id": preview_employee_id,
+            "full_name": employee.get("full_name"),
+            "first_name": employee.get("first_name"),
+            "last_name": employee.get("last_name"),
+            "personal_email": employee.get("personal_email"),
+            "official_email": employee.get("official_email"),
+            "phone": employee.get("phone"),
+            "date_of_birth": employee.get("date_of_birth"),
+            "gender": employee.get("gender"),
+            "department": employee.get("department"),
+            "designation": employee.get("designation"),
+            "role": employee.get("role"),
+            "joining_date": employee.get("joining_date"),
+            "reporting_manager_id": employee.get("reporting_manager_id"),
+            "reporting_manager_name": employee.get("reporting_manager_name"),
+            "employment_type": employee.get("employment_type"),
+            "pan_number": employee.get("pan_number"),
+            "aadhaar_number": employee.get("aadhaar_number"),
+            "bank_account_number": mask_account_number(employee.get("bank_account_number", "")),
+            "bank_name": employee.get("bank_name"),
+            "ifsc_code": employee.get("ifsc_code"),
+            "bank_verified": employee.get("bank_verified", False),
+            "documents": employee.get("documents", []),
+            "current_ctc": employee.get("current_ctc"),
+            "go_live_status": employee.get("go_live_status"),
+            "has_portal_access": employee.get("has_portal_access", False)
+        },
+        "ctc_structure": ctc_structure,
+        "reporting_manager": reporting_manager,
+        "submission_summary": {
+            "id": submission.get("id") if submission else None,
+            "status": submission.get("status") if submission else None,
+            "submitted_at": submission.get("submitted_at") if submission else None,
+            "completed_at": submission.get("completed_at") if submission else None,
+            "education": submission.get("education") if submission else None,
+            "employment_history": submission.get("employment_history") if submission else None,
+            "emergency_contact": submission.get("emergency_contact") if submission else None,
+            "professional_reference": submission.get("professional_reference") if submission else None
+        } if submission else None
+    }
+
+
 @router.post("/{request_id}/approve")
 async def approve_go_live_request(
     request_id: str,
