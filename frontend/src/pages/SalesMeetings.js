@@ -275,7 +275,7 @@ const SalesMeetings = () => {
                       <select value={formData.lead_id} onChange={(e) => updateFormData('lead_id', e.target.value)}
                         className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="sales-meeting-lead">
                         <option value="">Select lead (optional)</option>
-                        {leads.map(l => <option key={l.id} value={l.id}>{l.first_name} {l.last_name} - {l.company}</option>)}
+                        {Array.isArray(leads) && leads.map(l => <option key={l.id} value={l.id}>{l.first_name} {l.last_name} - {l.company}</option>)}
                       </select>
                     </div>
                   </div>
