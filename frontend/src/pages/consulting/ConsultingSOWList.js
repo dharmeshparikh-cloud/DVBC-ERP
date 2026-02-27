@@ -34,21 +34,23 @@ const ConsultingSOWList = () => {
     queryFn: async () => {
       const [sowRes, leadsRes] = await Promise.all([
         axios.get(`${API}/enhanced-sow/list?role=consulting`).catch(() => ({ data: [] })),
-        axios.get(`${API}/leads`)
+        axios.get(`${API}/leads`).catch(() => ({ data: [] }))
       ]);
       
       // Filter to only show handed-over SOWs for consulting
-      const handedOverSOWs = (sowRes.data || []).filter(sow => sow.sales_handover_complete);
+      const sowData = Array.isArray(sowRes.data) ? sowRes.data : [];
+      const handedOverSOWs = sowData.filter(sow => sow.sales_handover_complete);
+      const leadsData = Array.isArray(leadsRes.data) ? leadsRes.data : [];
       return {
         sowList: handedOverSOWs,
-        leads: leadsRes.data || []
+        leads: leadsData
       };
     },
     staleTime: 3 * 60 * 1000,
   });
 
-  const sowList = sowData?.sowList || [];
-  const leads = sowData?.leads || [];
+  const sowList = Array.isArray(sowData?.sowList) ? sowData.sowList : [];
+  const leads = Array.isArray(sowData?.leads) ? sowData.leads : [];
 
   // Get lead info for a SOW
   const getLeadInfo = (sow) => {
