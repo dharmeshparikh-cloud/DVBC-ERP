@@ -1404,6 +1404,183 @@ const SubmissionReview = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Bank Details Dialog */}
+      <Dialog open={editBankDialog} onOpenChange={setEditBankDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Bank Details</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Account Holder Name</Label>
+              <Input 
+                value={editBankData.account_holder_name || ''} 
+                onChange={(e) => setEditBankData({...editBankData, account_holder_name: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Account Number</Label>
+              <Input 
+                value={editBankData.account_number || ''} 
+                onChange={(e) => setEditBankData({...editBankData, account_number: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>IFSC Code</Label>
+              <Input 
+                value={editBankData.ifsc_code || ''} 
+                onChange={(e) => setEditBankData({...editBankData, ifsc_code: e.target.value.toUpperCase()})}
+              />
+            </div>
+            <div>
+              <Label>Bank Name</Label>
+              <Input 
+                value={editBankData.bank_name || ''} 
+                onChange={(e) => setEditBankData({...editBankData, bank_name: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Branch</Label>
+              <Input 
+                value={editBankData.branch || ''} 
+                onChange={(e) => setEditBankData({...editBankData, branch: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditBankDialog(false)}>Cancel</Button>
+            <Button onClick={() => handleUpdateSection('bank_details', editBankData)} disabled={updateSectionMutation.isPending}>
+              {updateSectionMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Emergency Contact Dialog */}
+      <Dialog open={editEmergencyDialog} onOpenChange={setEditEmergencyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Emergency Contact</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Name</Label>
+              <Input 
+                value={editEmergencyData.name || ''} 
+                onChange={(e) => setEditEmergencyData({...editEmergencyData, name: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input 
+                value={editEmergencyData.phone || ''} 
+                onChange={(e) => setEditEmergencyData({...editEmergencyData, phone: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Relationship</Label>
+              <Input 
+                value={editEmergencyData.relationship || ''} 
+                onChange={(e) => setEditEmergencyData({...editEmergencyData, relationship: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditEmergencyDialog(false)}>Cancel</Button>
+            <Button onClick={() => handleUpdateSection('emergency_contact', editEmergencyData)} disabled={updateSectionMutation.isPending}>
+              {updateSectionMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Professional Reference Dialog */}
+      <Dialog open={editProfRefDialog} onOpenChange={setEditProfRefDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Professional Reference</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Name</Label>
+              <Input 
+                value={editProfRefData.name || ''} 
+                onChange={(e) => setEditProfRefData({...editProfRefData, name: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input 
+                value={editProfRefData.phone || ''} 
+                onChange={(e) => setEditProfRefData({...editProfRefData, phone: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Company</Label>
+              <Input 
+                value={editProfRefData.company_name || ''} 
+                onChange={(e) => setEditProfRefData({...editProfRefData, company_name: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Designation</Label>
+              <Input 
+                value={editProfRefData.designation || ''} 
+                onChange={(e) => setEditProfRefData({...editProfRefData, designation: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditProfRefDialog(false)}>Cancel</Button>
+            <Button onClick={() => handleUpdateSection('professional_reference', editProfRefData)} disabled={updateSectionMutation.isPending}>
+              {updateSectionMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Personal Reference Dialog */}
+      <Dialog open={editPerRefDialog} onOpenChange={setEditPerRefDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Personal Reference</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Name</Label>
+              <Input 
+                value={editPerRefData.name || ''} 
+                onChange={(e) => setEditPerRefData({...editPerRefData, name: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input 
+                value={editPerRefData.phone || ''} 
+                onChange={(e) => setEditPerRefData({...editPerRefData, phone: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Address</Label>
+              <Textarea 
+                value={editPerRefData.address || ''} 
+                onChange={(e) => setEditPerRefData({...editPerRefData, address: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPerRefDialog(false)}>Cancel</Button>
+            <Button onClick={() => handleUpdateSection('personal_reference', editPerRefData)} disabled={updateSectionMutation.isPending}>
+              {updateSectionMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
