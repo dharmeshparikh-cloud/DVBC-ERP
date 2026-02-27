@@ -475,8 +475,9 @@ async def complete_onboarding(
     
     now = datetime.now(timezone.utc)
     
-    # Generate Employee ID (DVBC format)
-    employee_id = await generate_employee_id(db)
+    # Employee ID will be generated ONLY after Go-Live approval
+    # For now, use a temporary ID format
+    employee_id = None  # Will be assigned after Go-Live approval
     
     # Create employee record
     candidate = submission["candidate_details"]
@@ -487,7 +488,8 @@ async def complete_onboarding(
     
     employee = {
         "id": employee_record_id,
-        "employee_id": employee_id,
+        "employee_id": employee_id,  # Will be generated after Go-Live approval
+        "employee_id_pending": True,  # Flag indicating ID not yet assigned
         
         # Personal details from candidate
         "first_name": candidate["first_name"],
