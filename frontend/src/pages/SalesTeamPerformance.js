@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -15,11 +15,12 @@ import {
   Users, Target, Star, TrendingUp, Calendar, Award,
   CheckCircle, Clock, BarChart3, ChevronRight, Edit, Eye
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 const SalesTeamPerformance = () => {
   const { user } = useContext(AuthContext);
-  const [team, setTeam] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [selectedMember, setSelectedMember] = useState(null);
   const [showTargetModal, setShowTargetModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -37,67 +38,66 @@ const SalesTeamPerformance = () => {
     comments: ''
   });
 
-  useEffect(() => {
-    fetchTeam();
-  }, []);
-
-  const fetchTeam = async () => {
-    try {
-      const response = await fetch(`${API}/my-team`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setTeam(data.members || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch team:', error);
-    } finally {
-      setLoading(false);
+  // Query: Fetch team
+  const { data: teamData, isLoading: loading } = useQuery({
+    queryKey: ['my-team-sales'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/my-team`);
+      return res.data;
     }
+  });
+
+  const team = teamData?.members || [];
+
+  // Mutation: Set target
+  const setTargetMutation = useMutation({
+    mutationFn: async () => {
+      const now = new Date();
+      return axios.post(`${API}/sales-targets`, {
+        user_id: selectedMember.id,
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        ...targetForm
+      });
+    },
+    onSuccess: () => {
+      toast.success('Target set successfully! Pending approval.');
+      setShowTargetModal(false);
+      queryClient.invalidateQueries({ queryKey: ['my-team-sales'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to set target');
+    }
+  });
+
+  // Mutation: Submit review
+  const submitReviewMutation = useMutation({
+    mutationFn: async () => {
+      const now = new Date();
+      return axios.post(`${API}/performance-reviews`, {
+        user_id: selectedMember.id,
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        ...reviewForm
+      });
+    },
+    onSuccess: () => {
+      toast.success('Review submitted successfully!');
+      setShowReviewModal(false);
+      queryClient.invalidateQueries({ queryKey: ['my-team-sales'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to submit review');
+    }
+  });
+
+  const handleSetTarget = () => {
+    setTargetMutation.mutate();
   };
 
-  const handleSetTarget = async () => {
-    const now = new Date();
-    try {
-      const response = await fetch(`${API}/sales-targets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          user_id: selectedMember.id,
-          month: now.getMonth() + 1,
-          year: now.getFullYear(),
-          ...targetForm
-        })
-      });
-      
-      if (response.ok) {
-        toast.success('Target set successfully! Pending approval.');
-        setShowTargetModal(false);
-        fetchTeam();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to set target');
-      }
-    } catch (error) {
-      toast.error('Failed to set target');
-    }
+  const handleSubmitReview = () => {
+    submitReviewMutation.mutate();
   };
-
-  const handleSubmitReview = async () => {
-    const now = new Date();
-    try {
-      const response = await fetch(`${API}/performance-reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          user_id: selectedMember.id,
           month: now.getMonth() + 1,
           year: now.getFullYear(),
           ...reviewForm
