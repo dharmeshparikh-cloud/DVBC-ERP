@@ -407,14 +407,25 @@ const OnboardingHub = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Completed Onboarding</CardTitle>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <Input
-                    placeholder="Search candidates..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-64"
-                  />
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleExportExcel}
+                    disabled={exporting}
+                  >
+                    {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    Export Excel
+                  </Button>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                    <Input
+                      placeholder="Search candidates..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 w-64"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
