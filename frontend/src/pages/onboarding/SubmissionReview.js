@@ -123,10 +123,8 @@ const SubmissionReview = () => {
   const { submissionId } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   
-  const [loading, setLoading] = useState(true);
-  const [submission, setSubmission] = useState(null);
-  const [managers, setManagers] = useState([]);
   const [processing, setProcessing] = useState(false);
   
   // HR Assignment form
@@ -152,82 +150,84 @@ const SubmissionReview = () => {
   const authHeaders = { headers: { Authorization: `Bearer ${getToken()}` } };
   const canApprove = user?.role === 'hr_manager' || user?.role === 'admin';
 
-  // Fetch submission
-  const fetchSubmission = async () => {
-    try {
-      setLoading(true);
+  // Fetch submission using React Query
+  const { data: submission, isLoading: loading, refetch: refetchSubmission } = useQuery({
+    queryKey: ['onboarding-submission', submissionId],
+    queryFn: async () => {
       const response = await axios.get(`${API}/onboarding/submissions/${submissionId}`, authHeaders);
-      setSubmission(response.data);
-      
-      // Pre-fill HR assignment form
-      if (response.data.hr_assigned) {
-        setHrAssignment({
-          department: response.data.hr_assigned.department || '',
-          reporting_manager_id: response.data.hr_assigned.reporting_manager_id || '',
-          reporting_manager_name: response.data.hr_assigned.reporting_manager_name || '',
-          joining_date: response.data.hr_assigned.joining_date || '',
-          official_email: response.data.hr_assigned.official_email || '',
-          employment_type: response.data.hr_assigned.employment_type || 'full_time',
-          designation: response.data.hr_assigned.designation || response.data.offered_position || '',
-        });
-      } else if (response.data.offered_position) {
-        setHrAssignment(prev => ({ ...prev, designation: response.data.offered_position }));
-      }
-    } catch (err) {
-      console.error('Error fetching submission:', err);
+      return response.data;
+    },
+    enabled: !!submissionId && !!user,
+    staleTime: 2 * 60 * 1000,
+    onError: () => {
       toast.error('Failed to load submission');
       navigate('/onboarding-hub');
-    } finally {
-      setLoading(false);
+    },
+    onSuccess: (data) => {
+      // Pre-fill HR assignment form
+      if (data.hr_assigned) {
+        setHrAssignment({
+          department: data.hr_assigned.department || '',
+          reporting_manager_id: data.hr_assigned.reporting_manager_id || '',
+          reporting_manager_name: data.hr_assigned.reporting_manager_name || '',
+          joining_date: data.hr_assigned.joining_date || '',
+          official_email: data.hr_assigned.official_email || '',
+          employment_type: data.hr_assigned.employment_type || 'full_time',
+          designation: data.hr_assigned.designation || data.offered_position || '',
+        });
+      } else if (data.offered_position) {
+        setHrAssignment(prev => ({ ...prev, designation: data.offered_position }));
+      }
     }
-  };
+  });
 
-  // Fetch managers for dropdown
-  const fetchManagers = async () => {
-    try {
+  // Fetch managers using React Query
+  const { data: managersData = [] } = useQuery({
+    queryKey: ['employees', 'managers'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/employees/all`, authHeaders);
       const employees = response.data?.items || response.data || [];
-      setManagers(employees.filter(e => 
+      return Array.isArray(employees) ? employees.filter(e => 
         ['manager', 'hr_manager', 'project_manager', 'principal_consultant', 'senior_consultant', 'admin'].includes(e.role)
-      ));
-    } catch (err) {
-      console.error('Error fetching managers:', err);
-    }
-  };
+      ) : [];
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000
+  });
 
-  useEffect(() => {
-    if (user && submissionId) {
-      fetchSubmission();
-      fetchManagers();
-    }
-  }, [submissionId, user]);
+  const managers = managersData;
 
-  // Save HR assignment
-  const handleSaveAssignment = async () => {
-    try {
-      setProcessing(true);
-      await axios.patch(`${API}/onboarding/submissions/${submissionId}/hr-assign`, hrAssignment, authHeaders);
+  // Mutation for saving HR assignment
+  const saveAssignmentMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.patch(`${API}/onboarding/submissions/${submissionId}/hr-assign`, data, authHeaders);
+    },
+    onSuccess: () => {
       toast.success('Assignment details saved');
-      fetchSubmission();
-    } catch (err) {
-      console.error('Error saving assignment:', err);
-      toast.error(err.response?.data?.detail || 'Failed to save assignment');
-    } finally {
-      setProcessing(false);
-    }
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to save assignment')
+  });
+
+  const handleSaveAssignment = () => {
+    saveAssignmentMutation.mutate(hrAssignment);
   };
 
-  // Verify documents
-  const handleVerifyDocuments = async () => {
-    try {
-      setProcessing(true);
+  // Mutation for verifying documents
+  const verifyDocumentsMutation = useMutation({
+    mutationFn: async () => {
       await axios.post(`${API}/onboarding/submissions/${submissionId}/verify-documents`, {}, authHeaders);
+    },
+    onSuccess: () => {
       toast.success('Documents verified');
-      fetchSubmission();
-    } catch (err) {
-      console.error('Error verifying documents:', err);
-      toast.error(err.response?.data?.detail || 'Failed to verify documents');
-    } finally {
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to verify documents')
+  });
+
+  const handleVerifyDocuments = () => {
+    verifyDocumentsMutation.mutate();
+  };
       setProcessing(false);
     }
   };
