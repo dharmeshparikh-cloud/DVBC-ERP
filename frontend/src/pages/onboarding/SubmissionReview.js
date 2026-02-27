@@ -908,7 +908,7 @@ const SubmissionReview = () => {
                   <p className="text-sm font-medium mb-2">Upload Additional Documents</p>
                   <HRDocumentUpload 
                     submissionId={submissionId} 
-                    onUploadComplete={fetchSubmission}
+                    onUploadComplete={refetchSubmission}
                     authHeaders={authHeaders}
                   />
                 </div>
