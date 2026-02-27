@@ -14,7 +14,27 @@
 
 ## Completed Work - February 2026
 
-### Phase 60: React Query Migration Batch 9 - December 2025 ✅ (Latest)
+### Phase 61: HR Edit Capability & Excel Export - December 2025 ✅ (Latest)
+
+**Features Added:**
+1. **Edit Employee Details Post-Onboarding**
+   - HR/Admin can now edit Bank Details, Emergency Contact, Professional Reference, Personal Reference after onboarding completion
+   - Edit buttons added to each section in Submission Review page
+   - Changes automatically sync to employee record if onboarding is completed
+   - Audit log tracks all edits with timestamp and actor
+
+2. **Excel Export**
+   - Added "Export Excel" button to Completed Onboarding tab
+   - Exports all completed submissions as CSV with comprehensive employee data
+   - Includes: Employee ID, Name, Email, Phone, DOB, Department, Designation, Bank Details, Emergency Contact, Status, Dates
+
+**API Endpoints Added:**
+- `PATCH /api/onboarding/submissions/{id}/update-section` - Update specific sections (bank_details, emergency_contact, professional_reference, personal_reference, candidate_details, education, employment_history)
+- `GET /api/onboarding/export/excel` - Export onboarding data as Excel/CSV
+
+---
+
+### Phase 60: React Query Migration Batch 9 - December 2025 ✅
 
 **Batch 9 - 4 components migrated:**
 - CustomReportBuilder.js (606 lines) - Report builder with mostly local UI state
