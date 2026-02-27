@@ -311,18 +311,18 @@ const HRAttendanceApprovals = () => {
             <Button 
               variant="destructive"
               onClick={() => handleAction('reject')}
-              disabled={actionLoading}
+              disabled={actionMutation.isPending}
               className="rounded-sm bg-red-600 hover:bg-red-700"
             >
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ThumbsDown className="w-4 h-4 mr-2" />}
+              {actionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ThumbsDown className="w-4 h-4 mr-2" />}
               Reject
             </Button>
             <Button 
               onClick={() => handleAction('approve')}
-              disabled={actionLoading}
+              disabled={actionMutation.isPending}
               className="rounded-sm bg-emerald-600 hover:bg-emerald-700"
             >
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ThumbsUp className="w-4 h-4 mr-2" />}
+              {actionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ThumbsUp className="w-4 h-4 mr-2" />}
               Approve
             </Button>
           </DialogFooter>
