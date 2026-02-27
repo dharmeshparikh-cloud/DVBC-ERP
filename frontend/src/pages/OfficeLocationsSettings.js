@@ -14,8 +14,7 @@ import {
 import { toast } from 'sonner';
 
 const OfficeLocationsSettings = () => {
-  const [locations, setLocations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -27,29 +26,44 @@ const OfficeLocationsSettings = () => {
   });
   const [detectingLocation, setDetectingLocation] = useState(false);
 
-  useEffect(() => {
-    fetchLocations();
-  }, []);
-
-  const fetchLocations = async () => {
-    setLoading(true);
-    try {
+  // React Query: Locations
+  const { data: locationsData, isLoading: loading } = useQuery({
+    queryKey: ['settings', 'office-locations'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/settings/office-locations`);
-      setLocations(res.data.locations || []);
-    } catch (error) {
-      console.error('Failed to fetch locations');
-    } finally {
-      setLoading(false);
+      return res.data.locations || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  
+  // Local state for editing
+  const [locations, setLocations] = useState([]);
+  
+  // Sync locations from query data
+  React.useEffect(() => {
+    if (locationsData) {
+      setLocations(locationsData);
     }
-  };
+  }, [locationsData]);
+
+  // Mutation: Save Locations
+  const saveMutation = useMutation({
+    mutationFn: async (locs) => {
+      await axios.post(`${API}/settings/office-locations`, { locations: locs });
+    },
+    onSuccess: () => {
+      toast.success('Office locations saved successfully');
+      queryClient.invalidateQueries({ queryKey: ['settings', 'office-locations'] });
+    },
+    onError: () => {
+      toast.error('Failed to save locations');
+    },
+  });
 
   const saveLocations = async () => {
     setSaving(true);
     try {
-      await axios.post(`${API}/settings/office-locations`, { locations });
-      toast.success('Office locations saved successfully');
-    } catch (error) {
-      toast.error('Failed to save locations');
+      await saveMutation.mutateAsync(locations);
     } finally {
       setSaving(false);
     }
