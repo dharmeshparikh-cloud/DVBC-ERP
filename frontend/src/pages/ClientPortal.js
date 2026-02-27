@@ -20,18 +20,17 @@ const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgm
 
 const ClientPortal = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [clientData, setClientData] = useState(null);
-  const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [projectDetails, setProjectDetails] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
     const data = localStorage.getItem('client_data');
-    const token = localStorage.getItem('client_token');
+    const storedToken = localStorage.getItem('client_token');
     
-    if (!token || !data) {
+    if (!storedToken || !data) {
       navigate('/client-login');
       return;
     }
@@ -44,42 +43,47 @@ const ClientPortal = () => {
     }
     
     setClientData(parsed);
-    fetchProjects(token);
+    setToken(storedToken);
   }, [navigate]);
 
-  const fetchProjects = async (token) => {
-    try {
+  // Fetch projects using React Query
+  const { data: projectsData, isLoading: loading } = useQuery({
+    queryKey: ['client-projects', token],
+    queryFn: async () => {
       const response = await axios.get(`${API}/api/client-auth/my-projects`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setProjects(response.data.projects || []);
-      
-      if (response.data.projects?.length > 0) {
-        setSelectedProject(response.data.projects[0].id);
-        fetchProjectDetails(response.data.projects[0].id, token);
-      }
-    } catch (error) {
-      console.error('Error fetching projects:', error);
+      return response.data.projects || [];
+    },
+    enabled: !!token,
+    staleTime: 3 * 60 * 1000,
+    onError: (error) => {
       if (error.response?.status === 401) {
         handleLogout();
       }
-    } finally {
-      setLoading(false);
+    },
+    onSuccess: (data) => {
+      if (data?.length > 0 && !selectedProject) {
+        setSelectedProject(data[0].id);
+      }
     }
-  };
+  });
 
-  const fetchProjectDetails = async (projectId, token) => {
-    try {
-      const authToken = token || localStorage.getItem('client_token');
-      const response = await axios.get(`${API}/api/client-auth/project/${projectId}`, {
-        headers: { Authorization: `Bearer ${authToken}` }
+  const projects = projectsData || [];
+
+  // Fetch project details using React Query
+  const { data: projectDetails } = useQuery({
+    queryKey: ['client-project-details', selectedProject, token],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/api/client-auth/project/${selectedProject}`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      setProjectDetails(response.data);
-    } catch (error) {
-      console.error('Error fetching project details:', error);
-      toast.error('Failed to load project details');
-    }
-  };
+      return response.data;
+    },
+    enabled: !!selectedProject && !!token,
+    staleTime: 2 * 60 * 1000,
+    onError: () => toast.error('Failed to load project details')
+  });
 
   const handleLogout = () => {
     localStorage.removeItem('client_token');
@@ -87,21 +91,28 @@ const ClientPortal = () => {
     navigate('/client-login');
   };
 
-  const handleConsultantChangeRequest = async () => {
-    const reason = prompt('Please describe why you want to change the consultant:');
-    if (!reason) return;
-
-    try {
-      const token = localStorage.getItem('client_token');
-      await axios.post(
+  // Mutation for consultant change request
+  const consultantChangeMutation = useMutation({
+    mutationFn: async (reason) => {
+      const response = await axios.post(
         `${API}/api/client-auth/change-consultant-request?project_id=${selectedProject}&reason=${encodeURIComponent(reason)}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      return response.data;
+    },
+    onSuccess: () => {
       toast.success('Consultant change request submitted successfully');
-    } catch (error) {
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to submit request');
     }
+  });
+
+  const handleConsultantChangeRequest = () => {
+    const reason = prompt('Please describe why you want to change the consultant:');
+    if (!reason) return;
+    consultantChangeMutation.mutate(reason);
   };
 
   if (loading) {
