@@ -77,28 +77,31 @@ const ConsultingProjectTasks = () => {
     queryKey: ['leads'],
     queryFn: async () => {
       const response = await axios.get(`${API}/leads`);
-      return response.data || [];
+      return Array.isArray(response.data) ? response.data : [];
     },
     staleTime: 5 * 60 * 1000
   });
 
   // Fetch employees
-  const { data: employees = [] } = useQuery({
+  const { data: employeesData = [] } = useQuery({
     queryKey: ['employees', 'all'],
     queryFn: async () => {
       const response = await axios.get(`${API}/employees`);
-      return response.data || [];
+      return Array.isArray(response.data) ? response.data : [];
     },
     staleTime: 5 * 60 * 1000
   });
 
+  const employees = Array.isArray(employeesData) ? employeesData : [];
+  const leads = Array.isArray(leadsData) ? leadsData : [];
+
   // Derive lead from sow
   const lead = useMemo(() => {
-    if (sow?.lead_id && leadsData.length > 0) {
-      return leadsData.find(l => l.id === sow.lead_id);
+    if (sow?.lead_id && leads.length > 0) {
+      return leads.find(l => l.id === sow.lead_id);
     }
     return null;
-  }, [sow?.lead_id, leadsData]);
+  }, [sow?.lead_id, leads]);
 
   const loading = sowLoading;
 
