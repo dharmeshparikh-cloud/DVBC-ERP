@@ -66,8 +66,8 @@
 - ManagerLeadsDashboard.js: Undefined fetchData reference in Refresh button
 
 **Current Migration Status:**
-- ✅ 60 pages now using React Query (68%)
-- 28 pages remaining for migration
+- ✅ 68 pages now using React Query (77%)
+- ~20 pages remaining for migration
 - All tested pages passing (100% success rate)
 
 ---
