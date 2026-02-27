@@ -460,7 +460,7 @@ const HelpContentAdmin = () => {
         onClose={() => setShowTopicDialog(false)}
         topic={editingTopic}
         categories={categories}
-        onSave={fetchData}
+        queryClient={queryClient}
       />
       
       {/* Category Dialog */}
@@ -468,7 +468,7 @@ const HelpContentAdmin = () => {
         open={showCategoryDialog}
         onClose={() => setShowCategoryDialog(false)}
         category={editingCategory}
-        onSave={fetchData}
+        queryClient={queryClient}
       />
     </div>
   );
