@@ -28,17 +28,13 @@ const toISO = (d) => new Date(d).toISOString().split('T')[0];
 
 const GanttChart = () => {
   const { user } = useContext(AuthContext);
-  const [projects, setProjects] = useState([]);
+  const queryClient = useQueryClient();
   const [selectedProject, setSelectedProject] = useState('');
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [colWidth, setColWidth] = useState(36);
   const [dragState, setDragState] = useState(null);
   const [commLogOpen, setCommLogOpen] = useState(false);
   const [sendReportOpen, setSendReportOpen] = useState(false);
-  const [commLogs, setCommLogs] = useState([]);
   const [reportForm, setReportForm] = useState({ client_name: '', subject: '', message: '', sow_id: '' });
-  const [sows, setSows] = useState([]);
   const ganttRef = useRef(null);
   const headerRef = useRef(null);
 
@@ -46,51 +42,75 @@ const GanttChart = () => {
   const daysVisible = Math.max(60, Math.ceil(900 / colWidth));
   const canManage = ['admin', 'project_manager', 'manager', 'principal_consultant'].includes(user?.role);
 
-  useEffect(() => { fetchProjects(); }, []);
-  useEffect(() => { if (selectedProject) { fetchTasks(); fetchSOWs(); fetchCommLogs(); } }, [selectedProject]);
-
-  const fetchProjects = async () => {
-    try {
+  // React Query: Projects
+  const { data: projects = [], isLoading: loading } = useQuery({
+    queryKey: ['projects', 'list'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/projects`);
       const data = res.data?.items || res.data || [];
-      const projectList = Array.isArray(data) ? data : [];
-      setProjects(projectList);
-      if (projectList.length > 0) setSelectedProject(projectList[0].id);
-    } catch { toast.error('Failed to load projects'); }
-    finally { setLoading(false); }
-  };
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (data) => {
+      if (data.length > 0 && !selectedProject) {
+        setSelectedProject(data[0].id);
+      }
+    }
+  });
 
-  const fetchTasks = async () => {
-    try {
+  // React Query: Tasks for selected project
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['projects', selectedProject, 'tasks-gantt'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/projects/${selectedProject}/tasks-gantt`);
       const data = res.data?.items || res.data || [];
-      setTasks(Array.isArray(data) ? data : []);
-    } catch { toast.error('Failed to load tasks'); }
-  };
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!selectedProject,
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchSOWs = async () => {
-    try {
+  // React Query: SOWs
+  const { data: sows = [] } = useQuery({
+    queryKey: ['sows', selectedProject],
+    queryFn: async () => {
       const res = await axios.get(`${API}/sows`);
       const data = res.data?.items || res.data || [];
       const sowList = Array.isArray(data) ? data : [];
       const proj = projects.find(p => p.id === selectedProject);
-      setSows(sowList.filter(s => s.lead_id === proj?.lead_id || s.project_id === selectedProject));
-    } catch { /* silent */ }
-  };
+      return sowList.filter(s => s.lead_id === proj?.lead_id || s.project_id === selectedProject);
+    },
+    enabled: !!selectedProject && projects.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchCommLogs = async () => {
-    try {
+  // React Query: Communication Logs
+  const { data: commLogs = [] } = useQuery({
+    queryKey: ['client-communications', selectedProject],
+    queryFn: async () => {
       const res = await axios.get(`${API}/client-communications?project_id=${selectedProject}`);
       const data = res.data?.items || res.data || [];
-      setCommLogs(Array.isArray(data) ? data : []);
-    } catch { /* silent */ }
-  };
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!selectedProject,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Mutation: Update Task Dates
+  const updateDatesMutation = useMutation({
+    mutationFn: async ({ taskId, startDate, endDate }) => {
+      await axios.patch(`${API}/tasks/${taskId}/dates`, { start_date: startDate, due_date: endDate });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', selectedProject, 'tasks-gantt'] });
+    },
+    onError: () => {
+      toast.error('Failed to update dates');
+    },
+  });
 
   const updateTaskDates = async (taskId, startDate, endDate) => {
-    try {
-      await axios.patch(`${API}/tasks/${taskId}/dates`, { start_date: startDate, due_date: endDate });
-      fetchTasks();
-    } catch { toast.error('Failed to update dates'); }
+    updateDatesMutation.mutate({ taskId, startDate, endDate });
   };
 
   const sendProgressReport = async () => {
