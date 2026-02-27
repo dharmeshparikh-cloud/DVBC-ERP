@@ -41,12 +41,7 @@ const SCOPE_ICONS = {
 
 const LeavePolicySettings = () => {
   const { user } = useContext(AuthContext);
-  const [policies, setPolicies] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   
   // Dialog states
   const [showPolicyDialog, setShowPolicyDialog] = useState(false);
@@ -90,32 +85,43 @@ const LeavePolicySettings = () => {
     description: ''
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Fetch policies using React Query
+  const { data: policies = [], isLoading: policiesLoading, refetch: refetchPolicies } = useQuery({
+    queryKey: ['leave-policies'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/leave-policies`);
+      return response.data || [];
+    },
+    staleTime: 3 * 60 * 1000,
+    onError: () => toast.error('Failed to fetch policies')
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [policiesRes, deptsRes, empsRes] = await Promise.all([
-        axios.get(`${API}/leave-policies`),
-        axios.get(`${API}/masters/departments`).catch(() => ({ data: [] })),
-        axios.get(`${API}/employees`).catch(() => ({ data: [] }))
-      ]);
-      
-      setPolicies(policiesRes.data || []);
-      setDepartments(deptsRes.data || []);
-      setEmployees(empsRes.data || []);
-      
-      // Extract unique roles
-      const uniqueRoles = [...new Set(empsRes.data?.map(e => e.designation).filter(Boolean))];
-      setRoles(uniqueRoles);
-    } catch (error) {
-      toast.error('Failed to fetch policies');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch departments
+  const { data: departments = [] } = useQuery({
+    queryKey: ['masters', 'departments'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/masters/departments`);
+      return response.data || [];
+    },
+    staleTime: 10 * 60 * 1000
+  });
+
+  // Fetch employees
+  const { data: employeesData = [] } = useQuery({
+    queryKey: ['employees', 'all'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/employees`);
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
+  const employees = employeesData;
+  
+  // Extract unique roles from employees
+  const roles = [...new Set(employees?.map(e => e.designation).filter(Boolean))];
+  
+  const loading = policiesLoading;
 
   const openNewPolicy = () => {
     setPolicyForm({
