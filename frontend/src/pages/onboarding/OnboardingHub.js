@@ -33,6 +33,7 @@ const OnboardingHub = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('invite');
   const [searchQuery, setSearchQuery] = useState('');
+  const [exporting, setExporting] = useState(false);
   
   // Invite form state
   const [inviteForm, setInviteForm] = useState({
@@ -46,6 +47,47 @@ const OnboardingHub = () => {
   // Get token from localStorage (same as App.js pattern)
   const getToken = () => localStorage.getItem('token');
   const authHeaders = { headers: { Authorization: `Bearer ${getToken()}` } };
+
+  // Export to Excel function
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true);
+      const response = await axios.get(`${API}/onboarding/export/excel?status=completed`, authHeaders);
+      const data = response.data.data || [];
+      
+      if (data.length === 0) {
+        toast.error('No data to export');
+        return;
+      }
+      
+      // Convert to CSV
+      const headers = Object.keys(data[0]);
+      const csvContent = [
+        headers.join(','),
+        ...data.map(row => headers.map(h => {
+          const val = row[h] || '';
+          // Escape quotes and wrap in quotes if contains comma
+          return typeof val === 'string' && (val.includes(',') || val.includes('"')) 
+            ? `"${val.replace(/"/g, '""')}"` 
+            : val;
+        }).join(','))
+      ].join('\n');
+      
+      // Download as CSV file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `onboarding_completed_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      
+      toast.success(`Exported ${data.length} records`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export data');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Fetch submissions with React Query (caching enabled)
   const { data: submissions = [], isLoading: loading, refetch: refetchSubmissions } = useQuery({
