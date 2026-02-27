@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -11,20 +11,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CompanyLetterhead, { HRSignatureBlock, LetterHeader } from '../components/CompanyLetterhead';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 const LetterheadSettings = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState({
-    header_image: null,
-    footer_image: null,
-    company_name: "D&V Business Consulting",
-    company_address: "123, Business Park, Andheri East, Mumbai - 400069",
-    company_phone: "+91 22 1234 5678",
-    company_email: "contact@dvconsulting.co.in",
-    company_cin: "U74999MH2020PTC123456"
-  });
+  const [localSettings, setLocalSettings] = useState(null);
   const [activeTab, setActiveTab] = useState('upload');
   
   const headerInputRef = useRef(null);
@@ -32,29 +26,91 @@ const LetterheadSettings = () => {
 
   const canEdit = user?.role === 'admin' || user?.role === 'hr_manager';
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/letters/letterhead-settings`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data);
+  // Query: Fetch settings
+  const { data: fetchedSettings, isLoading: loading } = useQuery({
+    queryKey: ['letterhead-settings'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/letters/letterhead-settings`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      if (!localSettings) {
+        setLocalSettings(data);
       }
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-    } finally {
-      setLoading(false);
+    }
+  });
+
+  // Use localSettings if available, otherwise use fetched settings
+  const settings = localSettings || fetchedSettings || {
+    header_image: null,
+    footer_image: null,
+    company_name: "D&V Business Consulting",
+    company_address: "123, Business Park, Andheri East, Mumbai - 400069",
+    company_phone: "+91 22 1234 5678",
+    company_email: "contact@dvconsulting.co.in",
+    company_cin: "U74999MH2020PTC123456"
+  };
+
+  const setSettings = (newSettings) => {
+    if (typeof newSettings === 'function') {
+      setLocalSettings(prev => newSettings(prev || settings));
+    } else {
+      setLocalSettings(newSettings);
     }
   };
 
-  const handleUpload = async (type, file) => {
+  // Mutation: Upload image
+  const uploadMutation = useMutation({
+    mutationFn: async ({ type, file }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return axios.post(`${API}/letters/letterhead-settings/upload-${type}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    },
+    onSuccess: (_, { type }) => {
+      toast.success(`${type === 'header' ? 'Header' : 'Footer'} image uploaded successfully`);
+      queryClient.invalidateQueries({ queryKey: ['letterhead-settings'] });
+      setLocalSettings(null); // Reset to refetch
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to upload image');
+    }
+  });
+
+  // Mutation: Delete image
+  const deleteMutation = useMutation({
+    mutationFn: async (type) => {
+      return axios.delete(`${API}/letters/letterhead-settings/${type}`);
+    },
+    onSuccess: (_, type) => {
+      toast.success(`${type === 'header' ? 'Header' : 'Footer'} image deleted`);
+      queryClient.invalidateQueries({ queryKey: ['letterhead-settings'] });
+      setLocalSettings(null);
+    },
+    onError: () => {
+      toast.error('Error deleting image');
+    }
+  });
+
+  // Mutation: Save settings
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      return axios.put(`${API}/letters/letterhead-settings`, settings);
+    },
+    onSuccess: () => {
+      toast.success('Settings saved successfully');
+      queryClient.invalidateQueries({ queryKey: ['letterhead-settings'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save settings');
+    },
+    onSettled: () => {
+      setSaving(false);
+    }
+  });
+
+  const handleUpload = (type, file) => {
     if (!file) return;
     
     // Validate file type
@@ -69,70 +125,16 @@ const LetterheadSettings = () => {
       return;
     }
     
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/letters/letterhead-settings/upload-${type}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      
-      if (response.ok) {
-        toast.success(`${type === 'header' ? 'Header' : 'Footer'} image uploaded successfully`);
-        fetchSettings();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to upload image');
-      }
-    } catch (error) {
-      toast.error('Error uploading image');
-    }
+    uploadMutation.mutate({ type, file });
   };
 
-  const handleDelete = async (type) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/letters/letterhead-settings/${type}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        toast.success(`${type === 'header' ? 'Header' : 'Footer'} image deleted`);
-        fetchSettings();
-      }
-    } catch (error) {
-      toast.error('Error deleting image');
-    }
+  const handleDelete = (type) => {
+    deleteMutation.mutate(type);
   };
 
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = () => {
     setSaving(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/letters/letterhead-settings`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(settings)
-      });
-      
-      if (response.ok) {
-        toast.success('Settings saved successfully');
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to save settings');
-      }
-    } catch (error) {
-      toast.error('Error saving settings');
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate();
   };
 
   if (loading) {
