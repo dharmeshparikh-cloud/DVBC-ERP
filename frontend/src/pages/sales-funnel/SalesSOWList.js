@@ -27,36 +27,41 @@ const SalesSOWList = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   
-  const [loading, setLoading] = useState(true);
-  const [sowList, setSowList] = useState([]);
-  const [pricingPlans, setPricingPlans] = useState([]);
-  const [leads, setLeads] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('list');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // React Query: SOW List
+  const { data: sowList = [], isLoading: loadingSOW } = useQuery({
+    queryKey: ['enhanced-sow', 'list', 'sales'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/enhanced-sow/list?role=sales`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      const [sowRes, plansRes, leadsRes] = await Promise.all([
-        axios.get(`${API}/enhanced-sow/list?role=sales`).catch(() => ({ data: [] })),
-        axios.get(`${API}/pricing-plans`),
-        axios.get(`${API}/leads`)
-      ]);
-      
-      setSowList(sowRes.data || []);
-      setPricingPlans(plansRes.data || []);
-      setLeads(leadsRes.data || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load SOW list');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Pricing Plans
+  const { data: pricingPlans = [] } = useQuery({
+    queryKey: ['pricing-plans'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/pricing-plans`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Leads
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/leads`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const loading = loadingSOW;
 
   // Get lead info for a SOW
   const getLeadInfo = (sow) => {
