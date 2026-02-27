@@ -139,7 +139,7 @@ async def send_onboarding_invite(
     
     # Send email to candidate
     # Get base URL from environment
-    base_url = os.environ.get("FRONTEND_URL", "https://netra-staging-lab.preview.emergentagent.com")
+    base_url = os.environ.get("FRONTEND_URL", "https://netra-approve-flow.preview.emergentagent.com")
     onboarding_link = f"{base_url}/onboarding/candidate/{token}"
     
     try:
@@ -383,7 +383,7 @@ async def request_revision(
     
     # Send email to candidate
     try:
-        base_url = os.environ.get("FRONTEND_URL", "https://netra-staging-lab.preview.emergentagent.com")
+        base_url = os.environ.get("FRONTEND_URL", "https://netra-approve-flow.preview.emergentagent.com")
         onboarding_link = f"{base_url}/onboarding/candidate/{submission['token']}"
         
         await send_onboarding_revision_request_email(
@@ -1012,7 +1012,7 @@ async def submit_public_submission(token: str, data: dict):
         if invited_by_id:
             inviter = await db.employees.find_one({"id": invited_by_id}, {"email": 1, "full_name": 1})
             if inviter and inviter.get("email"):
-                base_url = os.environ.get("FRONTEND_URL", "https://netra-staging-lab.preview.emergentagent.com")
+                base_url = os.environ.get("FRONTEND_URL", "https://netra-approve-flow.preview.emergentagent.com")
                 review_link = f"{base_url}/onboarding/review/{submission['id']}"
                 
                 await send_onboarding_submission_notification_email(
