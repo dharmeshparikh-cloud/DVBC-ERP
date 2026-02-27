@@ -131,6 +131,7 @@ const WorkflowPage = lazy(() => import('./pages/WorkflowPage'));
 const OnboardingTutorial = lazy(() => import('./pages/OnboardingTutorial'));
 const PasswordManagement = lazy(() => import('./pages/PasswordManagement'));
 const GoLiveDashboard = lazy(() => import('./pages/GoLiveDashboard'));
+const EmployeeWorkflows = lazy(() => import('./pages/EmployeeWorkflows'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const FollowUps = lazy(() => import('./pages/FollowUps'));
 const Invoices = lazy(() => import('./pages/Invoices'));
