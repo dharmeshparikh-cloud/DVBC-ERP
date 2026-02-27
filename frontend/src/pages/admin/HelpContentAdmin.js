@@ -475,7 +475,7 @@ const HelpContentAdmin = () => {
 };
 
 // Topic Create/Edit Dialog
-const TopicDialog = ({ open, onClose, topic, categories, onSave }) => {
+const TopicDialog = ({ open, onClose, topic, categories, queryClient }) => {
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
@@ -494,7 +494,6 @@ const TopicDialog = ({ open, onClose, topic, categories, onSave }) => {
     steps: [],
     troubleshooting: []
   });
-  const [saving, setSaving] = useState(false);
   
   useEffect(() => {
     if (topic) {
@@ -526,38 +525,45 @@ const TopicDialog = ({ open, onClose, topic, categories, onSave }) => {
     }
   }, [topic, open]);
   
-  const handleSave = async () => {
+  const saveTopicMutation = useMutation({
+    mutationFn: async ({ isEdit, id, payload }) => {
+      if (isEdit) {
+        await axios.put(`${API}/help/admin/topics/${id}`, payload);
+      } else {
+        await axios.post(`${API}/help/admin/topics`, payload);
+      }
+    },
+    onSuccess: (_, { isEdit }) => {
+      toast.success(isEdit ? 'Topic updated' : 'Topic created');
+      queryClient.invalidateQueries({ queryKey: ['help-topics'] });
+      queryClient.invalidateQueries({ queryKey: ['help-analytics'] });
+      onClose();
+    },
+    onError: () => toast.error('Failed to save topic')
+  });
+
+  const handleSave = () => {
     if (!formData.title || !formData.category) {
       toast.error('Title and category are required');
       return;
     }
     
-    setSaving(true);
-    try {
-      const payload = {
-        ...formData,
-        slug: formData.slug || formData.title.toLowerCase().replace(/\s+/g, '-'),
-        routes: formData.routes.split(',').map(r => r.trim()).filter(Boolean),
-        roles: formData.roles.split(',').map(r => r.trim()).filter(Boolean),
-        keywords: formData.keywords.split(',').map(k => k.trim()).filter(Boolean)
-      };
-      
-      if (topic?.id) {
-        await axios.put(`${API}/help/admin/topics/${topic.id}`, payload);
-        toast.success('Topic updated');
-      } else {
-        await axios.post(`${API}/help/admin/topics`, payload);
-        toast.success('Topic created');
-      }
-      
-      onSave();
-      onClose();
-    } catch (err) {
-      toast.error('Failed to save topic');
-    } finally {
-      setSaving(false);
-    }
+    const payload = {
+      ...formData,
+      slug: formData.slug || formData.title.toLowerCase().replace(/\s+/g, '-'),
+      routes: formData.routes.split(',').map(r => r.trim()).filter(Boolean),
+      roles: formData.roles.split(',').map(r => r.trim()).filter(Boolean),
+      keywords: formData.keywords.split(',').map(k => k.trim()).filter(Boolean)
+    };
+    
+    saveTopicMutation.mutate({
+      isEdit: !!topic?.id,
+      id: topic?.id,
+      payload
+    });
   };
+
+  const saving = saveTopicMutation.isPending;
   
   const addStep = () => {
     setFormData(prev => ({
