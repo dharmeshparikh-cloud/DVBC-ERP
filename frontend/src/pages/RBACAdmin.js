@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { AuthContext, API } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -16,8 +16,8 @@ import {
   Lock, Eye, RefreshCw, Layers, UserCog, Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import { useFetch, useMutate } from '../hooks/useApi';
+import { useQueryClient } from '@tanstack/react-query';
 
 const RBACAdmin = () => {
   const { user } = useContext(AuthContext);
@@ -53,41 +53,17 @@ const RBACAdmin = () => {
 
   const isAdmin = user?.role === 'admin';
 
-  // Query: Fetch roles
-  const { data: rolesData, isLoading: rolesLoading } = useQuery({
-    queryKey: ['rbac-roles'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/rbac/roles`);
-      return res.data;
-    }
-  });
+  // Query: Fetch roles using centralized hook
+  const { data: rolesData, isLoading: rolesLoading } = useFetch('/api/rbac/roles');
 
-  // Query: Fetch departments
-  const { data: deptsData } = useQuery({
-    queryKey: ['rbac-departments'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/rbac/departments`);
-      return res.data;
-    }
-  });
+  // Query: Fetch departments using centralized hook
+  const { data: deptsData } = useFetch('/api/rbac/departments');
 
-  // Query: Fetch role groups
-  const { data: groupsData } = useQuery({
-    queryKey: ['rbac-role-groups'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/rbac/role-groups`);
-      return res.data;
-    }
-  });
+  // Query: Fetch role groups using centralized hook
+  const { data: groupsData } = useFetch('/api/rbac/role-groups');
 
-  // Query: Fetch my permissions
-  const { data: myPermissions } = useQuery({
-    queryKey: ['rbac-my-permissions'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/rbac/my-permissions`);
-      return res.data;
-    }
-  });
+  // Query: Fetch my permissions using centralized hook
+  const { data: myPermissions } = useFetch('/api/rbac/my-permissions');
 
   const roles = rolesData?.roles || [];
   const departments = deptsData?.departments || [];
@@ -95,23 +71,18 @@ const RBACAdmin = () => {
   const loading = rolesLoading;
 
   // Mutation: Refresh cache
-  const refreshCacheMutation = useMutation({
-    mutationFn: async () => {
-      return axios.post(`${API}/rbac/refresh-cache`);
-    },
+  const refreshCacheMutation = useMutate('/api/rbac/refresh-cache', {
+    method: 'post',
     onSuccess: () => {
       toast.success('RBAC cache refreshed successfully');
-      queryClient.invalidateQueries({ queryKey: ['rbac-roles'] });
-      queryClient.invalidateQueries({ queryKey: ['rbac-departments'] });
-      queryClient.invalidateQueries({ queryKey: ['rbac-role-groups'] });
-    },
-    onError: () => {
-      toast.error('Failed to refresh cache');
+      queryClient.invalidateQueries({ queryKey: ['/api/rbac/roles'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rbac/departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rbac/role-groups'] });
     }
   });
 
   const refreshCache = () => {
-    refreshCacheMutation.mutate();
+    refreshCacheMutation.mutate({});
   };
 
   // Mutation: Save role
