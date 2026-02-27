@@ -968,8 +968,30 @@ const Employees = () => {
 
 // Employee Form Component
 const EmployeeForm = ({ formData, setFormData, employees, onSubmit, onCancel, submitLabel, isEdit }) => {
+  // Check if employee is onboarded/go-live (protected mode)
+  const isProtectedEmployee = isEdit && (formData.onboarding_status === 'completed' || formData.has_portal_access || formData.go_live_status === 'active');
+  
   return (
     <div className="space-y-6">
+      {/* Governance Warning for Onboarded Employees */}
+      {isProtectedEmployee && (
+        <div className="bg-amber-50 border border-amber-200 rounded-sm p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800">
+              <p className="font-medium">Protected Employee Record</p>
+              <p className="mt-1 text-amber-700">This employee has completed onboarding. Some fields are locked and require specific workflows:</p>
+              <ul className="mt-2 space-y-1 text-amber-700 text-xs">
+                <li>• <strong>Salary/CTC:</strong> Use CTC Designer to modify compensation</li>
+                <li>• <strong>Department:</strong> Use Transfer workflow</li>
+                <li>• <strong>Designation:</strong> Use Promotion workflow</li>
+                <li>• <strong>Reporting Manager:</strong> Use Hierarchy Change request</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Basic Info */}
       <div>
         <h4 className="font-medium text-zinc-950 mb-3">Basic Information</h4>
@@ -1055,64 +1077,114 @@ const EmployeeForm = ({ formData, setFormData, employees, onSubmit, onCancel, su
         </div>
       </div>
 
-      {/* Work Info */}
+      {/* Work Info - LOCKED FIELDS */}
       <div className="border-t border-zinc-100 pt-4">
-        <h4 className="font-medium text-zinc-950 mb-3">Work Information</h4>
+        <h4 className="font-medium text-zinc-950 mb-3">
+          Work Information
+          {isProtectedEmployee && <span className="ml-2 text-xs font-normal text-amber-600">(Requires workflow)</span>}
+        </h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Department</Label>
+            <Label className="flex items-center gap-2">
+              Department
+              {isProtectedEmployee && <Lock className="h-3 w-3 text-amber-600" />}
+            </Label>
             <Input
               value={formData.department}
-              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              onChange={(e) => !isProtectedEmployee && setFormData({ ...formData, department: e.target.value })}
               placeholder="Consulting"
-              className="rounded-sm"
+              className={`rounded-sm ${isProtectedEmployee ? 'bg-zinc-100 cursor-not-allowed' : ''}`}
+              disabled={isProtectedEmployee}
+              title={isProtectedEmployee ? 'Use Transfer workflow to change department' : ''}
             />
+            {isProtectedEmployee && (
+              <p className="text-xs text-amber-600">Use Transfer workflow</p>
+            )}
           </div>
           <div className="space-y-2">
-            <Label>Designation</Label>
+            <Label className="flex items-center gap-2">
+              Designation
+              {isProtectedEmployee && <Lock className="h-3 w-3 text-amber-600" />}
+            </Label>
             <Input
               value={formData.designation}
-              onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+              onChange={(e) => !isProtectedEmployee && setFormData({ ...formData, designation: e.target.value })}
               placeholder="Senior Consultant"
-              className="rounded-sm"
+              className={`rounded-sm ${isProtectedEmployee ? 'bg-zinc-100 cursor-not-allowed' : ''}`}
+              disabled={isProtectedEmployee}
+              title={isProtectedEmployee ? 'Use Promotion workflow to change designation' : ''}
             />
+            {isProtectedEmployee && (
+              <p className="text-xs text-amber-600">Use Promotion workflow</p>
+            )}
           </div>
           <div className="col-span-2 space-y-2">
-            <Label>Reporting Manager</Label>
+            <Label className="flex items-center gap-2">
+              Reporting Manager
+              {isProtectedEmployee && <Lock className="h-3 w-3 text-amber-600" />}
+            </Label>
             <select
               value={formData.reporting_manager_id}
-              onChange={(e) => setFormData({ ...formData, reporting_manager_id: e.target.value })}
-              className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
+              onChange={(e) => !isProtectedEmployee && setFormData({ ...formData, reporting_manager_id: e.target.value })}
+              className={`w-full h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm ${isProtectedEmployee ? 'bg-zinc-100 cursor-not-allowed' : ''}`}
+              disabled={isProtectedEmployee}
+              title={isProtectedEmployee ? 'Use Hierarchy Change workflow to change reporting manager' : ''}
             >
               <option value="">No reporting manager</option>
               {employees.map(emp => (
                 <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.designation || emp.employee_id})</option>
               ))}
             </select>
+            {isProtectedEmployee && (
+              <p className="text-xs text-amber-600">Use Hierarchy Change workflow</p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* HR Details */}
+      {/* HR Details - SALARY IS LOCKED */}
       <div className="border-t border-zinc-100 pt-4">
-        <h4 className="font-medium text-zinc-950 mb-3">HR Details</h4>
+        <h4 className="font-medium text-zinc-950 mb-3">
+          HR Details
+          {isProtectedEmployee && <span className="ml-2 text-xs font-normal text-amber-600">(Use CTC Designer)</span>}
+        </h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Salary (Annual)</Label>
-            <Input
-              type="number"
-              value={formData.salary}
-              onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-              placeholder="1200000"
-              className="rounded-sm"
-            />
+            <Label className="flex items-center gap-2">
+              Salary (Annual)
+              {isProtectedEmployee && <Lock className="h-3 w-3 text-red-600" />}
+            </Label>
+            <div className="relative">
+              <Input
+                type="number"
+                value={formData.salary}
+                onChange={(e) => !isProtectedEmployee && setFormData({ ...formData, salary: e.target.value })}
+                placeholder="1200000"
+                className={`rounded-sm ${isProtectedEmployee ? 'bg-zinc-100 cursor-not-allowed pr-20' : ''}`}
+                disabled={isProtectedEmployee}
+                title={isProtectedEmployee ? 'Salary must be changed via CTC Designer' : ''}
+              />
+              {isProtectedEmployee && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">LOCKED</span>
+                </div>
+              )}
+            </div>
+            {isProtectedEmployee && (
+              <p className="text-xs text-red-600 font-medium">
+                Salary changes must go through CTC Designer → Admin Approval → Auto-sync
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Bank Details */}
+      {/* Bank Details - REQUIRES APPROVAL */}
       <div className="border-t border-zinc-100 pt-4">
-        <h4 className="font-medium text-zinc-950 mb-3">Bank Details</h4>
+        <h4 className="font-medium text-zinc-950 mb-3">
+          Bank Details
+          {isProtectedEmployee && <span className="ml-2 text-xs font-normal text-orange-600">(Requires Admin approval)</span>}
+        </h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Account Holder Name</Label>
@@ -1127,7 +1199,10 @@ const EmployeeForm = ({ formData, setFormData, employees, onSubmit, onCancel, su
             />
           </div>
           <div className="space-y-2">
-            <Label>Account Number</Label>
+            <Label className="flex items-center gap-2">
+              Account Number
+              {isProtectedEmployee && <ShieldAlert className="h-3 w-3 text-orange-600" />}
+            </Label>
             <Input
               value={formData.bank_details.account_number}
               onChange={(e) => setFormData({ 
@@ -1137,6 +1212,9 @@ const EmployeeForm = ({ formData, setFormData, employees, onSubmit, onCancel, su
               placeholder="1234567890"
               className="rounded-sm"
             />
+            {isProtectedEmployee && (
+              <p className="text-xs text-orange-600">Changes require Admin approval</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Bank Name</Label>
@@ -1151,7 +1229,10 @@ const EmployeeForm = ({ formData, setFormData, employees, onSubmit, onCancel, su
             />
           </div>
           <div className="space-y-2">
-            <Label>IFSC Code</Label>
+            <Label className="flex items-center gap-2">
+              IFSC Code
+              {isProtectedEmployee && <ShieldAlert className="h-3 w-3 text-orange-600" />}
+            </Label>
             <Input
               value={formData.bank_details.ifsc_code}
               onChange={(e) => setFormData({ 
