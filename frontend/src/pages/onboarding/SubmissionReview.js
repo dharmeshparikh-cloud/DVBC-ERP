@@ -895,7 +895,7 @@ const SubmissionReview = () => {
                   {canApprove && (
                     <HRDocumentUpload 
                       submissionId={submissionId} 
-                      onUploadComplete={fetchSubmission}
+                      onUploadComplete={refetchSubmission}
                       authHeaders={authHeaders}
                     />
                   )}
