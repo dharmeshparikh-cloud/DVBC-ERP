@@ -191,23 +191,18 @@ const SalarySlipDocument = ({ slip, printRef }) => {
 };
 
 const MySalarySlips = () => {
-  const [slips, setSlips] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [viewSlip, setViewSlip] = useState(null);
   const printRef = useRef(null);
 
-  useEffect(() => { fetchData(); }, []);
-
-  const fetchData = async () => {
-    try {
+  // React Query: Salary Slips
+  const { data: slips = [], isLoading: loading } = useQuery({
+    queryKey: ['my', 'salary-slips'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/my/salary-slips`);
-      setSlips(res.data);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to fetch salary slips');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000, // Salary slips don't change often
+  });
 
   const handlePrint = () => {
     const content = printRef.current;
