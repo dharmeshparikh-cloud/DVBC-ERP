@@ -75,6 +75,7 @@ const SalesSOWList = () => {
 
   // Get pricing plan for a SOW
   const getPlanInfo = (sow) => {
+    if (!Array.isArray(pricingPlans)) return null;
     return pricingPlans.find(p => p.id === sow.pricing_plan_id);
   };
 
