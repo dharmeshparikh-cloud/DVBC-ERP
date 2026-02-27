@@ -1,69 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Mail, Settings, Save, Eye, Send, Check, X, Clock, RefreshCw, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const EmailSettings = () => {
-  const [config, setConfig] = useState({
-    header_html: '',
-    footer_html: ''
-  });
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const [localConfig, setLocalConfig] = useState(null);
   const [activeTab, setActiveTab] = useState('templates');
   const [previewHtml, setPreviewHtml] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [testEmail, setTestEmail] = useState('');
 
-  useEffect(() => {
-    fetchConfig();
-    fetchLogs();
-  }, []);
-
-  const fetchConfig = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/email-actions/config`);
-      const data = await res.json();
-      setConfig({
-        header_html: data.header_html || '',
-        footer_html: data.footer_html || ''
-      });
-    } catch (error) {
-      console.error('Error fetching config:', error);
-    }
-  };
-
-  const fetchLogs = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/email-actions/logs?limit=50`);
-      const data = await res.json();
-      setLogs(data);
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-    }
-  };
-
-  const saveConfig = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/email-actions/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-      
-      if (res.ok) {
-        toast.success('Email template configuration saved!');
-      } else {
-        toast.error('Failed to save configuration');
+  // Query: Fetch config
+  const { isLoading: configLoading } = useQuery({
+    queryKey: ['email-config'],
+    queryFn: async () => {
+      const res = await axios.get(`${API_URL}/api/email-actions/config`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      if (!localConfig) {
+        setLocalConfig({
+          header_html: data.header_html || '',
+          footer_html: data.footer_html || ''
+        });
       }
-    } catch (error) {
-      console.error('Error saving config:', error);
-      toast.error('Error saving configuration');
     }
-    setLoading(false);
+  });
+
+  // Query: Fetch logs
+  const { data: logs = [], refetch: refetchLogs } = useQuery({
+    queryKey: ['email-logs'],
+    queryFn: async () => {
+      const res = await axios.get(`${API_URL}/api/email-actions/logs?limit=50`);
+      return res.data;
+    }
+  });
+
+  const config = localConfig || { header_html: '', footer_html: '' };
+  const setConfig = (newConfig) => {
+    if (typeof newConfig === 'function') {
+      setLocalConfig(prev => newConfig(prev || config));
+    } else {
+      setLocalConfig(newConfig);
+    }
   };
+
+  // Mutation: Save config
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      return axios.put(`${API_URL}/api/email-actions/config`, config);
+    },
+    onSuccess: () => {
+      toast.success('Email template configuration saved!');
+      queryClient.invalidateQueries({ queryKey: ['email-config'] });
+    },
+    onError: () => {
+      toast.error('Failed to save configuration');
+    }
+  });
+
+  const saveConfig = () => {
+    saveMutation.mutate();
+  };
+
+  const loading = saveMutation.isPending;
 
   const generatePreview = () => {
     const preview = `
