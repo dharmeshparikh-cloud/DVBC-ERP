@@ -211,29 +211,8 @@ const RBACAdmin = () => {
     setDeptDialog(true);
   };
 
-  const saveDept = async () => {
-    try {
-      const isUpdate = !!editingDept;
-      const url = isUpdate ? `${API}/rbac/departments/${editingDept.code}` : `${API}/rbac/departments`;
-      const method = isUpdate ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: getAuthHeaders(),
-        body: JSON.stringify(deptForm)
-      });
-
-      if (response.ok) {
-        toast.success(`Department ${isUpdate ? 'updated' : 'created'} successfully`);
-        setDeptDialog(false);
-        fetchAllData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to save department');
-      }
-    } catch (error) {
-      toast.error('Failed to save department');
-    }
+  const saveDept = () => {
+    saveDeptMutation.mutate();
   };
 
   // Role Group editing
@@ -251,17 +230,10 @@ const RBACAdmin = () => {
       : [...currentRoles, roleCode];
     
     try {
-      const response = await fetch(`${API}/rbac/role-groups/${editingGroup.code}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ roles: newRoles })
-      });
-
-      if (response.ok) {
-        toast.success('Role group updated');
-        setEditingGroup({ ...editingGroup, roles: newRoles });
-        fetchAllData();
-      }
+      await axios.put(`${API}/api/rbac/role-groups/${editingGroup.code}`, { roles: newRoles });
+      toast.success('Role group updated');
+      setEditingGroup({ ...editingGroup, roles: newRoles });
+      queryClient.invalidateQueries({ queryKey: ['/api/rbac/role-groups'] });
     } catch (error) {
       toast.error('Failed to update group');
     }
