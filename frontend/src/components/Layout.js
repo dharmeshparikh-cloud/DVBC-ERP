@@ -245,6 +245,7 @@ const Layout = () => {
     { name: 'Onboarding Hub', href: '/onboarding-hub', icon: UserCog, requiresTeamView: false, badge: 'New' },
     { name: 'Legacy Onboarding', href: '/onboarding', icon: UserCog, requiresTeamView: false },
     { name: 'Go-Live Dashboard', href: '/go-live', icon: Rocket, requiresHRorAdmin: true },
+    { name: 'Employee Workflows', href: '/employee-workflows', icon: ArrowRightLeft, requiresHRorAdmin: true, badge: 'New' },
     { name: 'Employee Permissions', href: '/employee-permissions', icon: Shield, requiresHRorAdmin: true },
     { name: 'Password Management', href: '/password-management', icon: Key, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
