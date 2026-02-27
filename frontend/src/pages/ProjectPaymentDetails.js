@@ -110,11 +110,6 @@ const ProjectPaymentDetails = () => {
       setSendingReminder(prev => ({ ...prev, [installmentNumber]: false }));
     }
   };
-      toast.error(error.response?.data?.detail || 'Failed to send reminder');
-    } finally {
-      setSendingReminder(prev => ({ ...prev, [installmentNumber]: false }));
-    }
-  };
 
   const openRecordPaymentDialog = (installment) => {
     setSelectedInstallment(installment);
