@@ -23,12 +23,7 @@ const PRIORITY_OPTIONS = [
 
 const Meetings = () => {
   const { user } = useContext(AuthContext);
-  const [meetings, setMeetings] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [clients, setClients] = useState([]);
-  const [leads, setLeads] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [momDialogOpen, setMomDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
@@ -67,38 +62,86 @@ const Meetings = () => {
     notify_reporting_manager: true
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // React Query: Meetings
+  const { data: meetings = [], isLoading: loading } = useQuery({
+    queryKey: ['meetings'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/meetings`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      const [meetingsRes, projectsRes, clientsRes, leadsRes, usersRes] = await Promise.all([
-        axios.get(`${API}/meetings`),
-        axios.get(`${API}/projects`),
-        axios.get(`${API}/clients`).catch(() => ({ data: [] })),
-        axios.get(`${API}/leads`),
-        axios.get(`${API}/users`)
-      ]);
-      
-      setMeetings(meetingsRes.data);
-      setProjects(projectsRes.data);
-      setClients(clientsRes.data);
-      setLeads(leadsRes.data);
-      setUsers(usersRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Projects
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects', 'list'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Clients
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/clients`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Leads
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/leads`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Users
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/users`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Mutation: Create Meeting
+  const createMeetingMutation = useMutation({
+    mutationFn: async (data) => {
+      const meetingData = {
+        ...data,
+        meeting_date: new Date(data.meeting_date).toISOString(),
+        duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
+        agenda: data.agenda.filter(a => a.trim())
+      };
+      await axios.post(`${API}/meetings`, meetingData);
+    },
+    onSuccess: () => {
+      toast.success('Meeting scheduled successfully');
+      setDialogOpen(false);
+      setFormData({
+        project_id: '', client_id: '', lead_id: '', meeting_date: '',
+        mode: 'online', duration_minutes: '', notes: '', is_delivered: false,
+        title: '', agenda: [''], attendees: [], attendee_names: []
+      });
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to schedule meeting');
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const meetingData = {
-        ...formData,
-        meeting_date: new Date(formData.meeting_date).toISOString(),
+    createMeetingMutation.mutate(formData);
+  };
         duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
         agenda: formData.agenda.filter(a => a.trim())
       };
