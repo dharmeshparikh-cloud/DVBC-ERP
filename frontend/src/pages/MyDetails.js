@@ -21,9 +21,8 @@ const MyDetails = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const fileInputRef = useRef(null);
+  const queryClient = useQueryClient();
 
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   // Edit states
@@ -31,40 +30,31 @@ const MyDetails = () => {
   const [editData, setEditData] = useState({});
   const [changeReason, setChangeReason] = useState('');
   
-  // Pending requests
-  const [pendingRequests, setPendingRequests] = useState([]);
-  
   // Bank document upload states
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState(null);
   const [verifyingIfsc, setVerifyingIfsc] = useState(false);
   const [ifscVerified, setIfscVerified] = useState(false);
 
-  useEffect(() => {
-    fetchProfile();
-    fetchPendingRequests();
-  }, []);
-
-  const fetchProfile = async () => {
-    setLoading(true);
-    try {
+  // React Query: Profile
+  const { data: profile, isLoading: loading } = useQuery({
+    queryKey: ['my', 'profile'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/my/profile`);
-      setProfile(res.data);
-    } catch (err) {
-      toast.error('Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchPendingRequests = async () => {
-    try {
+  // React Query: Pending Requests
+  const { data: pendingRequests = [] } = useQuery({
+    queryKey: ['my', 'change-requests'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/my/change-requests`);
-      setPendingRequests(res.data || []);
-    } catch (err) {
-      console.error('Failed to fetch pending requests');
-    }
-  };
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
   const openEditDialog = (section, data) => {
     setEditSection(section);
