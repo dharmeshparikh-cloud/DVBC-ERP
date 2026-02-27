@@ -65,20 +65,24 @@ const ProformaInvoice = () => {
   };
 
   // Query: Fetch invoices (quotations) using React Query
-  const { data: invoices = [], isLoading: invoicesLoading } = useFetch('/api/quotations', {
+  const { data: invoicesData, isLoading: invoicesLoading } = useFetch('/api/quotations', {
     params: leadId ? { lead_id: leadId } : {}
   });
+  const invoices = invoicesData || [];
 
   // Query: Fetch pricing plans
-  const { data: pricingPlans = [] } = useFetch('/api/pricing-plans', {
+  const { data: pricingPlansData } = useFetch('/api/pricing-plans', {
     params: leadId ? { lead_id: leadId } : {}
   });
+  const pricingPlans = pricingPlansData || [];
 
-  // Query: Fetch leads
-  const { data: leads = [] } = useFetch('/api/leads');
+  // Query: Fetch leads - API returns {items: [...], pagination: {...}}
+  const { data: leadsData } = useFetch('/api/leads');
+  const leads = leadsData?.items || leadsData || [];
 
   // Query: Fetch agreements
-  const { data: agreements = [] } = useFetch('/api/agreements');
+  const { data: agreementsData } = useFetch('/api/agreements');
+  const agreements = agreementsData || [];
 
   // Query: Fetch SOW data if we have a pricing plan ID
   const { data: sowData } = useFetch(
