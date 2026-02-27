@@ -41,16 +41,13 @@ const CHANGE_TYPES = [
 const SOWChangeRequests = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   
-  const [loading, setLoading] = useState(true);
-  const [requests, setRequests] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
   const [viewMode, setViewMode] = useState('card');
   const [activeTab, setActiveTab] = useState('my-requests');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [sows, setSows] = useState([]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -65,40 +62,67 @@ const SOWChangeRequests = () => {
 
   const isPM = user?.role === 'project_manager' || user?.role === 'manager' || user?.role === 'admin';
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // React Query: My Requests
+  const { data: requests = [], isLoading: loadingRequests } = useQuery({
+    queryKey: ['sow-change-requests'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/sow-change-requests`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      const [requestsRes, pendingRes, sowsRes] = await Promise.all([
-        axios.get(`${API}/sow-change-requests`).catch(() => ({ data: [] })),
-        isPM ? axios.get(`${API}/sow-change-requests/pending`).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
-        axios.get(`${API}/enhanced-sow/list?role=consulting`).catch(() => ({ data: [] }))
-      ]);
-      
-      setRequests(requestsRes.data || []);
-      setPendingRequests(pendingRes.data || []);
-      setSows((sowsRes.data || []).filter(s => s.sales_handover_complete));
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Pending Requests (for PM)
+  const { data: pendingRequests = [] } = useQuery({
+    queryKey: ['sow-change-requests', 'pending'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/sow-change-requests/pending`);
+      return res.data || [];
+    },
+    enabled: isPM,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // React Query: SOWs
+  const { data: sows = [] } = useQuery({
+    queryKey: ['enhanced-sow', 'list', 'consulting'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/enhanced-sow/list?role=consulting`);
+      return (res.data || []).filter(s => s.sales_handover_complete);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const loading = loadingRequests;
+
+  // Mutation: Create Request
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.post(`${API}/sow-change-requests`, data);
+    },
+    onSuccess: () => {
+      toast.success('Change request submitted');
+      setShowCreateDialog(false);
+      setFormData({ sow_id: '', change_type: 'add_scope', title: '', description: '', requires_client_approval: false, proposed_changes: {} });
+      queryClient.invalidateQueries({ queryKey: ['sow-change-requests'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to create request');
+    },
+  });
 
   const handleCreateRequest = async () => {
     if (!formData.sow_id || !formData.title || !formData.description) {
       toast.error('Please fill in all required fields');
       return;
     }
-
     setSubmitting(true);
     try {
-      await axios.post(`${API}/sow-change-requests`, formData);
-      toast.success('Change request submitted');
-      setShowCreateDialog(false);
+      await createMutation.mutateAsync(formData);
+    } finally {
+      setSubmitting(false);
+    }
+  };
       setFormData({
         sow_id: '',
         change_type: 'add_scope',
