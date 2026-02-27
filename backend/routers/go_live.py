@@ -320,10 +320,11 @@ async def approve_go_live_request(
     
     WORKFLOW:
     1. Validates request exists and is pending
-    2. Updates request status to 'approved'
-    3. Updates employee go_live_status to 'active'
-    4. Creates audit log
-    5. Notifies HR and employee
+    2. Generates Employee ID (DVBC format) if not already assigned
+    3. Updates request status to 'approved'
+    4. Updates employee go_live_status to 'active'
+    5. Creates audit log
+    6. Notifies HR and employee
     """
     db = get_db()
     
@@ -343,6 +344,16 @@ async def approve_go_live_request(
     now = datetime.now(timezone.utc).isoformat()
     remarks = data.get("remarks", "") if data else ""
     
+    # Get employee to check if Employee ID needs to be generated
+    employee = await db.employees.find_one({"id": request.get("employee_id")}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Generate Employee ID if not already assigned
+    generated_employee_id = None
+    if not employee.get("employee_id") or employee.get("employee_id_pending"):
+        generated_employee_id = await generate_employee_id(db)
+    
     # Update request
     await db.go_live_requests.update_one(
         {"id": request_id},
@@ -352,11 +363,12 @@ async def approve_go_live_request(
             "approved_by_name": current_user.full_name,
             "approved_at": now,
             "approval_remarks": remarks,
+            "generated_employee_id": generated_employee_id,
             "updated_at": now
         }}
     )
     
-    # Update employee to active
+    # Update employee to active and assign Employee ID
     employee_update = {
         "go_live_status": "active",
         "go_live_approved_at": now,
@@ -366,10 +378,27 @@ async def approve_go_live_request(
         "activation_date": now
     }
     
+    # Assign Employee ID if generated
+    if generated_employee_id:
+        employee_update["employee_id"] = generated_employee_id
+        employee_update["employee_id_pending"] = False
+        employee_update["employee_id_assigned_at"] = now
+        employee_update["employee_id_assigned_by"] = current_user.id
+    
     await db.employees.update_one(
         {"id": request.get("employee_id")},
         {"$set": employee_update}
     )
+    
+    # Also update the onboarding submission if exists
+    if employee.get("onboarding_submission_id"):
+        await db.onboarding_submissions.update_one(
+            {"id": employee["onboarding_submission_id"]},
+            {"$set": {
+                "employee_id_generated": generated_employee_id or employee.get("employee_id"),
+                "employee_id_pending": False
+            }}
+        )
     
     # Notify HR who submitted
     if request.get("submitted_by"):
