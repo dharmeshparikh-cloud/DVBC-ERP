@@ -193,7 +193,7 @@ const PerformanceDashboard = () => {
     );
   }
 
-  const { summary, consultants, sales, trends, leaderboard } = performanceData;
+  const { summary, consultants: consultantsList, sales, trends, leaderboard } = performanceData;
 
   // Work location data for pie chart
   const workLocationData = attendanceData?.work_location ? [
