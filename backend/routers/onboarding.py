@@ -568,7 +568,8 @@ async def complete_onboarding(
                 "status": "completed",
                 "completed_at": now.isoformat(),
                 "completed_by": current_user.id,
-                "employee_id_generated": employee_id,
+                "employee_id_generated": None,  # Will be assigned after Go-Live approval
+                "employee_id_pending": True,
                 "employee_record_id": employee_record_id
             },
             "$push": {
@@ -577,7 +578,7 @@ async def complete_onboarding(
                     "actor_id": current_user.id,
                     "actor_name": current_user.full_name,
                     "timestamp": now.isoformat(),
-                    "details": {"employee_id": employee_id}
+                    "details": {"note": "Employee record created, ID pending Go-Live approval"}
                 }
             }
         }
