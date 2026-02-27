@@ -14,9 +14,9 @@
 
 ## Completed Work - February 2026
 
-### Phase 57: React Query Migration Batch 2 & 3 - February 25, 2026 ✅ (Latest)
+### Phase 57: React Query Migration Batch 2, 3 & 4 - February 25, 2026 ✅ (Latest)
 
-**Migration Session 2 & 3 Completed:**
+**Migration Sessions Completed:**
 
 **Batch 2 - 15 components migrated:**
 - Attendance.js, MyAttendance.js, Notifications.js, PasswordManagement.js
@@ -28,19 +28,21 @@
 - MySalarySlips.js, MyDetails.js, HandoverAlerts.js, PermissionDashboard.js
 - ConsultantPerformance.js, Meetings.js, UserProfile.js, ProjectPayments.js
 
+**Batch 4 - 6 components migrated:**
+- OfficeLocationsSettings.js, GanttChart.js, ProjectPaymentDetails.js
+- ProjectRoadmap.js, ProjectTasks.js, HRStaffingRequests.js
+
 **Bugs Fixed by Testing Agents:**
 - PasswordManagement.js: Missing CheckCircle icon import
 - AllProjects.js: fetchProjects function reference not updated
 - MyExpenses.js: Multiple null safety issues for data access
 - PermissionDashboard.js: fetchData function still referenced after migration
+- GanttChart.js: Missing useEffect import, setTasks undefined (needed local state for drag)
 
 **Current Migration Status:**
-- ✅ 49 pages now using React Query (56%)
-- 39 pages remaining for migration
+- ✅ 55 pages now using React Query (63%)
+- 33 pages remaining for migration
 - All tested pages passing (100% success rate)
-
-**Notes:**
-- Meetings.js identified as orphan file (not used in App.js routes)
 
 ---
 
