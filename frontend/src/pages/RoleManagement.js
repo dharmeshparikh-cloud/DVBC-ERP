@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -15,6 +15,8 @@ import {
   Lock, Unlock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 const PERMISSION_LABELS = {
   can_view_own_data: 'View Own Data',
@@ -31,11 +33,8 @@ const PERMISSION_LABELS = {
 
 const RoleManagement = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('requests');
-  const [stats, setStats] = useState(null);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [levelPermissions, setLevelPermissions] = useState({});
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [approvalDialog, setApprovalDialog] = useState(false);
   const [approvalComments, setApprovalComments] = useState('');
@@ -46,93 +45,83 @@ const RoleManagement = () => {
   const isAdmin = user?.role === 'admin';
   const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      const [statsRes, requestsRes, permissionsRes] = await Promise.all([
-        fetch(`${API}/role-management/stats`, { headers }),
-        fetch(`${API}/role-management/role-requests/pending`, { headers }),
-        fetch(`${API}/role-management/level-permissions`, { headers })
-      ]);
-
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (requestsRes.ok) setPendingRequests(await requestsRes.json());
-      if (permissionsRes.ok) setLevelPermissions(await permissionsRes.json());
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
+  // Query: Fetch stats
+  const { data: stats } = useQuery({
+    queryKey: ['role-management-stats'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/role-management/stats`);
+      return res.data;
     }
-  };
+  });
 
-  const handleApproveRequest = async (approved) => {
+  // Query: Fetch pending requests
+  const { data: pendingRequests = [], isLoading: requestsLoading } = useQuery({
+    queryKey: ['role-requests-pending'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/role-management/role-requests/pending`);
+      return res.data;
+    }
+  });
+
+  // Query: Fetch level permissions
+  const { data: levelPermissions = {}, isLoading: permissionsLoading } = useQuery({
+    queryKey: ['level-permissions'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/role-management/level-permissions`);
+      return res.data;
+    }
+  });
+
+  const loading = requestsLoading || permissionsLoading;
+
+  // Mutation: Approve/Reject request
+  const approveRequestMutation = useMutation({
+    mutationFn: async ({ approved }) => {
+      return axios.post(`${API}/role-management/role-requests/${selectedRequest.id}/approve`, {
+        approved,
+        comments: approvalComments
+      });
+    },
+    onSuccess: (_, { approved }) => {
+      toast.success(`Request ${approved ? 'approved' : 'rejected'} successfully`);
+      setApprovalDialog(false);
+      setSelectedRequest(null);
+      setApprovalComments('');
+      queryClient.invalidateQueries({ queryKey: ['role-requests-pending'] });
+      queryClient.invalidateQueries({ queryKey: ['role-management-stats'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to process request');
+    }
+  });
+
+  // Mutation: Update permissions
+  const updatePermissionsMutation = useMutation({
+    mutationFn: async () => {
+      return axios.put(`${API}/role-management/level-permissions`, {
+        level: editingLevel,
+        permissions: editingPermissions
+      });
+    },
+    onSuccess: () => {
+      toast.success('Permissions updated successfully');
+      setPermissionsDialog(false);
+      setEditingLevel(null);
+      queryClient.invalidateQueries({ queryKey: ['level-permissions'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to update permissions');
+    }
+  });
+
+  const handleApproveRequest = (approved) => {
     if (!selectedRequest) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/role-management/role-requests/${selectedRequest.id}/approve`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          approved,
-          comments: approvalComments
-        })
-      });
-
-      if (response.ok) {
-        toast.success(`Request ${approved ? 'approved' : 'rejected'} successfully`);
-        setApprovalDialog(false);
-        setSelectedRequest(null);
-        setApprovalComments('');
-        fetchData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to process request');
-      }
-    } catch (error) {
-      toast.error('Error processing request');
-    }
+    approveRequestMutation.mutate({ approved });
   };
 
-  const handleUpdatePermissions = async () => {
+  const handleUpdatePermissions = () => {
     if (!editingLevel) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/role-management/level-permissions`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          level: editingLevel,
-          permissions: editingPermissions
-        })
-      });
-
-      if (response.ok) {
-        toast.success('Permissions updated successfully');
-        setPermissionsDialog(false);
-        setEditingLevel(null);
-        fetchData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to update permissions');
-      }
-    } catch (error) {
-      toast.error('Error updating permissions');
-    }
+    updatePermissionsMutation.mutate();
   };
 
   const openPermissionsEditor = (level) => {
