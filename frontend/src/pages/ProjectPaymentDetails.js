@@ -147,7 +147,7 @@ const ProjectPaymentDetails = () => {
       });
       toast.success(`Payment recorded for installment #${selectedInstallment.installment_number}`);
       setShowRecordPaymentDialog(false);
-      fetchData(); // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['project-payments'] }); // Refresh data
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to record payment');
     } finally {
