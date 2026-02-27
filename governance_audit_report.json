@@ -1,0 +1,139 @@
+{
+  "generated_at": "2026-02-27T14:46:17.684205+00:00",
+  "sections": {
+    "data_inheritance": {
+      "employee_master": {
+        "description": "Single source of truth for all employee data",
+        "collection": "employees",
+        "primary_key": "id",
+        "unique_fields": [
+          "employee_id",
+          "email"
+        ],
+        "inherited_from": {
+          "department": "Onboarding \u2192 Locked post Go-Live \u2192 Transfer workflow",
+          "designation": "Onboarding \u2192 Locked post Go-Live \u2192 Promotion workflow",
+          "salary": "CTC Designer \u2192 Locked \u2192 CTC Revision workflow",
+          "reporting_manager": "Onboarding \u2192 Hierarchy Change workflow"
+        }
+      },
+      "ctc_structures": {
+        "description": "CTC breakdown and salary components",
+        "inherits_to": "employees.salary, employees.annual_ctc",
+        "workflow": "CTC Designer \u2192 Admin Approval \u2192 Auto-sync to employee"
+      },
+      "onboarding_submissions": {
+        "description": "Initial employee data capture",
+        "inherits_to": "employees (on completion)",
+        "workflow": "Candidate form \u2192 HR review \u2192 Employee creation"
+      }
+    },
+    "permission_matrix": {
+      "locked_fields": [
+        "department",
+        "departments",
+        "primary_department",
+        "designation",
+        "reporting_manager_id",
+        "reporting_manager",
+        "salary",
+        "ctc",
+        "annual_ctc",
+        "ctc_details",
+        "id",
+        "employee_id",
+        "created_at"
+      ],
+      "hr_editable": [
+        "first_name",
+        "last_name",
+        "phone"
+      ],
+      "admin_only": [
+        "role",
+        "level"
+      ],
+      "requires_approval": [
+        "bank_details"
+      ],
+      "workflow_required": {
+        "department": "transfer",
+        "departments": "transfer",
+        "primary_department": "transfer",
+        "designation": "promotion",
+        "reporting_manager_id": "hierarchy_change",
+        "reporting_manager": "hierarchy_change",
+        "salary": "ctc_revision",
+        "ctc": "ctc_revision",
+        "annual_ctc": "ctc_revision",
+        "ctc_details": "ctc_revision"
+      }
+    },
+    "sync_mapping": {
+      "salary": {
+        "source": "ctc_structures (annual_ctc)",
+        "destinations": [
+          "employees.salary",
+          "employees.annual_ctc"
+        ],
+        "sync_trigger": "CTC approval or manual sync",
+        "apis": [
+          "POST /api/governance/sync-salary/{id}",
+          "POST /api/ctc/{id}/approve"
+        ],
+        "dashboards": [
+          "HR Dashboard",
+          "Payroll",
+          "Employee Details"
+        ]
+      },
+      "department": {
+        "source": "employees",
+        "references": [
+          "users.department (legacy)",
+          "onboarding_submissions.hr_assigned.department"
+        ],
+        "note": "department_access router keeps users.department in sync",
+        "apis": [
+          "PATCH /api/employees/{id}",
+          "POST /api/department-access/grant"
+        ]
+      },
+      "employee_id": {
+        "source": "Generated at Go-Live approval",
+        "destinations": [
+          "employees.employee_id",
+          "users.employee_id"
+        ],
+        "sync_trigger": "Go-Live approval",
+        "apis": [
+          "POST /api/go-live/{id}/approve"
+        ]
+      }
+    },
+    "duplicate_risk": {
+      "duplicate_employee_ids": [],
+      "duplicate_emails": [],
+      "employees_without_id": 0,
+      "circular_reporting_chains": [],
+      "risk_level": "LOW"
+    },
+    "audit_summary": {
+      "total_change_records": 0,
+      "changes_by_field": {},
+      "recent_changes": []
+    },
+    "consent_status": {
+      "active_consent_documents": 0,
+      "total_consent_records": 0,
+      "employees_pending_consent": 0
+    }
+  },
+  "summary": {
+    "total_employees": 0,
+    "active_employees": 0,
+    "data_integrity_issues": 0,
+    "audit_trail_records": 0,
+    "consent_compliance": "COMPLETE"
+  }
+}
