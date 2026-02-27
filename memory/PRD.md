@@ -47,13 +47,26 @@
    - Circular reporting chain detection
    - Salary/CTC mismatch detection
 
+5. **Employee Workflows UI** (New)
+   - New page at `/employee-workflows` for managing workflow requests
+   - Stats cards showing pending counts by type
+   - Tabs for filtering: All Pending, Transfers, Promotions, CTC Revisions, Hierarchy
+   - "New Request" dialog for HR to initiate workflow requests
+   - Approval/Rejection dialogs for Admin with remarks
+
 **New Backend Routers:**
 - `/app/backend/routers/employee_governance.py` - Field permissions, audit, integrity checks
 - `/app/backend/routers/employee_consent.py` - Consent workflow, document management
 
+**New Frontend Pages:**
+- `/app/frontend/src/pages/EmployeeWorkflows.js` - Workflow management UI
+- `/app/frontend/src/pages/ConsentPage.js` - Public consent acceptance
+
 **New API Endpoints:**
 - `GET /api/governance/field-permissions` - Get RBAC matrix for current user
-- `PATCH /api/governance/employee/{id}` - Governed employee update
+- `GET /api/governance/pending-requests` - Get pending workflow requests (Admin only)
+- `POST /api/governance/requests/{id}/approve` - Approve workflow request
+- `POST /api/governance/requests/{id}/reject` - Reject workflow request
 - `GET /api/governance/change-history/{id}` - Get audit trail for employee
 - `GET /api/governance/integrity-check` - Run data integrity checks (Admin only)
 - `POST /api/governance/sync-salary/{id}` - Sync salary from CTC structure
@@ -61,13 +74,10 @@
 - `POST /api/consent/initiate/{id}` - Initiate consent workflow for employee
 - `POST /api/consent/accept/{token}` - Accept consent document (public endpoint)
 
-**Frontend Changes:**
-- `/app/frontend/src/pages/Employees.js` - Employee form with locked field indicators
-- `/app/frontend/src/pages/ConsentPage.js` - New public consent acceptance page
-
 **Testing:**
-- Backend: 100% (19/19 tests passed)
-- Test file: `/app/backend/tests/test_governance_audit.py`
+- Backend: 100% (14/14 tests passed for workflows, 19/19 for governance)
+- Frontend: 100% - All features working
+- Test files: `/app/backend/tests/test_employee_workflows.py`
 
 **Collections Created:**
 - `employee_change_history` - Audit trail
