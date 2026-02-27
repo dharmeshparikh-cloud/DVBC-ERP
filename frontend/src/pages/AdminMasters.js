@@ -136,118 +136,169 @@ const AdminMasters = () => {
 
   const loading = mastersLoading;
 
-  const handleSeedDefaults = async () => {
-    try {
+  // Mutation for seeding defaults
+  const seedDefaultsMutation = useMutation({
+    mutationFn: async () => {
       const response = await axios.post(`${API}/masters/seed-defaults`);
-      toast.success(`Seeded: ${response.data.created.tenure_types} tenure types, ${response.data.created.consultant_roles} roles, ${response.data.created.meeting_types} meeting types`);
-      fetchAllMasters();
-    } catch (error) {
-      toast.error('Failed to seed defaults');
-    }
-  };
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Seeded: ${data.created.tenure_types} tenure types, ${data.created.consultant_roles} roles, ${data.created.meeting_types} meeting types`);
+      queryClient.invalidateQueries({ queryKey: ['masters'] });
+    },
+    onError: () => toast.error('Failed to seed defaults')
+  });
 
-  // Tenure Type CRUD
-  const handleCreateTenure = async () => {
-    try {
-      if (!newTenure.name || !newTenure.code) {
-        toast.error('Name and Code are required');
-        return;
-      }
-      await axios.post(`${API}/masters/tenure-types`, newTenure);
+  const handleSeedDefaults = () => seedDefaultsMutation.mutate();
+
+  // Tenure Type mutations
+  const createTenureMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.post(`${API}/masters/tenure-types`, data);
+    },
+    onSuccess: () => {
       toast.success('Tenure type created');
       setShowNewTenure(false);
       setNewTenure({ name: '', code: '', allocation_percentage: 0, meetings_per_month: 0, description: '' });
-      fetchAllMasters();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create tenure type');
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['masters'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create tenure type')
+  });
 
-  const handleUpdateTenure = async (id, data) => {
-    try {
+  const updateTenureMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       await axios.put(`${API}/masters/tenure-types/${id}`, data);
+    },
+    onSuccess: () => {
       toast.success('Tenure type updated');
       setEditingTenure(null);
-      fetchAllMasters();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update tenure type');
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['masters'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update tenure type')
+  });
 
-  const handleDeleteTenure = async (id) => {
-    if (!window.confirm('Are you sure you want to deactivate this tenure type?')) return;
-    try {
+  const deleteTenureMutation = useMutation({
+    mutationFn: async (id) => {
       await axios.delete(`${API}/masters/tenure-types/${id}`);
+    },
+    onSuccess: () => {
       toast.success('Tenure type deactivated');
-      fetchAllMasters();
-    } catch (error) {
-      toast.error('Failed to deactivate tenure type');
+      queryClient.invalidateQueries({ queryKey: ['masters'] });
+    },
+    onError: () => toast.error('Failed to deactivate tenure type')
+  });
+
+  // Tenure Type CRUD
+  const handleCreateTenure = () => {
+    if (!newTenure.name || !newTenure.code) {
+      toast.error('Name and Code are required');
+      return;
     }
+    createTenureMutation.mutate(newTenure);
   };
 
-  // Consultant Role CRUD
-  const handleCreateRole = async () => {
-    try {
-      if (!newRole.name || !newRole.code) {
-        toast.error('Name and Code are required');
-        return;
-      }
-      await axios.post(`${API}/masters/consultant-roles`, newRole);
+  const handleUpdateTenure = (id, data) => {
+    updateTenureMutation.mutate({ id, data });
+  };
+
+  const handleDeleteTenure = (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this tenure type?')) return;
+    deleteTenureMutation.mutate(id);
+  };
+
+  // Consultant Role mutations
+  const createRoleMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.post(`${API}/masters/consultant-roles`, data);
+    },
+    onSuccess: () => {
       toast.success('Consultant role created');
       setShowNewRole(false);
       setNewRole({ name: '', code: '', min_rate_per_meeting: 10000, max_rate_per_meeting: 50000, default_rate: 12500, seniority_level: 1 });
-      fetchAllMasters();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create role');
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['masters'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create role')
+  });
 
-  const handleUpdateRole = async (id, data) => {
-    try {
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       await axios.put(`${API}/masters/consultant-roles/${id}`, data);
+    },
+    onSuccess: () => {
       toast.success('Consultant role updated');
       setEditingRole(null);
-      fetchAllMasters();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update role');
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['masters'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update role')
+  });
 
-  const handleDeleteRole = async (id) => {
-    if (!window.confirm('Are you sure you want to deactivate this role?')) return;
-    try {
+  const deleteRoleMutation = useMutation({
+    mutationFn: async (id) => {
       await axios.delete(`${API}/masters/consultant-roles/${id}`);
+    },
+    onSuccess: () => {
       toast.success('Consultant role deactivated');
-      fetchAllMasters();
-    } catch (error) {
-      toast.error('Failed to deactivate role');
+      queryClient.invalidateQueries({ queryKey: ['masters'] });
+    },
+    onError: () => toast.error('Failed to deactivate role')
+  });
+
+  // Consultant Role CRUD
+  const handleCreateRole = () => {
+    if (!newRole.name || !newRole.code) {
+      toast.error('Name and Code are required');
+      return;
     }
+    createRoleMutation.mutate(newRole);
   };
 
-  // ============ SOW CATEGORY CRUD ============
-  const handleCreateCategory = async () => {
-    try {
-      if (!newCategory.name || !newCategory.code) {
-        toast.error('Name and Code are required');
-        return;
-      }
-      await axios.post(`${API}/sow-masters/categories`, newCategory);
+  const handleUpdateRole = (id, data) => {
+    updateRoleMutation.mutate({ id, data });
+  };
+
+  const handleDeleteRole = (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this role?')) return;
+    deleteRoleMutation.mutate(id);
+  };
+
+  // SOW Category mutations
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.post(`${API}/sow-masters/categories`, data);
+    },
+    onSuccess: () => {
       toast.success('Category created successfully');
       setShowNewCategory(false);
       setNewCategory({ name: '', code: '', description: '', order: sowCategories.length });
-      fetchSowData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create category');
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['sow-masters'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create category')
+  });
 
-  const handleUpdateCategory = async (id, data) => {
-    try {
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       await axios.put(`${API}/sow-masters/categories/${id}`, data);
+    },
+    onSuccess: () => {
       toast.success('Category updated');
       setEditingCategory(null);
-      fetchSowData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['sow-masters'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update category')
+  });
+
+  // ============ SOW CATEGORY CRUD ============
+  const handleCreateCategory = () => {
+    if (!newCategory.name || !newCategory.code) {
+      toast.error('Name and Code are required');
+      return;
+    }
+    createCategoryMutation.mutate(newCategory);
+  };
+
+  const handleUpdateCategory = (id, data) => {
+    updateCategoryMutation.mutate({ id, data });
+  };
       toast.error(error.response?.data?.detail || 'Failed to update category');
     }
   };
