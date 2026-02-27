@@ -111,15 +111,15 @@ const LeavePolicySettings = () => {
     queryKey: ['employees', 'all'],
     queryFn: async () => {
       const response = await axios.get(`${API}/employees`);
-      return response.data || [];
+      return Array.isArray(response.data) ? response.data : [];
     },
     staleTime: 5 * 60 * 1000
   });
 
-  const employees = employeesData;
+  const employees = Array.isArray(employeesData) ? employeesData : [];
   
   // Extract unique roles from employees
-  const roles = [...new Set(employees?.map(e => e.designation).filter(Boolean))];
+  const roles = [...new Set(employees.map(e => e.designation).filter(Boolean))];
   
   const loading = policiesLoading;
 
