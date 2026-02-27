@@ -19,9 +19,7 @@ const ITEM_STATUSES = [
 
 function ProjectRoadmap() {
   const { user } = useContext(AuthContext);
-  const [roadmaps, setRoadmaps] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedRoadmap, setSelectedRoadmap] = useState(null);
   const [viewMode, setViewMode] = useState('table');
@@ -29,57 +27,95 @@ function ProjectRoadmap() {
 
   const canCreate = ['admin', 'project_manager', 'manager', 'principal_consultant'].includes(user?.role);
 
-  useEffect(function() { fetchData(); }, []);
+  // React Query: Roadmaps
+  const { data: roadmaps = [], isLoading: loading } = useQuery({
+    queryKey: ['roadmaps'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/roadmaps`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  function fetchData() {
-    Promise.all([
-      axios.get(API + '/roadmaps'),
-      axios.get(API + '/projects')
-    ]).then(function(results) {
-      setRoadmaps(results[0].data);
-      setProjects(results[1].data);
-    }).catch(function() {
-      toast.error('Failed to fetch data');
-    }).finally(function() {
-      setLoading(false);
-    });
-  }
+  // React Query: Projects
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects', 'list'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  function handleCreate(e) {
-    e.preventDefault();
-    var project = projects.find(function(p) { return p.id === formData.project_id; });
-    axios.post(API + '/roadmaps', {
-      project_id: formData.project_id,
-      title: formData.title || ('Roadmap - ' + (project ? project.name : '')),
-      phases: formData.phases.filter(function(p) { return p.month; })
-    }).then(function() {
+  // Mutation: Create Roadmap
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
+      const project = projects.find(p => p.id === data.project_id);
+      await axios.post(`${API}/roadmaps`, {
+        project_id: data.project_id,
+        title: data.title || ('Roadmap - ' + (project ? project.name : '')),
+        phases: data.phases.filter(p => p.month)
+      });
+    },
+    onSuccess: () => {
       toast.success('Roadmap created');
       setDialogOpen(false);
       setFormData({ project_id: '', title: '', phases: [{ id: '', month: '', title: '', items: [{ id: '', title: '', description: '', assigned_to: '', status: 'not_started', due_date: '' }] }] });
-      fetchData();
-    }).catch(function(err) {
+      queryClient.invalidateQueries({ queryKey: ['roadmaps'] });
+    },
+    onError: (err) => {
       toast.error(err.response?.data?.detail || 'Failed to create');
-    });
+    },
+  });
+
+  // Mutation: Submit to Client
+  const submitMutation = useMutation({
+    mutationFn: async (roadmapId) => {
+      await axios.post(`${API}/roadmaps/${roadmapId}/submit-to-client`);
+      return roadmapId;
+    },
+    onSuccess: (roadmapId) => {
+      toast.success('Roadmap submitted to client');
+      queryClient.invalidateQueries({ queryKey: ['roadmaps'] });
+      if (selectedRoadmap && selectedRoadmap.id === roadmapId) {
+        setSelectedRoadmap(prev => ({ ...prev, status: 'submitted_to_client', submitted_to_client: true }));
+      }
+    },
+    onError: () => {
+      toast.error('Failed to submit');
+    },
+  });
+
+  // Mutation: Update Item Status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ roadmapId, itemId, status }) => {
+      await axios.patch(`${API}/roadmaps/${roadmapId}/items/${itemId}/status`, { status });
+      return { roadmapId, itemId, status };
+    },
+    onSuccess: async ({ roadmapId }) => {
+      toast.success('Status updated');
+      queryClient.invalidateQueries({ queryKey: ['roadmaps'] });
+      if (selectedRoadmap) {
+        const res = await axios.get(`${API}/roadmaps/${roadmapId}`);
+        setSelectedRoadmap(res.data);
+      }
+    },
+    onError: () => {
+      toast.error('Failed to update');
+    },
+  });
+
+  function handleCreate(e) {
+    e.preventDefault();
+    createMutation.mutate(formData);
   }
 
   function handleSubmitToClient(roadmapId) {
-    axios.post(API + '/roadmaps/' + roadmapId + '/submit-to-client').then(function() {
-      toast.success('Roadmap submitted to client');
-      fetchData();
-      if (selectedRoadmap && selectedRoadmap.id === roadmapId) {
-        setSelectedRoadmap(function(prev) { return { ...prev, status: 'submitted_to_client', submitted_to_client: true }; });
-      }
-    }).catch(function() { toast.error('Failed to submit'); });
+    submitMutation.mutate(roadmapId);
   }
 
   function handleItemStatus(roadmapId, itemId, status) {
-    axios.patch(API + '/roadmaps/' + roadmapId + '/items/' + itemId + '/status', { status: status }).then(function() {
-      toast.success('Status updated');
-      fetchData();
-      if (selectedRoadmap) {
-        axios.get(API + '/roadmaps/' + roadmapId).then(function(res) { setSelectedRoadmap(res.data); });
-      }
-    }).catch(function() { toast.error('Failed to update'); });
+    updateStatusMutation.mutate({ roadmapId, itemId, status });
   }
 
   function addPhase() {
