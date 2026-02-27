@@ -162,40 +162,58 @@ const LeavePolicySettings = () => {
     setShowPolicyDialog(true);
   };
 
-  const savePolicy = async () => {
+  // Mutation for saving policy
+  const savePolicyMutation = useMutation({
+    mutationFn: async ({ isEdit, id, data }) => {
+      if (isEdit) {
+        const response = await axios.put(`${API}/leave-policies/${id}`, data);
+        return response.data;
+      } else {
+        const response = await axios.post(`${API}/leave-policies`, data);
+        return response.data;
+      }
+    },
+    onSuccess: (_, { isEdit }) => {
+      toast.success(isEdit ? 'Policy updated' : 'Policy created');
+      setShowPolicyDialog(false);
+      queryClient.invalidateQueries({ queryKey: ['leave-policies'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save policy');
+    }
+  });
+
+  const savePolicy = () => {
     if (!policyForm.name) {
       toast.error('Policy name is required');
       return;
     }
-    
-    setSaving(true);
-    try {
-      if (editingPolicy) {
-        await axios.put(`${API}/leave-policies/${editingPolicy.id}`, policyForm);
-        toast.success('Policy updated');
-      } else {
-        await axios.post(`${API}/leave-policies`, policyForm);
-        toast.success('Policy created');
-      }
-      setShowPolicyDialog(false);
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save policy');
-    } finally {
-      setSaving(false);
-    }
+    savePolicyMutation.mutate({
+      isEdit: !!editingPolicy,
+      id: editingPolicy?.id,
+      data: policyForm
+    });
   };
 
-  const deletePolicy = async (policyId) => {
-    if (!window.confirm('Are you sure you want to delete this policy?')) return;
-    
-    try {
+  const saving = savePolicyMutation.isPending;
+
+  // Mutation for deleting policy
+  const deletePolicyMutation = useMutation({
+    mutationFn: async (policyId) => {
       await axios.delete(`${API}/leave-policies/${policyId}`);
+    },
+    onSuccess: () => {
       toast.success('Policy deleted');
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['leave-policies'] });
+    },
+    onError: () => {
       toast.error('Failed to delete policy');
     }
+  });
+
+  const deletePolicy = (policyId) => {
+    if (!window.confirm('Are you sure you want to delete this policy?')) return;
+    deletePolicyMutation.mutate(policyId);
   };
 
   const openAddLeaveType = () => {
