@@ -15,40 +15,31 @@ import { formatINR } from '../utils/currency';
 const ProjectPayments = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
-  const [myPayments, setMyPayments] = useState({ payments: [], total_projects: 0, can_view_amounts: false });
-  const [upcomingPayments, setUpcomingPayments] = useState({ payments: [], total_upcoming: 0 });
   const [activeTab, setActiveTab] = useState('overview');
 
   // Check if user can view all payments (Admin, Principal Consultant, PM)
   const canViewAllPayments = ['admin', 'principal_consultant', 'project_manager', 'manager'].includes(user?.role);
 
-  useEffect(() => {
-    fetchPayments();
-  }, []);
+  // React Query: My Payments
+  const { data: myPayments = { payments: [], total_projects: 0, can_view_amounts: false }, isLoading: loading } = useQuery({
+    queryKey: ['project-payments', 'my-payments'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/project-payments/my-payments`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchPayments = async () => {
-    try {
-      // Fetch my payments
-      const myPaymentsRes = await axios.get(`${API}/project-payments/my-payments`);
-      setMyPayments(myPaymentsRes.data);
-
-      // Fetch upcoming payments (only for authorized roles)
-      if (canViewAllPayments) {
-        try {
-          const upcomingRes = await axios.get(`${API}/project-payments/upcoming`);
-          setUpcomingPayments(upcomingRes.data);
-        } catch (e) {
-          console.log('Cannot fetch upcoming payments');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch payments:', error);
-      toast.error('Failed to load payment data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Upcoming Payments (only for authorized roles)
+  const { data: upcomingPayments = { payments: [], total_upcoming: 0 } } = useQuery({
+    queryKey: ['project-payments', 'upcoming'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/project-payments/upcoming`);
+      return res.data;
+    },
+    enabled: canViewAllPayments,
+    staleTime: 2 * 60 * 1000,
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
