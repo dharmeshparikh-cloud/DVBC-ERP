@@ -111,16 +111,6 @@ const SalesMeetings = () => {
     staleTime: 2 * 60 * 1000,
   });
 
-  // React Query: Leads
-  const { data: leads = [] } = useQuery({
-    queryKey: ['leads'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/leads`);
-      return res.data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
   // React Query: Users
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
