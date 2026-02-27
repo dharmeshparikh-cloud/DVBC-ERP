@@ -123,28 +123,13 @@ const SOWChangeRequests = () => {
       setSubmitting(false);
     }
   };
-      setFormData({
-        sow_id: '',
-        change_type: 'add_scope',
-        title: '',
-        description: '',
-        requires_client_approval: false,
-        proposed_changes: {}
-      });
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit request');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleApprove = async (requestId, comments = '') => {
     try {
       await axios.post(`${API}/sow-change-requests/${requestId}/approve?approval_type=rm&comments=${encodeURIComponent(comments)}`);
       toast.success('Request approved');
       setShowDetailDialog(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['sow-change-requests'] });
     } catch (error) {
       toast.error('Failed to approve request');
     }
@@ -159,7 +144,7 @@ const SOWChangeRequests = () => {
       await axios.post(`${API}/sow-change-requests/${requestId}/reject?rejection_reason=${encodeURIComponent(reason)}`);
       toast.success('Request rejected');
       setShowDetailDialog(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['sow-change-requests'] });
     } catch (error) {
       toast.error('Failed to reject request');
     }
