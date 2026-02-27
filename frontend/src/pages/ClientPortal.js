@@ -69,7 +69,7 @@ const ClientPortal = () => {
     }
   });
 
-  const projects = projectsData || [];
+  const projects = Array.isArray(projectsData) ? projectsData : [];
 
   // Fetch project details using React Query
   const { data: projectDetails } = useQuery({
