@@ -65,6 +65,7 @@ const SalesSOWList = () => {
 
   // Get lead info for a SOW
   const getLeadInfo = (sow) => {
+    if (!Array.isArray(pricingPlans) || !Array.isArray(leads)) return null;
     const plan = pricingPlans.find(p => p.id === sow.pricing_plan_id);
     if (plan?.lead_id) {
       return leads.find(l => l.id === plan.lead_id);
