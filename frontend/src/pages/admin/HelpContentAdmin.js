@@ -847,7 +847,7 @@ const TopicDialog = ({ open, onClose, topic, categories, queryClient }) => {
 };
 
 // Category Create/Edit Dialog
-const CategoryDialog = ({ open, onClose, category, onSave }) => {
+const CategoryDialog = ({ open, onClose, category, queryClient }) => {
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -856,7 +856,6 @@ const CategoryDialog = ({ open, onClose, category, onSave }) => {
     order: 0,
     roles: ''
   });
-  const [saving, setSaving] = useState(false);
   
   useEffect(() => {
     if (category) {
@@ -873,36 +872,43 @@ const CategoryDialog = ({ open, onClose, category, onSave }) => {
     }
   }, [category, open]);
   
-  const handleSave = async () => {
+  const saveCategoryMutation = useMutation({
+    mutationFn: async ({ isEdit, id, payload }) => {
+      if (isEdit) {
+        await axios.put(`${API}/help/admin/categories/${id}`, payload);
+      } else {
+        await axios.post(`${API}/help/admin/categories`, payload);
+      }
+    },
+    onSuccess: (_, { isEdit }) => {
+      toast.success(isEdit ? 'Category updated' : 'Category created');
+      queryClient.invalidateQueries({ queryKey: ['help-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['help-topics'] });
+      onClose();
+    },
+    onError: () => toast.error('Failed to save category')
+  });
+
+  const handleSave = () => {
     if (!formData.name) {
       toast.error('Name is required');
       return;
     }
     
-    setSaving(true);
-    try {
-      const payload = {
-        ...formData,
-        slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
-        roles: formData.roles.split(',').map(r => r.trim()).filter(Boolean)
-      };
-      
-      if (category?.id) {
-        await axios.put(`${API}/help/admin/categories/${category.id}`, payload);
-        toast.success('Category updated');
-      } else {
-        await axios.post(`${API}/help/admin/categories`, payload);
-        toast.success('Category created');
-      }
-      
-      onSave();
-      onClose();
-    } catch (err) {
-      toast.error('Failed to save category');
-    } finally {
-      setSaving(false);
-    }
+    const payload = {
+      ...formData,
+      slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+      roles: formData.roles.split(',').map(r => r.trim()).filter(Boolean)
+    };
+    
+    saveCategoryMutation.mutate({
+      isEdit: !!category?.id,
+      id: category?.id,
+      payload
+    });
   };
+
+  const saving = saveCategoryMutation.isPending;
   
   return (
     <Dialog open={open} onOpenChange={onClose}>
