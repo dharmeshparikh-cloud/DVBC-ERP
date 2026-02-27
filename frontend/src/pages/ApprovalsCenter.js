@@ -2700,7 +2700,7 @@ const ApprovalsCenter = () => {
                 </div>
               </div>
 
-              {/* Pre-Flight Checklist */}
+              {/* Pre-Flight Checklist - Dynamically render from API */}
               <div>
                 <h4 className={`text-sm font-semibold mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
                   Go-Live Checklist
@@ -2708,69 +2708,29 @@ const ApprovalsCenter = () => {
                 <div className="space-y-2">
                   {goLiveChecklist?.checklist ? (
                     <>
-                      {/* Onboarding Complete */}
-                      <div className={`flex items-center justify-between p-3 rounded-lg border ${
-                        goLiveChecklist.checklist.onboarding_complete 
-                          ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
-                          : isDark ? 'border-red-800 bg-red-900/20' : 'border-red-200 bg-red-50'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <User className={`w-5 h-5 ${goLiveChecklist.checklist.onboarding_complete ? 'text-emerald-500' : 'text-red-500'}`} />
-                          <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>Onboarding Complete</span>
+                      {Object.entries(goLiveChecklist.checklist).map(([key, item]) => (
+                        <div key={key} className={`flex items-center justify-between p-3 rounded-lg border ${
+                          item.completed 
+                            ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
+                            : isDark ? 'border-red-800 bg-red-900/20' : 'border-red-200 bg-red-50'
+                        }`}>
+                          <div className="flex items-center gap-3">
+                            {key === 'personal_details' && <User className={`w-5 h-5 ${item.completed ? 'text-emerald-500' : 'text-red-500'}`} />}
+                            {key === 'official_email' && <User className={`w-5 h-5 ${item.completed ? 'text-emerald-500' : 'text-red-500'}`} />}
+                            {key === 'department_assigned' && <Building2 className={`w-5 h-5 ${item.completed ? 'text-emerald-500' : 'text-red-500'}`} />}
+                            {key === 'reporting_manager' && <User className={`w-5 h-5 ${item.completed ? 'text-emerald-500' : 'text-red-500'}`} />}
+                            {key === 'bank_details' && <CreditCard className={`w-5 h-5 ${item.completed ? 'text-emerald-500' : 'text-red-500'}`} />}
+                            {key === 'bank_verified' && <Shield className={`w-5 h-5 ${item.completed ? 'text-emerald-500' : 'text-amber-500'}`} />}
+                            {key === 'documents_uploaded' && <FileText className={`w-5 h-5 ${item.completed ? 'text-emerald-500' : 'text-red-500'}`} />}
+                            {key === 'portal_access' && <Key className={`w-5 h-5 ${item.completed ? 'text-emerald-500' : 'text-red-500'}`} />}
+                            <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>{item.label}</span>
+                          </div>
+                          {item.completed 
+                            ? <CheckCircle className="w-5 h-5 text-emerald-500" />
+                            : <XCircle className="w-5 h-5 text-red-500" />
+                          }
                         </div>
-                        {goLiveChecklist.checklist.onboarding_complete 
-                          ? <CheckCircle className="w-5 h-5 text-emerald-500" />
-                          : <XCircle className="w-5 h-5 text-red-500" />
-                        }
-                      </div>
-
-                      {/* CTC Approved */}
-                      <div className={`flex items-center justify-between p-3 rounded-lg border ${
-                        goLiveChecklist.checklist.ctc_approved 
-                          ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
-                          : isDark ? 'border-red-800 bg-red-900/20' : 'border-red-200 bg-red-50'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <Wallet className={`w-5 h-5 ${goLiveChecklist.checklist.ctc_approved ? 'text-emerald-500' : 'text-red-500'}`} />
-                          <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>CTC Structure Approved</span>
-                        </div>
-                        {goLiveChecklist.checklist.ctc_approved 
-                          ? <CheckCircle className="w-5 h-5 text-emerald-500" />
-                          : <XCircle className="w-5 h-5 text-red-500" />
-                        }
-                      </div>
-
-                      {/* Bank Details */}
-                      <div className={`flex items-center justify-between p-3 rounded-lg border ${
-                        goLiveChecklist.checklist.bank_details_added 
-                          ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
-                          : isDark ? 'border-amber-800 bg-amber-900/20' : 'border-amber-200 bg-amber-50'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <Building2 className={`w-5 h-5 ${goLiveChecklist.checklist.bank_details_added ? 'text-emerald-500' : 'text-amber-500'}`} />
-                          <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>Bank Details Verified</span>
-                        </div>
-                        {goLiveChecklist.checklist.bank_details_added 
-                          ? <CheckCircle className="w-5 h-5 text-emerald-500" />
-                          : <Clock className="w-5 h-5 text-amber-500" />
-                        }
-                      </div>
-
-                      {/* Portal Access */}
-                      <div className={`flex items-center justify-between p-3 rounded-lg border ${
-                        goLiveChecklist.checklist.portal_access_granted 
-                          ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
-                          : isDark ? 'border-red-800 bg-red-900/20' : 'border-red-200 bg-red-50'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <Key className={`w-5 h-5 ${goLiveChecklist.checklist.portal_access_granted ? 'text-emerald-500' : 'text-red-500'}`} />
-                          <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>Portal Access Granted</span>
-                        </div>
-                        {goLiveChecklist.checklist.portal_access_granted 
-                          ? <CheckCircle className="w-5 h-5 text-emerald-500" />
-                          : <XCircle className="w-5 h-5 text-red-500" />
-                        }
-                      </div>
+                      ))}
                     </>
                   ) : (
                     <div className={`text-center py-4 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
@@ -2781,26 +2741,26 @@ const ApprovalsCenter = () => {
                 </div>
               </div>
 
-              {/* Summary */}
-              {goLiveChecklist?.checklist && (
+              {/* Summary based on actual checklist */}
+              {goLiveChecklist?.summary && (
                 <div className={`p-4 rounded-lg border-2 ${
-                  goLiveChecklist.checklist.ctc_approved && goLiveChecklist.checklist.portal_access_granted && goLiveChecklist.checklist.onboarding_complete
+                  goLiveChecklist.summary.is_ready
                     ? isDark ? 'border-emerald-600 bg-emerald-900/20' : 'border-emerald-500 bg-emerald-50'
                     : isDark ? 'border-amber-600 bg-amber-900/20' : 'border-amber-500 bg-amber-50'
                 }`}>
                   <div className="flex items-center gap-2">
-                    {goLiveChecklist.checklist.ctc_approved && goLiveChecklist.checklist.portal_access_granted && goLiveChecklist.checklist.onboarding_complete ? (
+                    {goLiveChecklist.summary.is_ready ? (
                       <>
                         <Shield className="w-5 h-5 text-emerald-500" />
                         <span className={`font-medium ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                          All checks passed. Employee ID will be assigned on approval!
+                          All checks passed ({goLiveChecklist.summary.completed}/{goLiveChecklist.summary.total}). Employee is ready for Go-Live!
                         </span>
                       </>
                     ) : (
                       <>
                         <AlertCircle className="w-5 h-5 text-amber-500" />
                         <span className={`font-medium ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
-                          Critical checks pending: {!goLiveChecklist.checklist.onboarding_complete && 'Onboarding, '}{!goLiveChecklist.checklist.ctc_approved && 'CTC, '}{!goLiveChecklist.checklist.portal_access_granted && 'Portal Access'}
+                          {goLiveChecklist.summary.completed}/{goLiveChecklist.summary.total} checks complete ({goLiveChecklist.summary.percentage}%)
                         </span>
                       </>
                     )}
