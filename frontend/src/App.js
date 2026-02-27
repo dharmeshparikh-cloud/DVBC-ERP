@@ -233,6 +233,9 @@ function AppRouter({ user, login, logout, loading }) {
       {/* Public Candidate Onboarding Route - No auth required */}
       <Route path="/onboarding/candidate/:token" element={<CandidateOnboardingForm />} />
       
+      {/* Public Employee Consent Route - No auth required */}
+      <Route path="/consent/:token" element={<ConsentPage />} />
+      
       {/* Mobile Employee App - dedicated mobile view */}
       <Route path="/mobile" element={user ? <EmployeeMobileApp /> : <Navigate to="/login" />} />
       
