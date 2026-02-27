@@ -15,7 +15,8 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { 
   Send, Users, Clock, CheckCircle2, XCircle, RefreshCw, Eye, 
   UserPlus, Mail, Briefcase, Copy, ExternalLink, Search,
-  AlertTriangle, FileText, Loader2, MoreHorizontal, ChevronRight
+  AlertTriangle, FileText, Loader2, MoreHorizontal, ChevronRight,
+  Download, Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
