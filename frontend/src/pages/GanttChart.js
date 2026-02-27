@@ -73,9 +73,9 @@ const GanttChart = () => {
   // Local state for drag operations
   const [tasks, setTasks] = useState([]);
 
-  // Sync tasks from query data
+  // Sync tasks from query data (only update when tasks actually change)
   useEffect(() => {
-    if (tasksData) {
+    if (tasksData && JSON.stringify(tasksData) !== JSON.stringify(tasks)) {
       setTasks(tasksData);
     }
   }, [tasksData]);
