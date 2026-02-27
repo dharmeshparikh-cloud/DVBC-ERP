@@ -124,7 +124,7 @@ const GanttChart = () => {
       toast.success(`Progress report sent (${res.data.progress}% complete)`);
       setSendReportOpen(false);
       setReportForm({ client_name: '', subject: '', message: '', sow_id: '' });
-      fetchCommLogs();
+      queryClient.invalidateQueries({ queryKey: ['client-communications', selectedProject] });
     } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
   };
 
@@ -142,7 +142,7 @@ const GanttChart = () => {
       toast.success('Update sent to client');
       setSendReportOpen(false);
       setReportForm({ client_name: '', subject: '', message: '', sow_id: '' });
-      fetchCommLogs();
+      queryClient.invalidateQueries({ queryKey: ['client-communications', selectedProject] });
     } catch { toast.error('Failed'); }
   };
 
