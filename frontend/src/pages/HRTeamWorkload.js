@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -11,51 +11,38 @@ import {
   Building2, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 const HRTeamWorkload = () => {
   const { user } = useContext(AuthContext);
-  const [consultants, setConsultants] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
   // Allow Admin and HR Manager access
   const hasAccess = ['admin', 'hr_manager'].includes(user?.role);
 
-  useEffect(() => {
-    if (!hasAccess) {
-      toast.error('Access denied. This page is for Admin and HR Managers only.');
-      return;
-    }
-    fetchTeamData();
-  }, [user]);
+  // Query: Fetch consultants
+  const { data: consultants = [], isLoading: consultantsLoading } = useQuery({
+    queryKey: ['consultants-workload'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consultants`);
+      return res.data;
+    },
+    enabled: hasAccess
+  });
 
-  const fetchTeamData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+  // Query: Fetch projects
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ['projects-active-workload'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects?status=active`);
+      return res.data;
+    },
+    enabled: hasAccess
+  });
 
-      // Fetch consultants with their project assignments
-      const consultantsRes = await fetch(`${API}/consultants`, { headers });
-      if (consultantsRes.ok) {
-        const data = await consultantsRes.json();
-        setConsultants(data);
-      }
-
-      // Fetch active projects
-      const projectsRes = await fetch(`${API}/projects?status=active`, { headers });
-      if (projectsRes.ok) {
-        const data = await projectsRes.json();
-        setProjects(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch team data:', error);
-      toast.error('Failed to load team workload data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = consultantsLoading || projectsLoading;
 
   const getBandwidthColor = (percentage) => {
     if (percentage >= 90) return 'text-red-600 bg-red-100';
@@ -69,15 +56,18 @@ const HRTeamWorkload = () => {
     return 'bg-emerald-500';
   };
 
-  const filteredConsultants = consultants.filter(c => {
-    const matchesSearch = c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         c.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (filterStatus === 'all') return matchesSearch;
-    if (filterStatus === 'available') return matchesSearch && (c.bandwidth_percentage || 0) < 70;
-    if (filterStatus === 'busy') return matchesSearch && (c.bandwidth_percentage || 0) >= 70 && (c.bandwidth_percentage || 0) < 90;
-    if (filterStatus === 'overloaded') return matchesSearch && (c.bandwidth_percentage || 0) >= 90;
-    return matchesSearch;
+  const filteredConsultants = useMemo(() => {
+    return consultants.filter(c => {
+      const matchesSearch = c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           c.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (filterStatus === 'all') return matchesSearch;
+      if (filterStatus === 'available') return matchesSearch && (c.bandwidth_percentage || 0) < 70;
+      if (filterStatus === 'busy') return matchesSearch && (c.bandwidth_percentage || 0) >= 70 && (c.bandwidth_percentage || 0) < 90;
+      if (filterStatus === 'overloaded') return matchesSearch && (c.bandwidth_percentage || 0) >= 90;
+      return matchesSearch;
+    });
+  }, [consultants, searchQuery, filterStatus]);
   });
 
   // Calculate summary stats
