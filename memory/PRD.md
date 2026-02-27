@@ -14,7 +14,41 @@
 
 ## Completed Work - February 2026
 
-### Phase 61: HR Edit Capability & Excel Export - December 2025 ✅ (Latest)
+### Phase 62: New Go-Live Flow - Employee ID on Admin Approval - February 27, 2026 ✅ (Latest)
+
+**Business Process Change:**
+The Employee ID generation process has been changed from the previous flow (ID generated at onboarding completion) to a new flow where the Employee ID is only generated when an Admin approves the Go-Live request.
+
+**New Flow:**
+1. **Onboarding Completion** → Employee record created with `employee_id = null` and `employee_id_pending = true`
+2. **HR Prepares Go-Live** → HR enables portal access, verifies documents/bank, completes checklist
+3. **HR Submits Go-Live Request** → Request goes to Admin for approval
+4. **Admin Reviews** → Admin sees full employee details (designation, department, CTC, joining date, bank details, preview Employee ID)
+5. **Admin Approves** → Employee ID (DVBC format) is generated and assigned
+6. **Employee Active** → `go_live_status = 'active'`, employee can now login with their ID
+
+**Backend Changes:**
+- `/app/backend/routers/onboarding.py` - `complete_onboarding()` no longer generates Employee ID
+- `/app/backend/routers/go_live.py` - `approve_go_live_request()` now generates Employee ID on approval
+- New endpoint: `GET /api/go-live/request/{id}/details` - Returns detailed employee info for admin review
+
+**Frontend Changes:**
+- `/app/frontend/src/pages/ApprovalsCenter.js` - Enhanced Go-Live approval dialog showing:
+  - Preview Employee ID (DVBC###)
+  - Employee details (name, department, designation)
+  - Joining date and reporting manager
+  - CTC structure (if available)
+  - Bank details
+  - Go-Live checklist status
+
+**Testing:**
+- Backend: 100% (9 passed, 2 skipped)
+- Frontend: 100%
+- Test file: `/app/backend/tests/test_go_live_new_flow.py`
+
+---
+
+### Phase 61: HR Edit Capability & Excel Export - December 2025 ✅
 
 **Features Added:**
 1. **Edit Employee Details Post-Onboarding**
