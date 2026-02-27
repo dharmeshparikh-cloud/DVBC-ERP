@@ -525,8 +525,24 @@ async def get_employee(employee_id: str, current_user: User = Depends(get_curren
 
 
 @router.patch("/{employee_id}")
-async def update_employee(employee_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Update an employee's details. For onboarded employees, changes require admin approval."""
+async def update_employee(employee_id: str, data: dict, change_reason: str = None, current_user: User = Depends(get_current_user)):
+    """
+    Update an employee's details with GOVERNANCE ENFORCEMENT.
+    
+    BLOCKED FIELDS (require workflow):
+    - salary, ctc, annual_ctc, ctc_details → Use CTC Designer
+    - department, departments → Use Transfer workflow
+    - designation → Use Promotion workflow
+    - reporting_manager_id → Use Hierarchy Change workflow
+    
+    PROTECTED FIELDS (require admin approval):
+    - bank_details, bank_account_number, ifsc_code
+    - role, level, employment_type
+    
+    ALLOWED FIELDS (HR can edit):
+    - Personal info: name, phone, address, emergency contact
+    - Documents: pan_number, aadhaar_number (with audit)
+    """
     db = get_db()
     
     # RBAC Migration
@@ -538,25 +554,132 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
-    # Check if employee is fully onboarded (has portal access) or Go-Live approved
     is_onboarded = employee.get("onboarding_status") == "completed" or employee.get("has_portal_access", False)
     is_go_live = employee.get("go_live_status") == "active"
+    now = datetime.now(timezone.utc).isoformat()
     
-    # Fields that require admin approval after onboarding/Go-Live
-    # These are critical fields that affect payroll, reporting structure, and compensation
+    # ========== GOVERNANCE: Field Classification ==========
+    
+    # IMMUTABLE - Never allow direct edit
+    immutable_fields = ["id", "employee_id", "created_at", "created_by"]
+    
+    # LOCKED - Must use specific workflows, even admin cannot bypass
+    locked_fields = {
+        "salary": "ctc_revision",
+        "ctc": "ctc_revision", 
+        "annual_ctc": "ctc_revision",
+        "ctc_details": "ctc_revision",
+        "department": "transfer",
+        "departments": "transfer",
+        "primary_department": "transfer",
+        "designation": "promotion",
+        "reporting_manager_id": "hierarchy_change",
+        "reporting_manager": "hierarchy_change"
+    }
+    
+    # PROTECTED - Require admin approval after onboarding
     protected_fields = [
-        "bank_details", "bank_account_number", "bank_ifsc",  # Bank info
-        "salary", "ctc", "ctc_details",  # Compensation
-        "designation", "department", "departments",  # Position
-        "employment_type",  # Employment type
-        "reporting_manager_id"  # Reporting structure
+        "bank_details", "bank_account_number", "bank_name", "ifsc_code", "bank_ifsc",
+        "role", "level", "employment_type"
     ]
-    has_protected_changes = any(field in data for field in protected_fields)
     
-    # If employee is Go-Live or onboarded and has protected field changes, require admin approval
-    # HR Manager can request, but Admin must approve
-    if (is_onboarded or is_go_live) and has_protected_changes and current_user.role != "admin":
-        # Create modification request instead of direct update
+    # AUDIT REQUIRED - Log changes even when allowed
+    audit_fields = ["pan_number", "aadhaar_number", "role", "level", "is_active", "status"]
+    
+    # ========== Validate Each Field ==========
+    
+    blocked_updates = []
+    workflow_required = {}
+    approval_required = {}
+    allowed_updates = {}
+    audit_log = []
+    
+    for field, value in data.items():
+        # Skip system fields
+        if field in ["updated_at", "updated_by", "updated_by_name"]:
+            continue
+        
+        # Check immutable
+        if field in immutable_fields:
+            blocked_updates.append({
+                "field": field,
+                "reason": f"Field '{field}' is immutable and cannot be changed"
+            })
+            continue
+        
+        # Check locked fields - EVEN ADMIN CANNOT BYPASS
+        if field in locked_fields:
+            workflow = locked_fields[field]
+            workflow_required[field] = {
+                "value": value,
+                "workflow": workflow,
+                "reason": f"Field '{field}' must be changed via {workflow.replace('_', ' ')} workflow. Direct edit not allowed."
+            }
+            continue
+        
+        # Check protected fields (require admin approval after onboarding)
+        if field in protected_fields and (is_onboarded or is_go_live) and current_user.role != "admin":
+            approval_required[field] = {
+                "value": value,
+                "current_value": employee.get(field)
+            }
+            continue
+        
+        # Field is allowed
+        allowed_updates[field] = value
+        
+        # Check if audit is required
+        if field in audit_fields:
+            audit_log.append({
+                "field": field,
+                "old_value": employee.get(field),
+                "new_value": value
+            })
+    
+    # ========== Handle Blocked Updates ==========
+    
+    if blocked_updates:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "message": "Some fields cannot be updated directly",
+                "blocked_fields": blocked_updates
+            }
+        )
+    
+    # ========== Handle Workflow Required ==========
+    
+    workflow_requests = []
+    if workflow_required:
+        for field, info in workflow_required.items():
+            # Create workflow request
+            request = {
+                "id": str(uuid.uuid4()),
+                "employee_id": employee_id,
+                "employee_code": employee.get("employee_id"),
+                "employee_name": employee.get("full_name") or f"{employee.get('first_name', '')} {employee.get('last_name', '')}",
+                "field": field,
+                "current_value": employee.get(field),
+                "requested_value": info["value"],
+                "workflow_type": info["workflow"],
+                "requested_by": current_user.id,
+                "requested_by_name": current_user.full_name,
+                "requested_by_role": current_user.role,
+                "change_reason": change_reason,
+                "status": "pending",
+                "created_at": now
+            }
+            await db.field_change_requests.insert_one(request)
+            workflow_requests.append({
+                "field": field,
+                "workflow": info["workflow"],
+                "request_id": request["id"],
+                "message": info["reason"]
+            })
+    
+    # ========== Handle Approval Required ==========
+    
+    if approval_required:
         modification_request = {
             "id": str(uuid.uuid4()),
             "employee_id": employee_id,
@@ -566,18 +689,19 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
             "requested_by_email": current_user.email,
             "requested_by_name": current_user.full_name,
             "requested_by_role": current_user.role,
-            "requested_changes": {k: v for k, v in data.items() if k in protected_fields},
-            "current_values": {k: employee.get(k) for k in data.keys() if k in protected_fields},
-            "all_changes": data,  # Store all changes for reference
+            "requested_changes": {k: v["value"] for k, v in approval_required.items()},
+            "current_values": {k: v["current_value"] for k, v in approval_required.items()},
+            "all_changes": data,
             "status": "pending",
             "request_type": "employee_modification",
             "is_go_live_employee": is_go_live,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "change_reason": change_reason,
+            "created_at": now
         }
         
         await db.modification_requests.insert_one(modification_request)
         
-        # Notify all Admin users about pending approval
+        # Notify admins
         admin_users = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(20)
         for admin in admin_users:
             await db.notifications.insert_one({
@@ -585,45 +709,63 @@ async def update_employee(employee_id: str, data: dict, current_user: User = Dep
                 "user_id": admin["id"],
                 "type": "modification_approval_required",
                 "title": "Employee Modification Request",
-                "message": f"{current_user.full_name} requested changes to {employee.get('employee_id', '')} ({employee.get('first_name', '')} {employee.get('last_name', '')}). Review and approve/reject.",
+                "message": f"{current_user.full_name} requested changes to {employee.get('employee_id', '')}. Review and approve/reject.",
                 "reference_type": "modification_request",
                 "reference_id": modification_request["id"],
                 "is_read": False,
                 "action_required": True,
                 "link": "/approvals",
-                "created_at": datetime.now(timezone.utc).isoformat()
+                "created_at": now
+            })
+    
+    # ========== Apply Allowed Updates ==========
+    
+    if allowed_updates:
+        # Sanitize text fields
+        if "first_name" in allowed_updates:
+            allowed_updates["first_name"] = sanitize_text(allowed_updates["first_name"])
+        if "last_name" in allowed_updates:
+            allowed_updates["last_name"] = sanitize_text(allowed_updates["last_name"])
+        
+        allowed_updates["updated_at"] = now
+        allowed_updates["updated_by"] = current_user.id
+        allowed_updates["updated_by_name"] = current_user.full_name
+        
+        # Log audit entries
+        for entry in audit_log:
+            await db.employee_change_history.insert_one({
+                "id": str(uuid.uuid4()),
+                "employee_id": employee_id,
+                "field": entry["field"],
+                "old_value": str(entry["old_value"]) if entry["old_value"] is not None else None,
+                "new_value": str(entry["new_value"]) if entry["new_value"] is not None else None,
+                "changed_by": current_user.id,
+                "changed_by_name": current_user.full_name,
+                "changed_by_role": current_user.role,
+                "change_reason": change_reason,
+                "timestamp": now,
+                "change_type": "direct_edit"
             })
         
-        # Determine which fields were changed for the message
-        changed_fields = list(modification_request["requested_changes"].keys())
-        field_labels = {
-            "salary": "Salary", "ctc": "CTC", "ctc_details": "CTC Details",
-            "designation": "Designation", "department": "Department", "departments": "Departments",
-            "reporting_manager_id": "Reporting Manager", "employment_type": "Employment Type",
-            "bank_details": "Bank Details", "bank_account_number": "Bank Account", "bank_ifsc": "Bank IFSC"
-        }
-        changed_labels = [field_labels.get(f, f) for f in changed_fields]
-        
-        return {
-            "message": "Modification request submitted for Admin approval",
-            "request_id": modification_request["id"],
-            "status": "pending_approval",
-            "changed_fields": changed_labels,
-            "note": f"Changes to {', '.join(changed_labels)} require Admin approval for Go-Live employees. Admin has been notified."
-        }
+        await db.employees.update_one({"id": employee_id}, {"$set": allowed_updates})
     
-    # Sanitize text fields
-    if "first_name" in data:
-        data["first_name"] = sanitize_text(data["first_name"])
-    if "last_name" in data:
-        data["last_name"] = sanitize_text(data["last_name"])
+    # ========== Build Response ==========
     
-    data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    data["updated_by"] = current_user.id
+    response = {"message": "Update processed"}
     
-    await db.employees.update_one({"id": employee_id}, {"$set": data})
+    if allowed_updates:
+        response["updated_fields"] = [k for k in allowed_updates.keys() if k not in ["updated_at", "updated_by", "updated_by_name"]]
     
-    return {"message": "Employee updated"}
+    if workflow_requests:
+        response["workflow_requests"] = workflow_requests
+        response["note"] = "Some fields require specific workflows. See workflow_requests for details."
+    
+    if approval_required:
+        response["pending_approval"] = list(approval_required.keys())
+        response["approval_request_id"] = modification_request["id"]
+        response["approval_note"] = "Some fields require Admin approval. Request has been submitted."
+    
+    return response
 
 
 
