@@ -26,13 +26,8 @@ const STATUS_STYLES = {
 
 function ConsultantPerformance() {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('metrics');
-  const [projects, setProjects] = useState([]);
-  const [configs, setConfigs] = useState([]);
-  const [scores, setScores] = useState([]);
-  const [consultants, setConsultants] = useState([]);
-  const [summary, setSummary] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState('');
@@ -46,53 +41,115 @@ function ConsultantPerformance() {
   const canConfigMetrics = ['admin', 'principal_consultant', 'project_manager'].includes(user?.role);
   const canRate = ['admin', 'manager', 'project_manager', 'principal_consultant'].includes(user?.role);
 
-  useEffect(function() { fetchData(); }, []);
+  // React Query: Projects
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects', 'list'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  function fetchData() {
-    Promise.all([
-      axios.get(API + '/projects'),
-      axios.get(API + '/performance-metrics'),
-      axios.get(API + '/performance-scores'),
-      axios.get(API + '/users'),
-      axios.get(API + '/performance-scores/summary').catch(function() { return { data: [] }; })
-    ]).then(function(results) {
-      setProjects(results[0].data);
-      setConfigs(results[1].data);
-      setScores(results[2].data);
-      setConsultants(results[3].data);
-      setSummary(results[4].data);
-    }).catch(function() {
-      toast.error('Failed to fetch data');
-    }).finally(function() { setLoading(false); });
-  }
+  // React Query: Performance Metrics
+  const { data: configs = [] } = useQuery({
+    queryKey: ['performance-metrics'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/performance-metrics`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // React Query: Performance Scores
+  const { data: scores = [], isLoading: loading } = useQuery({
+    queryKey: ['performance-scores'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/performance-scores`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // React Query: Users (Consultants)
+  const { data: consultants = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/users`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Performance Summary
+  const { data: summary = [] } = useQuery({
+    queryKey: ['performance-scores', 'summary'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/performance-scores/summary`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Mutation: Create Config
+  const createConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      const project = projects.find(p => p.id === data.project_id);
+      await axios.post(`${API}/performance-metrics`, {
+        project_id: data.project_id,
+        project_name: project ? project.name : '',
+        metrics: data.metrics.filter(m => m.name)
+      });
+    },
+    onSuccess: () => {
+      toast.success('Metrics created. Pending admin approval.');
+      setConfigDialogOpen(false);
+      setConfigForm({ project_id: '', project_name: '', metrics: DEFAULT_METRICS.map(m => ({ ...m })) });
+      queryClient.invalidateQueries({ queryKey: ['performance-metrics'] });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed');
+    },
+  });
+
+  // Mutation: Approve/Reject Config
+  const approveConfigMutation = useMutation({
+    mutationFn: async (configId) => {
+      await axios.post(`${API}/performance-metrics/${configId}/approve`);
+    },
+    onSuccess: () => {
+      toast.success('Metrics approved');
+      queryClient.invalidateQueries({ queryKey: ['performance-metrics'] });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed');
+    },
+  });
+
+  const rejectConfigMutation = useMutation({
+    mutationFn: async (configId) => {
+      await axios.post(`${API}/performance-metrics/${configId}/reject`);
+    },
+    onSuccess: () => {
+      toast.success('Metrics rejected');
+      queryClient.invalidateQueries({ queryKey: ['performance-metrics'] });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Failed');
+    },
+  });
 
   function handleCreateConfig(e) {
     e.preventDefault();
-    var project = projects.find(function(p) { return p.id === configForm.project_id; });
-    axios.post(API + '/performance-metrics', {
-      project_id: configForm.project_id,
-      project_name: project ? project.name : '',
-      metrics: configForm.metrics.filter(function(m) { return m.name; })
-    }).then(function() {
-      toast.success('Metrics created. Pending admin approval.');
-      setConfigDialogOpen(false);
-      setConfigForm({ project_id: '', project_name: '', metrics: DEFAULT_METRICS.map(function(m) { return { ...m }; }) });
-      fetchData();
-    }).catch(function(err) { toast.error(err.response?.data?.detail || 'Failed'); });
+    createConfigMutation.mutate(configForm);
   }
 
   function handleApprove(configId) {
-    axios.post(API + '/performance-metrics/' + configId + '/approve').then(function() {
-      toast.success('Metrics approved');
-      fetchData();
-    }).catch(function(err) { toast.error(err.response?.data?.detail || 'Failed'); });
+    approveConfigMutation.mutate(configId);
   }
 
   function handleReject(configId) {
-    axios.post(API + '/performance-metrics/' + configId + '/reject').then(function() {
-      toast.success('Metrics rejected');
-      fetchData();
-    }).catch(function(err) { toast.error(err.response?.data?.detail || 'Failed'); });
+    rejectConfigMutation.mutate(configId);
   }
 
   function openScoreDialog() {
