@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -9,95 +9,98 @@ import {
   CalendarCheck, DollarSign, Users, Clock, AlertTriangle, 
   CheckCircle, Phone, Mail, RefreshCw, Filter
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 const FollowUps = () => {
   const { user } = useContext(AuthContext);
-  const [followUps, setFollowUps] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const isSales = ['admin', 'sales_manager', 'sales_executive'].includes(user?.role);
   const isConsulting = ['admin', 'consultant', 'lead_consultant', 'principal_consultant', 'manager'].includes(user?.role);
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  useEffect(() => {
-    fetchFollowUps();
-  }, [filter]);
-
-  const fetchFollowUps = async () => {
-    setLoading(true);
-    try {
-      // Fetch both payment reminders and lead follow-ups
-      const [paymentsRes, leadsRes] = await Promise.all([
-        fetch(`${API}/consulting/payments`, { headers }),
-        fetch(`${API}/leads`, { headers })
-      ]);
-
-      const payments = paymentsRes.ok ? await paymentsRes.json() : [];
-      const leads = leadsRes.ok ? await leadsRes.json() : [];
-
-      // Transform payment reminders (for consultants)
-      const paymentFollowUps = (Array.isArray(payments) ? payments : [])
-        .filter(p => p.status === 'pending' || p.status === 'overdue')
-        .map(p => ({
-          id: p.id,
-          type: 'payment',
-          title: `Payment Due: ${p.client_name || 'Client'}`,
-          description: `Project: ${p.project_name || 'N/A'} - Amount: ₹${(p.amount || 0).toLocaleString()}`,
-          due_date: p.due_date,
-          status: p.status,
-          priority: p.status === 'overdue' ? 'high' : 'medium',
-          contact: p.client_contact,
-          amount: p.amount
-        }));
-
-      // Transform leads (for sales)
-      const leadFollowUps = (Array.isArray(leads) ? leads : [])
-        .filter(l => l.status !== 'converted' && l.status !== 'lost')
-        .filter(l => l.next_follow_up)
-        .map(l => ({
-          id: l.id,
-          type: 'lead',
-          title: `Lead Follow-up: ${l.company_name || l.contact_name}`,
-          description: `Status: ${l.status} - Source: ${l.source || 'N/A'}`,
-          due_date: l.next_follow_up,
-          status: new Date(l.next_follow_up) < new Date() ? 'overdue' : 'pending',
-          priority: l.priority || 'medium',
-          contact: l.contact_phone || l.contact_email,
-          lead_status: l.status
-        }));
-
-      let combined = [...paymentFollowUps, ...leadFollowUps];
-
-      // Filter based on user role
-      if (isSales && !isConsulting) {
-        combined = combined.filter(f => f.type === 'lead');
-      } else if (isConsulting && !isSales) {
-        combined = combined.filter(f => f.type === 'payment');
-      }
-
-      // Apply filter
-      if (filter !== 'all') {
-        combined = combined.filter(f => f.type === filter);
-      }
-
-      // Sort by due date (overdue first, then by date)
-      combined.sort((a, b) => {
-        if (a.status === 'overdue' && b.status !== 'overdue') return -1;
-        if (b.status === 'overdue' && a.status !== 'overdue') return 1;
-        return new Date(a.due_date) - new Date(b.due_date);
-      });
-
-      setFollowUps(combined);
-    } catch (error) {
-      console.error('Error fetching follow-ups:', error);
-      toast.error('Failed to fetch follow-ups');
-    } finally {
-      setLoading(false);
+  // Query: Fetch payments
+  const { data: payments = [], isLoading: paymentsLoading, refetch: refetchPayments } = useQuery({
+    queryKey: ['consulting-payments-followups'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consulting/payments`);
+      return Array.isArray(res.data) ? res.data : [];
     }
+  });
+
+  // Query: Fetch leads
+  const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
+    queryKey: ['leads-followups'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/leads`);
+      return Array.isArray(res.data) ? res.data : [];
+    }
+  });
+
+  const loading = paymentsLoading || leadsLoading;
+
+  // Memoized follow-ups computation
+  const followUps = useMemo(() => {
+    // Transform payment reminders (for consultants)
+    const paymentFollowUps = payments
+      .filter(p => p.status === 'pending' || p.status === 'overdue')
+      .map(p => ({
+        id: p.id,
+        type: 'payment',
+        title: `Payment Due: ${p.client_name || 'Client'}`,
+        description: `Project: ${p.project_name || 'N/A'} - Amount: ₹${(p.amount || 0).toLocaleString()}`,
+        due_date: p.due_date,
+        status: p.status,
+        priority: p.status === 'overdue' ? 'high' : 'medium',
+        contact: p.client_contact,
+        amount: p.amount
+      }));
+
+    // Transform leads (for sales)
+    const leadFollowUps = leads
+      .filter(l => l.status !== 'converted' && l.status !== 'lost')
+      .filter(l => l.next_follow_up)
+      .map(l => ({
+        id: l.id,
+        type: 'lead',
+        title: `Lead Follow-up: ${l.company_name || l.contact_name}`,
+        description: `Status: ${l.status} - Source: ${l.source || 'N/A'}`,
+        due_date: l.next_follow_up,
+        status: new Date(l.next_follow_up) < new Date() ? 'overdue' : 'pending',
+        priority: l.priority || 'medium',
+        contact: l.contact_phone || l.contact_email,
+        lead_status: l.status
+      }));
+
+    let combined = [...paymentFollowUps, ...leadFollowUps];
+
+    // Filter based on user role
+    if (isSales && !isConsulting) {
+      combined = combined.filter(f => f.type === 'lead');
+    } else if (isConsulting && !isSales) {
+      combined = combined.filter(f => f.type === 'payment');
+    }
+
+    // Apply filter
+    if (filter !== 'all') {
+      combined = combined.filter(f => f.type === filter);
+    }
+
+    // Sort by due date (overdue first, then by date)
+    combined.sort((a, b) => {
+      if (a.status === 'overdue' && b.status !== 'overdue') return -1;
+      if (b.status === 'overdue' && a.status !== 'overdue') return 1;
+      return new Date(a.due_date) - new Date(b.due_date);
+    });
+
+    return combined;
+  }, [payments, leads, filter, isSales, isConsulting]);
+
+  const fetchFollowUps = () => {
+    refetchPayments();
+    refetchLeads();
+  };
   };
 
   const getStatusBadge = (status) => {
