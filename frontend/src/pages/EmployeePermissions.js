@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -16,6 +16,8 @@ import {
   ChevronRight, Lock, Unlock, RefreshCw, Send, History
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 // Module permissions structure
 const MODULES = [
@@ -28,21 +30,29 @@ const MODULES = [
 
 const ACTIONS = ['view', 'create', 'edit', 'delete'];
 
+// Default permissions initializer
+const getDefaultPermissions = () => {
+  const defaultPerms = {};
+  MODULES.forEach(mod => {
+    defaultPerms[mod.id] = {};
+    mod.features.forEach(feat => {
+      defaultPerms[mod.id][feat] = { view: false, create: false, edit: false, delete: false };
+    });
+  });
+  return defaultPerms;
+};
+
 const EmployeePermissions = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
-  const [employees, setEmployees] = useState([]);
-  const [roles, setRoles] = useState([]);
+  const queryClient = useQueryClient();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
-  const [departments, setDepartments] = useState([]);
   
   // Permission editing
   const [editMode, setEditMode] = useState(false);
   const [permissions, setPermissions] = useState({});
   const [originalPermissions, setOriginalPermissions] = useState({});
-  const [pendingChanges, setPendingChanges] = useState([]);
   
   // Dialogs
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
@@ -56,97 +66,62 @@ const EmployeePermissions = () => {
   const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
   const canEdit = isAdmin || isHR;
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedEmployee) {
-      fetchEmployeePermissions(selectedEmployee.employee_id);
+  // Query: Fetch employees
+  const { data: employees = [], isLoading: employeesLoading } = useQuery({
+    queryKey: ['employees-permissions'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/all`);
+      const empList = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+      return empList.filter(e => e.is_active !== false);
     }
-  }, [selectedEmployee]);
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      const [employeesRes, rolesRes] = await Promise.all([
-        fetch(`${API}/employees/all`, { headers }),
-        fetch(`${API}/roles`, { headers }).catch(() => ({ ok: false }))
-      ]);
-
-      if (employeesRes.ok) {
-        const data = await employeesRes.json();
-        const empList = Array.isArray(data) ? data : (data?.items || []);
-        setEmployees(empList.filter(e => e.is_active !== false));
-        
-        // Extract unique departments
-        const depts = [...new Set(empList.map(e => e.department).filter(Boolean))];
-        setDepartments(depts);
+  // Query: Fetch roles
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles-list'],
+    queryFn: async () => {
+      try {
+        const res = await axios.get(`${API}/roles`);
+        return Array.isArray(res.data) ? res.data : (res.data?.items || []);
+      } catch {
+        return [];
       }
-
-      if (rolesRes.ok) {
-        const rolesData = await rolesRes.json();
-        const rolesList = Array.isArray(rolesData) ? rolesData : (rolesData?.items || []);
-        setRoles(rolesList);
-      }
-
-      // Fetch pending permission changes
-      await fetchPendingChanges();
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
-  const fetchEmployeePermissions = async (employeeId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/employee-permissions/${employeeId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPermissions(data.permissions || {});
-        setOriginalPermissions(data.permissions || {});
-        setReportingManager(data.reporting_manager_id);
-        setAssignedRole(data.role || '');
-      } else {
-        // Initialize with default permissions
-        const defaultPerms = {};
-        MODULES.forEach(mod => {
-          defaultPerms[mod.id] = {};
-          mod.features.forEach(feat => {
-            defaultPerms[mod.id][feat] = { view: false, create: false, edit: false, delete: false };
-          });
-        });
-        setPermissions(defaultPerms);
-        setOriginalPermissions(defaultPerms);
-      }
-    } catch (error) {
-      console.error('Error fetching permissions:', error);
+  // Query: Fetch pending changes
+  const { data: pendingChanges = [] } = useQuery({
+    queryKey: ['permission-change-requests'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/permission-change-requests?status=pending`);
+      return res.data;
     }
-  };
+  });
 
-  const fetchPendingChanges = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/permission-change-requests?status=pending`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPendingChanges(data);
-      }
-    } catch (error) {
-      console.error('Error fetching pending changes:', error);
+  // Query: Fetch employee permissions (when employee is selected)
+  const { isLoading: permissionsLoading } = useQuery({
+    queryKey: ['employee-permissions', selectedEmployee?.employee_id],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employee-permissions/${selectedEmployee.employee_id}`);
+      return res.data;
+    },
+    enabled: !!selectedEmployee?.employee_id,
+    onSuccess: (data) => {
+      setPermissions(data.permissions || getDefaultPermissions());
+      setOriginalPermissions(data.permissions || getDefaultPermissions());
+      setReportingManager(data.reporting_manager_id);
+      setAssignedRole(data.role || '');
+    },
+    onError: () => {
+      const defaultPerms = getDefaultPermissions();
+      setPermissions(defaultPerms);
+      setOriginalPermissions(defaultPerms);
     }
-  };
+  });
+
+  // Extract departments from employees
+  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+  const loading = employeesLoading;
 
   const handlePermissionChange = (moduleId, feature, action, value) => {
     setPermissions(prev => ({
