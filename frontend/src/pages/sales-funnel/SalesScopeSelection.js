@@ -22,14 +22,11 @@ const SalesScopeSelection = () => {
   const leadId = searchParams.get('lead_id');
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   
-  const [pricingPlan, setPricingPlan] = useState(null);
-  const [lead, setLead] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
   // Grouped scopes from master
-  const [groupedScopes, setGroupedScopes] = useState([]);
   const [selectedScopes, setSelectedScopes] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -37,46 +34,46 @@ const SalesScopeSelection = () => {
   const [customScopeDialog, setCustomScopeDialog] = useState(false);
   const [customScopes, setCustomScopes] = useState([]);
   const [newCustomScope, setNewCustomScope] = useState({ name: '', category_id: '', description: '' });
-  
-  // Existing SOW check
-  const [existingSOW, setExistingSOW] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [pricingPlanId]);
-
-  const fetchData = async () => {
-    try {
-      // Fetch pricing plan
+  // React Query: Pricing Plan and Lead
+  const { data: planData } = useQuery({
+    queryKey: ['pricing-plan-data', pricingPlanId],
+    queryFn: async () => {
       const plansRes = await axios.get(`${API}/pricing-plans`);
       const plan = plansRes.data.find(p => p.id === pricingPlanId);
-      if (plan) {
-        setPricingPlan(plan);
-        if (plan.lead_id) {
-          const leadsRes = await axios.get(`${API}/leads`);
-          const leadData = leadsRes.data.find(l => l.id === plan.lead_id);
-          setLead(leadData);
-        }
+      let lead = null;
+      if (plan?.lead_id) {
+        const leadsRes = await axios.get(`${API}/leads`);
+        lead = leadsRes.data.find(l => l.id === plan.lead_id);
       }
-      
-      // Fetch grouped scopes from master
-      const scopesRes = await axios.get(`${API}/sow-masters/scopes/grouped`);
-      setGroupedScopes(scopesRes.data || []);
-      
-      // Check if enhanced SOW already exists
-      try {
-        const sowRes = await axios.get(`${API}/enhanced-sow/by-pricing-plan/${pricingPlanId}`);
-        setExistingSOW(sowRes.data);
-      } catch (err) {
-        setExistingSOW(null);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return { pricingPlan: plan, lead };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const pricingPlan = planData?.pricingPlan;
+  const lead = planData?.lead;
+
+  // React Query: Grouped Scopes
+  const { data: groupedScopes = [], isLoading: loadingScopes } = useQuery({
+    queryKey: ['sow-masters', 'scopes', 'grouped'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/sow-masters/scopes/grouped`);
+      return res.data || [];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // React Query: Existing SOW
+  const { data: existingSOW } = useQuery({
+    queryKey: ['enhanced-sow', 'by-pricing-plan', pricingPlanId],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/enhanced-sow/by-pricing-plan/${pricingPlanId}`);
+      return res.data;
+    },
+    retry: false,
+  });
+
+  const loading = loadingScopes;
 
   const toggleScope = (scopeId) => {
     const newSelected = new Set(selectedScopes);
