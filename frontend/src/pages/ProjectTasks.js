@@ -45,11 +45,8 @@ const ProjectTasks = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   
-  const [project, setProject] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const [consultants, setConsultants] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // list, gantt
@@ -67,38 +64,68 @@ const ProjectTasks = () => {
     estimated_hours: ''
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [projectId]);
+  // React Query: Project
+  const { data: project } = useQuery({
+    queryKey: ['projects', projectId],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects/${projectId}`);
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      const [projectRes, tasksRes, consultantsRes] = await Promise.all([
-        axios.get(`${API}/projects/${projectId}`),
-        axios.get(`${API}/tasks?project_id=${projectId}`),
-        axios.get(`${API}/consultants`).catch(() => ({ data: [] }))
-      ]);
-      setProject(projectRes.data);
-      setTasks(tasksRes.data);
-      setConsultants(consultantsRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch project data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Tasks
+  const { data: tasks = [], isLoading: loading } = useQuery({
+    queryKey: ['tasks', { project_id: projectId }],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/tasks?project_id=${projectId}`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // React Query: Consultants
+  const { data: consultants = [] } = useQuery({
+    queryKey: ['consultants'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consultants`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Mutation: Create/Update Task
+  const taskMutation = useMutation({
+    mutationFn: async (taskData) => {
+      if (editingTask) {
+        await axios.patch(`${API}/tasks/${editingTask.id}`, taskData);
+      } else {
+        await axios.post(`${API}/tasks`, taskData);
+      }
+    },
+    onSuccess: () => {
+      toast.success(editingTask ? 'Task updated successfully' : 'Task created successfully');
+      setDialogOpen(false);
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ['tasks', { project_id: projectId }] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save task');
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const taskData = {
-        project_id: projectId,
-        ...formData,
-        start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
-        due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null,
-        estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
-        assigned_to: formData.assigned_to || null
-      };
+    const taskData = {
+      project_id: projectId,
+      ...formData,
+      start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+      due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null,
+      estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
+      assigned_to: formData.assigned_to || null
+    };
+    taskMutation.mutate(taskData);
+  };
 
       if (editingTask) {
         await axios.patch(`${API}/tasks/${editingTask.id}`, taskData);
