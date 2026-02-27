@@ -23,6 +23,16 @@ const SalesMeetings = () => {
   const [expandedMeetings, setExpandedMeetings] = useState({});
   const [showDraftSelector, setShowDraftSelector] = useState(false);
 
+  // React Query: Leads - Must be defined BEFORE generateMeetingDraftTitle to avoid TDZ error
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/leads`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Draft system for meetings
   const generateMeetingDraftTitle = useCallback((data) => {
     if (data.title) return data.title;
