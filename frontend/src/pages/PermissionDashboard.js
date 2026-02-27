@@ -16,11 +16,8 @@ const PermissionDashboard = () => {
   const { user } = useContext(AuthContext);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const queryClient = useQueryClient();
   
-  const [stats, setStats] = useState(null);
-  const [employees, setEmployees] = useState([]);
-  const [levelPermissions, setLevelPermissions] = useState({});
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLevel, setFilterLevel] = useState('all');
   const [editingLevel, setEditingLevel] = useState(null);
@@ -28,42 +25,71 @@ const PermissionDashboard = () => {
   const [expandedEmployee, setExpandedEmployee] = useState(null);
   const [updatingEmployee, setUpdatingEmployee] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // React Query: Stats
+  const { data: stats } = useQuery({
+    queryKey: ['role-management', 'stats'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/role-management/stats`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [statsRes, permissionsRes, employeesRes] = await Promise.all([
-        axios.get(`${API}/role-management/stats`),
-        axios.get(`${API}/role-management/level-permissions`),
-        axios.get(`${API}/employees/all`) // Use /all for array response
-      ]);
-      
-      setStats(statsRes.data);
-      setLevelPermissions(Array.isArray(permissionsRes.data) ? permissionsRes.data : []);
-      setEmployees(Array.isArray(employeesRes.data) ? employeesRes.data : []);
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error('Failed to load permission data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Level Permissions
+  const { data: levelPermissions = {} } = useQuery({
+    queryKey: ['role-management', 'level-permissions'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/role-management/level-permissions`);
+      return Array.isArray(res.data) ? res.data : res.data || {};
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Employees
+  const { data: employees = [], isLoading: loading } = useQuery({
+    queryKey: ['employees', 'all'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/all`);
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
+  // Mutation: Update Employee Level
+  const updateLevelMutation = useMutation({
+    mutationFn: async ({ employeeId, newLevel }) => {
+      await axios.patch(`${API}/employees/${employeeId}`, { level: newLevel });
+    },
+    onSuccess: () => {
+      toast.success('Employee level updated');
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['role-management', 'stats'] });
+      setUpdatingEmployee(null);
+    },
+    onError: () => {
+      toast.error('Failed to update employee level');
+      setUpdatingEmployee(null);
+    },
+  });
+
+  // Mutation: Save Level Permissions
+  const savePermissionsMutation = useMutation({
+    mutationFn: async ({ level, permissions }) => {
+      await axios.put(`${API}/role-management/level-permissions`, { level, permissions });
+    },
+    onSuccess: () => {
+      toast.success(`${editingLevel} permissions updated`);
+      setEditingLevel(null);
+      queryClient.invalidateQueries({ queryKey: ['role-management', 'level-permissions'] });
+    },
+    onError: () => {
+      toast.error('Failed to update permissions');
+    },
+  });
 
   const handleUpdateEmployeeLevel = async (employeeId, newLevel) => {
     setUpdatingEmployee(employeeId);
-    try {
-      await axios.patch(`${API}/employees/${employeeId}`, { level: newLevel });
-      toast.success('Employee level updated');
-      fetchData();
-    } catch (error) {
-      console.error('Failed to update level:', error);
-      toast.error('Failed to update employee level');
-    } finally {
-      setUpdatingEmployee(null);
-    }
+    updateLevelMutation.mutate({ employeeId, newLevel });
   };
 
   const handleEditLevelPermissions = (level) => {
@@ -72,18 +98,7 @@ const PermissionDashboard = () => {
   };
 
   const handleSaveLevelPermissions = async () => {
-    try {
-      await axios.put(`${API}/role-management/level-permissions`, {
-        level: editingLevel,
-        permissions: editedPermissions
-      });
-      toast.success(`${editingLevel} permissions updated`);
-      setEditingLevel(null);
-      fetchData();
-    } catch (error) {
-      console.error('Failed to update permissions:', error);
-      toast.error('Failed to update permissions');
-    }
+    savePermissionsMutation.mutate({ level: editingLevel, permissions: editedPermissions });
   };
 
   const filteredEmployees = employees.filter(emp => {
