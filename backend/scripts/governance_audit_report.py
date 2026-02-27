@@ -73,7 +73,28 @@ async def generate_full_governance_report():
     print("SECTION 2: EDIT PERMISSION MATRIX")
     print("-" * 70)
     
-    from routers.employee_governance import FIELD_PERMISSIONS
+    # Define field permissions inline (same as employee_governance.py)
+    FIELD_PERMISSIONS = {
+        "department": {"edit_roles": [], "locked": True, "workflow": "transfer"},
+        "departments": {"edit_roles": [], "locked": True, "workflow": "transfer"},
+        "primary_department": {"edit_roles": [], "locked": True, "workflow": "transfer"},
+        "designation": {"edit_roles": [], "locked": True, "workflow": "promotion"},
+        "reporting_manager_id": {"edit_roles": [], "locked": True, "workflow": "hierarchy_change"},
+        "reporting_manager": {"edit_roles": [], "locked": True, "workflow": "hierarchy_change"},
+        "salary": {"edit_roles": [], "locked": True, "workflow": "ctc_revision"},
+        "ctc": {"edit_roles": [], "locked": True, "workflow": "ctc_revision"},
+        "annual_ctc": {"edit_roles": [], "locked": True, "workflow": "ctc_revision"},
+        "ctc_details": {"edit_roles": [], "locked": True, "workflow": "ctc_revision"},
+        "role": {"edit_roles": ["admin"], "audit_required": True},
+        "level": {"edit_roles": ["admin"], "audit_required": True},
+        "bank_details": {"edit_roles": ["hr_manager", "admin"], "requires_approval": True, "workflow": "bank_change"},
+        "first_name": {"edit_roles": ["hr_manager", "hr_executive", "admin"]},
+        "last_name": {"edit_roles": ["hr_manager", "hr_executive", "admin"]},
+        "phone": {"edit_roles": ["hr_manager", "hr_executive", "admin"]},
+        "id": {"edit_roles": [], "immutable": True},
+        "employee_id": {"edit_roles": [], "immutable": True},
+        "created_at": {"edit_roles": [], "immutable": True},
+    }
     
     permission_matrix = {
         "locked_fields": [],
