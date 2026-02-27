@@ -299,85 +299,163 @@ const AdminMasters = () => {
   const handleUpdateCategory = (id, data) => {
     updateCategoryMutation.mutate({ id, data });
   };
-      toast.error(error.response?.data?.detail || 'Failed to update category');
-    }
-  };
 
-  const handleDeleteCategory = async (id) => {
+  // Delete category mutation
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id) => {
+      await axios.delete(`${API}/sow-masters/categories/${id}`);
+    },
+    onSuccess: () => {
+      toast.success('Category deactivated');
+      queryClient.invalidateQueries({ queryKey: ['sow-masters'] });
+    },
+    onError: () => toast.error('Failed to deactivate category')
+  });
+
+  const handleDeleteCategory = (id) => {
     const scopesInCategory = sowScopes.filter(s => s.category_id === id);
     if (scopesInCategory.length > 0) {
       toast.error(`Cannot delete category with ${scopesInCategory.length} scopes. Remove scopes first.`);
       return;
     }
     if (!window.confirm('Are you sure you want to deactivate this category?')) return;
-    try {
-      await axios.delete(`${API}/sow-masters/categories/${id}`);
-      toast.success('Category deactivated');
-      fetchSowData();
-    } catch (error) {
-      toast.error('Failed to deactivate category');
-    }
+    deleteCategoryMutation.mutate(id);
   };
 
-  // ============ SOW SCOPE CRUD ============
-  const handleCreateScope = async () => {
-    try {
-      if (!newScope.name || !newScope.category_id) {
-        toast.error('Name and Category are required');
-        return;
-      }
-      const category = sowCategories.find(c => c.id === newScope.category_id);
+  // SOW Scope mutations
+  const createScopeMutation = useMutation({
+    mutationFn: async (data) => {
+      const category = sowCategories.find(c => c.id === data.category_id);
       await axios.post(`${API}/sow-masters/scopes`, {
-        ...newScope,
+        ...data,
         category_code: category?.code || ''
       });
+    },
+    onSuccess: () => {
       toast.success('Scope created successfully');
       setShowNewScope(false);
       setNewScope({ name: '', description: '', category_id: '' });
-      fetchSowData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create scope');
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['sow-masters'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create scope')
+  });
 
-  const handleUpdateScope = async (id, data) => {
-    try {
+  const updateScopeMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
       await axios.put(`${API}/sow-masters/scopes/${id}`, data);
+    },
+    onSuccess: () => {
       toast.success('Scope updated');
       setEditingScope(null);
-      fetchSowData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update scope');
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['sow-masters'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update scope')
+  });
 
-  const handleDeleteScope = async (id) => {
-    if (!window.confirm('Are you sure you want to deactivate this scope?')) return;
-    try {
+  const deleteScopeMutation = useMutation({
+    mutationFn: async (id) => {
       await axios.delete(`${API}/sow-masters/scopes/${id}`);
+    },
+    onSuccess: () => {
       toast.success('Scope deactivated');
-      fetchSowData();
-    } catch (error) {
-      toast.error('Failed to deactivate scope');
+      queryClient.invalidateQueries({ queryKey: ['sow-masters'] });
+    },
+    onError: () => toast.error('Failed to deactivate scope')
+  });
+
+  // ============ SOW SCOPE CRUD ============
+  const handleCreateScope = () => {
+    if (!newScope.name || !newScope.category_id) {
+      toast.error('Name and Category are required');
+      return;
     }
+    createScopeMutation.mutate(newScope);
   };
 
-  const handleSeedSowDefaults = async () => {
-    try {
-      const response = await axios.post(`${API}/sow-masters/seed-defaults`);
-      toast.success(`Seeded: ${response.data.created.categories} categories, ${response.data.created.scopes} scopes`);
-      fetchSowData();
-    } catch (error) {
-      toast.error('Failed to seed SOW defaults');
-    }
+  const handleUpdateScope = (id, data) => {
+    updateScopeMutation.mutate({ id, data });
   };
+
+  const handleDeleteScope = (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this scope?')) return;
+    deleteScopeMutation.mutate(id);
+  };
+
+  // Seed SOW defaults mutation
+  const seedSowDefaultsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.post(`${API}/sow-masters/seed-defaults`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Seeded: ${data.created.categories} categories, ${data.created.scopes} scopes`);
+      queryClient.invalidateQueries({ queryKey: ['sow-masters'] });
+    },
+    onError: () => toast.error('Failed to seed SOW defaults')
+  });
+
+  const handleSeedSowDefaults = () => seedSowDefaultsMutation.mutate();
+
+  // Department mutations
+  const createDeptMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.post(`${API}/permission-config/departments`, {
+        ...data,
+        pages: data.pages.split(',').map(p => p.trim()).filter(Boolean)
+      });
+    },
+    onSuccess: () => {
+      toast.success('Department created');
+      setShowNewDept(false);
+      setNewDept({ name: '', code: '', description: '', pages: '', icon: 'Building2', color: '#6B7280' });
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create department')
+  });
+
+  const updateDeptMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      await axios.put(`${API}/permission-config/departments/${id}`, {
+        ...data,
+        pages: typeof data.pages === 'string' ? data.pages.split(',').map(p => p.trim()).filter(Boolean) : data.pages
+      });
+    },
+    onSuccess: () => {
+      toast.success('Department updated');
+      setEditingDept(null);
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update department')
+  });
+
+  const deleteDeptMutation = useMutation({
+    mutationFn: async (id) => {
+      await axios.delete(`${API}/permission-config/departments/${id}`);
+    },
+    onSuccess: () => {
+      toast.success('Department deactivated');
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+    },
+    onError: () => toast.error('Failed to deactivate department')
+  });
 
   // Department CRUD
-  const handleCreateDept = async () => {
-    try {
-      if (!newDept.name || !newDept.code) {
-        toast.error('Name and Code are required');
-        return;
+  const handleCreateDept = () => {
+    if (!newDept.name || !newDept.code) {
+      toast.error('Name and Code are required');
+      return;
+    }
+    createDeptMutation.mutate(newDept);
+  };
+
+  const handleUpdateDept = (id, data) => {
+    updateDeptMutation.mutate({ id, data });
+  };
+
+  const handleDeleteDept = (id) => {
+    if (!window.confirm('Are you sure you want to deactivate this department?')) return;
+    deleteDeptMutation.mutate(id);
+  };
       }
       // Parse pages from comma-separated string
       const pagesArray = newDept.pages.split(',').map(p => p.trim()).filter(p => p);
