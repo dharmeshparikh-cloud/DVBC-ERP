@@ -225,7 +225,6 @@ const ClientPortal = () => {
                     key={project.id}
                     onClick={() => {
                       setSelectedProject(project.id);
-                      fetchProjectDetails(project.id);
                       setSidebarOpen(false);
                     }}
                     className={`w-full text-left p-3 rounded-lg transition-all ${
