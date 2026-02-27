@@ -134,7 +134,7 @@ const KickoffMeeting = () => {
       await axios.post(`${API}/kickoff-meetings`, meetingData);
       toast.success('Kick-off meeting scheduled! SOW has been frozen.');
       setScheduleDialogOpen(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['kickoff-meetings', projectId] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to schedule meeting');
     }
@@ -149,7 +149,7 @@ const KickoffMeeting = () => {
         items: []
       });
       toast.success(`${category} SOW created`);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['kickoff-meetings', projectId] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create SOW');
     }
@@ -171,7 +171,7 @@ const KickoffMeeting = () => {
       toast.success('SOW item added');
       setSowDialogOpen(false);
       resetSOWForm();
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['kickoff-meetings', projectId] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to add SOW item');
     }
@@ -183,7 +183,7 @@ const KickoffMeeting = () => {
     try {
       await axios.delete(`${API}/projects/${projectId}/sow/${sowId}/items/${itemId}`);
       toast.success('SOW item deleted');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['kickoff-meetings', projectId] });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to delete item');
     }
@@ -193,7 +193,7 @@ const KickoffMeeting = () => {
     try {
       await axios.patch(`${API}/kickoff-meetings/${kickoffMeeting.id}/complete`);
       toast.success('Meeting marked as completed');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['kickoff-meetings', projectId] });
     } catch (error) {
       toast.error('Failed to complete meeting');
     }
