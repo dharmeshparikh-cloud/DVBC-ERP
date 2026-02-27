@@ -147,7 +147,7 @@ const GoLiveDashboard = () => {
   // Mutation: Enable Portal Access
   const enablePortalAccessMutation = useMutation({
     mutationFn: async (employeeId) => {
-      const response = await axios.post(`${API}/employees/${employeeId}/grant-portal-access`);
+      const response = await axios.post(`${API}/employees/${employeeId}/grant-access`);
       return { employeeId, data: response.data };
     },
     onSuccess: ({ employeeId, data }) => {
