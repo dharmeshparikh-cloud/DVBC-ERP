@@ -17,7 +17,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFetch, useMutate } from '../hooks/useApi';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const RBACAdmin = () => {
   const { user } = useContext(AuthContext);
@@ -85,11 +88,11 @@ const RBACAdmin = () => {
     refreshCacheMutation.mutate({});
   };
 
-  // Mutation: Save role
+  // Mutation: Save role - Using useMutation for dynamic endpoints
   const saveRoleMutation = useMutation({
     mutationFn: async () => {
       const isUpdate = !!editingRole;
-      const url = isUpdate ? `${API}/rbac/roles/${editingRole.code}` : `${API}/rbac/roles`;
+      const url = isUpdate ? `${API}/api/rbac/roles/${editingRole.code}` : `${API}/api/rbac/roles`;
       return isUpdate 
         ? axios.put(url, roleForm)
         : axios.post(url, roleForm);
@@ -97,7 +100,7 @@ const RBACAdmin = () => {
     onSuccess: () => {
       toast.success(`Role ${editingRole ? 'updated' : 'created'} successfully`);
       setRoleDialog(false);
-      queryClient.invalidateQueries({ queryKey: ['rbac-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rbac/roles'] });
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to save role');
@@ -107,11 +110,11 @@ const RBACAdmin = () => {
   // Mutation: Delete role
   const deleteRoleMutation = useMutation({
     mutationFn: async (roleCode) => {
-      return axios.delete(`${API}/rbac/roles/${roleCode}`);
+      return axios.delete(`${API}/api/rbac/roles/${roleCode}`);
     },
     onSuccess: () => {
       toast.success('Role deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['rbac-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rbac/roles'] });
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to delete role');
@@ -122,7 +125,7 @@ const RBACAdmin = () => {
   const saveDeptMutation = useMutation({
     mutationFn: async () => {
       const isUpdate = !!editingDept;
-      const url = isUpdate ? `${API}/rbac/departments/${editingDept.code}` : `${API}/rbac/departments`;
+      const url = isUpdate ? `${API}/api/rbac/departments/${editingDept.code}` : `${API}/api/rbac/departments`;
       return isUpdate
         ? axios.put(url, deptForm)
         : axios.post(url, deptForm);
@@ -130,7 +133,7 @@ const RBACAdmin = () => {
     onSuccess: () => {
       toast.success(`Department ${editingDept ? 'updated' : 'created'} successfully`);
       setDeptDialog(false);
-      queryClient.invalidateQueries({ queryKey: ['rbac-departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rbac/departments'] });
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to save department');
@@ -140,11 +143,11 @@ const RBACAdmin = () => {
   // Mutation: Delete department
   const deleteDeptMutation = useMutation({
     mutationFn: async (deptCode) => {
-      return axios.delete(`${API}/rbac/departments/${deptCode}`);
+      return axios.delete(`${API}/api/rbac/departments/${deptCode}`);
     },
     onSuccess: () => {
       toast.success('Department deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['rbac-departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rbac/departments'] });
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to delete department');
