@@ -2566,25 +2566,45 @@ const ApprovalsCenter = () => {
 
       {/* Go-Live Pre-Flight Checklist Dialog */}
       <Dialog open={goLiveDetailDialog} onOpenChange={setGoLiveDetailDialog}>
-        <DialogContent className={`${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200'} rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto`}>
+        <DialogContent className={`${isDark ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200'} rounded-lg max-w-3xl max-h-[90vh] overflow-y-auto`}>
           <DialogHeader>
             <DialogTitle className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-zinc-100' : 'text-zinc-950'}`}>
               <Rocket className="w-5 h-5 text-emerald-500" />
-              Go-Live Pre-Flight Checklist
+              Go-Live Approval - Full Employee Review
             </DialogTitle>
           </DialogHeader>
           {selectedGoLive && (
             <div className="space-y-4">
-              {/* Employee Info */}
-              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
-                <div className="grid grid-cols-2 gap-4">
+              {/* Employee ID Preview */}
+              <div className={`p-4 rounded-lg border-2 ${isDark ? 'border-emerald-700 bg-emerald-900/30' : 'border-emerald-300 bg-emerald-50'}`}>
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Employee</p>
+                    <p className={`text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Employee ID (Will be assigned on approval)</p>
+                    <p className={`text-2xl font-bold ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                      {goLiveChecklist?.employee?.employee_id || 'DVBC###'}
+                    </p>
+                    {goLiveChecklist?.employee?.employee_id_pending && (
+                      <p className={`text-xs ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                        * ID will be generated upon Go-Live approval
+                      </p>
+                    )}
+                  </div>
+                  <Badge className="bg-emerald-600 text-white text-lg px-4 py-1">
+                    Go-Live
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Employee Basic Info */}
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <h4 className={`text-sm font-semibold mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                  Employee Details
+                </h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Full Name</p>
                     <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                       {selectedGoLive.employee_name}
-                    </p>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                      {selectedGoLive.employee_code}
                     </p>
                   </div>
                   <div>
@@ -2592,20 +2612,89 @@ const ApprovalsCenter = () => {
                     <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                       {selectedGoLive.department || goLiveChecklist?.employee?.department || 'N/A'}
                     </p>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                      {selectedGoLive.designation || goLiveChecklist?.employee?.designation || ''}
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Designation</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                      {selectedGoLive.designation || goLiveChecklist?.employee?.designation || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Submitted By</p>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Joining Date</p>
                     <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                      {selectedGoLive.submitted_by_name}
+                      {goLiveChecklist?.employee?.joining_date 
+                        ? new Date(goLiveChecklist.employee.joining_date).toLocaleDateString()
+                        : 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Submitted On</p>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Reporting Manager</p>
                     <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                      {new Date(selectedGoLive.submitted_at).toLocaleDateString()}
+                      {goLiveChecklist?.employee?.reporting_manager_name || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Official Email</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                      {goLiveChecklist?.employee?.official_email || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTC Structure */}
+              {goLiveChecklist?.ctc_details && (
+                <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                  <h4 className={`text-sm font-semibold mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                    CTC Structure
+                  </h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Annual CTC</p>
+                      <p className={`text-lg font-bold text-emerald-600`}>
+                        {formatCurrency(goLiveChecklist.ctc_details.annual_ctc)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Monthly Gross</p>
+                      <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                        {formatCurrency(goLiveChecklist.ctc_details.monthly_gross || goLiveChecklist.ctc_details.annual_ctc / 12)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Status</p>
+                      <Badge className={goLiveChecklist.ctc_details.status === 'approved' 
+                        ? 'bg-emerald-100 text-emerald-700' 
+                        : 'bg-amber-100 text-amber-700'}>
+                        {goLiveChecklist.ctc_details.status || 'Pending'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bank Details */}
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <h4 className={`text-sm font-semibold mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                  Bank Details
+                </h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Bank Name</p>
+                    <p className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                      {goLiveChecklist?.employee?.bank_name || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Account Number</p>
+                    <p className={`font-medium font-mono ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                      {goLiveChecklist?.employee?.bank_account_number || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>IFSC Code</p>
+                    <p className={`font-medium font-mono ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+                      {goLiveChecklist?.employee?.ifsc_code || 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -2613,8 +2702,8 @@ const ApprovalsCenter = () => {
 
               {/* Pre-Flight Checklist */}
               <div>
-                <h4 className={`text-sm font-medium mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
-                  Onboarding Checklist
+                <h4 className={`text-sm font-semibold mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                  Go-Live Checklist
                 </h4>
                 <div className="space-y-2">
                   {goLiveChecklist?.checklist ? (
@@ -2643,14 +2732,7 @@ const ApprovalsCenter = () => {
                       }`}>
                         <div className="flex items-center gap-3">
                           <Wallet className={`w-5 h-5 ${goLiveChecklist.checklist.ctc_approved ? 'text-emerald-500' : 'text-red-500'}`} />
-                          <div>
-                            <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>CTC Structure Approved</span>
-                            {goLiveChecklist.ctc_details?.annual_ctc && (
-                              <p className="text-xs text-emerald-600 font-medium">
-                                Annual CTC: {formatCurrency(goLiveChecklist.ctc_details.annual_ctc)}
-                              </p>
-                            )}
-                          </div>
+                          <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>CTC Structure Approved</span>
                         </div>
                         {goLiveChecklist.checklist.ctc_approved 
                           ? <CheckCircle className="w-5 h-5 text-emerald-500" />
@@ -2658,7 +2740,7 @@ const ApprovalsCenter = () => {
                         }
                       </div>
 
-                      {/* Bank Details Added */}
+                      {/* Bank Details */}
                       <div className={`flex items-center justify-between p-3 rounded-lg border ${
                         goLiveChecklist.checklist.bank_details_added 
                           ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
@@ -2666,7 +2748,7 @@ const ApprovalsCenter = () => {
                       }`}>
                         <div className="flex items-center gap-3">
                           <Building2 className={`w-5 h-5 ${goLiveChecklist.checklist.bank_details_added ? 'text-emerald-500' : 'text-amber-500'}`} />
-                          <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>Bank Details Added</span>
+                          <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>Bank Details Verified</span>
                         </div>
                         {goLiveChecklist.checklist.bank_details_added 
                           ? <CheckCircle className="w-5 h-5 text-emerald-500" />
@@ -2674,7 +2756,7 @@ const ApprovalsCenter = () => {
                         }
                       </div>
 
-                      {/* Portal Access Granted */}
+                      {/* Portal Access */}
                       <div className={`flex items-center justify-between p-3 rounded-lg border ${
                         goLiveChecklist.checklist.portal_access_granted 
                           ? isDark ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'
@@ -2688,32 +2770,6 @@ const ApprovalsCenter = () => {
                           ? <CheckCircle className="w-5 h-5 text-emerald-500" />
                           : <XCircle className="w-5 h-5 text-red-500" />
                         }
-                      </div>
-
-                      {/* Onboarding Documents - Not a blocker, just action link */}
-                      <div className={`flex items-center justify-between p-3 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200 bg-white'}`}>
-                        <div className="flex items-center gap-3">
-                          <FileText className={`w-5 h-5 ${(goLiveChecklist.documents_count || 0) > 0 ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                          <div>
-                            <span className={isDark ? 'text-zinc-100' : 'text-zinc-900'}>Onboarding Documents</span>
-                            <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                              {(goLiveChecklist.documents_count || 0) > 0 
-                                ? `${goLiveChecklist.documents_count} document(s) generated`
-                                : 'Optional - Generate offer letter'}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            window.open(`/document-center?employee=${selectedGoLive.employee_id}`, '_blank');
-                          }}
-                          className={`${isDark ? 'border-zinc-600' : ''}`}
-                        >
-                          <FileText className="w-4 h-4 mr-1" />
-                          {(goLiveChecklist.documents_count || 0) > 0 ? 'View' : 'Generate'}
-                        </Button>
                       </div>
                     </>
                   ) : (
@@ -2737,7 +2793,7 @@ const ApprovalsCenter = () => {
                       <>
                         <Shield className="w-5 h-5 text-emerald-500" />
                         <span className={`font-medium ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                          All critical checks passed. Ready for Go-Live!
+                          All checks passed. Employee ID will be assigned on approval!
                         </span>
                       </>
                     ) : (
@@ -2752,13 +2808,17 @@ const ApprovalsCenter = () => {
                 </div>
               )}
 
-              {/* Notes/Comments */}
-              {selectedGoLive.notes && (
-                <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
-                  <p className={`text-xs font-medium mb-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>HR Notes:</p>
-                  <p className={`text-sm ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>{selectedGoLive.notes}</p>
-                </div>
-              )}
+              {/* Submitted By Info */}
+              <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
+                <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  Submitted by <strong>{selectedGoLive.submitted_by_name}</strong> on {new Date(selectedGoLive.submitted_at).toLocaleDateString()}
+                </p>
+                {selectedGoLive.notes && (
+                  <p className={`text-sm mt-2 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                    HR Notes: {selectedGoLive.notes}
+                  </p>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <label className={`text-sm font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
@@ -2790,7 +2850,7 @@ const ApprovalsCenter = () => {
                   disabled={actionLoading || !(goLiveChecklist?.checklist?.ctc_approved && goLiveChecklist?.checklist?.portal_access_granted && goLiveChecklist?.checklist?.onboarding_complete)}
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Rocket className="w-4 h-4 mr-1" /> Approve Go-Live</>}
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Rocket className="w-4 h-4 mr-1" /> Approve & Assign Employee ID</>}
                 </Button>
               </DialogFooter>
             </div>
