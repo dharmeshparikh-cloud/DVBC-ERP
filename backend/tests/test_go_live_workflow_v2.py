@@ -357,7 +357,7 @@ class TestEnablePortalAccess:
         emp_id = test_emp.get('id')
         
         # Test endpoint exists (may fail if already has access, but endpoint should respond)
-        response = self.session.post(f"{BASE_URL}/api/employees/{emp_id}/grant-portal-access")
+        response = self.session.post(f"{BASE_URL}/api/employees/{emp_id}/grant-access")
         assert response.status_code in [200, 400, 403, 409], f"Endpoint not responding properly: {response.status_code}"
         
         if response.status_code == 200:
