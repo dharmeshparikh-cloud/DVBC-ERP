@@ -17,12 +17,7 @@ import { toast } from 'sonner';
 const ManagerLeadsDashboard = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [subordinateLeads, setSubordinateLeads] = useState([]);
-  const [subordinates, setSubordinates] = useState([]);
-  const [todayStats, setTodayStats] = useState(null);
-  const [performance, setPerformance] = useState(null);
-  const [targetVsAchievement, setTargetVsAchievement] = useState(null);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -43,53 +38,84 @@ const ManagerLeadsDashboard = () => {
     { value: 'lost', label: 'Lost' }
   ];
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // React Query: Subordinate Leads
+  const { data: leadsData, isLoading: loading } = useQuery({
+    queryKey: ['manager', 'subordinate-leads'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/manager/subordinate-leads`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const subordinateLeads = leadsData?.leads || [];
+  const subordinates = leadsData?.subordinates || [];
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [leadsRes, statsRes, perfRes, kpiRes] = await Promise.all([
-        axios.get(`${API}/manager/subordinate-leads`),
-        axios.get(`${API}/manager/today-stats`),
-        axios.get(`${API}/manager/performance`),
-        axios.get(`${API}/manager/target-vs-achievement`)
-      ]);
-      
-      setSubordinateLeads(leadsRes.data.leads || []);
-      setSubordinates(leadsRes.data.subordinates || []);
-      setTodayStats(statsRes.data);
-      setPerformance(perfRes.data);
-      setTargetVsAchievement(kpiRes.data);
-    } catch (error) {
-      toast.error('Failed to load dashboard data');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Today Stats
+  const { data: todayStats } = useQuery({
+    queryKey: ['manager', 'today-stats'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/manager/today-stats`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // React Query: Performance
+  const { data: performance } = useQuery({
+    queryKey: ['manager', 'performance'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/manager/performance`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // React Query: Target vs Achievement
+  const { data: targetVsAchievement } = useQuery({
+    queryKey: ['manager', 'target-vs-achievement'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/manager/target-vs-achievement`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Mutation: Pause Lead
+  const pauseMutation = useMutation({
+    mutationFn: async (leadId) => {
+      await axios.post(`${API}/leads/${leadId}/pause`);
+    },
+    onSuccess: () => {
+      toast.success('Lead paused');
+      queryClient.invalidateQueries({ queryKey: ['manager', 'subordinate-leads'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to pause lead');
+    },
+  });
+
+  // Mutation: Resume Lead
+  const resumeMutation = useMutation({
+    mutationFn: async (leadId) => {
+      await axios.post(`${API}/leads/${leadId}/resume`);
+    },
+    onSuccess: () => {
+      toast.success('Lead resumed');
+      queryClient.invalidateQueries({ queryKey: ['manager', 'subordinate-leads'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to resume lead');
+    },
+  });
 
   const handlePauseLead = async (leadId, e) => {
     e?.stopPropagation();
-    try {
-      await axios.post(`${API}/leads/${leadId}/pause`);
-      toast.success('Lead paused');
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to pause lead');
-    }
+    pauseMutation.mutate(leadId);
   };
 
   const handleResumeLead = async (leadId, e) => {
     e?.stopPropagation();
-    try {
-      await axios.post(`${API}/leads/${leadId}/resume`);
-      toast.success('Lead resumed');
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to resume lead');
-    }
+    resumeMutation.mutate(leadId);
   };
 
   const handleLeadClick = (lead) => {
