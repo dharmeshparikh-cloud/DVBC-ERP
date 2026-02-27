@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -6,6 +6,8 @@ import { Button } from '../components/ui/button';
 import { FileText, Clock, Trash2, ArrowRight, Plus, FileSignature, DollarSign, Users, Filter, Briefcase, CalendarDays, Receipt, FileCheck, Plane, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 
 // Universal Draft type configuration - covers ALL modules
 const DRAFT_TYPES = {
