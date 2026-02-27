@@ -913,11 +913,17 @@ const SubmissionReview = () => {
 
           {/* Professional Reference */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Briefcase className="w-4 h-4" />
                 Professional Reference
               </CardTitle>
+              {canApprove && (
+                <Button size="sm" variant="outline" onClick={openEditProfRef}>
+                  <Edit className="w-3 h-3 mr-1" />
+                  Edit
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -941,11 +947,17 @@ const SubmissionReview = () => {
 
           {/* Personal Reference */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <User className="w-4 h-4" />
                 Personal Reference
               </CardTitle>
+              {canApprove && (
+                <Button size="sm" variant="outline" onClick={openEditPerRef}>
+                  <Edit className="w-3 h-3 mr-1" />
+                  Edit
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
               <div>
