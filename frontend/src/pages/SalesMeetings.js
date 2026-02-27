@@ -17,10 +17,6 @@ const SALES_ROLES = ['admin', 'executive', 'sales_manager'];
 
 const SalesMeetings = () => {
   const { user } = useContext(AuthContext);
-  const [meetings, setMeetings] = useState([]);
-  const [leads, setLeads] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [momDialogOpen, setMomDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
