@@ -174,7 +174,7 @@ function ConsultantPerformance() {
     axios.post(API + '/performance-scores', scoreForm).then(function() {
       toast.success('Performance score submitted');
       setScoreDialogOpen(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['performance-scores'] });
     }).catch(function(err) { toast.error(err.response?.data?.detail || 'Failed'); });
   }
 
