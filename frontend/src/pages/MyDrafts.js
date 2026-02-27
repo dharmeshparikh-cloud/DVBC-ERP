@@ -103,60 +103,42 @@ const DRAFT_TYPES = {
 const MyDrafts = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [drafts, setDrafts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [deleting, setDeleting] = useState(null);
 
-  useEffect(() => {
-    fetchDrafts();
-  }, [filter]);
-
-  const fetchDrafts = async () => {
-    try {
-      const token = localStorage.getItem('token');
+  // Query: Fetch drafts
+  const { data: drafts = [], isLoading: loading, refetch: refetchDrafts } = useQuery({
+    queryKey: ['my-drafts', filter],
+    queryFn: async () => {
       const url = filter === 'all' 
         ? `${API}/drafts` 
         : `${API}/drafts?draft_type=${filter}`;
-      
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setDrafts(data);
-      }
-    } catch (error) {
-      console.error('Error fetching drafts:', error);
-      toast.error('Failed to load drafts');
-    } finally {
-      setLoading(false);
+      const res = await axios.get(url);
+      return res.data;
     }
-  };
+  });
 
-  const handleDelete = async (draftId) => {
-    if (!window.confirm('Are you sure you want to delete this draft?')) return;
-    
-    setDeleting(draftId);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/drafts/${draftId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        toast.success('Draft deleted');
-        setDrafts(drafts.filter(d => d.id !== draftId));
-      } else {
-        toast.error('Failed to delete draft');
-      }
-    } catch (error) {
+  // Mutation: Delete draft
+  const deleteMutation = useMutation({
+    mutationFn: async (draftId) => {
+      return axios.delete(`${API}/drafts/${draftId}`);
+    },
+    onSuccess: () => {
+      toast.success('Draft deleted');
+      refetchDrafts();
+    },
+    onError: () => {
       toast.error('Failed to delete draft');
-    } finally {
+    },
+    onSettled: () => {
       setDeleting(null);
     }
+  });
+
+  const handleDelete = (draftId) => {
+    if (!window.confirm('Are you sure you want to delete this draft?')) return;
+    setDeleting(draftId);
+    deleteMutation.mutate(draftId);
   };
 
   const handleContinue = (draft) => {
