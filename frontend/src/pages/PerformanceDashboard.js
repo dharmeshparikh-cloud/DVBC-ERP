@@ -625,7 +625,7 @@ const PerformanceDashboard = () => {
         <TabsList className="bg-zinc-100 dark:bg-zinc-800">
           <TabsTrigger value="consulting" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Consulting Team ({consultants.length})
+            Consulting Team ({consultantsList.length})
           </TabsTrigger>
           {canSeeFinancials && (
             <TabsTrigger value="sales" className="flex items-center gap-2">
@@ -654,7 +654,7 @@ const PerformanceDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {consultants.map((c) => (
+                    {consultantsList.map((c) => (
                       <tr key={c.id} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
