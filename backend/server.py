@@ -365,6 +365,10 @@ api_router.include_router(audit_logging_router.router)
 # Test Email Preview
 api_router.include_router(test_email_preview_router.router)
 
+# Employee Governance & Consent
+api_router.include_router(employee_governance_router.router)
+api_router.include_router(employee_consent_router.router)
+
 # Include all API routes under /api prefix
 app.include_router(api_router)
 
