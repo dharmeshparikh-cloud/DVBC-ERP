@@ -215,46 +215,42 @@ const EmployeePermissions = () => {
   const submitForApproval = () => {
     submitApprovalMutation.mutate();
   };
+
+  // Mutation: Approve request
+  const approveRequestMutation = useMutation({
+    mutationFn: async (requestId) => {
+      return axios.post(`${API}/permission-change-requests/${requestId}/approve`);
+    },
+    onSuccess: () => {
+      toast.success('Permission change approved and applied');
+      queryClient.invalidateQueries({ queryKey: ['employees-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['permission-change-requests'] });
+    },
+    onError: () => {
+      toast.error('Failed to approve request');
     }
+  });
+
+  // Mutation: Reject request
+  const rejectRequestMutation = useMutation({
+    mutationFn: async (requestId) => {
+      return axios.post(`${API}/permission-change-requests/${requestId}/reject`);
+    },
+    onSuccess: () => {
+      toast.success('Permission change request rejected');
+      queryClient.invalidateQueries({ queryKey: ['permission-change-requests'] });
+    },
+    onError: () => {
+      toast.error('Failed to reject request');
+    }
+  });
+
+  const handleApproveRequest = (requestId) => {
+    approveRequestMutation.mutate(requestId);
   };
 
-  const handleApproveRequest = async (requestId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/permission-change-requests/${requestId}/approve`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        toast.success('Permission change approved and applied');
-        fetchData();
-        fetchPendingChanges();
-      } else {
-        toast.error('Failed to approve request');
-      }
-    } catch (error) {
-      toast.error('Error approving request');
-    }
-  };
-
-  const handleRejectRequest = async (requestId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/permission-change-requests/${requestId}/reject`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        toast.success('Permission change request rejected');
-        fetchPendingChanges();
-      } else {
-        toast.error('Failed to reject request');
-      }
-    } catch (error) {
-      toast.error('Error rejecting request');
-    }
+  const handleRejectRequest = (requestId) => {
+    rejectRequestMutation.mutate(requestId);
   };
 
   // Filter employees
