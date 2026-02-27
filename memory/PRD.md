@@ -14,7 +14,71 @@
 
 ## Completed Work - February 2026
 
-### Phase 62: New Go-Live Flow - Employee ID on Admin Approval - February 27, 2026 ✅ (Latest)
+### Phase 63: HR & Employee Master Governance Audit - February 27, 2026 ✅ (Latest)
+
+**Objective:** Eliminate duplicate data, ensure single source of truth, implement field-level RBAC, add legal consent workflow with audit trail.
+
+**Key Changes:**
+
+1. **Field-Level RBAC & Locked Fields**
+   - **Locked Fields (require workflow, even admin cannot bypass):**
+     - `salary`, `ctc`, `annual_ctc` → CTC Revision workflow
+     - `department`, `departments` → Transfer workflow
+     - `designation` → Promotion workflow
+     - `reporting_manager_id` → Hierarchy Change workflow
+   - **Protected Fields (require admin approval):**
+     - `bank_details`, `bank_account_number`, `ifsc_code`
+     - `role`, `level`, `employment_type`
+   - **HR Editable Fields:**
+     - `first_name`, `last_name`, `phone`, `personal_email`, `address`
+
+2. **Audit Trail**
+   - All changes to protected fields logged to `employee_change_history` collection
+   - Fields: `old_value`, `new_value`, `changed_by`, `change_reason`, `timestamp`
+
+3. **Consent Workflow (NDA/NCA/Data Usage)**
+   - 5 default consent documents: NDA, NCA, Data Consent, IT Policy, Code of Conduct
+   - Employee must accept all before accessing ERP
+   - Digital consent stored with IP address, timestamp, and hash
+   - Re-consent triggered when documents updated
+
+4. **Data Integrity**
+   - Unique indexes on `employee_id` and `email`
+   - Circular reporting chain detection
+   - Salary/CTC mismatch detection
+
+**New Backend Routers:**
+- `/app/backend/routers/employee_governance.py` - Field permissions, audit, integrity checks
+- `/app/backend/routers/employee_consent.py` - Consent workflow, document management
+
+**New API Endpoints:**
+- `GET /api/governance/field-permissions` - Get RBAC matrix for current user
+- `PATCH /api/governance/employee/{id}` - Governed employee update
+- `GET /api/governance/change-history/{id}` - Get audit trail for employee
+- `GET /api/governance/integrity-check` - Run data integrity checks (Admin only)
+- `POST /api/governance/sync-salary/{id}` - Sync salary from CTC structure
+- `GET /api/consent/documents` - List consent documents
+- `POST /api/consent/initiate/{id}` - Initiate consent workflow for employee
+- `POST /api/consent/accept/{token}` - Accept consent document (public endpoint)
+
+**Frontend Changes:**
+- `/app/frontend/src/pages/Employees.js` - Employee form with locked field indicators
+- `/app/frontend/src/pages/ConsentPage.js` - New public consent acceptance page
+
+**Testing:**
+- Backend: 100% (19/19 tests passed)
+- Test file: `/app/backend/tests/test_governance_audit.py`
+
+**Collections Created:**
+- `employee_change_history` - Audit trail
+- `field_change_requests` - Workflow requests for locked fields
+- `consent_documents` - NDA/NCA/Policy templates
+- `employee_consent_log` - Individual consent records
+- `employee_consent_status` - Employee consent completion status
+
+---
+
+### Phase 62: New Go-Live Flow - Employee ID on Admin Approval - February 27, 2026 ✅
 
 **Business Process Change:**
 The Employee ID generation process has been changed from the previous flow (ID generated at onboarding completion) to a new flow where the Employee ID is only generated when an Admin approves the Go-Live request.
