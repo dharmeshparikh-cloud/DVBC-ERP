@@ -622,6 +622,39 @@ const GoLiveDashboard = () => {
                       );
                     }
                     
+                    // Special handling for portal_access to show enable button
+                    if (key === 'portal_access') {
+                      return (
+                        <div key={key} className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <ChecklistItem 
+                              label={item.label}
+                              checked={item.completed}
+                              icon={IconComponent}
+                              itemKey={key}
+                              employeeId={checklist.employee.id}
+                            />
+                          </div>
+                          {canVerifyBank && !item.completed && (
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700"
+                              onClick={() => handleEnablePortalAccess(checklist.employee.id)}
+                              disabled={enablePortalAccessMutation.isPending}
+                              data-testid="enable-portal-btn"
+                            >
+                              {enablePortalAccessMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                <Key className="w-4 h-4 mr-1" />
+                              )}
+                              Enable
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <ChecklistItem 
                         key={key}
