@@ -145,6 +145,20 @@ const SubmissionReview = () => {
   const [revisionReason, setRevisionReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
 
+  // Edit dialogs
+  const [editBankDialog, setEditBankDialog] = useState(false);
+  const [editEmergencyDialog, setEditEmergencyDialog] = useState(false);
+  const [editPersonalDialog, setEditPersonalDialog] = useState(false);
+  const [editProfRefDialog, setEditProfRefDialog] = useState(false);
+  const [editPerRefDialog, setEditPerRefDialog] = useState(false);
+  
+  // Edit form data
+  const [editBankData, setEditBankData] = useState({});
+  const [editEmergencyData, setEditEmergencyData] = useState({});
+  const [editPersonalData, setEditPersonalData] = useState({});
+  const [editProfRefData, setEditProfRefData] = useState({});
+  const [editPerRefData, setEditPerRefData] = useState({});
+
   // Get token from localStorage (same as App.js pattern)
   const getToken = () => localStorage.getItem('token');
   const authHeaders = { headers: { Authorization: `Bearer ${getToken()}` } };
