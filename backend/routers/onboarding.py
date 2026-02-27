@@ -603,6 +603,179 @@ async def complete_onboarding(
     }
 
 
+
+@router.patch("/submissions/{submission_id}/update-section")
+async def update_submission_section(
+    submission_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    HR/Admin can update specific sections of a submission (even after completion).
+    Sections: personal_details, bank_details, emergency_contact, professional_reference, personal_reference, education, employment_history
+    """
+    db = get_db()
+    
+    # Only HR roles can update
+    hr_roles = ["hr_manager", "hr_executive", "admin"]
+    if not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR can update submission data")
+    
+    section = data.get("section")
+    section_data = data.get("data")
+    
+    valid_sections = [
+        "candidate_details", "bank_details", "emergency_contact", 
+        "professional_reference", "personal_reference", "education", "employment_history"
+    ]
+    
+    if section not in valid_sections:
+        raise HTTPException(status_code=400, detail=f"Invalid section. Valid sections: {', '.join(valid_sections)}")
+    
+    submission = await db.onboarding_submissions.find_one({"id": submission_id})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Build update query based on section
+    update_query = {
+        "$set": {
+            section: section_data,
+            "last_updated_at": now,
+            "last_updated_by": current_user.id,
+            "last_updated_by_name": current_user.full_name
+        },
+        "$push": {
+            "audit_log": {
+                "action": f"updated_{section}",
+                "actor_id": current_user.id,
+                "actor_name": current_user.full_name,
+                "timestamp": now,
+                "details": {"section": section}
+            }
+        }
+    }
+    
+    await db.onboarding_submissions.update_one({"id": submission_id}, update_query)
+    
+    # If submission is completed, also update the employee record
+    if submission.get("status") == "completed" and submission.get("employee_record_id"):
+        employee_update = {}
+        
+        if section == "candidate_details":
+            cd = section_data
+            employee_update = {
+                "first_name": cd.get("first_name"),
+                "last_name": cd.get("last_name"),
+                "full_name": f"{cd.get('first_name', '')} {cd.get('last_name', '')}",
+                "date_of_birth": cd.get("date_of_birth"),
+                "gender": cd.get("gender"),
+                "blood_group": cd.get("blood_group"),
+                "marital_status": cd.get("marital_status"),
+                "nationality": cd.get("nationality"),
+                "phone": cd.get("phone"),
+                "alternate_phone": cd.get("alternate_phone"),
+                "personal_email": cd.get("personal_email"),
+                "pan_number": cd.get("pan_number"),
+                "aadhaar_number": cd.get("aadhaar_number"),
+                "passport_number": cd.get("passport_number"),
+                "driving_license": cd.get("driving_license"),
+                "current_address": cd.get("current_address"),
+                "permanent_address": cd.get("permanent_address"),
+            }
+        elif section == "bank_details":
+            bd = section_data
+            employee_update = {
+                "bank_account_number": bd.get("account_number"),
+                "bank_name": bd.get("bank_name"),
+                "bank_branch": bd.get("branch"),
+                "ifsc_code": bd.get("ifsc_code"),
+                "account_holder_name": bd.get("account_holder_name"),
+                "bank_verified": False  # Reset verification when bank details change
+            }
+        elif section == "emergency_contact":
+            employee_update = {"emergency_contact": section_data}
+        elif section == "professional_reference":
+            employee_update = {"professional_reference": section_data}
+        elif section == "personal_reference":
+            employee_update = {"personal_reference": section_data}
+        elif section == "education":
+            employee_update = {"education": section_data}
+        elif section == "employment_history":
+            employee_update = {"employment_history": section_data}
+        
+        if employee_update:
+            employee_update["updated_at"] = now
+            employee_update["updated_by"] = current_user.id
+            employee_update["updated_by_name"] = current_user.full_name
+            
+            await db.employees.update_one(
+                {"id": submission["employee_record_id"]},
+                {"$set": employee_update}
+            )
+    
+    return {"message": f"{section} updated successfully"}
+
+
+@router.get("/export/excel")
+async def export_submissions_excel(
+    status: str = "completed",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Export onboarding submissions as Excel data.
+    Status: completed, submitted, all
+    """
+    db = get_db()
+    
+    hr_roles = ["hr_manager", "hr_executive", "admin"]
+    if not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR can export data")
+    
+    query = {}
+    if status != "all":
+        query["status"] = status
+    
+    submissions = await db.onboarding_submissions.find(query, {"_id": 0}).to_list(1000)
+    
+    # Format data for Excel export
+    export_data = []
+    for sub in submissions:
+        cd = sub.get("candidate_details", {})
+        bd = sub.get("bank_details", {})
+        ha = sub.get("hr_assigned", {})
+        ec = sub.get("emergency_contact", {})
+        
+        export_data.append({
+            "Employee ID": sub.get("employee_id", ""),
+            "First Name": cd.get("first_name", ""),
+            "Last Name": cd.get("last_name", ""),
+            "Email": sub.get("candidate_email", ""),
+            "Phone": cd.get("phone", ""),
+            "Date of Birth": cd.get("date_of_birth", ""),
+            "Gender": cd.get("gender", ""),
+            "PAN Number": cd.get("pan_number", ""),
+            "Aadhaar Number": cd.get("aadhaar_number", ""),
+            "Department": ha.get("department", ""),
+            "Designation": ha.get("designation", sub.get("offered_position", "")),
+            "Joining Date": ha.get("joining_date", ""),
+            "Official Email": ha.get("official_email", ""),
+            "Reporting Manager": ha.get("reporting_manager_name", ""),
+            "Bank Name": bd.get("bank_name", ""),
+            "Account Number": bd.get("account_number", ""),
+            "IFSC Code": bd.get("ifsc_code", ""),
+            "Emergency Contact Name": ec.get("name", ""),
+            "Emergency Contact Phone": ec.get("phone", ""),
+            "Status": sub.get("status", ""),
+            "Submitted At": sub.get("submitted_at", ""),
+            "Completed At": sub.get("completed_at", "")
+        })
+    
+    return {"data": export_data, "count": len(export_data)}
+
+
+
 @router.get("/legacy")
 async def list_legacy_onboarding(
     current_user: User = Depends(get_current_user)
