@@ -251,6 +251,10 @@ from routers import onboarding as onboarding_router
 # Help Content Management
 from routers import help as help_router
 
+# Employee Governance & Consent (new - audit trail, field-level RBAC, consent workflow)
+from routers import employee_governance as employee_governance_router
+from routers import employee_consent as employee_consent_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
