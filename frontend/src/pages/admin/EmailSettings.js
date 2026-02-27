@@ -1,44 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Settings, Save, Eye, Send, Check, X, Clock, RefreshCw, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import { useFetch, useMutate } from '../../hooks/useApi';
 
 const EmailSettings = () => {
-  const queryClient = useQueryClient();
   const [localConfig, setLocalConfig] = useState(null);
   const [activeTab, setActiveTab] = useState('templates');
   const [previewHtml, setPreviewHtml] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [testEmail, setTestEmail] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
 
-  // Query: Fetch config
-  const { isLoading: configLoading } = useQuery({
-    queryKey: ['email-config'],
-    queryFn: async () => {
-      const res = await axios.get(`${API_URL}/api/email-actions/config`);
-      return res.data;
-    },
-    onSuccess: (data) => {
-      if (!localConfig) {
-        setLocalConfig({
-          header_html: data.header_html || '',
-          footer_html: data.footer_html || ''
-        });
-      }
-    }
+  // Query: Fetch config using centralized hook
+  const { data: configData, isLoading: configLoading } = useFetch('/api/email-actions/config');
+
+  // Query: Fetch logs using centralized hook
+  const { data: logs = [], refetch: refetchLogs } = useFetch('/api/email-actions/logs', {
+    params: { limit: 50 }
   });
 
-  // Query: Fetch logs
-  const { data: logs = [], refetch: refetchLogs } = useQuery({
-    queryKey: ['email-logs'],
-    queryFn: async () => {
-      const res = await axios.get(`${API_URL}/api/email-actions/logs?limit=50`);
-      return res.data;
+  // Initialize local config when data is fetched
+  useEffect(() => {
+    if (configData && !localConfig) {
+      setLocalConfig({
+        header_html: configData.header_html || '',
+        footer_html: configData.footer_html || ''
+      });
     }
-  });
+  }, [configData, localConfig]);
 
   const config = localConfig || { header_html: '', footer_html: '' };
   const setConfig = (newConfig) => {
@@ -49,22 +38,16 @@ const EmailSettings = () => {
     }
   };
 
-  // Mutation: Save config
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      return axios.put(`${API_URL}/api/email-actions/config`, config);
-    },
+  // Mutation: Save config using centralized hook
+  const saveMutation = useMutate('/api/email-actions/config', {
+    method: 'put',
     onSuccess: () => {
       toast.success('Email template configuration saved!');
-      queryClient.invalidateQueries({ queryKey: ['email-config'] });
-    },
-    onError: () => {
-      toast.error('Failed to save configuration');
     }
   });
 
   const saveConfig = () => {
-    saveMutation.mutate();
+    saveMutation.mutate(config);
   };
 
   const loading = saveMutation.isPending;
@@ -135,44 +118,37 @@ const EmailSettings = () => {
     </div>
   `;
 
+  // Mutation for sending test email
+  const sendTestMutation = useMutate('/api/email-actions/send-approval', {
+    method: 'post',
+    onSuccess: () => {
+      toast.success('Test email sent successfully!');
+      refetchLogs();
+      setSendingTest(false);
+    }
+  });
+
   const sendTestEmail = async () => {
     if (!testEmail) {
       toast.error('Please enter an email address');
       return;
     }
     
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/email-actions/send-approval`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          record_type: 'leave_request',
-          record_id: 'test-123',
-          recipient_email: testEmail,
-          recipient_name: 'Test User',
-          requester_name: 'NETRA System',
-          details: {
-            leave_type: 'Casual Leave',
-            start_date: 'Feb 25, 2026',
-            end_date: 'Feb 27, 2026',
-            days: '3 days',
-            reason: 'Test email from NETRA'
-          }
-        })
-      });
-      
-      if (res.ok) {
-        toast.success('Test email sent successfully!');
-        fetchLogs();
-      } else {
-        toast.error('Failed to send test email');
+    setSendingTest(true);
+    sendTestMutation.mutate({
+      record_type: 'leave_request',
+      record_id: 'test-123',
+      recipient_email: testEmail,
+      recipient_name: 'Test User',
+      requester_name: 'NETRA System',
+      details: {
+        leave_type: 'Casual Leave',
+        start_date: 'Feb 25, 2026',
+        end_date: 'Feb 27, 2026',
+        days: '3 days',
+        reason: 'Test email from NETRA'
       }
-    } catch (error) {
-      console.error('Error sending test email:', error);
-      toast.error('Error sending test email');
-    }
-    setLoading(false);
+    });
   };
 
   const formatDate = (dateStr) => {
@@ -328,7 +304,7 @@ const EmailSettings = () => {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-semibold text-gray-800">Email Send Logs</h3>
-            <button onClick={fetchLogs} className="p-2 hover:bg-gray-100 rounded-lg transition">
+            <button onClick={() => refetchLogs()} className="p-2 hover:bg-gray-100 rounded-lg transition">
               <RefreshCw className="w-4 h-4 text-gray-500" />
             </button>
           </div>
