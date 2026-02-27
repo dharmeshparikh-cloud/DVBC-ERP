@@ -584,12 +584,12 @@ async def complete_onboarding(
         }
     )
     
-    # Send welcome email to candidate
+    # Send welcome email to candidate (without Employee ID - will be sent after Go-Live)
     try:
         await send_onboarding_complete_email(
             to_email=submission["candidate_email"],
             candidate_name=f"{candidate['first_name']} {candidate['last_name']}",
-            employee_id=employee_id,
+            employee_id="Pending (will be assigned after Go-Live approval)",
             designation=hr_assigned["designation"],
             department=hr_assigned["department"],
             joining_date=hr_assigned["joining_date"],
@@ -600,8 +600,9 @@ async def complete_onboarding(
         print(f"Failed to send welcome email: {e}")
     
     return {
-        "message": "Onboarding completed successfully",
-        "employee_id": employee_id,
+        "message": "Onboarding completed successfully. Employee ID will be assigned after Go-Live approval.",
+        "employee_id": None,
+        "employee_id_pending": True,
         "employee_record_id": employee_record_id
     }
 
