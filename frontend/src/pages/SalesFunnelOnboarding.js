@@ -97,67 +97,75 @@ const SalesFunnelOnboarding = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const leadId = searchParams.get('leadId');
 
-  const [loading, setLoading] = useState(true);
-  const [lead, setLead] = useState(null);
-  const [funnelStatus, setFunnelStatus] = useState({});
   const [currentStep, setCurrentStep] = useState(0);
-  const [checklist, setChecklist] = useState(null);
   const [showTips, setShowTips] = useState(false);
-  const [approving, setApproving] = useState(false);
 
   // Check if user can approve agreements (Sales Manager, Sr. Manager, Principal Consultant, Admin)
   const canApproveAgreement = ['admin', 'sales_manager', 'sr_manager', 'manager', 'principal_consultant'].includes(user?.role);
 
-  useEffect(() => {
-    if (leadId) {
-      fetchFunnelData();
-    }
-  }, [leadId]);
-
-  const fetchFunnelData = async () => {
-    setLoading(true);
-    try {
+  // Fetch funnel data using React Query
+  const { data: funnelData, isLoading: loading, refetch: refetchFunnel } = useQuery({
+    queryKey: ['funnel', leadId],
+    queryFn: async () => {
       const [leadRes, progressRes, checklistRes] = await Promise.all([
         axios.get(`${API}/leads/${leadId}`),
         axios.get(`${API}/leads/${leadId}/funnel-progress`),
         axios.get(`${API}/leads/${leadId}/funnel-checklist`)
       ]);
       
-      setLead(leadRes.data);
-      setFunnelStatus(progressRes.data);
-      setChecklist(checklistRes.data);
-      
-      const completedSteps = progressRes.data.completed_steps || [];
+      const progress = progressRes.data || {};
+      const completedSteps = progress.completed_steps || [];
       const lastCompleted = completedSteps.length > 0 ? 
         FUNNEL_STEPS.findIndex(s => s.id === completedSteps[completedSteps.length - 1]) : -1;
-      setCurrentStep(Math.min(lastCompleted + 1, FUNNEL_STEPS.length - 1));
+      const newStep = Math.min(lastCompleted + 1, FUNNEL_STEPS.length - 1);
       
       // Save funnel draft position
-      saveFunnelDraft(Math.min(lastCompleted + 1, FUNNEL_STEPS.length - 1));
+      saveFunnelDraft(newStep);
       
-    } catch (error) {
-      console.error('Error fetching funnel data:', error);
-      toast.error('Failed to load onboarding data');
-    } finally {
-      setLoading(false);
+      return {
+        lead: leadRes.data,
+        funnelStatus: progress,
+        checklist: checklistRes.data,
+        currentStep: newStep
+      };
+    },
+    enabled: !!leadId,
+    staleTime: 2 * 60 * 1000,
+    onError: () => toast.error('Failed to load onboarding data'),
+    onSuccess: (data) => {
+      setCurrentStep(data.currentStep);
     }
-  };
+  });
+
+  const lead = funnelData?.lead || null;
+  const funnelStatus = funnelData?.funnelStatus || {};
+  const checklist = funnelData?.checklist || null;
+
+  // Mutation for approving agreement
+  const approveAgreementMutation = useMutation({
+    mutationFn: async (agreementId) => {
+      await axios.patch(`${API}/agreements/${agreementId}/approve`);
+    },
+    onSuccess: () => {
+      toast.success('Agreement approved successfully!');
+      queryClient.invalidateQueries({ queryKey: ['funnel', leadId] });
+    },
+    onError: (error) => {
+      const message = error.response?.data?.detail || 'Failed to approve agreement';
+      toast.error(message);
+    }
+  });
 
   // Approve agreement directly from the blocking banner
-  const handleApproveAgreement = async () => {
+  const handleApproveAgreement = () => {
     if (!funnelStatus.agreement_id) return;
-    
-    setApproving(true);
-    try {
-      await axios.patch(`${API}/agreements/${funnelStatus.agreement_id}/approve`);
-      toast.success('Agreement approved successfully!');
-      // Refresh funnel data to update blocking status
-      await fetchFunnelData();
-    } catch (error) {
-      console.error('Error approving agreement:', error);
-      const message = error.response?.data?.detail || 'Failed to approve agreement';
+    approveAgreementMutation.mutate(funnelStatus.agreement_id);
+  };
+
+  const approving = approveAgreementMutation.isPending;
       toast.error(message);
     } finally {
       setApproving(false);
