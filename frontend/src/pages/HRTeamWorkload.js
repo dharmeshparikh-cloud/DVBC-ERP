@@ -68,7 +68,6 @@ const HRTeamWorkload = () => {
       return matchesSearch;
     });
   }, [consultants, searchQuery, filterStatus]);
-  });
 
   // Calculate summary stats
   const totalConsultants = consultants.length;
