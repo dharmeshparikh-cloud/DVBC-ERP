@@ -93,49 +93,69 @@ const SalesMeetings = () => {
   });
 
   const canEdit = SALES_ROLES.includes(user?.role);
+  const queryClient = useQueryClient();
 
-  useEffect(() => { fetchData(); }, []);
+  // React Query: Meetings
+  const { data: meetings = [], isLoading: loading } = useQuery({
+    queryKey: ['sales-meetings'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/sales-meetings`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      const [meetingsRes, leadsRes, usersRes] = await Promise.all([
-        axios.get(`${API}/sales-meetings`).catch(() => ({ data: [] })),
-        axios.get(`${API}/leads`),
-        axios.get(`${API}/users`)
-      ]);
-      setMeetings(meetingsRes.data);
-      setLeads(leadsRes.data);
-      setUsers(usersRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Leads
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/leads`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
+  // React Query: Users
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/users`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Mutation: Create Meeting
+  const createMeetingMutation = useMutation({
+    mutationFn: async (data) => {
       await axios.post(`${API}/sales-meetings`, {
-        lead_id: formData.lead_id,
-        title: formData.title,
-        meeting_type: formData.meeting_type || 'discovery',
-        scheduled_date: formData.meeting_date,
-        scheduled_time: formData.meeting_time || '10:00',
-        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : 60,
-        location: formData.mode === 'online' ? 'Google Meet' : formData.mode === 'offline' ? 'Client Office' : 'Phone Call',
-        attendees: formData.attendees || [],
-        agenda: formData.agenda?.filter(a => a.trim()).join('\n') || '',
-        notes: formData.notes
+        lead_id: data.lead_id,
+        title: data.title,
+        meeting_type: data.meeting_type || 'discovery',
+        scheduled_date: data.meeting_date,
+        scheduled_time: data.meeting_time || '10:00',
+        duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : 60,
+        location: data.mode === 'online' ? 'Google Meet' : data.mode === 'offline' ? 'Client Office' : 'Phone Call',
+        attendees: data.attendees || [],
+        agenda: data.agenda?.filter(a => a.trim()).join('\n') || '',
+        notes: data.notes
       });
+    },
+    onSuccess: async () => {
       toast.success('Sales meeting scheduled');
       setDialogOpen(false);
       await convertDraft();
       setFormData({ title: '', meeting_date: '', meeting_time: '10:00', meeting_type: 'discovery', mode: 'online', duration_minutes: '60', notes: '', lead_id: '', attendees: [], attendee_names: [], agenda: [''] });
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['sales-meetings'] });
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to create meeting');
-    }
+    },
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    createMeetingMutation.mutate(formData);
   };
 
   const openMOMDialog = async (meeting) => {
