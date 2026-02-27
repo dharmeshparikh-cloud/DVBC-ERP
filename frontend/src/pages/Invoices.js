@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -9,50 +9,31 @@ import {
   Receipt, DollarSign, FileText, Download, RefreshCw, 
   Search, CheckCircle, Clock, XCircle, Users
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 const Invoices = () => {
   const { user } = useContext(AuthContext);
-  const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [employees, setEmployees] = useState([]);
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  useEffect(() => {
-    fetchInvoices();
-    fetchEmployees();
-  }, []);
-
-  const fetchInvoices = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/invoices`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setInvoices(Array.isArray(data) ? data : data.invoices || []);
-      }
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
-      toast.error('Failed to fetch invoices');
-    } finally {
-      setLoading(false);
+  // Query: Fetch invoices
+  const { data: invoices = [], isLoading: loading, refetch: refetchInvoices } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/invoices`);
+      return Array.isArray(res.data) ? res.data : res.data.invoices || [];
     }
-  };
+  });
 
-  const fetchEmployees = async () => {
-    try {
-      const res = await fetch(`${API}/employees`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setEmployees(data);
-      }
-    } catch (error) {
-      console.error('Error fetching employees:', error);
+  // Query: Fetch employees
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees-for-invoices'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees`);
+      return res.data;
     }
-  };
+  });
 
   const getEmployeeName = (empId) => {
     const emp = employees.find(e => e.id === empId);
@@ -76,14 +57,16 @@ const Invoices = () => {
     );
   };
 
-  const filteredInvoices = invoices.filter(inv => {
-    const matchesSearch = 
-      inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.project_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter(inv => {
+      const matchesSearch = 
+        inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.project_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [invoices, searchTerm, statusFilter]);
 
   const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
   const paidAmount = filteredInvoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + (inv.amount || 0), 0);
