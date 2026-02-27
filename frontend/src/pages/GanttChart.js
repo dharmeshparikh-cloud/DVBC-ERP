@@ -59,7 +59,7 @@ const GanttChart = () => {
   });
 
   // React Query: Tasks for selected project
-  const { data: tasks = [] } = useQuery({
+  const { data: tasksData = [] } = useQuery({
     queryKey: ['projects', selectedProject, 'tasks-gantt'],
     queryFn: async () => {
       const res = await axios.get(`${API}/projects/${selectedProject}/tasks-gantt`);
@@ -69,6 +69,16 @@ const GanttChart = () => {
     enabled: !!selectedProject,
     staleTime: 2 * 60 * 1000,
   });
+
+  // Local state for drag operations
+  const [tasks, setTasks] = useState([]);
+
+  // Sync tasks from query data
+  useEffect(() => {
+    if (tasksData) {
+      setTasks(tasksData);
+    }
+  }, [tasksData]);
 
   // React Query: SOWs
   const { data: sows = [] } = useQuery({
