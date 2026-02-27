@@ -175,33 +175,6 @@ const HRStaffingRequests = () => {
     if (!notes) return;
     fulfillMutation.mutate({ requestId, notes });
   };
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleApprove = async (requestId) => {
-    try {
-      await axios.post(`${API}/staffing-requests/${requestId}/approve`);
-      toast.success('Staffing request approved');
-      fetchRequests();
-      setShowDetailDialog(false);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to approve');
-    }
-  };
-
-  const handleReject = async (requestId, reason = '') => {
-    const rejectReason = window.prompt('Enter rejection reason (optional):');
-    try {
-      await axios.post(`${API}/staffing-requests/${requestId}/reject?reason=${encodeURIComponent(rejectReason || '')}`);
-      toast.success('Staffing request rejected');
-      fetchRequests();
-      setShowDetailDialog(false);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to reject');
-    }
-  };
 
   const resetForm = () => {
     setFormData({
