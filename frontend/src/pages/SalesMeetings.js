@@ -391,7 +391,7 @@ const SalesMeetings = () => {
       ) : (
         <div className="space-y-3">
           {meetings.map((meeting) => {
-            const lead = leads.find(l => l.id === meeting.lead_id);
+            const lead = Array.isArray(leads) ? leads.find(l => l.id === meeting.lead_id) : null;
             const isExpanded = expandedMeetings[meeting.id];
             const meetingDate = meeting.scheduled_date || meeting.meeting_date;
             const meetingTime = meeting.scheduled_time || '';
