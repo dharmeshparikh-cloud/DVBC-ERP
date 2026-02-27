@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -16,17 +16,13 @@ import {
   Lock, Eye, RefreshCw, Layers, UserCog, Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 const RBACAdmin = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('roles');
-  
-  // Data states
-  const [roles, setRoles] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [roleGroups, setRoleGroups] = useState([]);
-  const [myPermissions, setMyPermissions] = useState(null);
   
   // Dialog states
   const [roleDialog, setRoleDialog] = useState(false);
@@ -57,63 +53,132 @@ const RBACAdmin = () => {
 
   const isAdmin = user?.role === 'admin';
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-
-  const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    'Content-Type': 'application/json'
+  // Query: Fetch roles
+  const { data: rolesData, isLoading: rolesLoading } = useQuery({
+    queryKey: ['rbac-roles'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/rbac/roles`);
+      return res.data;
+    }
   });
 
-  const fetchAllData = async () => {
-    setLoading(true);
-    try {
-      const headers = getAuthHeaders();
-      const [rolesRes, deptsRes, groupsRes, myPermsRes] = await Promise.all([
-        fetch(`${API}/rbac/roles`, { headers }),
-        fetch(`${API}/rbac/departments`, { headers }),
-        fetch(`${API}/rbac/role-groups`, { headers }),
-        fetch(`${API}/rbac/my-permissions`, { headers })
-      ]);
-
-      if (rolesRes.ok) {
-        const data = await rolesRes.json();
-        setRoles(data.roles || []);
-      }
-      if (deptsRes.ok) {
-        const data = await deptsRes.json();
-        setDepartments(data.departments || []);
-      }
-      if (groupsRes.ok) {
-        const data = await groupsRes.json();
-        setRoleGroups(data.groups || []);
-      }
-      if (myPermsRes.ok) {
-        setMyPermissions(await myPermsRes.json());
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load RBAC data');
-    } finally {
-      setLoading(false);
+  // Query: Fetch departments
+  const { data: deptsData } = useQuery({
+    queryKey: ['rbac-departments'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/rbac/departments`);
+      return res.data;
     }
-  };
+  });
 
-  const refreshCache = async () => {
-    try {
-      const response = await fetch(`${API}/rbac/refresh-cache`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-      if (response.ok) {
-        toast.success('RBAC cache refreshed successfully');
-        fetchAllData();
-      }
-    } catch (error) {
+  // Query: Fetch role groups
+  const { data: groupsData } = useQuery({
+    queryKey: ['rbac-role-groups'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/rbac/role-groups`);
+      return res.data;
+    }
+  });
+
+  // Query: Fetch my permissions
+  const { data: myPermissions } = useQuery({
+    queryKey: ['rbac-my-permissions'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/rbac/my-permissions`);
+      return res.data;
+    }
+  });
+
+  const roles = rolesData?.roles || [];
+  const departments = deptsData?.departments || [];
+  const roleGroups = groupsData?.groups || [];
+  const loading = rolesLoading;
+
+  // Mutation: Refresh cache
+  const refreshCacheMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/rbac/refresh-cache`);
+    },
+    onSuccess: () => {
+      toast.success('RBAC cache refreshed successfully');
+      queryClient.invalidateQueries({ queryKey: ['rbac-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['rbac-departments'] });
+      queryClient.invalidateQueries({ queryKey: ['rbac-role-groups'] });
+    },
+    onError: () => {
       toast.error('Failed to refresh cache');
     }
+  });
+
+  const refreshCache = () => {
+    refreshCacheMutation.mutate();
   };
+
+  // Mutation: Save role
+  const saveRoleMutation = useMutation({
+    mutationFn: async () => {
+      const isUpdate = !!editingRole;
+      const url = isUpdate ? `${API}/rbac/roles/${editingRole.code}` : `${API}/rbac/roles`;
+      return isUpdate 
+        ? axios.put(url, roleForm)
+        : axios.post(url, roleForm);
+    },
+    onSuccess: () => {
+      toast.success(`Role ${editingRole ? 'updated' : 'created'} successfully`);
+      setRoleDialog(false);
+      queryClient.invalidateQueries({ queryKey: ['rbac-roles'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save role');
+    }
+  });
+
+  // Mutation: Delete role
+  const deleteRoleMutation = useMutation({
+    mutationFn: async (roleCode) => {
+      return axios.delete(`${API}/rbac/roles/${roleCode}`);
+    },
+    onSuccess: () => {
+      toast.success('Role deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['rbac-roles'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to delete role');
+    }
+  });
+
+  // Mutation: Save department
+  const saveDeptMutation = useMutation({
+    mutationFn: async () => {
+      const isUpdate = !!editingDept;
+      const url = isUpdate ? `${API}/rbac/departments/${editingDept.code}` : `${API}/rbac/departments`;
+      return isUpdate
+        ? axios.put(url, deptForm)
+        : axios.post(url, deptForm);
+    },
+    onSuccess: () => {
+      toast.success(`Department ${editingDept ? 'updated' : 'created'} successfully`);
+      setDeptDialog(false);
+      queryClient.invalidateQueries({ queryKey: ['rbac-departments'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save department');
+    }
+  });
+
+  // Mutation: Delete department
+  const deleteDeptMutation = useMutation({
+    mutationFn: async (deptCode) => {
+      return axios.delete(`${API}/rbac/departments/${deptCode}`);
+    },
+    onSuccess: () => {
+      toast.success('Department deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['rbac-departments'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to delete department');
+    }
+  });
 
   // Role CRUD
   const openRoleDialog = (role = null) => {
@@ -147,50 +212,13 @@ const RBACAdmin = () => {
     setRoleDialog(true);
   };
 
-  const saveRole = async () => {
-    try {
-      const isUpdate = !!editingRole;
-      const url = isUpdate ? `${API}/rbac/roles/${editingRole.code}` : `${API}/rbac/roles`;
-      const method = isUpdate ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: getAuthHeaders(),
-        body: JSON.stringify(roleForm)
-      });
-
-      if (response.ok) {
-        toast.success(`Role ${isUpdate ? 'updated' : 'created'} successfully`);
-        setRoleDialog(false);
-        fetchAllData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to save role');
-      }
-    } catch (error) {
-      toast.error('Failed to save role');
-    }
+  const saveRole = () => {
+    saveRoleMutation.mutate();
   };
 
-  const deleteRole = async (roleCode) => {
+  const deleteRole = (roleCode) => {
     if (!confirm(`Are you sure you want to delete the role "${roleCode}"?`)) return;
-    
-    try {
-      const response = await fetch(`${API}/rbac/roles/${roleCode}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-
-      if (response.ok) {
-        toast.success('Role deleted successfully');
-        fetchAllData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to delete role');
-      }
-    } catch (error) {
-      toast.error('Failed to delete role');
-    }
+    deleteRoleMutation.mutate(roleCode);
   };
 
   // Department CRUD
