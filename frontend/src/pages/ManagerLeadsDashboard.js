@@ -39,7 +39,7 @@ const ManagerLeadsDashboard = () => {
   ];
 
   // React Query: Subordinate Leads
-  const { data: leadsData, isLoading: loading } = useQuery({
+  const { data: leadsData, isLoading: loading, refetch: refetchLeads } = useQuery({
     queryKey: ['manager', 'subordinate-leads'],
     queryFn: async () => {
       const res = await axios.get(`${API}/manager/subordinate-leads`);
