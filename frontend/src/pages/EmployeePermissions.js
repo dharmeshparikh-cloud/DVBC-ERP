@@ -136,6 +136,60 @@ const EmployeePermissions = () => {
     }));
   };
 
+  // Mutation: Save permissions directly (Admin)
+  const savePermissionsMutation = useMutation({
+    mutationFn: async () => {
+      return axios.put(`${API}/employee-permissions/${selectedEmployee.employee_id}`, {
+        permissions,
+        reporting_manager_id: reportingManager,
+        role: assignedRole
+      });
+    },
+    onSuccess: () => {
+      toast.success('Permissions updated successfully');
+      setEditMode(false);
+      setOriginalPermissions(permissions);
+      queryClient.invalidateQueries({ queryKey: ['employees-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-permissions'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save permissions');
+    }
+  });
+
+  // Mutation: Submit for approval (HR)
+  const submitApprovalMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/permission-change-requests`, {
+        employee_id: selectedEmployee.employee_id,
+        employee_name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+        requested_by: user.email,
+        requested_by_name: user.full_name,
+        changes: {
+          permissions,
+          reporting_manager_id: reportingManager,
+          role: assignedRole
+        },
+        original_values: {
+          permissions: originalPermissions,
+          reporting_manager_id: selectedEmployee.reporting_manager_id,
+          role: selectedEmployee.role
+        },
+        note: approvalNote
+      });
+    },
+    onSuccess: () => {
+      toast.success('Permission change request submitted for admin approval');
+      setShowApprovalDialog(false);
+      setApprovalNote('');
+      setEditMode(false);
+      queryClient.invalidateQueries({ queryKey: ['permission-change-requests'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to submit request');
+    }
+  });
+
   const handleSavePermissions = async () => {
     if (!selectedEmployee) return;
 
@@ -151,83 +205,16 @@ const EmployeePermissions = () => {
 
     if (isAdmin) {
       // Admin can save directly
-      await savePermissionsDirect();
+      savePermissionsMutation.mutate();
     } else {
       // HR needs admin approval
       setShowApprovalDialog(true);
     }
   };
 
-  const savePermissionsDirect = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/employee-permissions/${selectedEmployee.employee_id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          permissions,
-          reporting_manager_id: reportingManager,
-          role: assignedRole
-        })
-      });
-
-      if (response.ok) {
-        toast.success('Permissions updated successfully');
-        setEditMode(false);
-        setOriginalPermissions(permissions);
-        fetchData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to save permissions');
-      }
-    } catch (error) {
-      toast.error('Error saving permissions');
-    }
+  const submitForApproval = () => {
+    submitApprovalMutation.mutate();
   };
-
-  const submitForApproval = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/permission-change-requests`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          employee_id: selectedEmployee.employee_id,
-          employee_name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
-          requested_by: user.email,
-          requested_by_name: user.full_name,
-          changes: {
-            permissions,
-            reporting_manager_id: reportingManager,
-            role: assignedRole
-          },
-          original_values: {
-            permissions: originalPermissions,
-            reporting_manager_id: selectedEmployee.reporting_manager_id,
-            role: selectedEmployee.role
-          },
-          note: approvalNote
-        })
-      });
-
-      if (response.ok) {
-        toast.success('Permission change request submitted for admin approval');
-        setShowApprovalDialog(false);
-        setApprovalNote('');
-        setEditMode(false);
-        fetchPendingChanges();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to submit request');
-      }
-    } catch (error) {
-      toast.error('Error submitting request');
     }
   };
 
