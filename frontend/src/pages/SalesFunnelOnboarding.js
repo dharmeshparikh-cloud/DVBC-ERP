@@ -166,11 +166,6 @@ const SalesFunnelOnboarding = () => {
   };
 
   const approving = approveAgreementMutation.isPending;
-      toast.error(message);
-    } finally {
-      setApproving(false);
-    }
-  };
 
   // Save funnel position as draft
   const saveFunnelDraft = async (step) => {
