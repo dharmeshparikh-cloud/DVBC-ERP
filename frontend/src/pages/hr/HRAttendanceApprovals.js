@@ -14,48 +14,42 @@ import {
 import { toast } from 'sonner';
 
 const HRAttendanceApprovals = () => {
-  const [pendingApprovals, setPendingApprovals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
   const [remarks, setRemarks] = useState('');
 
-  useEffect(() => {
-    fetchPendingApprovals();
-  }, []);
-
-  const fetchPendingApprovals = async () => {
-    setLoading(true);
-    try {
+  // React Query: Pending Approvals
+  const { data: pendingApprovals = [], isLoading: loading } = useQuery({
+    queryKey: ['hr', 'pending-attendance-approvals'],
+    queryFn: async () => {
       const res = await axios.get(`${API}/hr/pending-attendance-approvals`);
-      setPendingApprovals(res.data.pending_approvals || []);
-    } catch (error) {
-      toast.error('Failed to fetch pending approvals');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data.pending_approvals || [];
+    },
+    staleTime: 1 * 60 * 1000,
+  });
 
-  const handleAction = async (action) => {
-    if (!selectedRecord) return;
-    
-    setActionLoading(true);
-    try {
-      await axios.post(`${API}/hr/attendance-approval/${selectedRecord.id}`, {
-        action,
-        remarks
-      });
+  // Mutation: Approve/Reject
+  const actionMutation = useMutation({
+    mutationFn: async ({ recordId, action, remarks }) => {
+      await axios.post(`${API}/hr/attendance-approval/${recordId}`, { action, remarks });
+      return action;
+    },
+    onSuccess: (action) => {
       toast.success(`Attendance ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
       setShowDetails(false);
       setSelectedRecord(null);
       setRemarks('');
-      fetchPendingApprovals();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['hr', 'pending-attendance-approvals'] });
+    },
+    onError: (error, { action }) => {
       toast.error(error.response?.data?.detail || `Failed to ${action} attendance`);
-    } finally {
-      setActionLoading(false);
-    }
+    },
+  });
+
+  const handleAction = async (action) => {
+    if (!selectedRecord) return;
+    actionMutation.mutate({ recordId: selectedRecord.id, action, remarks });
   };
 
   const openDetails = (record) => {
