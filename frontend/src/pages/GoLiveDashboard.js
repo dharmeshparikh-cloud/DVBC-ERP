@@ -144,6 +144,30 @@ const GoLiveDashboard = () => {
     },
   });
 
+  // Mutation: Enable Portal Access
+  const enablePortalAccessMutation = useMutation({
+    mutationFn: async (employeeId) => {
+      const response = await axios.post(`${API}/employees/${employeeId}/grant-portal-access`);
+      return { employeeId, data: response.data };
+    },
+    onSuccess: ({ employeeId, data }) => {
+      toast.success(
+        `Portal access granted! Login ID: ${data.login_id}, Temp Password: ${data.temp_password}`,
+        { duration: 10000 }
+      );
+      fetchChecklist(employeeId);
+      queryClient.invalidateQueries({ queryKey: ['go-live-employees'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to enable portal access');
+    },
+  });
+
+  const handleEnablePortalAccess = async (employeeId) => {
+    if (!confirm('This will create login credentials for the employee. Continue?')) return;
+    enablePortalAccessMutation.mutate(employeeId);
+  };
+
   const handleSubmitGoLive = async () => {
     if (!selectedEmployee) return;
     submitGoLiveMutation.mutate({
