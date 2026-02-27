@@ -35,11 +35,11 @@ const DEFAULT_COMPONENTS = [
 const CTCDesigner = () => {
   const { user } = useContext(AuthContext);
   const { theme } = useTheme();
+  const queryClient = useQueryClient();
   const isDark = theme === 'dark';
   const isAdmin = user?.role === 'admin';
   const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
 
-  const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [annualCTC, setAnnualCTC] = useState('');
   const [retentionBonus, setRetentionBonus] = useState('');
@@ -48,25 +48,79 @@ const CTCDesigner = () => {
   const [remarks, setRemarks] = useState('');
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   
   // Mode: 'revision' (existing employees) or 'onboarding' (from URL param)
   const [mode, setMode] = useState('revision');
 
   // Component configuration
-  const [componentMaster, setComponentMaster] = useState([]);
   const [componentConfig, setComponentConfig] = useState([]);
   const [showComponentSettings, setShowComponentSettings] = useState(false);
 
   // Pending approvals (Admin only)
-  const [pendingApprovals, setPendingApprovals] = useState([]);
   const [approvalDialog, setApprovalDialog] = useState(false);
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [adminRemarks, setAdminRemarks] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Stats
-  const [stats, setStats] = useState(null);
+  // Fetch employees using React Query
+  const { data: employeesData = [] } = useQuery({
+    queryKey: ['employees', 'ctc-eligible'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/employees/all`);
+      const empData = Array.isArray(res.data) ? res.data : [];
+      const activeEmployees = empData.filter(e => e.is_active !== false);
+      // Employees eligible for CTC revision (already have CTC set)
+      return activeEmployees.filter(e => 
+        e.onboarding_complete === true && e.current_ctc && e.current_ctc > 0
+      );
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to load employees')
+  });
+
+  const employees = employeesData;
+
+  // Fetch component master
+  const { data: componentMasterData = DEFAULT_COMPONENTS } = useQuery({
+    queryKey: ['ctc', 'component-master'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/ctc/component-master`);
+      return res.data.components || DEFAULT_COMPONENTS;
+    },
+    staleTime: 10 * 60 * 1000,
+    onSuccess: (components) => {
+      const config = components.map(c => ({
+        ...c,
+        enabled: c.enabled_by_default !== false,
+        value: c.default_value
+      }));
+      setComponentConfig(config);
+    }
+  });
+
+  const componentMaster = componentMasterData;
+
+  // Fetch pending approvals (Admin only)
+  const { data: pendingApprovals = [] } = useQuery({
+    queryKey: ['ctc', 'pending-approvals'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/ctc/pending-approvals`);
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: isAdmin,
+    staleTime: 2 * 60 * 1000
+  });
+
+  // Fetch stats (Admin only)
+  const { data: stats = null } = useQuery({
+    queryKey: ['ctc', 'stats'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/ctc/stats`);
+      return res.data;
+    },
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000
+  });
 
   useEffect(() => {
     // Check if coming from onboarding flow
@@ -81,16 +135,20 @@ const CTCDesigner = () => {
       setMode('revision');
     }
     
-    fetchEmployees();
-    fetchComponentMaster();
-    if (isAdmin) {
-      fetchPendingApprovals();
-      fetchStats();
+    // Initialize component config if componentMaster is ready
+    if (componentMaster.length > 0 && componentConfig.length === 0) {
+      const config = componentMaster.map(c => ({
+        ...c,
+        enabled: c.enabled_by_default !== false,
+        value: c.default_value
+      }));
+      setComponentConfig(config);
     }
+    
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     setEffectiveMonth(nextMonth.toISOString().slice(0, 7));
-  }, [isAdmin]);
+  }, [isAdmin, componentMaster]);
 
   const fetchEmployeeById = async (empId) => {
     try {
@@ -98,67 +156,6 @@ const CTCDesigner = () => {
       setSelectedEmployee(res.data);
     } catch (err) {
       console.error('Failed to load employee:', err);
-    }
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      const res = await axios.get(`${API}/employees/all`); // Use /all for array response
-      const empData = Array.isArray(res.data) ? res.data : [];
-      // For revision mode: Only show employees who have completed onboarding AND have existing CTC
-      // For onboarding mode: Show the specific employee from URL param
-      const activeEmployees = empData.filter(e => e.is_active !== false);
-      
-      // Employees eligible for CTC revision (already have CTC set)
-      const eligibleForRevision = activeEmployees.filter(e => 
-        e.onboarding_complete === true && e.current_ctc && e.current_ctc > 0
-      );
-      
-      setEmployees(eligibleForRevision);
-    } catch (err) {
-      toast.error('Failed to load employees');
-    }
-  };
-
-  const fetchComponentMaster = async () => {
-    try {
-      const res = await axios.get(`${API}/ctc/component-master`);
-      const components = res.data.components || DEFAULT_COMPONENTS;
-      setComponentMaster(components);
-      // Initialize component config with enabled status
-      const config = components.map(c => ({
-        ...c,
-        enabled: c.enabled_by_default !== false,
-        value: c.default_value
-      }));
-      setComponentConfig(config);
-    } catch (err) {
-      console.error('Failed to fetch component master, using defaults');
-      setComponentMaster(DEFAULT_COMPONENTS);
-      const config = DEFAULT_COMPONENTS.map(c => ({
-        ...c,
-        enabled: c.enabled_by_default !== false,
-        value: c.default_value
-      }));
-      setComponentConfig(config);
-    }
-  };
-
-  const fetchPendingApprovals = async () => {
-    try {
-      const res = await axios.get(`${API}/ctc/pending-approvals`);
-      setPendingApprovals(res.data);
-    } catch (err) {
-      console.error('Failed to fetch pending approvals');
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const res = await axios.get(`${API}/ctc/stats`);
-      setStats(res.data);
-    } catch (err) {
-      console.error('Failed to fetch stats');
     }
   };
 
