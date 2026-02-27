@@ -228,83 +228,85 @@ const SubmissionReview = () => {
   const handleVerifyDocuments = () => {
     verifyDocumentsMutation.mutate();
   };
-      setProcessing(false);
-    }
-  };
 
-  // Verify bank
-  const handleVerifyBank = async () => {
-    try {
-      setProcessing(true);
+  // Mutation for verifying bank
+  const verifyBankMutation = useMutation({
+    mutationFn: async () => {
       await axios.post(`${API}/onboarding/submissions/${submissionId}/verify-bank`, {}, authHeaders);
+    },
+    onSuccess: () => {
       toast.success('Bank details verified');
-      fetchSubmission();
-    } catch (err) {
-      console.error('Error verifying bank:', err);
-      toast.error(err.response?.data?.detail || 'Failed to verify bank details');
-    } finally {
-      setProcessing(false);
-    }
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to verify bank details')
+  });
+
+  const handleVerifyBank = () => {
+    verifyBankMutation.mutate();
   };
 
-  // Request revision
-  const handleRequestRevision = async () => {
+  // Mutation for requesting revision
+  const requestRevisionMutation = useMutation({
+    mutationFn: async (reason) => {
+      await axios.post(`${API}/onboarding/submissions/${submissionId}/request-revision`, 
+        { reason }, authHeaders);
+    },
+    onSuccess: () => {
+      toast.success('Revision request sent to candidate');
+      setShowRevisionDialog(false);
+      setRevisionReason('');
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to request revision')
+  });
+
+  const handleRequestRevision = () => {
     if (!revisionReason.trim()) {
       toast.error('Please provide a reason for revision');
       return;
     }
-    try {
-      setProcessing(true);
-      await axios.post(`${API}/onboarding/submissions/${submissionId}/request-revision`, 
-        { reason: revisionReason }, authHeaders);
-      toast.success('Revision request sent to candidate');
-      setShowRevisionDialog(false);
-      setRevisionReason('');
-      fetchSubmission();
-    } catch (err) {
-      console.error('Error requesting revision:', err);
-      toast.error(err.response?.data?.detail || 'Failed to request revision');
-    } finally {
-      setProcessing(false);
-    }
+    requestRevisionMutation.mutate(revisionReason);
   };
 
-  // Reject submission
-  const handleReject = async () => {
+  // Mutation for rejecting submission
+  const rejectMutation = useMutation({
+    mutationFn: async (reason) => {
+      await axios.post(`${API}/onboarding/submissions/${submissionId}/reject`, 
+        { reason }, authHeaders);
+    },
+    onSuccess: () => {
+      toast.success('Submission rejected');
+      setShowRejectDialog(false);
+      setRejectReason('');
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to reject submission')
+  });
+
+  const handleReject = () => {
     if (!rejectReason.trim()) {
       toast.error('Please provide a reason for rejection');
       return;
     }
-    try {
-      setProcessing(true);
-      await axios.post(`${API}/onboarding/submissions/${submissionId}/reject`, 
-        { reason: rejectReason }, authHeaders);
-      toast.success('Submission rejected');
-      setShowRejectDialog(false);
-      setRejectReason('');
-      fetchSubmission();
-    } catch (err) {
-      console.error('Error rejecting submission:', err);
-      toast.error(err.response?.data?.detail || 'Failed to reject submission');
-    } finally {
-      setProcessing(false);
-    }
+    rejectMutation.mutate(rejectReason);
   };
 
-  // Complete onboarding
-  const handleComplete = async () => {
-    try {
-      setProcessing(true);
+  // Mutation for completing onboarding
+  const completeMutation = useMutation({
+    mutationFn: async () => {
       const response = await axios.post(`${API}/onboarding/submissions/${submissionId}/complete`, {}, authHeaders);
-      toast.success(`Onboarding complete! Employee ID: ${response.data.employee_id}`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Onboarding complete! Employee ID: ${data.employee_id}`);
       setShowCompleteDialog(false);
-      fetchSubmission();
-    } catch (err) {
-      console.error('Error completing onboarding:', err);
-      toast.error(err.response?.data?.detail || 'Failed to complete onboarding');
-    } finally {
-      setProcessing(false);
-    }
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to complete onboarding')
+  });
+
+  const handleComplete = () => {
+    completeMutation.mutate();
   };
 
   // Check readiness
