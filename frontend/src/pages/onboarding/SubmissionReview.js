@@ -323,6 +323,94 @@ const SubmissionReview = () => {
     completeMutation.mutate();
   };
 
+  // Mutation for updating sections
+  const updateSectionMutation = useMutation({
+    mutationFn: async ({ section, data }) => {
+      await axios.patch(`${API}/onboarding/submissions/${submissionId}/update-section`, 
+        { section, data }, authHeaders);
+    },
+    onSuccess: (_, { section }) => {
+      toast.success(`${section.replace('_', ' ')} updated successfully`);
+      // Close all edit dialogs
+      setEditBankDialog(false);
+      setEditEmergencyDialog(false);
+      setEditPersonalDialog(false);
+      setEditProfRefDialog(false);
+      setEditPerRefDialog(false);
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to update')
+  });
+
+  const handleUpdateSection = (section, data) => {
+    updateSectionMutation.mutate({ section, data });
+  };
+
+  // Open edit dialogs with current data
+  const openEditBank = () => {
+    const bd = submission?.bank_details || {};
+    setEditBankData({
+      account_holder_name: bd.account_holder_name || '',
+      account_number: bd.account_number || '',
+      ifsc_code: bd.ifsc_code || '',
+      bank_name: bd.bank_name || '',
+      branch: bd.branch || ''
+    });
+    setEditBankDialog(true);
+  };
+
+  const openEditEmergency = () => {
+    const ec = submission?.emergency_contact || {};
+    setEditEmergencyData({
+      name: ec.name || '',
+      phone: ec.phone || '',
+      relationship: ec.relationship || ''
+    });
+    setEditEmergencyDialog(true);
+  };
+
+  const openEditPersonal = () => {
+    const cd = submission?.candidate_details || {};
+    setEditPersonalData({
+      first_name: cd.first_name || '',
+      last_name: cd.last_name || '',
+      date_of_birth: cd.date_of_birth || '',
+      phone: cd.phone || '',
+      alternate_phone: cd.alternate_phone || '',
+      gender: cd.gender || '',
+      blood_group: cd.blood_group || '',
+      marital_status: cd.marital_status || '',
+      nationality: cd.nationality || 'Indian',
+      pan_number: cd.pan_number || '',
+      aadhaar_number: cd.aadhaar_number || '',
+      passport_number: cd.passport_number || '',
+      current_address: cd.current_address || {},
+      permanent_address: cd.permanent_address || {}
+    });
+    setEditPersonalDialog(true);
+  };
+
+  const openEditProfRef = () => {
+    const pr = submission?.professional_reference || {};
+    setEditProfRefData({
+      name: pr.name || '',
+      phone: pr.phone || '',
+      company_name: pr.company_name || '',
+      designation: pr.designation || ''
+    });
+    setEditProfRefDialog(true);
+  };
+
+  const openEditPerRef = () => {
+    const per = submission?.personal_reference || {};
+    setEditPerRefData({
+      name: per.name || '',
+      phone: per.phone || '',
+      address: per.address || ''
+    });
+    setEditPerRefDialog(true);
+  };
+
   // Check readiness
   const checkReadiness = () => {
     const errors = [];
