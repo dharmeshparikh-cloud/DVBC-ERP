@@ -36,7 +36,7 @@ const SalesMeetings = () => {
   // Draft system for meetings
   const generateMeetingDraftTitle = useCallback((data) => {
     if (data.title) return data.title;
-    const lead = leads.find(l => l.id === data.lead_id);
+    const lead = Array.isArray(leads) ? leads.find(l => l.id === data.lead_id) : null;
     return lead ? `Meeting with ${lead.company || lead.first_name}` : 'New Meeting Draft';
   }, [leads]);
 
