@@ -28,6 +28,27 @@ from services.bank_validation_service import (
     ALLOWED_BANK_PROOF_TYPES,
     MAX_BANK_PROOF_SIZE
 )
+import re
+
+
+async def generate_employee_id(db) -> str:
+    """Generate next sequential Employee ID in DVBC format."""
+    
+    employees = await db.employees.find(
+        {"employee_id": {"$regex": "^DVBC\\d+$"}},
+        {"employee_id": 1}
+    ).to_list(None)
+    
+    max_num = 0
+    for emp in employees:
+        match = re.match(r"DVBC(\d+)", emp.get("employee_id", ""))
+        if match:
+            num = int(match.group(1))
+            if num > max_num:
+                max_num = num
+    
+    next_num = max_num + 1
+    return f"DVBC{next_num:03d}"
 
 router = APIRouter(prefix="/go-live", tags=["Go-Live"])
 
