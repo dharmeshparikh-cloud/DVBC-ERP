@@ -30,9 +30,8 @@ const PAYMENT_STATUS_CONFIG = {
 const PaymentReminders = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   
-  const [loading, setLoading] = useState(true);
-  const [reminders, setReminders] = useState([]);
   const [viewMode, setViewMode] = useState('card');
   const [filter, setFilter] = useState('all'); // all, overdue, due_soon, upcoming
   
@@ -48,21 +47,15 @@ const PaymentReminders = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchReminders();
-  }, []);
-
-  const fetchReminders = async () => {
-    try {
-      const response = await axios.get(`${API}/payment-reminders`);
-      setReminders(response.data || []);
-    } catch (error) {
-      console.error('Error fetching reminders:', error);
-      toast.error('Failed to load payment reminders');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // React Query: Payment Reminders
+  const { data: reminders = [], isLoading: loading } = useQuery({
+    queryKey: ['payment-reminders'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/payment-reminders`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
   const getPaymentStatus = (daysUntil) => {
     if (daysUntil < 0) return 'overdue';
