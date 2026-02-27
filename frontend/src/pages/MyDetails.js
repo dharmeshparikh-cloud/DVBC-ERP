@@ -163,7 +163,7 @@ const MyDetails = () => {
       await axios.post(`${API}/my/change-request`, requestData);
       toast.success('Change request submitted for HR approval');
       closeEditDialog();
-      fetchPendingRequests();
+      queryClient.invalidateQueries({ queryKey: ['my', 'change-requests'] });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to submit change request');
     } finally {
