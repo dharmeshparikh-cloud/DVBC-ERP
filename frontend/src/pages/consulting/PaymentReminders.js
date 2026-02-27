@@ -176,7 +176,7 @@ const PaymentReminders = () => {
       
       toast.success(`Payment recorded for Installment #${selectedPayment.installment_number}`);
       setRecordPaymentOpen(false);
-      fetchReminders(); // Refresh list
+      queryClient.invalidateQueries({ queryKey: ['payment-reminders'] }); // Refresh list
     } catch (error) {
       const errMsg = error.response?.data?.detail || 'Failed to record payment';
       toast.error(errMsg);
