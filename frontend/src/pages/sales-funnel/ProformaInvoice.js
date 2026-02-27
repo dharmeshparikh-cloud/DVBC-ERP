@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import axios from 'axios';
-import { API, AuthContext } from '../../App';
+import { AuthContext } from '../../App';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -16,29 +15,29 @@ import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
 import SalesFunnelProgress from '../../components/SalesFunnelProgress';
 import ViewToggle from '../../components/ViewToggle';
+import { useFetch, useMutate } from '../../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const ProformaInvoice = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   const pricingPlanIdFromUrl = searchParams.get('pricing_plan_id');
   const invoiceRef = useRef(null);
   
-  const [invoices, setInvoices] = useState([]);
-  const [pricingPlans, setPricingPlans] = useState([]);
-  const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [sowData, setSowData] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedPlanDetails, setSelectedPlanDetails] = useState(null);
   const [selectedLead, setSelectedLead] = useState(null);
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [activeView, setActiveView] = useState('list'); // 'list' or 'history'
-  const [agreements, setAgreements] = useState([]);
   
   const [formData, setFormData] = useState({
     pricing_plan_id: pricingPlanIdFromUrl || '',
@@ -65,9 +64,29 @@ const ProformaInvoice = () => {
     swiftCode: 'ICICINBBCTS'
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [leadId]);
+  // Query: Fetch invoices (quotations) using React Query
+  const { data: invoices = [], isLoading: invoicesLoading } = useFetch('/api/quotations', {
+    params: leadId ? { lead_id: leadId } : {}
+  });
+
+  // Query: Fetch pricing plans
+  const { data: pricingPlans = [] } = useFetch('/api/pricing-plans', {
+    params: leadId ? { lead_id: leadId } : {}
+  });
+
+  // Query: Fetch leads
+  const { data: leads = [] } = useFetch('/api/leads');
+
+  // Query: Fetch agreements
+  const { data: agreements = [] } = useFetch('/api/agreements');
+
+  // Query: Fetch SOW data if we have a pricing plan ID
+  const { data: sowData } = useFetch(
+    pricingPlanIdFromUrl ? `/api/enhanced-sow/${pricingPlanIdFromUrl}` : null,
+    { enabled: !!pricingPlanIdFromUrl }
+  );
+
+  const loading = invoicesLoading;
 
   // Auto-open dialog with pre-selected plan when coming from SOW selection
   useEffect(() => {
@@ -87,36 +106,6 @@ const ProformaInvoice = () => {
       }
     }
   }, [loading, pricingPlanIdFromUrl, pricingPlans, autoOpenHandled, leads]);
-
-  const fetchData = async () => {
-    try {
-      const [invoicesRes, plansRes, leadsRes, agreementsRes] = await Promise.all([
-        axios.get(`${API}/quotations`, { params: leadId ? { lead_id: leadId } : {} }),
-        axios.get(`${API}/pricing-plans`, { params: leadId ? { lead_id: leadId } : {} }),
-        axios.get(`${API}/leads`),
-        axios.get(`${API}/agreements`).catch(() => ({ data: [] }))
-      ]);
-      setInvoices(invoicesRes.data);
-      setPricingPlans(plansRes.data);
-      setLeads(leadsRes.data);
-      setAgreements(agreementsRes.data);
-      
-      // Fetch SOW data if we have a pricing plan ID
-      if (pricingPlanIdFromUrl) {
-        try {
-          const sowRes = await axios.get(`${API}/enhanced-sow/${pricingPlanIdFromUrl}`);
-          setSowData(sowRes.data);
-        } catch (e) {
-          // SOW might not exist yet
-          setSowData(null);
-        }
-      }
-    } catch (error) {
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Check if proforma invoice exists for current pricing plan
   const currentInvoice = invoices.find(inv => inv.pricing_plan_id === pricingPlanIdFromUrl);
