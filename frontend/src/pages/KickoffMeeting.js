@@ -30,16 +30,10 @@ const KickoffMeeting = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   
-  const [project, setProject] = useState(null);
-  const [agreement, setAgreement] = useState(null);
-  const [quotation, setQuotation] = useState(null);
-  const [pricingPlan, setPricingPlan] = useState(null);
-  const [lead, setLead] = useState(null);
   const [kickoffMeeting, setKickoffMeeting] = useState(null);
   const [sowEntries, setSowEntries] = useState([]);
-  const [consultants, setConsultants] = useState([]);
-  const [loading, setLoading] = useState(true);
   
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [sowDialogOpen, setSowDialogOpen] = useState(false);
@@ -63,51 +57,57 @@ const KickoffMeeting = () => {
     timeline_weeks: ''
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [projectId]);
+  // React Query: Project
+  const { data: project, isLoading: loadingProject } = useQuery({
+    queryKey: ['projects', projectId],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/projects/${projectId}`);
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      // Get project
-      const projectRes = await axios.get(`${API}/projects/${projectId}`);
-      setProject(projectRes.data);
-      
-      // Get kickoff meeting if exists
+  // React Query: Kickoff Meeting Details
+  const { data: kickoffData, isLoading: loadingKickoff } = useQuery({
+    queryKey: ['kickoff-meetings', projectId],
+    queryFn: async () => {
       const meetingRes = await axios.get(`${API}/kickoff-meetings?project_id=${projectId}`);
       if (meetingRes.data.length > 0) {
-        setKickoffMeeting(meetingRes.data[0]);
-        
-        // Get full meeting details with SOW
         const detailRes = await axios.get(`${API}/kickoff-meetings/${meetingRes.data[0].id}`);
-        setAgreement(detailRes.data.agreement);
-        setQuotation(detailRes.data.quotation);
-        setPricingPlan(detailRes.data.pricing_plan);
-        setLead(detailRes.data.lead);
+        setKickoffMeeting(meetingRes.data[0]);
         setSowEntries(detailRes.data.sow || []);
-      } else {
-        // Get agreement from project
-        if (projectRes.data.agreement_id) {
-          const agreementRes = await axios.get(`${API}/agreements/${projectRes.data.agreement_id}`);
-          setAgreement(agreementRes.data);
-        }
+        return {
+          meeting: meetingRes.data[0],
+          agreement: detailRes.data.agreement,
+          quotation: detailRes.data.quotation,
+          pricingPlan: detailRes.data.pricing_plan,
+          lead: detailRes.data.lead,
+          sow: detailRes.data.sow || []
+        };
       }
-      
-      // Get SOW entries
+      // No meeting yet - get SOW entries from project
       const sowRes = await axios.get(`${API}/projects/${projectId}/sow`);
       setSowEntries(sowRes.data || []);
-      
-      // Get consultants for dropdown
-      const consultantsRes = await axios.get(`${API}/consultants`);
-      setConsultants(consultantsRes.data || []);
-      
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load project data');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return { meeting: null, sow: sowRes.data || [] };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const agreement = kickoffData?.agreement;
+  const quotation = kickoffData?.quotation;
+  const pricingPlan = kickoffData?.pricingPlan;
+  const lead = kickoffData?.lead;
+  const loading = loadingProject || loadingKickoff;
+
+  // React Query: Consultants
+  const { data: consultants = [] } = useQuery({
+    queryKey: ['consultants'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/consultants`);
+      return res.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleScheduleMeeting = async (e) => {
     e.preventDefault();
