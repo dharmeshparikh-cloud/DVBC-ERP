@@ -27,14 +27,8 @@ const AgreementView = () => {
   
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const agreementRef = useRef(null);
-  
-  const [loading, setLoading] = useState(true);
-  const [agreement, setAgreement] = useState(null);
-  const [quotation, setQuotation] = useState(null);
-  const [pricingPlan, setPricingPlan] = useState(null);
-  const [sow, setSow] = useState(null);
-  const [lead, setLead] = useState(null);
   
   // Milestones
   const [milestones, setMilestones] = useState([]);
@@ -56,7 +50,6 @@ const AgreementView = () => {
 
   // PM Selection for Kickoff
   const [pmSelectionDialogOpen, setPmSelectionDialogOpen] = useState(false);
-  const [consultants, setConsultants] = useState([]);
   const [selectedPmId, setSelectedPmId] = useState('');
   const [kickoffNotes, setKickoffNotes] = useState('');
   const [creatingKickoff, setCreatingKickoff] = useState(false);
@@ -71,51 +64,41 @@ const AgreementView = () => {
   const [clientEmail, setClientEmail] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  useEffect(() => {
-    if (agreementId) {
-      fetchAgreementData();
-    } else if (quotationId || pricingPlanId) {
-      fetchDataForNewAgreement();
-    }
-    // Fetch consultants for PM selection
-    fetchConsultants();
-  }, [agreementId, quotationId, pricingPlanId]);
-
-  const fetchConsultants = async () => {
-    try {
-      // Fetch only Senior Consultants and Principal Consultants for kickoff
+  // Fetch consultants using React Query
+  const { data: consultants = [] } = useQuery({
+    queryKey: ['consulting-team'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/sales-funnel/consulting-team`);
-      setConsultants(response.data.consultants || []);
-    } catch (error) {
-      console.error('Failed to fetch consultants:', error);
-    }
-  };
+      return response.data.consultants || [];
+    },
+    staleTime: 5 * 60 * 1000
+  });
 
-  const fetchAgreementData = async () => {
-    try {
+  // Fetch agreement data using React Query
+  const { data: agreementData, isLoading: loading, refetch: refetchAgreement } = useQuery({
+    queryKey: ['agreement', agreementId],
+    queryFn: async () => {
       const response = await axios.get(`${API}/agreements/${agreementId}/full`);
-      setAgreement(response.data.agreement);
-      setQuotation(response.data.quotation);
-      setPricingPlan(response.data.pricing_plan);
-      setSow(response.data.sow);
-      setLead(response.data.lead);
-      setMilestones(response.data.agreement?.milestones || []);
-    } catch (error) {
-      toast.error('Failed to load agreement');
-    } finally {
-      setLoading(false);
+      return response.data;
+    },
+    enabled: !!agreementId,
+    staleTime: 2 * 60 * 1000,
+    onError: () => toast.error('Failed to load agreement'),
+    onSuccess: (data) => {
+      setMilestones(data.agreement?.milestones || []);
     }
-  };
+  });
 
-  const fetchDataForNewAgreement = async () => {
-    try {
+  // Fetch data for new agreement using React Query
+  const { data: newAgreementData, isLoading: newAgreementLoading } = useQuery({
+    queryKey: ['new-agreement-data', quotationId, pricingPlanId],
+    queryFn: async () => {
       const [quotationsRes, plansRes, leadsRes] = await Promise.all([
         axios.get(`${API}/quotations`),
         axios.get(`${API}/pricing-plans`),
         axios.get(`${API}/leads`)
       ]);
 
-      // Find relevant data
       let targetQuotation = null;
       let targetPlan = null;
       let targetLead = null;
@@ -131,12 +114,10 @@ const AgreementView = () => {
         targetPlan = plansRes.data.find(p => p.id === pricingPlanId);
         if (targetPlan) {
           targetLead = leadsRes.data.find(l => l.id === targetPlan.lead_id);
-          // Find quotation for this plan
           targetQuotation = quotationsRes.data.find(q => q.pricing_plan_id === pricingPlanId);
         }
       }
 
-      // Fetch SOW if exists
       if (targetPlan?.sow_id) {
         try {
           const sowRes = await axios.get(`${API}/enhanced-sow/${targetPlan.sow_id}`);
@@ -146,14 +127,14 @@ const AgreementView = () => {
         }
       }
 
-      setQuotation(targetQuotation);
-      setPricingPlan(targetPlan);
-      setLead(targetLead);
-      setSow(targetSow);
-      
-      // Initialize default milestones based on payment schedule
-      if (targetPlan?.payment_plan?.installments) {
-        const defaultMilestones = targetPlan.payment_plan.installments.map((inst, idx) => ({
+      return { quotation: targetQuotation, pricingPlan: targetPlan, lead: targetLead, sow: targetSow };
+    },
+    enabled: !agreementId && (!!quotationId || !!pricingPlanId),
+    staleTime: 2 * 60 * 1000,
+    onError: () => toast.error('Failed to load data'),
+    onSuccess: (data) => {
+      if (data.pricingPlan?.payment_plan?.installments) {
+        const defaultMilestones = data.pricingPlan.payment_plan.installments.map((inst, idx) => ({
           id: `milestone-${idx + 1}`,
           description: inst.description || `Milestone ${idx + 1}`,
           amount: inst.amount || 0,
@@ -162,12 +143,15 @@ const AgreementView = () => {
         }));
         setMilestones(defaultMilestones);
       }
-    } catch (error) {
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
     }
-  };
+  });
+
+  // Derive data from queries
+  const agreement = agreementData?.agreement || null;
+  const quotation = agreementData?.quotation || newAgreementData?.quotation || null;
+  const pricingPlan = agreementData?.pricing_plan || newAgreementData?.pricingPlan || null;
+  const sow = agreementData?.sow || newAgreementData?.sow || null;
+  const lead = agreementData?.lead || newAgreementData?.lead || null;
 
   const addMilestone = () => {
     if (!newMilestone.description || !newMilestone.amount) {
