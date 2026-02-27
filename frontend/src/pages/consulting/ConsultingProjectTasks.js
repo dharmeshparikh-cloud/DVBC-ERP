@@ -35,11 +35,7 @@ const ConsultingProjectTasks = () => {
   const { sowId } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  
-  const [loading, setLoading] = useState(true);
-  const [sow, setSow] = useState(null);
-  const [lead, setLead] = useState(null);
-  const [employees, setEmployees] = useState([]);
+  const queryClient = useQueryClient();
   
   // Dialogs
   const [addTaskDialog, setAddTaskDialog] = useState(false);
@@ -62,34 +58,49 @@ const ConsultingProjectTasks = () => {
   // Upload data
   const [uploadData, setUploadData] = useState({ file: null, description: '' });
 
-  useEffect(() => {
-    fetchData();
-  }, [sowId]);
+  // Fetch SOW data using React Query
+  const { data: sow, isLoading: sowLoading, refetch: refetchSow } = useQuery({
+    queryKey: ['sow', sowId],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/enhanced-sow/${sowId}`, {
+        params: { current_user_role: user?.role }
+      });
+      return response.data;
+    },
+    enabled: !!sowId,
+    staleTime: 2 * 60 * 1000,
+    onError: () => toast.error('Failed to load project data')
+  });
 
-  const fetchData = async () => {
-    try {
-      const [sowRes, leadsRes, employeesRes] = await Promise.all([
-        axios.get(`${API}/enhanced-sow/${sowId}`, {
-          params: { current_user_role: user?.role }
-        }),
-        axios.get(`${API}/leads`),
-        axios.get(`${API}/employees`).catch(() => ({ data: [] }))
-      ]);
-      
-      setSow(sowRes.data);
-      setEmployees(employeesRes.data || []);
-      
-      if (sowRes.data?.lead_id) {
-        const leadData = leadsRes.data.find(l => l.id === sowRes.data.lead_id);
-        setLead(leadData);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load project data');
-    } finally {
-      setLoading(false);
+  // Fetch leads
+  const { data: leadsData = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/leads`);
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
+  // Fetch employees
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees', 'all'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/employees`);
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
+  // Derive lead from sow
+  const lead = useMemo(() => {
+    if (sow?.lead_id && leadsData.length > 0) {
+      return leadsData.find(l => l.id === sow.lead_id);
     }
-  };
+    return null;
+  }, [sow?.lead_id, leadsData]);
+
+  const loading = sowLoading;
 
   // Get tasks from SOW (scopes act as main tasks)
   const tasks = useMemo(() => {
