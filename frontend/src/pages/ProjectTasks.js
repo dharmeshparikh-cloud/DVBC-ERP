@@ -127,42 +127,41 @@ const ProjectTasks = () => {
     taskMutation.mutate(taskData);
   };
 
-      if (editingTask) {
-        await axios.patch(`${API}/tasks/${editingTask.id}`, taskData);
-        toast.success('Task updated successfully');
-      } else {
-        await axios.post(`${API}/tasks`, taskData);
-        toast.success('Task created successfully');
-      }
-      
-      setDialogOpen(false);
-      setEditingTask(null);
-      resetForm();
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save task');
-    }
-  };
+  // Mutation: Update Status
+  const statusMutation = useMutation({
+    mutationFn: async ({ taskId, newStatus }) => {
+      await axios.patch(`${API}/tasks/${taskId}`, { status: newStatus });
+    },
+    onSuccess: () => {
+      toast.success('Status updated');
+      queryClient.invalidateQueries({ queryKey: ['tasks', { project_id: projectId }] });
+    },
+    onError: () => {
+      toast.error('Failed to update status');
+    },
+  });
+
+  // Mutation: Delete Task
+  const deleteMutation = useMutation({
+    mutationFn: async (taskId) => {
+      await axios.delete(`${API}/tasks/${taskId}`);
+    },
+    onSuccess: () => {
+      toast.success('Task deleted');
+      queryClient.invalidateQueries({ queryKey: ['tasks', { project_id: projectId }] });
+    },
+    onError: () => {
+      toast.error('Failed to delete task');
+    },
+  });
 
   const handleStatusChange = async (taskId, newStatus) => {
-    try {
-      await axios.patch(`${API}/tasks/${taskId}`, { status: newStatus });
-      toast.success('Status updated');
-      fetchData();
-    } catch (error) {
-      toast.error('Failed to update status');
-    }
+    statusMutation.mutate({ taskId, newStatus });
   };
 
   const handleDelete = async (taskId) => {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
-    try {
-      await axios.delete(`${API}/tasks/${taskId}`);
-      toast.success('Task deleted');
-      fetchData();
-    } catch (error) {
-      toast.error('Failed to delete task');
-    }
+    deleteMutation.mutate(taskId);
   };
 
   const openEditDialog = (task) => {
