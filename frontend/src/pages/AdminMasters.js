@@ -41,18 +41,10 @@ const DEPT_COLORS = [
 
 const AdminMasters = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('departments');
   
-  // Data states
-  const [tenureTypes, setTenureTypes] = useState([]);
-  const [consultantRoles, setConsultantRoles] = useState([]);
-  const [meetingTypes, setMeetingTypes] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  
   // SOW Categories and Scopes
-  const [sowCategories, setSowCategories] = useState([]);
-  const [sowScopes, setSowScopes] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   
   // Edit states
@@ -86,56 +78,63 @@ const AdminMasters = () => {
     name: '', code: '', description: '', pages: '', icon: 'Building2', color: '#6B7280'
   });
 
-  useEffect(() => {
-    fetchAllMasters();
-    fetchDepartments();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'scope-builder') {
-      fetchSowData();
-    }
-  }, [activeTab]);
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await axios.get(`${API}/permission-config/departments?include_inactive=true`);
-      setDepartments(res.data.departments || []);
-    } catch (error) {
-      console.error('Failed to fetch departments:', error);
-    }
-  };
-
-  const fetchSowData = async () => {
-    try {
-      const [categoriesRes, scopesRes] = await Promise.all([
-        axios.get(`${API}/sow-masters/categories?include_inactive=true`),
-        axios.get(`${API}/sow-masters/scopes?include_inactive=true`)
-      ]);
-      setSowCategories(categoriesRes.data);
-      setSowScopes(scopesRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch SOW data');
-    }
-  };
-
-  const fetchAllMasters = async () => {
-    try {
-      setLoading(true);
+  // Fetch all masters using React Query
+  const { data: mastersData, isLoading: mastersLoading, refetch: refetchMasters } = useQuery({
+    queryKey: ['masters', 'all'],
+    queryFn: async () => {
       const [tenureRes, rolesRes, meetingsRes] = await Promise.all([
         axios.get(`${API}/masters/tenure-types?include_inactive=true`),
         axios.get(`${API}/masters/consultant-roles?include_inactive=true`),
         axios.get(`${API}/masters/meeting-types?include_inactive=true`)
       ]);
-      setTenureTypes(tenureRes.data);
-      setConsultantRoles(rolesRes.data);
-      setMeetingTypes(meetingsRes.data);
-    } catch (error) {
-      toast.error('Failed to fetch master data');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        tenureTypes: Array.isArray(tenureRes.data) ? tenureRes.data : [],
+        consultantRoles: Array.isArray(rolesRes.data) ? rolesRes.data : [],
+        meetingTypes: Array.isArray(meetingsRes.data) ? meetingsRes.data : []
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to fetch master data')
+  });
+
+  const tenureTypes = mastersData?.tenureTypes || [];
+  const consultantRoles = mastersData?.consultantRoles || [];
+  const meetingTypes = mastersData?.meetingTypes || [];
+
+  // Fetch departments
+  const { data: departmentsData = [] } = useQuery({
+    queryKey: ['departments', 'all'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/permission-config/departments?include_inactive=true`);
+      return res.data.departments || [];
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
+  const departments = departmentsData;
+
+  // Fetch SOW data when on scope-builder tab
+  const { data: sowData, refetch: refetchSowData } = useQuery({
+    queryKey: ['sow-masters'],
+    queryFn: async () => {
+      const [categoriesRes, scopesRes] = await Promise.all([
+        axios.get(`${API}/sow-masters/categories?include_inactive=true`),
+        axios.get(`${API}/sow-masters/scopes?include_inactive=true`)
+      ]);
+      return {
+        categories: Array.isArray(categoriesRes.data) ? categoriesRes.data : [],
+        scopes: Array.isArray(scopesRes.data) ? scopesRes.data : []
+      };
+    },
+    enabled: activeTab === 'scope-builder',
+    staleTime: 5 * 60 * 1000,
+    onError: () => toast.error('Failed to fetch SOW data')
+  });
+
+  const sowCategories = sowData?.categories || [];
+  const sowScopes = sowData?.scopes || [];
+
+  const loading = mastersLoading;
 
   const handleSeedDefaults = async () => {
     try {
