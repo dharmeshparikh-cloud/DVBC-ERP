@@ -229,7 +229,7 @@ const Meetings = () => {
         notify_reporting_manager: true
       });
       
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
     } catch (error) {
       toast.error('Failed to add action item');
     }
@@ -248,7 +248,7 @@ const Meetings = () => {
       }));
       
       toast.success('Status updated');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
     } catch (error) {
       toast.error('Failed to update status');
     }
@@ -258,7 +258,7 @@ const Meetings = () => {
     try {
       const res = await axios.post(`${API}/meetings/${selectedMeeting.id}/send-mom`);
       toast.success(`MOM sent to ${res.data.client_name || res.data.client_email}`);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
       setMomDialogOpen(false);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to send MOM');
