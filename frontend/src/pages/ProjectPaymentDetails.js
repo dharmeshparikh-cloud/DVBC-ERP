@@ -25,11 +25,8 @@ const ProjectPaymentDetails = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
-  const [paymentData, setPaymentData] = useState(null);
-  const [installmentPayments, setInstallmentPayments] = useState([]);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('payments');
-  const [reminderEligibility, setReminderEligibility] = useState({});
   
   // Modal states
   const [showRecordPaymentDialog, setShowRecordPaymentDialog] = useState(false);
@@ -44,61 +41,75 @@ const ProjectPaymentDetails = () => {
   // Check if user is from consulting team
   const isConsultingTeam = ['admin', 'principal_consultant', 'project_manager', 'manager', 'consultant', 'lead_consultant', 'senior_consultant'].includes(user?.role);
 
-  useEffect(() => {
-    fetchData();
-  }, [projectId]);
+  // React Query: Payment Data
+  const { data: paymentData, isLoading: loading } = useQuery({
+    queryKey: ['project-payments', 'project', projectId],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/project-payments/project/${projectId}`);
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchData = async () => {
-    try {
-      // Fetch payment data
-      const paymentRes = await axios.get(`${API}/project-payments/project/${projectId}`);
-      setPaymentData(paymentRes.data);
+  // React Query: Installment Payments
+  const { data: installmentPaymentsData } = useQuery({
+    queryKey: ['project-payments', 'installment-payments', projectId],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/project-payments/installment-payments/${projectId}`);
+      return res.data.payments || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const installmentPayments = installmentPaymentsData || [];
 
-      // Fetch recorded installment payments
-      try {
-        const installmentsRes = await axios.get(`${API}/project-payments/installment-payments/${projectId}`);
-        setInstallmentPayments(installmentsRes.data.payments || []);
-      } catch (e) {
-        console.log('No installment payments found');
-      }
-
-      // Check reminder eligibility for each installment
-      if (paymentRes.data.payment_schedule) {
-        const eligibilityChecks = {};
-        for (const item of paymentRes.data.payment_schedule) {
-          try {
-            const eligRes = await axios.get(
-              `${API}/project-payments/check-reminder-eligibility/${projectId}/${item.installment_number}`
-            );
-            eligibilityChecks[item.installment_number] = eligRes.data;
-          } catch (e) {
-            eligibilityChecks[item.installment_number] = { eligible: false };
-          }
+  // React Query: Reminder Eligibility
+  const { data: reminderEligibility = {} } = useQuery({
+    queryKey: ['project-payments', 'reminder-eligibility', projectId],
+    queryFn: async () => {
+      if (!paymentData?.payment_schedule) return {};
+      const eligibilityChecks = {};
+      for (const item of paymentData.payment_schedule) {
+        try {
+          const eligRes = await axios.get(
+            `${API}/project-payments/check-reminder-eligibility/${projectId}/${item.installment_number}`
+          );
+          eligibilityChecks[item.installment_number] = eligRes.data;
+        } catch (e) {
+          eligibilityChecks[item.installment_number] = { eligible: false };
         }
-        setReminderEligibility(eligibilityChecks);
       }
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error('Failed to load payment data');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return eligibilityChecks;
+    },
+    enabled: !!paymentData?.payment_schedule,
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const handleSendReminder = async (installmentNumber) => {
-    setSendingReminder(prev => ({ ...prev, [installmentNumber]: true }));
-    try {
+  // Mutation: Send Reminder
+  const sendReminderMutation = useMutation({
+    mutationFn: async (installmentNumber) => {
       await axios.post(`${API}/project-payments/send-reminder`, {
         project_id: projectId,
         installment_number: installmentNumber
       });
+      return installmentNumber;
+    },
+    onSuccess: (installmentNumber) => {
       toast.success(`Payment reminder sent for installment #${installmentNumber}`);
-      // Refresh eligibility
-      const eligRes = await axios.get(
-        `${API}/project-payments/check-reminder-eligibility/${projectId}/${installmentNumber}`
-      );
-      setReminderEligibility(prev => ({ ...prev, [installmentNumber]: eligRes.data }));
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['project-payments', 'reminder-eligibility', projectId] });
+    },
+    onError: () => {
+      toast.error('Failed to send reminder');
+    },
+  });
+
+  const handleSendReminder = async (installmentNumber) => {
+    setSendingReminder(prev => ({ ...prev, [installmentNumber]: true }));
+    try {
+      await sendReminderMutation.mutateAsync(installmentNumber);
+    } finally {
+      setSendingReminder(prev => ({ ...prev, [installmentNumber]: false }));
+    }
+  };
       toast.error(error.response?.data?.detail || 'Failed to send reminder');
     } finally {
       setSendingReminder(prev => ({ ...prev, [installmentNumber]: false }));
