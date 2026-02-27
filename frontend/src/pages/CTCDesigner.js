@@ -197,7 +197,31 @@ const CTCDesigner = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  // Mutation for submitting CTC
+  const submitCTCMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.post(`${API}/ctc/design`, data);
+    },
+    onSuccess: () => {
+      toast.success('CTC structure submitted for Admin approval');
+      setSelectedEmployee(null);
+      setAnnualCTC('');
+      setRetentionBonus('');
+      setRemarks('');
+      setPreview(null);
+      // Reset component config
+      const config = componentMaster.map(c => ({
+        ...c,
+        enabled: c.enabled_by_default !== false,
+        value: c.default_value
+      }));
+      setComponentConfig(config);
+      queryClient.invalidateQueries({ queryKey: ['ctc'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to submit CTC structure')
+  });
+
+  const handleSubmit = () => {
     if (!selectedEmployee) {
       toast.error('Please select an employee');
       return;
@@ -211,78 +235,61 @@ const CTCDesigner = () => {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await axios.post(`${API}/ctc/design`, {
-        employee_id: selectedEmployee.id,
-        annual_ctc: parseFloat(annualCTC),
-        retention_bonus: parseFloat(retentionBonus) || 0,
-        retention_vesting_months: vestingMonths,
-        effective_month: effectiveMonth,
-        component_config: componentConfig,
-        remarks: remarks
-      });
-      toast.success('CTC structure submitted for Admin approval');
-      setSelectedEmployee(null);
-      setAnnualCTC('');
-      setRetentionBonus('');
-      setRemarks('');
-      setPreview(null);
-      // Reset component config
-      fetchComponentMaster();
-      if (isAdmin) {
-        fetchPendingApprovals();
-        fetchStats();
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to submit CTC structure');
-    } finally {
-      setSubmitting(false);
-    }
+    submitCTCMutation.mutate({
+      employee_id: selectedEmployee.id,
+      annual_ctc: parseFloat(annualCTC),
+      retention_bonus: parseFloat(retentionBonus) || 0,
+      retention_vesting_months: vestingMonths,
+      effective_month: effectiveMonth,
+      component_config: componentConfig,
+      remarks: remarks
+    });
   };
 
-  const handleApprove = async () => {
-    if (!selectedApproval) return;
-    setSubmitting(true);
-    try {
-      await axios.post(`${API}/ctc/${selectedApproval.id}/approve`, {
-        remarks: adminRemarks
-      });
+  const submitting = submitCTCMutation.isPending;
+
+  // Mutation for approving CTC
+  const approveCTCMutation = useMutation({
+    mutationFn: async ({ id, remarks }) => {
+      await axios.post(`${API}/ctc/${id}/approve`, { remarks });
+    },
+    onSuccess: () => {
       toast.success('CTC structure approved successfully');
       setApprovalDialog(false);
       setSelectedApproval(null);
       setAdminRemarks('');
-      fetchPendingApprovals();
-      fetchStats();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to approve');
-    } finally {
-      setSubmitting(false);
-    }
+      queryClient.invalidateQueries({ queryKey: ['ctc'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to approve')
+  });
+
+  const handleApprove = () => {
+    if (!selectedApproval) return;
+    approveCTCMutation.mutate({ id: selectedApproval.id, remarks: adminRemarks });
   };
 
-  const handleReject = async () => {
+  // Mutation for rejecting CTC
+  const rejectCTCMutation = useMutation({
+    mutationFn: async ({ id, reason }) => {
+      await axios.post(`${API}/ctc/${id}/reject`, { reason });
+    },
+    onSuccess: () => {
+      toast.success('CTC structure rejected');
+      setApprovalDialog(false);
+      setSelectedApproval(null);
+      setRejectionReason('');
+      queryClient.invalidateQueries({ queryKey: ['ctc'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to reject')
+  });
+
+  const handleReject = () => {
     if (!selectedApproval) return;
     if (!rejectionReason.trim()) {
       toast.error('Please provide a rejection reason');
       return;
     }
-    setSubmitting(true);
-    try {
-      await axios.post(`${API}/ctc/${selectedApproval.id}/reject`, {
-        reason: rejectionReason
-      });
-      toast.success('CTC structure rejected');
-      setApprovalDialog(false);
-      setSelectedApproval(null);
-      setRejectionReason('');
-      fetchPendingApprovals();
-      fetchStats();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to reject');
-    } finally {
-      setSubmitting(false);
-    }
+    rejectCTCMutation.mutate({ id: selectedApproval.id, reason: rejectionReason });
   };
 
   const formatCurrency = (amount) => {
