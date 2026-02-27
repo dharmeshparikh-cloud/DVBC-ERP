@@ -142,20 +142,6 @@ const Meetings = () => {
     e.preventDefault();
     createMeetingMutation.mutate(formData);
   };
-        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
-        agenda: formData.agenda.filter(a => a.trim())
-      };
-      
-      await axios.post(`${API}/meetings`, meetingData);
-      toast.success('Meeting scheduled successfully');
-      setDialogOpen(false);
-      resetForm();
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to schedule meeting');
-    }
-  };
-
   const resetForm = () => {
     setFormData({
       project_id: '',
@@ -205,7 +191,7 @@ const Meetings = () => {
       
       await axios.patch(`${API}/meetings/${selectedMeeting.id}/mom`, momPayload);
       toast.success('Minutes of Meeting saved');
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['meetings'] });
     } catch (error) {
       toast.error('Failed to save MOM');
     }
