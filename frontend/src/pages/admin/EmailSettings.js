@@ -388,11 +388,11 @@ const EmailSettings = () => {
               
               <button
                 onClick={sendTestEmail}
-                disabled={loading || !testEmail}
+                disabled={sendingTest || !testEmail}
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition"
               >
                 <Send className="w-4 h-4" />
-                {loading ? 'Sending...' : 'Send Test Email'}
+                {sendingTest ? 'Sending...' : 'Send Test Email'}
               </button>
             </div>
           </div>
