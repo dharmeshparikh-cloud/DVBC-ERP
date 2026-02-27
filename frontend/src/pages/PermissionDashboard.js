@@ -46,7 +46,7 @@ const PermissionDashboard = () => {
   });
 
   // React Query: Employees
-  const { data: employees = [], isLoading: loading } = useQuery({
+  const { data: employees = [], isLoading: loading, refetch: refetchAll } = useQuery({
     queryKey: ['employees', 'all'],
     queryFn: async () => {
       const res = await axios.get(`${API}/employees/all`);
@@ -155,7 +155,7 @@ const PermissionDashboard = () => {
             Manage employee levels and permissions across your organization
           </p>
         </div>
-        <Button onClick={fetchData} variant="outline" size="sm">
+        <Button onClick={() => refetchAll()} variant="outline" size="sm">
           <RefreshCw className="w-4 h-4 mr-2" /> Refresh
         </Button>
       </div>
