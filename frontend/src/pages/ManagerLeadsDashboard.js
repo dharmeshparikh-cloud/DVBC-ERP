@@ -199,7 +199,7 @@ const ManagerLeadsDashboard = () => {
           <h1 className="text-2xl font-semibold text-zinc-900">Team Leads Dashboard</h1>
           <p className="text-sm text-zinc-500">Monitor and manage your team's sales pipeline</p>
         </div>
-        <Button onClick={fetchData} variant="outline" className="rounded-sm">
+        <Button onClick={() => refetchLeads()} variant="outline" className="rounded-sm">
           <RefreshCw className="w-4 h-4 mr-2" /> Refresh
         </Button>
       </div>
