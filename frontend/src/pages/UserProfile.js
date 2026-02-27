@@ -14,9 +14,7 @@ import { toast } from 'sonner';
 
 const UserProfile = () => {
   const { user, setUser } = useContext(AuthContext);
-  const [profile, setProfile] = useState(null);
-  const [permissions, setPermissions] = useState({});
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
   
@@ -29,48 +27,58 @@ const UserProfile = () => {
     bio: ''
   });
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const [profileRes, permissionsRes] = await Promise.all([
-        axios.get(`${API}/users/me`),
-        axios.get(`${API}/users/me/permissions`)
-      ]);
-      
-      setProfile(profileRes.data);
-      setPermissions(permissionsRes.data);
+  // React Query: Profile
+  const { data: profile, isLoading: loading } = useQuery({
+    queryKey: ['users', 'me'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/users/me`);
+      // Initialize form data when profile loads
       setFormData({
-        full_name: profileRes.data.full_name || '',
-        email: profileRes.data.email || '',
-        phone: profileRes.data.phone || '',
-        department: profileRes.data.department || '',
-        designation: profileRes.data.designation || '',
-        bio: profileRes.data.bio || ''
+        full_name: res.data.full_name || '',
+        email: res.data.email || '',
+        phone: res.data.phone || '',
+        department: res.data.department || '',
+        designation: res.data.designation || '',
+        bio: res.data.bio || ''
       });
-    } catch (error) {
-      toast.error('Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const handleSave = async () => {
-    try {
-      await axios.patch(`${API}/users/me`, formData);
+  // React Query: Permissions
+  const { data: permissions = {} } = useQuery({
+    queryKey: ['users', 'me', 'permissions'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/users/me/permissions`);
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Mutation: Save Profile
+  const saveMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.patch(`${API}/users/me`, data);
+      return data;
+    },
+    onSuccess: (data) => {
       toast.success('Profile updated successfully');
       setEditing(false);
-      fetchProfile();
+      queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
       
       // Update context if name changed
-      if (formData.full_name !== user.full_name) {
-        setUser({ ...user, full_name: formData.full_name });
+      if (data.full_name !== user.full_name) {
+        setUser({ ...user, full_name: data.full_name });
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to update profile');
-    }
+    },
+  });
+
+  const handleSave = async () => {
+    saveMutation.mutate(formData);
   };
 
   const getRoleBadgeColor = (role) => {
