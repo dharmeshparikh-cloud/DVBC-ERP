@@ -142,7 +142,7 @@ The Employee ID generation process has been changed from the previous flow (ID g
 
 ---
 
-### Phase 64: React Query Migration Batch 10 - February 27, 2026 ✅
+### Phase 64: React Query Migration Batch 10 & 11 - February 27, 2026 ✅
 
 **Batch 10 - 6 components migrated:**
 - EmployeePermissions.js (612 lines) - Full migration with queries and mutations for permissions management
@@ -152,9 +152,15 @@ The Employee ID generation process has been changed from the previous flow (ID g
 - HRTeamWorkload.js (368 lines) - Consultant workload queries
 - EmployeeWorkflows.js (New component) - Built with React Query from scratch
 
+**Batch 11 - 4 components migrated:**
+- Invoices.js (278 lines) - Queries for invoices and employees
+- MyDrafts.js (340 lines) - Query + delete mutation for drafts
+- LetterheadSettings.js (467 lines) - Query + upload/delete/save mutations
+- PerformanceDashboard.js (846 lines) - Multiple queries with memoized data computation
+
 **Current Migration Status:**
-- ✅ 82 pages now using React Query (67%)
-- ~40 pages remaining for migration (some are Login/Public pages)
+- ✅ 86 pages now using React Query (70%)
+- ~36 pages remaining for migration (some are Login/Public pages)
 - All tested pages passing (100% success rate)
 
 ---
