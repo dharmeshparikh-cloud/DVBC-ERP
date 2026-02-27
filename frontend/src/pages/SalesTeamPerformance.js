@@ -98,24 +98,6 @@ const SalesTeamPerformance = () => {
   const handleSubmitReview = () => {
     submitReviewMutation.mutate();
   };
-          month: now.getMonth() + 1,
-          year: now.getFullYear(),
-          ...reviewForm
-        })
-      });
-      
-      if (response.ok) {
-        toast.success('Review submitted successfully!');
-        setShowReviewModal(false);
-        fetchTeam();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to submit review');
-      }
-    } catch (error) {
-      toast.error('Failed to submit review');
-    }
-  };
 
   const getScoreColor = (score) => {
     if (score >= 4) return 'text-green-600 bg-green-50';
