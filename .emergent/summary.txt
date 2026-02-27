@@ -1,57 +1,55 @@
 <analysis>**original_problem_statement:**
-The user's primary goal is to build a full-stack ERP named NETRA. The initial work focused on a Candidate Onboarding module, an In-App Help Widget, and a large-scale frontend migration to React Query.
+The user's primary goal is to build a full-stack ERP named NETRA. The project initially focused on a Candidate Onboarding module, an In-App Help Widget, and a frontend migration to React Query.
 
-Recently, the user's priorities shifted to new feature requests and a core business process change:
-1.  **Edit Onboarded Employee Data:** Allow HR and Admin users to edit candidate information (e.g., bank details, contact info) on the  page *after* the initial self-onboarding is complete.
-2.  **Excel Import/Export:** Add functionality to download and upload Excel files for the lists of onboarded and Go-Live employees.
-3.  **New Go-Live Flow:** The employee ID must **not** be generated immediately after HR completes the onboarding review. Instead, it should only be generated after a final Go-Live approval by an Admin, who must be able to see all employee details (designation, department, CTC, etc.) before approving.
+The user's priorities then shifted to new features and a core business process change:
+1.  **Edit Onboarded Employee Data:** Allow HR/Admin to edit candidate info post-onboarding.
+2.  **Excel Import/Export:** Add functionality to download and upload Excel files.
+3.  **New Go-Live Flow:** Delay Employee ID generation until final Admin approval.
+
+Most recently, the user requested a comprehensive **HR & Employee Master Governance Audit** with the following objectives:
+1.  Eliminate duplicate employee data and establish a single source of truth.
+2.  Implement strict field inheritance rules (e.g., salary comes from the CTC module).
+3.  Create a field-level edit permission matrix (RBAC) to prevent unauthorized changes.
+4.  Add a legal consent workflow with an audit trail for employees.
+5.  Validate that data updates propagate correctly across the system.
+6.  Prevent duplicate employee records.
+7.  Add a comprehensive audit trail for all critical field changes.
 
 **User's preferred language**: English
 
 **what currently exists?**
 The application is a stable full-stack ERP with a React frontend, FastAPI backend, and MongoDB database.
-- The React Query migration is mostly complete, with **76 components** now using the centralized  hook.
-- **Feature Implementation (Untested):**
-    - **Edit Functionality:** Edit buttons and dialogs have been added to the  page, backed by a new API endpoint to update submission data.
-    - **Excel Export:** An Export Excel button has been added to the  component for completed candidates. The  library has been installed.
-    - **Enable Portal Access Button:** A button was added to the  to allow HR to grant login credentials directly from the UI.
-    - **New Go-Live Flow:** The backend logic has been modified.  no longer generates an employee ID.  now generates the ID upon final approval. The  page has been updated to show detailed employee info to the admin before approval.
+-   **Go-Live Flow:** The new go-live process, where the Employee ID is only generated after final Admin approval, has been fully implemented and tested.
+-   **Governance Audit:** A major governance overhaul has been implemented.
+    -   Protected fields (, , , ) are now read-only in the UI.
+    -   Attempting to edit these fields via the API is blocked and instead creates a change request.
+    -   A new **Employee Workflows** page was created for Admins to approve or reject these change requests (for transfers, promotions, CTC revisions, etc.).
+    -   An audit trail () logs all changes to protected fields.
+    -   A legal consent module ( and a  page) has been created to track employee acceptance of company policies.
+-   **React Query Migration:** The migration is ongoing. **86 components** are now using the centralized  hook.
 
 **Last working item**:
--   **Last item agent was working:** The agent was in the middle of responding to a user request to test the newly implemented Go-Live flow. The backend code was modified, the frontend was updated, and the backend service was restarted. The next logical step is to perform an end-to-end test of this critical new process.
+-   **Last item agent was working:** Continuing the React Query migration. The user approved moving forward with migrating the remaining ~12 components. The agent identified the next batch (, , ) and started migrating  and .
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** Manual end-to-end testing. The agent must simulate the entire flow: complete a candidate onboarding, verify no ID is generated, process the candidate through the Go-Live dashboard (including enabling portal access), and finally, as an admin, approve the Go-Live in the Approvals Center, verifying all details are shown and the Employee ID is generated correctly upon approval.
+-   **Which testing method agent to use?** Frontend testing agent after the current batch of migrations is complete.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Test and Verify the New Go-Live Flow (P0)**
-    -   **Description:** The core business logic for employee ID generation and Go-Live approval has been changed. The implementation is complete but is entirely untested.
-    -   **Next debug checklist:**
-        1.  Create a new onboarding submission.
-        2.  As HR, complete the submission and verify that **no** employee ID is generated.
-        3.  Navigate to the , find the employee, and use the new Enable button to grant portal access.
-        4.  Submit the employee for Go-Live approval.
-        5.  As an Admin, navigate to , open the approval request, and verify that all detailed employee info (CTC, joining date, etc.) is displayed.
-        6.  Approve the request.
-        7.  Check the database or relevant UI to confirm that an Employee ID has now been successfully generated and assigned.
-    -   **Why fix this issue and what will be achieved with the fix?** To validate that the user-requested critical business process change is working correctly and is not broken.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both
+There are no pending issues. The last major task was a feature implementation, not a bug fix.
 
 **In progress Task List**:
--   **Task 1: New Go-Live Flow Implementation**
-    -   **Where to resume:** The user has just messaged test. The agent should begin the end-to-end testing procedure outlined in Issue 1 above.
-    -   **What will be achieved with this?** A fully functional and verified employee go-live process that matches the user's new requirements.
+-   **Task 1: Complete React Query Migration (Batch 12) (P0)**
+    -   **Where to resume:** The agent has started migrating  and . It should complete these migrations, migrate , and then run linting and testing for the batch.
+    -   **What will be achieved with this?** More components will be standardized to use the central data-fetching hook, improving maintainability.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** Both
+    -   **Should Test frontend/backend/both after fix?** Frontend
     -   **Blocked on something:** Nothing.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) **Implement Excel Upload:** The user requested both download and upload. Only download was implemented for the . Upload functionality is still pending.
-    -   (P1) **Complete Frontend React Query Migration:** Resume migrating the final ~12 remaining components. This includes large files like  and .
+    -   (P0) **Finish React Query Migration:** Migrate the final ~7 complex components, including  and .
+    -   (P1) **Implement Excel Upload:** The user requested both download and upload functionality. Only download has been implemented.
     -   (P1) **Implement Custom Report Builder Backend:** Build the APIs required to power the existing report builder UI.
     -   (P1) **Build Client Dashboard Features:** Implement backend and frontend logic for the client portal.
     -   (P1) **Implement AI Chat & Voice:** Integrate a voice-to-text service into the AI Assistant module.
@@ -62,11 +60,14 @@ The application is a stable full-stack ERP with a React frontend, FastAPI backen
     -   (P2) Day 0 Onboarding Tour.
 
 **Completed work in this session**
--   **React Query Migration (Batches 7-9):** Migrated 12 components, bringing the total to 76.
--   **Feature: Edit Onboarded Employee Data:** Implemented the backend API and frontend UI to allow HR/Admins to edit submitted onboarding forms via the  page.
--   **Feature: Excel Export for Onboarded Employees:** Added an Export Excel button to the  page.
--   **Feature: Enable Portal Access Button:** Added a UI button on the  to allow HR to easily grant portal access to new employees.
--   **Process Change: New Go-Live Flow Implementation:** Modified backend and frontend to ensure Employee ID is only generated at final Admin approval.
+-   **Feature: New Go-Live Flow (Verified):** Implemented and performed end-to-end testing of the new flow where Employee ID is generated only at final Admin approval.
+-   **Feature: HR & Employee Master Governance Audit:**
+    -   Implemented field-level RBAC to block direct edits on protected employee fields.
+    -   Created an approval workflow ( page) for all changes to locked fields.
+    -   Added a backend audit trail () for critical changes.
+    -   Created a legal consent module and UI for employees.
+    -   Created a governance report script.
+-   **Refactor: React Query Migration (Batches 10 & 11):** Migrated 10 more components, bringing the total from 76 to 86. Components migrated include , , , , , , and .
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Large file needs refactoring:** The file  is excessively large and should be broken down.
@@ -80,26 +81,31 @@ The application is a stable full-stack ERP with a React frontend, FastAPI backen
 
 
 **Key Technical Concepts**
--   **API-Driven Business Logic:** Modifying core business processes by changing when and how backend APIs create and update data (e.g., delaying  generation).
--   **Conditional UI Rendering:** Displaying specific UI elements (like the Enable button or detailed admin views) based on the state of the data.
--   **React Query Mutations:** Using  to handle data updates for new features like editing submissions and enabling portal access.
--   **Client-Side File Generation:** Using the  library to generate and download Excel files directly in the browser.
+-   **API-Driven Business Logic:** Core processes are controlled by backend API logic (e.g., delayed  generation).
+-   **Governance & RBAC:** Implemented field-level Role-Based Access Control in the backend to prevent unauthorized data manipulation. Changes are funneled into a structured approval workflow.
+-   **Audit Trails:** Logging all significant data changes to a separate collection () for compliance and tracking.
+-   **React Query:** Ongoing migration to centralize and standardize frontend data fetching and state management.
+-   **Legal Consent Flow:** A new workflow to ensure employees digitally accept legal documents before gaining full system access.
 
 **key DB schema**
--   No direct schema changes. However, the  field in the  collection will now be  for a longer period, until final Go-Live approval.
+-   ****: The  field is now  until final Go-Live approval.
+-   ** (NEW)**: 
+-   ** (NEW)**: 
+-   ** (NEW)**: 
 
 **changes in tech stack**
--   Added  (for Excel generation) to frontend .
+-   None in this session.
 
 **All files of reference**
--    (New Go-Live logic)
--    (Modified onboarding completion logic)
--    (New Enable Portal Access button)
--    (New Admin approval view)
--    (New edit functionality)
--    (New Excel export functionality)
--    (Updated with new feature requests)
--    (Contains reports from React Query migration testing)
+-    (New governance and workflow logic)
+-    (New consent logic)
+-    (Modified to enforce governance)
+-    (New workflow approval UI)
+-    (New consent UI)
+-    (Modified to show read-only fields)
+-    (Migration in progress)
+-    (Migration in progress)
+-   
 
 **Areas that need refactoring**:
 -   : Component is very large.
@@ -107,15 +113,17 @@ The application is a stable full-stack ERP with a React frontend, FastAPI backen
 -   : Likely an orphan file that should be deleted.
 
 **key api endpoints**
--   **NEW:**  - Updates a specific section of an onboarding form.
--   **NEW:**  - Fetches detailed data for the admin approval screen.
--   **MODIFIED:**  - Now generates the .
--   **MODIFIED:**  - No longer generates an .
+-   **NEW:**  - Creates a change request for a locked field.
+-   **NEW:**  - Fetches pending workflow requests.
+-   **NEW:**  - Approves a change request.
+-   **NEW:**  - Rejects a change request.
+-   **NEW:**  - Records an employee's consent.
+-   **MODIFIED:**  - Now blocks direct edits to protected fields and creates a workflow request instead.
 
 **Critical Info for New Agent**
--   The user has pivoted from the large refactoring task to implementing and changing core business features. Your immediate priority is to **validate the new Go-Live flow.** This is a critical process, and the implementation is completely untested.
--   After verifying the Go-Live flow, your next task should be to implement the **Excel upload** functionality, as this was part of the user's request and is still pending.
--   Once the new features are complete and verified, you can propose resuming the React Query migration to finish the remaining ~12 files.
+-   The user has confirmed the next priority is to continue and complete the React Query migration. You should resume the in-progress batch and then plan for the remaining components.
+-   A significant governance layer has been added. Edits to core employee fields like salary, department, and designation are no longer direct. They now go through an Admin-approval workflow, which the user has confirmed should remain Admin only.
+-   The Go-Live flow has been successfully tested and verified.
 
 **documents and test reports created in this job**
 -   
@@ -124,20 +132,20 @@ The application is a stable full-stack ERP with a React frontend, FastAPI backen
 -    (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **test:** The user wants to test the new Go-Live flow.
-2.  **Present new flow:** User confirms the desired flow where Employee ID is created after Go-Live approval.
-3.  **New flow... Admin sees all Employee details...:** User provides detailed requirements for the new flow.
-4.  **whats the current flow for go live?:** User asks for clarification on the existing process.
-5.  **i just created employee EMP0006...:** User reported a bug about a missing employee, which led to the new feature requests.
-6.  **i want HR and Admin to edit this section...:** User requests the edit and Excel features.
-7.  **this one:** User clarifies the edit feature request with a screenshot.
-8.  **as per your priority:** User gives agent discretion on how to proceed.
-9.  **yes:** User agrees to the agent's plan to continue migration.
-10. **Continue React Query migration...:** User confirms the plan for the next batch of migrations.
+1.  **Yes:** User confirms the agent's plan to start the next batch of React Query migrations. (COMPLETED)
+2.  **User Message:** Asks the agent to start the next batch of migrations. (COMPLETED)
+3.  **Yes:** User confirms the agent's summary and plan to move to the next migration batch. (COMPLETED)
+4.  **Admin only and move toward query pending 12:** User confirms the approval workflow should remain Admin-only and directs the agent to resume the React Query migration. (COMPLETED)
+5.  **Who is default set to approve right now? And where the request goes:** User asks for clarification on the new workflow approval process. (COMPLETED)
+6.  **User Message:** Acknowledges the completion of the Employee Workflows feature. (COMPLETED)
+7.  **Yes:** User confirms the agent's plan to create the Employee Workflow screens. (COMPLETED)
+8.  **User Message:** Acknowledges the completion of the Governance Audit. (COMPLETED)
+9.  **Yes as per your priority:** User gives the agent approval to proceed with the multi-phase governance audit plan. (COMPLETED)
+10. **do all i said earlier + one reference where manuplation is observed:** User confirms the governance audit request and provides a screenshot showing where direct data manipulation is possible. (COMPLETED)
 
 **Project Health Check:**
--   **Broken:** The Go-Live feature is potentially broken. Its code has been completely rewritten but has not undergone any testing. This is the highest priority risk.
--   **Mocked:** None.
+-   **Broken:** None
+-   **Mocked:** None
 
 **3rd Party Integrations**
 -   **React Query:** State management library.
@@ -147,13 +155,13 @@ The application is a stable full-stack ERP with a React frontend, FastAPI backen
 -   **react-to-print:** Used for generating printable views of components.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, for the React Query migration batches. However, it has NOT been used for the new Go-Live flow or edit/export features.
+-   **Testing agent used after significant changes:** YES. Used successfully for the Go-Live flow, the Governance Audit, and the Employee Workflows features.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None. Test reports from the testing agent are in .
--   **Known regressions:** None currently active. All previous regressions from refactoring were fixed.
+-   **Test files created:** None in this session. Reports are in .
+-   **Known regressions:** None.
 
 **Credentials to test flow:**
 -   Credentials can be found in .
 
 **What agent forgot to execute**
--   The agent did not implement the **Excel Upload** functionality that was requested by the user along with the Excel Download feature. This task is pending.</analysis>
+-   The **Excel Upload** functionality, requested alongside the download feature, has not yet been implemented. This task remains in the backlog.</analysis>

@@ -12,7 +12,7 @@ async def run_test():
         page = await context.new_page()
         
         test_results = []
-        base_url = "https://netra-approve-flow.preview.emergentagent.com"
+        base_url = "https://netra-erp.preview.emergentagent.com"
         
         # Step 1: Login
         print("=" * 60)
