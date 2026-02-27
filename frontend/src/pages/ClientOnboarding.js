@@ -198,27 +198,6 @@ const ClientOnboarding = () => {
   };
 
   const creatingKickoff = createKickoffMutation.isPending;
-      
-      await axios.post(`${API}/kickoff-requests`, {
-        agreement_id: agreementId,
-        lead_id: lead?.id || agreement?.lead_id,
-        project_name: kickoffForm.project_name,
-        client_name: lead?.company || agreement?.client_name,
-        assigned_pm_id: kickoffForm.assigned_pm_id,
-        assigned_pm_name: selectedPM ? `${selectedPM.first_name} ${selectedPM.last_name}` : '',
-        expected_start_date: kickoffForm.expected_start_date,
-        notes: kickoffForm.notes
-      });
-
-      toast.success('Kickoff request created successfully! Awaiting approval.');
-      await fetchData();
-      setCurrentStep(3);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create kickoff request');
-    } finally {
-      setCreatingKickoff(false);
-    }
-  };
 
   const agreementValue = agreement?.total_value || agreement?.grand_total || 0;
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
