@@ -125,15 +125,18 @@ const ProformaInvoice = () => {
     setSelectedPlanDetails(null);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${API}/quotations`, formData);
+  // Mutation: Create proforma invoice
+  const createInvoiceMutation = useMutation({
+    mutationFn: async (data) => {
+      return axios.post(`${API}/api/quotations`, data);
+    },
+    onSuccess: () => {
       toast.success('Proforma Invoice created successfully');
       setDialogOpen(false);
       setSelectedPlanDetails(null);
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
+    },
+    onError: (error) => {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
         toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
@@ -143,16 +146,29 @@ const ProformaInvoice = () => {
         toast.error('Failed to create proforma invoice');
       }
     }
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    createInvoiceMutation.mutate(formData);
   };
 
-  const handleFinalize = async (invoiceId) => {
-    try {
-      await axios.patch(`${API}/quotations/${invoiceId}/finalize`);
+  // Mutation: Finalize proforma invoice
+  const finalizeMutation = useMutation({
+    mutationFn: async (invoiceId) => {
+      return axios.patch(`${API}/api/quotations/${invoiceId}/finalize`);
+    },
+    onSuccess: () => {
       toast.success('Proforma Invoice finalized');
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['/api/quotations'] });
+    },
+    onError: () => {
       toast.error('Failed to finalize proforma invoice');
     }
+  });
+
+  const handleFinalize = async (invoiceId) => {
+    finalizeMutation.mutate(invoiceId);
   };
 
   const openViewDialog = (invoice) => {
