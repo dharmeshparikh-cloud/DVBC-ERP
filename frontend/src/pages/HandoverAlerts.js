@@ -12,23 +12,16 @@ import { formatINR } from '../utils/currency';
 const HandoverAlerts = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAlerts();
-  }, []);
-
-  const fetchAlerts = async () => {
-    try {
+  // React Query: Handover Alerts
+  const { data: alerts = [], isLoading: loading } = useQuery({
+    queryKey: ['projects', 'handover-alerts'],
+    queryFn: async () => {
       const response = await axios.get(`${API}/projects/handover-alerts`);
-      setAlerts(response.data);
-    } catch (error) {
-      toast.error('Failed to fetch handover alerts');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
   const getAlertStyle = (alertType) => {
     switch (alertType) {
