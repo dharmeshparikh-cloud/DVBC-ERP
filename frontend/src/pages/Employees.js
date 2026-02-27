@@ -271,7 +271,11 @@ const Employees = () => {
         bank_name: '',
         branch: '',
         account_holder_name: ''
-      }
+      },
+      // Governance fields - used to determine if employee is protected
+      onboarding_status: emp.onboarding_status,
+      has_portal_access: emp.has_portal_access,
+      go_live_status: emp.go_live_status
     });
     setEditDialog(true);
   };
