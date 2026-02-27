@@ -94,6 +94,7 @@ const RoleManagement = lazy(() => import('./pages/RoleManagement'));
 const RBACAdmin = lazy(() => import('./pages/RBACAdmin'));
 const LetterheadSettings = lazy(() => import('./pages/LetterheadSettings'));
 const AcceptOfferPage = lazy(() => import('./pages/AcceptOfferPage'));
+const ConsentPage = lazy(() => import('./pages/ConsentPage'));
 const AdminDashboardMockups = lazy(() => import('./pages/admin/AdminDashboardMockups'));
 const HelpContentAdmin = lazy(() => import('./pages/admin/HelpContentAdmin'));
 const FlowDiagram = lazy(() => import('./pages/FlowDiagram'));
