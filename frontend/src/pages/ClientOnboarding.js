@@ -30,16 +30,11 @@ const ClientOnboarding = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const agreementId = searchParams.get('agreementId');
   const leadId = searchParams.get('leadId');
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [agreement, setAgreement] = useState(null);
-  const [lead, setLead] = useState(null);
-  const [payments, setPayments] = useState([]);
-  const [consultants, setConsultants] = useState([]);
-  const [kickoffRequest, setKickoffRequest] = useState(null);
 
   // Payment Form
   const [paymentForm, setPaymentForm] = useState({
@@ -50,7 +45,6 @@ const ClientOnboarding = () => {
     utr_number: '',
     remarks: ''
   });
-  const [recordingPayment, setRecordingPayment] = useState(false);
 
   // Kickoff Form
   const [kickoffForm, setKickoffForm] = useState({
@@ -59,66 +53,91 @@ const ClientOnboarding = () => {
     expected_start_date: new Date().toISOString().split('T')[0],
     notes: ''
   });
-  const [creatingKickoff, setCreatingKickoff] = useState(false);
 
-  useEffect(() => {
-    if (agreementId) {
-      fetchData();
-    }
-  }, [agreementId]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  // Fetch all data using React Query
+  const { data: onboardingData, isLoading: loading, refetch: refetchData } = useQuery({
+    queryKey: ['client-onboarding', agreementId],
+    queryFn: async () => {
       const [agrRes, paymentsRes, consultantsRes] = await Promise.all([
         axios.get(`${API}/agreements/${agreementId}/full`),
         axios.get(`${API}/agreements/${agreementId}/payments`),
         axios.get(`${API}/consultants`)
       ]);
       
-      setAgreement(agrRes.data);
-      setPayments(paymentsRes.data.payments || []);
-      setConsultants(consultantsRes.data || []);
-      
-      // Set initial kickoff form values
-      setKickoffForm(prev => ({
-        ...prev,
-        project_name: agrRes.data.client_name ? `${agrRes.data.client_name} Project` : ''
-      }));
-      
-      // Fetch lead if available
+      let leadData = null;
       if (agrRes.data.lead_id) {
-        const leadRes = await axios.get(`${API}/leads/${agrRes.data.lead_id}`);
-        setLead(leadRes.data);
-        setKickoffForm(prev => ({
-          ...prev,
-          project_name: leadRes.data.company ? `${leadRes.data.company} Project` : prev.project_name
-        }));
+        try {
+          const leadRes = await axios.get(`${API}/leads/${agrRes.data.lead_id}`);
+          leadData = leadRes.data;
+        } catch (e) {
+          // Lead fetch failed
+        }
       }
-
-      // Check for existing kickoff request
+      
+      let kickoffData = null;
       try {
         const kickoffRes = await axios.get(`${API}/kickoff-requests?agreement_id=${agreementId}`);
         if (kickoffRes.data?.length > 0) {
-          setKickoffRequest(kickoffRes.data[0]);
-          // If kickoff already created, jump to complete step
-          if (kickoffRes.data[0].status === 'accepted') {
-            setCurrentStep(3);
-          }
+          kickoffData = kickoffRes.data[0];
         }
       } catch (e) {
         // No kickoff request yet
       }
       
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
+      return {
+        agreement: agrRes.data,
+        payments: paymentsRes.data.payments || [],
+        consultants: Array.isArray(consultantsRes.data) ? consultantsRes.data : [],
+        lead: leadData,
+        kickoffRequest: kickoffData
+      };
+    },
+    enabled: !!agreementId,
+    staleTime: 2 * 60 * 1000,
+    onError: () => toast.error('Failed to load data'),
+    onSuccess: (data) => {
+      // Set initial kickoff form values
+      const projectName = data.lead?.company 
+        ? `${data.lead.company} Project` 
+        : data.agreement?.client_name 
+          ? `${data.agreement.client_name} Project` 
+          : '';
+      setKickoffForm(prev => ({ ...prev, project_name: projectName }));
+      
+      // If kickoff already created and accepted, jump to complete step
+      if (data.kickoffRequest?.status === 'accepted') {
+        setCurrentStep(3);
+      }
     }
-  };
+  });
 
-  const handleRecordPayment = async () => {
+  const agreement = onboardingData?.agreement || null;
+  const payments = onboardingData?.payments || [];
+  const consultants = onboardingData?.consultants || [];
+  const lead = onboardingData?.lead || null;
+  const kickoffRequest = onboardingData?.kickoffRequest || null;
+
+  // Mutation for recording payment
+  const recordPaymentMutation = useMutation({
+    mutationFn: async (paymentData) => {
+      await axios.post(`${API}/agreements/${agreementId}/record-payment`, paymentData);
+    },
+    onSuccess: () => {
+      toast.success('Payment recorded successfully');
+      setPaymentForm({
+        amount: '',
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_mode: '',
+        cheque_number: '',
+        utr_number: '',
+        remarks: ''
+      });
+      queryClient.invalidateQueries({ queryKey: ['client-onboarding', agreementId] });
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to record payment')
+  });
+
+  const handleRecordPayment = () => {
     if (!paymentForm.amount || !paymentForm.payment_mode || !paymentForm.payment_date) {
       toast.error('Please fill in all required fields');
       return;
@@ -134,46 +153,51 @@ const ClientOnboarding = () => {
       return;
     }
 
-    setRecordingPayment(true);
-    try {
-      await axios.post(`${API}/agreements/${agreementId}/record-payment`, {
-        amount: parseFloat(paymentForm.amount),
-        payment_date: paymentForm.payment_date,
-        payment_mode: paymentForm.payment_mode,
-        cheque_number: paymentForm.cheque_number || null,
-        utr_number: paymentForm.utr_number || null,
-        remarks: paymentForm.remarks || null
-      });
-
-      toast.success('Payment recorded successfully');
-      
-      // Reset form and refresh
-      setPaymentForm({
-        amount: '',
-        payment_date: new Date().toISOString().split('T')[0],
-        payment_mode: '',
-        cheque_number: '',
-        utr_number: '',
-        remarks: ''
-      });
-      
-      await fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to record payment');
-    } finally {
-      setRecordingPayment(false);
-    }
+    recordPaymentMutation.mutate({
+      amount: parseFloat(paymentForm.amount),
+      payment_date: paymentForm.payment_date,
+      payment_mode: paymentForm.payment_mode,
+      cheque_number: paymentForm.cheque_number || null,
+      utr_number: paymentForm.utr_number || null,
+      remarks: paymentForm.remarks || null
+    });
   };
 
-  const handleCreateKickoff = async () => {
+  const recordingPayment = recordPaymentMutation.isPending;
+
+  // Mutation for creating kickoff
+  const createKickoffMutation = useMutation({
+    mutationFn: async (kickoffData) => {
+      await axios.post(`${API}/kickoff-requests`, kickoffData);
+    },
+    onSuccess: () => {
+      toast.success('Kickoff request created successfully');
+      queryClient.invalidateQueries({ queryKey: ['client-onboarding', agreementId] });
+      setCurrentStep(3);
+    },
+    onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create kickoff request')
+  });
+
+  const handleCreateKickoff = () => {
     if (!kickoffForm.assigned_pm_id || !kickoffForm.project_name) {
       toast.error('Please select a PM and enter project name');
       return;
     }
 
-    setCreatingKickoff(true);
-    try {
-      const selectedPM = consultants.find(c => c.id === kickoffForm.assigned_pm_id || c.employee_id === kickoffForm.assigned_pm_id);
+    const selectedPM = consultants.find(c => c.id === kickoffForm.assigned_pm_id || c.employee_id === kickoffForm.assigned_pm_id);
+    
+    createKickoffMutation.mutate({
+      agreement_id: agreementId,
+      lead_id: lead?.id || agreement?.lead_id,
+      project_name: kickoffForm.project_name,
+      assigned_pm_id: kickoffForm.assigned_pm_id,
+      assigned_pm_name: selectedPM?.name || selectedPM?.full_name || '',
+      expected_start_date: kickoffForm.expected_start_date,
+      notes: kickoffForm.notes
+    });
+  };
+
+  const creatingKickoff = createKickoffMutation.isPending;
       
       await axios.post(`${API}/kickoff-requests`, {
         agreement_id: agreementId,
