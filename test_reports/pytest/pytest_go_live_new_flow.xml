@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="11" failures="0" skipped="0" tests="11" time="0.971" timestamp="2026-02-27T14:20:09.860317+00:00" hostname="agent-env-a6a863f3-bbee-41b2-9fa9-93d922547de6"><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_golive_checklist_endpoint" time="0.281"><error message="failed on setup with &quot;AssertionError: HR login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:43: in hr_token
+    assert response.status_code == 200, f"HR login failed: {response.text}"
+E   AssertionError: HR login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_pending_golive_requests" time="0.140"><error message="failed on setup with &quot;AssertionError: Admin login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:31: in admin_token
+    assert response.status_code == 200, f"Admin login failed: {response.text}"
+E   AssertionError: Admin login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_golive_request_details_endpoint" time="0.001"><error message="failed on setup with &quot;AssertionError: Admin login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:31: in admin_token
+    assert response.status_code == 200, f"Admin login failed: {response.text}"
+E   AssertionError: Admin login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_golive_stats" time="0.001"><error message="failed on setup with &quot;AssertionError: Admin login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:31: in admin_token
+    assert response.status_code == 200, f"Admin login failed: {response.text}"
+E   AssertionError: Admin login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_onboarding_completion_no_employee_id" time="0.001"><error message="failed on setup with &quot;AssertionError: HR login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:43: in hr_token
+    assert response.status_code == 200, f"HR login failed: {response.text}"
+E   AssertionError: HR login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_employee_id_pending_flag" time="0.001"><error message="failed on setup with &quot;AssertionError: HR login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:43: in hr_token
+    assert response.status_code == 200, f"HR login failed: {response.text}"
+E   AssertionError: HR login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_enable_portal_access_api" time="0.001"><error message="failed on setup with &quot;AssertionError: Admin login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:31: in admin_token
+    assert response.status_code == 200, f"Admin login failed: {response.text}"
+E   AssertionError: Admin login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_golive_approval_generates_employee_id" time="0.001"><error message="failed on setup with &quot;AssertionError: Admin login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:31: in admin_token
+    assert response.status_code == 200, f"Admin login failed: {response.text}"
+E   AssertionError: Admin login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_hr_cannot_approve_golive" time="0.001"><error message="failed on setup with &quot;AssertionError: HR login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:43: in hr_token
+    assert response.status_code == 200, f"HR login failed: {response.text}"
+E   AssertionError: HR login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveNewFlow" name="test_all_golive_requests" time="0.001"><error message="failed on setup with &quot;AssertionError: Admin login failed: {&quot;detail&quot;:&quot;Employee ID or Email is required&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:31: in admin_token
+    assert response.status_code == 200, f"Admin login failed: {response.text}"
+E   AssertionError: Admin login failed: {"detail":"Employee ID or Email is required"}
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase><testcase classname="tests.test_go_live_new_flow.TestGoLiveSubmission" name="test_hr_can_submit_golive" time="0.165"><error message="failed on setup with &quot;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code&quot;">backend/tests/test_go_live_new_flow.py:384: in hr_token
+    assert response.status_code == 200
+E   assert 400 == 200
+E    +  where 400 = &lt;Response [400]&gt;.status_code</error></testcase></testsuite></testsuites>
