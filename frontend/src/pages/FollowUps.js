@@ -101,7 +101,6 @@ const FollowUps = () => {
     refetchPayments();
     refetchLeads();
   };
-  };
 
   const getStatusBadge = (status) => {
     const styles = {
