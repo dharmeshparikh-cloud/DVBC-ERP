@@ -340,7 +340,7 @@ const AgreementView = () => {
       });
       toast.success('Agreement signed successfully! Now select a Project Manager for kickoff.');
       setSignatureDialogOpen(false);
-      await fetchAgreementData();
+      await refetchAgreement();
       // Open PM selection dialog after successful signing
       setPmSelectionDialogOpen(true);
     } catch (error) {
@@ -411,7 +411,7 @@ const AgreementView = () => {
       toast.success('Signed agreement uploaded successfully');
       setUploadDialogOpen(false);
       setUploadFile(null);
-      await fetchAgreementData();
+      await refetchAgreement();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to upload document');
     } finally {
@@ -437,7 +437,7 @@ const AgreementView = () => {
       setSendDialogOpen(false);
       
       // Update agreement status to 'sent'
-      await fetchAgreementData();
+      await refetchAgreement();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to send agreement');
     } finally {
