@@ -55,7 +55,8 @@ const PaymentVerification = () => {
       const response = await axios.get(`${API}/agreements`, {
         params: { status: 'approved' }
       });
-      return (response.data || []).filter(a => 
+      const data = Array.isArray(response.data) ? response.data : [];
+      return data.filter(a => 
         ['approved', 'signed', 'sent'].includes(a.status)
       );
     },
@@ -63,7 +64,7 @@ const PaymentVerification = () => {
     onError: () => toast.error('Failed to load agreements')
   });
 
-  const agreements = agreementsData;
+  const agreements = Array.isArray(agreementsData) ? agreementsData : [];
 
   // Handle agreement ID param
   useEffect(() => {
