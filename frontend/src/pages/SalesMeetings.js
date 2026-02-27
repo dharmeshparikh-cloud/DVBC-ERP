@@ -201,7 +201,7 @@ const SalesMeetings = () => {
       });
       toast.success('MOM saved & meeting completed');
       setMomDialogOpen(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['sales-meetings'] });
     } catch (error) { 
       toast.error(error.response?.data?.detail || 'Failed to save MOM'); 
     }
