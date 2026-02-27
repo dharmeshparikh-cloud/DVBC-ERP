@@ -37,8 +37,7 @@ const STATUS_STYLES = {
 
 const HRStaffingRequests = () => {
   const { user } = useContext(AuthContext);
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -63,21 +62,89 @@ const HRStaffingRequests = () => {
   const isAdmin = user?.role === 'admin';
   const isHR = ['admin', 'hr_manager'].includes(user?.role);
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  // React Query: Staffing Requests
+  const { data: requests = [], isLoading: loading } = useQuery({
+    queryKey: ['staffing-requests'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/staffing-requests`);
+      return res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  const fetchRequests = async () => {
-    try {
-      const response = await axios.get(`${API}/staffing-requests`);
-      setRequests(response.data);
-    } catch (error) {
-      console.error('Failed to fetch staffing requests:', error);
-      toast.error('Failed to load staffing requests');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Mutation: Create Request
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
+      await axios.post(`${API}/staffing-requests`, {
+        ...data,
+        experience_years: data.experience_years ? parseInt(data.experience_years) : null,
+        headcount: parseInt(data.headcount) || 1
+      });
+    },
+    onSuccess: () => {
+      toast.success('Staffing request submitted for Admin approval');
+      setShowCreateDialog(false);
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ['staffing-requests'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to submit request');
+    },
+  });
+
+  // Mutation: Approve Request
+  const approveMutation = useMutation({
+    mutationFn: async (requestId) => {
+      await axios.patch(`${API}/staffing-requests/${requestId}/approve`);
+      return requestId;
+    },
+    onSuccess: (requestId) => {
+      toast.success('Request approved');
+      queryClient.invalidateQueries({ queryKey: ['staffing-requests'] });
+      if (selectedRequest && selectedRequest.id === requestId) {
+        setSelectedRequest(prev => ({ ...prev, status: 'approved' }));
+      }
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to approve request');
+    },
+  });
+
+  // Mutation: Reject Request
+  const rejectMutation = useMutation({
+    mutationFn: async ({ requestId, reason }) => {
+      await axios.patch(`${API}/staffing-requests/${requestId}/reject`, { reason });
+      return requestId;
+    },
+    onSuccess: (requestId) => {
+      toast.success('Request rejected');
+      queryClient.invalidateQueries({ queryKey: ['staffing-requests'] });
+      if (selectedRequest && selectedRequest.id === requestId) {
+        setSelectedRequest(prev => ({ ...prev, status: 'rejected' }));
+      }
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to reject request');
+    },
+  });
+
+  // Mutation: Fulfill Request
+  const fulfillMutation = useMutation({
+    mutationFn: async ({ requestId, notes }) => {
+      await axios.patch(`${API}/staffing-requests/${requestId}/fulfill`, { fulfillment_notes: notes });
+      return requestId;
+    },
+    onSuccess: (requestId) => {
+      toast.success('Request marked as fulfilled');
+      queryClient.invalidateQueries({ queryKey: ['staffing-requests'] });
+      if (selectedRequest && selectedRequest.id === requestId) {
+        setSelectedRequest(prev => ({ ...prev, status: 'fulfilled' }));
+      }
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to fulfill request');
+    },
+  });
 
   const handleCreateRequest = async (e) => {
     e.preventDefault();
@@ -85,20 +152,29 @@ const HRStaffingRequests = () => {
       toast.error('Please fill all required fields');
       return;
     }
-
     setSubmitting(true);
     try {
-      await axios.post(`${API}/staffing-requests`, {
-        ...formData,
-        experience_years: formData.experience_years ? parseInt(formData.experience_years) : null,
-        headcount: parseInt(formData.headcount) || 1
-      });
-      toast.success('Staffing request submitted for Admin approval');
-      setShowCreateDialog(false);
-      resetForm();
-      fetchRequests();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit request');
+      await createMutation.mutateAsync(formData);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleApprove = (requestId) => {
+    approveMutation.mutate(requestId);
+  };
+
+  const handleReject = (requestId) => {
+    const reason = prompt('Please enter rejection reason:');
+    if (!reason) return;
+    rejectMutation.mutate({ requestId, reason });
+  };
+
+  const handleFulfill = (requestId) => {
+    const notes = prompt('Enter fulfillment notes (e.g., hired candidates, timeline):');
+    if (!notes) return;
+    fulfillMutation.mutate({ requestId, notes });
+  };
     } finally {
       setSubmitting(false);
     }
