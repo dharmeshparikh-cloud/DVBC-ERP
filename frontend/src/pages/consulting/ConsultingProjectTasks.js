@@ -144,13 +144,12 @@ const ConsultingProjectTasks = () => {
     setEditTaskDialog(true);
   };
 
-  const saveTask = async () => {
-    if (!selectedTask) return;
-    
-    try {
-      await axios.patch(
-        `${API}/enhanced-sow/${sow.id}/scopes/${selectedTask.id}`,
-        taskEdits,
+  // Mutation for saving task
+  const saveTaskMutation = useMutation({
+    mutationFn: async ({ taskId, edits }) => {
+      const response = await axios.patch(
+        `${API}/enhanced-sow/${sow.id}/scopes/${taskId}`,
+        edits,
         {
           params: {
             current_user_id: user?.id,
@@ -159,64 +158,78 @@ const ConsultingProjectTasks = () => {
           }
         }
       );
-      
+      return response.data;
+    },
+    onSuccess: () => {
       toast.success('Task updated successfully');
       setEditTaskDialog(false);
       setSelectedTask(null);
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['sow', sowId] });
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to update task');
     }
+  });
+
+  const saveTask = () => {
+    if (!selectedTask) return;
+    saveTaskMutation.mutate({ taskId: selectedTask.id, edits: taskEdits });
   };
+
+  // Mutation for file upload
+  const uploadFileMutation = useMutation({
+    mutationFn: async ({ taskId, fileData }) => {
+      const response = await axios.post(
+        `${API}/enhanced-sow/${sow.id}/scopes/${taskId}/attachments`,
+        fileData,
+        {
+          params: {
+            current_user_id: user?.id,
+            current_user_name: user?.full_name || user?.email
+          }
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('File uploaded successfully');
+      setUploadDialog(false);
+      setUploadData({ file: null, description: '' });
+      queryClient.invalidateQueries({ queryKey: ['sow', sowId] });
+    },
+    onError: () => {
+      toast.error('Failed to upload file');
+    }
+  });
 
   const handleFileUpload = async () => {
     if (!uploadData.file || !selectedTask) return;
     
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const base64 = e.target.result.split(',')[1];
-        
-        await axios.post(
-          `${API}/enhanced-sow/${sow.id}/scopes/${selectedTask.id}/attachments`,
-          {
-            filename: uploadData.file.name,
-            file_data: base64,
-            description: uploadData.description
-          },
-          {
-            params: {
-              current_user_id: user?.id,
-              current_user_name: user?.full_name || user?.email
-            }
-          }
-        );
-        
-        toast.success('File uploaded successfully');
-        setUploadDialog(false);
-        setUploadData({ file: null, description: '' });
-        fetchData();
-      };
-      reader.readAsDataURL(uploadData.file);
-    } catch (error) {
-      toast.error('Failed to upload file');
-    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target.result.split(',')[1];
+      uploadFileMutation.mutate({
+        taskId: selectedTask.id,
+        fileData: {
+          filename: uploadData.file.name,
+          file_data: base64,
+          description: uploadData.description
+        }
+      });
+    };
+    reader.readAsDataURL(uploadData.file);
   };
 
-  const sendForApproval = async () => {
-    if (approvalData.scope_ids.length === 0) {
-      toast.error('Please select at least one scope');
-      return;
-    }
-    
-    try {
-      const endpoint = approvalType === 'manager' 
+  // Mutation for approval
+  const sendApprovalMutation = useMutation({
+    mutationFn: async ({ type, data }) => {
+      const endpoint = type === 'manager' 
         ? `${API}/enhanced-sow/${sow.id}/request-manager-approval`
         : `${API}/enhanced-sow/${sow.id}/roadmap/submit`;
       
-      await axios.post(endpoint, {
-        scope_ids: approvalData.scope_ids,
-        notes: approvalData.notes,
+      const response = await axios.post(endpoint, {
+        scope_ids: data.scope_ids,
+        notes: data.notes,
         approval_cycle: 'monthly',
         period_label: format(new Date(), 'MMMM yyyy')
       }, {
@@ -225,14 +238,25 @@ const ConsultingProjectTasks = () => {
           current_user_name: user?.full_name || user?.email
         }
       });
-      
-      toast.success(`Sent for ${approvalType === 'manager' ? 'manager' : 'client'} approval`);
+      return response.data;
+    },
+    onSuccess: (_, { type }) => {
+      toast.success(`Sent for ${type === 'manager' ? 'manager' : 'client'} approval`);
       setApprovalDialog(false);
       setApprovalData({ notes: '', scope_ids: [] });
-      fetchData();
-    } catch (error) {
+      queryClient.invalidateQueries({ queryKey: ['sow', sowId] });
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to send for approval');
     }
+  });
+
+  const sendForApproval = () => {
+    if (approvalData.scope_ids.length === 0) {
+      toast.error('Please select at least one scope');
+      return;
+    }
+    sendApprovalMutation.mutate({ type: approvalType, data: approvalData });
   };
 
   const toggleScopeForApproval = (scopeId) => {
