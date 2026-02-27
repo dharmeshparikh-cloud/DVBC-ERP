@@ -29,13 +29,11 @@ const PaymentVerification = () => {
   const { user } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const agreementIdParam = searchParams.get('agreement_id');
+  const queryClient = useQueryClient();
   
-  const [agreements, setAgreements] = useState([]);
   const [selectedAgreement, setSelectedAgreement] = useState(null);
   const [eligibilityStatus, setEligibilityStatus] = useState(null);
   const [quotationDetails, setQuotationDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -50,34 +48,30 @@ const PaymentVerification = () => {
     notes: ''
   });
 
-  useEffect(() => {
-    fetchAgreements();
-  }, []);
+  // Fetch agreements using React Query
+  const { data: agreementsData = [], isLoading: loading } = useQuery({
+    queryKey: ['agreements', 'approved'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/agreements`, {
+        params: { status: 'approved' }
+      });
+      return (response.data || []).filter(a => 
+        ['approved', 'signed', 'sent'].includes(a.status)
+      );
+    },
+    staleTime: 3 * 60 * 1000,
+    onError: () => toast.error('Failed to load agreements')
+  });
 
+  const agreements = agreementsData;
+
+  // Handle agreement ID param
   useEffect(() => {
-    if (agreementIdParam) {
+    if (agreementIdParam && agreements.length > 0) {
       setFormData(prev => ({ ...prev, agreement_id: agreementIdParam }));
       handleAgreementSelect(agreementIdParam);
     }
   }, [agreementIdParam, agreements]);
-
-  const fetchAgreements = async () => {
-    try {
-      // Fetch signed/approved agreements that may need payment verification
-      const response = await axios.get(`${API}/agreements`, {
-        params: { status: 'approved' }
-      });
-      const approvedAgreements = response.data.filter(a => 
-        ['approved', 'signed', 'sent'].includes(a.status)
-      );
-      setAgreements(approvedAgreements);
-    } catch (error) {
-      console.error('Failed to fetch agreements:', error);
-      toast.error('Failed to load agreements');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAgreementSelect = async (agreementId) => {
     const agreement = agreements.find(a => a.id === agreementId);
@@ -133,6 +127,36 @@ const PaymentVerification = () => {
     }
   };
 
+  // Mutation for verifying payment
+  const verifyPaymentMutation = useMutation({
+    mutationFn: async (payload) => {
+      const response = await axios.post(`${API}/payments/verify-installment`, payload);
+      return response.data;
+    },
+    onSuccess: async () => {
+      toast.success('Payment verified successfully! SOW has been handed over to Consulting.');
+      setShowVerifyDialog(false);
+      
+      // Refresh eligibility status
+      const eligibilityRes = await axios.get(`${API}/payments/check-eligibility/${formData.agreement_id}`);
+      setEligibilityStatus(eligibilityRes.data);
+      
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+    onError: (error) => {
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+      } else if (typeof detail === 'string') {
+        toast.error(detail);
+      } else {
+        toast.error('Failed to verify payment');
+      }
+    }
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -146,35 +170,16 @@ const PaymentVerification = () => {
       return;
     }
     
-    setSubmitting(true);
-    try {
-      const payload = {
-        ...formData,
-        payment_date: new Date(formData.payment_date).toISOString(),
-        pricing_plan_id: selectedAgreement?.pricing_plan_id || quotationDetails?.pricing_plan_id
-      };
-      
-      await axios.post(`${API}/payments/verify-installment`, payload);
-      toast.success('Payment verified successfully! SOW has been handed over to Consulting.');
-      setShowVerifyDialog(false);
-      
-      // Refresh eligibility status
-      const eligibilityRes = await axios.get(`${API}/payments/check-eligibility/${formData.agreement_id}`);
-      setEligibilityStatus(eligibilityRes.data);
-      
-    } catch (error) {
-      const detail = error.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
-      } else if (typeof detail === 'string') {
-        toast.error(detail);
-      } else {
-        toast.error('Failed to verify payment');
-      }
-    } finally {
-      setSubmitting(false);
-    }
+    const payload = {
+      ...formData,
+      payment_date: new Date(formData.payment_date).toISOString(),
+      pricing_plan_id: selectedAgreement?.pricing_plan_id || quotationDetails?.pricing_plan_id
+    };
+    
+    verifyPaymentMutation.mutate(payload);
   };
+
+  const submitting = verifyPaymentMutation.isPending;
 
   const handleProceedToKickoff = () => {
     navigate(`/sales-funnel/kickoff-requests?agreement_id=${selectedAgreement.id}`);
