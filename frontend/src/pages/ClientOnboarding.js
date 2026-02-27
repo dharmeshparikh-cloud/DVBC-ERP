@@ -212,6 +212,20 @@ const ClientOnboarding = () => {
     }).format(amount || 0);
   };
 
+  // Early return if no agreementId provided
+  if (!agreementId) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center">
+        <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Agreement Not Found</h2>
+        <p className="text-zinc-500 mb-6">No agreement ID was provided.</p>
+        <Button onClick={() => navigate('/sales-funnel/agreements')}>
+          Go to Agreements
+        </Button>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
