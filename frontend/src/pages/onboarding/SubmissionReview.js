@@ -842,16 +842,24 @@ const SubmissionReview = () => {
                 <CreditCard className="w-4 h-4" />
                 Bank Details
               </CardTitle>
-              {hv.bank_verified ? (
-                <Badge className="bg-green-100 text-green-700">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  Verified
-                </Badge>
-              ) : canApprove && submission.status === 'submitted' ? (
-                <Button size="sm" onClick={handleVerifyBank} disabled={processing}>
-                  Verify Bank
-                </Button>
-              ) : null}
+              <div className="flex items-center gap-2">
+                {canApprove && (
+                  <Button size="sm" variant="outline" onClick={openEditBank}>
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit
+                  </Button>
+                )}
+                {hv.bank_verified ? (
+                  <Badge className="bg-green-100 text-green-700">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Verified
+                  </Badge>
+                ) : canApprove && submission.status === 'submitted' ? (
+                  <Button size="sm" onClick={handleVerifyBank} disabled={processing}>
+                    Verify Bank
+                  </Button>
+                ) : null}
+              </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -875,11 +883,17 @@ const SubmissionReview = () => {
 
           {/* Emergency Contact */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Phone className="w-4 h-4" />
                 Emergency Contact
               </CardTitle>
+              {canApprove && (
+                <Button size="sm" variant="outline" onClick={openEditEmergency}>
+                  <Edit className="w-3 h-3 mr-1" />
+                  Edit
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
               <div>
