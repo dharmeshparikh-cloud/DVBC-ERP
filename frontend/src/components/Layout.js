@@ -22,7 +22,7 @@ import {
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings,
   Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard, KeyRound,
   FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target, ArrowRight, Circle,
-  HelpCircle, ArrowRightLeft, Wifi, WifiOff
+  HelpCircle, ArrowRightLeft, Wifi, WifiOff, Edit
 } from 'lucide-react';
 
 // Legacy role-based access (kept for backward compatibility only when API fails)
@@ -284,22 +284,20 @@ const Layout = () => {
     { name: 'Go-Live Dashboard', href: '/go-live', icon: Rocket, requiresHRorAdmin: true },
   ];
   
-  // Group 2: Employee Management
+  // Group 2: Employee Management (CONSOLIDATED)
   const hrEmployeeItems = [
     { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
-    { name: 'Employee Workflows', href: '/employee-workflows', icon: ArrowRightLeft, requiresHRorAdmin: true },
-    { name: 'Employee Permissions', href: '/employee-permissions', icon: Shield, requiresHRorAdmin: true },
-    { name: 'Password Management', href: '/password-management', icon: Key, requiresHRorAdmin: true },
+    { name: 'Employee Change Requests', href: '/employee-workflows', icon: ArrowRightLeft, requiresHRorAdmin: true },
+    { name: 'Access & Permissions', href: '/employee-access-permissions', icon: Shield, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
   ];
   
-  // Group 3: Attendance & Leave
+  // Group 3: Attendance & Leave (CONSOLIDATED)
   const hrAttendanceItems = [
     { name: 'Leave & Attendance', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
-    { name: 'HR Leave Input', href: '/hr-leave-input', icon: Calendar, requiresHRorAdmin: true },
-    { name: 'HR Attendance Input', href: '/hr-attendance-input', icon: Clock, requiresHRorAdmin: true },
-    { name: 'Attendance & Leave Settings', href: '/attendance-leave-settings', icon: Settings, requiresHRorAdmin: true },
-    { name: 'Leave Policy Management', href: '/leave-policy-settings', icon: Calendar, requiresHRorAdmin: true },
+    { name: 'HR Manual Entry', href: '/hr-manual-entry', icon: Edit, requiresHRorAdmin: true },
+    { name: 'Attendance Settings', href: '/attendance-leave-settings', icon: Settings, requiresHRorAdmin: true },
+    { name: 'Leave Policy Settings', href: '/leave-policy-settings', icon: Calendar, requiresHRorAdmin: true },
   ];
   
   // Group 4: Payroll

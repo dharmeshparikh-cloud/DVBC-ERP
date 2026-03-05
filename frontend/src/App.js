@@ -88,6 +88,7 @@ const AdminMasters = lazy(() => import('./pages/AdminMasters'));
 const PermissionManager = lazy(() => import('./pages/PermissionManager'));
 const PermissionDashboard = lazy(() => import('./pages/PermissionDashboard'));
 const EmployeePermissions = lazy(() => import('./pages/EmployeePermissions'));
+const EmployeeAccessPermissions = lazy(() => import('./pages/EmployeeAccessPermissions'));
 const DepartmentAccessManager = lazy(() => import('./pages/DepartmentAccessManager'));
 const ExpenseApprovals = lazy(() => import('./pages/ExpenseApprovals'));
 const EmployeeScorecard = lazy(() => import('./pages/EmployeeScorecard'));
@@ -124,6 +125,7 @@ const EmployeeMobileApp = lazy(() => import('./pages/EmployeeMobileApp'));
 const HRAttendanceApprovals = lazy(() => import('./pages/hr/HRAttendanceApprovals'));
 const HRAttendanceInput = lazy(() => import('./pages/hr/HRAttendanceInput'));
 const HRLeaveInput = lazy(() => import('./pages/hr/HRLeaveInput'));
+const HRManualEntry = lazy(() => import('./pages/hr/HRManualEntry'));
 const PayrollSummaryReport = lazy(() => import('./pages/hr/PayrollSummaryReport'));
 const AttendanceLeaveSettings = lazy(() => import('./pages/hr/AttendanceLeaveSettings'));
 const LeavePolicySettings = lazy(() => import('./pages/hr/LeavePolicySettings'));
@@ -316,7 +318,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="profile" element={<UserProfile />} />
         <Route path="user-management" element={<UserManagement />} />
         <Route path="employees" element={<Employees />} />
-        <Route path="password-management" element={<PasswordManagement />} />
+        <Route path="password-management" element={<EmployeeAccessPermissions />} />
+        <Route path="employee-access-permissions" element={<EmployeeAccessPermissions />} />
         <Route path="approvals" element={<ApprovalsCenter />} />
         <Route path="manager-leads" element={<ManagerLeadsDashboard />} />
         <Route path="team-leads" element={<Navigate to="/manager-leads" replace />} />
@@ -336,7 +339,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="admin-masters" element={<AdminMasters />} />
         <Route path="permission-manager" element={<PermissionManager />} />
         <Route path="permission-dashboard" element={<PermissionDashboard />} />
-        <Route path="employee-permissions" element={<EmployeePermissions />} />
+        <Route path="employee-permissions" element={<EmployeeAccessPermissions />} />
         <Route path="department-access" element={<DepartmentAccessManager />} />
         <Route path="expense-approvals" element={<Navigate to="/approvals" replace />} />
         <Route path="employee-scorecard" element={<EmployeeScorecard />} />
@@ -364,8 +367,9 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="onboarding/review/:submissionId" element={<SubmissionReview />} />
         <Route path="new-joiner-pipeline" element={<NewJoinerPipeline />} />
         <Route path="attendance-approvals" element={<HRAttendanceApprovals />} />
-        <Route path="hr-attendance-input" element={<HRAttendanceInput />} />
-        <Route path="hr-leave-input" element={<HRLeaveInput />} />
+        <Route path="hr-attendance-input" element={<HRManualEntry />} />
+        <Route path="hr-leave-input" element={<HRManualEntry />} />
+        <Route path="hr-manual-entry" element={<HRManualEntry />} />
         <Route path="payroll-summary-report" element={<PayrollSummaryReport />} />
         <Route path="attendance-leave-settings" element={<AttendanceLeaveSettings />} />
         <Route path="leave-policy-settings" element={<LeavePolicySettings />} />
