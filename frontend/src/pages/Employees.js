@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -15,7 +14,22 @@ import {
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import MobileAppWidget from '../components/MobileAppWidget';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useAllEmployees,
+  useDepartmentsList,
+  useEmployeeStats,
+  useOrgChart,
+  useEmployee,
+  useUpdateEmployee,
+  useDeleteEmployee,
+  useLinkEmployeeToUser,
+  useGrantEmployeeAccess,
+  useRevokeEmployeeAccess,
+  useUnlinkEmployeeFromUser,
+  useUpdateMobileAccess
+} from '../hooks/useEmployees';
+import { useUsersWithRoles } from '../hooks/useUserManagement';
 
 const EMPLOYMENT_TYPES = [
   { value: 'full_time', label: 'Full Time' },
@@ -81,56 +95,25 @@ const Employees = () => {
   const isHRManager = user?.role === 'hr_manager';
   const canManage = isAdmin || isHRManager;
 
-  // Fetch employees with React Query (caching enabled)
-  const { data: employeesData, isLoading: loading, refetch: refetchEmployees } = useQuery({
-    queryKey: ['employees-all'],
-    queryFn: async () => {
-      const [empRes, deptRes] = await Promise.all([
-        axios.get(`${API}/employees/all`),
-        axios.get(`${API}/employees/departments/list`)
-      ]);
-      return {
-        employees: Array.isArray(empRes.data) ? empRes.data : [],
-        departments: deptRes.data || []
-      };
-    },
-    staleTime: 3 * 60 * 1000, // 3 minutes
-  });
+  // React Query: Fetch employees and departments using hooks
+  const { data: employeesRaw = [], isLoading: empLoading, refetch: refetchEmployees } = useAllEmployees();
+  const { data: departments = [] } = useDepartmentsList();
+  const { data: stats } = useEmployeeStats();
+  const { data: usersWithRoles = [] } = useUsersWithRoles();
+  const { data: orgChart } = useOrgChart({ enabled: activeView === 'orgchart' });
+  
+  // Wrap employees in expected format
+  const employees = useMemo(() => employeesRaw, [employeesRaw]);
+  const loading = empLoading;
 
-  const employees = employeesData?.employees || [];
-  const departments = employeesData?.departments || [];
-
-  // Fetch stats for HR (separate query)
-  const { data: stats } = useQuery({
-    queryKey: ['employees-stats'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/employees/stats/summary`);
-      return res.data;
-    },
-    enabled: canManage,
-    staleTime: 3 * 60 * 1000,
-  });
-
-  // Fetch users for linking
-  const { data: users = [] } = useQuery({
-    queryKey: ['users-with-roles'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/users-with-roles`);
-      return res.data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Fetch org chart when needed
-  const { data: orgChart = [], refetch: refetchOrgChart } = useQuery({
-    queryKey: ['employees-org-chart'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/employees/org-chart/hierarchy`);
-      return res.data || [];
-    },
-    enabled: activeView === 'orgchart',
-    staleTime: 5 * 60 * 1000,
-  });
+  // React Query: Mutations
+  const updateEmployeeMutation = useUpdateEmployee();
+  const deleteEmployeeMutation = useDeleteEmployee();
+  const linkUserMutation = useLinkEmployeeToUser();
+  const grantAccessMutation = useGrantEmployeeAccess();
+  const revokeAccessMutation = useRevokeEmployeeAccess();
+  const unlinkUserMutation = useUnlinkEmployeeFromUser();
+  const updateMobileAccessMutation = useUpdateMobileAccess();
 
   // Handle URL parameters for editing (from Go-Live Dashboard)
   useEffect(() => {
@@ -150,104 +133,85 @@ const Employees = () => {
     }
   }, [employees]);
 
-  const handleUpdateEmployee = async () => {
+  const handleUpdateEmployee = () => {
     if (!selectedEmployee) return;
 
-    try {
-      const payload = {
-        ...formData,
-        salary: formData.salary ? parseFloat(formData.salary) : null,
-        joining_date: formData.joining_date ? new Date(formData.joining_date).toISOString() : null,
-        bank_details: formData.bank_details.account_number ? formData.bank_details : null
-      };
+    const payload = {
+      id: selectedEmployee.id,
+      ...formData,
+      salary: formData.salary ? parseFloat(formData.salary) : null,
+      joining_date: formData.joining_date ? new Date(formData.joining_date).toISOString() : null,
+      bank_details: formData.bank_details.account_number ? formData.bank_details : null
+    };
 
-      await axios.patch(`${API}/employees/${selectedEmployee.id}`, payload);
-      toast.success('Employee updated successfully');
-      setEditDialog(false);
-      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update employee');
-    }
+    updateEmployeeMutation.mutate(payload, {
+      onSuccess: () => {
+        toast.success('Employee updated successfully');
+        setEditDialog(false);
+        setSelectedEmployee(null);
+      },
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update employee')
+    });
   };
 
-  const handleDeleteEmployee = async (employeeId) => {
-    if (!window.confirm('Are you sure you want to deactivate this employee?')) return;
+  const handleDeleteEmployee = (employeeId) => {
+    if (!window.confirm('Are you sure you want to delete this employee?')) return;
 
-    try {
-      await axios.delete(`${API}/employees/${employeeId}`);
-      toast.success('Employee deactivated');
-      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to deactivate employee');
-    }
+    deleteEmployeeMutation.mutate(employeeId, {
+      onSuccess: () => toast.success('Employee deleted successfully'),
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to delete employee')
+    });
   };
 
-  const handleLinkUser = async (userId) => {
-    if (!selectedEmployee) return;
-
-    try {
-      await axios.post(`${API}/employees/${selectedEmployee.id}/link-user?user_id=${userId}`);
-      toast.success('Employee linked to user');
-      setLinkUserDialog(false);
-      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to link user');
-    }
+  const handleLinkUser = (userId) => {
+    linkUserMutation.mutate({ employeeId: selectedEmployee.id, userId }, {
+      onSuccess: () => {
+        toast.success('User linked successfully');
+        setLinkUserDialog(false);
+      },
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to link user')
+    });
   };
 
-  const handleGrantAccess = async () => {
-    if (!selectedEmployee) return;
-
-    try {
-      const res = await axios.post(`${API}/employees/${selectedEmployee.id}/grant-access`, {
-        employee_id: selectedEmployee.id,
-        role: accessFormData.role,
-        password: accessFormData.password
-      });
-      toast.success(`System access granted! Email: ${res.data.email}, Password: ${res.data.temporary_password}`);
-      setGrantAccessDialog(false);
-      setAccessFormData({ role: 'consultant', password: 'Welcome@123' });
-      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to grant access');
-    }
+  const handleGrantAccess = () => {
+    grantAccessMutation.mutate({
+      employeeId: selectedEmployee.id,
+      role: accessFormData.role,
+      password: accessFormData.password
+    }, {
+      onSuccess: (data) => {
+        toast.success(`Portal access granted! User ID: ${data.user?.employee_id || selectedEmployee.employee_id}`);
+        setGrantAccessDialog(false);
+      },
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to grant access')
+    });
   };
 
-  const handleRevokeAccess = async (employeeId) => {
-    if (!window.confirm('Revoke system access for this employee? They will no longer be able to login.')) return;
+  const handleRevokeAccess = (employeeId) => {
+    if (!window.confirm('Are you sure you want to revoke portal access?')) return;
 
-    try {
-      await axios.delete(`${API}/employees/${employeeId}/revoke-access`);
-      toast.success('System access revoked');
-      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to revoke access');
-    }
+    revokeAccessMutation.mutate(employeeId, {
+      onSuccess: () => toast.success('Access revoked'),
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to revoke access')
+    });
   };
 
-  const handleUnlinkUser = async (employeeId) => {
-    if (!window.confirm('Remove system access link for this employee?')) return;
+  const handleUnlinkUser = (employeeId) => {
+    if (!window.confirm('Unlink this employee from their user account?')) return;
 
-    try {
-      await axios.post(`${API}/employees/${employeeId}/unlink-user`);
-      toast.success('User unlinked');
-      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to unlink user');
-    }
+    unlinkUserMutation.mutate(employeeId, {
+      onSuccess: () => toast.success('User unlinked'),
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to unlink user')
+    });
   };
 
-  const handleToggleMobileAccess = async (employeeId, currentlyDisabled) => {
-    try {
-      await axios.put(`${API}/hr/employee/${employeeId}/mobile-access`, {
-        disabled: !currentlyDisabled,
-        reason: currentlyDisabled ? '' : 'Disabled by admin'
-      });
-      toast.success(`Mobile app access ${currentlyDisabled ? 'enabled' : 'disabled'}`);
-      queryClient.invalidateQueries({ queryKey: ['employees-all'] });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to toggle mobile access');
-    }
+  const handleToggleMobileAccess = (employeeId, currentEnabled) => {
+    const newEnabled = !currentEnabled;
+
+    updateMobileAccessMutation.mutate({ employeeId, mobileEnabled: newEnabled }, {
+      onSuccess: () => toast.success(`Mobile access ${newEnabled ? 'enabled' : 'disabled'}`),
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update mobile access')
+    });
   };
 
   const openEditDialog = (emp) => {
@@ -280,14 +244,10 @@ const Employees = () => {
     setEditDialog(true);
   };
 
-  const openViewDialog = async (emp) => {
-    try {
-      const res = await axios.get(`${API}/employees/${emp.id}`);
-      setSelectedEmployee(res.data);
-      setViewDialog(true);
-    } catch (error) {
-      toast.error('Failed to load employee details');
-    }
+  const openViewDialog = (emp) => {
+    // Use cached employee data directly, full details can be fetched if needed
+    setSelectedEmployee(emp);
+    setViewDialog(true);
   };
 
   const filteredEmployees = employees.filter(emp => {
@@ -668,7 +628,7 @@ const Employees = () => {
             <CardTitle className="text-base font-semibold text-zinc-950">Organizational Hierarchy</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            {orgChart.length === 0 ? (
+            {!orgChart || orgChart.length === 0 ? (
               <div className="text-center py-12 text-zinc-400">
                 No organizational structure found. Set reporting managers to build the hierarchy.
               </div>
@@ -886,7 +846,7 @@ const Employees = () => {
               Select a user account to give <strong>{selectedEmployee?.first_name} {selectedEmployee?.last_name}</strong> system access.
             </p>
             <div className="max-h-64 overflow-y-auto space-y-2">
-              {users.filter(u => !employees.some(e => e.user_id === u.id)).map(u => (
+              {usersWithRoles.filter(u => !employees.some(e => e.user_id === u.id)).map(u => (
                 <div 
                   key={u.id}
                   onClick={() => handleLinkUser(u.id)}
@@ -900,7 +860,7 @@ const Employees = () => {
                 </div>
               ))}
             </div>
-            {users.filter(u => !employees.some(e => e.user_id === u.id)).length === 0 && (
+            {usersWithRoles.filter(u => !employees.some(e => e.user_id === u.id)).length === 0 && (
               <p className="text-center py-4 text-zinc-400">All users are already linked to employees.</p>
             )}
           </div>

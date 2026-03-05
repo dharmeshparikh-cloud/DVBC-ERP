@@ -186,6 +186,182 @@ export const useUpdateEmployeePermissions = () => {
   });
 };
 
+/**
+ * Link employee to user account
+ */
+export const useLinkEmployeeToUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ employeeId, userId }) => {
+      const { data } = await axios.post(
+        `${API}/api/employees/${employeeId}/link-user?user_id=${userId}`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+/**
+ * Grant employee portal access
+ */
+export const useGrantEmployeeAccess = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ employeeId, role, password }) => {
+      const { data } = await axios.post(
+        `${API}/api/employees/${employeeId}/grant-access`,
+        { role, password },
+        { headers: getAuthHeaders() }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+/**
+ * Revoke employee portal access
+ */
+export const useRevokeEmployeeAccess = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (employeeId) => {
+      const { data } = await axios.delete(
+        `${API}/api/employees/${employeeId}/revoke-access`,
+        { headers: getAuthHeaders() }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+/**
+ * Unlink employee from user account
+ */
+export const useUnlinkEmployeeFromUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (employeeId) => {
+      const { data } = await axios.post(
+        `${API}/api/employees/${employeeId}/unlink-user`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+/**
+ * Update employee mobile access
+ */
+export const useUpdateMobileAccess = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ employeeId, mobileEnabled }) => {
+      const { data } = await axios.put(
+        `${API}/api/hr/employee/${employeeId}/mobile-access`,
+        { mobile_enabled: mobileEnabled },
+        { headers: getAuthHeaders() }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+    },
+  });
+};
+
+/**
+ * Fetch all employees (simple list)
+ */
+export const useAllEmployees = (options = {}) => {
+  return useQuery({
+    queryKey: ['employees', 'all'],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/api/employees/all`, {
+        headers: getAuthHeaders(),
+      });
+      return Array.isArray(data) ? data : (data?.items || []);
+    },
+    staleTime: 5 * 60 * 1000,
+    ...options
+  });
+};
+
+/**
+ * Fetch employee stats summary
+ */
+export const useEmployeeStats = (options = {}) => {
+  return useQuery({
+    queryKey: ['employees', 'stats'],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/api/employees/stats/summary`, {
+        headers: getAuthHeaders(),
+      });
+      return data;
+    },
+    staleTime: 3 * 60 * 1000,
+    ...options
+  });
+};
+
+/**
+ * Fetch departments list
+ */
+export const useDepartmentsList = (options = {}) => {
+  return useQuery({
+    queryKey: ['employees', 'departments'],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/api/employees/departments/list`, {
+        headers: getAuthHeaders(),
+      });
+      return data || [];
+    },
+    staleTime: 10 * 60 * 1000,
+    ...options
+  });
+};
+
+/**
+ * Fetch org chart hierarchy
+ */
+export const useOrgChart = (options = {}) => {
+  return useQuery({
+    queryKey: ['employees', 'org-chart'],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/api/employees/org-chart/hierarchy`, {
+        headers: getAuthHeaders(),
+      });
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    ...options
+  });
+};
+
 export default {
   useEmployees,
   useEmployee,
@@ -195,4 +371,13 @@ export default {
   useUpdateEmployee,
   useDeleteEmployee,
   useUpdateEmployeePermissions,
+  useLinkEmployeeToUser,
+  useGrantEmployeeAccess,
+  useRevokeEmployeeAccess,
+  useUnlinkEmployeeFromUser,
+  useUpdateMobileAccess,
+  useAllEmployees,
+  useEmployeeStats,
+  useDepartmentsList,
+  useOrgChart,
 };
