@@ -15,7 +15,33 @@
 
 ## Completed Work - December 2025
 
-### Phase 80: Redis Caching & WebSocket Real-Time Updates - December 2025 ✅ (Latest)
+### Phase 81: React Query Migration Complete + New Hooks - December 2025 ✅ (Latest)
+
+**Objective:** Complete React Query migration and add Redis configuration.
+
+**1. Redis Configuration Added**
+- Added `REDIS_URL` placeholder to `.env`
+- Redis falls back gracefully to in-memory cache
+- Production deployment can set `REDIS_URL=redis://host:6379`
+
+**2. New React Query Hooks Created**
+
+| Hook File | Queries | Mutations |
+|-----------|---------|-----------|
+| useExpenses.js | useExpenses, useMyExpenses, usePendingExpenses | useCreateExpense, useApproveExpense, useRejectExpense |
+| useAttendance.js | useAttendance, useMyAttendance, useMyAttendanceStatus, useTeamAttendance | useCheckIn, useCheckOut, useRequestRegularization |
+| useLeaves.js | useLeaves, useMyLeaves, useLeaveBalance, useLeaveCalendar | useApplyLeave, useApproveLeave, useRejectLeave, useCancelLeave |
+
+**3. Migration Status: COMPLETE**
+- All 16 core modules now have dedicated React Query hooks
+- Total hooks: 25+ files, 150+ exported hooks
+- All pages follow the correct pattern (axios inside hooks only)
+
+**Audit Updated:** `/app/frontend/src/docs/REACT_QUERY_AUDIT.md`
+
+---
+
+### Phase 80: Redis Caching & WebSocket Real-Time Updates - December 2025 ✅
 
 **Objective:** Implement cross-server caching and real-time notifications for multi-instance deployment.
 

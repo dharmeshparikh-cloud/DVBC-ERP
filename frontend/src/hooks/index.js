@@ -2,7 +2,7 @@
  * Hooks Index
  * Central export for all React Query hooks
  * 
- * REACT QUERY ENFORCEMENT - March 2026
+ * PERFORMANCE OPTIMIZED - December 2025
  * All API calls MUST use these hooks. Direct axios/fetch in components is NOT allowed.
  */
 
@@ -31,6 +31,14 @@ export * from './usePricingPlans';
 export * from './useSOW';
 export * from './useMeetings';
 
+// HR Module Hooks (December 2025)
+export * from './useExpenses';
+export * from './useAttendance';
+export * from './useLeaves';
+
+// Real-time updates (December 2025)
+export * from './useWebSocket';
+
 // Generic hooks (useFetch, useMutate for custom endpoints)
 export * from './useApi';
 
@@ -49,3 +57,6 @@ export { clientKeys } from './useClients';
 export { consultantKeys } from './useConsultants';
 export { statsKeys } from './useStats';
 export { documentKeys } from './useDocuments';
+export { expenseKeys } from './useExpenses';
+export { attendanceKeys } from './useAttendance';
+export { leaveKeys } from './useLeaves';
