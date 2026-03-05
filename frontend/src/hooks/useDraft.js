@@ -184,13 +184,17 @@ const useDraft = (
   }, [draftId, draftType, module, currentRoute, generateTitle, entityId, version]);
 
   // ============== Auto-Save ==============
+  // Note: autoSave is SILENT by default (no toast notifications)
+  // This prevents popup spam during typing
 
   const autoSave = useCallback((formData, step = 0, metadata = {}) => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
     
+    // Debounced auto-save - waits until user stops typing
     autoSaveTimerRef.current = setTimeout(() => {
+      // Pass showToast=false to prevent notification spam
       saveDraft(formData, step, metadata, false);
     }, autoSaveDelay);
   }, [saveDraft, autoSaveDelay]);

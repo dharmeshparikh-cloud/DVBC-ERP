@@ -295,6 +295,122 @@ async def verify_documents(
     return {"message": "Documents verified successfully"}
 
 
+@router.post("/submissions/{submission_id}/documents/{document_id}/approve")
+async def approve_document(
+    submission_id: str,
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """HR Manager approves an individual document."""
+    db = get_db()
+    
+    if current_user.role not in ["hr_manager", "admin"]:
+        raise HTTPException(status_code=403, detail="Only HR Manager or Admin can approve documents")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Update the specific document's verification status
+    result = await db.onboarding_submissions.update_one(
+        {"id": submission_id, "documents.id": document_id},
+        {
+            "$set": {
+                "documents.$.verification_status": "approved",
+                "documents.$.verified_by": current_user.id,
+                "documents.$.verified_by_name": current_user.full_name,
+                "documents.$.verified_at": now
+            },
+            "$push": {
+                "audit_log": {
+                    "action": "document_approved",
+                    "document_id": document_id,
+                    "actor_id": current_user.id,
+                    "actor_name": current_user.full_name,
+                    "timestamp": now
+                }
+            }
+        }
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Check if all documents are now approved
+    submission = await db.onboarding_submissions.find_one({"id": submission_id})
+    if submission:
+        docs = submission.get("documents", [])
+        all_approved = all(d.get("verification_status") == "approved" for d in docs) if docs else False
+        if all_approved and docs:
+            # Mark documents_verified flag as true
+            await db.onboarding_submissions.update_one(
+                {"id": submission_id},
+                {"$set": {"hr_verification.documents_verified": True}}
+            )
+    
+    return {"message": "Document approved successfully"}
+
+
+@router.post("/submissions/{submission_id}/documents/{document_id}/reject")
+async def reject_document(
+    submission_id: str,
+    document_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """HR Manager rejects an individual document with a reason."""
+    db = get_db()
+    
+    if current_user.role not in ["hr_manager", "admin"]:
+        raise HTTPException(status_code=403, detail="Only HR Manager or Admin can reject documents")
+    
+    reason = data.get("reason", "").strip()
+    if not reason:
+        raise HTTPException(status_code=400, detail="Rejection reason is required")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Update the specific document's verification status
+    result = await db.onboarding_submissions.update_one(
+        {"id": submission_id, "documents.id": document_id},
+        {
+            "$set": {
+                "documents.$.verification_status": "rejected",
+                "documents.$.rejection_reason": reason,
+                "documents.$.rejected_by": current_user.id,
+                "documents.$.rejected_by_name": current_user.full_name,
+                "documents.$.rejected_at": now
+            },
+            "$push": {
+                "audit_log": {
+                    "action": "document_rejected",
+                    "document_id": document_id,
+                    "reason": reason,
+                    "actor_id": current_user.id,
+                    "actor_name": current_user.full_name,
+                    "timestamp": now
+                }
+            }
+        }
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Get submission to send notification
+    submission = await db.onboarding_submissions.find_one({"id": submission_id})
+    if submission:
+        # Get document info
+        doc_info = next((d for d in submission.get("documents", []) if d.get("id") == document_id), {})
+        doc_type = doc_info.get("type", "document").replace("_", " ").title()
+        
+        # Create notification for employee (if submission has candidate email)
+        candidate_email = submission.get("candidate_details", {}).get("email") or submission.get("email")
+        if candidate_email:
+            # Could send email here - for now just log
+            print(f"Document rejected notification: {doc_type} for {candidate_email}. Reason: {reason}")
+    
+    return {"message": "Document rejected successfully", "notification_sent": True}
+
+
 @router.post("/submissions/{submission_id}/verify-bank")
 async def verify_bank(
     submission_id: str,

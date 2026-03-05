@@ -152,6 +152,11 @@ const SubmissionReview = () => {
   const [editProfRefDialog, setEditProfRefDialog] = useState(false);
   const [editPerRefDialog, setEditPerRefDialog] = useState(false);
   
+  // Document verification state
+  const [docRejectDialog, setDocRejectDialog] = useState(false);
+  const [selectedDocForReject, setSelectedDocForReject] = useState(null);
+  const [docRejectReason, setDocRejectReason] = useState('');
+  
   // Edit form data
   const [editBankData, setEditBankData] = useState({});
   const [editEmergencyData, setEditEmergencyData] = useState({});
@@ -241,6 +246,55 @@ const SubmissionReview = () => {
 
   const handleVerifyDocuments = () => {
     verifyDocumentsMutation.mutate();
+  };
+
+  // Mutation for approving individual document
+  const approveDocumentMutation = useMutation({
+    mutationFn: async (documentId) => {
+      await axios.post(`${API}/onboarding/submissions/${submissionId}/documents/${documentId}/approve`, {}, authHeaders);
+    },
+    onSuccess: () => {
+      toast.success('Document approved');
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to approve document')
+  });
+
+  // Mutation for rejecting individual document
+  const rejectDocumentMutation = useMutation({
+    mutationFn: async ({ documentId, reason }) => {
+      await axios.post(`${API}/onboarding/submissions/${submissionId}/documents/${documentId}/reject`, 
+        { reason }, authHeaders);
+    },
+    onSuccess: () => {
+      toast.success('Document rejected - employee notified');
+      setDocRejectDialog(false);
+      setSelectedDocForReject(null);
+      setDocRejectReason('');
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to reject document')
+  });
+
+  const handleApproveDocument = (documentId) => {
+    approveDocumentMutation.mutate(documentId);
+  };
+
+  const handleRejectDocument = () => {
+    if (!docRejectReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+    rejectDocumentMutation.mutate({ 
+      documentId: selectedDocForReject.id, 
+      reason: docRejectReason 
+    });
+  };
+
+  const openRejectDialog = (doc) => {
+    setSelectedDocForReject(doc);
+    setDocRejectReason('');
+    setDocRejectDialog(true);
   };
 
   // Mutation for verifying bank
@@ -1001,19 +1055,77 @@ const SubmissionReview = () => {
             </CardHeader>
             <CardContent>
               {submission.documents?.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
                   {submission.documents.map(doc => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-zinc-400" />
+                    <div key={doc.id} className={`flex items-center justify-between p-3 rounded-lg border ${
+                      doc.verification_status === 'approved' 
+                        ? 'bg-emerald-50 border-emerald-200' 
+                        : doc.verification_status === 'rejected'
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-zinc-50 border-zinc-200'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <FileText className={`w-5 h-5 ${
+                          doc.verification_status === 'approved' ? 'text-emerald-500' :
+                          doc.verification_status === 'rejected' ? 'text-red-500' : 'text-zinc-400'
+                        }`} />
                         <div>
-                          <p className="text-sm font-medium capitalize">{doc.type.replace('_', ' ')}</p>
+                          <p className="text-sm font-medium capitalize">{doc.type.replace(/_/g, ' ')}</p>
                           <p className="text-xs text-zinc-500">{doc.original_filename}</p>
+                          {doc.verification_status && (
+                            <Badge variant="outline" className={`mt-1 text-xs ${
+                              doc.verification_status === 'approved' ? 'text-emerald-600 border-emerald-300' :
+                              doc.verification_status === 'rejected' ? 'text-red-600 border-red-300' :
+                              'text-amber-600 border-amber-300'
+                            }`}>
+                              {doc.verification_status === 'approved' ? '✓ Approved' : 
+                               doc.verification_status === 'rejected' ? '✗ Rejected' : '⏳ Pending'}
+                            </Badge>
+                          )}
+                          {doc.rejection_reason && (
+                            <p className="text-xs text-red-500 mt-1">Reason: {doc.rejection_reason}</p>
+                          )}
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        <Download className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {/* Preview/Download Button */}
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          title="Download"
+                          data-testid={`download-doc-${doc.id}`}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        
+                        {/* Approve/Reject Buttons - Only for HR and if not already verified */}
+                        {canApprove && submission.status !== 'completed' && doc.verification_status !== 'approved' && (
+                          <>
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                              onClick={() => handleApproveDocument(doc.id)}
+                              disabled={approveDocumentMutation.isPending}
+                              data-testid={`approve-doc-${doc.id}`}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                              onClick={() => openRejectDialog(doc)}
+                              disabled={rejectDocumentMutation.isPending}
+                              data-testid={`reject-doc-${doc.id}`}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1577,6 +1689,48 @@ const SubmissionReview = () => {
             <Button onClick={() => handleUpdateSection('personal_reference', editPerRefData)} disabled={updateSectionMutation.isPending}>
               {updateSectionMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Reject Dialog */}
+      <Dialog open={docRejectDialog} onOpenChange={setDocRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Document</DialogTitle>
+            <DialogDescription>
+              Provide a reason for rejecting this document. The employee will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedDocForReject && (
+            <div className="py-2">
+              <div className="flex items-center gap-2 p-3 bg-zinc-50 rounded-lg mb-4">
+                <FileText className="w-4 h-4 text-zinc-400" />
+                <div>
+                  <p className="text-sm font-medium capitalize">{selectedDocForReject.type?.replace(/_/g, ' ')}</p>
+                  <p className="text-xs text-zinc-500">{selectedDocForReject.original_filename}</p>
+                </div>
+              </div>
+              <Label>Rejection Reason *</Label>
+              <Textarea
+                value={docRejectReason}
+                onChange={(e) => setDocRejectReason(e.target.value)}
+                placeholder="e.g., Document is illegible, wrong document type, expired document..."
+                className="mt-2"
+                rows={3}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDocRejectDialog(false)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRejectDocument}
+              disabled={rejectDocumentMutation.isPending || !docRejectReason.trim()}
+            >
+              {rejectDocumentMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Reject Document
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -353,19 +353,23 @@ const CandidateOnboardingForm = () => {
       return;
     }
     
-    // Professional Reference validation
-    if (!pr.name || !pr.phone || !pr.company_name || !pr.designation) {
-      toast.error('Please complete professional reference details');
-      setCurrentStep(4);
-      return;
-    }
-    if (!isValidIndianPhone(pr.phone)) {
-      toast.error('Please enter a valid phone number for professional reference');
-      setCurrentStep(4);
-      return;
+    // Professional Reference validation - NOW OPTIONAL
+    // Only validate if user has started filling professional reference
+    const hasProfRef = pr.name || pr.phone || pr.company_name || pr.designation;
+    if (hasProfRef) {
+      if (!pr.name || !pr.phone || !pr.company_name || !pr.designation) {
+        toast.error('Please complete professional reference details (or leave all fields empty)');
+        setCurrentStep(4);
+        return;
+      }
+      if (!isValidIndianPhone(pr.phone)) {
+        toast.error('Please enter a valid phone number for professional reference');
+        setCurrentStep(4);
+        return;
+      }
     }
     
-    // Personal Reference validation
+    // Personal Reference validation (remains mandatory)
     if (!per.name || !per.phone || !per.address) {
       toast.error('Please complete personal reference details');
       setCurrentStep(4);
@@ -574,11 +578,17 @@ const CandidateOnboardingForm = () => {
         if (!bd.branch?.trim()) { toast.error('Branch Name is required'); return false; }
         return true;
 
-      case 4: // References
-        if (!pr.name?.trim()) { toast.error('Professional Reference Name is required'); return false; }
-        if (!isValidIndianPhone(pr.phone)) { toast.error('Enter valid Phone for Professional Reference'); return false; }
-        if (!pr.company_name?.trim()) { toast.error('Professional Reference Company Name is required'); return false; }
-        if (!pr.designation?.trim()) { toast.error('Professional Reference Designation is required'); return false; }
+      case 4: // References - Professional reference is NOW OPTIONAL
+        // Professional reference - only validate if user has started filling it
+        const hasProfRef = pr.name?.trim() || pr.phone?.trim() || pr.company_name?.trim() || pr.designation?.trim();
+        if (hasProfRef) {
+          // If any field is filled, all must be filled
+          if (!pr.name?.trim()) { toast.error('Professional Reference Name is required'); return false; }
+          if (!isValidIndianPhone(pr.phone)) { toast.error('Enter valid Phone for Professional Reference'); return false; }
+          if (!pr.company_name?.trim()) { toast.error('Professional Reference Company Name is required'); return false; }
+          if (!pr.designation?.trim()) { toast.error('Professional Reference Designation is required'); return false; }
+        }
+        // Personal reference remains mandatory
         if (!per.name?.trim()) { toast.error('Personal Reference Name is required'); return false; }
         if (!isValidIndianPhone(per.phone)) { toast.error('Enter valid Phone for Personal Reference'); return false; }
         if (!per.address?.trim()) { toast.error('Personal Reference Address is required'); return false; }

@@ -12,7 +12,7 @@ import {
   Rocket, CheckCircle, XCircle, Clock, User, Building2, 
   CreditCard, FileText, Key, AlertTriangle, ChevronRight,
   Shield, Send, Eye, Mail, Upload, Download, Trash2, Loader2,
-  CheckCircle2, XOctagon, RefreshCw
+  CheckCircle2, XOctagon, RefreshCw, Search
 } from 'lucide-react';
 
 const GoLiveDashboard = () => {
@@ -24,6 +24,7 @@ const GoLiveDashboard = () => {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [pageError, setPageError] = useState(null);
   // Bank validation state
   const [bankValidation, setBankValidation] = useState(null);
@@ -408,9 +409,27 @@ const GoLiveDashboard = () => {
   };
 
   const filteredEmployees = employees.filter(emp => {
-    if (filter === 'pending') return emp.go_live_status === 'pending' || !emp.go_live_status;
-    if (filter === 'active') return emp.go_live_status === 'active';
-    return true;
+    // Apply status filter
+    let statusMatch = true;
+    if (filter === 'pending') statusMatch = emp.go_live_status === 'pending' || !emp.go_live_status;
+    if (filter === 'active') statusMatch = emp.go_live_status === 'active';
+    
+    // Apply search filter
+    let searchMatch = true;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
+      const empId = (emp.employee_id || '').toLowerCase();
+      const email = (emp.email || '').toLowerCase();
+      const dept = (emp.department || emp.primary_department || '').toLowerCase();
+      
+      searchMatch = fullName.includes(query) || 
+                    empId.includes(query) || 
+                    email.includes(query) || 
+                    dept.includes(query);
+    }
+    
+    return statusMatch && searchMatch;
   });
 
   return (
@@ -502,8 +521,31 @@ const GoLiveDashboard = () => {
             isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-zinc-200'
           }`}>
             <div className="p-4 border-b border-zinc-200 dark:border-zinc-700">
-              <h2 className="font-semibold">Employees</h2>
-              <div className="flex gap-2 mt-2">
+              <h2 className="font-semibold mb-3">Employees</h2>
+              
+              {/* Search Bar */}
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, ID, email, dept..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`pl-10 h-9 ${isDark ? 'bg-zinc-700 border-zinc-600' : 'bg-white border-zinc-200'}`}
+                  data-testid="employee-search-input"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              
+              {/* Status Filter */}
+              <div className="flex gap-2">
                 {['all', 'pending', 'active'].map(f => (
                   <button
                     key={f}
@@ -518,9 +560,34 @@ const GoLiveDashboard = () => {
                   </button>
                 ))}
               </div>
+              
+              {/* Results count */}
+              {searchQuery && (
+                <p className={`text-xs mt-2 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                  Found {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
             <div className="max-h-[600px] overflow-y-auto">
-              {filteredEmployees.map(emp => (
+              {filteredEmployees.length === 0 ? (
+                <div className={`p-6 text-center ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                  {searchQuery ? (
+                    <>
+                      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No employees found matching "{searchQuery}"</p>
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="text-emerald-500 text-sm mt-2 hover:underline"
+                      >
+                        Clear search
+                      </button>
+                    </>
+                  ) : (
+                    <p>No employees to display</p>
+                  )}
+                </div>
+              ) : (
+              filteredEmployees.map(emp => (
                 <div
                   key={emp.id}
                   onClick={() => fetchChecklist(emp.employee_id || emp.id)}
@@ -544,7 +611,8 @@ const GoLiveDashboard = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
 
