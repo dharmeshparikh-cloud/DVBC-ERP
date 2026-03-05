@@ -2,7 +2,9 @@
  * React Query Configuration
  * Provides caching, background refetching, and optimistic updates
  * 
- * Performance Optimization: December 2025
+ * REACT QUERY ENFORCEMENT - March 2026
+ * This is the MANDATORY data layer for all API communication.
+ * Direct axios/fetch in components is NOT allowed.
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,13 +13,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Cache data for 5 minutes
-      staleTime: 5 * 60 * 1000,
+      // Cache data for 5 minutes (minimum staleTime per rule)
+      staleTime: 5 * 60 * 1000, // 300000ms
       // Keep unused data in cache for 30 minutes
       cacheTime: 30 * 60 * 1000,
-      // Retry failed requests 1 time
-      retry: 1,
-      // Don't refetch on window focus (reduces API calls)
+      // Retry failed requests 2 times (per enforcement rule)
+      retry: 2,
+      // Don't refetch on window focus (per enforcement rule)
       refetchOnWindowFocus: false,
       // Refetch on reconnect
       refetchOnReconnect: true,

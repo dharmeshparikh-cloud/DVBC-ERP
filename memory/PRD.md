@@ -142,7 +142,36 @@ The Employee ID generation process has been changed from the previous flow (ID g
 
 ---
 
-### Phase 66: React Query Migration Batch 13 & 14 - March 5, 2026 ✅ (Latest)
+### Phase 67: React Query Enforcement & Infrastructure - March 5, 2026 ✅ (Latest)
+
+**React Query Enforcement Rules Implemented:**
+1. Created dedicated domain-specific hooks in `/app/frontend/src/hooks/`:
+   - `useEmployees.js` - Employee CRUD operations
+   - `useLeads.js` - Lead management and activities
+   - `useOnboarding.js` - Candidate onboarding and Go-Live flow
+   - `useChat.js` - Chat/messaging operations
+   - `useProjects.js` - Project management
+   - `index.js` - Central export for all hooks
+
+2. Updated QueryClient configuration:
+   - `staleTime: 300000` (5 minutes minimum)
+   - `retry: 2` (retry failed requests twice)
+   - `refetchOnWindowFocus: false` (disabled per rule)
+
+3. Migrated `CandidateOnboardingForm.js` (1859 lines):
+   - Converted fetch logic to useQuery
+   - Added save/submit mutations with useMutation
+   - Added file upload mutation
+   - Proper cache invalidation on success
+
+**Current Migration Status:**
+- ✅ 96 pages now using React Query
+- Domain-specific hooks created for 5 major domains
+- All tested pages passing
+
+---
+
+### Phase 66: React Query Migration Batch 13 & 14 - March 5, 2026 ✅
 
 **Batch 13 - 3 components migrated:**
 - AIAssistant.js (394 lines) - Migrated chat history, insights, suggestions queries and send/analyze mutations

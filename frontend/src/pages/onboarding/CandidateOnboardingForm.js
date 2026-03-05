@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -17,6 +16,8 @@ import {
   Shield, CheckCircle2, XCircle, Clock, Mail, Calendar, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -80,11 +81,8 @@ const isValidIFSC = (ifsc) => {
 
 const CandidateOnboardingForm = () => {
   const { token } = useParams();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submission, setSubmission] = useState(null);
-  const [error, setError] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [lastSaved, setLastSaved] = useState(null);
 
@@ -136,66 +134,74 @@ const CandidateOnboardingForm = () => {
     declaration_signed: false,
   });
 
-  // Fetch submission data
-  useEffect(() => {
-    const fetchSubmission = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${API}/onboarding/public/${token}`);
-        setSubmission(response.data);
-        
-        // Pre-fill form with existing data
-        if (response.data.candidate_details) {
-          setFormData(prev => ({
-            ...prev,
-            candidate_details: { ...prev.candidate_details, ...response.data.candidate_details }
-          }));
-        }
-        if (response.data.education?.length > 0) {
-          setFormData(prev => ({ ...prev, education: response.data.education }));
-        }
-        if (response.data.employment_history?.length > 0) {
-          setFormData(prev => ({ ...prev, employment_history: response.data.employment_history }));
-        }
-        if (response.data.bank_details) {
-          setFormData(prev => ({
-            ...prev,
-            bank_details: { ...prev.bank_details, ...response.data.bank_details }
-          }));
-        }
-        if (response.data.professional_reference) {
-          setFormData(prev => ({
-            ...prev,
-            professional_reference: { ...prev.professional_reference, ...response.data.professional_reference }
-          }));
-        }
-        if (response.data.personal_reference) {
-          setFormData(prev => ({
-            ...prev,
-            personal_reference: { ...prev.personal_reference, ...response.data.personal_reference }
-          }));
-        }
-        if (response.data.emergency_contact) {
-          setFormData(prev => ({
-            ...prev,
-            emergency_contact: { ...prev.emergency_contact, ...response.data.emergency_contact }
-          }));
-        }
-        if (response.data.declaration_signed) {
-          setFormData(prev => ({ ...prev, declaration_signed: true }));
-        }
-      } catch (err) {
-        console.error('Error fetching submission:', err);
-        setError(err.response?.data?.detail || 'Unable to load the form. Please check your link.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Query: Fetch submission data using React Query
+  const { data: submission, isLoading: loading, error: fetchError } = useQuery({
+    queryKey: ['onboarding-public', token],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/onboarding/public/${token}`);
+      return response.data;
+    },
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
 
-    if (token) {
-      fetchSubmission();
+  const error = fetchError?.response?.data?.detail || (fetchError ? 'Unable to load the form. Please check your link.' : null);
+
+  // Pre-fill form with existing data when submission is loaded
+  useEffect(() => {
+    if (!submission) return;
+    
+    if (submission.candidate_details) {
+      setFormData(prev => ({
+        ...prev,
+        candidate_details: { ...prev.candidate_details, ...submission.candidate_details }
+      }));
     }
-  }, [token]);
+    if (submission.education?.length > 0) {
+      setFormData(prev => ({ ...prev, education: submission.education }));
+    }
+    if (submission.employment_history?.length > 0) {
+      setFormData(prev => ({ ...prev, employment_history: submission.employment_history }));
+    }
+    if (submission.bank_details) {
+      setFormData(prev => ({
+        ...prev,
+        bank_details: { ...prev.bank_details, ...submission.bank_details }
+      }));
+    }
+    if (submission.professional_reference) {
+      setFormData(prev => ({
+        ...prev,
+        professional_reference: { ...prev.professional_reference, ...submission.professional_reference }
+      }));
+    }
+    if (submission.personal_reference) {
+      setFormData(prev => ({
+        ...prev,
+        personal_reference: { ...prev.personal_reference, ...submission.personal_reference }
+      }));
+    }
+    if (submission.emergency_contact) {
+      setFormData(prev => ({
+        ...prev,
+        emergency_contact: { ...prev.emergency_contact, ...submission.emergency_contact }
+      }));
+    }
+    if (submission.declaration_signed) {
+      setFormData(prev => ({ ...prev, declaration_signed: true }));
+    }
+  }, [submission]);
+
+  // Mutation: Save form progress
+  const saveMutation = useMutation({
+    mutationFn: async (data) => {
+      return axios.post(`${API}/onboarding/public/${token}/save`, data);
+    },
+    onSuccess: () => {
+      setLastSaved(new Date());
+    },
+  });
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -203,21 +209,19 @@ const CandidateOnboardingForm = () => {
     
     const interval = setInterval(() => {
       if (submission && submission.status !== 'submitted') {
-        handleSaveInternal(true);
+        saveMutation.mutate(formData);
       }
     }, 30000);
     
     return () => clearInterval(interval);
-  }, [submission?.status]);
+  }, [submission?.status, formData]);
 
-  // Internal save function to avoid dependency issues
-  const handleSaveInternal = async (silent = false) => {
+  const handleSave = async (silent = false) => {
     if (!submission || submission.status === 'submitted') return;
     
+    setSaving(true);
     try {
-      setSaving(true);
-      await axios.post(`${API}/onboarding/public/${token}/save`, formData);
-      setLastSaved(new Date());
+      await saveMutation.mutateAsync(formData);
       if (!silent) {
         toast.success('Progress saved');
       }
@@ -231,9 +235,15 @@ const CandidateOnboardingForm = () => {
     }
   };
 
-  const handleSave = async (silent = false) => {
-    await handleSaveInternal(silent);
-  };
+  // Mutation: Submit form
+  const submitMutation = useMutation({
+    mutationFn: async (data) => {
+      return axios.post(`${API}/onboarding/public/${token}/submit`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['onboarding-public', token] });
+    },
+  });
 
   const handleSubmit = async () => {
     // Validate ALL required fields
@@ -408,52 +418,42 @@ const CandidateOnboardingForm = () => {
     };
 
     try {
-      setSubmitting(true);
-      await axios.post(`${API}/onboarding/public/${token}/submit`, submissionData);
+      await submitMutation.mutateAsync(submissionData);
       toast.success('Form submitted successfully! Thank you!');
-      // Set submission status to submitted to show thank you page immediately
-      setSubmission(prev => ({
-        ...prev,
-        status: 'submitted',
-        submitted_at: new Date().toISOString()
-      }));
-      // Also refresh to get server data
-      setTimeout(async () => {
-        try {
-          const response = await axios.get(`${API}/onboarding/public/${token}`);
-          setSubmission(response.data);
-        } catch (e) {
-          // If refresh fails, the local state update above will still show thank you page
-        }
-      }, 1000);
     } catch (err) {
       console.error('Error submitting:', err);
       toast.error(err.response?.data?.detail || 'Failed to submit form');
-    } finally {
-      setSubmitting(false);
     }
   };
 
-  const handleFileUpload = async (docType, file) => {
-    if (!file) return;
-    
-    const formDataUpload = new FormData();
-    formDataUpload.append('file', file);
-    
-    try {
-      setSaving(true);
-      await axios.post(
+  const submitting = submitMutation.isPending;
+
+  // Mutation: Upload file
+  const uploadMutation = useMutation({
+    mutationFn: async ({ docType, file }) => {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      return axios.post(
         `${API}/onboarding/public/${token}/upload?document_type=${docType}`,
         formDataUpload,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
-      toast.success(`${docType.replace('_', ' ')} uploaded successfully`);
-      // Refresh submission to get updated documents
-      const response = await axios.get(`${API}/onboarding/public/${token}`);
-      setSubmission(response.data);
-    } catch (err) {
-      console.error('Error uploading:', err);
+    },
+    onSuccess: (data, variables) => {
+      toast.success(`${variables.docType.replace('_', ' ')} uploaded successfully`);
+      queryClient.invalidateQueries({ queryKey: ['onboarding-public', token] });
+    },
+    onError: (err) => {
       toast.error(err.response?.data?.detail || 'Failed to upload document');
+    },
+  });
+
+  const handleFileUpload = async (docType, file) => {
+    if (!file) return;
+    
+    setSaving(true);
+    try {
+      await uploadMutation.mutateAsync({ docType, file });
     } finally {
       setSaving(false);
     }
