@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useApprovals } from '../contexts/ApprovalContext';
 import { sanitizeDisplayText } from '../utils/sanitize';
@@ -63,6 +63,7 @@ const ModernSidebar = ({
 }) => {
   const { theme } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
   
   // Sidebar state
@@ -218,11 +219,10 @@ const ModernSidebar = ({
             if (item?.type === 'section') {
               toggleSection(item.key);
             } else if (item?.type === 'link' && item.href) {
-              // Navigate using the ref
-              const navElement = navItemsRef.current[focusedIndex];
-              if (navElement) {
-                navElement.click();
-              }
+              // Navigate programmatically using react-router
+              navigate(item.href);
+              setIsKeyboardNav(false);
+              setFocusedIndex(-1);
             }
           }
           break;
@@ -274,7 +274,7 @@ const ModernSidebar = ({
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [focusedIndex, expandedSections, getAllNavItems, isKeyboardNav, toggleSection]);
+  }, [focusedIndex, expandedSections, getAllNavItems, isKeyboardNav, toggleSection, navigate]);
 
   // Reset keyboard nav when mouse is used
   useEffect(() => {
