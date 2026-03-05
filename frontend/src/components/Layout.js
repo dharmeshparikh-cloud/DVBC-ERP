@@ -13,6 +13,7 @@ import OnboardingTour from './OnboardingTour';
 import { FloatingHelpButton, HelpPanel, WorkflowOverlay } from './GuidanceSystem';
 import { sanitizeDisplayText } from '../utils/sanitize';
 import ChangePasswordDialog from './ChangePasswordDialog';
+import ModernSidebar from './ModernSidebar';
 import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
@@ -592,11 +593,30 @@ const Layout = () => {
 
   return (
     <div className={`flex min-h-screen transition-colors duration-200 ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
-      {/* Desktop Sidebar */}
-      <aside className={`hidden md:block w-60 border-r flex-shrink-0 h-screen sticky top-0 transition-colors duration-200 ${
-        isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-200 bg-white'
-      }`} data-testid="sidebar">
-        <SidebarContent />
+      {/* Desktop Sidebar - New Modern Design */}
+      <aside className="hidden md:block flex-shrink-0" data-testid="sidebar">
+        <ModernSidebar
+          user={user}
+          logout={logout}
+          onChangePassword={() => setShowChangePassword(true)}
+          showHR={showHR}
+          showSales={showSales}
+          showConsulting={showConsulting}
+          showAdmin={showAdmin}
+          isConsultant={isConsultant}
+          isManagerOrAbove={isManagerOrAbove}
+          isGuidedSalesMode={isGuidedSalesMode}
+          workspaceItems={workspaceWithCommunication}
+          hrItems={filteredHrItems}
+          salesItems={salesFlowItems.filter(item => {
+            if (item.managerOnly && !isManagerOrAbove) return false;
+            if (item.adminOnly && user?.role !== 'admin') return false;
+            return true;
+          })}
+          consultingItems={consultingItems}
+          adminItems={adminItems}
+          pendingCounts={pendingCounts}
+        />
       </aside>
 
       {/* Mobile Sidebar Overlay */}
