@@ -109,14 +109,42 @@ async def startup_db_client():
     except Exception as e:
         logger.error(f"Index initialization error: {e}")
     
+    # Initialize Redis cache (optional - falls back to in-memory)
+    logger.info("Initializing Redis cache...")
+    try:
+        from services.redis_cache import redis_cache
+        redis_connected = await redis_cache.connect()
+        if redis_connected:
+            logger.info("Redis cache connected")
+        else:
+            logger.info("Redis not available - using in-memory cache")
+    except Exception as e:
+        logger.warning(f"Redis initialization error: {e} - using in-memory cache")
+    
+    # Start WebSocket ping task
+    try:
+        from routers.websocket_router import start_ping_task
+        start_ping_task()
+        logger.info("WebSocket manager initialized")
+    except Exception as e:
+        logger.warning(f"WebSocket ping task error: {e}")
+    
     logger.info(f"Connected to MongoDB: {db_name}")
     logger.info("NETRA ERP started successfully")
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    """Close database connection."""
+    """Close database connection and cleanup."""
     global client
+    
+    # Close Redis connection
+    try:
+        from services.redis_cache import redis_cache
+        await redis_cache.disconnect()
+    except Exception as e:
+        logger.warning(f"Redis disconnect error: {e}")
+    
     if client:
         client.close()
         logger.info("Database connection closed")
@@ -377,6 +405,10 @@ api_router.include_router(test_email_preview_router.router)
 # Employee Governance & Consent
 api_router.include_router(employee_governance_router.router)
 api_router.include_router(employee_consent_router.router)
+
+# WebSocket for real-time updates (not under /api prefix)
+from routers import websocket_router
+app.include_router(websocket_router.router)
 
 # Include all API routes under /api prefix
 app.include_router(api_router)

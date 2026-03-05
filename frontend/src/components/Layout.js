@@ -14,6 +14,7 @@ import { FloatingHelpButton, HelpPanel, WorkflowOverlay } from './GuidanceSystem
 import { sanitizeDisplayText } from '../utils/sanitize';
 import ChangePasswordDialog from './ChangePasswordDialog';
 import ModernSidebar from './ModernSidebar';
+import { useRealtimeUpdates } from '../hooks/useWebSocket';
 import {
   LayoutDashboard, Users, Briefcase, Calendar, CalendarCheck, Mail, LogOut,
   DollarSign, FileText, FileCheck, ClipboardCheck, UserCog, AlertTriangle,
@@ -21,7 +22,7 @@ import {
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings,
   Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard, KeyRound,
   FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target, ArrowRight, Circle,
-  HelpCircle, ArrowRightLeft
+  HelpCircle, ArrowRightLeft, Wifi, WifiOff
 } from 'lucide-react';
 
 // Legacy role-based access (kept for backward compatibility only when API fails)
@@ -39,6 +40,41 @@ const Layout = () => {
   const location = useLocation();
   const role = user?.role;
   const isDark = theme === 'dark';
+  
+  // Real-time updates via WebSocket
+  const { isConnected: wsConnected, subscribe } = useRealtimeUpdates({
+    autoConnect: true,
+    showNotifications: true
+  });
+  
+  // Subscribe to relevant topics based on role
+  useEffect(() => {
+    if (wsConnected) {
+      const topics = ['dashboard', 'notifications'];
+      
+      // HR roles subscribe to HR updates
+      if (['admin', 'hr_manager', 'hr_executive'].includes(role)) {
+        topics.push('employees', 'onboarding', 'leaves', 'attendance', 'payroll');
+      }
+      
+      // Sales roles subscribe to sales updates
+      if (['admin', 'sales_manager', 'sales_executive'].includes(role)) {
+        topics.push('leads', 'agreements', 'kickoffs');
+      }
+      
+      // Consulting roles subscribe to project updates
+      if (['admin', 'consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant'].includes(role)) {
+        topics.push('projects', 'tasks');
+      }
+      
+      // Everyone subscribes to approvals if they can approve
+      if (['admin', 'hr_manager', 'sales_manager'].includes(role)) {
+        topics.push('approvals');
+      }
+      
+      subscribe(topics);
+    }
+  }, [wsConnected, role, subscribe]);
   
   // Get sales access mode for current user
   const salesAccessMode = getAccessMode(role);
