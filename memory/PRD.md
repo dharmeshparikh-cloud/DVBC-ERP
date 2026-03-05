@@ -15,7 +15,39 @@
 
 ## Completed Work - December 2025
 
-### Phase 81: React Query Migration Complete + New Hooks - December 2025 ✅ (Latest)
+### Phase 82: WebSocket Routing Fix - December 2025 ✅ (Latest)
+
+**Objective:** Fix WebSocket connection routing issue that prevented real-time updates from working.
+
+**Problem:**
+- WebSocket endpoint at `/ws/{user_id}` was routed to frontend (port 3000) instead of backend (port 8001)
+- Kubernetes ingress routes `/api/*` to backend, all other paths to frontend
+- WebSocket connections failed with 404 or HTML responses
+
+**Solution:**
+1. Moved WebSocket router under `/api` prefix in `server.py`:
+   - Changed from: `app.include_router(websocket_router.router)` 
+   - Changed to: `api_router.include_router(websocket_router.router)`
+2. Updated frontend WebSocket URL in `useWebSocket.js`:
+   - Changed from: `${url}/ws`
+   - Changed to: `${url}/api/ws`
+
+**Verified Working:**
+- `GET /api/ws/stats` - Returns WebSocket statistics
+- `GET /api/ws/connections` - Returns connected users
+- `POST /api/ws/broadcast` - Broadcasts messages to clients
+- `WS /api/ws/{user_id}` - WebSocket connections establish successfully
+- Frontend auto-connects and receives real-time updates
+
+**Test Results:** 100% pass rate (9/9 backend tests, frontend verified)
+
+**Files Modified:**
+- `/app/backend/server.py` (line 409-411)
+- `/app/frontend/src/hooks/useWebSocket.js` (line 31)
+
+---
+
+### Phase 81: React Query Migration Complete + New Hooks - December 2025 ✅
 
 **Objective:** Complete React Query migration and add Redis configuration.
 
