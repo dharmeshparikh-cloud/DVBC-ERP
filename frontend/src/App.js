@@ -94,6 +94,8 @@ const EmployeeScorecard = lazy(() => import('./pages/EmployeeScorecard'));
 const RoleManagement = lazy(() => import('./pages/RoleManagement'));
 const RBACAdmin = lazy(() => import('./pages/RBACAdmin'));
 const LetterheadSettings = lazy(() => import('./pages/LetterheadSettings'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Help = lazy(() => import('./pages/Help'));
 const AcceptOfferPage = lazy(() => import('./pages/AcceptOfferPage'));
 const ConsentPage = lazy(() => import('./pages/ConsentPage'));
 const AdminDashboardMockups = lazy(() => import('./pages/admin/AdminDashboardMockups'));
@@ -339,6 +341,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="employee-scorecard" element={<EmployeeScorecard />} />
         <Route path="role-management" element={<RoleManagement />} />
         <Route path="rbac-admin" element={<RBACAdmin />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="help" element={<Help />} />
         <Route path="letterhead-settings" element={<LetterheadSettings />} />
         <Route path="admin-dashboard-mockups" element={<AdminDashboardMockups />} />
         <Route path="help-admin" element={<HelpContentAdmin />} />
