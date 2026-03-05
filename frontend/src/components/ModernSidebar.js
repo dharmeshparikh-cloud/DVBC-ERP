@@ -403,7 +403,8 @@ const ModernSidebar = ({
         {section.single ? (
           <Link
             to={section.items[0].href}
-            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 ${
+            title={section.label}
+            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${
               isActive(section.items[0].href)
                 ? isDark 
                   ? 'bg-emerald-600 text-white' 
@@ -419,7 +420,8 @@ const ModernSidebar = ({
         ) : (
           <button
             onClick={() => isExpanded && toggleSection(section.key)}
-            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 relative ${
+            title={section.label}
+            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 relative cursor-pointer ${
               isCurrentSection || hoveredSection === section.key
                 ? isDark 
                   ? 'bg-zinc-800 text-zinc-100' 
@@ -466,7 +468,8 @@ const ModernSidebar = ({
             <Link
               key={item.name}
               to={item.href}
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+              title={item.name}
+              className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer ${
                 isActive(item.href)
                   ? isDark 
                     ? 'bg-zinc-800 text-emerald-400' 
@@ -500,7 +503,8 @@ const ModernSidebar = ({
       <div className="mb-1">
         <button
           onClick={() => toggleSection(section.key)}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+          title={`${isOpen ? 'Collapse' : 'Expand'} ${section.label}`}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
             isDark 
               ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50' 
               : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
@@ -535,8 +539,9 @@ const ModernSidebar = ({
                 <Link
                   key={item.name}
                   to={item.href}
+                  title={item.name}
                   data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 cursor-pointer ${
                     active 
                       ? isDark 
                         ? 'bg-zinc-800 text-zinc-100 font-medium' 
@@ -626,8 +631,10 @@ const ModernSidebar = ({
         {/* Bottom Icons */}
         <div className={`py-4 px-2.5 space-y-2 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
           {/* Notifications */}
-          <button
-            className={`w-12 h-12 flex items-center justify-center rounded-xl relative transition-colors ${
+          <Link
+            to="/notifications"
+            title="Notifications"
+            className={`w-12 h-12 flex items-center justify-center rounded-xl relative transition-colors cursor-pointer ${
               isDark
                 ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
                 : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
@@ -640,12 +647,13 @@ const ModernSidebar = ({
                 {pendingCounts.total > 9 ? '9+' : pendingCounts.total}
               </span>
             )}
-          </button>
+          </Link>
 
           {/* Settings */}
           <Link
             to="/settings"
-            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-colors ${
+            title="Settings"
+            className={`w-12 h-12 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${
               isDark
                 ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
                 : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
@@ -659,7 +667,8 @@ const ModernSidebar = ({
           <div className="relative" ref={profileMenuRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
+              title="Profile Menu"
+              className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
                 showProfileMenu
                   ? isDark ? 'bg-zinc-800' : 'bg-zinc-100'
                   : isDark
@@ -825,8 +834,9 @@ const ModernSidebar = ({
             {/* Dashboard Link */}
             <Link
               to="/"
+              title={isConsultant ? 'My Dashboard' : 'Overview Dashboard'}
               data-testid="nav-dashboard"
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 cursor-pointer ${
                 isActive('/') 
                   ? isDark 
                     ? 'bg-zinc-800 text-zinc-100 font-medium' 
@@ -850,7 +860,8 @@ const ModernSidebar = ({
           <div className={`px-3 py-3 border-t space-y-1 ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
             <Link
               to="/notifications"
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+              title="View Notifications"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
                 isDark 
                   ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50' 
                   : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
@@ -867,7 +878,8 @@ const ModernSidebar = ({
             
             <Link
               to="/help"
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+              title="Get Support"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
                 isDark 
                   ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50' 
                   : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
@@ -879,7 +891,8 @@ const ModernSidebar = ({
             
             <Link
               to="/settings"
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+              title="App Settings"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
                 isDark 
                   ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50' 
                   : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
