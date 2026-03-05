@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://erp-data-layer-audit.preview.emergentagent.com",
+      "value": "https://keyboard-nav-1.preview.emergentagent.com",
       "type": "string"
     },
     {

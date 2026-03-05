@@ -77,10 +77,222 @@ const ModernSidebar = ({
   });
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   
+  // Keyboard navigation state
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [isKeyboardNav, setIsKeyboardNav] = useState(false);
+  const navItemsRef = useRef([]);
+  
   // Refs for hover popup positioning
   const sidebarRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
   const profileMenuRef = useRef(null);
+
+  // Toggle section expansion - useCallback to avoid stale closure
+  // IMPORTANT: Defined before keyboard navigation useEffect to avoid hoisting issues
+  const toggleSection = useCallback((sectionKey) => {
+    if (isExpanded) {
+      setExpandedSections(prev => ({
+        ...prev,
+        [sectionKey]: !prev[sectionKey]
+      }));
+    }
+  }, [isExpanded]);
+
+  // Build flat list of all navigable items for keyboard navigation
+  const getAllNavItems = useCallback(() => {
+    const items = [];
+    
+    // Dashboard
+    items.push({ type: 'link', href: '/', name: isConsultant ? 'My Dashboard' : 'Overview', section: 'dashboard' });
+    
+    // Workspace items
+    if (workspaceItems?.length) {
+      items.push({ type: 'section', key: 'workspace', label: 'My Workspace' });
+      if (expandedSections.workspace) {
+        workspaceItems.forEach(item => {
+          items.push({ type: 'link', ...item, section: 'workspace' });
+        });
+      }
+    }
+    
+    // HR items
+    if (showHR && hrItems?.length) {
+      items.push({ type: 'section', key: 'hr', label: 'HR' });
+      if (expandedSections.hr) {
+        hrItems.forEach(item => {
+          items.push({ type: 'link', ...item, section: 'hr' });
+        });
+      }
+    }
+    
+    // Sales items
+    if (showSales && salesItems?.length) {
+      items.push({ type: 'section', key: 'sales', label: isGuidedSalesMode ? 'My Sales' : 'Sales' });
+      if (expandedSections.sales) {
+        salesItems.forEach(item => {
+          items.push({ type: 'link', ...item, section: 'sales' });
+        });
+      }
+    }
+    
+    // Consulting items
+    if (showConsulting && consultingItems?.length) {
+      items.push({ type: 'section', key: 'consulting', label: 'Consulting' });
+      if (expandedSections.consulting) {
+        consultingItems.forEach(item => {
+          items.push({ type: 'link', ...item, section: 'consulting' });
+        });
+      }
+    }
+    
+    // Admin items
+    if (showAdmin && adminItems?.length) {
+      items.push({ type: 'section', key: 'admin', label: 'Admin' });
+      if (expandedSections.admin) {
+        adminItems.forEach(item => {
+          items.push({ type: 'link', ...item, section: 'admin' });
+        });
+      }
+    }
+    
+    return items;
+  }, [workspaceItems, hrItems, salesItems, consultingItems, adminItems, showHR, showSales, showConsulting, showAdmin, expandedSections, isConsultant, isGuidedSalesMode]);
+
+  // Keyboard navigation handler
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only handle if sidebar is focused or keyboard nav is active
+      if (!sidebarRef.current?.contains(document.activeElement) && !isKeyboardNav) {
+        return;
+      }
+      
+      const navItems = getAllNavItems();
+      
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setIsKeyboardNav(true);
+          setFocusedIndex(prev => {
+            const next = prev < navItems.length - 1 ? prev + 1 : 0;
+            return next;
+          });
+          break;
+          
+        case 'ArrowUp':
+          e.preventDefault();
+          setIsKeyboardNav(true);
+          setFocusedIndex(prev => {
+            const next = prev > 0 ? prev - 1 : navItems.length - 1;
+            return next;
+          });
+          break;
+          
+        case 'ArrowRight':
+          e.preventDefault();
+          if (focusedIndex >= 0) {
+            const item = navItems[focusedIndex];
+            if (item?.type === 'section' && !expandedSections[item.key]) {
+              setExpandedSections(prev => ({ ...prev, [item.key]: true }));
+            }
+          }
+          break;
+          
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (focusedIndex >= 0) {
+            const item = navItems[focusedIndex];
+            if (item?.type === 'section' && expandedSections[item.key]) {
+              setExpandedSections(prev => ({ ...prev, [item.key]: false }));
+            } else if (item?.type === 'link' && item.section) {
+              // Collapse parent section
+              setExpandedSections(prev => ({ ...prev, [item.section]: false }));
+            }
+          }
+          break;
+          
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          if (focusedIndex >= 0) {
+            const item = navItems[focusedIndex];
+            if (item?.type === 'section') {
+              toggleSection(item.key);
+            } else if (item?.type === 'link' && item.href) {
+              // Navigate using the ref
+              const navElement = navItemsRef.current[focusedIndex];
+              if (navElement) {
+                navElement.click();
+              }
+            }
+          }
+          break;
+          
+        case 'Home':
+          e.preventDefault();
+          setIsKeyboardNav(true);
+          setFocusedIndex(0);
+          break;
+          
+        case 'End':
+          e.preventDefault();
+          setIsKeyboardNav(true);
+          setFocusedIndex(navItems.length - 1);
+          break;
+          
+        case 'Escape':
+          e.preventDefault();
+          setIsKeyboardNav(false);
+          setFocusedIndex(-1);
+          setShowProfileMenu(false);
+          setHoveredSection(null);
+          break;
+          
+        case 'Tab':
+          // Allow Tab to exit keyboard nav mode
+          setIsKeyboardNav(false);
+          setFocusedIndex(-1);
+          break;
+          
+        default:
+          // Handle letter shortcuts for quick navigation
+          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            const letter = e.key.toLowerCase();
+            const currentIndex = focusedIndex;
+            const searchItems = navItems.slice(currentIndex + 1).concat(navItems.slice(0, currentIndex + 1));
+            const foundIndex = searchItems.findIndex(item => 
+              item.name?.toLowerCase().startsWith(letter) || item.label?.toLowerCase().startsWith(letter)
+            );
+            if (foundIndex !== -1) {
+              const actualIndex = (currentIndex + 1 + foundIndex) % navItems.length;
+              setIsKeyboardNav(true);
+              setFocusedIndex(actualIndex);
+            }
+          }
+          break;
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [focusedIndex, expandedSections, getAllNavItems, isKeyboardNav, toggleSection]);
+
+  // Reset keyboard nav when mouse is used
+  useEffect(() => {
+    const handleMouseMove = () => {
+      if (isKeyboardNav) {
+        setIsKeyboardNav(false);
+      }
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => document.removeEventListener('mousemove', handleMouseMove);
+  }, [isKeyboardNav]);
+
+  // Focus the item when focusedIndex changes
+  useEffect(() => {
+    if (focusedIndex >= 0 && navItemsRef.current[focusedIndex]) {
+      navItemsRef.current[focusedIndex]?.focus();
+    }
+  }, [focusedIndex]);
 
   // Close profile menu when clicking outside
   useEffect(() => {
@@ -119,16 +331,6 @@ const ModernSidebar = ({
       hoverTimeoutRef.current = setTimeout(() => {
         setHoveredSection(null);
       }, 150);
-    }
-  };
-
-  // Toggle section expansion
-  const toggleSection = (sectionKey) => {
-    if (isExpanded) {
-      setExpandedSections(prev => ({
-        ...prev,
-        [sectionKey]: !prev[sectionKey]
-      }));
     }
   };
 
@@ -371,10 +573,19 @@ const ModernSidebar = ({
   return (
     <div 
       ref={sidebarRef}
-      className={`flex h-screen sticky top-0 transition-all duration-300 ${
+      tabIndex={0}
+      role="navigation"
+      aria-label="Main navigation"
+      className={`flex h-screen sticky top-0 transition-all duration-300 outline-none ${
         isDark ? 'bg-zinc-900' : 'bg-white'
-      }`}
+      } ${isKeyboardNav ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
       data-testid="modern-sidebar"
+      onFocus={() => {
+        if (focusedIndex === -1) {
+          setFocusedIndex(0);
+          setIsKeyboardNav(true);
+        }
+      }}
     >
       {/* Icon Bar - Always visible */}
       <div 
@@ -677,6 +888,26 @@ const ModernSidebar = ({
               <Settings className="w-4 h-4" strokeWidth={1.5} />
               <span>Settings</span>
             </Link>
+            
+            {/* Keyboard Navigation Hint */}
+            {isKeyboardNav && (
+              <div className={`mt-3 pt-3 border-t text-center ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+                <div className={`text-[10px] space-y-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                  <div className="flex items-center justify-center gap-2">
+                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>↑↓</kbd>
+                    <span>Navigate</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>←→</kbd>
+                    <span>Expand/Collapse</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>Enter</kbd>
+                    <span>Select</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
