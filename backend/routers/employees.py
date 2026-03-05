@@ -27,6 +27,7 @@ sys.path.insert(0, '/app/backend')
 from services.cache_service import cache, list_key, PerformanceCache
 from services.redis_cache import redis_cache, CacheInvalidation
 from services.websocket_manager import ws_manager, notify_employee_update, notify_dashboard_refresh
+from services.employee_user_sync import sync_employee_to_user
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
@@ -768,6 +769,10 @@ async def update_employee(employee_id: str, data: dict, change_reason: str = Non
         # Real-time WebSocket notification for update
         await notify_employee_update(employee_id, "update", current_user.id)
         await CacheInvalidation.employee(employee_id)
+        
+        # P0 FIX: Sync employee data to user record for consistency
+        # This ensures role, department, level etc stay in sync
+        await sync_employee_to_user(db, employee_id, allowed_updates)
     
     if workflow_requests:
         response["workflow_requests"] = workflow_requests
@@ -828,6 +833,9 @@ async def approve_modification_request(request_id: str, current_user: User = Dep
     changes["last_modification_approved_by"] = current_user.id
     
     await db.employees.update_one({"id": employee_id}, {"$set": changes})
+    
+    # P0 FIX: Sync employee data to user record after approval
+    await sync_employee_to_user(db, employee_id, changes)
     
     # Update the modification request status
     await db.modification_requests.update_one(
@@ -1289,3 +1297,46 @@ async def get_employee_linked_records(employee_id: str, current_user: User = Dep
         "total_records": sum(linked.values())
     }
 
+
+
+# ============== Data Sync Endpoints (P0 Architecture Fix) ==============
+
+from services.employee_user_sync import sync_all_employees_to_users, verify_sync_consistency
+
+@router.get("/sync/status/{employee_id}")
+async def check_sync_status(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Check if employee and user data are in sync. Admin only."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    db = get_db()
+    report = await verify_sync_consistency(db, employee_id)
+    return report
+
+
+@router.post("/sync/bulk")
+async def trigger_bulk_sync(current_user: User = Depends(get_current_user)):
+    """Trigger bulk sync of all employees to users. Admin only."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    db = get_db()
+    stats = await sync_all_employees_to_users(db)
+    return {
+        "message": "Bulk sync completed",
+        "stats": stats
+    }
+
+
+@router.post("/sync/{employee_id}")
+async def trigger_single_sync(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Manually trigger sync for a single employee. Admin only."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    db = get_db()
+    result = await sync_employee_to_user(db, employee_id)
+    return {
+        "message": "Sync completed" if result else "No sync needed or user not found",
+        "synced": result
+    }

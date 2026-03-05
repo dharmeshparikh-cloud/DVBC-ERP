@@ -228,37 +228,42 @@ async def get_leave_request(leave_id: str, current_user: User = Depends(get_curr
 
 @router.get("/employee/{employee_id}/balance")
 async def get_leave_balance(employee_id: str, current_user: User = Depends(get_current_user)):
-    """Get leave balance for an employee"""
+    """
+    Get leave balance for an employee.
+    
+    P0 FIX: Now calculates balance from leave_requests (authoritative source)
+    instead of reading from employees.leave_balance (which could be stale).
+    """
     db = get_db()
     
-    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    # Import the calculation service
+    import sys
+    sys.path.insert(0, '/app/backend')
+    from services.leave_balance_service import calculate_leave_balance
+    
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0, "id": 1})
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
-    DEFAULT_LEAVE_BALANCE = {
-        'casual_leave': 12,
-        'sick_leave': 6,
-        'earned_leave': 15
-    }
+    # Calculate balance from authoritative source (leave_requests)
+    balance = await calculate_leave_balance(db, employee_id)
     
-    balance = employee.get('leave_balance', {})
-    
+    # Return in expected format
     result = {}
-    for leave_type, default_val in DEFAULT_LEAVE_BALANCE.items():
-        entitled = balance.get(leave_type, default_val)
-        used = balance.get(f'used_{leave_type.replace("_leave", "")}', 0)
-        result[leave_type] = {
-            "entitled": entitled,
-            "used": used,
-            "available": entitled - used
-        }
+    for leave_type in ["casual_leave", "sick_leave", "earned_leave"]:
+        result[leave_type] = balance.get(leave_type, {"entitled": 0, "used": 0, "available": 0})
     
     return result
 
 
 @router.get("/stats/company-wide")
 async def get_company_leave_stats(current_user: User = Depends(get_current_user)):
-    """Get company-wide leave utilization statistics"""
+    """
+    Get company-wide leave utilization statistics.
+    
+    P0 FIX: Now calculates from leave_requests (authoritative source)
+    instead of reading from employees.leave_balance (which could be stale).
+    """
     db = get_db()
     
     # Only HR and Admin can view company-wide stats
@@ -266,16 +271,17 @@ async def get_company_leave_stats(current_user: User = Depends(get_current_user)
     if current_user.role not in allowed_roles and current_user.department != 'HR':
         raise HTTPException(status_code=403, detail="Only HR can view company-wide leave stats")
     
-    DEFAULT_LEAVE_BALANCE = {
-        'casual_leave': 12,
-        'sick_leave': 6,
-        'earned_leave': 15
-    }
+    # Import the calculation service
+    import sys
+    sys.path.insert(0, '/app/backend')
+    from services.leave_balance_service import calculate_leave_balance, get_leave_entitlements
+    
+    DEFAULT_LEAVE_TYPES = ['casual_leave', 'sick_leave', 'earned_leave']
     
     # Get all active employees
     employees = await db.employees.find(
         {"is_active": {"$ne": False}},
-        {"_id": 0, "leave_balance": 1, "id": 1}
+        {"_id": 0, "id": 1}
     ).to_list(None)
     
     total_employees = len(employees)
@@ -285,32 +291,35 @@ async def get_company_leave_stats(current_user: User = Depends(get_current_user)
             "leave_types": {}
         }
     
-    # Aggregate leave stats
-    stats = {}
-    for leave_type, default_val in DEFAULT_LEAVE_BALANCE.items():
-        total_entitled = 0
-        total_used = 0
-        employees_with_usage = 0
-        
-        for emp in employees:
-            balance = emp.get('leave_balance', {})
-            entitled = balance.get(leave_type, default_val)
-            used = balance.get(f'used_{leave_type.replace("_leave", "")}', 0)
-            
-            total_entitled += entitled
-            total_used += used
-            if used > 0:
-                employees_with_usage += 1
-        
+    # Aggregate leave stats using the calculation service
+    stats = {lt: {"total_entitled": 0, "total_used": 0, "employees_with_usage": 0} for lt in DEFAULT_LEAVE_TYPES}
+    
+    for emp in employees:
+        try:
+            balance = await calculate_leave_balance(db, emp["id"])
+            for leave_type in DEFAULT_LEAVE_TYPES:
+                lt_balance = balance.get(leave_type, {})
+                stats[leave_type]["total_entitled"] += lt_balance.get("entitled", 0)
+                stats[leave_type]["total_used"] += lt_balance.get("used", 0)
+                if lt_balance.get("used", 0) > 0:
+                    stats[leave_type]["employees_with_usage"] += 1
+        except Exception:
+            continue
+    
+    # Calculate final stats
+    result_stats = {}
+    for leave_type in DEFAULT_LEAVE_TYPES:
+        total_entitled = stats[leave_type]["total_entitled"]
+        total_used = stats[leave_type]["total_used"]
         utilization_pct = round((total_used / total_entitled * 100), 1) if total_entitled > 0 else 0
         
-        stats[leave_type] = {
+        result_stats[leave_type] = {
             "label": leave_type.replace('_', ' ').title(),
             "total_entitled": total_entitled,
             "total_used": total_used,
             "total_available": total_entitled - total_used,
             "utilization_percent": utilization_pct,
-            "employees_with_usage": employees_with_usage,
+            "employees_with_usage": stats[leave_type]["employees_with_usage"],
             "avg_used_per_employee": round(total_used / total_employees, 1) if total_employees > 0 else 0
         }
     
@@ -331,6 +340,7 @@ async def get_company_leave_stats(current_user: User = Depends(get_current_user)
         "total_employees": total_employees,
         "pending_requests": pending_count,
         "requests_this_month": requests_this_month,
-        "leave_types": stats
+        "leave_types": result_stats,
+        "data_source": "calculated_from_leave_requests"  # P0 FIX indicator
     }
 
