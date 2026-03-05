@@ -6,6 +6,10 @@ This module handles the new self-service onboarding flow:
 2. Candidate fills form via public link (no login)
 3. HR reviews, assigns dept/manager, verifies
 4. On completion: Employee ID generated, record created
+
+PERFORMANCE OPTIMIZATION: December 2025
+- Added WebSocket notifications for real-time updates
+- Added Redis cache invalidation
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
@@ -26,6 +30,8 @@ from services.email_service import (
     send_onboarding_revision_request_email,
     send_onboarding_complete_email
 )
+from services.websocket_manager import ws_manager, notify_onboarding_update, notify_dashboard_refresh
+from services.redis_cache import CacheInvalidation
 
 router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
 
@@ -139,7 +145,7 @@ async def send_onboarding_invite(
     
     # Send email to candidate
     # Get base URL from environment
-    base_url = os.environ.get("FRONTEND_URL", "https://keyboard-nav-1.preview.emergentagent.com")
+    base_url = os.environ.get("FRONTEND_URL", "https://netra-erp-perf.preview.emergentagent.com")
     onboarding_link = f"{base_url}/onboarding/candidate/{token}"
     
     try:
@@ -499,7 +505,7 @@ async def request_revision(
     
     # Send email to candidate
     try:
-        base_url = os.environ.get("FRONTEND_URL", "https://keyboard-nav-1.preview.emergentagent.com")
+        base_url = os.environ.get("FRONTEND_URL", "https://netra-erp-perf.preview.emergentagent.com")
         onboarding_link = f"{base_url}/onboarding/candidate/{submission['token']}"
         
         await send_onboarding_revision_request_email(
@@ -749,6 +755,13 @@ async def complete_onboarding(
         )
     except Exception as e:
         print(f"Failed to send welcome email: {e}")
+    
+    # Real-time WebSocket notifications
+    await notify_onboarding_update(submission_id, "complete", current_user.id)
+    await notify_dashboard_refresh(current_user.id)
+    
+    # Invalidate Redis cache
+    await CacheInvalidation.onboarding()
     
     return {
         "message": "Onboarding completed successfully. Employee ID will be assigned after Go-Live approval.",
@@ -1163,7 +1176,7 @@ async def submit_public_submission(token: str, data: dict):
         if invited_by_id:
             inviter = await db.employees.find_one({"id": invited_by_id}, {"email": 1, "full_name": 1})
             if inviter and inviter.get("email"):
-                base_url = os.environ.get("FRONTEND_URL", "https://keyboard-nav-1.preview.emergentagent.com")
+                base_url = os.environ.get("FRONTEND_URL", "https://netra-erp-perf.preview.emergentagent.com")
                 review_link = f"{base_url}/onboarding/review/{submission['id']}"
                 
                 await send_onboarding_submission_notification_email(

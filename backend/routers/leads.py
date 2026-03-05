@@ -4,6 +4,7 @@ Leads Router - Lead Management, Scoring, and CRUD operations
 PERFORMANCE OPTIMIZATION: December 2025
 - Added pagination support for list endpoints
 - Added caching for lead lists
+- Added WebSocket notifications for real-time updates
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
@@ -22,6 +23,8 @@ from .auth import get_current_user
 import sys
 sys.path.insert(0, '/app/backend')
 from services.cache_service import cache, list_key, PerformanceCache
+from services.websocket_manager import ws_manager, notify_lead_update, notify_dashboard_refresh
+from services.redis_cache import CacheInvalidation
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
 
@@ -123,6 +126,14 @@ async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_
         doc['created_by_name'] = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
     
     await db.leads.insert_one(doc)
+    
+    # Real-time WebSocket notification
+    await notify_lead_update(lead.id, "create", current_user.id)
+    await notify_dashboard_refresh(current_user.id)
+    
+    # Invalidate Redis cache
+    await CacheInvalidation.leads()
+    
     return lead
 
 
@@ -439,6 +450,12 @@ async def update_lead(
     update_data['score_breakdown'] = breakdown
     
     await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+    
+    # Real-time WebSocket notification
+    await notify_lead_update(lead_id, "update", current_user.id)
+    
+    # Invalidate Redis cache for this lead
+    await CacheInvalidation.lead(lead_id)
     
     updated_lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if isinstance(updated_lead_data.get('created_at'), str):

@@ -4,6 +4,7 @@ Employees Router - Employee Management, Documents, Org Structure
 PERFORMANCE OPTIMIZATION: December 2025
 - Added pagination support
 - Added caching for list endpoints
+- Added WebSocket notifications for real-time updates
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
@@ -24,6 +25,8 @@ from .auth import get_current_user, get_password_hash
 import sys
 sys.path.insert(0, '/app/backend')
 from services.cache_service import cache, list_key, PerformanceCache
+from services.redis_cache import redis_cache, CacheInvalidation
+from services.websocket_manager import ws_manager, notify_employee_update, notify_dashboard_refresh
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
@@ -296,6 +299,13 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
                 "status": "info",
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
+    
+    # Real-time WebSocket notification
+    await notify_employee_update(employee["id"], "create", current_user.id)
+    await notify_dashboard_refresh(current_user.id)
+    
+    # Invalidate Redis cache
+    await CacheInvalidation.employees()
     
     return {"message": "Employee created", "employee": employee}
 
@@ -755,6 +765,9 @@ async def update_employee(employee_id: str, data: dict, change_reason: str = Non
     
     if allowed_updates:
         response["updated_fields"] = [k for k in allowed_updates.keys() if k not in ["updated_at", "updated_by", "updated_by_name"]]
+        # Real-time WebSocket notification for update
+        await notify_employee_update(employee_id, "update", current_user.id)
+        await CacheInvalidation.employee(employee_id)
     
     if workflow_requests:
         response["workflow_requests"] = workflow_requests
@@ -764,6 +777,8 @@ async def update_employee(employee_id: str, data: dict, change_reason: str = Non
         response["pending_approval"] = list(approval_required.keys())
         response["approval_request_id"] = modification_request["id"]
         response["approval_note"] = "Some fields require Admin approval. Request has been submitted."
+        # Notify about pending approval
+        await ws_manager.broadcast_update("approvals", "new_request", {"type": "employee_modification"}, current_user.id)
     
     return response
 

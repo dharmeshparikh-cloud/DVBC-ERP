@@ -406,9 +406,9 @@ api_router.include_router(test_email_preview_router.router)
 api_router.include_router(employee_governance_router.router)
 api_router.include_router(employee_consent_router.router)
 
-# WebSocket for real-time updates (not under /api prefix)
+# WebSocket for real-time updates (under /api prefix for proper routing through ingress)
 from routers import websocket_router
-app.include_router(websocket_router.router)
+api_router.include_router(websocket_router.router)
 
 # Include all API routes under /api prefix
 app.include_router(api_router)

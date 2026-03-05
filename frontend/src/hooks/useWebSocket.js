@@ -28,7 +28,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 // Convert HTTP URL to WebSocket URL
 const getWebSocketUrl = () => {
   const url = API_URL.replace(/^http/, 'ws');
-  return `${url}/ws`;
+  return `${url}/api/ws`;
 };
 
 /**
