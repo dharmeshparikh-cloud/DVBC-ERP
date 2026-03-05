@@ -12,6 +12,9 @@ export * from './useLeads';
 export * from './useOnboarding';
 export * from './useChat';
 export * from './useProjects';
+export * from './useApprovals';
+export * from './useMobileApp';
+export * from './useHROnboarding';
 
 // Generic hooks (useFetch, useMutate for custom endpoints)
 export * from './useApi';

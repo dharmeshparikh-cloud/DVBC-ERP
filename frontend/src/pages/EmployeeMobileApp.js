@@ -1,6 +1,18 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { AuthContext, API } from '../App';
 import axios from 'axios';
+import { useQueryClient } from '@tanstack/react-query';
+import { 
+  useMobileDashboardData, 
+  useMyAssignedClients,
+  useCheckIn,
+  useCheckOut,
+  useSubmitExpense,
+  useUploadReceipt,
+  useSubmitLeaveRequest,
+  useSubmitTravelReimbursement,
+  useLocationSearch
+} from '../hooks/useMobileApp';
 import { 
   CheckCircle, Clock, MapPin, LogIn, LogOut, Calendar, Receipt, 
   Home, Building2, Navigation, Loader2, AlertCircle, ChevronRight,
@@ -14,18 +26,12 @@ import { toast } from 'sonner';
 const EmployeeMobileApp = () => {
   const { user, logout } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('home');
-  const [loading, setLoading] = useState(false);
-  const [checkInStatus, setCheckInStatus] = useState(null);
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [attendanceData, setAttendanceData] = useState(null);
-  const [leaveBalance, setLeaveBalance] = useState(null);
-  const [expenses, setExpenses] = useState([]);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
   const [selectedWorkLocation, setSelectedWorkLocation] = useState('in_office');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isConsultingEmployee, setIsConsultingEmployee] = useState(false);
   
   // Selfie capture states
   const [selfieData, setSelfieData] = useState(null);
@@ -56,8 +62,6 @@ const EmployeeMobileApp = () => {
     amount: '',
     date: new Date().toISOString().split('T')[0]
   });
-  const [clients, setClients] = useState([]);
-  const [projects, setProjects] = useState([]);
 
   // Leave form states
   const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -87,17 +91,73 @@ const EmployeeMobileApp = () => {
   const isSalesTeam = ['admin', 'executive', 'sales_manager', 'manager'].includes(user?.role);
   
   // Client selection for On-Site check-in
-  const [assignedClients, setAssignedClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
-  const [loadingClients, setLoadingClients] = useState(false);
+  
+  // Query client for React Query
+  const queryClient = useQueryClient();
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  
+  // React Query: Fetch dashboard data
+  const { 
+    data: dashboardData, 
+    isLoading: loading,
+    refetch: refetchDashboard 
+  } = useMobileDashboardData(currentMonth);
+  
+  // Extract data from dashboard query
+  const attendanceData = dashboardData?.attendance || null;
+  const leaveBalance = dashboardData?.leaveBalance || null;
+  const expenses = useMemo(() => {
+    const expData = dashboardData?.expenses?.expenses || dashboardData?.expenses?.items || dashboardData?.expenses || [];
+    return Array.isArray(expData) ? expData : [];
+  }, [dashboardData?.expenses]);
+  const clients = useMemo(() => dashboardData?.clients || [], [dashboardData?.clients]);
+  const projects = useMemo(() => dashboardData?.projects || [], [dashboardData?.projects]);
+  
+  // React Query: Fetch assigned clients for On-Site check-in
+  const { 
+    data: assignedClientsData,
+    isLoading: loadingClients,
+    refetch: refetchAssignedClients
+  } = useMyAssignedClients({ enabled: false }); // Fetch on demand
+  
+  const assignedClients = useMemo(() => {
+    const clientList = assignedClientsData?.clients || assignedClientsData?.items || assignedClientsData || [];
+    if (Array.isArray(clientList) && clientList.length > 0) {
+      return clientList;
+    }
+    // Fallback: use projects as client source
+    return projects.map(p => ({
+      id: p.id,
+      client_name: p.client_name,
+      project_id: p.id,
+      project_name: p.name
+    })).filter(c => c.client_name);
+  }, [assignedClientsData, projects]);
+  
+  // React Query: Mutations
+  const checkInMutation = useCheckIn();
+  const checkOutMutation = useCheckOut();
+  const submitExpenseMutation = useSubmitExpense();
+  const uploadReceiptMutation = useUploadReceipt();
+  const submitLeaveMutation = useSubmitLeaveRequest();
+  const submitTravelMutation = useSubmitTravelReimbursement();
+  
+  // Derived states from attendance data
+  const checkInStatus = useMemo(() => {
+    if (!attendanceData?.records) return null;
+    const today = new Date().toISOString().split('T')[0];
+    return attendanceData.records.find(r => r.date === today);
+  }, [attendanceData]);
+  
+  const isConsultingEmployee = useMemo(() => {
+    const dept = attendanceData?.employee?.department?.toLowerCase() || '';
+    return dept.includes('consulting') || dept.includes('delivery');
+  }, [attendanceData]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    fetchData();
   }, []);
 
   useEffect(() => {
@@ -107,61 +167,6 @@ const EmployeeMobileApp = () => {
       }
     };
   }, [stream]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [attRes, leaveRes, expRes, clientsRes, projectsRes] = await Promise.all([
-        axios.get(`${API}/my/attendance?month=${new Date().toISOString().slice(0, 7)}`).catch(() => ({ data: null })),
-        axios.get(`${API}/my/leave-balance`).catch(() => ({ data: null })),
-        axios.get(`${API}/my/expenses`).catch(() => ({ data: null })),
-        axios.get(`${API}/clients`).catch(() => ({ data: [] })),
-        axios.get(`${API}/projects`).catch(() => ({ data: [] }))
-      ]);
-      
-      setAttendanceData(attRes.data);
-      setLeaveBalance(leaveRes.data);
-      const expData = expRes.data?.expenses || expRes.data?.items || expRes.data || [];
-      setExpenses(Array.isArray(expData) ? expData : []);
-      const clientData = clientsRes.data?.items || clientsRes.data || [];
-      setClients(Array.isArray(clientData) ? clientData : []);
-      const projectData = projectsRes.data?.items || projectsRes.data || [];
-      setProjects(Array.isArray(projectData) ? projectData : []);
-      
-      // Check if consulting employee (can use client sites)
-      const dept = attRes.data?.employee?.department?.toLowerCase() || '';
-      setIsConsultingEmployee(dept.includes('consulting') || dept.includes('delivery'));
-      
-      const today = new Date().toISOString().split('T')[0];
-      const todayRecord = attRes.data?.records?.find(r => r.date === today);
-      setCheckInStatus(todayRecord);
-    } catch (error) {
-      console.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Fetch assigned clients for On-Site check-in
-  const fetchAssignedClients = async () => {
-    setLoadingClients(true);
-    try {
-      const res = await axios.get(`${API}/my/assigned-clients`);
-      const clientList = res.data?.clients || res.data?.items || [];
-      setAssignedClients(Array.isArray(clientList) ? clientList : []);
-    } catch (e) {
-      // Fallback: use projects as client source
-      const projectClients = projects.map(p => ({
-        id: p.id,
-        client_name: p.client_name,
-        project_id: p.id,
-        project_name: p.name
-      })).filter(c => c.client_name);
-      setAssignedClients(projectClients);
-    } finally {
-      setLoadingClients(false);
-    }
-  };
 
   const captureLocation = () => {
     setLocationLoading(true);
@@ -250,58 +255,54 @@ const EmployeeMobileApp = () => {
       return;
     }
     
-    setLoading(true);
-    try {
-      const payload = {
-        work_location: selectedWorkLocation,
-        remarks: 'Mobile app check-in with selfie',
-        selfie: selfieData,
-        geo_location: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          accuracy: location.accuracy,
-          address: location.address
-        }
-      };
-      
-      // Add client info for onsite
-      if (selectedWorkLocation === 'onsite' && selectedClient) {
-        payload.client_id = selectedClient.id;
-        payload.client_name = selectedClient.client_name;
-        payload.project_id = selectedClient.project_id || '';
-        payload.project_name = selectedClient.project_name || '';
+    const payload = {
+      work_location: selectedWorkLocation,
+      remarks: 'Mobile app check-in with selfie',
+      selfie: selfieData,
+      geo_location: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: location.accuracy,
+        address: location.address
       }
-      
-      if (justification) {
-        payload.justification = justification;
-      }
-      
-      const response = await axios.post(`${API}/my/check-in`, payload);
-      
-      if (response.data.approval_status === 'approved') {
-        toast.success(`Check-in successful! Location: ${response.data.matched_location || 'Verified'}`);
-      } else {
-        toast.info('Check-in submitted for HR approval');
-      }
-      
-      setShowCheckInModal(false);
-      setSelfieData(null);
-      setJustification('');
-      setShowJustification(false);
-      setSelectedClient(null);
-      fetchData();
-    } catch (error) {
-      const detail = error.response?.data?.detail || 'Check-in failed';
-      if (detail.includes('not within 500m') || detail.includes('justification')) {
-        setShowJustification(true);
-        setLocationValidation({ is_valid: false, reason: detail });
-        toast.error('Location not verified. Please provide justification.');
-      } else {
-        toast.error(detail);
-      }
-    } finally {
-      setLoading(false);
+    };
+    
+    // Add client info for onsite
+    if (selectedWorkLocation === 'onsite' && selectedClient) {
+      payload.client_id = selectedClient.id;
+      payload.client_name = selectedClient.client_name;
+      payload.project_id = selectedClient.project_id || '';
+      payload.project_name = selectedClient.project_name || '';
     }
+    
+    if (justification) {
+      payload.justification = justification;
+    }
+    
+    checkInMutation.mutate(payload, {
+      onSuccess: (data) => {
+        if (data.approval_status === 'approved') {
+          toast.success(`Check-in successful! Location: ${data.matched_location || 'Verified'}`);
+        } else {
+          toast.info('Check-in submitted for HR approval');
+        }
+        setShowCheckInModal(false);
+        setSelfieData(null);
+        setJustification('');
+        setShowJustification(false);
+        setSelectedClient(null);
+      },
+      onError: (error) => {
+        const detail = error.response?.data?.detail || 'Check-in failed';
+        if (detail.includes('not within 500m') || detail.includes('justification')) {
+          setShowJustification(true);
+          setLocationValidation({ is_valid: false, reason: detail });
+          toast.error('Location not verified. Please provide justification.');
+        } else {
+          toast.error(detail);
+        }
+      }
+    });
   };
 
   const openCheckIn = () => {
@@ -314,7 +315,7 @@ const EmployeeMobileApp = () => {
     setSelectedClient(null);
     captureLocation();
     // Fetch clients for potential On-Site selection
-    fetchAssignedClients();
+    refetchAssignedClients();
   };
 
   // Travel reimbursement state
@@ -325,7 +326,6 @@ const EmployeeMobileApp = () => {
   const [submittingTravelClaim, setSubmittingTravelClaim] = useState(false);
   
   const handleCheckOut = async () => {
-    setLoading(true);
     try {
       // Capture location for check-out
       const position = await new Promise((resolve, reject) => {
@@ -338,30 +338,32 @@ const EmployeeMobileApp = () => {
         accuracy: position.coords.accuracy
       };
       
-      const response = await axios.post(`${API}/my/check-out`, { geo_location });
-      
-      // Store attendance ID for travel claim
-      setLastAttendanceId(response.data.id);
-      
-      // Check if travel reimbursement was calculated
-      if (response.data.travel_reimbursement) {
-        setLastTravelReimbursement({
-          ...response.data.travel_reimbursement,
-          check_out_location: geo_location
-        });
-        setTravelClaimVehicle('car'); // Reset to default
-        setShowTravelReimbursementModal(true);
-        toast.success(`Check-out successful! Work hours: ${response.data.work_hours?.toFixed(1) || '-'} hrs`);
-      } else {
-        toast.success(`Check-out successful! Work hours: ${response.data.work_hours?.toFixed(1) || '-'} hrs`);
-      }
-      
-      setShowCheckOutModal(false);
-      fetchData();
+      checkOutMutation.mutate({ geo_location }, {
+        onSuccess: (data) => {
+          // Store attendance ID for travel claim
+          setLastAttendanceId(data.id);
+          
+          // Check if travel reimbursement was calculated
+          if (data.travel_reimbursement) {
+            setLastTravelReimbursement({
+              ...data.travel_reimbursement,
+              check_out_location: geo_location
+            });
+            setTravelClaimVehicle('car'); // Reset to default
+            setShowTravelReimbursementModal(true);
+            toast.success(`Check-out successful! Work hours: ${data.work_hours?.toFixed(1) || '-'} hrs`);
+          } else {
+            toast.success(`Check-out successful! Work hours: ${data.work_hours?.toFixed(1) || '-'} hrs`);
+          }
+          
+          setShowCheckOutModal(false);
+        },
+        onError: (error) => {
+          toast.error(error.response?.data?.detail || 'Check-out failed');
+        }
+      });
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Check-out failed');
-    } finally {
-      setLoading(false);
+      toast.error('Unable to get location for check-out');
     }
   };
 
@@ -370,40 +372,44 @@ const EmployeeMobileApp = () => {
     if (!lastTravelReimbursement) return;
     
     setSubmittingTravelClaim(true);
-    try {
-      const response = await axios.post(`${API}/travel/reimbursement`, {
-        start_location: {
-          name: lastTravelReimbursement.from_location || 'Office',
-          address: lastTravelReimbursement.from_location || 'Office',
-          latitude: lastTravelReimbursement.office_lat || 12.9716,
-          longitude: lastTravelReimbursement.office_lon || 77.5946
-        },
-        end_location: {
-          name: lastTravelReimbursement.client_name || lastTravelReimbursement.to_location || 'Client Site',
-          address: lastTravelReimbursement.to_location || 'Client Site',
-          latitude: lastTravelReimbursement.client_lat || lastTravelReimbursement.check_out_location?.latitude || 0,
-          longitude: lastTravelReimbursement.client_lon || lastTravelReimbursement.check_out_location?.longitude || 0
-        },
-        vehicle_type: travelClaimVehicle,
-        is_round_trip: true,
-        travel_type: 'attendance',
-        attendance_id: lastAttendanceId,
-        travel_date: new Date().toISOString().split('T')[0],
-        client_id: lastTravelReimbursement.client_id,
-        client_name: lastTravelReimbursement.client_name,
-        project_id: lastTravelReimbursement.project_id,
-        notes: `Travel to ${lastTravelReimbursement.client_name || 'client site'} (${travelClaimVehicle})`
-      });
-      
-      toast.success(`Travel claim submitted! Rs ${response.data.final_amount} for ${response.data.distance_km} km`);
-      setShowTravelReimbursementModal(false);
-      setLastTravelReimbursement(null);
-      fetchTravelClaims();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit travel claim');
-    } finally {
-      setSubmittingTravelClaim(false);
-    }
+    
+    const travelData = {
+      start_location: {
+        name: lastTravelReimbursement.from_location || 'Office',
+        address: lastTravelReimbursement.from_location || 'Office',
+        latitude: lastTravelReimbursement.office_lat || 12.9716,
+        longitude: lastTravelReimbursement.office_lon || 77.5946
+      },
+      end_location: {
+        name: lastTravelReimbursement.client_name || lastTravelReimbursement.to_location || 'Client Site',
+        address: lastTravelReimbursement.to_location || 'Client Site',
+        latitude: lastTravelReimbursement.client_lat || lastTravelReimbursement.check_out_location?.latitude || 0,
+        longitude: lastTravelReimbursement.client_lon || lastTravelReimbursement.check_out_location?.longitude || 0
+      },
+      vehicle_type: travelClaimVehicle,
+      is_round_trip: true,
+      travel_type: 'attendance',
+      attendance_id: lastAttendanceId,
+      travel_date: new Date().toISOString().split('T')[0],
+      client_id: lastTravelReimbursement.client_id,
+      client_name: lastTravelReimbursement.client_name,
+      project_id: lastTravelReimbursement.project_id,
+      notes: `Travel to ${lastTravelReimbursement.client_name || 'client site'} (${travelClaimVehicle})`
+    };
+    
+    submitTravelMutation.mutate(travelData, {
+      onSuccess: (data) => {
+        toast.success(`Travel claim submitted! Rs ${data.final_amount} for ${data.distance_km} km`);
+        setShowTravelReimbursementModal(false);
+        setLastTravelReimbursement(null);
+        fetchTravelClaims();
+        setSubmittingTravelClaim(false);
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to submit travel claim');
+        setSubmittingTravelClaim(false);
+      }
+    });
   };
 
 
@@ -413,51 +419,51 @@ const EmployeeMobileApp = () => {
       toast.error('Please add at least one expense item');
       return;
     }
-    setLoading(true);
-    try {
-      // Create expense first
-      const expenseRes = await axios.post(`${API}/expenses`, {
-        client_id: expenseForm.client_id || null,
-        client_name: expenseForm.client_name || '',
-        project_id: expenseForm.project_id || null,
-        project_name: expenseForm.project_name || '',
-        is_office_expense: expenseForm.is_office_expense,
-        notes: expenseForm.notes,
-        line_items: expenseForm.line_items.map(item => ({
-          category: item.category,
-          description: item.description,
-          amount: item.amount,
-          date: item.date
-        }))
-      });
-
-      const expenseId = expenseRes.data.expense_id;
-
-      // Upload receipts for each line item that has one
-      for (let i = 0; i < expenseForm.line_items.length; i++) {
-        const item = expenseForm.line_items[i];
-        if (item.receipt) {
-          try {
-            await axios.post(`${API}/expenses/${expenseId}/upload-receipt`, {
-              receipt: item.receipt,
-              name: `Receipt for ${item.description}`,
-              line_item_index: i
-            });
-          } catch (receiptError) {
-            console.error('Failed to upload receipt for item', i);
+    
+    const expenseData = {
+      client_id: expenseForm.client_id || null,
+      client_name: expenseForm.client_name || '',
+      project_id: expenseForm.project_id || null,
+      project_name: expenseForm.project_name || '',
+      is_office_expense: expenseForm.is_office_expense,
+      notes: expenseForm.notes,
+      line_items: expenseForm.line_items.map(item => ({
+        category: item.category,
+        description: item.description,
+        amount: item.amount,
+        date: item.date
+      }))
+    };
+    
+    submitExpenseMutation.mutate(expenseData, {
+      onSuccess: async (data) => {
+        const expenseId = data.expense_id;
+        
+        // Upload receipts for each line item that has one
+        for (let i = 0; i < expenseForm.line_items.length; i++) {
+          const item = expenseForm.line_items[i];
+          if (item.receipt) {
+            try {
+              await uploadReceiptMutation.mutateAsync({
+                expenseId,
+                fileData: item.receipt,
+                fileName: `Receipt for ${item.description}`,
+                contentType: 'image/jpeg'
+              });
+            } catch (receiptError) {
+              console.error('Failed to upload receipt for item', i);
+            }
           }
         }
+        
+        toast.success('Expense created! Submit it for approval.');
+        setShowExpenseModal(false);
+        resetExpenseForm();
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to create expense');
       }
-
-      toast.success('Expense created! Submit it for approval.');
-      setShowExpenseModal(false);
-      resetExpenseForm();
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create expense');
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const addLineItem = () => {
@@ -513,33 +519,32 @@ const EmployeeMobileApp = () => {
   };
 
   // Handle Leave Application
-  const handleSubmitLeave = async () => {
+  const handleSubmitLeave = () => {
     if (!leaveForm.reason) {
       toast.error('Please provide a reason for leave');
       return;
     }
-    setLoading(true);
-    try {
-      await axios.post(`${API}/leave-requests`, {
-        leave_type: leaveForm.leave_type + '_leave',
-        start_date: leaveForm.start_date,
-        end_date: leaveForm.end_date,
-        reason: leaveForm.reason
-      });
-      toast.success('Leave application submitted!');
-      setShowLeaveModal(false);
-      setLeaveForm({
-        leave_type: 'casual',
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0],
-        reason: ''
-      });
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to apply for leave');
-    } finally {
-      setLoading(false);
-    }
+    
+    submitLeaveMutation.mutate({
+      leave_type: leaveForm.leave_type + '_leave',
+      start_date: leaveForm.start_date,
+      end_date: leaveForm.end_date,
+      reason: leaveForm.reason
+    }, {
+      onSuccess: () => {
+        toast.success('Leave application submitted!');
+        setShowLeaveModal(false);
+        setLeaveForm({
+          leave_type: 'casual',
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: new Date().toISOString().split('T')[0],
+          reason: ''
+        });
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to apply for leave');
+      }
+    });
   };
 
   // Handle location search (Google Places API)
@@ -550,7 +555,7 @@ const EmployeeMobileApp = () => {
     }
     setSearchingLocations(true);
     try {
-      const response = await axios.get(`${API}/travel/location-search?query=${encodeURIComponent(query)}`);
+      const response = await axios.get(`${API}/api/travel/location-search?query=${encodeURIComponent(query)}`);
       setLocationSearchResults(response.data.results || []);
     } catch (error) {
       console.error('Location search failed:', error);
@@ -592,45 +597,42 @@ const EmployeeMobileApp = () => {
   };
 
   // Calculate travel distance and submit claim
-  const handleSubmitTravelClaim = async () => {
+  const handleSubmitTravelClaim = () => {
     if (!travelForm.start_location || !travelForm.end_location) {
       toast.error('Please select both start and end locations');
       return;
     }
     
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API}/travel/reimbursement`, {
-        start_location: travelForm.start_location,
-        end_location: travelForm.end_location,
-        vehicle_type: travelForm.vehicle_type,
-        is_round_trip: travelForm.is_round_trip,
-        travel_date: new Date().toISOString().split('T')[0],
-        travel_type: 'manual',
-        notes: travelForm.notes
-      });
-      
-      toast.success(`Travel claim submitted! Distance: ${response.data.distance_km} km, Amount: ₹${response.data.final_amount}`);
-      setShowTravelModal(false);
-      setTravelForm({
-        start_location: null,
-        end_location: null,
-        vehicle_type: 'car',
-        is_round_trip: true,
-        notes: ''
-      });
-      fetchTravelClaims();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to submit travel claim');
-    } finally {
-      setLoading(false);
-    }
+    submitTravelMutation.mutate({
+      start_location: travelForm.start_location,
+      end_location: travelForm.end_location,
+      vehicle_type: travelForm.vehicle_type,
+      is_round_trip: travelForm.is_round_trip,
+      travel_date: new Date().toISOString().split('T')[0],
+      travel_type: 'manual',
+      notes: travelForm.notes
+    }, {
+      onSuccess: (data) => {
+        toast.success(`Travel claim submitted! Distance: ${data.distance_km} km, Amount: ₹${data.final_amount}`);
+        setShowTravelModal(false);
+        setTravelForm({
+          start_location: null,
+          end_location: null,
+          vehicle_type: 'car',
+          is_round_trip: true,
+          notes: ''
+        });
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to submit travel claim');
+      }
+    });
   };
 
-  // Fetch travel claims
+  // Fetch travel claims - now using React Query's invalidation via mutation
   const fetchTravelClaims = async () => {
     try {
-      const response = await axios.get(`${API}/my/travel-reimbursements?month=${new Date().toISOString().slice(0, 7)}`);
+      const response = await axios.get(`${API}/api/my/travel-reimbursements?month=${new Date().toISOString().slice(0, 7)}`);
       setTravelClaims(response.data.records || []);
     } catch (error) {
       console.error('Failed to fetch travel claims');
@@ -648,7 +650,7 @@ const EmployeeMobileApp = () => {
         };
         try {
           // Use Google Geocoding API for reverse geocoding via backend
-          const response = await axios.get(`${API}/travel/location-search?query=${coords.latitude},${coords.longitude}`);
+          const response = await axios.get(`${API}/api/travel/location-search?query=${coords.latitude},${coords.longitude}`);
           if (response.data.results && response.data.results.length > 0) {
             const firstResult = response.data.results[0];
             coords.name = firstResult.name || 'Current Location';

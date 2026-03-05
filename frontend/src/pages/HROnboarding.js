@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
+import { useAllEmployees, useSuggestedDepartment, useCreateEmployee, useGrantEmployeeAccess } from '../hooks/useHROnboarding';
 
 const ONBOARDING_STEPS = [
   { id: 'import', title: 'Quick Import', icon: FileSpreadsheet },
@@ -72,10 +73,29 @@ const HROnboarding = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [managers, setManagers] = useState([]);
   const [bankProofFile, setBankProofFile] = useState(null);
   const [suggestedDept, setSuggestedDept] = useState(null);
   const [deptSuggestionLoading, setDeptSuggestionLoading] = useState(false);
+  
+  // React Query: Fetch all employees (for managers dropdown and ID generation)
+  const { data: allEmployeesData = [], isLoading: employeesLoading, refetch: refetchEmployees } = useAllEmployees();
+  
+  // Transform employees to managers format
+  const managers = useMemo(() => {
+    return allEmployeesData
+      .filter(emp => emp.is_active !== false)
+      .map(emp => ({
+        id: emp.id || emp.employee_id,
+        full_name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.employee_id,
+        email: emp.email,
+        department: emp.department || emp.primary_department,
+        employee_id: emp.employee_id
+      }));
+  }, [allEmployeesData]);
+  
+  // React Query: Mutations
+  const createEmployeeMutation = useCreateEmployee();
+  const grantAccessMutation = useGrantEmployeeAccess();
   
   // Draft system
   const [showDraftSelector, setShowDraftSelector] = useState(false);
@@ -205,63 +225,28 @@ const HROnboarding = () => {
     };
   }, [formData, registerFormDataGetter]);
 
-  // Auto-generate Employee ID with EMP prefix
-  const generateEmployeeId = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/employees/all`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const employees = Array.isArray(data) ? data : (data?.items || []);
-        // Find the highest EMP number
-        let maxNum = 0;
-        employees.forEach(emp => {
-          const match = emp.employee_id?.match(/EMP(\d+)/i);
-          if (match) {
-            const num = parseInt(match[1], 10);
-            if (num > maxNum) maxNum = num;
-          }
-        });
-        // Generate next number with padding
-        const nextNum = maxNum + 1;
-        const newEmployeeId = `EMP${String(nextNum).padStart(3, '0')}`;
-        setFormData(prev => ({ ...prev, employee_id: newEmployeeId }));
+  // Auto-generate Employee ID with EMP prefix - using cached data
+  const generateEmployeeId = useCallback(() => {
+    // Find the highest EMP number from cached employees
+    let maxNum = 0;
+    allEmployeesData.forEach(emp => {
+      const match = emp.employee_id?.match(/EMP(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
       }
-    } catch (error) {
-      console.error('Failed to generate employee ID:', error);
-      // Default fallback
-      setFormData(prev => ({ ...prev, employee_id: `EMP${Date.now().toString().slice(-4)}` }));
-    }
-  };
+    });
+    // Generate next number with padding
+    const nextNum = maxNum + 1;
+    const newEmployeeId = `EMP${String(nextNum).padStart(3, '0')}`;
+    setFormData(prev => ({ ...prev, employee_id: newEmployeeId }));
+  }, [allEmployeesData]);
 
-  const fetchManagers = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      // Fetch from employees endpoint - includes all employees, not just those with login accounts
-      const response = await fetch(`${API}/employees/all`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const employees = Array.isArray(data) ? data : (data?.items || []);
-        // Transform to manager format - filter for active employees
-        const potentialManagers = employees
-          .filter(emp => emp.is_active !== false)
-          .map(emp => ({
-            id: emp.id || emp.employee_id,
-            full_name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.employee_id,
-            email: emp.email,
-            department: emp.department || emp.primary_department,
-            employee_id: emp.employee_id
-          }));
-        setManagers(potentialManagers);
-      }
-    } catch (error) {
-      console.error('Failed to fetch managers:', error);
-    }
-  };
+  // Fetch managers is now handled by React Query - this is now a no-op for backward compat
+  const fetchManagers = useCallback(() => {
+    // Data is already fetched via useAllEmployees hook
+    // This function is kept for backward compatibility with existing code
+  }, []);
 
   // Auto-suggest department based on designation
   const suggestDepartmentFromDesignation = async (designation) => {
@@ -531,35 +516,40 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
     toast.success('Results downloaded');
   };
 
-  // Download master employee file
-  const downloadMasterFile = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/employees/all`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const employees = Array.isArray(data) ? data : (data?.items || []);
-        
-        const headers = 'Employee ID,First Name,Last Name,Email,Phone,Department,Designation,Employment Type,Joining Date,Status\n';
-        const rows = employees.map(e => 
-          `"${e.employee_id}","${e.first_name}","${e.last_name}","${e.email}","${e.phone || ''}","${e.department || ''}","${e.designation || ''}","${e.employment_type || ''}","${e.joining_date || ''}","${e.status || 'active'}"`
-        ).join('\n');
-        
-        const blob = new Blob([headers + rows], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `employee_master_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success('Master file downloaded');
-      }
-    } catch (error) {
-      toast.error('Failed to download master file');
+  // Download master employee file - using cached data
+  const downloadMasterFile = () => {
+    if (allEmployeesData.length === 0) {
+      toast.error('No employee data available');
+      return;
     }
+    
+    // Create CSV content
+    const headers = ['Employee ID', 'First Name', 'Last Name', 'Email', 'Department', 'Designation', 'Employment Type', 'Joining Date', 'Status'];
+    const rows = allEmployeesData.map(emp => [
+      emp.employee_id,
+      emp.first_name || '',
+      emp.last_name || '',
+      emp.email || '',
+      emp.department || emp.primary_department || '',
+      emp.designation || '',
+      emp.employment_type || '',
+      emp.joining_date || '',
+      emp.is_active ? 'Active' : 'Inactive'
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `employee_master_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Master file downloaded');
   };
 
   // Document upload handler with preview
@@ -764,124 +754,101 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
 
   const handleSubmit = async () => {
     setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      
-      // Generate password based on Employee ID pattern: Welcome@EMP001
-      const generatedPassword = `Welcome@${formData.employee_id}`;
-      
-      // Prepare employee data
-      const employeeData = {
-        employee_id: formData.employee_id,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        personal_email: formData.personal_email,
-        phone: formData.phone,
-        date_of_birth: formData.date_of_birth,
-        gender: formData.gender,
-        address: formData.address,
-        department: formData.primary_department || formData.departments[0], // Legacy field
-        departments: formData.departments,  // Multi-department array
-        primary_department: formData.primary_department || formData.departments[0],
-        designation: formData.designation,
-        // SIMPLIFIED: No role/level - just is_view_only flag
-        is_view_only: formData.is_view_only || false,
-        employment_type: formData.employment_type,
-        joining_date: formData.joining_date,
-        reporting_manager_id: formData.reporting_manager_id,
-        bank_details: formData.bank_account_number ? {
-          account_number: formData.bank_account_number,
-          ifsc_code: formData.bank_ifsc,
-          bank_name: formData.bank_name,
-          branch: formData.bank_branch,
-          account_holder_name: formData.bank_account_holder,
-          proof_uploaded: formData.bank_proof_uploaded,
-          proof_verified: false, // Requires admin approval
-        } : null,
-        onboarding_status: 'completed',
-        onboarded_by: user?.id,
-        onboarded_at: new Date().toISOString(),
-      };
+    
+    // Generate password based on Employee ID pattern: Welcome@EMP001
+    const generatedPassword = `Welcome@${formData.employee_id}`;
+    
+    // Prepare employee data
+    const employeeData = {
+      employee_id: formData.employee_id,
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      email: formData.email,
+      personal_email: formData.personal_email,
+      phone: formData.phone,
+      date_of_birth: formData.date_of_birth,
+      gender: formData.gender,
+      address: formData.address,
+      department: formData.primary_department || formData.departments[0], // Legacy field
+      departments: formData.departments,  // Multi-department array
+      primary_department: formData.primary_department || formData.departments[0],
+      designation: formData.designation,
+      // SIMPLIFIED: No role/level - just is_view_only flag
+      is_view_only: formData.is_view_only || false,
+      employment_type: formData.employment_type,
+      joining_date: formData.joining_date,
+      reporting_manager_id: formData.reporting_manager_id,
+      bank_details: formData.bank_account_number ? {
+        account_number: formData.bank_account_number,
+        ifsc_code: formData.bank_ifsc,
+        bank_name: formData.bank_name,
+        branch: formData.bank_branch,
+        account_holder_name: formData.bank_account_holder,
+        proof_uploaded: formData.bank_proof_uploaded,
+        proof_verified: false, // Requires admin approval
+      } : null,
+      onboarding_status: 'completed',
+      onboarded_by: user?.id,
+      onboarded_at: new Date().toISOString(),
+    };
 
-      // Create employee record
-      const response = await fetch(`${API}/employees`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(employeeData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
+    // Create employee using mutation
+    createEmployeeMutation.mutate(employeeData, {
+      onSuccess: async (result) => {
         const employee = result.employee;
         
         // Get reporting manager details
         const reportingManager = managers.find(m => m.id === formData.reporting_manager_id);
         
-        // Grant portal access using the consolidated endpoint
-        // This creates the user account and links it to the employee
-        const accessResponse = await fetch(`${API}/employees/${employee.id}/grant-access`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        // Grant portal access using mutation
+        grantAccessMutation.mutate({ 
+          employeeId: employee.id, 
+          temporaryPassword: generatedPassword 
+        }, {
+          onSuccess: async (accessData) => {
+            // Show success popup with all details
+            setOnboardingSuccess({
+              employee: {
+                id: formData.employee_id,
+                name: `${formData.first_name} ${formData.last_name}`,
+                email: formData.email,
+                department: formData.departments.join(', '),
+                designation: formData.designation,
+                joiningDate: formData.joining_date,
+              },
+              credentials: {
+                loginId: accessData.login_id || formData.employee_id,
+                password: generatedPassword,
+              },
+              reportingManager: reportingManager ? {
+                name: reportingManager.full_name,
+                email: reportingManager.email,
+                department: reportingManager.department,
+              } : null,
+            });
+            setShowSuccessDialog(true);
+            
+            // Mark draft as converted (cleanup)
+            await convertDraft();
+            
+            // Simulate email notification (mock)
+            console.log('📧 Mock Email Sent to:', formData.email, '- Welcome email with credentials');
+            console.log('📧 Mock Email Sent to HR/Admin - New employee onboarded notification');
+            setLoading(false);
           },
-          body: JSON.stringify({
-            password: generatedPassword  // Welcome@EMP001
-          })
+          onError: (error) => {
+            // Employee created but access grant failed
+            toast.warning(`Employee created but portal access failed: ${error.response?.data?.detail || 'Unknown error'}`);
+            navigate('/employees');
+            setLoading(false);
+          }
         });
-
-        if (accessResponse.ok) {
-          const accessData = await accessResponse.json();
-          
-          // Show success popup with all details
-          setOnboardingSuccess({
-            employee: {
-              id: formData.employee_id,
-              name: `${formData.first_name} ${formData.last_name}`,
-              email: formData.email,
-              department: formData.departments.join(', '),
-              designation: formData.designation,
-              joiningDate: formData.joining_date,
-            },
-            credentials: {
-              loginId: accessData.login_id || formData.employee_id,
-              password: generatedPassword,
-            },
-            reportingManager: reportingManager ? {
-              name: reportingManager.full_name,
-              email: reportingManager.email,
-              department: reportingManager.department,
-            } : null,
-          });
-          setShowSuccessDialog(true);
-          
-          // Mark draft as converted (cleanup)
-          await convertDraft();
-          
-          // Simulate email notification (mock)
-          console.log('📧 Mock Email Sent to:', formData.email, '- Welcome email with credentials');
-          console.log('📧 Mock Email Sent to HR/Admin - New employee onboarded notification');
-          
-        } else {
-          // Employee created but access grant failed
-          const error = await accessResponse.json();
-          toast.warning(`Employee created but portal access failed: ${error.detail || 'Unknown error'}`);
-          navigate('/employees');
-        }
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to create employee');
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to create employee');
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Onboarding error:', error);
-      toast.error('An error occurred during onboarding');
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const progress = ((currentStep + 1) / ONBOARDING_STEPS.length) * 100;

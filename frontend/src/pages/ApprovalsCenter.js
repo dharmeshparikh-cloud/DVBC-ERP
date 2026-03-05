@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -19,6 +19,46 @@ import {
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { ApprovalCard, StatCard } from '../components/approvals/ApprovalCard';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  usePendingApprovals,
+  useMyRequests,
+  useAllApprovals,
+  useCtcApprovals,
+  useGoLivePending,
+  useGoLiveChecklist,
+  usePermissionRequests,
+  useModificationRequests,
+  useBankChangeRequests,
+  useEmployeeChangeRequests,
+  useAgreementApprovals,
+  useKickoffApprovals,
+  useExpenseApprovals,
+  useExpenseReceipts,
+  useApprovalAction,
+  useApproveAgreement,
+  useRejectAgreement,
+  useApproveKickoff,
+  useRejectKickoff,
+  useApproveExpense,
+  useRejectExpense,
+  useSendBackExpense,
+  usePartialApproveExpense,
+  useUploadExpenseReceipt,
+  useDeleteExpenseReceipt,
+  useApprovePermissionRequest,
+  useRejectPermissionRequest,
+  useApproveCTC,
+  useRejectCTC,
+  useBankChangeAction,
+  useApproveProfileChange,
+  useRejectProfileChange,
+  useApproveGoLive,
+  useRejectGoLive,
+  useApproveModificationRequest,
+  useRejectModificationRequest,
+  useBulkApprovalAction
+} from '../hooks/useApprovals';
 
 const APPROVAL_TYPE_LABELS = {
   sow_item: 'SOW Item',
@@ -35,20 +75,72 @@ const ApprovalsCenter = () => {
   const { user, token } = useContext(AuthContext);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const queryClient = useQueryClient();
   
-  const [pendingApprovals, setPendingApprovals] = useState([]);
-  const [ctcApprovals, setCtcApprovals] = useState([]);
-  const [bankApprovals, setBankApprovals] = useState([]);
-  const [goLiveApprovals, setGoLiveApprovals] = useState([]);
-  const [permissionApprovals, setPermissionApprovals] = useState([]);
-  const [modificationApprovals, setModificationApprovals] = useState([]);
-  const [profileChangeApprovals, setProfileChangeApprovals] = useState([]);
-  const [agreementApprovals, setAgreementApprovals] = useState([]);
-  const [kickoffApprovals, setKickoffApprovals] = useState([]);
-  const [expenseApprovals, setExpenseApprovals] = useState([]); // Merged from ExpenseApprovals
-  const [myRequests, setMyRequests] = useState([]);
-  const [allApprovals, setAllApprovals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Role checks
+  const isAdmin = user?.role === 'admin';
+  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
+  const isManager = ['admin', 'manager', 'hr_manager', 'project_manager'].includes(user?.role);
+  const isSC = user?.role === 'senior_consultant';
+  const isPC = user?.role === 'principal_consultant';
+  
+  // React Query: Data fetching with role-based enabling
+  const { data: pendingApprovalsData = [], isLoading: pendingLoading, refetch: refetchPending } = usePendingApprovals();
+  const { data: myRequestsData = [], isLoading: myRequestsLoading, refetch: refetchMyRequests } = useMyRequests();
+  const { data: allApprovalsData = [], refetch: refetchAllApprovals } = useAllApprovals(isManager);
+  const { data: ctcApprovalsData = [], refetch: refetchCtc } = useCtcApprovals(isAdmin);
+  const { data: goLiveApprovalsData = [], refetch: refetchGoLive } = useGoLivePending(isAdmin);
+  const { data: permissionApprovalsData = [], refetch: refetchPermissions } = usePermissionRequests(isAdmin);
+  const { data: modificationApprovalsData = [], refetch: refetchModifications } = useModificationRequests(isAdmin);
+  const { data: bankApprovalsData = [], refetch: refetchBank } = useBankChangeRequests(isHR);
+  const { data: profileChangeApprovalsData = [], refetch: refetchProfileChanges } = useEmployeeChangeRequests(isHR);
+  const { data: agreementApprovalsData = [], refetch: refetchAgreements } = useAgreementApprovals(isManager || isAdmin);
+  const { data: kickoffApprovalsData = [], refetch: refetchKickoffs } = useKickoffApprovals(isSC || isPC || isAdmin);
+  const { data: expenseApprovalsData = [], refetch: refetchExpenses } = useExpenseApprovals(isManager || isHR);
+  
+  // Derive state from queries
+  const pendingApprovals = pendingApprovalsData;
+  const myRequests = myRequestsData;
+  const allApprovals = allApprovalsData;
+  const ctcApprovals = ctcApprovalsData;
+  const goLiveApprovals = goLiveApprovalsData;
+  const permissionApprovals = permissionApprovalsData;
+  const modificationApprovals = modificationApprovalsData;
+  const bankApprovals = bankApprovalsData;
+  const profileChangeApprovals = profileChangeApprovalsData;
+  const agreementApprovals = agreementApprovalsData;
+  const kickoffApprovals = kickoffApprovalsData;
+  const expenseApprovals = expenseApprovalsData;
+  
+  // Combined loading state
+  const loading = pendingLoading || myRequestsLoading;
+  
+  // React Query: Mutations
+  const approvalActionMutation = useApprovalAction();
+  const approveAgreementMutation = useApproveAgreement();
+  const rejectAgreementMutation = useRejectAgreement();
+  const approveKickoffMutation = useApproveKickoff();
+  const rejectKickoffMutation = useRejectKickoff();
+  const approveExpenseMutation = useApproveExpense();
+  const rejectExpenseMutation = useRejectExpense();
+  const sendBackExpenseMutation = useSendBackExpense();
+  const partialApproveExpenseMutation = usePartialApproveExpense();
+  const uploadExpenseReceiptMutation = useUploadExpenseReceipt();
+  const deleteExpenseReceiptMutation = useDeleteExpenseReceipt();
+  const approvePermissionMutation = useApprovePermissionRequest();
+  const rejectPermissionMutation = useRejectPermissionRequest();
+  const approveCtcMutation = useApproveCTC();
+  const rejectCtcMutation = useRejectCTC();
+  const bankChangeMutation = useBankChangeAction();
+  const approveProfileChangeMutation = useApproveProfileChange();
+  const rejectProfileChangeMutation = useRejectProfileChange();
+  const approveGoLiveMutation = useApproveGoLive();
+  const rejectGoLiveMutation = useRejectGoLive();
+  const approveModificationMutation = useApproveModificationRequest();
+  const rejectModificationMutation = useRejectModificationRequest();
+  const bulkApprovalMutation = useBulkApprovalAction();
+  
+  // UI State
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [actionDialog, setActionDialog] = useState(false);
@@ -102,9 +194,28 @@ const ApprovalsCenter = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const wsRef = useRef(null);
 
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
-  const isManager = ['admin', 'manager', 'hr_manager', 'project_manager'].includes(user?.role);
+  // Refetch all data
+  const fetchData = useCallback(() => {
+    refetchPending();
+    refetchMyRequests();
+    if (isManager) refetchAllApprovals();
+    if (isAdmin) {
+      refetchCtc();
+      refetchGoLive();
+      refetchPermissions();
+      refetchModifications();
+    }
+    if (isHR) {
+      refetchBank();
+      refetchProfileChanges();
+    }
+    if (isManager || isAdmin) refetchAgreements();
+    if (isSC || isPC || isAdmin) refetchKickoffs();
+    if (isManager || isHR) refetchExpenses();
+    setLastRefresh(new Date());
+  }, [isAdmin, isHR, isManager, isSC, isPC, refetchPending, refetchMyRequests, refetchAllApprovals, 
+      refetchCtc, refetchGoLive, refetchPermissions, refetchModifications, refetchBank, 
+      refetchProfileChanges, refetchAgreements, refetchKickoffs, refetchExpenses]);
 
   // WebSocket connection for real-time updates
   useEffect(() => {
@@ -174,145 +285,33 @@ const ApprovalsCenter = () => {
     };
   }, [token]);
 
-  const fetchData = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const requests = [
-        axios.get(`${API}/approvals/pending`).catch(() => ({ data: [] })),
-        axios.get(`${API}/approvals/my-requests`).catch(() => ({ data: [] }))
-      ];
-      
-      if (isAdmin) {
-        requests.push(axios.get(`${API}/ctc/pending-approvals`).catch(() => ({ data: [] })));
-        requests.push(axios.get(`${API}/go-live/pending`).catch(() => ({ data: [] })));
-        requests.push(axios.get(`${API}/permission-change-requests`).catch(() => ({ data: [] })));
-        requests.push(axios.get(`${API}/employees/modification-requests/pending`).catch(() => ({ data: [] })));
-      }
-      
-      if (isHR) {
-        requests.push(axios.get(`${API}/hr/bank-change-requests`).catch(() => ({ data: [] })));
-        requests.push(axios.get(`${API}/hr/employee-change-requests`).catch(() => ({ data: [] })));
-      }
-      
-      // Fetch agreement approvals for managers and admins
-      if (isManager || isAdmin) {
-        requests.push(axios.get(`${API}/agreements/pending-approval`).catch(() => ({ data: [] })));
-      }
-      
-      // Fetch kickoff request approvals (Senior Consultant, Principal Consultant, Admin)
-      const canApproveKickoffs = isAdmin || 
-        user?.role === 'senior_consultant' || 
-        user?.role === 'principal_consultant';
-      
-      if (canApproveKickoffs) {
-        requests.push(axios.get(`${API}/sales-funnel/pending-kickoff-approvals`).catch(() => ({ data: { requests: [] } })));
-      }
-      
-      // Fetch expense approvals for managers and HR (merged from ExpenseApprovals)
-      if (isManager || isHR) {
-        requests.push(axios.get(`${API}/expenses/pending-approvals`).catch(() => 
-          axios.get(`${API}/expenses`).catch(() => ({ data: [] }))
-        ));
-      }
-      
-      const results = await Promise.all(requests);
-      
-      // Helper to safely extract array from response
-      const extractArr = (res) => {
-        const data = res?.data;
-        if (Array.isArray(data)) return data;
-        if (data?.items && Array.isArray(data.items)) return data.items;
-        return [];
-      };
-      
-      setPendingApprovals(extractArr(results[0]));
-      setMyRequests(extractArr(results[1]));
-      
-      let agreementApprovalIndex = null;
-      let kickoffApprovalIndex = null;
-      
-      if (isAdmin) {
-        setCtcApprovals(extractArr(results[2]));
-        setGoLiveApprovals(extractArr(results[3]));
-        setPermissionApprovals(extractArr(results[4]).filter(r => r.status === 'pending'));
-        setModificationApprovals(extractArr(results[5]));
-        agreementApprovalIndex = 6; // After the admin-specific requests
-        kickoffApprovalIndex = 7; // After agreement approvals
-      } else if (user?.role === 'senior_consultant' || user?.role === 'principal_consultant') {
-        // Senior/Principal Consultants only see kickoff approvals
-        kickoffApprovalIndex = 2; // Right after basic requests
-      } else if (isHR) {
-        setBankApprovals(extractArr(results[2]));
-        setProfileChangeApprovals(extractArr(results[3]).filter(r => r.status === 'pending'));
-        agreementApprovalIndex = isManager ? 4 : null; // HR managers get agreement approvals after HR requests
-      } else if (isManager) {
-        agreementApprovalIndex = 2; // For non-admin managers, right after the basic requests
-      }
-      
-      // Set agreement approvals if user has permission
-      if ((isManager || isAdmin) && agreementApprovalIndex !== null && results[agreementApprovalIndex]) {
-        const agreementData = extractArr(results[agreementApprovalIndex]);
-        // Extract the agreement objects from the response
-        setAgreementApprovals(agreementData.map(item => item.agreement || item));
-      }
-      
-      // Set kickoff approvals (Senior Consultant, Principal Consultant, Admin)
-      if (canApproveKickoffs && kickoffApprovalIndex !== null && results[kickoffApprovalIndex]) {
-        const kickoffData = results[kickoffApprovalIndex]?.data;
-        const kickoffList = kickoffData?.requests || (Array.isArray(kickoffData) ? kickoffData : (kickoffData?.items || []));
-        setKickoffApprovals(Array.isArray(kickoffList) ? kickoffList : []);
-      }
-      
-      // Set expense approvals (managers and HR)
-      if (isManager || isHR) {
-        const expenseIndex = results.length - 1; // Last item is expense approvals
-        const expenseData = extractArr(results[expenseIndex]);
-        // Filter for pending expenses (pending for manager, manager_approved for HR)
-        const pendingExpenses = expenseData.filter(e => 
-          e.status === 'pending' || e.status === 'manager_approved'
-        );
-        setExpenseApprovals(pendingExpenses);
-      }
-      
-      if (isManager) {
-        const allRes = await axios.get(`${API}/approvals/all`).catch(() => ({ data: [] }));
-        setAllApprovals(extractArr(allRes));
-      }
-      
-      setLastRefresh(new Date());
-      setSelectedItems(new Set()); // Clear selections on refresh
-    } catch (error) {
-      console.error('Error fetching approvals:', error);
-      if (!silent) toast.error('Failed to load approvals');
-    } finally {
-      setLoading(false);
-    }
-  }, [isAdmin, isHR, isManager]);
-
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    // Initial fetch is handled by React Query hooks automatically
+    // Clear selections when data changes
+    setSelectedItems(new Set());
+  }, [pendingApprovals]);
 
-  const handleAction = async () => {
+  const handleAction = () => {
     if (!selectedApproval) return;
     
     setActionLoading(true);
-    try {
-      await axios.post(`${API}/approvals/${selectedApproval.id}/action`, {
-        action: actionType,
-        comments: comments
-      });
-      
-      toast.success(`Request ${actionType === 'approve' ? 'approved' : 'rejected'} successfully`);
-      setActionDialog(false);
-      setComments('');
-      setSelectedApproval(null);
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || `Failed to ${actionType} request`);
-    } finally {
-      setActionLoading(false);
-    }
+    approvalActionMutation.mutate({
+      approvalId: selectedApproval.id,
+      action: actionType,
+      comments: comments
+    }, {
+      onSuccess: () => {
+        toast.success(`Request ${actionType === 'approve' ? 'approved' : 'rejected'} successfully`);
+        setActionDialog(false);
+        setComments('');
+        setSelectedApproval(null);
+        setActionLoading(false);
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || `Failed to ${actionType} request`);
+        setActionLoading(false);
+      }
+    });
   };
 
   const openActionDialog = (approval, action) => {
