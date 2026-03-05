@@ -17,7 +17,7 @@
 
 ### Phase 89: Recurring Meetings & Team Calendar - March 2026 ✅ (Latest)
 
-**Objective:** Implement recurring meeting schedules, team calendar view with conflict detection, and auto-send MOM on meeting completion.
+**Objective:** Implement recurring meeting schedules, team calendar view with conflict detection, auto-send MOM on meeting completion, and configurable meeting reminders.
 
 ### Features Implemented
 
@@ -29,12 +29,12 @@
 - Per-project, per-consultant scheduling
 
 **2. Team Calendar View** (`/meeting-calendar`)
-- Weekly calendar grid showing all team meetings
+- Modern light theme with white background and subtle shadows
 - Stats dashboard: Active Schedules, This Week, Delivered, Pending MOM, Conflicts
 - Week navigation (previous/next week, "Go to current week")
 - Grid view and List view toggle
 - Today highlighted with emerald color
-- Meeting cards show: time, mode icon, title, attendees, status
+- Meeting cards show: time, mode icon (Online/In-Person/Phone), title, attendees, status
 
 **3. Conflict Detection**
 - Real-time detection of overlapping meetings for same consultant
@@ -44,23 +44,35 @@
 
 **4. Auto-Send MOM on Delivery**
 - "Complete & Send MOM" button in Consulting Meetings
-- Automatically sends formatted email to client
+- Automatically sends formatted HTML email to client
 - If recurring, auto-generates next meeting in schedule
 - Updates project's `total_meetings_delivered` count
 
 **5. MOM Email for Sales Meetings**
 - Added "Send to Client" button after MOM is saved
 - Sends formatted email with summary, discussion points, action items
-- Tracks `mom_sent_to_client` and `mom_sent_at`
+
+**6. Meeting Reminders (NEW)**
+- **User-configurable notification preferences**
+  - Master toggle to enable/disable all reminders
+  - 24 hours before meeting reminder
+  - 1 hour before meeting reminder
+  - Email notification toggle
+- **Reminders sent to:**
+  - All consultant attendees
+  - Client (from lead email)
+- **"Send Test Reminder" button** to verify email setup
+- **Modern settings dialog** with Switch toggles
 
 ### New Files Created
 
 **Backend:**
 - `/app/backend/services/meeting_schedule_service.py` - Core recurring meeting logic
-- `/app/backend/routers/meeting_schedules.py` - API endpoints for schedules & calendar
+- `/app/backend/services/meeting_reminder_service.py` - Reminder notifications
+- `/app/backend/routers/meeting_schedules.py` - API endpoints
 
 **Frontend:**
-- `/app/frontend/src/pages/MeetingCalendar.js` - Team calendar UI
+- `/app/frontend/src/pages/MeetingCalendar.js` - Modern light theme calendar UI
 
 ### Key API Endpoints
 
@@ -71,7 +83,10 @@
 | `GET /api/meeting-schedules/conflicts/all` | Detect all team conflicts |
 | `POST /api/meeting-schedules/meetings/{id}/complete-and-send` | Complete meeting & auto-send MOM |
 | `GET /api/meeting-schedules/stats/overview` | Dashboard stats |
-| `POST /api/sales-meetings/{id}/send-mom` | Send MOM to lead (Sales) |
+| `GET /api/meeting-schedules/notifications/preferences` | Get user notification prefs |
+| `PUT /api/meeting-schedules/notifications/preferences` | Update notification prefs |
+| `POST /api/meeting-schedules/notifications/test` | Send test reminder email |
+| `POST /api/meeting-schedules/reminders/process/{type}` | Process 24h or 1h reminders (admin) |
 
 ### Database Schema
 
@@ -82,30 +97,31 @@
   "project_id": "uuid",
   "consultant_id": "uuid",
   "schedule_type": "fixed_day" | "interval",
-  "config": {
-    "day": "monday",        // for fixed_day
-    "time": "10:00",
-    "duration_minutes": 60,
-    "interval_days": 7      // for interval
-  },
+  "config": { "day": "monday", "time": "10:00", "duration_minutes": 60 },
   "is_active": true,
   "meetings_generated": 5,
-  "last_meeting_date": "ISO",
   "next_meeting_date": "ISO"
 }
 ```
 
-**Updated: `meetings` collection**
+**New Collection: `notification_preferences`**
 ```javascript
 {
-  // ... existing fields ...
-  "schedule_id": "uuid",      // Link to recurring schedule
-  "is_recurring": true,
-  "recurrence_number": 5,
-  "has_conflict": false,
-  "conflict_details": null
+  "user_id": "uuid",
+  "meeting_reminders": {
+    "enabled": true,
+    "remind_24h": true,
+    "remind_1h": true,
+    "email": true,
+    "in_app": true
+  }
 }
 ```
+
+### Testing
+- **Backend:** 100% (15/15 pytest tests passed)
+- **Frontend:** 100% (All UI elements working)
+- Test report: `/app/test_reports/iteration_151.json`
 
 ---
 
