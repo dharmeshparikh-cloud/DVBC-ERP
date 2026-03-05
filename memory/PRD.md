@@ -15,7 +15,65 @@
 
 ## Completed Work - December 2025
 
-### Phase 86: Leave Policy Quick Stats Banner - December 2025 ✅ (Latest)
+### Phase 87: P0 Architecture Fixes - Data Consistency - December 2025 ✅ (Latest)
+
+**Objective:** Fix multiple sources of truth identified in the data architecture audit.
+
+## P0 Fix 1: Employee ↔ User Sync
+
+**Problem:** `employees` and `users` collections stored overlapping fields (role, department, level, etc.) that could get out of sync.
+
+**Solution:**
+1. Created `/app/backend/services/employee_user_sync.py` - Sync service
+2. Automatic sync trigger on employee updates
+3. Admin endpoints for manual sync and consistency checks
+
+**Sync Fields:** role, department, departments, primary_department, designation, level, reporting_manager_id, is_active, is_view_only, full_name
+
+**New Endpoints:**
+- `GET /api/employees/sync/status/{id}` - Check consistency
+- `POST /api/employees/sync/{id}` - Manual single sync
+- `POST /api/employees/sync/bulk` - Bulk sync all employees
+
+**Validation:** Real inconsistencies found (5 mismatched fields) and corrected by sync service.
+
+---
+
+## P0 Fix 2: Leave Balance Calculated-on-Read
+
+**Problem:** Leave balance in `employees.leave_balance` could become stale and diverge from actual approved leave requests.
+
+**Solution:**
+1. Created `/app/backend/services/leave_balance_service.py` - Calculation service
+2. Balance now calculated from `leave_requests` collection (authoritative source)
+3. Same API response format - fully backward compatible
+
+**Key Functions:**
+- `calculate_leave_balance(db, employee_id)` - Full balance calculation
+- `get_leave_entitlements(db, employee_id)` - Policy-based entitlements
+- `get_used_leave(db, employee_id)` - Sum of approved leave requests
+
+**Updated Endpoints:**
+- `GET /api/leave-requests/employee/{id}/balance` - Now uses calculation service
+- `GET /api/leave-requests/stats/company-wide` - Returns `data_source: calculated_from_leave_requests`
+
+---
+
+**Files Created:**
+- `/app/backend/services/employee_user_sync.py`
+- `/app/backend/services/leave_balance_service.py`
+
+**Files Modified:**
+- `/app/backend/routers/employees.py` (sync trigger + endpoints)
+- `/app/backend/routers/leave_requests.py` (calculation service)
+
+**Test Results:** 100% pass rate (11 backend tests, frontend verified)
+
+**Impact:** Zero frontend changes, same API responses, better data consistency.
+
+---
+
+### Phase 86: Leave Policy Quick Stats Banner - December 2025 ✅
 
 **Objective:** Add company-wide leave utilization stats to Leave Policy Settings page.
 
