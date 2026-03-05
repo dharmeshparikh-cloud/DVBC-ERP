@@ -3,17 +3,60 @@
 ## Tech Stack
 - **Frontend**: React with Shadcn/UI components, React Query (@tanstack/react-query)
 - **Backend**: FastAPI (Python)
-- **Database**: MongoDB
+- **Database**: MongoDB (with 48+ indexes for performance)
 - **Auth**: JWT-based authentication (Employee ID + Client ID)
 - **AI**: GPT-4o via Emergent LLM Key
 - **Documentation**: python-docx, reportlab for PDF/DOCX generation
 - **Email**: SMTP via SendGrid
+- **Caching**: In-memory TTL cache with automatic invalidation
 
 ---
 
 ## Completed Work - December 2025
 
-### Phase 78: React Query Migration Batch 1 - December 2025 ✅ (Latest)
+### Phase 79: Full ERP Performance Optimization - December 2025 ✅ (Latest)
+
+**Objective:** Comprehensive performance audit and optimization targeting:
+- Page load < 1.5 seconds
+- API response < 200 ms
+- Form submission < 300 ms
+- Instant workflow data sync
+
+**Implemented:**
+
+1. **Database Indexes (48 total)**
+   - HR: employees, attendance, leaves, onboarding_submissions, go_live_employees, users
+   - Sales: leads, meetings, pricing_plans, sows, quotations, agreements, kickoff_requests
+   - Consulting: projects, consultants, tasks
+   - System: notifications, document_history, expenses, audit_logs
+   - Compound indexes for common query patterns
+
+2. **React Query Optimization**
+   - Reduced staleTime from 5min to 2min for fresher data
+   - Reduced gcTime from 30min to 10min for memory efficiency
+   - Added offlineFirst networkMode
+   - Structured query keys for efficient invalidation
+
+3. **Cache Invalidation Chain (Workflow Sync)**
+   - Employee updates → HR stats refresh
+   - Onboarding complete → Go-Live + Employees refresh
+   - Go-Live approve → All HR data refresh + Dashboard stats
+
+4. **Optimistic Updates & Prefetching**
+   - `optimisticUpdate` helpers for instant UI feedback
+   - `prefetchQueries` for background data loading
+
+**Files Created/Modified:**
+- `/app/backend/routers/db_indexes.py` - NEW: 48 index definitions
+- `/app/backend/server.py` - Index initialization on startup
+- `/app/frontend/src/lib/queryClient.js` - Optimized config + invalidation helpers
+- `/app/frontend/src/hooks/useOnboarding.js` - Enhanced cache invalidation
+
+**Report:** `/app/memory/PERFORMANCE_AUDIT.md`
+
+---
+
+### Phase 78: React Query Migration Batch 1 - December 2025 ✅
 
 **Objective:** Continue systematic migration of pages to React Query.
 

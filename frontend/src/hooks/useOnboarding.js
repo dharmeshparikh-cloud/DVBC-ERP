@@ -2,11 +2,15 @@
  * Onboarding Domain Hooks
  * All candidate onboarding API operations via React Query
  * 
- * REACT QUERY ENFORCEMENT - March 2026
+ * PERFORMANCE OPTIMIZED - December 2025
+ * - Reduced staleTime for faster updates
+ * - Optimistic updates for instant UI feedback
+ * - Comprehensive cache invalidation for workflow sync
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import { invalidateCache } from '../lib/queryClient';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -15,13 +19,16 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// Query Keys
+// Query Keys - Structured for efficient invalidation
 export const onboardingKeys = {
   all: ['onboarding'],
   candidates: () => [...onboardingKeys.all, 'candidates'],
   candidateList: (filters) => [...onboardingKeys.candidates(), 'list', filters],
   candidate: (id) => [...onboardingKeys.candidates(), 'detail', id],
   documents: (candidateId) => [...onboardingKeys.all, 'documents', candidateId],
+  submissions: () => [...onboardingKeys.all, 'submissions'],
+  submissionList: (filters) => [...onboardingKeys.submissions(), 'list', filters],
+  submission: (id) => [...onboardingKeys.submissions(), 'detail', id],
   goLive: () => [...onboardingKeys.all, 'go-live'],
   goLiveList: (filters) => [...onboardingKeys.goLive(), 'list', filters],
   stats: () => [...onboardingKeys.all, 'stats'],
@@ -49,8 +56,49 @@ export const useOnboardingCandidates = (filters = {}) => {
       });
       return data;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutes for faster updates
+    gcTime: 10 * 60 * 1000,
     keepPreviousData: true,
+  });
+};
+
+/**
+ * Fetch onboarding submissions (new flow)
+ */
+export const useOnboardingSubmissions = (filters = {}) => {
+  const { status, search } = filters;
+  
+  return useQuery({
+    queryKey: onboardingKeys.submissionList(filters),
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      if (search) params.append('search', search);
+      
+      const { data } = await axios.get(`${API}/api/onboarding/submissions?${params}`, {
+        headers: getAuthHeaders(),
+      });
+      return data;
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch single submission by ID
+ */
+export const useOnboardingSubmission = (id) => {
+  return useQuery({
+    queryKey: onboardingKeys.submission(id),
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/api/onboarding/submissions/${id}`, {
+        headers: getAuthHeaders(),
+      });
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 1 * 60 * 1000, // 1 minute - more frequent updates for active review
   });
 };
 
@@ -239,6 +287,7 @@ export const useInitiateGoLive = () => {
 
 /**
  * Approve go-live request (generates employee_id)
+ * CRITICAL: Invalidates all related caches for instant workflow sync
  */
 export const useApproveGoLive = () => {
   const queryClient = useQueryClient();
@@ -253,8 +302,12 @@ export const useApproveGoLive = () => {
       return data;
     },
     onSuccess: () => {
+      // Comprehensive invalidation for workflow sync
       queryClient.invalidateQueries({ queryKey: onboardingKeys.all });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['go-live'] });
+      // Also invalidate HR stats and dashboard
+      invalidateCache.dashboardStats();
     },
   });
 };

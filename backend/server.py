@@ -100,6 +100,15 @@ async def startup_db_client():
         logger.error(f"RBAC initialization error: {e}")
         # Don't fail startup - RBAC will use defaults with logging
     
+    # Initialize database indexes for performance
+    logger.info("Ensuring database indexes...")
+    try:
+        from routers.db_indexes import ensure_indexes
+        index_stats = await ensure_indexes(db)
+        logger.info(f"Database indexes: {index_stats['created']} ensured, {len(index_stats['errors'])} errors")
+    except Exception as e:
+        logger.error(f"Index initialization error: {e}")
+    
     logger.info(f"Connected to MongoDB: {db_name}")
     logger.info("NETRA ERP started successfully")
 
