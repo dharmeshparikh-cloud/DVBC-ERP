@@ -15,7 +15,51 @@
 
 ## Completed Work - December 2025
 
-### Phase 82: WebSocket Routing Fix - December 2025 ✅ (Latest)
+### Phase 83: HR Module UX Refactor - December 2025 ✅ (Latest)
+
+**Objective:** Improve HR module UX without breaking existing business logic, workflows, or APIs.
+
+**Implemented Features:**
+
+1. **New Joiner Pipeline Page** (`/new-joiner-pipeline`)
+   - Unified 5-stage visual pipeline: Invited → Documents Pending → Under Review → Go-Live Pending → Active
+   - Maps to existing backend statuses (invited, draft, submitted, revision_requested, approved, completed)
+   - Search functionality for filtering candidates
+   - Send Invite dialog integrated
+   - VISUAL ONLY - no new status changes, reads from existing `/api/onboarding/submissions`
+
+2. **HR Dashboard - Pending Onboardings Widget**
+   - Shows count of candidates in each pipeline stage
+   - Displays only when there are pending candidates (totalPending > 0)
+   - Click navigates to New Joiner Pipeline
+   - Shows breakdown: Invited, Pending, Review, Go-Live counts
+
+3. **Employees Page - New Joiners Filter**
+   - Filter dropdown: All Joining Dates, Last 7 Days, Last 30 Days, Last 90 Days
+   - Client-side date filtering using `joining_date` or `created_at` fields
+   - Shows "New Joiners: X" badge when filtered
+
+4. **HR Sidebar Reorganization**
+   - Grouped into 4 sections with headers: Recruitment, People, Attendance, Payroll
+   - New Joiner Pipeline featured in Recruitment section with "New" badge
+   - Legacy Onboarding archived (route works but hidden from nav)
+
+**Files Created/Modified:**
+- `/app/frontend/src/pages/NewJoinerPipeline.js` (NEW)
+- `/app/frontend/src/pages/HRDashboard.js` (UPDATED - added widget)
+- `/app/frontend/src/pages/Employees.js` (UPDATED - added filter)
+- `/app/frontend/src/components/Layout.js` (UPDATED - reorganized HR menu)
+- `/app/frontend/src/components/ModernSidebar.js` (UPDATED - handle section headers)
+- `/app/frontend/src/App.js` (UPDATED - added route)
+- `/app/frontend/src/docs/HR_UX_AUDIT.md` (NEW - pre-change audit)
+
+**Test Results:** 100% pass rate (4/4 backend, 12/12 frontend tests)
+
+**Data Integrity:** All existing API contracts, workflows, and permissions preserved.
+
+---
+
+### Phase 82: WebSocket Routing Fix - December 2025 ✅
 
 **Objective:** Fix WebSocket connection routing issue that prevented real-time updates from working.
 
