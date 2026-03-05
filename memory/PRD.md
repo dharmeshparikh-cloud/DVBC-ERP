@@ -15,7 +15,51 @@
 
 ## Completed Work - December 2025
 
-### Phase 83: HR Module UX Refactor - December 2025 ✅ (Latest)
+### Phase 84: HR Module Consolidation - December 2025 ✅ (Latest)
+
+**Objective:** Consolidate overlapping HR pages to improve UX without breaking existing workflows.
+
+**Implemented Consolidations:**
+
+1. **EmployeeAccessPermissions.js** (`/employee-access-permissions`)
+   - Consolidates: Password Management + Employee Permissions
+   - 3 Tabs: Portal Access, Permissions, Approvals
+   - Old routes `/password-management` and `/employee-permissions` redirect here
+
+2. **HRManualEntry.js** (`/hr-manual-entry`)
+   - Consolidates: HR Leave Input + HR Attendance Input
+   - 2 Tabs: Leave Input, Attendance Input
+   - Old routes `/hr-leave-input` and `/hr-attendance-input` redirect here
+
+3. **Navigation Renames:**
+   - "Employee Workflows" → "Employee Change Requests"
+   - "Attendance & Leave Settings" → "Attendance Settings"
+   - "Leave Policy Management" → "Leave Policy Settings"
+
+**Menu Item Reduction:**
+- Before: 16 items in HR section
+- After: 11 items (31% reduction)
+
+**Section Headers:**
+- RECRUITMENT: New Joiner Pipeline, Onboarding Hub, Go-Live Dashboard
+- PEOPLE: Employees, Employee Change Requests, Access & Permissions, Document Center
+- ATTENDANCE: Leave & Attendance, HR Manual Entry, Attendance Settings, Leave Policy Settings
+- PAYROLL: CTC & Payroll, Payroll Summary Report, HR Reports
+
+**Files Created/Modified:**
+- `/app/frontend/src/pages/EmployeeAccessPermissions.js` (NEW)
+- `/app/frontend/src/pages/hr/HRManualEntry.js` (NEW)
+- `/app/frontend/src/App.js` (UPDATED - routes)
+- `/app/frontend/src/components/Layout.js` (UPDATED - navigation)
+- `/app/frontend/src/docs/HR_CONSOLIDATION_AUDIT.md` (NEW)
+
+**Data Integrity:** All existing API endpoints, workflows, database schema, and permissions preserved.
+
+**Test Results:** 100% pass rate (17/17 frontend tests)
+
+---
+
+### Phase 83: HR Module UX Refactor - December 2025 ✅
 
 **Objective:** Improve HR module UX without breaking existing business logic, workflows, or APIs.
 
