@@ -15,7 +15,40 @@
 
 ## Completed Work - December 2025
 
-### Phase 85: Remove Duplicate Leave Quotas - December 2025 ✅ (Latest)
+### Phase 86: Leave Policy Quick Stats Banner - December 2025 ✅ (Latest)
+
+**Objective:** Add company-wide leave utilization stats to Leave Policy Settings page.
+
+**Implemented:**
+1. **Backend API:** `GET /api/leave-requests/stats/company-wide`
+   - Returns company-wide leave utilization percentages
+   - Aggregates data across all active employees
+   - Includes: total_entitled, total_used, total_available, utilization_percent
+   - Shows pending requests count and monthly request count
+   - HR/Admin only access
+
+2. **Frontend Stats Banner:**
+   - Orange gradient card at top of Leave Policy Settings
+   - 3-column layout for CL/SL/EL
+   - Color-coded progress bars (Blue/Red/Green)
+   - Real-time percentage display
+   - Summary: employee count, pending requests, monthly requests
+
+**Stats Displayed:**
+- Casual Leave: 21.7% (125 used / 576 entitled)
+- Sick Leave: 22.6% (65 used / 288 entitled)
+- Earned Leave: 22.4% (161 used / 720 entitled)
+- 48 employees, 18 pending, 0 this month
+
+**Files Created/Modified:**
+- `/app/backend/routers/leave_requests.py` (NEW endpoint)
+- `/app/frontend/src/pages/hr/LeavePolicySettings.js` (stats banner)
+
+**Test Results:** API returns correct aggregated data, UI displays correctly.
+
+---
+
+### Phase 85: Remove Duplicate Leave Quotas - December 2025 ✅
 
 **Objective:** Remove duplicate leave policy settings from AttendanceLeaveSettings page.
 

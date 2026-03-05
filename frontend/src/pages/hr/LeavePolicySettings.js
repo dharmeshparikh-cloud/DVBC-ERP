@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import {
   Calendar, Plus, Edit2, Trash2, Building2, Users, User, Briefcase,
   Clock, Calculator, DollarSign, FileText, CheckCircle, Settings,
-  ChevronRight, Loader2, Save, Copy
+  ChevronRight, Loader2, Save, Copy, TrendingUp, AlertCircle, PieChart
 } from 'lucide-react';
 
 const LEAVE_TYPES = [
@@ -114,6 +114,17 @@ const LeavePolicySettings = () => {
       return Array.isArray(response.data) ? response.data : [];
     },
     staleTime: 5 * 60 * 1000
+  });
+
+  // Fetch company-wide leave stats
+  const { data: leaveStats } = useQuery({
+    queryKey: ['leave-stats', 'company-wide'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/leave-requests/stats/company-wide`);
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false
   });
 
   const employees = Array.isArray(employeesData) ? employeesData : [];
@@ -301,6 +312,66 @@ const LeavePolicySettings = () => {
           <Plus className="w-4 h-4 mr-2" /> Create Policy
         </Button>
       </div>
+
+      {/* Quick Stats Banner */}
+      {leaveStats && (
+        <Card className="bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 border-orange-200" data-testid="leave-stats-banner">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-orange-600" />
+                <h3 className="font-semibold text-orange-800">Company-Wide Leave Utilization</h3>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1">
+                  <Users className="w-4 h-4 text-zinc-500" />
+                  <span className="text-zinc-600">{leaveStats.total_employees} employees</span>
+                </div>
+                {leaveStats.pending_requests > 0 && (
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <span className="text-amber-700">{leaveStats.pending_requests} pending</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="w-4 h-4 text-zinc-500" />
+                  <span className="text-zinc-600">{leaveStats.requests_this_month} this month</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              {leaveStats.leave_types && Object.entries(leaveStats.leave_types).map(([key, stats]) => {
+                const colorMap = {
+                  casual_leave: { bg: 'bg-blue-500', light: 'bg-blue-100', text: 'text-blue-700' },
+                  sick_leave: { bg: 'bg-red-500', light: 'bg-red-100', text: 'text-red-700' },
+                  earned_leave: { bg: 'bg-emerald-500', light: 'bg-emerald-100', text: 'text-emerald-700' }
+                };
+                const colors = colorMap[key] || { bg: 'bg-zinc-500', light: 'bg-zinc-100', text: 'text-zinc-700' };
+                
+                return (
+                  <div key={key} className="bg-white rounded-lg p-3 border border-zinc-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium ${colors.text}`}>{stats.label}</span>
+                      <span className={`text-lg font-bold ${colors.text}`}>{stats.utilization_percent}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${colors.bg} transition-all duration-500`}
+                        style={{ width: `${Math.min(stats.utilization_percent, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-2 text-xs text-zinc-500">
+                      <span>{stats.total_used} used</span>
+                      <span>{stats.total_available} available</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Policy Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

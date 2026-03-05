@@ -254,3 +254,83 @@ async def get_leave_balance(employee_id: str, current_user: User = Depends(get_c
         }
     
     return result
+
+
+@router.get("/stats/company-wide")
+async def get_company_leave_stats(current_user: User = Depends(get_current_user)):
+    """Get company-wide leave utilization statistics"""
+    db = get_db()
+    
+    # Only HR and Admin can view company-wide stats
+    allowed_roles = ['admin', 'hr_manager', 'hr_executive', 'hr_admin']
+    if current_user.role not in allowed_roles and current_user.department != 'HR':
+        raise HTTPException(status_code=403, detail="Only HR can view company-wide leave stats")
+    
+    DEFAULT_LEAVE_BALANCE = {
+        'casual_leave': 12,
+        'sick_leave': 6,
+        'earned_leave': 15
+    }
+    
+    # Get all active employees
+    employees = await db.employees.find(
+        {"is_active": {"$ne": False}},
+        {"_id": 0, "leave_balance": 1, "id": 1}
+    ).to_list(None)
+    
+    total_employees = len(employees)
+    if total_employees == 0:
+        return {
+            "total_employees": 0,
+            "leave_types": {}
+        }
+    
+    # Aggregate leave stats
+    stats = {}
+    for leave_type, default_val in DEFAULT_LEAVE_BALANCE.items():
+        total_entitled = 0
+        total_used = 0
+        employees_with_usage = 0
+        
+        for emp in employees:
+            balance = emp.get('leave_balance', {})
+            entitled = balance.get(leave_type, default_val)
+            used = balance.get(f'used_{leave_type.replace("_leave", "")}', 0)
+            
+            total_entitled += entitled
+            total_used += used
+            if used > 0:
+                employees_with_usage += 1
+        
+        utilization_pct = round((total_used / total_entitled * 100), 1) if total_entitled > 0 else 0
+        
+        stats[leave_type] = {
+            "label": leave_type.replace('_', ' ').title(),
+            "total_entitled": total_entitled,
+            "total_used": total_used,
+            "total_available": total_entitled - total_used,
+            "utilization_percent": utilization_pct,
+            "employees_with_usage": employees_with_usage,
+            "avg_used_per_employee": round(total_used / total_employees, 1) if total_employees > 0 else 0
+        }
+    
+    # Get pending leave requests count
+    pending_count = await db.leave_requests.count_documents({
+        "status": {"$in": ["pending", "rm_approved"]},
+        "rm_status": {"$in": ["pending", None]}
+    })
+    
+    # Get leave requests this month
+    from datetime import datetime
+    start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    requests_this_month = await db.leave_requests.count_documents({
+        "created_at": {"$gte": start_of_month}
+    })
+    
+    return {
+        "total_employees": total_employees,
+        "pending_requests": pending_count,
+        "requests_this_month": requests_this_month,
+        "leave_types": stats
+    }
+
