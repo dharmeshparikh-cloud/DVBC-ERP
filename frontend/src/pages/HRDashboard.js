@@ -1,4 +1,5 @@
 import React, { useState, useContext } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -25,7 +26,6 @@ const HRDashboard = () => {
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
   
   // Documentation generation state
-  const [generatingDocs, setGeneratingDocs] = useState(false);
   const [docResult, setDocResult] = useState(null);
 
   // Fetch HR stats with React Query using hook
@@ -36,26 +36,31 @@ const HRDashboard = () => {
     staleTime: 2 * 60 * 1000
   });
 
-  const generateDocumentation = async (emailTo = null) => {
-    setGeneratingDocs(true);
-    try {
+  // Documentation generation mutation
+  const generateDocsMutation = useMutation({
+    mutationFn: async (emailTo) => {
       let url = `${API}/api/documentation/generate-hr-docs`;
       if (emailTo) {
         url += `?email_to=${encodeURIComponent(emailTo)}`;
       }
       const response = await axios.post(url);
-      setDocResult(response.data);
-      if (response.data.email_status === 'sent') {
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setDocResult(data);
+      if (data.email_status === 'sent') {
         toast.success('Documentation generated and emailed successfully!');
       } else {
         toast.success('Documentation generated successfully!');
       }
-    } catch (error) {
-      console.error('Failed to generate documentation:', error);
+    },
+    onError: () => {
       toast.error('Failed to generate documentation');
-    } finally {
-      setGeneratingDocs(false);
     }
+  });
+
+  const generateDocumentation = (emailTo = null) => {
+    generateDocsMutation.mutate(emailTo);
   };
 
   if (loading) {
@@ -376,16 +381,16 @@ const HRDashboard = () => {
             <div className="flex gap-2 flex-shrink-0">
               <button
                 onClick={() => generateDocumentation(user?.email)}
-                disabled={generatingDocs}
+                disabled={generateDocsMutation.isPending}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
                 data-testid="generate-docs-email-btn"
               >
-                {generatingDocs ? (
+                {generateDocsMutation.isPending ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <Mail className="w-4 h-4" />
                 )}
-                {generatingDocs ? 'Generating...' : 'Generate & Email'}
+                {generateDocsMutation.isPending ? 'Generating...' : 'Generate & Email'}
               </button>
             </div>
           </div>

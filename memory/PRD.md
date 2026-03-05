@@ -13,7 +13,39 @@
 
 ## Completed Work - December 2025
 
-### Phase 77: Onboarding Flow Simplification + UI Fixes - December 2025 ✅ (Latest)
+### Phase 78: React Query Migration Batch 1 - December 2025 ✅ (Latest)
+
+**Objective:** Continue systematic migration of pages to React Query.
+
+**Pages Migrated:**
+1. **DocumentCenter.js** - Replaced 6 fetch() calls with useDocuments hooks
+   - Now uses: useAllEmployees, useDocumentTemplates, useDocumentHistory
+   - Mutations: useGenerateDocument, useSendDocumentEmail
+   
+2. **ManagerLeadsDashboard.js** - Removed direct axios calls
+   - Now uses: usePauseLead, useResumeLead from useLeads hook
+   - Already had: useSubordinateLeads, useManagerTodayStats, useManagerPerformance
+   
+3. **HRDashboard.js** - Converted to useMutation pattern
+   - Documentation generation now uses inline useMutation
+   - Already had: useHRStats, useFetch
+
+**Verified Already Migrated:**
+- Payroll.js ✅ (using usePayroll hooks)
+- UserManagement.js ✅ (using useUserManagement hooks)
+- Reports.js ✅ (using useReports hooks)
+- AdminDashboard.js ✅ (using useAdminStats)
+
+**Migration Progress:**
+- Before: ~106 pages with direct API calls
+- After: ~95 pages remaining
+- Total migrated this session: 3 pages (11 total)
+
+**Audit Updated:** `/app/frontend/src/docs/REACT_QUERY_AUDIT.md`
+
+---
+
+### Phase 77: Onboarding Flow Simplification + UI Fixes - December 2025 ✅
 
 **Objective:** Simplify the onboarding-to-golive flow and add tooltips/cursor to all navigation buttons.
 

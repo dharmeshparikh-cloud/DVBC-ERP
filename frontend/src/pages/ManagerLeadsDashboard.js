@@ -1,8 +1,7 @@
 import React, { useState, useContext } from 'react';
-import axios from 'axios';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { API, AuthContext } from '../App';
+import { useQueryClient } from '@tanstack/react-query';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -19,6 +18,7 @@ import {
   useManagerPerformance, 
   useManagerTargetVsAchievement 
 } from '../hooks/useStats';
+import { usePauseLead, useResumeLead } from '../hooks/useLeads';
 
 const ManagerLeadsDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -54,42 +54,30 @@ const ManagerLeadsDashboard = () => {
   const { data: performance } = useManagerPerformance();
   const { data: targetVsAchievement } = useManagerTargetVsAchievement();
 
-  // Mutation: Pause Lead
-  const pauseMutation = useMutation({
-    mutationFn: async (leadId) => {
-      await axios.post(`${API}/leads/${leadId}/pause`);
-    },
-    onSuccess: () => {
-      toast.success('Lead paused');
-      queryClient.invalidateQueries({ queryKey: ['manager', 'subordinate-leads'] });
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to pause lead');
-    },
-  });
-
-  // Mutation: Resume Lead
-  const resumeMutation = useMutation({
-    mutationFn: async (leadId) => {
-      await axios.post(`${API}/leads/${leadId}/resume`);
-    },
-    onSuccess: () => {
-      toast.success('Lead resumed');
-      queryClient.invalidateQueries({ queryKey: ['manager', 'subordinate-leads'] });
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to resume lead');
-    },
-  });
+  // Mutations from useLeads hook
+  const pauseMutation = usePauseLead();
+  const resumeMutation = useResumeLead();
 
   const handlePauseLead = async (leadId, e) => {
     e?.stopPropagation();
-    pauseMutation.mutate(leadId);
+    pauseMutation.mutate(leadId, {
+      onSuccess: () => {
+        toast.success('Lead paused');
+        queryClient.invalidateQueries({ queryKey: ['manager', 'subordinate-leads'] });
+      },
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to pause lead')
+    });
   };
 
   const handleResumeLead = async (leadId, e) => {
     e?.stopPropagation();
-    resumeMutation.mutate(leadId);
+    resumeMutation.mutate(leadId, {
+      onSuccess: () => {
+        toast.success('Lead resumed');
+        queryClient.invalidateQueries({ queryKey: ['manager', 'subordinate-leads'] });
+      },
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to resume lead')
+    });
   };
 
   const handleLeadClick = (lead) => {

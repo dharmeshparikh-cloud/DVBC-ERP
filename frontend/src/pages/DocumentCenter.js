@@ -17,6 +17,15 @@ import {
   Filter, RefreshCw, MoreVertical, Archive, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAllEmployees } from '../hooks/useEmployees';
+import { 
+  useDocumentTemplates, 
+  useDocumentHistory, 
+  useGenerateDocument,
+  useDownloadDocument,
+  useSendDocumentEmail 
+} from '../hooks/useDocuments';
 
 // Document types configuration
 const DOCUMENT_TYPES = [
@@ -188,12 +197,28 @@ const DocumentCenter = () => {
   const preSelectedEmployeeId = searchParams.get('employee');
   
   // Main state
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('generate');
-  const [employees, setEmployees] = useState([]);
-  const [templates, setTemplates] = useState([]);
-  const [documentHistory, setDocumentHistory] = useState([]);
-  const [stats, setStats] = useState({ total: 0, by_type: {} });
+  
+  // React Query: Fetch data
+  const queryClient = useQueryClient();
+  const { data: employeesData = [], isLoading: empLoading } = useAllEmployees();
+  const { data: templatesData = [], isLoading: templatesLoading } = useDocumentTemplates();
+  const { data: historyData = [], isLoading: historyLoading, refetch: refetchHistory } = useDocumentHistory({ limit: 100 });
+  
+  // Derived data
+  const employees = employeesData.filter(e => e.is_active !== false);
+  const templates = templatesData;
+  const documentHistory = historyData;
+  const loading = empLoading || templatesLoading || historyLoading;
+  
+  // Calculate stats from history
+  const stats = React.useMemo(() => {
+    const statsByType = {};
+    documentHistory.forEach(doc => {
+      statsByType[doc.document_type] = (statsByType[doc.document_type] || 0) + 1;
+    });
+    return { total: documentHistory.length, by_type: statsByType };
+  }, [documentHistory]);
   
   // Generator state
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -201,7 +226,11 @@ const DocumentCenter = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [customValues, setCustomValues] = useState({});
   const [previewHtml, setPreviewHtml] = useState('');
-  const [generating, setGenerating] = useState(false);
+  
+  // Mutations
+  const generateDocMutation = useGenerateDocument();
+  const downloadDocMutation = useDownloadDocument();
+  const sendEmailMutation = useSendDocumentEmail();
   
   // Dialogs
   const [showPreview, setShowPreview] = useState(false);
@@ -228,9 +257,11 @@ const DocumentCenter = () => {
   const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
   const canManage = isAdmin || isHR;
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
+  // Refetch all data
+  const fetchAllData = () => {
+    queryClient.invalidateQueries({ queryKey: ['documents'] });
+    queryClient.invalidateQueries({ queryKey: ['employees'] });
+  };
 
   useEffect(() => {
     if (selectedDocType && !selectedTemplate) {
@@ -263,50 +294,6 @@ const DocumentCenter = () => {
       }
     }
   }, [preSelectedEmployeeId, employees]);
-
-  const fetchAllData = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      const [employeesRes, templatesRes, historyRes] = await Promise.all([
-        fetch(`${API}/employees/all`, { headers }),
-        fetch(`${API}/document-templates`, { headers }).catch(() => ({ ok: false })),
-        fetch(`${API}/document-history?limit=100`, { headers })
-      ]);
-
-      if (employeesRes.ok) {
-        const data = await employeesRes.json();
-        const empList = Array.isArray(data) ? data : (data?.items || []);
-        setEmployees(empList.filter(e => e.is_active !== false));
-      }
-
-      if (templatesRes.ok) {
-        const data = await templatesRes.json();
-        const templateList = Array.isArray(data) ? data : (data?.items || []);
-        setTemplates(templateList);
-      }
-
-      if (historyRes.ok) {
-        const data = await historyRes.json();
-        const historyList = Array.isArray(data) ? data : (data?.items || []);
-        setDocumentHistory(historyList);
-        
-        // Calculate stats
-        const statsByType = {};
-        historyList.forEach(doc => {
-          statsByType[doc.document_type] = (statsByType[doc.document_type] || 0) + 1;
-        });
-        setStats({ total: data.length, by_type: statsByType });
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const generatePreview = () => {
     if (!selectedEmployee) {
@@ -366,44 +353,24 @@ const DocumentCenter = () => {
       return;
     }
 
-    setGenerating(true);
-    try {
-      const token = localStorage.getItem('token');
-      const docData = {
-        document_type: selectedDocType,
-        employee_id: selectedEmployee.employee_id,
-        employee_name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
-        content: previewHtml,
-        custom_values: customValues,
-        template_id: selectedTemplate?.id || null,
-      };
+    const docData = {
+      type: selectedDocType,
+      employeeId: selectedEmployee.employee_id,
+      employee_name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+      content: previewHtml,
+      custom_values: customValues,
+      template_id: selectedTemplate?.id || null,
+    };
 
-      const response = await fetch(`${API}/document-history`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(docData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
+    generateDocMutation.mutate(docData, {
+      onSuccess: () => {
         toast.success(`${DOCUMENT_TYPES.find(d => d.id === selectedDocType)?.name} generated and saved!`);
-        
-        // Refresh history
-        fetchAllData();
         setShowPreview(true);
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to generate document');
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to generate document');
       }
-    } catch (error) {
-      console.error('Error generating document:', error);
-      toast.error('Failed to generate document');
-    } finally {
-      setGenerating(false);
-    }
+    });
   };
 
   const handleSaveTemplate = async () => {
@@ -445,31 +412,21 @@ const DocumentCenter = () => {
   const handleSendEmail = async () => {
     if (!selectedDocForEmail) return;
     
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/document-history/${selectedDocForEmail.id}/send-email`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          to_email: selectedDocForEmail.employee_email || selectedEmployee?.email
-        })
-      });
-
-      if (response.ok) {
+    sendEmailMutation.mutate({
+      documentId: selectedDocForEmail.id,
+      emailData: {
+        to_email: selectedDocForEmail.employee_email || selectedEmployee?.email
+      }
+    }, {
+      onSuccess: () => {
         toast.success('Document sent via email!');
         setShowSendEmailDialog(false);
         setSelectedDocForEmail(null);
-        fetchAllData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to send email');
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Failed to send email');
       }
-    } catch (error) {
-      toast.error('Error sending email');
-    }
+    });
   };
 
   const handlePrint = () => {
@@ -815,10 +772,10 @@ const DocumentCenter = () => {
                   <Button 
                     className="w-full mt-4 bg-orange-600 hover:bg-orange-700"
                     onClick={handleGenerateDocument}
-                    disabled={!selectedEmployee || generating}
+                    disabled={!selectedEmployee || generateDocMutation.isPending}
                     data-testid="generate-document-btn"
                   >
-                    {generating ? (
+                    {generateDocMutation.isPending ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                         Generating...

@@ -3,10 +3,14 @@
 
 **Date:** March 5, 2026
 **Total Pages Analyzed:** 114
-**Pages with Direct API Calls:** ~106 remaining (8+ migrated)
+**Pages with Direct API Calls:** ~95 remaining (19+ migrated)
 
 **Last Updated:** December 2025
-**Recently Migrated:** Leads.js ✅
+**Recently Migrated:** 
+- DocumentCenter.js ✅ (Dec 2025)
+- ManagerLeadsDashboard.js ✅ (Dec 2025)
+- HRDashboard.js ✅ (Dec 2025)
+- Leads.js ✅
 
 ---
 
@@ -14,22 +18,26 @@
 
 | Category | Count | Severity |
 |----------|-------|----------|
-| Components with direct fetch() | 20+ | HIGH |
-| Components with direct axios | 35+ | HIGH |
-| Duplicate API endpoints | 13 endpoints called 3+ times | MEDIUM |
+| Components with direct fetch() | 15+ | HIGH |
+| Components with direct axios | 25+ | HIGH |
+| Duplicate API endpoints | 10 endpoints called 3+ times | MEDIUM |
 | Queries missing staleTime | Most custom useQuery in pages | MEDIUM |
 | Mutations missing invalidation | 0 (hooks are properly configured) | LOW |
-| Queries missing error handling | 10+ | MEDIUM |
+| Queries missing error handling | 8+ | MEDIUM |
 
 ## RECENTLY MIGRATED COMPONENTS
+- ✅ DocumentCenter.js - Full migration with useDocuments hook (Dec 2025)
+- ✅ ManagerLeadsDashboard.js - Now uses usePauseLead, useResumeLead (Dec 2025)
+- ✅ HRDashboard.js - Converted to useMutation (Dec 2025)
 - ✅ Leads.js - Full migration with useLeads hook (Dec 2025)
 - ✅ ApprovalsCenter.js
 - ✅ HROnboarding.js  
 - ✅ EmployeeMobileApp.js
-- ✅ Payroll.js
-- ✅ UserManagement.js
-- ✅ Reports.js
+- ✅ Payroll.js - Already using usePayroll hooks
+- ✅ UserManagement.js - Already using useUserManagement hooks
+- ✅ Reports.js - Already using useReports hooks
 - ✅ Employees.js
+- ✅ AdminDashboard.js - Using useAdminStats
 
 ---
 
@@ -43,10 +51,7 @@
 | HROnboarding.js:260 | `/permission-config/suggest-department` | Direct fetch in handler | Already has hook, use it |
 | HROnboarding.js:425 | `/employees` POST (bulk) | Direct fetch in bulk import | Extend `useCreateEmployee` for bulk |
 | OfficeLocationsSettings.js | Google Maps API | External API fetch OK | Low priority - external API |
-| DocumentBuilder.js | `/document-history` | Direct fetch | Create `useDocumentHistory` hook |
-| HRDashboard.js | `/stats/hr-dashboard` | Direct fetch | Create `useHRStats` hook |
-| DocumentCenter.js | Multiple endpoints | 4 direct fetch calls | Create `useDocuments` hook |
-| AdminDashboard.js | `/stats/*` endpoints | 3 parallel fetches | Create `useAdminStats` hook |
+| DocumentBuilder.js | `/document-history` | Direct fetch | Use `useDocumentHistory` hook |
 | Downloads.js | Dynamic endpoint | Direct fetch | Create `useDownload` hook |
 
 ---
@@ -56,11 +61,7 @@
 | Component | API Calls | Issue | Fix Recommendation |
 |-----------|-----------|-------|-------------------|
 | LetterheadSettings.js | 4 axios calls | GET, POST, DELETE, PUT | Create `useLetterhead` hook |
-| Payroll.js | 8 axios calls | Multiple CRUD operations | Create `usePayroll` hook |
-| ManagerLeadsDashboard.js | 5 axios calls | Stats + actions | Create `useManagerLeads` hook |
 | MobileAppDownload.js | 1 axios call | Stats fetch | Use existing `useFetch` |
-| Reports.js | 4 axios calls | Reports CRUD | Create `useReports` hook |
-| UserManagement.js | 8 axios calls | User/Role CRUD | Create `useUserManagement` hook |
 | OnboardingHub.js | 4 axios calls | Submissions + invites | Extend `useOnboarding` hook |
 | CandidateOnboardingForm.js | 2 axios calls | Public form + submit | Partially migrated, complete it |
 | SubmissionReview.js | Multiple | Review actions | Create `useSubmissionReview` hook |
