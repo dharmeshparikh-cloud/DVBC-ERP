@@ -542,3 +542,114 @@ async def get_schedule_stats(
         "pending_mom": pending_mom,
         "total_conflicts": len(conflicts)
     }
+
+
+
+# ============== NOTIFICATION PREFERENCES ==============
+
+@router.get("/notifications/preferences")
+async def get_notification_preferences(current_user: User = Depends(get_current_user)):
+    """Get current user's notification preferences."""
+    db = get_db()
+    
+    from services.meeting_reminder_service import get_user_notification_preferences
+    prefs = await get_user_notification_preferences(db, current_user.id)
+    
+    return prefs
+
+
+@router.put("/notifications/preferences")
+async def update_notification_preferences_endpoint(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update notification preferences.
+    
+    Body:
+    {
+        "meeting_reminders": {
+            "enabled": true,
+            "remind_24h": true,
+            "remind_1h": true,
+            "email": true,
+            "in_app": true
+        },
+        "mom_notifications": {
+            "enabled": true,
+            "email": true
+        }
+    }
+    """
+    db = get_db()
+    
+    from services.meeting_reminder_service import update_notification_preferences
+    result = await update_notification_preferences(db, current_user.id, data)
+    
+    return result
+
+
+@router.post("/notifications/test")
+async def send_test_notification(current_user: User = Depends(get_current_user)):
+    """Send a test reminder email to verify setup."""
+    db = get_db()
+    
+    user = await db.users.find_one({"id": current_user.id}, {"_id": 0, "email": 1})
+    if not user or not user.get("email"):
+        raise HTTPException(status_code=400, detail="No email found for user")
+    
+    from services.meeting_reminder_service import send_test_reminder
+    result = await send_test_reminder(db, current_user.id, user["email"])
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error", "Failed to send test"))
+    
+    return result
+
+
+@router.post("/reminders/process/{reminder_type}")
+async def process_reminders(
+    reminder_type: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Manually trigger reminder processing.
+    Admin only. Normally run by cron job.
+    
+    Args:
+        reminder_type: "24h" or "1h"
+    """
+    db = get_db()
+    
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    if reminder_type not in ["24h", "1h"]:
+        raise HTTPException(status_code=400, detail="reminder_type must be '24h' or '1h'")
+    
+    from services.meeting_reminder_service import process_all_pending_reminders
+    result = await process_all_pending_reminders(db, reminder_type)
+    
+    return result
+
+
+@router.post("/meetings/{meeting_id}/send-reminder")
+async def send_single_meeting_reminder(
+    meeting_id: str,
+    reminder_type: str = "1h",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Manually send reminder for a specific meeting.
+    """
+    db = get_db()
+    
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    from services.meeting_reminder_service import send_meeting_reminder
+    result = await send_meeting_reminder(db, meeting_id, reminder_type)
+    
+    return result
