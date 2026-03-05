@@ -3,7 +3,10 @@
 
 **Date:** March 5, 2026
 **Total Pages Analyzed:** 114
-**Pages with Direct API Calls:** 114 (many still need migration)
+**Pages with Direct API Calls:** ~106 remaining (8+ migrated)
+
+**Last Updated:** December 2025
+**Recently Migrated:** Leads.js ✅
 
 ---
 
@@ -12,11 +15,21 @@
 | Category | Count | Severity |
 |----------|-------|----------|
 | Components with direct fetch() | 20+ | HIGH |
-| Components with direct axios | 40+ | HIGH |
+| Components with direct axios | 35+ | HIGH |
 | Duplicate API endpoints | 13 endpoints called 3+ times | MEDIUM |
 | Queries missing staleTime | Most custom useQuery in pages | MEDIUM |
 | Mutations missing invalidation | 0 (hooks are properly configured) | LOW |
 | Queries missing error handling | 10+ | MEDIUM |
+
+## RECENTLY MIGRATED COMPONENTS
+- ✅ Leads.js - Full migration with useLeads hook (Dec 2025)
+- ✅ ApprovalsCenter.js
+- ✅ HROnboarding.js  
+- ✅ EmployeeMobileApp.js
+- ✅ Payroll.js
+- ✅ UserManagement.js
+- ✅ Reports.js
+- ✅ Employees.js
 
 ---
 
@@ -58,7 +71,7 @@
 
 | Endpoint | Call Count | Files Using It | Fix Recommendation |
 |----------|------------|----------------|-------------------|
-| `/leads` | 13 | Leads, ManagerLeadsDashboard, etc. | Use `useLeads` hook everywhere |
+| `/leads` | 13 | ~~Leads~~ ✅, ManagerLeadsDashboard, etc. | Use `useLeads` hook everywhere |
 | `/projects` | 11 | Projects, Consultants, etc. | Use `useProjects` hook everywhere |
 | `/employees/all` | 9 | Multiple HR pages | Use `useAllEmployees` hook |
 | `/consultants` | 7 | Consulting pages | Create `useConsultants` hook |
