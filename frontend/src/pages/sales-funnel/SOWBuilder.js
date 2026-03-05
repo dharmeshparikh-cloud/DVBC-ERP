@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import axios from 'axios';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { API, AuthContext } from '../../App';
+import { AuthContext } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -18,6 +17,11 @@ import { format, addWeeks, startOfWeek } from 'date-fns';
 import useDraft from '../../hooks/useDraft';
 import DraftIndicator from '../../components/DraftIndicator';
 import DraftSelector from '../../components/DraftSelector';
+import { useFetch } from '../../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const SOW_CATEGORIES = [
   { value: 'sales', label: 'Sales' },
@@ -51,12 +55,12 @@ const SOWBuilder = () => {
   const leadId = searchParams.get('lead_id');
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const fileInputRefs = useRef({});
   
   const [pricingPlan, setPricingPlan] = useState(null);
   const [lead, setLead] = useState(null);
   const [sow, setSow] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [consultants, setConsultants] = useState([]);
   const [backendStaff, setBackendStaff] = useState([]);
   
@@ -67,6 +71,56 @@ const SOWBuilder = () => {
   const [editingRows, setEditingRows] = useState({});
   const [newRows, setNewRows] = useState([]);
   const [savingRows, setSavingRows] = useState({});
+
+  // Query: Fetch pricing plan data
+  const { data: plansData, isLoading: loading } = useFetch('/api/pricing-plans');
+
+  // Query: Fetch leads for context
+  const { data: leadsData } = useFetch('/api/leads');
+
+  // Query: Fetch SOW for this pricing plan
+  const { data: sowData, refetch: refetchSow } = useFetch(
+    pricingPlanId ? `/api/sow/by-pricing-plan/${pricingPlanId}` : null,
+    { enabled: !!pricingPlanId }
+  );
+
+  // Query: Fetch consultants
+  const { data: consultantsData } = useFetch('/api/consultants');
+
+  // Query: Fetch backend staff
+  const { data: staffData } = useFetch('/api/users');
+
+  // Query: Fetch user permissions
+  const { data: permissionsData } = useFetch('/api/users/me/permissions');
+
+  // Update local state when data loads
+  useEffect(() => {
+    if (plansData) {
+      const plan = plansData.find(p => p.id === pricingPlanId);
+      if (plan) {
+        setPricingPlan(plan);
+        if (plan.lead_id && leadsData) {
+          const leadData = leadsData.items?.find(l => l.id === plan.lead_id) || 
+                           leadsData.find?.(l => l.id === plan.lead_id);
+          setLead(leadData);
+        }
+      }
+    }
+  }, [plansData, leadsData, pricingPlanId]);
+
+  useEffect(() => {
+    if (sowData) setSow(sowData);
+  }, [sowData]);
+
+  useEffect(() => {
+    if (consultantsData) setConsultants(consultantsData);
+  }, [consultantsData]);
+
+  useEffect(() => {
+    if (staffData) setBackendStaff(staffData);
+  }, [staffData]);
+
+  const userPermissions = permissionsData?.sow || {};
   
   // Draft support for new unsaved rows
   const generateSOWDraftTitle = (data) => {
@@ -80,7 +134,7 @@ const SOWBuilder = () => {
     saveDraft,
     autoSave,
     registerFormDataGetter
-  } = useDraft('sow', generateSOWDraftTitle, 3000, pricingPlanId);  // Filter by pricing_plan_id
+  } = useDraft('sow', generateSOWDraftTitle, 3000, pricingPlanId);
   
   // Register form data getter for save-on-leave
   const newRowsRef = useRef(newRows);
@@ -115,7 +169,6 @@ const SOWBuilder = () => {
   const [supportItem, setSupportItem] = useState(null);
   const [docsDialogOpen, setDocsDialogOpen] = useState(false);
   const [docsItem, setDocsItem] = useState(null);
-  const [userPermissions, setUserPermissions] = useState({});
   const [downloadingSOW, setDownloadingSOW] = useState({});
 
   // Role-based access control
@@ -143,79 +196,26 @@ const SOWBuilder = () => {
   // Can approve/authorize (PM team only)
   const canApprove = isPMTeam;
 
-  useEffect(() => {
-    fetchData();
-    fetchConsultants();
-    fetchBackendStaff();
-    fetchUserPermissions();
-  }, [pricingPlanId]);
-
-  const fetchUserPermissions = async () => {
-    try {
-      const res = await axios.get(`${API}/users/me/permissions`);
-      setUserPermissions(res.data.sow || {});
-    } catch (error) {
-      console.error('Error fetching permissions:', error);
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      const plansRes = await axios.get(`${API}/pricing-plans`);
-      const plan = plansRes.data.find(p => p.id === pricingPlanId);
-      if (plan) {
-        setPricingPlan(plan);
-        if (plan.lead_id) {
-          const leadsRes = await axios.get(`${API}/leads`);
-          const leadData = leadsRes.data.find(l => l.id === plan.lead_id);
-          setLead(leadData);
-        }
-      }
-      
-      try {
-        const sowRes = await axios.get(`${API}/sow/by-pricing-plan/${pricingPlanId}`);
-        setSow(sowRes.data);
-      } catch (err) {
-        setSow(null);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchConsultants = async () => {
-    try {
-      const res = await axios.get(`${API}/consultants`);
-      setConsultants(res.data || []);
-    } catch (error) {
-      console.error('Error fetching consultants:', error);
-    }
-  };
-
-  const fetchBackendStaff = async () => {
-    try {
-      const res = await axios.get(`${API}/users`);
-      setBackendStaff(res.data || []);
-    } catch (error) {
-      console.error('Error fetching backend staff:', error);
-    }
-  };
-
-  const handleCreateSOW = async () => {
-    try {
-      await axios.post(`${API}/sow`, {
+  // Mutation: Create SOW
+  const createSOWMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/sow`, {
         pricing_plan_id: pricingPlanId,
         lead_id: leadId || pricingPlan?.lead_id,
         items: []
       });
+    },
+    onSuccess: () => {
       toast.success('SOW created successfully');
-      fetchData();
-    } catch (error) {
+      refetchSow();
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Failed to create SOW');
     }
+  });
+
+  const handleCreateSOW = () => {
+    createSOWMutation.mutate();
   };
 
   // Inline editing functions
@@ -298,10 +298,10 @@ const SOWBuilder = () => {
         backend_support_role: row.backend_support_role || null
       };
       
-      await axios.post(`${API}/sow/${sow.id}/items`, itemData);
+      await axios.post(`${API}/api/sow/${sow.id}/items`, itemData);
       toast.success('Item added');
       removeNewRow(row.id);
-      fetchData();
+      refetchSow();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to save item');
     } finally {
@@ -335,10 +335,10 @@ const SOWBuilder = () => {
         notes: row.notes || null
       };
       
-      await axios.patch(`${API}/sow/${sow.id}/items/${itemId}`, itemData);
+      await axios.patch(`${API}/api/sow/${sow.id}/items/${itemId}`, itemData);
       toast.success('Item updated');
       cancelEditing(itemId);
-      fetchData();
+      refetchSow();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update item');
     } finally {
@@ -350,9 +350,9 @@ const SOWBuilder = () => {
     if (!window.confirm('Are you sure you want to delete this item?')) return;
     
     try {
-      await axios.delete(`${API}/sow/${sow.id}/items/${itemId}`);
+      await axios.delete(`${API}/api/sow/${sow.id}/items/${itemId}`);
       toast.success('Item deleted');
-      fetchData();
+      refetchSow();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to delete item');
     }
@@ -361,7 +361,7 @@ const SOWBuilder = () => {
   const handleStatusChange = async (itemId, newStatus) => {
     try {
       // If marking as completed, this will trigger email notification on backend
-      await axios.patch(`${API}/sow/${sow.id}/items/${itemId}/status`, {
+      await axios.patch(`${API}/api/sow/${sow.id}/items/${itemId}/status`, {
         status: newStatus,
         notify_on_complete: newStatus === 'completed' // Signal backend to send emails
       });
@@ -371,7 +371,7 @@ const SOWBuilder = () => {
       } else {
         toast.success(`Status updated to ${newStatus.replace('_', ' ')}`);
       }
-      fetchData();
+      refetchSow();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update status');
     }
@@ -384,7 +384,7 @@ const SOWBuilder = () => {
     }
     
     try {
-      await axios.patch(`${API}/sow/${sow.id}/items/${rejectingItem.id}/status`, {
+      await axios.patch(`${API}/api/sow/${sow.id}/items/${rejectingItem.id}/status`, {
         status: 'rejected',
         rejection_reason: rejectReason
       });
@@ -392,7 +392,7 @@ const SOWBuilder = () => {
       setRejectDialogOpen(false);
       setRejectingItem(null);
       setRejectReason('');
-      fetchData();
+      refetchSow();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to reject');
     }
@@ -400,9 +400,9 @@ const SOWBuilder = () => {
 
   const handleSubmitForApproval = async () => {
     try {
-      await axios.post(`${API}/sow/${sow.id}/submit-for-approval`);
+      await axios.post(`${API}/api/sow/${sow.id}/submit-for-approval`);
       toast.success('SOW submitted for manager approval');
-      fetchData();
+      refetchSow();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to submit');
     }
@@ -410,9 +410,9 @@ const SOWBuilder = () => {
 
   const handleApproveAll = async () => {
     try {
-      await axios.post(`${API}/sow/${sow.id}/approve-all`);
+      await axios.post(`${API}/api/sow/${sow.id}/approve-all`);
       toast.success('All pending items approved');
-      fetchData();
+      refetchSow();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to approve');
     }
@@ -427,14 +427,14 @@ const SOWBuilder = () => {
       const base64Data = e.target.result.split(',')[1];
       
       try {
-        await axios.post(`${API}/sow/${sow.id}/items/${itemId}/documents`, {
+        await axios.post(`${API}/api/sow/${sow.id}/items/${itemId}/documents`, {
           filename: file.name,
           file_data: base64Data,
           description: ''
         });
         
         toast.success('Document uploaded to SOW item');
-        fetchData();
+        refetchSow();
       } catch (error) {
         toast.error('Failed to upload document');
       }
@@ -444,7 +444,7 @@ const SOWBuilder = () => {
 
   const handleDownload = async (itemId, documentId) => {
     try {
-      const res = await axios.get(`${API}/sow/${sow.id}/items/${itemId}/documents/${documentId}`);
+      const res = await axios.get(`${API}/api/sow/${sow.id}/items/${itemId}/documents/${documentId}`);
       const link = document.createElement('a');
       link.href = `data:application/octet-stream;base64,${res.data.file_data}`;
       link.download = res.data.filename || res.data.original_filename;
@@ -461,7 +461,7 @@ const SOWBuilder = () => {
 
   const fetchVersionHistory = async () => {
     try {
-      const res = await axios.get(`${API}/sow/${sow.id}/versions`);
+      const res = await axios.get(`${API}/api/sow/${sow.id}/versions`);
       setVersions(res.data.versions || []);
       setVersionDialogOpen(true);
     } catch (error) {
@@ -471,7 +471,7 @@ const SOWBuilder = () => {
 
   const viewVersion = async (versionNum) => {
     try {
-      const res = await axios.get(`${API}/sow/${sow.id}/version/${versionNum}`);
+      const res = await axios.get(`${API}/api/sow/${sow.id}/version/${versionNum}`);
       setSelectedVersion(res.data);
     } catch (error) {
       toast.error('Failed to fetch version');
@@ -492,11 +492,11 @@ const SOWBuilder = () => {
         has_backend_support: true
       };
       
-      await axios.patch(`${API}/sow/${sow.id}/items/${supportItem.id}`, itemData);
+      await axios.patch(`${API}/api/sow/${sow.id}/items/${supportItem.id}`, itemData);
       toast.success('Backend support assigned');
       setSupportDialogOpen(false);
       setSupportItem(null);
-      fetchData();
+      refetchSow();
     } catch (error) {
       toast.error('Failed to assign backend support');
     }
@@ -507,7 +507,7 @@ const SOWBuilder = () => {
     
     setDownloadingSOW(prev => ({ ...prev, [format]: true }));
     try {
-      const response = await axios.get(`${API}/sow/${sow.id}/download`, {
+      const response = await axios.get(`${API}/api/sow/${sow.id}/download`, {
         params: { format },
         responseType: 'blob'
       });

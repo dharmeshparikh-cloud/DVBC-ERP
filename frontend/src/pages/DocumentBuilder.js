@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { AuthContext, API } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -16,6 +16,11 @@ import {
   CheckCircle, AlertCircle, Copy, FileSignature, Stamp, History
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useFetch } from '../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // Document types with their default templates
 const DOCUMENT_TYPES = [
@@ -188,14 +193,13 @@ const DEFAULT_TEMPLATES = {
 
 const DocumentBuilder = () => {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preSelectedEmployeeId = searchParams.get('employee');
   
-  const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedDocType, setSelectedDocType] = useState('offer_letter');
-  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   
   // Template editing
@@ -214,8 +218,6 @@ const DocumentBuilder = () => {
   
   // History tab
   const [activeTab, setActiveTab] = useState('builder');
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [documentHistory, setDocumentHistory] = useState([]);
   
   const printRef = useRef();
 
@@ -223,10 +225,20 @@ const DocumentBuilder = () => {
   const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
   const canGenerate = isAdmin || isHR;
 
+  // Query: Fetch employees
+  const { data: employeesData, isLoading: loading } = useFetch('/api/employees/all');
+  const employees = Array.isArray(employeesData) 
+    ? employeesData.filter(e => e.is_active !== false) 
+    : (employeesData?.items || []).filter(e => e.is_active !== false);
+
+  // Query: Fetch document history
+  const { data: documentHistoryData, isLoading: historyLoading } = useFetch('/api/document-history', {
+    params: { limit: 100 }
+  });
+  const documentHistory = documentHistoryData || [];
+
   useEffect(() => {
-    fetchEmployees();
     loadSavedTemplates();
-    fetchDocumentHistory();
   }, []);
 
   useEffect(() => {
@@ -254,25 +266,6 @@ const DocumentBuilder = () => {
     }
   }, [preSelectedEmployeeId, employees]);
 
-  const fetchEmployees = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/employees/all`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const empList = Array.isArray(data) ? data : (data?.items || []);
-        setEmployees(empList.filter(e => e.is_active !== false));
-      }
-    } catch (error) {
-      console.error('Failed to fetch employees:', error);
-      toast.error('Failed to load employees');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadSavedTemplates = () => {
     try {
       const saved = localStorage.getItem('document_builder_templates');
@@ -283,16 +276,6 @@ const DocumentBuilder = () => {
       console.error('Failed to load saved templates:', error);
     }
   };
-
-  const fetchDocumentHistory = async () => {
-    setHistoryLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/document-history?limit=100`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
         setDocumentHistory(data);
       }
     } catch (error) {

@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 
 # API Configuration
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://netra-erp.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://netra-rq-migration.preview.emergentagent.com')
 
 # Test Credentials
 TEST_CREDENTIALS = {

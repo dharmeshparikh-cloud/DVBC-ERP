@@ -1,56 +1,52 @@
 <analysis>**original_problem_statement:**
-The user's primary goal is to build a full-stack ERP named NETRA. The project initially focused on a Candidate Onboarding module, an In-App Help Widget, and a frontend migration to React Query.
+The user's primary goal is to build a full-stack ERP named NETRA. The project began with a Candidate Onboarding module, an In-App Help Widget, and a frontend migration to React Query. Priorities later shifted to features like editing onboarded employee data, Excel import/export, and a new Go-Live flow that delays Employee ID generation.
 
-The user's priorities then shifted to new features and a core business process change:
-1.  **Edit Onboarded Employee Data:** Allow HR/Admin to edit candidate info post-onboarding.
-2.  **Excel Import/Export:** Add functionality to download and upload Excel files.
-3.  **New Go-Live Flow:** Delay Employee ID generation until final Admin approval.
+Most recently, the user mandated a comprehensive **HR & Employee Master Governance Audit** to establish a single source of truth, implement field-level edit permissions (RBAC), add a legal consent workflow, and create a full audit trail for critical data changes.
 
-Most recently, the user requested a comprehensive **HR & Employee Master Governance Audit** with the following objectives:
-1.  Eliminate duplicate employee data and establish a single source of truth.
-2.  Implement strict field inheritance rules (e.g., salary comes from the CTC module).
-3.  Create a field-level edit permission matrix (RBAC) to prevent unauthorized changes.
-4.  Add a legal consent workflow with an audit trail for employees.
-5.  Validate that data updates propagate correctly across the system.
-6.  Prevent duplicate employee records.
-7.  Add a comprehensive audit trail for all critical field changes.
+A strict set of **ERP Safe Development Standards** was also introduced, making **React Query the mandatory data layer** for all frontend-to-backend communication and enforcing rules for traceability, security, and performance.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a stable full-stack ERP with a React frontend, FastAPI backend, and MongoDB database.
--   **Go-Live Flow:** The new go-live process, where the Employee ID is only generated after final Admin approval, has been fully implemented and tested.
--   **Governance Audit:** A major governance overhaul has been implemented.
-    -   Protected fields (, , , ) are now read-only in the UI.
-    -   Attempting to edit these fields via the API is blocked and instead creates a change request.
-    -   A new **Employee Workflows** page was created for Admins to approve or reject these change requests (for transfers, promotions, CTC revisions, etc.).
-    -   An audit trail () logs all changes to protected fields.
-    -   A legal consent module ( and a  page) has been created to track employee acceptance of company policies.
--   **React Query Migration:** The migration is ongoing. **86 components** are now using the centralized  hook.
+The application is a full-stack ERP with a React frontend, FastAPI backend, and MongoDB.
+-   **Go-Live & Governance:** The new Go-Live flow and the HR governance features (protected fields, approval workflows, audit trails, legal consent) are implemented and were previously verified.
+-   **React Query Migration:** A massive migration effort is underway to standardize the entire frontend on React Query. A significant number of components, including many large and complex ones, have been migrated to use a central  hook and newly created domain-specific hooks (e.g., , ).
+-   **Development Standards:** The agent has acknowledged the ERP Safe Development Standards and started conforming the codebase, primarily by creating dedicated hook files and updating the Query Client configuration.
 
 **Last working item**:
--   **Last item agent was working:** Continuing the React Query migration. The user approved moving forward with migrating the remaining ~12 components. The agent identified the next batch (, , ) and started migrating  and .
+-   **Last item agent was working:** The agent was in the final stages of a large-scale React Query migration. It had just finished migrating several large and complex components, including  and . The process involved replacing all  and  calls with React Query's  and  patterns. The agent was preparing to migrate the last batch of remaining components.
 -   **Status:** IN PROGRESS
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** Frontend testing agent after the current batch of migrations is complete.
+-   **Agent Testing Done:** N (Only linting was performed on the last migrated files. No functional testing or regression checks were done.)
+-   **Which testing method agent to use?** Frontend testing agent. Due to the vast number of components refactored, a comprehensive regression test is critical to ensure application stability.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-There are no pending issues. The last major task was a feature implementation, not a bug fix.
+-   **Issue 1: High Risk of Regression After Mass Migration (P0)**
+    -   **Description:** The agent migrated dozens of components, including very large ones, in rapid succession without performing comprehensive tests between batches. There is a high probability of functional regressions or subtle bugs on the migrated pages.
+    -   **Attempted fixes:** None. The issue is the lack of testing itself.
+    -   **Next debug checklist:**
+        1.  Do not migrate any more components.
+        2.  Run the  to perform a full regression test across all major application features, especially those in the recently migrated pages (, , , , etc.).
+        3.  Manually review the browser console logs on key pages for any runtime errors.
+        4.  Fix any identified bugs before proceeding.
+    -   **Why fix this issue?** To ensure the application is stable and prevent compounding issues before finishing the migration.
+    -   **Status:** TESTING PENDING
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Frontend
+    -   **Blocked on other issue:** No.
 
 **In progress Task List**:
--   **Task 1: Complete React Query Migration (Batch 12) (P0)**
-    -   **Where to resume:** The agent has started migrating  and . It should complete these migrations, migrate , and then run linting and testing for the batch.
-    -   **What will be achieved with this?** More components will be standardized to use the central data-fetching hook, improving maintainability.
-    -   **Status:** IN PROGRESS
+-   **Task 1: Complete React Query Migration (P0)**
+    -   **Where to resume:** **BLOCKED** by the need for regression testing. Once testing is complete and any issues are resolved, the agent can proceed with migrating the final set of components. The remaining files include  (3576 lines),  (2313 lines),  (2098 lines), and a few others.
+    -   **What will be achieved with this?** The entire frontend will be standardized on React Query, fulfilling the ERP Safe Development Standard and improving code maintainability, performance, and reliability.
+    -   **Status:** BLOCKED
     -   **Should Test frontend/backend/both after fix?** Frontend
-    -   **Blocked on something:** Nothing.
+    -   **Blocked on something:** Pending regression testing of already migrated components.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P0) **Finish React Query Migration:** Migrate the final ~7 complex components, including  and .
-    -   (P1) **Implement Excel Upload:** The user requested both download and upload functionality. Only download has been implemented.
-    -   (P1) **Implement Custom Report Builder Backend:** Build the APIs required to power the existing report builder UI.
+    -   (P1) **Implement Excel Upload:** Backend and frontend logic to allow users to upload employee/data via Excel files.
+    -   (P1) **Implement Custom Report Builder Backend:** Build the APIs to power the existing report builder UI.
     -   (P1) **Build Client Dashboard Features:** Implement backend and frontend logic for the client portal.
     -   (P1) **Implement AI Chat & Voice:** Integrate a voice-to-text service into the AI Assistant module.
 -   **Future Tasks:**
@@ -60,18 +56,21 @@ There are no pending issues. The last major task was a feature implementation, n
     -   (P2) Day 0 Onboarding Tour.
 
 **Completed work in this session**
--   **Feature: New Go-Live Flow (Verified):** Implemented and performed end-to-end testing of the new flow where Employee ID is generated only at final Admin approval.
--   **Feature: HR & Employee Master Governance Audit:**
-    -   Implemented field-level RBAC to block direct edits on protected employee fields.
-    -   Created an approval workflow ( page) for all changes to locked fields.
-    -   Added a backend audit trail () for critical changes.
-    -   Created a legal consent module and UI for employees.
-    -   Created a governance report script.
--   **Refactor: React Query Migration (Batches 10 & 11):** Migrated 10 more components, bringing the total from 76 to 86. Components migrated include , , , , , , and .
+-   **Refactor: Mass React Query Migration (Batches 12-15+):** Migrated a significant portion of the frontend codebase to React Query. Key components completed include:
+    -   , , 
+    -   , , 
+    -   , , 
+    -   
+    -   , , 
+    -   , 
+-   **Feature: Enforced ERP Safe Development Standards:**
+    -   Began aligning the codebase with the user's mandatory development rules.
+    -   Created dedicated, domain-specific hook files (, , , ) in .
+    -   Updated the global  configuration in  to set default  and  counts.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Large file needs refactoring:** The file  is excessively large and should be broken down.
--   **Issue 2: Large component needs refactoring:** The component  is very large and should be broken down into smaller sub-components.
+-   **Issue 1: Large file needs refactoring:** The file  is excessively large and should be broken down into smaller, more manageable routers.
+-   **Issue 2: Large component needs refactoring:** The component  is very large (~1800+ lines). While its data fetching was migrated, the component itself was not refactored into smaller sub-components for better maintainability.
 -   **Issue 3: Orphan file discovered:**  is an orphan file not used in the application's routes and should be removed.
 
 **Known issue recurrence from previous fork**
@@ -81,71 +80,53 @@ There are no pending issues. The last major task was a feature implementation, n
 
 
 **Key Technical Concepts**
--   **API-Driven Business Logic:** Core processes are controlled by backend API logic (e.g., delayed  generation).
--   **Governance & RBAC:** Implemented field-level Role-Based Access Control in the backend to prevent unauthorized data manipulation. Changes are funneled into a structured approval workflow.
--   **Audit Trails:** Logging all significant data changes to a separate collection () for compliance and tracking.
--   **React Query:** Ongoing migration to centralize and standardize frontend data fetching and state management.
--   **Legal Consent Flow:** A new workflow to ensure employees digitally accept legal documents before gaining full system access.
+-   **React Query Enforcement:** Strict adherence to using React Query for all data fetching, as mandated by the ERP Safe Development Standard. Direct / calls in components are forbidden.
+-   **Domain-Specific Hooks:** Abstracting API logic into dedicated hooks (e.g., , ) located in  to promote reusability, standardization, and separation of concerns.
+-   **Large-Scale Refactoring:** The current work involves a significant, high-risk refactoring of the entire frontend data layer.
 
 **key DB schema**
--   ****: The  field is now  until final Go-Live approval.
--   ** (NEW)**: 
--   ** (NEW)**: 
--   ** (NEW)**: 
+-   No changes to the database schema in this session.
 
 **changes in tech stack**
--   None in this session.
+-   No changes to the core technologies, but a fundamental shift in the frontend development pattern to enforce React Query usage across the entire application.
 
 **All files of reference**
--    (New governance and workflow logic)
--    (New consent logic)
--    (Modified to enforce governance)
--    (New workflow approval UI)
--    (New consent UI)
--    (Modified to show read-only fields)
--    (Migration in progress)
--    (Migration in progress)
--   
+-    (The directory for all new data-fetching logic).
+-    (Contains the  and its configuration).
+-    (Product Requirements and backlog).
+-   All component files located in .
 
 **Areas that need refactoring**:
--   : Component is very large.
--   : File is very large.
--   : Likely an orphan file that should be deleted.
+-   : File is too large.
+-   : Component is monolithic and needs to be broken down. This applies to other large components like  and  as well.
+-   : Orphan file should be deleted.
 
 **key api endpoints**
--   **NEW:**  - Creates a change request for a locked field.
--   **NEW:**  - Fetches pending workflow requests.
--   **NEW:**  - Approves a change request.
--   **NEW:**  - Rejects a change request.
--   **NEW:**  - Records an employee's consent.
--   **MODIFIED:**  - Now blocks direct edits to protected fields and creates a workflow request instead.
+-   No new API endpoints were created. The agent worked exclusively on refactoring the frontend to consume existing endpoints via React Query.
 
 **Critical Info for New Agent**
--   The user has confirmed the next priority is to continue and complete the React Query migration. You should resume the in-progress batch and then plan for the remaining components.
--   A significant governance layer has been added. Edits to core employee fields like salary, department, and designation are no longer direct. They now go through an Admin-approval workflow, which the user has confirmed should remain Admin only.
--   The Go-Live flow has been successfully tested and verified.
+-   **PRIORITY #1 IS TESTING:** Do not continue the migration. A massive number of components were refactored without any regression testing. Your first action must be to call the  to perform a comprehensive check of the application's stability. Document and fix all resulting bugs before writing any new code.
+-   **Adhere to ERP Safe Development Standards:** You must follow all 15 rules provided by the user. The most important rule is the mandatory use of React Query hooks for all API calls. Do not add direct  or  calls to components.
+-   **Migration is Incomplete:** Once the application is stable, you will need to migrate the remaining large components (, , etc.). Plan to test after each significant component migration to avoid a repeat of the current high-risk situation.
 
 **documents and test reports created in this job**
--   
--   
--   
--    (Updated)
+-    (Updated with migration progress).
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Yes:** User confirms the agent's plan to start the next batch of React Query migrations. (COMPLETED)
-2.  **User Message:** Asks the agent to start the next batch of migrations. (COMPLETED)
-3.  **Yes:** User confirms the agent's summary and plan to move to the next migration batch. (COMPLETED)
-4.  **Admin only and move toward query pending 12:** User confirms the approval workflow should remain Admin-only and directs the agent to resume the React Query migration. (COMPLETED)
-5.  **Who is default set to approve right now? And where the request goes:** User asks for clarification on the new workflow approval process. (COMPLETED)
-6.  **User Message:** Acknowledges the completion of the Employee Workflows feature. (COMPLETED)
-7.  **Yes:** User confirms the agent's plan to create the Employee Workflow screens. (COMPLETED)
-8.  **User Message:** Acknowledges the completion of the Governance Audit. (COMPLETED)
-9.  **Yes as per your priority:** User gives the agent approval to proceed with the multi-phase governance audit plan. (COMPLETED)
-10. **do all i said earlier + one reference where manuplation is observed:** User confirms the governance audit request and provides a screenshot showing where direct data manipulation is possible. (COMPLETED)
+1.  **yes:** User agreed to the plan of migrating the remaining 7 large components. (IN PROGRESS)
+2.  **go 1 by 1 as per prioirity:** User instructed the agent to migrate components based on the priority list. (COMPLETED)
+3.  **Continue:** User acknowledged the ERP Safe Development Standards. (COMPLETED)
+4.  **SYSTEM RULE: ERP SAFE DEVELOPMENT STANDARD:** User provided a detailed 15-point list of mandatory development rules. (COMPLETED)
+5.  **proceed:** User confirmed moving on to the next batch of migrations. (COMPLETED)
+6.  **~7 complex components remaining...:** User asked for clarification on the remaining migration work. (COMPLETED)
+7.  **Continue:** User confirmed the plan after the previous migration batch. (COMPLETED)
+8.  **Continue:** User message to proceed. (COMPLETED)
+9.  **Continue:** User message to proceed. (COMPLETED)
+10. **Continue:** User message to proceed. (COMPLETED)
 
 **Project Health Check:**
--   **Broken:** None
--   **Mocked:** None
+-   **Broken:** **UNCERTAIN/HIGH-RISK.** The application was running at the last screenshot, but a massive, untested refactoring was performed. Functionality on numerous pages could be broken.
+-   **Mocked:** None.
 
 **3rd Party Integrations**
 -   **React Query:** State management library.
@@ -155,13 +136,16 @@ There are no pending issues. The last major task was a feature implementation, n
 -   **react-to-print:** Used for generating printable views of components.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. Used successfully for the Go-Live flow, the Governance Audit, and the Employee Workflows features.
+-   **Testing agent used after significant changes:** **NO.** This is the most critical issue. A testing agent was not used after dozens of files were refactored.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None in this session. Reports are in .
--   **Known regressions:** None.
+-   **Test files created:** None.
+-   **Known regressions:** A  error in  was found and fixed during manual checks. Other regressions are likely present but undiscovered.
 
 **Credentials to test flow:**
 -   Credentials can be found in .
 
 **What agent forgot to execute**
--   The **Excel Upload** functionality, requested alongside the download feature, has not yet been implemented. This task remains in the backlog.</analysis>
+-   **Comprehensive Testing:** The agent failed to run the testing agent after a massive refactoring effort, creating a significant risk of regressions.
+-   **Refactoring Large Components:** The agent only migrated the data-fetching logic of large files like  but did not break them down into smaller, more manageable components.
+-   **Deleting Orphan File:** The unused file  was identified but never deleted.
+-   **Excel Upload:** This feature from the original request remains unimplemented.</analysis>

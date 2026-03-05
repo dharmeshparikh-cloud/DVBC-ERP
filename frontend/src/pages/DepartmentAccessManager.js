@@ -80,8 +80,9 @@ const DepartmentAccessManager = () => {
   const configuredDepts = configDeptData?.departments || [];
 
   // Query: Fetch employees
-  const { data: employeesData = [], isLoading: loading, refetch: refetchEmployees } = useFetch('/api/employees');
-  const employees = employeesData;
+  const { data: employeesData, isLoading: loading, refetch: refetchEmployees } = useFetch('/api/employees');
+  // API returns { items: [], pagination: {} } so extract items array
+  const employees = Array.isArray(employeesData) ? employeesData : (employeesData?.items || []);
 
   // Update departments config when loaded
   useEffect(() => {

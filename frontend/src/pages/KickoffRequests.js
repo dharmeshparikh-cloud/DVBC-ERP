@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext, API } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -19,14 +19,16 @@ import {
 } from 'lucide-react';
 import ViewToggle from '../components/ViewToggle';
 import { sanitizeDisplayText } from '../utils/sanitize';
+import { useFetch } from '../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const KickoffRequests = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [requests, setRequests] = useState([]);
-  const [agreements, setAgreements] = useState([]);
-  const [projectManagers, setProjectManagers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState('card');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
@@ -55,73 +57,34 @@ const KickoffRequests = () => {
     notes: ''
   });
 
+  const token = localStorage.getItem('token');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
   const isSalesRole = ['executive', 'sales_manager', 'admin', 'manager'].includes(user?.role);
   const isPMRole = ['project_manager', 'admin', 'manager'].includes(user?.role);
 
-  useEffect(() => {
-    fetchRequests();
-    if (isSalesRole) {
-      fetchAgreements();
-      fetchProjectManagers();
-    }
-  }, []);
+  // Query: Fetch kickoff requests
+  const { data: requests = [], isLoading: loading, refetch: refetchRequests } = useFetch('/api/kickoff-requests');
 
-  const fetchRequests = async () => {
-    try {
-      const response = await fetch(`${API}/kickoff-requests`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setRequests(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch kickoff requests:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Query: Fetch approved agreements (for sales role)
+  const { data: agreementsData = [] } = useFetch(
+    isSalesRole ? '/api/agreements' : null,
+    { params: { status: 'approved' }, enabled: isSalesRole }
+  );
+  const agreements = agreementsData;
 
-  const fetchAgreements = async () => {
-    try {
-      const response = await fetch(`${API}/agreements?status=approved`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAgreements(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch agreements:', error);
-    }
-  };
-
-  const fetchProjectManagers = async () => {
-    try {
-      const response = await fetch(`${API}/users?role=project_manager`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setProjectManagers(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch PMs:', error);
-    }
-  };
+  // Query: Fetch project managers (for sales role)
+  const { data: projectManagersData = [] } = useFetch(
+    isSalesRole ? '/api/users' : null,
+    { params: { role: 'project_manager' }, enabled: isSalesRole }
+  );
+  const projectManagers = projectManagersData;
 
   const fetchRequestDetails = async (requestId) => {
     setLoadingDetails(true);
     try {
-      const response = await fetch(`${API}/kickoff-requests/${requestId}/details`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setDetailData(data);
-      } else {
-        toast.error('Failed to fetch request details');
-      }
+      const response = await axios.get(`${API}/api/kickoff-requests/${requestId}/details`, { headers });
+      setDetailData(response.data);
     } catch (error) {
       toast.error('Failed to fetch request details');
     } finally {
@@ -150,45 +113,36 @@ const KickoffRequests = () => {
           
           // If no direct pricing_plan_id, get from quotation
           if (!pricingPlanId && agreement.quotation_id) {
-            const quotationsRes = await fetch(`${API}/quotations`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            if (quotationsRes.ok) {
-              const quotations = await quotationsRes.json();
-              const quotation = quotations.find(q => q.id === agreement.quotation_id);
-              if (quotation) {
-                pricingPlanId = quotation.pricing_plan_id;
-              }
+            const quotationsRes = await axios.get(`${API}/api/quotations`, { headers });
+            const quotation = quotationsRes.data.find(q => q.id === agreement.quotation_id);
+            if (quotation) {
+              pricingPlanId = quotation.pricing_plan_id;
             }
           }
           
           // Fetch pricing plan details
           if (pricingPlanId) {
-            const pricingPlanRes = await fetch(`${API}/pricing-plans/${pricingPlanId}`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            if (pricingPlanRes.ok) {
-              const pricingPlan = await pricingPlanRes.json();
-              
-              // Get project duration from pricing plan
-              if (pricingPlan.project_duration_months) {
-                projectTenureMonths = pricingPlan.project_duration_months;
+            const pricingPlanRes = await axios.get(`${API}/api/pricing-plans/${pricingPlanId}`, { headers });
+            const pricingPlan = pricingPlanRes.data;
+            
+            // Get project duration from pricing plan
+            if (pricingPlan.project_duration_months) {
+              projectTenureMonths = pricingPlan.project_duration_months;
+            }
+            
+            // Get meeting frequency from team deployment
+            if (pricingPlan.team_deployment && pricingPlan.team_deployment.length > 0) {
+              const firstDeployment = pricingPlan.team_deployment[0];
+              if (firstDeployment.meeting_type) {
+                meetingFrequency = firstDeployment.meeting_type;
               }
-              
-              // Get meeting frequency from team deployment
-              if (pricingPlan.team_deployment && pricingPlan.team_deployment.length > 0) {
-                const firstDeployment = pricingPlan.team_deployment[0];
-                if (firstDeployment.meeting_type) {
-                  meetingFrequency = firstDeployment.meeting_type;
-                }
-              }
-              
-              // Determine project type from payment schedule or project type field
-              if (pricingPlan.project_type) {
-                projectType = pricingPlan.project_type;
-              } else if (pricingPlan.project_duration_type) {
-                projectType = pricingPlan.project_duration_type === 'retainer' ? 'retainer' : 'mixed';
-              }
+            }
+            
+            // Determine project type from payment schedule or project type field
+            if (pricingPlan.project_type) {
+              projectType = pricingPlan.project_type;
+            } else if (pricingPlan.project_duration_type) {
+              projectType = pricingPlan.project_duration_type === 'retainer' ? 'retainer' : 'mixed';
             }
           }
         } catch (error) {
@@ -209,15 +163,10 @@ const KickoffRequests = () => {
       // Check payment eligibility
       setCheckingEligibility(true);
       try {
-        const response = await fetch(`${API}/payments/check-eligibility/${agreementId}`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setPaymentEligibility(data);
-          if (!data.is_eligible) {
-            toast.warning('First installment payment must be verified before creating kickoff request');
-          }
+        const response = await axios.get(`${API}/api/payments/check-eligibility/${agreementId}`, { headers });
+        setPaymentEligibility(response.data);
+        if (!response.data.is_eligible) {
+          toast.warning('First installment payment must be verified before creating kickoff request');
         }
       } catch (error) {
         console.error('Failed to check payment eligibility:', error);
@@ -236,7 +185,29 @@ const KickoffRequests = () => {
     }));
   };
 
-  const handleCreateKickoff = async () => {
+  // Mutation: Create kickoff request
+  const createKickoffMutation = useMutation({
+    mutationFn: async (payload) => {
+      return axios.post(`${API}/api/kickoff-requests`, payload, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Kickoff request sent successfully');
+      setShowCreateDialog(false);
+      setPaymentEligibility(null);
+      setFormData({
+        agreement_id: '', client_name: '', project_name: '',
+        project_type: 'mixed', total_meetings: 0, meeting_frequency: 'Monthly',
+        project_tenure_months: 12, expected_start_date: '', assigned_pm_id: '', 
+        assigned_pm_name: '', notes: ''
+      });
+      refetchRequests();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to create kickoff request');
+    }
+  });
+
+  const handleCreateKickoff = () => {
     if (!formData.agreement_id || !formData.project_name) {
       toast.error('Please fill required fields');
       return;
@@ -248,176 +219,135 @@ const KickoffRequests = () => {
       return;
     }
 
-    try {
-      const payload = {
-        ...formData,
-        total_meetings: parseInt(formData.total_meetings) || 0,
-        project_tenure_months: parseInt(formData.project_tenure_months) || 12,
-        expected_start_date: formData.expected_start_date ? new Date(formData.expected_start_date).toISOString() : null
-      };
+    const payload = {
+      ...formData,
+      total_meetings: parseInt(formData.total_meetings) || 0,
+      project_tenure_months: parseInt(formData.project_tenure_months) || 12,
+      expected_start_date: formData.expected_start_date ? new Date(formData.expected_start_date).toISOString() : null
+    };
 
-      const response = await fetch(`${API}/kickoff-requests`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        toast.success('Kickoff request sent successfully');
-        setShowCreateDialog(false);
-        setPaymentEligibility(null);
-        setFormData({
-          agreement_id: '', client_name: '', project_name: '',
-          project_type: 'mixed', total_meetings: 0, meeting_frequency: 'Monthly',
-          project_tenure_months: 12, expected_start_date: '', assigned_pm_id: '', 
-          assigned_pm_name: '', notes: ''
-        });
-        fetchRequests();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to create kickoff request');
-      }
-    } catch (error) {
-      toast.error('Failed to create kickoff request');
-    }
+    createKickoffMutation.mutate(payload);
   };
 
-  const handleEditDate = async () => {
+  // Mutation: Edit kickoff date
+  const editDateMutation = useMutation({
+    mutationFn: async (payload) => {
+      return axios.put(`${API}/api/kickoff-requests/${selectedRequest.id}`, payload, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Kickoff date updated successfully');
+      setShowEditDateDialog(false);
+      setEditDate('');
+      setEditNotes('');
+      refetchRequests();
+      if (showDetailDialog) {
+        fetchRequestDetails(selectedRequest.id);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to update kickoff date');
+    }
+  });
+
+  const handleEditDate = () => {
     if (!selectedRequest) return;
     
-    try {
-      const payload = {
-        expected_start_date: editDate ? new Date(editDate).toISOString() : null,
-        notes: editNotes || selectedRequest.notes
-      };
+    const payload = {
+      expected_start_date: editDate ? new Date(editDate).toISOString() : null,
+      notes: editNotes || selectedRequest.notes
+    };
+    
+    editDateMutation.mutate(payload);
+  };
+
+  // Mutation: Accept kickoff request
+  const acceptMutation = useMutation({
+    mutationFn: async (requestId) => {
+      return axios.post(`${API}/api/kickoff-requests/${requestId}/accept`, {}, { headers });
+    },
+    onSuccess: (response) => {
+      toast.success('Project created successfully');
+      setShowDetailDialog(false);
       
-      const response = await fetch(`${API}/kickoff-requests/${selectedRequest.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        toast.success('Kickoff date updated successfully');
-        setShowEditDateDialog(false);
-        setEditDate('');
-        setEditNotes('');
-        fetchRequests();
-        if (showDetailDialog) {
-          fetchRequestDetails(selectedRequest.id);
-        }
+      // Navigate to team assignment page
+      if (response.data.project_id) {
+        navigate(`/consulting/assign-team/${response.data.project_id}`);
       } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to update kickoff date');
+        refetchRequests();
       }
-    } catch (error) {
-      toast.error('Failed to update kickoff date');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to accept request');
     }
+  });
+
+  const handleAccept = (requestId) => {
+    acceptMutation.mutate(requestId);
   };
 
-  const handleAccept = async (requestId) => {
-    try {
-      const response = await fetch(`${API}/kickoff-requests/${requestId}/accept`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        toast.success('Project created successfully');
-        setShowDetailDialog(false);
-        
-        // Navigate to team assignment page
-        if (data.project_id) {
-          navigate(`/consulting/assign-team/${data.project_id}`);
-        } else {
-          fetchRequests();
-        }
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to accept request');
-      }
-    } catch (error) {
-      toast.error('Failed to accept request');
+  // Mutation: Return kickoff request
+  const returnMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/kickoff-requests/${selectedRequest.id}/return`, {
+        reason: returnReason,
+        return_notes: returnNotes
+      }, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Request returned to sender');
+      setShowReturnDialog(false);
+      setShowDetailDialog(false);
+      setReturnReason('');
+      setReturnNotes('');
+      refetchRequests();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to return request');
     }
-  };
+  });
 
-  const handleReturn = async () => {
+  const handleReturn = () => {
     if (!selectedRequest || !returnReason.trim()) {
       toast.error('Please provide a reason for returning');
       return;
     }
-
-    try {
-      const response = await fetch(`${API}/kickoff-requests/${selectedRequest.id}/return`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          reason: returnReason,
-          return_notes: returnNotes
-        })
-      });
-
-      if (response.ok) {
-        toast.success('Request returned to sender');
-        setShowReturnDialog(false);
-        setShowDetailDialog(false);
-        setReturnReason('');
-        setReturnNotes('');
-        fetchRequests();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to return request');
-      }
-    } catch (error) {
-      toast.error('Failed to return request');
-    }
+    returnMutation.mutate();
   };
 
-  const handleResubmit = async (requestId) => {
-    try {
-      const response = await fetch(`${API}/kickoff-requests/${requestId}/resubmit`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-
-      if (response.ok) {
-        toast.success('Request resubmitted successfully');
-        fetchRequests();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to resubmit request');
-      }
-    } catch (error) {
-      toast.error('Failed to resubmit request');
+  // Mutation: Resubmit kickoff request
+  const resubmitMutation = useMutation({
+    mutationFn: async (requestId) => {
+      return axios.post(`${API}/api/kickoff-requests/${requestId}/resubmit`, {}, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Request resubmitted successfully');
+      refetchRequests();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to resubmit request');
     }
+  });
+
+  const handleResubmit = (requestId) => {
+    resubmitMutation.mutate(requestId);
   };
 
-  const handleReject = async (requestId) => {
-    try {
-      const response = await fetch(`${API}/kickoff-requests/${requestId}/reject`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-
-      if (response.ok) {
-        toast.success('Request rejected');
-        fetchRequests();
-      } else {
-        toast.error('Failed to reject request');
-      }
-    } catch (error) {
+  // Mutation: Reject kickoff request
+  const rejectMutation = useMutation({
+    mutationFn: async (requestId) => {
+      return axios.post(`${API}/api/kickoff-requests/${requestId}/reject`, {}, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Request rejected');
+      refetchRequests();
+    },
+    onError: () => {
       toast.error('Failed to reject request');
     }
+  });
+
+  const handleReject = (requestId) => {
+    rejectMutation.mutate(requestId);
   };
 
   const getStatusBadge = (status) => {
