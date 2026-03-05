@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 // React Query for data caching
 import { QueryClientProvider, queryClient } from './lib/queryClient';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 // Critical paths - keep as regular imports for fast initial load
 import Login from './pages/Login';
@@ -450,6 +451,8 @@ function App() {
             </PermissionProvider>
           </AuthContext.Provider>
         </ThemeProvider>
+        {/* React Query DevTools - only shows in development */}
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       </QueryClientProvider>
     </ErrorBoundary>
   );

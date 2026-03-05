@@ -24,6 +24,9 @@ export * from './useClients';
 export * from './useConsultants';
 export * from './useStats';
 export * from './useDocuments';
+export * from './useLetterhead';
+export * from './useSecurityAudit';
+export * from './useBankRequests';
 
 // Generic hooks (useFetch, useMutate for custom endpoints)
 export * from './useApi';

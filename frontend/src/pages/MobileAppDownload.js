@@ -1,14 +1,13 @@
 import React, { useContext } from 'react';
-import axios from 'axios';
-import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
-import { API, AuthContext } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { 
   Smartphone, Apple, ExternalLink, CheckCircle, Users, 
   MapPin, Camera, Clock, Bell, Shield
 } from 'lucide-react';
+import { useMobileStats } from '../hooks/useStats';
 
 const MOBILE_APP_PATH = '/mobile';
 
@@ -16,15 +15,8 @@ const MobileAppDownload = () => {
   const { user } = useContext(AuthContext);
   const mobileAppUrl = `${window.location.origin}${MOBILE_APP_PATH}`;
 
-  // React Query: Mobile Stats
-  const { data: stats } = useQuery({
-    queryKey: ['attendance', 'mobile-stats'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/attendance/mobile-stats`);
-      return res.data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  // React Query: Mobile Stats using hook
+  const { data: stats } = useMobileStats();
 
   const features = [
     { icon: Camera, title: 'Selfie Check-in', desc: 'Secure attendance with photo verification' },

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { AuthContext, API } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -11,8 +11,8 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { useConsultingStats } from '../hooks/useStats';
+import { useFetch } from '../hooks/useApi';
 
 const ConsultingDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -21,29 +21,12 @@ const ConsultingDashboard = () => {
   // Quick Check-in state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
 
-  // Fetch consulting stats with React Query (caching enabled)
-  const { data: stats, isLoading: loading } = useQuery({
-    queryKey: ['consulting-dashboard-stats'],
-    queryFn: async () => {
-      const response = await fetch(`${API}/stats/consulting-dashboard`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        return response.json();
-      }
-      return null;
-    },
-    staleTime: 3 * 60 * 1000, // 3 minutes
-  });
+  // Fetch consulting stats with React Query using hook
+  const { data: stats, isLoading: loading } = useConsultingStats();
 
   // Fetch attendance status with React Query
-  const { data: attendanceStatus, refetch: refetchAttendance } = useQuery({
-    queryKey: ['my-attendance-status'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/my/check-status`);
-      return res.data;
-    },
-    staleTime: 30 * 1000, // 30 seconds
+  const { data: attendanceStatus, refetch: refetchAttendance } = useFetch('/api/my/check-status', {
+    staleTime: 30 * 1000 // 30 seconds
   });
 
   if (loading) {

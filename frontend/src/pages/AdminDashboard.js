@@ -1,5 +1,4 @@
 import React, { useState, useContext } from 'react';
-import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -24,7 +23,9 @@ import {
   PieChart as RechartsPie, Pie, Cell, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAdminStats } from '../hooks/useStats';
+import { useFetch } from '../hooks/useApi';
 
 const AdminDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -36,46 +37,25 @@ const AdminDashboard = () => {
   // Quick Check-in Modal state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
 
-  // Fetch all stats using React Query for caching
-  const { data: stats, isLoading: loading, refetch, dataUpdatedAt } = useQuery({
-    queryKey: ['admin-dashboard-stats'],
-    queryFn: async () => {
-      const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
-      
-      // Fetch all department stats in parallel
-      const [salesRes, hrRes, consultingRes] = await Promise.all([
-        fetch(`${API}/stats/sales-dashboard-enhanced?view_mode=team`, { headers }).catch(() => null),
-        fetch(`${API}/stats/hr`, { headers }).catch(() => null),
-        fetch(`${API}/stats/consulting`, { headers }).catch(() => null),
-      ]);
+  // Fetch all stats using React Query hook
+  const { data: statsData, isLoading: loading, refetch, dataUpdatedAt } = useAdminStats();
+  
+  // Transform stats to expected format
+  const stats = statsData ? {
+    sales: statsData.sales,
+    hr: statsData.hr,
+    consulting: statsData.consulting,
+    finance: { 
+      revenue: 45000000, 
+      pendingInvoices: 18, 
+      receivables: 12500000,
+      profitMargin: 32 
+    }
+  } : null;
 
-      const salesData = salesRes?.ok ? await salesRes.json() : null;
-      const hrData = hrRes?.ok ? await hrRes.json() : null;
-      const consultingData = consultingRes?.ok ? await consultingRes.json() : null;
-
-      return {
-        sales: salesData,
-        hr: hrData,
-        consulting: consultingData,
-        finance: { 
-          revenue: 45000000, 
-          pendingInvoices: 18, 
-          receivables: 12500000,
-          profitMargin: 32 
-        }
-      };
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Fetch attendance status
-  const { data: attendanceStatus } = useQuery({
-    queryKey: ['attendance-status'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/my/check-status`);
-      return res.data;
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+  // Fetch attendance status using useFetch
+  const { data: attendanceStatus } = useFetch('/api/my/check-status', {
+    staleTime: 2 * 60 * 1000
   });
 
   const lastUpdated = dataUpdatedAt ? new Date(dataUpdatedAt) : new Date();

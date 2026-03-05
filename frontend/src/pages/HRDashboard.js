@@ -11,8 +11,10 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useHRStats } from '../hooks/useStats';
+import { useFetch } from '../hooks/useApi';
 
 const HRDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -26,35 +28,18 @@ const HRDashboard = () => {
   const [generatingDocs, setGeneratingDocs] = useState(false);
   const [docResult, setDocResult] = useState(null);
 
-  // Fetch HR stats with React Query
-  const { data: stats, isLoading: loading, refetch } = useQuery({
-    queryKey: ['hr-dashboard-stats'],
-    queryFn: async () => {
-      const response = await fetch(`${API}/stats/hr-dashboard`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        return response.json();
-      }
-      return null;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Fetch HR stats with React Query using hook
+  const { data: stats, isLoading: loading, refetch } = useHRStats();
 
-  // Fetch attendance status
-  const { data: attendanceStatus } = useQuery({
-    queryKey: ['attendance-status'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/my/check-status`);
-      return res.data;
-    },
-    staleTime: 2 * 60 * 1000,
+  // Fetch attendance status using useFetch
+  const { data: attendanceStatus } = useFetch('/api/my/check-status', {
+    staleTime: 2 * 60 * 1000
   });
 
   const generateDocumentation = async (emailTo = null) => {
     setGeneratingDocs(true);
     try {
-      let url = `${API}/documentation/generate-hr-docs`;
+      let url = `${API}/api/documentation/generate-hr-docs`;
       if (emailTo) {
         url += `?email_to=${encodeURIComponent(emailTo)}`;
       }
