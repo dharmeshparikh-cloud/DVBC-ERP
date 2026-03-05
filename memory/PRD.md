@@ -142,7 +142,22 @@ The Employee ID generation process has been changed from the previous flow (ID g
 
 ---
 
-### Phase 67: React Query Enforcement & Infrastructure - March 5, 2026 ✅ (Latest)
+### Phase 68: React Query Migration Batch 15 - March 5, 2026 ✅ (Latest)
+
+**Batch 15 - 4 components migrated:**
+- `HRAttendanceInput.js` (698 lines) - Attendance policy, bulk marking, validation mutations
+- `AttendanceLeaveSettings.js` (865 lines) - Policy settings, custom policies, leave policy mutations
+- `DepartmentAccessManager.js` (952 lines) - Department access, special permissions, bulk update mutations
+- `CandidateOnboardingForm.js` (1859 lines) - Already migrated in Phase 67
+
+**Current Migration Status:**
+- ✅ 99+ pages now using React Query
+- ~7 large components remaining (ApprovalsCenter, HROnboarding, SOWBuilder, etc.)
+- All tested pages passing (100% success rate)
+
+---
+
+### Phase 67: React Query Enforcement & Infrastructure - March 5, 2026 ✅
 
 **React Query Enforcement Rules Implemented:**
 1. Created dedicated domain-specific hooks in `/app/frontend/src/hooks/`:

@@ -17,6 +17,9 @@ import {
   UserPlus, Settings, Eye, EyeOff, Clock, Key, AlertTriangle,
   Calendar, Lock, Unlock
 } from 'lucide-react';
+import { useFetch } from '../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -32,14 +35,11 @@ const DEPT_CONFIG = {
 
 const DepartmentAccessManager = () => {
   const { user } = useContext(AuthContext);
-  const [stats, setStats] = useState(null);
-  const [employees, setEmployees] = useState([]);
+  const queryClient = useQueryClient();
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('all');
-  const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState({});
-  const [configuredDepts, setConfiguredDepts] = useState([]);
   
   // Edit dialog state
   const [editDialog, setEditDialog] = useState(false);
@@ -72,51 +72,41 @@ const DepartmentAccessManager = () => {
   const token = localStorage.getItem('token');
   const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Query: Fetch stats
+  const { data: stats, refetch: refetchStats } = useFetch('/api/department-access/stats');
 
+  // Query: Fetch configured departments
+  const { data: configDeptData } = useFetch('/api/permission-config/departments');
+  const configuredDepts = configDeptData?.departments || [];
+
+  // Query: Fetch employees
+  const { data: employeesData = [], isLoading: loading, refetch: refetchEmployees } = useFetch('/api/employees');
+  const employees = employeesData;
+
+  // Update departments config when loaded
+  useEffect(() => {
+    if (configuredDepts.length > 0) {
+      const deptObj = {};
+      configuredDepts.forEach(d => {
+        deptObj[d.name] = {
+          icon: DEPT_CONFIG[d.name]?.icon || Building2,
+          color: `bg-[${d.color}]`,
+          textColor: `text-[${d.color}]`,
+          bgLight: 'bg-gray-50'
+        };
+      });
+      setDepartments(deptObj);
+    }
+  }, [configuredDepts]);
+
+  // Filter employees when search or department changes
   useEffect(() => {
     filterEmployees();
   }, [searchQuery, selectedDept, employees]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      // Fetch stats
-      const statsRes = await fetch(`${API_URL}/api/department-access/stats`, { headers });
-      if (statsRes.ok) setStats(await statsRes.json());
-
-      // Fetch configured departments from permission-config
-      const configDeptRes = await fetch(`${API_URL}/api/permission-config/departments`, { headers });
-      if (configDeptRes.ok) {
-        const data = await configDeptRes.json();
-        setConfiguredDepts(data.departments);
-        // Update DEPT_CONFIG dynamically
-        const deptObj = {};
-        data.departments.forEach(d => {
-          deptObj[d.name] = {
-            icon: DEPT_CONFIG[d.name]?.icon || Building2,
-            color: `bg-[${d.color}]`,
-            textColor: `text-[${d.color}]`,
-            bgLight: 'bg-gray-50'
-          };
-        });
-        setDepartments(deptObj);
-      }
-
-      // Fetch all employees
-      const empRes = await fetch(`${API_URL}/api/employees`, { headers });
-      if (empRes.ok) {
-        const data = await empRes.json();
-        setEmployees(data);
-        setFilteredEmployees(data);
-      }
-    } catch (error) {
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+  const refetchAll = () => {
+    refetchStats();
+    refetchEmployees();
   };
 
   const filterEmployees = () => {
@@ -145,18 +135,15 @@ const DepartmentAccessManager = () => {
 
   const openEditDialog = async (employee) => {
     try {
-      const res = await fetch(`${API_URL}/api/department-access/employee/${employee.id}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedEmployee(data);
-        setEditForm({
-          departments: data.departments || [],
-          primary_department: data.primary_department || '',
-          custom_page_access: data.custom_page_access || [],
-          restricted_pages: data.restricted_pages || []
-        });
-        setEditDialog(true);
-      }
+      const res = await axios.get(`${API_URL}/api/department-access/employee/${employee.id}`, { headers });
+      setSelectedEmployee(res.data);
+      setEditForm({
+        departments: res.data.departments || [],
+        primary_department: res.data.primary_department || '',
+        custom_page_access: res.data.custom_page_access || [],
+        restricted_pages: res.data.restricted_pages || []
+      });
+      setEditDialog(true);
     } catch (error) {
       toast.error('Failed to load employee access');
     }
@@ -185,7 +172,22 @@ const DepartmentAccessManager = () => {
     }
   };
 
-  const saveEmployeeAccess = async () => {
+  // Mutation: Save employee access
+  const saveEmployeeAccessMutation = useMutation({
+    mutationFn: async () => {
+      return axios.put(`${API_URL}/api/department-access/employee/${selectedEmployee.employee_id}`, editForm, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Department access updated');
+      setEditDialog(false);
+      refetchAll();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to update');
+    }
+  });
+
+  const saveEmployeeAccess = () => {
     if (!editForm.departments.length) {
       toast.error('Select at least one department');
       return;
@@ -194,131 +196,106 @@ const DepartmentAccessManager = () => {
       toast.error('Select a valid primary department');
       return;
     }
-
-    try {
-      const res = await fetch(`${API_URL}/api/department-access/employee/${selectedEmployee.employee_id}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(editForm)
-      });
-      
-      if (res.ok) {
-        toast.success('Department access updated');
-        setEditDialog(false);
-        fetchData();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to update');
-      }
-    } catch (error) {
-      toast.error('Failed to update access');
-    }
+    saveEmployeeAccessMutation.mutate();
   };
 
   // Special Permissions Functions
   const openSpecialDialog = async (employee) => {
     try {
-      const res = await fetch(`${API_URL}/api/permission-config/employee/${employee.id}/special-permissions`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedEmployee(data);
-        setSpecialForm({
-          additional_departments: data.additional_departments || [],
-          additional_pages: data.additional_pages || [],
-          restricted_pages: data.restricted_pages || [],
-          temporary_role: data.temporary_role || '',
-          temporary_role_expiry: data.temporary_role_expiry || '',
-          can_approve_for_departments: data.can_approve_for_departments || [],
-          notes: data.permission_notes || ''
-        });
-        setSpecialDialog(true);
-      }
+      const res = await axios.get(`${API_URL}/api/permission-config/employee/${employee.id}/special-permissions`, { headers });
+      setSelectedEmployee(res.data);
+      setSpecialForm({
+        additional_departments: res.data.additional_departments || [],
+        additional_pages: res.data.additional_pages || [],
+        restricted_pages: res.data.restricted_pages || [],
+        temporary_role: res.data.temporary_role || '',
+        temporary_role_expiry: res.data.temporary_role_expiry || '',
+        can_approve_for_departments: res.data.can_approve_for_departments || [],
+        notes: res.data.permission_notes || ''
+      });
+      setSpecialDialog(true);
     } catch (error) {
       toast.error('Failed to load special permissions');
     }
   };
 
-  const saveSpecialPermissions = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/permission-config/employee/${selectedEmployee.employee_id}/special-permissions`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({
-          additional_departments: specialForm.additional_departments,
-          additional_pages: specialForm.additional_pages,
-          restricted_pages: specialForm.restricted_pages,
-          temporary_role: specialForm.temporary_role || null,
-          temporary_role_expiry: specialForm.temporary_role_expiry || null,
-          can_approve_for_departments: specialForm.can_approve_for_departments,
-          notes: specialForm.notes,
-          special_permissions: []
-        })
-      });
-      
-      if (res.ok) {
-        toast.success('Special permissions updated');
-        setSpecialDialog(false);
-        fetchData();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to update');
-      }
-    } catch (error) {
-      toast.error('Failed to update special permissions');
+  // Mutation: Save special permissions
+  const saveSpecialPermissionsMutation = useMutation({
+    mutationFn: async () => {
+      return axios.put(`${API_URL}/api/permission-config/employee/${selectedEmployee.employee_id}/special-permissions`, {
+        additional_departments: specialForm.additional_departments,
+        additional_pages: specialForm.additional_pages,
+        restricted_pages: specialForm.restricted_pages,
+        temporary_role: specialForm.temporary_role || null,
+        temporary_role_expiry: specialForm.temporary_role_expiry || null,
+        can_approve_for_departments: specialForm.can_approve_for_departments,
+        notes: specialForm.notes,
+        special_permissions: []
+      }, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Special permissions updated');
+      setSpecialDialog(false);
+      refetchAll();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to update');
     }
+  });
+
+  const saveSpecialPermissions = () => {
+    saveSpecialPermissionsMutation.mutate();
   };
 
-  const grantTemporaryAccess = async (employeeId, department, reason, days) => {
-    try {
-      const res = await fetch(`${API_URL}/api/permission-config/employee/${employeeId}/grant-temporary-access?department=${department}&reason=${encodeURIComponent(reason)}&expiry_days=${days}`, {
-        method: 'POST',
-        headers
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message);
-        fetchData();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to grant access');
-      }
-    } catch (error) {
-      toast.error('Failed to grant temporary access');
+  // Mutation: Grant temporary access
+  const grantTemporaryAccessMutation = useMutation({
+    mutationFn: async ({ employeeId, department, reason, days }) => {
+      return axios.post(
+        `${API_URL}/api/permission-config/employee/${employeeId}/grant-temporary-access?department=${department}&reason=${encodeURIComponent(reason)}&expiry_days=${days}`,
+        {},
+        { headers }
+      );
+    },
+    onSuccess: (response) => {
+      toast.success(response.data.message);
+      refetchAll();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to grant access');
     }
+  });
+
+  const grantTemporaryAccess = (employeeId, department, reason, days) => {
+    grantTemporaryAccessMutation.mutate({ employeeId, department, reason, days });
   };
 
-  const handleBulkUpdate = async () => {
+  // Mutation: Bulk update
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API_URL}/api/department-access/bulk-update`, {
+        employee_ids: selectedIds,
+        add_departments: bulkForm.add,
+        remove_departments: bulkForm.remove
+      }, { headers });
+    },
+    onSuccess: (response) => {
+      toast.success(response.data.message);
+      setBulkDialog(false);
+      setSelectedIds([]);
+      setBulkMode(false);
+      refetchAll();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to update');
+    }
+  });
+
+  const handleBulkUpdate = () => {
     if (!selectedIds.length) {
       toast.error('Select employees first');
       return;
     }
-
-    try {
-      const res = await fetch(`${API_URL}/api/department-access/bulk-update`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          employee_ids: selectedIds,
-          add_departments: bulkForm.add,
-          remove_departments: bulkForm.remove
-        })
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(`Updated ${data.updated_count} employees`);
-        setBulkDialog(false);
-        setBulkMode(false);
-        setSelectedIds([]);
-        setBulkForm({ add: [], remove: [] });
-        fetchData();
-      } else {
-        toast.error('Bulk update failed');
-      }
-    } catch (error) {
-      toast.error('Bulk update failed');
-    }
+    bulkUpdateMutation.mutate();
   };
 
   const toggleSelectAll = () => {

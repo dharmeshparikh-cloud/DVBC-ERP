@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext, API } from '../../App';
+import { AuthContext } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -11,16 +11,17 @@ import {
   Calendar, Clock, Users, CheckCircle, XCircle, AlertTriangle, 
   RefreshCw, Filter, Search, DollarSign, Settings, UserCog, Trash2
 } from 'lucide-react';
+import { useFetch } from '../../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const HRAttendanceInput = () => {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [employees, setEmployees] = useState([]);
-  const [allEmployees, setAllEmployees] = useState([]);
   const [validationResults, setValidationResults] = useState(null);
-  const [policy, setPolicy] = useState(null);
-  const [customPolicies, setCustomPolicies] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [bulkDate, setBulkDate] = useState(new Date().toISOString().slice(0, 10));
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,107 +42,73 @@ const HRAttendanceInput = () => {
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  useEffect(() => {
-    fetchPolicy();
-    fetchAllEmployees();
-    fetchCustomPolicies();
-  }, []);
+  // Query: Fetch attendance policy
+  const { data: policyData } = useFetch('/api/attendance/policy');
+  const policy = policyData?.policy;
 
-  useEffect(() => {
-    fetchAttendanceInput();
-  }, [month, selectedEmployeeId]);
+  // Query: Fetch all employees
+  const { data: allEmployeesData = [] } = useFetch('/api/employees');
+  const allEmployees = allEmployeesData;
 
-  const fetchPolicy = async () => {
-    try {
-      const res = await fetch(`${API}/attendance/policy`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setPolicy(data.policy);
+  // Query: Fetch custom policies
+  const { data: customPoliciesData, refetch: refetchCustomPolicies } = useFetch('/api/attendance/policy/custom');
+  const customPolicies = customPoliciesData?.policies || [];
+
+  // Query: Fetch attendance input data
+  const { data: attendanceData, isLoading: loading, refetch: refetchAttendance } = useFetch(
+    `/api/attendance/hr/employee-attendance-input/${month}`,
+    { enabled: !!month }
+  );
+
+  // Filter employees based on selected employee ID
+  const employees = selectedEmployeeId && selectedEmployeeId !== 'all'
+    ? (attendanceData?.employees || []).filter(e => e.employee_id === selectedEmployeeId)
+    : (attendanceData?.employees || []);
+
+  // Mutation: Run auto validation
+  const validationMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/attendance/auto-validate`, { month }, { headers });
+    },
+    onSuccess: (response) => {
+      let data = response.data;
+      // Filter results if specific employee selected
+      if (selectedEmployeeId && selectedEmployeeId !== 'all') {
+        data.employees = data.employees.filter(e => e.employee_id === selectedEmployeeId);
+        data.summary = {
+          total_employees: data.employees.length,
+          clean: data.employees.filter(e => e.status === 'clean').length,
+          penalty_pending: data.employees.filter(e => e.status === 'penalty_pending').length,
+          total_pending_penalties: data.employees.reduce((sum, e) => sum + e.pending_penalty_amount, 0)
+        };
       }
-    } catch (error) {
-      console.error('Error fetching policy:', error);
-    }
-  };
-
-  const fetchAllEmployees = async () => {
-    try {
-      const res = await fetch(`${API}/employees`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setAllEmployees(data);
-      }
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-    }
-  };
-
-  const fetchCustomPolicies = async () => {
-    try {
-      const res = await fetch(`${API}/attendance/policy/custom`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setCustomPolicies(data.policies || []);
-      }
-    } catch (error) {
-      console.error('Error fetching custom policies:', error);
-    }
-  };
-
-  const fetchAttendanceInput = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/attendance/hr/employee-attendance-input/${month}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        let empList = data.employees || [];
-        
-        // Filter by selected employee if not 'all'
-        if (selectedEmployeeId && selectedEmployeeId !== 'all') {
-          empList = empList.filter(e => e.employee_id === selectedEmployeeId);
-        }
-        
-        setEmployees(empList);
-      }
-    } catch (error) {
-      toast.error('Failed to fetch attendance data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const runAutoValidation = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/attendance/auto-validate`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ month })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        
-        // Filter results if specific employee selected
-        if (selectedEmployeeId && selectedEmployeeId !== 'all') {
-          data.employees = data.employees.filter(e => e.employee_id === selectedEmployeeId);
-          data.summary = {
-            total_employees: data.employees.length,
-            clean: data.employees.filter(e => e.status === 'clean').length,
-            penalty_pending: data.employees.filter(e => e.status === 'penalty_pending').length,
-            total_pending_penalties: data.employees.reduce((sum, e) => sum + e.pending_penalty_amount, 0)
-          };
-        }
-        
-        setValidationResults(data);
-        toast.success(`Validation complete: ${data.summary.clean} clean, ${data.summary.penalty_pending} with penalties`);
-      }
-    } catch (error) {
+      setValidationResults(data);
+      toast.success(`Validation complete: ${data.summary.clean} clean, ${data.summary.penalty_pending} with penalties`);
+    },
+    onError: () => {
       toast.error('Failed to run validation');
-    } finally {
-      setLoading(false);
     }
+  });
+
+  const runAutoValidation = () => {
+    validationMutation.mutate();
   };
 
-  const applyPenalties = async () => {
+  // Mutation: Apply penalties
+  const penaltyMutation = useMutation({
+    mutationFn: async (penalties) => {
+      return axios.post(`${API}/api/attendance/apply-penalties`, { month, penalties }, { headers });
+    },
+    onSuccess: (response) => {
+      toast.success(response.data.message);
+      setValidationResults(null);
+    },
+    onError: () => {
+      toast.error('Failed to apply penalties');
+    }
+  });
+
+  const applyPenalties = () => {
     if (!validationResults) return;
     
     const penaltiesToApply = validationResults.employees
@@ -157,23 +124,25 @@ const HRAttendanceInput = () => {
       return;
     }
 
-    try {
-      const res = await fetch(`${API}/attendance/apply-penalties`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ month, penalties: penaltiesToApply })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message);
-        setValidationResults(null);
-      }
-    } catch (error) {
-      toast.error('Failed to apply penalties');
-    }
+    penaltyMutation.mutate(penaltiesToApply);
   };
 
-  const markBulkAttendance = async (status) => {
+  // Mutation: Mark bulk attendance
+  const bulkAttendanceMutation = useMutation({
+    mutationFn: async ({ date, records }) => {
+      return axios.post(`${API}/api/attendance/hr/mark-attendance-bulk`, { date, records }, { headers });
+    },
+    onSuccess: (response) => {
+      toast.success(response.data.message);
+      setSelectedEmployees([]);
+      refetchAttendance();
+    },
+    onError: () => {
+      toast.error('Failed to mark attendance');
+    }
+  });
+
+  const markBulkAttendance = (status) => {
     if (selectedEmployees.length === 0) {
       toast.warning('Select employees first');
       return;
@@ -186,72 +155,57 @@ const HRAttendanceInput = () => {
       check_out: status === 'present' ? `${bulkDate}T19:00:00Z` : null
     }));
 
-    try {
-      const res = await fetch(`${API}/attendance/hr/mark-attendance-bulk`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ date: bulkDate, records })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message);
-        setSelectedEmployees([]);
-        fetchAttendanceInput();
-      }
-    } catch (error) {
-      toast.error('Failed to mark attendance');
-    }
+    bulkAttendanceMutation.mutate({ date: bulkDate, records });
   };
 
-  const saveCustomPolicy = async () => {
+  // Mutation: Save custom policy
+  const saveCustomPolicyMutation = useMutation({
+    mutationFn: async (policyData) => {
+      return axios.post(`${API}/api/attendance/policy/custom`, policyData, { headers });
+    },
+    onSuccess: (response) => {
+      toast.success(response.data.message);
+      setShowPolicyDialog(false);
+      setPolicyForm({
+        employee_id: '',
+        check_in: '10:00',
+        check_out: '19:00',
+        grace_period_minutes: 30,
+        grace_days_per_month: 3,
+        reason: ''
+      });
+      refetchCustomPolicies();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save policy');
+    }
+  });
+
+  const saveCustomPolicy = () => {
     if (!policyForm.employee_id) {
       toast.error('Please select an employee');
       return;
     }
-
-    try {
-      const res = await fetch(`${API}/attendance/policy/custom`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(policyForm)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message);
-        setShowPolicyDialog(false);
-        setPolicyForm({
-          employee_id: '',
-          check_in: '10:00',
-          check_out: '19:00',
-          grace_period_minutes: 30,
-          grace_days_per_month: 3,
-          reason: ''
-        });
-        fetchCustomPolicies();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to save policy');
-      }
-    } catch (error) {
-      toast.error('Failed to save custom policy');
-    }
+    saveCustomPolicyMutation.mutate(policyForm);
   };
 
-  const deleteCustomPolicy = async (employeeId) => {
-    if (!confirm('Delete custom policy? Employee will revert to default timing.')) return;
-
-    try {
-      const res = await fetch(`${API}/attendance/policy/custom/${employeeId}`, {
-        method: 'DELETE',
-        headers
-      });
-      if (res.ok) {
-        toast.success('Custom policy deleted');
-        fetchCustomPolicies();
-      }
-    } catch (error) {
+  // Mutation: Delete custom policy
+  const deleteCustomPolicyMutation = useMutation({
+    mutationFn: async (employeeId) => {
+      return axios.delete(`${API}/api/attendance/policy/custom/${employeeId}`, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Custom policy deleted');
+      refetchCustomPolicies();
+    },
+    onError: () => {
       toast.error('Failed to delete policy');
     }
+  });
+
+  const deleteCustomPolicy = (employeeId) => {
+    if (!confirm('Delete custom policy? Employee will revert to default timing.')) return;
+    deleteCustomPolicyMutation.mutate(employeeId);
   };
 
   const toggleEmployeeSelection = (empId) => {

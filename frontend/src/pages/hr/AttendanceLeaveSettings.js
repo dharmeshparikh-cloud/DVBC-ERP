@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext, API } from '../../App';
+import { AuthContext } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -13,10 +13,15 @@ import {
   Sun, Moon, Coffee, DollarSign, Users, CheckCircle, User,
   Plus, Edit2, Trash2, Info, Badge
 } from 'lucide-react';
+import { useFetch } from '../../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const AttendanceLeaveSettings = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   
   // Attendance Policy Settings
@@ -46,14 +51,8 @@ const AttendanceLeaveSettings = () => {
     probation_leave_days: 0
   });
 
-  // Consulting Employees (read-only from employee master)
-  const [consultingEmployees, setConsultingEmployees] = useState([]);
-  const [consultingRoleCounts, setConsultingRoleCounts] = useState({});
+  // Consulting Roles
   const [consultingRoles, setConsultingRoles] = useState([]);
-
-  // Employee-wise Custom Policies
-  const [customPolicies, setCustomPolicies] = useState([]);
-  const [allEmployees, setAllEmployees] = useState([]);
   
   // Modal state for adding/editing custom policy
   const [showPolicyModal, setShowPolicyModal] = useState(false);
@@ -70,97 +69,70 @@ const AttendanceLeaveSettings = () => {
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
+  // Query: Fetch attendance policy
+  const { data: attendancePolicyData, isLoading: loadingPolicy } = useFetch('/api/attendance/policy');
+
+  // Query: Fetch leave policy
+  const { data: leavePolicyData } = useFetch('/api/settings/leave-policy');
+
+  // Query: Fetch consulting employees
+  const { data: consultingData } = useFetch('/api/attendance/consulting-employees');
+  const consultingEmployees = consultingData?.employees || [];
+  const consultingRoleCounts = consultingData?.role_counts || {};
+
+  // Query: Fetch custom policies
+  const { data: customPoliciesData, refetch: refetchCustomPolicies } = useFetch('/api/attendance/policy/custom');
+  const customPolicies = customPoliciesData?.policies || [];
+
+  // Query: Fetch all employees
+  const { data: allEmployeesData = [] } = useFetch('/api/employees');
+  const allEmployees = allEmployeesData;
+
+  const loading = loadingPolicy;
+
+  // Update local state when data is fetched
   useEffect(() => {
-    fetchSettings();
-    fetchConsultingEmployees();
-    fetchCustomPolicies();
-    fetchAllEmployees();
-  }, []);
-
-  const fetchSettings = async () => {
-    setLoading(true);
-    try {
-      // Fetch attendance policy
-      const attRes = await fetch(`${API}/attendance/policy`, { headers });
-      if (attRes.ok) {
-        const data = await attRes.json();
-        if (data.policy) setAttendancePolicy(data.policy);
-        if (data.consulting_roles) setConsultingRoles(data.consulting_roles);
-      }
-
-      // Fetch leave policy
-      const leaveRes = await fetch(`${API}/settings/leave-policy`, { headers });
-      if (leaveRes.ok) {
-        const data = await leaveRes.json();
-        if (data.policy) setLeavePolicy(data.policy);
-      }
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-    } finally {
-      setLoading(false);
+    if (attendancePolicyData?.policy) {
+      setAttendancePolicy(attendancePolicyData.policy);
     }
-  };
-
-  const fetchConsultingEmployees = async () => {
-    try {
-      const res = await fetch(`${API}/attendance/consulting-employees`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setConsultingEmployees(data.employees || []);
-        setConsultingRoleCounts(data.role_counts || {});
-        if (data.consulting_roles) setConsultingRoles(data.consulting_roles);
-      }
-    } catch (error) {
-      console.error('Error fetching consulting employees:', error);
+    if (attendancePolicyData?.consulting_roles) {
+      setConsultingRoles(attendancePolicyData.consulting_roles);
     }
-  };
+  }, [attendancePolicyData]);
 
-  const fetchCustomPolicies = async () => {
-    try {
-      const res = await fetch(`${API}/attendance/policy/custom`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setCustomPolicies(data.policies || []);
-      }
-    } catch (error) {
-      console.error('Error fetching custom policies:', error);
+  useEffect(() => {
+    if (leavePolicyData?.policy) {
+      setLeavePolicy(leavePolicyData.policy);
     }
-  };
+  }, [leavePolicyData]);
 
-  const fetchAllEmployees = async () => {
-    try {
-      const res = await fetch(`${API}/employees`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setAllEmployees(data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching employees:', error);
+  useEffect(() => {
+    if (consultingData?.consulting_roles) {
+      setConsultingRoles(consultingData.consulting_roles);
     }
-  };
+  }, [consultingData]);
 
-  const saveAttendancePolicy = async () => {
+  // Mutation: Save attendance policy
+  const saveAttendancePolicyMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/settings/attendance-policy`, {
+        policy: attendancePolicy,
+        consulting_roles: consultingRoles
+      }, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Attendance policy saved successfully');
+      queryClient.invalidateQueries({ queryKey: ['/api/attendance/policy'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save attendance policy');
+    },
+    onSettled: () => setSaving(false)
+  });
+
+  const saveAttendancePolicy = () => {
     setSaving(true);
-    try {
-      const res = await fetch(`${API}/settings/attendance-policy`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          policy: attendancePolicy,
-          consulting_roles: consultingRoles // Keep existing roles
-        })
-      });
-      if (res.ok) {
-        toast.success('Attendance policy saved successfully');
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to save attendance policy');
-      }
-    } catch (error) {
-      toast.error('Failed to save attendance policy');
-    } finally {
-      setSaving(false);
-    }
+    saveAttendancePolicyMutation.mutate();
   };
 
   const openAddPolicyModal = () => {
@@ -189,54 +161,50 @@ const AttendanceLeaveSettings = () => {
     setShowPolicyModal(true);
   };
 
-  const saveCustomPolicy = async () => {
+  // Mutation: Save custom policy
+  const saveCustomPolicyMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/attendance/policy/custom`, policyForm, { headers });
+    },
+    onSuccess: () => {
+      toast.success(editingPolicy ? 'Custom policy updated' : 'Custom policy created');
+      setShowPolicyModal(false);
+      refetchCustomPolicies();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save custom policy');
+    },
+    onSettled: () => setSaving(false)
+  });
+
+  const saveCustomPolicy = () => {
     if (!policyForm.employee_id) {
       toast.error('Please select an employee');
       return;
     }
-
     setSaving(true);
-    try {
-      const res = await fetch(`${API}/attendance/policy/custom`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(policyForm)
-      });
-      if (res.ok) {
-        toast.success(editingPolicy ? 'Custom policy updated' : 'Custom policy created');
-        setShowPolicyModal(false);
-        fetchCustomPolicies();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to save custom policy');
-      }
-    } catch (error) {
-      toast.error('Failed to save custom policy');
-    } finally {
-      setSaving(false);
-    }
+    saveCustomPolicyMutation.mutate();
   };
 
-  const deleteCustomPolicy = async (employeeId) => {
+  // Mutation: Delete custom policy
+  const deleteCustomPolicyMutation = useMutation({
+    mutationFn: async (employeeId) => {
+      return axios.delete(`${API}/api/attendance/policy/custom/${employeeId}`, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Custom policy removed');
+      refetchCustomPolicies();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to delete custom policy');
+    }
+  });
+
+  const deleteCustomPolicy = (employeeId) => {
     if (!window.confirm('Are you sure you want to remove this custom policy? The employee will revert to default policy.')) {
       return;
     }
-
-    try {
-      const res = await fetch(`${API}/attendance/policy/custom/${employeeId}`, {
-        method: 'DELETE',
-        headers
-      });
-      if (res.ok) {
-        toast.success('Custom policy removed');
-        fetchCustomPolicies();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to delete custom policy');
-      }
-    } catch (error) {
-      toast.error('Failed to delete custom policy');
-    }
+    deleteCustomPolicyMutation.mutate(employeeId);
   };
 
   // Get employees without custom policies for the dropdown
@@ -245,25 +213,24 @@ const AttendanceLeaveSettings = () => {
     (editingPolicy && editingPolicy.employee_id === emp.id)
   );
 
-  const saveLeavePolicy = async () => {
+  // Mutation: Save leave policy
+  const saveLeavePolicyMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/settings/leave-policy`, { policy: leavePolicy }, { headers });
+    },
+    onSuccess: () => {
+      toast.success('Leave policy saved successfully');
+      queryClient.invalidateQueries({ queryKey: ['/api/settings/leave-policy'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save leave policy');
+    },
+    onSettled: () => setSaving(false)
+  });
+
+  const saveLeavePolicy = () => {
     setSaving(true);
-    try {
-      const res = await fetch(`${API}/settings/leave-policy`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ policy: leavePolicy })
-      });
-      if (res.ok) {
-        toast.success('Leave policy saved successfully');
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to save leave policy');
-      }
-    } catch (error) {
-      toast.error('Failed to save leave policy');
-    } finally {
-      setSaving(false);
-    }
+    saveLeavePolicyMutation.mutate();
   };
 
   const toggleWorkingDay = (day) => {
