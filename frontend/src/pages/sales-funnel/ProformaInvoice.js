@@ -68,21 +68,21 @@ const ProformaInvoice = () => {
   const { data: invoicesData, isLoading: invoicesLoading } = useFetch('/api/quotations', {
     params: leadId ? { lead_id: leadId } : {}
   });
-  const invoices = invoicesData || [];
+  const invoices = Array.isArray(invoicesData) ? invoicesData : [];
 
   // Query: Fetch pricing plans
   const { data: pricingPlansData } = useFetch('/api/pricing-plans', {
     params: leadId ? { lead_id: leadId } : {}
   });
-  const pricingPlans = pricingPlansData || [];
+  const pricingPlans = Array.isArray(pricingPlansData) ? pricingPlansData : [];
 
   // Query: Fetch leads - API returns {items: [...], pagination: {...}}
   const { data: leadsData } = useFetch('/api/leads');
-  const leads = leadsData?.items || leadsData || [];
+  const leads = Array.isArray(leadsData?.items) ? leadsData.items : (Array.isArray(leadsData) ? leadsData : []);
 
   // Query: Fetch agreements
   const { data: agreementsData } = useFetch('/api/agreements');
-  const agreements = agreementsData || [];
+  const agreements = Array.isArray(agreementsData) ? agreementsData : [];
 
   // Query: Fetch SOW data if we have a pricing plan ID
   const { data: sowData } = useFetch(

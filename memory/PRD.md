@@ -142,6 +142,24 @@ The Employee ID generation process has been changed from the previous flow (ID g
 
 ---
 
+### Phase 65: React Query Migration Batch 12 - March 5, 2026 ✅ (Latest)
+
+**Batch 12 - 3 components migrated:**
+- EmailSettings.js (427 lines) - Full migration with `useFetch` for config/logs and `useMutate` for save/send operations
+- RBACAdmin.js (786 lines) - Queries for roles/departments/groups, mutations for CRUD operations
+- ProformaInvoice.js (1385 lines) - Full migration with `useFetch` for quotations/leads/plans/agreements
+
+**Bug Fixed:**
+- ProformaInvoice.js: Added `Array.isArray()` checks for API responses that return paginated data vs arrays
+- The leads API returns `{items: [], pagination: {}}` format, now correctly handled
+
+**Current Migration Status:**
+- ✅ 89 pages now using React Query
+- ~7 complex pages remaining (CandidateOnboardingForm.js, Chat.js, etc.)
+- All tested pages passing (100% success rate)
+
+---
+
 ### Phase 64: React Query Migration Batch 10 & 11 - February 27, 2026 ✅
 
 **Batch 10 - 6 components migrated:**
