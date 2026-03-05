@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { Send, Search, Plus, Users, MessageCircle, Pin, Check, CheckCheck, Paperclip, MoreVertical, X, FileText, Wifi, WifiOff } from 'lucide-react';
 import { AuthContext } from '../App';
+import { useFetch } from '../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 const WS_URL = API_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
 const Chat = () => {
   const { user: currentUser } = useContext(AuthContext);
-  const [conversations, setConversations] = useState([]);
+  const queryClient = useQueryClient();
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [users, setUsers] = useState([]);
   const [searchUsers, setSearchUsers] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -32,6 +34,26 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Query: Fetch conversations using React Query
+  const { data: conversations = [], refetch: refetchConversations } = useFetch(
+    currentUser?.id ? `/api/chat/conversations` : null,
+    { 
+      params: { user_id: currentUser?.id },
+      enabled: !!currentUser?.id,
+      refetchInterval: wsConnected ? false : 10000 // Only poll if WebSocket is not connected
+    }
+  );
+
+  // Query: Fetch users for new chat/group
+  const { data: usersData = [] } = useFetch(
+    (showNewChat || showNewGroup) ? `/api/chat/users` : null,
+    { 
+      params: { search: searchUsers },
+      enabled: showNewChat || showNewGroup
+    }
+  );
+  const users = usersData.filter(u => u.id !== currentUser?.id);
 
   // WebSocket connection
   const connectWebSocket = useCallback(() => {
@@ -60,8 +82,8 @@ const Chat = () => {
         if (data.conversation_id === selectedConversation?.id) {
           setMessages(prev => [...prev, data.message]);
         }
-        // Update conversation list
-        fetchConversations();
+        // Update conversation list via React Query
+        refetchConversations();
       }
       
       if (data.type === 'typing') {
@@ -115,7 +137,7 @@ const Chat = () => {
     };
 
     wsRef.current = ws;
-  }, [currentUser?.id]);
+  }, [currentUser?.id, selectedConversation?.id, refetchConversations]);
 
   // Connect WebSocket on mount
   useEffect(() => {
@@ -173,28 +195,15 @@ const Chat = () => {
     }, 2000);
   };
 
-  const fetchConversations = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const res = await fetch(`${API_URL}/api/chat/conversations?user_id=${currentUser.id}`);
-      const data = await res.json();
-      setConversations(data);
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-    }
-  }, [currentUser?.id]);
-
+  // Fetch messages for selected conversation
   const fetchMessages = useCallback(async (conversationId) => {
     if (!currentUser?.id) return;
     try {
-      const res = await fetch(`${API_URL}/api/chat/conversations/${conversationId}/messages`);
-      const data = await res.json();
-      setMessages(data);
+      const res = await axios.get(`${API_URL}/api/chat/conversations/${conversationId}/messages`);
+      setMessages(res.data);
       
       // Mark all as read
-      await fetch(`${API_URL}/api/chat/conversations/${conversationId}/read-all?user_id=${currentUser.id}`, {
-        method: 'POST'
-      });
+      await axios.post(`${API_URL}/api/chat/conversations/${conversationId}/read-all?user_id=${currentUser.id}`);
       
       // Broadcast read receipt via WebSocket
       if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -209,127 +218,97 @@ const Chat = () => {
     }
   }, [currentUser?.id, selectedConversation]);
 
-  const fetchUsers = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const res = await fetch(`${API_URL}/api/chat/users?search=${searchUsers}`);
-      const data = await res.json();
-      setUsers(data.filter(u => u.id !== currentUser.id));
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  }, [searchUsers, currentUser?.id]);
-
-  useEffect(() => {
-    fetchConversations();
-    // Only poll if WebSocket is not connected
-    if (!wsConnected) {
-      const interval = setInterval(fetchConversations, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [fetchConversations, wsConnected]);
-
-  useEffect(() => {
-    if (selectedConversation) {
-      fetchMessages(selectedConversation.id);
-      // Only poll if WebSocket is not connected
-      if (!wsConnected) {
-        const interval = setInterval(() => fetchMessages(selectedConversation.id), 5000);
-        return () => clearInterval(interval);
-      }
-    }
-  }, [selectedConversation, fetchMessages, wsConnected]);
-
-  useEffect(() => {
-    if (showNewChat || showNewGroup) {
-      fetchUsers();
-    }
-  }, [showNewChat, showNewGroup, searchUsers, fetchUsers]);
-
-  const startDMConversation = async (user) => {
-    try {
-      const res = await fetch(`${API_URL}/api/chat/conversations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'dm',
-          participant_ids: [currentUser.id, user.id]
-        })
+  // Mutation: Start DM conversation
+  const startDMMutation = useMutation({
+    mutationFn: async (targetUser) => {
+      return axios.post(`${API_URL}/api/chat/conversations`, {
+        type: 'dm',
+        participant_ids: [currentUser.id, targetUser.id]
       });
-      const conv = await res.json();
-      setSelectedConversation(conv);
+    },
+    onSuccess: (response) => {
+      setSelectedConversation(response.data);
       setShowNewChat(false);
-      fetchConversations();
-    } catch (error) {
-      console.error('Error starting conversation:', error);
+      refetchConversations();
     }
+  });
+
+  const startDMConversation = (user) => {
+    startDMMutation.mutate(user);
   };
 
-  const createGroupConversation = async () => {
-    if (!groupName || selectedUsers.length === 0) return;
-    try {
-      const res = await fetch(`${API_URL}/api/chat/conversations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'group',
-          name: groupName,
-          participant_ids: [currentUser.id, ...selectedUsers.map(u => u.id)]
-        })
+  // Mutation: Create group conversation
+  const createGroupMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API_URL}/api/chat/conversations`, {
+        type: 'group',
+        name: groupName,
+        participant_ids: [currentUser.id, ...selectedUsers.map(u => u.id)]
       });
-      const conv = await res.json();
-      setSelectedConversation(conv);
+    },
+    onSuccess: (response) => {
+      setSelectedConversation(response.data);
       setShowNewGroup(false);
       setGroupName('');
       setSelectedUsers([]);
-      fetchConversations();
-    } catch (error) {
-      console.error('Error creating group:', error);
+      refetchConversations();
     }
+  });
+
+  const createGroupConversation = () => {
+    if (!groupName || selectedUsers.length === 0) return;
+    createGroupMutation.mutate();
   };
+
+  // Mutation: Send message
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content) => {
+      return axios.post(
+        `${API_URL}/api/chat/conversations/${selectedConversation.id}/messages?sender_id=${currentUser.id}`,
+        { content, message_type: 'text' }
+      );
+    },
+    onSuccess: (response) => {
+      setMessages(prev => [...prev, response.data]);
+      setNewMessage('');
+      setLoading(false);
+    },
+    onError: () => {
+      setLoading(false);
+    }
+  });
 
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedConversation) return;
     
     setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/api/chat/conversations/${selectedConversation.id}/messages?sender_id=${currentUser.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: newMessage,
-          message_type: 'text'
-        })
-      });
-      
-      if (res.ok) {
-        const sentMessage = await res.json();
-        // Add message locally immediately for instant feedback
-        setMessages(prev => [...prev, sentMessage]);
-        setNewMessage('');
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-    setLoading(false);
+    sendMessageMutation.mutate(newMessage);
   };
 
-  const executeAction = async (messageId, action) => {
-    try {
-      const res = await fetch(`${API_URL}/api/chat/messages/${messageId}/action?user_id=${currentUser.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-      });
-      
-      if (res.ok) {
-        fetchMessages(selectedConversation.id);
-      }
-    } catch (error) {
-      console.error('Error executing action:', error);
+  // Mutation: Execute action on message
+  const executeActionMutation = useMutation({
+    mutationFn: async ({ messageId, action }) => {
+      return axios.post(
+        `${API_URL}/api/chat/messages/${messageId}/action?user_id=${currentUser.id}`,
+        { action }
+      );
+    },
+    onSuccess: () => {
+      fetchMessages(selectedConversation.id);
     }
+  });
+
+  const executeAction = (messageId, action) => {
+    executeActionMutation.mutate({ messageId, action });
   };
+
+  // Fetch messages when conversation changes
+  useEffect(() => {
+    if (selectedConversation) {
+      fetchMessages(selectedConversation.id);
+    }
+  }, [selectedConversation, fetchMessages]);
 
   const getConversationName = (conv) => {
     if (conv.type === 'group') return conv.name;

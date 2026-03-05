@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext, API } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -24,6 +24,11 @@ import {
   Building2, FileText, DollarSign, Calendar, BarChart3,
   Briefcase, UserCog, ClipboardList, Receipt, AlertTriangle
 } from 'lucide-react';
+import { useFetch } from '../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // Module definitions with their features
 const MODULE_DEFINITIONS = {
@@ -120,73 +125,52 @@ const ACTION_LABELS = {
 
 const PermissionManager = () => {
   const { user } = useContext(AuthContext);
-  const [roles, setRoles] = useState([]);
+  const queryClient = useQueryClient();
   const [selectedRole, setSelectedRole] = useState('');
   const [permissions, setPermissions] = useState({});
   const [originalPermissions, setOriginalPermissions] = useState({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCreateRole, setShowCreateRole] = useState(false);
   const [newRole, setNewRole] = useState({ id: '', name: '', description: '' });
   const [activeTab, setActiveTab] = useState('permissions');
 
+  // Query: Fetch roles using React Query
+  const { data: roles = [], isLoading: loading } = useFetch('/api/roles');
+
+  // Set initial selected role when roles are loaded
   useEffect(() => {
-    fetchRoles();
-  }, []);
+    if (roles.length > 0 && !selectedRole) {
+      setSelectedRole(roles[0].id);
+    }
+  }, [roles, selectedRole]);
 
+  // Query: Fetch permissions for selected role
+  const { data: permissionsData } = useFetch(
+    selectedRole ? `/api/role-permissions/${selectedRole}` : null,
+    { enabled: !!selectedRole }
+  );
+
+  // Update permissions when data is fetched
   useEffect(() => {
-    if (selectedRole) {
-      fetchPermissions(selectedRole);
-    }
-  }, [selectedRole]);
-
-  const fetchRoles = async () => {
-    try {
-      const response = await fetch(`${API}/roles`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setRoles(data);
-        if (data.length > 0 && !selectedRole) {
-          setSelectedRole(data[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch roles:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPermissions = async (role) => {
-    try {
-      const response = await fetch(`${API}/role-permissions/${role}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPermissions(data);
-        setOriginalPermissions(JSON.parse(JSON.stringify(data)));
-      } else {
-        // Initialize with empty permissions if none exist
-        const emptyPerms = {};
-        Object.keys(MODULE_DEFINITIONS).forEach(moduleKey => {
-          emptyPerms[moduleKey] = { enabled: false, features: {} };
-          Object.keys(MODULE_DEFINITIONS[moduleKey].features).forEach(featureKey => {
-            emptyPerms[moduleKey].features[featureKey] = {};
-            MODULE_DEFINITIONS[moduleKey].features[featureKey].actions.forEach(action => {
-              emptyPerms[moduleKey].features[featureKey][action] = false;
-            });
+    if (permissionsData) {
+      setPermissions(permissionsData);
+      setOriginalPermissions(JSON.parse(JSON.stringify(permissionsData)));
+    } else if (selectedRole) {
+      // Initialize with empty permissions if none exist
+      const emptyPerms = {};
+      Object.keys(MODULE_DEFINITIONS).forEach(moduleKey => {
+        emptyPerms[moduleKey] = { enabled: false, features: {} };
+        Object.keys(MODULE_DEFINITIONS[moduleKey].features).forEach(featureKey => {
+          emptyPerms[moduleKey].features[featureKey] = {};
+          MODULE_DEFINITIONS[moduleKey].features[featureKey].actions.forEach(action => {
+            emptyPerms[moduleKey].features[featureKey][action] = false;
           });
         });
-        setPermissions(emptyPerms);
-        setOriginalPermissions(JSON.parse(JSON.stringify(emptyPerms)));
-      }
-    } catch (error) {
-      console.error('Failed to fetch permissions:', error);
+      });
+      setPermissions(emptyPerms);
+      setOriginalPermissions(JSON.parse(JSON.stringify(emptyPerms)));
     }
-  };
+  }, [permissionsData, selectedRole]);
 
   const handleModuleToggle = (moduleKey, enabled) => {
     setPermissions(prev => {
@@ -248,30 +232,28 @@ const PermissionManager = () => {
     }
   };
 
-  const savePermissions = async () => {
-    setSaving(true);
-    try {
-      const response = await fetch(`${API}/role-permissions/${selectedRole}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(permissions)
+  // Mutation: Save permissions
+  const savePermissionsMutation = useMutation({
+    mutationFn: async () => {
+      return axios.patch(`${API}/api/role-permissions/${selectedRole}`, permissions, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      
-      if (response.ok) {
-        toast.success('Permissions saved successfully!');
-        setOriginalPermissions(JSON.parse(JSON.stringify(permissions)));
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to save permissions');
-      }
-    } catch (error) {
-      toast.error('Failed to save permissions');
-    } finally {
+    },
+    onSuccess: () => {
+      toast.success('Permissions saved successfully!');
+      setOriginalPermissions(JSON.parse(JSON.stringify(permissions)));
+      queryClient.invalidateQueries({ queryKey: [`/api/role-permissions/${selectedRole}`] });
+      setSaving(false);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save permissions');
       setSaving(false);
     }
+  });
+
+  const savePermissions = () => {
+    setSaving(true);
+    savePermissionsMutation.mutate();
   };
 
   const resetPermissions = () => {
@@ -279,38 +261,35 @@ const PermissionManager = () => {
     toast.info('Permissions reset to last saved state');
   };
 
-  const createRole = async () => {
+  // Mutation: Create role
+  const createRoleMutation = useMutation({
+    mutationFn: async (roleData) => {
+      return axios.post(`${API}/api/roles`, roleData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+    },
+    onSuccess: () => {
+      toast.success('Role created successfully!');
+      setShowCreateRole(false);
+      setNewRole({ id: '', name: '', description: '' });
+      queryClient.invalidateQueries({ queryKey: ['/api/roles'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to create role');
+    }
+  });
+
+  const createRole = () => {
     if (!newRole.id || !newRole.name) {
       toast.error('Role ID and Name are required');
       return;
     }
     
-    try {
-      const response = await fetch(`${API}/roles`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          id: newRole.id.toLowerCase().replace(/\s+/g, '_'),
-          name: newRole.name,
-          description: newRole.description
-        })
-      });
-      
-      if (response.ok) {
-        toast.success('Role created successfully!');
-        setShowCreateRole(false);
-        setNewRole({ id: '', name: '', description: '' });
-        fetchRoles();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to create role');
-      }
-    } catch (error) {
-      toast.error('Failed to create role');
-    }
+    createRoleMutation.mutate({
+      id: newRole.id.toLowerCase().replace(/\s+/g, '_'),
+      name: newRole.name,
+      description: newRole.description
+    });
   };
 
   const getPermissionCount = (moduleKey) => {

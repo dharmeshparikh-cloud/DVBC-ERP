@@ -1,94 +1,70 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext, API } from '../../App';
+import React, { useState, useContext, useMemo } from 'react';
+import { AuthContext } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 import { 
   FileText, Download, TrendingUp, TrendingDown, Minus, Users, 
   DollarSign, Calendar, RefreshCw, ArrowUpRight, ArrowDownRight,
   Building2, Clock, Gift, AlertTriangle
 } from 'lucide-react';
+import { useFetch, useMutate } from '../../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const PayrollSummaryReport = () => {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [report, setReport] = useState(null);
-  const [prevReport, setPrevReport] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [generatedReports, setGeneratedReports] = useState([]);
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  useEffect(() => {
-    fetchReport();
-    fetchGeneratedReports();
+  // Calculate previous month for comparison
+  const prevMonth = useMemo(() => {
+    const [year, mon] = month.split('-').map(Number);
+    return mon === 1 
+      ? `${year - 1}-12` 
+      : `${year}-${String(mon - 1).padStart(2, '0')}`;
   }, [month]);
 
-  const fetchReport = async () => {
-    setLoading(true);
-    try {
-      // Fetch current month report
-      const res = await fetch(`${API}/payroll/summary-report?month=${month}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setReport(data);
-      }
+  // Query: Fetch current month report
+  const { data: report, isLoading: loading, refetch: refetchReport } = useFetch(
+    `/api/payroll/summary-report`,
+    { params: { month } }
+  );
 
-      // Fetch previous month for comparison
-      const [year, mon] = month.split('-').map(Number);
-      const prevMonth = mon === 1 
-        ? `${year - 1}-12` 
-        : `${year}-${String(mon - 1).padStart(2, '0')}`;
-      
-      const prevRes = await fetch(`${API}/payroll/summary-report?month=${prevMonth}`, { headers });
-      if (prevRes.ok) {
-        const prevData = await prevRes.json();
-        setPrevReport(prevData);
-      }
-    } catch (error) {
-      toast.error('Failed to fetch payroll report');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Query: Fetch previous month report for comparison
+  const { data: prevReport } = useFetch(
+    `/api/payroll/summary-report`,
+    { params: { month: prevMonth } }
+  );
 
-  const fetchGeneratedReports = async () => {
-    try {
-      const res = await fetch(`${API}/payroll/generated-reports`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setGeneratedReports(data.reports || []);
-      }
-    } catch (error) {
-      console.error('Error fetching generated reports:', error);
-    }
-  };
+  // Query: Fetch generated reports
+  const { data: generatedReportsData, refetch: refetchGeneratedReports } = useFetch(
+    `/api/payroll/generated-reports`
+  );
+  const generatedReports = generatedReportsData?.reports || [];
 
-  const generateReport = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/payroll/generate-summary-report`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ month })
+  // Mutation: Generate report
+  const generateReportMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/payroll/generate-summary-report`, { month }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message || 'Report generated successfully');
-        fetchReport();
-        fetchGeneratedReports();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to generate report');
-      }
-    } catch (error) {
-      toast.error('Failed to generate report');
-    } finally {
-      setLoading(false);
+    },
+    onSuccess: (response) => {
+      toast.success(response.data?.message || 'Report generated successfully');
+      refetchReport();
+      refetchGeneratedReports();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to generate report');
     }
+  });
+
+  const generateReport = () => {
+    generateReportMutation.mutate();
   };
 
   const downloadCSV = () => {
@@ -188,11 +164,11 @@ const PayrollSummaryReport = () => {
             className="w-40 bg-zinc-50 border-zinc-300"
             data-testid="month-selector"
           />
-          <Button onClick={fetchReport} variant="outline" size="sm" disabled={loading}>
+          <Button onClick={() => refetchReport()} variant="outline" size="sm" disabled={loading || generateReportMutation.isPending}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={generateReport} className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
+          <Button onClick={generateReport} className="bg-blue-600 hover:bg-blue-700" disabled={loading || generateReportMutation.isPending}>
             <FileText className="w-4 h-4 mr-2" />
             Generate Report
           </Button>

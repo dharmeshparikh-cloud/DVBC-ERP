@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext, API } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -15,16 +15,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CompanyLetterhead, { HRSignatureBlock, LetterHeader } from '../components/CompanyLetterhead';
+import { useFetch } from '../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const LetterManagement = () => {
   const { user } = useContext(AuthContext);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('offer-letters');
-  const [stats, setStats] = useState(null);
-  const [templates, setTemplates] = useState([]);
-  const [offerLetters, setOfferLetters] = useState([]);
-  const [appointmentLetters, setAppointmentLetters] = useState([]);
-  const [candidates, setCandidates] = useState([]);
   
   // Dialogs
   const [templateDialog, setTemplateDialog] = useState(false);
@@ -60,116 +60,97 @@ const LetterManagement = () => {
   const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
   const canEdit = isAdmin || user?.role === 'hr_manager';
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Query: Fetch stats
+  const { data: stats } = useFetch('/api/letters/stats');
 
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+  // Query: Fetch templates
+  const { data: templates = [], refetch: refetchTemplates } = useFetch('/api/letters/templates');
 
-      const [statsRes, templatesRes, offerRes, appointmentRes, candidatesRes] = await Promise.all([
-        fetch(`${API}/letters/stats`, { headers }),
-        fetch(`${API}/letters/templates`, { headers }),
-        fetch(`${API}/letters/offer-letters`, { headers }),
-        fetch(`${API}/letters/appointment-letters`, { headers }),
-        fetch(`${API}/onboarding-candidates?status=verified`, { headers }).catch(() => ({ ok: false }))
-      ]);
+  // Query: Fetch offer letters
+  const { data: offerLetters = [], refetch: refetchOfferLetters } = useFetch('/api/letters/offer-letters');
 
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (templatesRes.ok) setTemplates(await templatesRes.json());
-      if (offerRes.ok) setOfferLetters(await offerRes.json());
-      if (appointmentRes.ok) setAppointmentLetters(await appointmentRes.json());
-      if (candidatesRes.ok) {
-        const data = await candidatesRes.json();
-        setCandidates(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+  // Query: Fetch appointment letters
+  const { data: appointmentLetters = [], refetch: refetchAppointmentLetters } = useFetch('/api/letters/appointment-letters');
+
+  // Query: Fetch candidates
+  const { data: candidatesData, isLoading: loading } = useFetch('/api/onboarding-candidates', {
+    params: { status: 'verified' }
+  });
+  const candidates = Array.isArray(candidatesData) ? candidatesData : [];
+
+  const refetchAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/letters/stats'] });
+    refetchTemplates();
+    refetchOfferLetters();
+    refetchAppointmentLetters();
   };
 
-  const handleCreateTemplate = async () => {
-    try {
-      const token = localStorage.getItem('token');
+  // Mutation: Create/Update template
+  const templateMutation = useMutation({
+    mutationFn: async () => {
       const url = editingTemplate 
-        ? `${API}/letters/templates/${editingTemplate.id}`
-        : `${API}/letters/templates`;
-      
-      const response = await fetch(url, {
+        ? `${API}/api/letters/templates/${editingTemplate.id}`
+        : `${API}/api/letters/templates`;
+      return axios({
         method: editingTemplate ? 'PUT' : 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(templateForm)
+        url,
+        data: templateForm,
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-
-      if (response.ok) {
-        toast.success(`Template ${editingTemplate ? 'updated' : 'created'} successfully`);
-        setTemplateDialog(false);
-        setEditingTemplate(null);
-        setTemplateForm({ template_type: 'offer_letter', name: '', subject: '', body_content: '', is_default: false });
-        fetchData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to save template');
-      }
-    } catch (error) {
-      toast.error('Error saving template');
+    },
+    onSuccess: () => {
+      toast.success(`Template ${editingTemplate ? 'updated' : 'created'} successfully`);
+      setTemplateDialog(false);
+      setEditingTemplate(null);
+      setTemplateForm({ template_type: 'offer_letter', name: '', subject: '', body_content: '', is_default: false });
+      refetchAll();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to save template');
     }
+  });
+
+  const handleCreateTemplate = () => {
+    templateMutation.mutate();
   };
 
-  const handleCreateOfferLetter = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API}/letters/offer-letters`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(offerForm)
+  // Mutation: Create offer letter
+  const offerLetterMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/letters/offer-letters`, offerForm, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success('Offer letter created and sent!');
-        setOfferDialog(false);
-        setOfferForm({
-          candidate_id: '',
-          template_id: '',
-          designation: '',
-          department: '',
-          joining_date: '',
-          salary_details: { gross_monthly: '', basic: '', hra: '', special_allowance: '' },
-          hr_signature_text: user?.full_name || ''
-        });
-        fetchData();
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || 'Failed to create offer letter');
-      }
-    } catch (error) {
-      toast.error('Error creating offer letter');
+    },
+    onSuccess: () => {
+      toast.success('Offer letter created and sent!');
+      setOfferDialog(false);
+      setOfferForm({
+        candidate_id: '',
+        template_id: '',
+        designation: '',
+        department: '',
+        joining_date: '',
+        salary_details: { gross_monthly: '', basic: '', hra: '', special_allowance: '' },
+        hr_signature_text: user?.full_name || ''
+      });
+      refetchAll();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to create offer letter');
     }
+  });
+
+  const handleCreateOfferLetter = () => {
+    offerLetterMutation.mutate();
   };
 
   const handleViewHistory = async (template) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${API}/letters/templates/${template.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await axios.get(`${API}/api/letters/templates/${template.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setTemplateHistory(data.history || []);
-        setHistoryDialog(true);
-      }
+      setTemplateHistory(response.data.history || []);
+      setHistoryDialog(true);
     } catch (error) {
       toast.error('Failed to load history');
     }

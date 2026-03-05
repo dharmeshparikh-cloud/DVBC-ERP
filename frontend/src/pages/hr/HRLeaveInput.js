@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext, API } from '../../App';
+import { AuthContext } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -12,13 +12,15 @@ import {
   Calendar, Users, Plus, RefreshCw, Search, CheckCircle, 
   XCircle, Clock, Gift, Briefcase, Heart, Filter, User
 } from 'lucide-react';
+import { useFetch } from '../../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const HRLeaveInput = () => {
   const { user } = useContext(AuthContext);
-  const [employees, setEmployees] = useState([]);
-  const [allEmployees, setAllEmployees] = useState([]);
-  const [leaveRequests, setLeaveRequests] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('all');
@@ -45,139 +47,101 @@ const HRLeaveInput = () => {
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  useEffect(() => {
-    fetchEmployees();
-    fetchLeaveRequests();
-  }, []);
+  // Query: Fetch employees
+  const { data: employeesData = [] } = useFetch('/api/employees');
+  const employees = employeesData;
+  const allEmployees = employeesData;
 
-  useEffect(() => {
-    // Re-filter when employee filter changes
-    fetchLeaveRequests();
-  }, [selectedEmployeeFilter]);
+  // Query: Fetch leave requests
+  const { data: leaveRequestsData = [], isLoading: loading, refetch: refetchLeaveRequests } = useFetch('/api/leave-requests/all');
+  
+  // Filter leave requests by selected employee
+  const leaveRequests = selectedEmployeeFilter && selectedEmployeeFilter !== 'all'
+    ? leaveRequestsData.filter(req => req.employee_id === selectedEmployeeFilter)
+    : leaveRequestsData;
 
-  const fetchEmployees = async () => {
-    try {
-      const res = await fetch(`${API}/employees`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setAllEmployees(data);
-        setEmployees(data);
-      }
-    } catch (error) {
-      console.error('Error fetching employees:', error);
+  // Mutation: Apply leave for employee
+  const applyLeaveMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/attendance/hr/apply-leave-for-employee`, {
+        ...leaveForm,
+        end_date: leaveForm.end_date || leaveForm.start_date
+      }, { headers });
+    },
+    onSuccess: (response) => {
+      toast.success(response.data.message);
+      setShowApplyDialog(false);
+      setLeaveForm({
+        employee_id: '',
+        leave_type: 'casual_leave',
+        start_date: '',
+        end_date: '',
+        is_half_day: false,
+        reason: ''
+      });
+      refetchLeaveRequests();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to apply leave');
     }
-  };
+  });
 
-  const fetchLeaveRequests = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API}/leave-requests/all`, { headers });
-      if (res.ok) {
-        let data = await res.json();
-        
-        // Filter by selected employee if not 'all'
-        if (selectedEmployeeFilter && selectedEmployeeFilter !== 'all') {
-          data = data.filter(req => req.employee_id === selectedEmployeeFilter);
-        }
-        
-        setLeaveRequests(data);
-      }
-    } catch (error) {
-      toast.error('Failed to fetch leave requests');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyLeaveForEmployee = async () => {
+  const applyLeaveForEmployee = () => {
     if (!leaveForm.employee_id || !leaveForm.start_date) {
       toast.error('Please fill required fields');
       return;
     }
-
-    try {
-      const res = await fetch(`${API}/attendance/hr/apply-leave-for-employee`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          ...leaveForm,
-          end_date: leaveForm.end_date || leaveForm.start_date
-        })
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message);
-        setShowApplyDialog(false);
-        setLeaveForm({
-          employee_id: '',
-          leave_type: 'casual_leave',
-          start_date: '',
-          end_date: '',
-          is_half_day: false,
-          reason: ''
-        });
-        fetchLeaveRequests();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to apply leave');
-      }
-    } catch (error) {
-      toast.error('Failed to apply leave');
-    }
+    applyLeaveMutation.mutate();
   };
 
-  const bulkCreditLeaves = async () => {
+  // Mutation: Bulk credit leaves
+  const bulkCreditMutation = useMutation({
+    mutationFn: async () => {
+      return axios.post(`${API}/api/attendance/hr/bulk-leave-credit`, creditForm, { headers });
+    },
+    onSuccess: (response) => {
+      toast.success(response.data.message);
+      setShowCreditDialog(false);
+      setCreditForm({
+        leave_type: 'casual_leave',
+        credit_days: 0,
+        reset_used: false,
+        employee_ids: []
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to credit leaves');
+    }
+  });
+
+  const bulkCreditLeaves = () => {
     if (creditForm.credit_days <= 0) {
       toast.error('Credit days must be greater than 0');
       return;
     }
-
-    try {
-      const res = await fetch(`${API}/attendance/hr/bulk-leave-credit`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(creditForm)
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message);
-        setShowCreditDialog(false);
-        setCreditForm({
-          leave_type: 'casual_leave',
-          credit_days: 0,
-          reset_used: false,
-          employee_ids: []
-        });
-        fetchEmployees();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || 'Failed to credit leaves');
-      }
-    } catch (error) {
-      toast.error('Failed to credit leaves');
-    }
+    bulkCreditMutation.mutate();
   };
 
-  const approveLeave = async (leaveId, action) => {
-    try {
-      const res = await fetch(`${API}/leave-requests/${leaveId}/rm-approve`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ action, remarks: `${action === 'approve' ? 'Approved' : 'Rejected'} by HR` })
-      });
-      
-      if (res.ok) {
-        toast.success(`Leave ${action}d successfully`);
-        fetchLeaveRequests();
-      } else {
-        const error = await res.json();
-        toast.error(error.detail || `Failed to ${action} leave`);
-      }
-    } catch (error) {
-      toast.error(`Failed to ${action} leave`);
+  // Mutation: Approve/reject leave
+  const approveLeaveMutation = useMutation({
+    mutationFn: async ({ leaveId, action }) => {
+      return axios.post(`${API}/api/leave-requests/${leaveId}/rm-approve`, {
+        action, 
+        remarks: `${action === 'approve' ? 'Approved' : 'Rejected'} by HR`
+      }, { headers });
+    },
+    onSuccess: (response) => {
+      toast.success(response.data.message);
+      refetchLeaveRequests();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to process leave request');
     }
+  });
+
+  const approveLeave = (leaveId, action) => {
+    approveLeaveMutation.mutate({ leaveId, action });
   };
 
   // Get employee balance for selected employee

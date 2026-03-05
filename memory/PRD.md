@@ -142,7 +142,26 @@ The Employee ID generation process has been changed from the previous flow (ID g
 
 ---
 
-### Phase 65: React Query Migration Batch 12 - March 5, 2026 ✅ (Latest)
+### Phase 66: React Query Migration Batch 13 & 14 - March 5, 2026 ✅ (Latest)
+
+**Batch 13 - 3 components migrated:**
+- AIAssistant.js (394 lines) - Migrated chat history, insights, suggestions queries and send/analyze mutations
+- PayrollSummaryReport.js (512 lines) - Migrated report queries and generate mutation
+- Chat.js (742 lines) - Complex migration with WebSocket retained for real-time, REST APIs migrated to React Query
+
+**Batch 14 - 3 components migrated:**
+- PermissionManager.js (658 lines) - Migrated roles/permissions queries and CRUD mutations
+- LetterManagement.js (765 lines) - Migrated templates/letters queries and create mutations
+- HRLeaveInput.js (647 lines) - Migrated employees/leave queries and apply/approve mutations
+
+**Current Migration Status:**
+- ✅ 95 pages now using React Query
+- ~15 components remaining (login pages skipped, large components like ApprovalsCenter, CandidateOnboardingForm)
+- All tested pages passing (100% success rate)
+
+---
+
+### Phase 65: React Query Migration Batch 12 - March 5, 2026 ✅
 
 **Batch 12 - 3 components migrated:**
 - EmailSettings.js (427 lines) - Full migration with `useFetch` for config/logs and `useMutate` for save/send operations

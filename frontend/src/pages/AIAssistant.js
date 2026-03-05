@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Send, Bot, User, Sparkles, TrendingUp, BarChart3, Lightbulb, RefreshCw, Trash2, Clock, ChevronRight } from 'lucide-react';
 import { AuthContext } from '../App';
+import { useFetch, useMutate } from '../hooks/useApi';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const AIAssistant = () => {
   const { user: currentUser } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [quickInsights, setQuickInsights] = useState([]);
   const [activeContext, setActiveContext] = useState('all');
   const messagesEndRef = useRef(null);
   
@@ -24,50 +26,74 @@ const AIAssistant = () => {
     scrollToBottom();
   }, [chatHistory]);
 
-  const fetchChatHistory = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const res = await fetch(`${API_URL}/api/ai/chat-history?user_id=${currentUser.id}&limit=20`);
-      const data = await res.json();
-      
-      // Convert to chat format
+  // Query: Fetch chat history using React Query
+  const { data: historyData } = useFetch(
+    currentUser?.id ? `/api/ai/chat-history` : null,
+    { 
+      params: { user_id: currentUser?.id, limit: 20 },
+      enabled: !!currentUser?.id
+    }
+  );
+
+  // Query: Fetch quick insights using React Query
+  const { data: insightsData, refetch: refetchInsights } = useFetch(
+    currentUser?.id ? `/api/ai/quick-insights` : null,
+    { 
+      params: { user_id: currentUser?.id },
+      enabled: !!currentUser?.id
+    }
+  );
+
+  // Query: Fetch suggestions using React Query
+  const { data: suggestionsData, refetch: refetchSuggestions } = useFetch(
+    currentUser?.id ? `/api/ai/suggestions` : null,
+    { 
+      params: { user_id: currentUser?.id, context: activeContext },
+      enabled: !!currentUser?.id
+    }
+  );
+
+  const quickInsights = insightsData?.insights || [];
+  const suggestions = suggestionsData?.suggestions || [];
+
+  // Convert history data to chat format
+  useEffect(() => {
+    if (historyData && Array.isArray(historyData)) {
       const history = [];
-      data.reverse().forEach(item => {
+      [...historyData].reverse().forEach(item => {
         history.push({ role: 'user', content: item.query, timestamp: item.created_at });
         history.push({ role: 'assistant', content: item.response, timestamp: item.created_at });
       });
       setChatHistory(history);
-    } catch (error) {
-      console.error('Error fetching history:', error);
     }
-  }, [currentUser?.id]);
+  }, [historyData]);
 
-  const fetchQuickInsights = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const res = await fetch(`${API_URL}/api/ai/quick-insights?user_id=${currentUser.id}`);
-      const data = await res.json();
-      setQuickInsights(data.insights || []);
-    } catch (error) {
-      console.error('Error fetching insights:', error);
+  // Mutation: Send query
+  const sendQueryMutation = useMutation({
+    mutationFn: async (queryData) => {
+      return axios.post(`${API_URL}/api/ai/query?user_id=${currentUser.id}`, queryData);
+    },
+    onSuccess: (response) => {
+      const data = response.data;
+      const assistantMessage = {
+        role: 'assistant',
+        content: data.response,
+        data: data.data,
+        query_type: data.query_type,
+        timestamp: new Date().toISOString()
+      };
+      setChatHistory(prev => [...prev, assistantMessage]);
+      setLoading(false);
+    },
+    onError: () => {
+      setChatHistory(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        timestamp: new Date().toISOString()
+      }]);
+      setLoading(false);
     }
-  }, [currentUser?.id]);
-
-  const fetchSuggestions = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const res = await fetch(`${API_URL}/api/ai/suggestions?user_id=${currentUser.id}&context=${activeContext}`);
-      const data = await res.json();
-      setSuggestions(data.suggestions || []);
-    } catch (error) {
-      console.error('Error fetching suggestions:', error);
-    }
-  }, [currentUser?.id, activeContext]);
-
-  useEffect(() => {
-    fetchChatHistory();
-    fetchQuickInsights();
-  }, [fetchChatHistory, fetchQuickInsights]);
+  });
 
   const sendQuery = async (e) => {
     e?.preventDefault();
@@ -78,79 +104,58 @@ const AIAssistant = () => {
     setQuery('');
     setLoading(true);
 
-    try {
-      const res = await fetch(`${API_URL}/api/ai/query?user_id=${currentUser.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: userMessage.content,
-          context: activeContext,
-          session_id: sessionId
-        })
-      });
-      
-      const data = await res.json();
-      
-      const assistantMessage = {
-        role: 'assistant',
-        content: data.response,
-        data: data.data,
-        query_type: data.query_type,
-        timestamp: new Date().toISOString()
-      };
-      
-      setChatHistory(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Error:', error);
-      setChatHistory(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
-        timestamp: new Date().toISOString()
-      }]);
-    }
-    
-    setLoading(false);
+    sendQueryMutation.mutate({
+      query: userMessage.content,
+      context: activeContext,
+      session_id: sessionId
+    });
   };
 
-  const analyzeReport = async (reportType) => {
-    if (!currentUser?.id) return;
-    setLoading(true);
-    const userMessage = { role: 'user', content: `Analyze my ${reportType} report`, timestamp: new Date().toISOString() };
-    setChatHistory(prev => [...prev, userMessage]);
-
-    try {
-      const res = await fetch(`${API_URL}/api/ai/analyze-report?user_id=${currentUser.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          report_type: reportType,
-          date_range: null
-        })
+  // Mutation: Analyze report
+  const analyzeReportMutation = useMutation({
+    mutationFn: async (reportType) => {
+      return axios.post(`${API_URL}/api/ai/analyze-report?user_id=${currentUser.id}`, {
+        report_type: reportType,
+        date_range: null
       });
-      
-      const data = await res.json();
-      
+    },
+    onSuccess: (response) => {
+      const data = response.data;
       setChatHistory(prev => [...prev, {
         role: 'assistant',
         content: data.analysis,
         data: data.data,
         timestamp: new Date().toISOString()
       }]);
-    } catch (error) {
-      console.error('Error:', error);
+      setLoading(false);
+    },
+    onError: () => {
+      setLoading(false);
     }
-    
-    setLoading(false);
+  });
+
+  const analyzeReport = async (reportType) => {
+    if (!currentUser?.id) return;
+    setLoading(true);
+    const userMessage = { role: 'user', content: `Analyze my ${reportType} report`, timestamp: new Date().toISOString() };
+    setChatHistory(prev => [...prev, userMessage]);
+    analyzeReportMutation.mutate(reportType);
   };
 
-  const clearHistory = async () => {
-    if (!currentUser?.id) return;
-    try {
-      await fetch(`${API_URL}/api/ai/chat-history?user_id=${currentUser.id}`, { method: 'DELETE' });
+  // Mutation: Clear history
+  const clearHistoryMutation = useMutation({
+    mutationFn: async () => {
+      return axios.delete(`${API_URL}/api/ai/chat-history?user_id=${currentUser.id}`);
+    },
+    onSuccess: () => {
       setChatHistory([]);
-    } catch (error) {
-      console.error('Error clearing history:', error);
+      queryClient.invalidateQueries({ queryKey: ['/api/ai/chat-history'] });
     }
+  });
+
+  const clearHistory = () => {
+    if (!currentUser?.id) return;
+    clearHistoryMutation.mutate();
   };
 
   const quickPrompts = [
@@ -318,7 +323,7 @@ const AIAssistant = () => {
         <div className="bg-white rounded-xl shadow-lg p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">Quick Insights</h3>
-            <button onClick={fetchQuickInsights} className="p-1 hover:bg-gray-100 rounded">
+            <button onClick={() => refetchInsights()} className="p-1 hover:bg-gray-100 rounded">
               <RefreshCw className="w-4 h-4 text-gray-400" />
             </button>
           </div>
@@ -366,7 +371,7 @@ const AIAssistant = () => {
         <div className="bg-white rounded-xl shadow-lg p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800">AI Suggestions</h3>
-            <button onClick={fetchSuggestions} className="p-1 hover:bg-gray-100 rounded">
+            <button onClick={() => refetchSuggestions()} className="p-1 hover:bg-gray-100 rounded">
               <Sparkles className="w-4 h-4 text-orange-400" />
             </button>
           </div>
@@ -378,7 +383,7 @@ const AIAssistant = () => {
             ))}
             {suggestions.length === 0 && (
               <button
-                onClick={fetchSuggestions}
+                onClick={() => refetchSuggestions()}
                 className="w-full text-sm text-orange-600 font-medium py-2 hover:underline"
               >
                 Get AI Suggestions
