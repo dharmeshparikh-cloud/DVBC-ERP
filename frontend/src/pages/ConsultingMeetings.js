@@ -192,6 +192,25 @@ const ConsultingMeetings = () => {
     }
   };
 
+  // Complete meeting and auto-send MOM
+  const handleCompleteMeeting = async () => {
+    if (!selectedMeeting?.mom_generated) {
+      toast.error('Please save MOM first before completing the meeting');
+      return;
+    }
+    try {
+      const res = await axios.post(`${API}/meeting-schedules/meetings/${selectedMeeting.id}/complete-and-send`);
+      toast.success(`Meeting completed! MOM sent to ${res.data.mom_sent?.sent_to || 'client'}`);
+      if (res.data.next_meeting) {
+        toast.info(`Next recurring meeting scheduled for ${res.data.next_meeting.meeting_date?.slice(0, 10)}`);
+      }
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
+      setMomDialogOpen(false);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to complete meeting');
+    }
+  };
+
   const addArrayItem = (field, setFn, data) => setFn({ ...data, [field]: [...data[field], ''] });
   const updateArrayItem = (field, idx, val, setFn, data) => {
     const arr = [...data[field]]; arr[idx] = val; setFn({ ...data, [field]: arr });
@@ -725,15 +744,27 @@ const ConsultingMeetings = () => {
                 onChange={(e) => setMomData({ ...momData, next_meeting_date: e.target.value })} className="rounded-sm border-zinc-200 w-64" />
             </div>
 
-            <div className="flex justify-between pt-4 border-t border-zinc-200">
+            <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
               <Button onClick={handleSaveMOM} data-testid="save-consulting-mom" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
                 Save MOM
               </Button>
-              <Button onClick={handleSendMOM} variant="outline" className="rounded-sm"
-                disabled={selectedMeeting?.mom_sent_to_client} data-testid="send-mom-btn">
-                <Send className="w-4 h-4 mr-2" />
-                {selectedMeeting?.mom_sent_to_client ? 'MOM Sent' : 'Send to Client'}
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleSendMOM} variant="outline" className="rounded-sm"
+                  disabled={selectedMeeting?.mom_sent_to_client} data-testid="send-mom-btn">
+                  <Send className="w-4 h-4 mr-2" />
+                  {selectedMeeting?.mom_sent_to_client ? 'MOM Sent' : 'Send to Client'}
+                </Button>
+                {!selectedMeeting?.is_delivered && selectedMeeting?.mom_generated && (
+                  <Button 
+                    onClick={handleCompleteMeeting} 
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm"
+                    data-testid="complete-meeting-btn"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Complete & Send MOM
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </DialogContent>

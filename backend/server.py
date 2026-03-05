@@ -295,6 +295,9 @@ from routers import employee_consent as employee_consent_router
 # Data Integrity (P1 architectural fixes - client lookup, team consolidation, CTC versioning)
 from routers import data_integrity as data_integrity_router
 
+# Meeting Schedules (Recurring meetings, Calendar, Conflict detection)
+from routers import meeting_schedules as meeting_schedules_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
@@ -304,6 +307,9 @@ api_router.include_router(users_router.router)
 api_router.include_router(leads_router.router)
 api_router.include_router(projects_router.router)
 api_router.include_router(meetings_router.router)
+
+# Meeting Schedules (Recurring, Calendar)
+api_router.include_router(meeting_schedules_router.router)
 
 # HR Module
 api_router.include_router(employees_router.router)

@@ -388,6 +388,7 @@ const Layout = () => {
     ? [
         { name: 'My Projects', href: '/consulting/my-projects', icon: Briefcase },
         { name: 'My Schedule', href: '/consulting-meetings', icon: Calendar },
+        { name: 'Team Calendar', href: '/meeting-calendar', icon: CalendarDays },
         { name: 'My Clients', href: '/clients', icon: Building2 },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
@@ -396,7 +397,8 @@ const Layout = () => {
     : [
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Team Assignment', href: '/consultants', icon: Users },
-        { name: 'Meetings Calendar', href: '/consulting-meetings', icon: Calendar },
+        { name: 'Meetings Calendar', href: '/meeting-calendar', icon: CalendarDays },
+        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
         { name: 'Project Reports', href: '/reports?category=consulting', icon: BarChart3 },

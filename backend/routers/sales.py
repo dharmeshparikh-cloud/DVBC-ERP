@@ -558,3 +558,80 @@ async def get_lead_mom_history(lead_id: str, current_user: User = Depends(get_cu
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     return moms
+
+
+@router.post("/sales-meetings/{meeting_id}/send-mom")
+async def send_sales_mom_to_client(meeting_id: str, current_user: User = Depends(get_current_user)):
+    """Send MOM email to the client/lead for a sales meeting"""
+    db = get_db()
+    from services.email_service import send_email
+    
+    meeting = await db.sales_meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    mom = await db.sales_mom.find_one({"meeting_id": meeting_id}, {"_id": 0})
+    if not mom:
+        raise HTTPException(status_code=400, detail="MOM not found. Please save MOM first.")
+    
+    # Get lead email
+    lead = await db.leads.find_one({"id": meeting.get("lead_id")}, {"_id": 0})
+    if not lead or not lead.get("email"):
+        raise HTTPException(status_code=400, detail="Lead email not found")
+    
+    client_email = lead.get("email")
+    client_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or lead.get("company", "Client")
+    
+    # Build email content
+    meeting_date = meeting.get("scheduled_date") or meeting.get("meeting_date", "")
+    date_str = meeting_date[:10] if meeting_date else "N/A"
+    
+    discussion_html = "".join([f"<li>{d}</li>" for d in mom.get("discussion_points", []) if d])
+    action_rows = ""
+    for item in mom.get("action_items", []):
+        if isinstance(item, dict) and item.get("task"):
+            action_rows += f"<tr><td style='padding:8px;border:1px solid #e5e7eb;'>{item.get('task','')}</td><td style='padding:8px;border:1px solid #e5e7eb;'>{item.get('owner','TBD')}</td><td style='padding:8px;border:1px solid #e5e7eb;'>{item.get('due_date','TBD')}</td></tr>"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 20px; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #10b981; margin: 0; font-size: 24px;">Meeting Summary</h1>
+            <p style="color: #9ca3af; margin: 5px 0 0 0;">{meeting.get('title', 'Sales Meeting')} - {date_str}</p>
+        </div>
+        <div style="background: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
+            <p style="color: #374151;"><strong>Summary:</strong> {mom.get('summary', '')}</p>
+            {"<h3 style='color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 5px;'>Discussion Points</h3><ul style='color: #374151;'>" + discussion_html + "</ul>" if discussion_html else ""}
+            {"<h3 style='color: #1f2937; border-bottom: 2px solid #10b981; padding-bottom: 5px;'>Action Items</h3><table style='width: 100%; border-collapse: collapse;'><tr style='background: #f3f4f6;'><th style='padding: 8px; text-align: left; border: 1px solid #e5e7eb;'>Task</th><th style='padding: 8px; text-align: left; border: 1px solid #e5e7eb;'>Owner</th><th style='padding: 8px; text-align: left; border: 1px solid #e5e7eb;'>Due Date</th></tr>" + action_rows + "</table>" if action_rows else ""}
+            <p style="color: #374151; margin-top: 20px;"><strong>Next Steps:</strong> {mom.get('next_steps', 'To be discussed')}</p>
+        </div>
+        <div style="background: #f9fafb; padding: 15px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
+            <p style="color: #6b7280; font-size: 12px; margin: 0;">D&V Business Consulting | Thank you for your time</p>
+        </div>
+    </div>
+    """
+    
+    try:
+        await send_email(
+            to_email=client_email,
+            subject=f"Meeting Summary - {meeting.get('title', 'Sales Meeting')} ({date_str})",
+            html_content=html_content,
+            plain_content=f"Meeting Summary\n\nDate: {date_str}\nSummary: {mom.get('summary', '')}\nNext Steps: {mom.get('next_steps', '')}"
+        )
+        
+        # Update meeting
+        await db.sales_meetings.update_one(
+            {"id": meeting_id},
+            {"$set": {
+                "mom_sent_to_client": True,
+                "mom_sent_at": datetime.now(timezone.utc).isoformat(),
+                "mom_sent_to_email": client_email
+            }}
+        )
+        
+        return {
+            "success": True,
+            "sent_to": client_email,
+            "client_name": client_name
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")

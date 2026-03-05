@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle, Calendar, Trash2, ChevronDown, ChevronUp, FileText, FolderOpen } from 'lucide-react';
+import { Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle, Calendar, Trash2, ChevronDown, ChevronUp, FileText, FolderOpen, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import useDraft from '../hooks/useDraft';
@@ -584,7 +584,7 @@ const SalesMeetings = () => {
               </select>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-zinc-200">
+            <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
               <Button 
                 onClick={handleSaveMOM} 
                 data-testid="save-sales-mom" 
@@ -592,6 +592,31 @@ const SalesMeetings = () => {
               >
                 Save MOM & Complete Meeting
               </Button>
+              {selectedMeeting?.status === 'completed' && !selectedMeeting?.mom_sent_to_client && (
+                <Button 
+                  onClick={async () => {
+                    try {
+                      const res = await axios.post(`${API}/sales-meetings/${selectedMeeting.id}/send-mom`);
+                      toast.success(`MOM sent to ${res.data.client_name || res.data.sent_to}`);
+                      queryClient.invalidateQueries({ queryKey: ['sales-meetings'] });
+                      setMomDialogOpen(false);
+                    } catch (error) {
+                      toast.error(error.response?.data?.detail || 'Failed to send MOM');
+                    }
+                  }}
+                  variant="outline"
+                  className="rounded-sm"
+                  data-testid="send-sales-mom-btn"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Send to Client
+                </Button>
+              )}
+              {selectedMeeting?.mom_sent_to_client && (
+                <span className="text-emerald-600 text-sm flex items-center gap-1">
+                  <CheckCircle className="w-4 h-4" /> MOM Sent
+                </span>
+              )}
             </div>
           </div>
         </DialogContent>

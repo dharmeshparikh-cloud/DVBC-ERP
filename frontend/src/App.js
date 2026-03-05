@@ -26,6 +26,7 @@ const Projects = lazy(() => import('./pages/Projects'));
 const AllProjects = lazy(() => import('./pages/AllProjects'));
 const SalesMeetings = lazy(() => import('./pages/SalesMeetings'));
 const ConsultingMeetings = lazy(() => import('./pages/ConsultingMeetings'));
+const MeetingCalendar = lazy(() => import('./pages/MeetingCalendar'));
 const OrgChart = lazy(() => import('./pages/OrgChart'));
 const LeaveManagement = lazy(() => import('./pages/LeaveManagement'));
 const Attendance = lazy(() => import('./pages/Attendance'));
@@ -266,6 +267,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="all-projects" element={<AllProjects />} />
         <Route path="sales-meetings" element={<SalesMeetings />} />
         <Route path="consulting-meetings" element={<ConsultingMeetings />} />
+        <Route path="meeting-calendar" element={<MeetingCalendar />} />
         <Route path="org-chart" element={<OrgChart />} />
         <Route path="leave-management" element={<LeaveManagement />} />
         <Route path="attendance" element={<Attendance />} />
