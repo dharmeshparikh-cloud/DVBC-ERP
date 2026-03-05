@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -7,7 +7,8 @@ import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
 import { 
   Users, Calendar, Clock, DollarSign, FileText,
-  UserCheck, UserX, Briefcase, CheckCircle, AlertCircle, LogIn, Book, Download, Mail, ArrowRight, RefreshCw
+  UserCheck, UserX, Briefcase, CheckCircle, AlertCircle, LogIn, Book, Download, Mail, ArrowRight, RefreshCw,
+  UserPlus, Send, Eye, Rocket
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
@@ -35,6 +36,28 @@ const HRDashboard = () => {
   const { data: attendanceStatus } = useFetch('/api/my/check-status', {
     staleTime: 2 * 60 * 1000
   });
+
+  // Fetch onboarding pipeline stats
+  const { data: onboardingSubmissions = [] } = useQuery({
+    queryKey: ['onboarding-submissions', 'dashboard'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/onboarding/submissions`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      return response.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Calculate onboarding pipeline counts
+  const pipelineCounts = {
+    invited: onboardingSubmissions.filter(s => s.status === 'invited').length,
+    draft: onboardingSubmissions.filter(s => s.status === 'draft').length,
+    submitted: onboardingSubmissions.filter(s => ['submitted', 'revision_requested'].includes(s.status)).length,
+    approved: onboardingSubmissions.filter(s => s.status === 'approved').length,
+  };
+  const totalPending = pipelineCounts.invited + pipelineCounts.draft + pipelineCounts.submitted + pipelineCounts.approved;
 
   // Documentation generation mutation
   const generateDocsMutation = useMutation({
@@ -252,6 +275,61 @@ const HRDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pending Onboardings Pipeline Widget */}
+      {totalPending > 0 && (
+        <Card 
+          className="border-zinc-200 dark:border-zinc-800 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200 dark:border-violet-800"
+          onClick={() => navigate('/new-joiner-pipeline')}
+          data-testid="pending-onboardings-card"
+        >
+          <CardContent className="p-4 md:p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-violet-500 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base md:text-lg font-bold text-violet-900 dark:text-violet-100">
+                    Pending Onboardings
+                  </h3>
+                  <p className="text-violet-600 dark:text-violet-400 text-xs md:text-sm">
+                    {totalPending} candidate{totalPending !== 1 ? 's' : ''} in pipeline
+                  </p>
+                </div>
+              </div>
+              <Badge className="bg-violet-600 text-white text-lg md:text-xl px-3 md:px-4">
+                {totalPending}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-4 gap-2 md:gap-3">
+              <div className="text-center p-2 md:p-3 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+                <Send className="w-4 h-4 text-blue-600 mx-auto mb-1" />
+                <p className="text-lg md:text-xl font-bold text-blue-700 dark:text-blue-300">{pipelineCounts.invited}</p>
+                <p className="text-[10px] md:text-xs text-blue-600 dark:text-blue-400">Invited</p>
+              </div>
+              <div className="text-center p-2 md:p-3 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                <FileText className="w-4 h-4 text-amber-600 mx-auto mb-1" />
+                <p className="text-lg md:text-xl font-bold text-amber-700 dark:text-amber-300">{pipelineCounts.draft}</p>
+                <p className="text-[10px] md:text-xs text-amber-600 dark:text-amber-400">Pending</p>
+              </div>
+              <div className="text-center p-2 md:p-3 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                <Eye className="w-4 h-4 text-purple-600 mx-auto mb-1" />
+                <p className="text-lg md:text-xl font-bold text-purple-700 dark:text-purple-300">{pipelineCounts.submitted}</p>
+                <p className="text-[10px] md:text-xs text-purple-600 dark:text-purple-400">Review</p>
+              </div>
+              <div className="text-center p-2 md:p-3 bg-orange-100 dark:bg-orange-900/40 rounded-lg">
+                <Rocket className="w-4 h-4 text-orange-600 mx-auto mb-1" />
+                <p className="text-lg md:text-xl font-bold text-orange-700 dark:text-orange-300">{pipelineCounts.approved}</p>
+                <p className="text-[10px] md:text-xs text-orange-600 dark:text-orange-400">Go-Live</p>
+              </div>
+            </div>
+            <p className="text-[10px] md:text-xs text-violet-600 dark:text-violet-400 mt-3 flex items-center gap-1 justify-end">
+              View Pipeline <ArrowRight className="w-3 h-3" />
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending Actions - Stack on mobile */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">

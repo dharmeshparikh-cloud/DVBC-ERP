@@ -146,6 +146,7 @@ const EmailSettings = lazy(() => import('./pages/admin/EmailSettings'));
 const OnboardingHub = lazy(() => import('./pages/onboarding/OnboardingHub'));
 const SubmissionReview = lazy(() => import('./pages/onboarding/SubmissionReview'));
 const CandidateOnboardingForm = lazy(() => import('./pages/onboarding/CandidateOnboardingForm'));
+const NewJoinerPipeline = lazy(() => import('./pages/NewJoinerPipeline'));
 
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { setupAxiosInterceptors } from './utils/useApi';
@@ -361,6 +362,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="onboarding" element={<HROnboarding />} />
         <Route path="onboarding-hub" element={<OnboardingHub />} />
         <Route path="onboarding/review/:submissionId" element={<SubmissionReview />} />
+        <Route path="new-joiner-pipeline" element={<NewJoinerPipeline />} />
         <Route path="attendance-approvals" element={<HRAttendanceApprovals />} />
         <Route path="hr-attendance-input" element={<HRAttendanceInput />} />
         <Route path="hr-leave-input" element={<HRLeaveInput />} />

@@ -464,28 +464,44 @@ const ModernSidebar = ({
           </span>
         </div>
         <div className="py-2 max-h-[400px] overflow-y-auto">
-          {section.items?.map(item => (
-            <Link
-              key={item.name}
-              to={item.href}
-              title={item.name}
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer ${
-                isActive(item.href)
-                  ? isDark 
-                    ? 'bg-zinc-800 text-emerald-400' 
-                    : 'bg-emerald-50 text-emerald-600'
-                  : isDark
-                    ? 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
-                    : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'
-              }`}
-            >
-              {isActive(item.href) && (
-                <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
-              )}
-              <span>{item.name}</span>
-              <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
-            </Link>
-          ))}
+          {section.items?.map(item => {
+            // Handle section header items in popup
+            if (item.isHeader) {
+              return (
+                <div 
+                  key={item.name} 
+                  className={`px-4 py-1.5 text-[10px] uppercase tracking-wider font-semibold mt-2 first:mt-0 ${
+                    isDark ? 'text-zinc-500' : 'text-zinc-400'
+                  }`}
+                >
+                  {item.name.replace(/—/g, '').trim()}
+                </div>
+              );
+            }
+            
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                title={item.name}
+                className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer ${
+                  isActive(item.href)
+                    ? isDark 
+                      ? 'bg-zinc-800 text-emerald-400' 
+                      : 'bg-emerald-50 text-emerald-600'
+                    : isDark
+                      ? 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
+                      : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'
+                }`}
+              >
+                {isActive(item.href) && (
+                  <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
+                )}
+                <span>{item.name}</span>
+                <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+              </Link>
+            );
+          })}
         </div>
       </div>
     );
@@ -529,6 +545,20 @@ const ModernSidebar = ({
         {isOpen && (
           <div className="ml-2 mt-1 space-y-0.5">
             {section.items?.map(item => {
+              // Handle section header items (visual separators)
+              if (item.isHeader) {
+                return (
+                  <div 
+                    key={item.name} 
+                    className={`px-3 py-1.5 text-[10px] uppercase tracking-wider font-semibold mt-2 first:mt-0 ${
+                      isDark ? 'text-zinc-500' : 'text-zinc-400'
+                    }`}
+                  >
+                    {item.name.replace(/—/g, '').trim()}
+                  </div>
+                );
+              }
+              
               const ItemIcon = item.icon;
               const active = isActive(item.href);
               const itemBadge = item.name === 'Approvals Center' ? pendingCounts?.total :

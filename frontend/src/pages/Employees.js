@@ -51,6 +51,7 @@ const Employees = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
+  const [filterJoinDate, setFilterJoinDate] = useState(''); // New Joiners filter
   const [activeView, setActiveView] = useState('directory'); // directory, orgchart
   const [viewMode, setViewMode] = useState('list'); // list, card (for directory tab)
 
@@ -256,7 +257,33 @@ const Employees = () => {
       emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employee_id?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDept = !filterDepartment || emp.department === filterDepartment;
-    return matchesSearch && matchesDept;
+    
+    // New Joiners filter by joining date
+    let matchesJoinDate = true;
+    if (filterJoinDate) {
+      const joiningDate = new Date(emp.joining_date || emp.created_at);
+      const today = new Date();
+      const daysAgo = new Date();
+      
+      switch (filterJoinDate) {
+        case '7':
+          daysAgo.setDate(today.getDate() - 7);
+          matchesJoinDate = joiningDate >= daysAgo;
+          break;
+        case '30':
+          daysAgo.setDate(today.getDate() - 30);
+          matchesJoinDate = joiningDate >= daysAgo;
+          break;
+        case '90':
+          daysAgo.setDate(today.getDate() - 90);
+          matchesJoinDate = joiningDate >= daysAgo;
+          break;
+        default:
+          matchesJoinDate = true;
+      }
+    }
+    
+    return matchesSearch && matchesDept && matchesJoinDate;
   });
 
   if (loading) {
@@ -363,7 +390,7 @@ const Employees = () => {
         <>
           {/* Search and Filters */}
           <div className="flex items-center justify-between mb-6 gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <Input
@@ -377,12 +404,29 @@ const Employees = () => {
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
                 className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
+                data-testid="filter-department"
               >
                 <option value="">All Departments</option>
                 {departments.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>
+              <select
+                value={filterJoinDate}
+                onChange={(e) => setFilterJoinDate(e.target.value)}
+                className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
+                data-testid="filter-join-date"
+              >
+                <option value="">All Joining Dates</option>
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+              </select>
+              {filterJoinDate && (
+                <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
+                  New Joiners: {filteredEmployees.length}
+                </span>
+              )}
             </div>
             <ViewToggle viewMode={viewMode} onChange={setViewMode} />
           </div>

@@ -276,28 +276,72 @@ const Layout = () => {
     </button>
   );
 
-  // Navigation items with permission requirements - SIMPLIFIED (only main pages)
-  const hrItems = [
-    { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
-    { name: 'Onboarding Hub', href: '/onboarding-hub', icon: UserCog, requiresTeamView: false, badge: 'New' },
-    { name: 'Legacy Onboarding', href: '/onboarding', icon: UserCog, requiresTeamView: false },
+  // Navigation items with permission requirements - REORGANIZED for better UX
+  // Group 1: Recruitment & Onboarding (Most frequently used for new joiners)
+  const hrRecruitmentItems = [
+    { name: 'New Joiner Pipeline', href: '/new-joiner-pipeline', icon: UsersRound, requiresHRorAdmin: true, badge: 'New' },
+    { name: 'Onboarding Hub', href: '/onboarding-hub', icon: UserCog, requiresHRorAdmin: true },
     { name: 'Go-Live Dashboard', href: '/go-live', icon: Rocket, requiresHRorAdmin: true },
-    { name: 'Employee Workflows', href: '/employee-workflows', icon: ArrowRightLeft, requiresHRorAdmin: true, badge: 'New' },
+  ];
+  
+  // Group 2: Employee Management
+  const hrEmployeeItems = [
+    { name: 'Employees', href: '/employees', icon: UsersRound, requiresTeamView: false },
+    { name: 'Employee Workflows', href: '/employee-workflows', icon: ArrowRightLeft, requiresHRorAdmin: true },
     { name: 'Employee Permissions', href: '/employee-permissions', icon: Shield, requiresHRorAdmin: true },
     { name: 'Password Management', href: '/password-management', icon: Key, requiresHRorAdmin: true },
     { name: 'Document Center', href: '/document-center', icon: FileSignature, requiresTeamView: false },
+  ];
+  
+  // Group 3: Attendance & Leave
+  const hrAttendanceItems = [
     { name: 'Leave & Attendance', href: '/leave-management', icon: CalendarDays, requiresApproval: true },
     { name: 'HR Leave Input', href: '/hr-leave-input', icon: Calendar, requiresHRorAdmin: true },
     { name: 'HR Attendance Input', href: '/hr-attendance-input', icon: Clock, requiresHRorAdmin: true },
     { name: 'Attendance & Leave Settings', href: '/attendance-leave-settings', icon: Settings, requiresHRorAdmin: true },
     { name: 'Leave Policy Management', href: '/leave-policy-settings', icon: Calendar, requiresHRorAdmin: true },
+  ];
+  
+  // Group 4: Payroll
+  const hrPayrollItems = [
     { name: 'CTC & Payroll', href: '/ctc-designer', icon: Wallet, requiresApproval: true },
     { name: 'Payroll Summary Report', href: '/payroll-summary-report', icon: FileText, requiresHRorAdmin: true },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },
   ];
   
+  // Archived items (route still works, hidden from main nav unless explicitly needed)
+  // Legacy Onboarding at /onboarding is still accessible but not shown in menu
+  
+  // Combined HR items (flat list for backward compatibility with ModernSidebar)
+  const hrItems = [
+    // Recruitment section header
+    { name: '— Recruitment —', href: '#', icon: UsersRound, isHeader: true, requiresHRorAdmin: true },
+    ...hrRecruitmentItems,
+    // Employee Management section  
+    { name: '— People —', href: '#', icon: UsersRound, isHeader: true, requiresTeamView: false },
+    ...hrEmployeeItems,
+    // Attendance section
+    { name: '— Attendance —', href: '#', icon: CalendarDays, isHeader: true, requiresApproval: true },
+    ...hrAttendanceItems,
+    // Payroll section
+    { name: '— Payroll —', href: '#', icon: Wallet, isHeader: true, requiresApproval: true },
+    ...hrPayrollItems,
+  ];
+  
   // Filter HR items based on permissions
   const filteredHrItems = hrItems.filter(item => {
+    // Skip header items based on their section's visibility
+    if (item.isHeader) {
+      // Show header if user has access to at least one item in that section
+      if (item.requiresHRorAdmin) {
+        return role === 'admin' || role === 'hr_manager' || HR_ROLES_FALLBACK.includes(role);
+      }
+      if (item.requiresApproval) {
+        return canApproveRequests() || HR_ROLES_FALLBACK.includes(role);
+      }
+      return true;
+    }
+    
     // Password Management only for Admin or HR Managers
     if (item.requiresHRorAdmin) {
       return role === 'admin' || role === 'hr_manager' || HR_ROLES_FALLBACK.includes(role);
