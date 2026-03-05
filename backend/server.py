@@ -292,6 +292,9 @@ from routers import help as help_router
 from routers import employee_governance as employee_governance_router
 from routers import employee_consent as employee_consent_router
 
+# Data Integrity (P1 architectural fixes - client lookup, team consolidation, CTC versioning)
+from routers import data_integrity as data_integrity_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
@@ -405,6 +408,9 @@ api_router.include_router(test_email_preview_router.router)
 # Employee Governance & Consent
 api_router.include_router(employee_governance_router.router)
 api_router.include_router(employee_consent_router.router)
+
+# Data Integrity (P1 architectural fixes)
+api_router.include_router(data_integrity_router.router)
 
 # WebSocket for real-time updates (under /api prefix for proper routing through ingress)
 from routers import websocket_router

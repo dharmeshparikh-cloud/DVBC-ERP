@@ -203,3 +203,42 @@ async def verify_sync_consistency(db, employee_id: str) -> Dict:
         
     except Exception as e:
         return {"error": str(e)}
+
+
+
+async def check_sync_status(db) -> Dict:
+    """
+    Check overall sync status between employees and users collections.
+    Used for health checks.
+    
+    Returns:
+        Dict with sync health status
+    """
+    try:
+        total_employees = await db.employees.count_documents({})
+        employees_with_access = await db.employees.count_documents({"has_portal_access": True})
+        total_users = await db.users.count_documents({})
+        
+        # Sample check for consistency
+        sample_employees = await db.employees.find(
+            {"has_portal_access": True},
+            {"_id": 0, "id": 1, "email": 1}
+        ).limit(10).to_list(10)
+        
+        inconsistent_count = 0
+        for emp in sample_employees:
+            report = await verify_sync_consistency(db, emp["id"])
+            if not report.get("is_consistent", True) or report.get("error"):
+                inconsistent_count += 1
+        
+        return {
+            "status": "ok" if inconsistent_count == 0 else "warning",
+            "total_employees": total_employees,
+            "employees_with_access": employees_with_access,
+            "total_users": total_users,
+            "sample_checked": len(sample_employees),
+            "sample_inconsistent": inconsistent_count
+        }
+    
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
