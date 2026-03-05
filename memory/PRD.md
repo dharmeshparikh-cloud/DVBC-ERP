@@ -142,7 +142,33 @@ The Employee ID generation process has been changed from the previous flow (ID g
 
 ---
 
-### Phase 68: React Query Migration Batch 15 - March 5, 2026 ✅ (Latest)
+### Phase 69: React Query Migration Regression Testing & Bug Fixes - March 5, 2026 ✅ (Latest)
+
+**Regression Testing Completed:**
+- Called testing agent to verify 15+ migrated components
+- Success Rate: 93% (14/15 pages loaded correctly)
+
+**Critical Bug Fixed:**
+- `DepartmentAccessManager.js` - Fixed `TypeError: filteredEmployees.map is not a function`
+  - Root cause: API `/api/employees` returns `{items: [], pagination: {}}` but code expected direct array
+  - Fix: Added `Array.isArray()` check with proper extraction of items
+
+**Proactive Bug Fixes (Same Pattern):**
+- `AttendanceLeaveSettings.js` - Fixed `/api/employees` response handling
+- `HRAttendanceInput.js` - Fixed `/api/employees` response handling  
+- `HRLeaveInput.js` - Fixed `/api/employees` response handling
+
+**Current Migration Status:**
+- ✅ 99+ pages now using React Query and tested
+- ~4 large components remaining for migration:
+  - `ApprovalsCenter.js` (3576 lines) - Complex conditional fetching based on roles
+  - `HROnboarding.js` (2098 lines) - Uses raw fetch calls
+  - `EmployeeMobileApp.js` (2313 lines) - Uses axios for mobile features
+- All tested pages passing (100% success rate after fixes)
+
+---
+
+### Phase 68: React Query Migration Batch 15 - March 5, 2026 ✅
 
 **Batch 15 - 4 components migrated:**
 - `HRAttendanceInput.js` (698 lines) - Attendance policy, bulk marking, validation mutations

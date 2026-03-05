@@ -47,8 +47,9 @@ const HRAttendanceInput = () => {
   const policy = policyData?.policy;
 
   // Query: Fetch all employees
-  const { data: allEmployeesData = [] } = useFetch('/api/employees');
-  const allEmployees = allEmployeesData;
+  const { data: allEmployeesData } = useFetch('/api/employees');
+  // API returns { items: [], pagination: {} } so extract items array
+  const allEmployees = Array.isArray(allEmployeesData) ? allEmployeesData : (allEmployeesData?.items || []);
 
   // Query: Fetch custom policies
   const { data: customPoliciesData, refetch: refetchCustomPolicies } = useFetch('/api/attendance/policy/custom');

@@ -48,9 +48,10 @@ const HRLeaveInput = () => {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   // Query: Fetch employees
-  const { data: employeesData = [] } = useFetch('/api/employees');
-  const employees = employeesData;
-  const allEmployees = employeesData;
+  const { data: employeesData } = useFetch('/api/employees');
+  // API returns { items: [], pagination: {} } so extract items array
+  const employees = Array.isArray(employeesData) ? employeesData : (employeesData?.items || []);
+  const allEmployees = employees;
 
   // Query: Fetch leave requests
   const { data: leaveRequestsData = [], isLoading: loading, refetch: refetchLeaveRequests } = useFetch('/api/leave-requests/all');
