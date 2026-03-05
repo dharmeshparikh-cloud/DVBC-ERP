@@ -570,6 +570,9 @@ async def complete_onboarding(
     """
     Complete onboarding - Generate Employee ID and create employee record.
     This is the critical step where the actual employee is created.
+    
+    SIMPLIFIED FLOW: Auto-verifies documents and bank details when completing.
+    HR only needs to: 1) Assign department/manager/date 2) Click Complete
     """
     db = get_db()
     
@@ -584,7 +587,39 @@ async def complete_onboarding(
     if submission["status"] == "completed":
         raise HTTPException(status_code=400, detail="Onboarding already completed")
     
-    # Validate all required fields are complete
+    now = datetime.now(timezone.utc)
+    
+    # AUTO-VERIFY: Mark documents and bank as verified on complete
+    # This simplifies the flow - HR doesn't need to click verify buttons separately
+    if not submission.get("hr_verification", {}).get("documents_verified"):
+        await db.onboarding_submissions.update_one(
+            {"id": submission_id},
+            {
+                "$set": {
+                    "hr_verification.documents_verified": True,
+                    "hr_verification.documents_verified_by": current_user.id,
+                    "hr_verification.documents_verified_at": now.isoformat()
+                }
+            }
+        )
+        # Refresh submission
+        submission = await db.onboarding_submissions.find_one({"id": submission_id}, {"_id": 0})
+    
+    if not submission.get("hr_verification", {}).get("bank_verified"):
+        await db.onboarding_submissions.update_one(
+            {"id": submission_id},
+            {
+                "$set": {
+                    "hr_verification.bank_verified": True,
+                    "hr_verification.bank_verified_by": current_user.id,
+                    "hr_verification.bank_verified_at": now.isoformat()
+                }
+            }
+        )
+        # Refresh submission
+        submission = await db.onboarding_submissions.find_one({"id": submission_id}, {"_id": 0})
+    
+    # Validate all required fields are complete (verification will pass now)
     validation_errors = validate_submission_complete(submission)
     if validation_errors:
         raise HTTPException(status_code=400, detail=f"Cannot complete: {', '.join(validation_errors)}")

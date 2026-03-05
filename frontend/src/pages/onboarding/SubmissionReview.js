@@ -366,9 +366,16 @@ const SubmissionReview = () => {
       return response.data;
     },
     onSuccess: (data) => {
-      toast.success(`Onboarding complete! Employee ID: ${data.employee_id}`);
+      toast.success(data.employee_id 
+        ? `Onboarding complete! Employee ID: ${data.employee_id}` 
+        : 'Onboarding complete! Employee record created.');
       setShowCompleteDialog(false);
       queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submissions'] });
+      // Redirect to Go-Live Dashboard after completion
+      setTimeout(() => {
+        navigate('/go-live');
+      }, 1500);
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed to complete onboarding')
   });
@@ -465,19 +472,20 @@ const SubmissionReview = () => {
     setEditPerRefDialog(true);
   };
 
-  // Check readiness
+  // Check readiness - Simplified: Only HR assignment needed
+  // Documents and bank verification are AUTO-VERIFIED on complete
   const checkReadiness = () => {
     const errors = [];
-    const hv = submission?.hr_verification || {};
     const ha = submission?.hr_assigned || {};
     
     if (!ha.department) errors.push('Department not assigned');
     if (!ha.reporting_manager_id) errors.push('Reporting manager not assigned');
     if (!ha.joining_date) errors.push('Joining date not set');
     if (!ha.official_email) errors.push('Official email not assigned');
-    if (!hv.documents_verified) errors.push('Documents not verified');
-    if (!hv.bank_verified) errors.push('Bank details not verified');
     if ((submission?.documents?.length || 0) < 2) errors.push('Minimum 2 documents required');
+    
+    // Note: Documents and bank verification are AUTO-VERIFIED when completing
+    // No need to manually verify them anymore
     
     return errors;
   };
