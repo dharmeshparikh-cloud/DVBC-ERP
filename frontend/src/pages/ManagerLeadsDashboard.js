@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import axios from 'axios';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -13,6 +13,12 @@ import {
   Target, DollarSign, BarChart3, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { 
+  useSubordinateLeads, 
+  useManagerTodayStats, 
+  useManagerPerformance, 
+  useManagerTargetVsAchievement 
+} from '../hooks/useStats';
 
 const ManagerLeadsDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -39,46 +45,14 @@ const ManagerLeadsDashboard = () => {
   ];
 
   // React Query: Subordinate Leads
-  const { data: leadsData, isLoading: loading, refetch: refetchLeads } = useQuery({
-    queryKey: ['manager', 'subordinate-leads'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/manager/subordinate-leads`);
-      return res.data;
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-  const subordinateLeads = leadsData?.leads || [];
-  const subordinates = leadsData?.subordinates || [];
+  const { data: subordinateLeadsData = [], isLoading: loading, refetch: refetchLeads } = useSubordinateLeads();
+  const subordinateLeads = subordinateLeadsData?.leads || subordinateLeadsData || [];
+  const subordinates = subordinateLeadsData?.subordinates || [];
 
-  // React Query: Today Stats
-  const { data: todayStats } = useQuery({
-    queryKey: ['manager', 'today-stats'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/manager/today-stats`);
-      return res.data;
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-
-  // React Query: Performance
-  const { data: performance } = useQuery({
-    queryKey: ['manager', 'performance'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/manager/performance`);
-      return res.data;
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-
-  // React Query: Target vs Achievement
-  const { data: targetVsAchievement } = useQuery({
-    queryKey: ['manager', 'target-vs-achievement'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/manager/target-vs-achievement`);
-      return res.data;
-    },
-    staleTime: 2 * 60 * 1000,
-  });
+  // React Query: Stats using hooks
+  const { data: todayStats } = useManagerTodayStats();
+  const { data: performance } = useManagerPerformance();
+  const { data: targetVsAchievement } = useManagerTargetVsAchievement();
 
   // Mutation: Pause Lead
   const pauseMutation = useMutation({

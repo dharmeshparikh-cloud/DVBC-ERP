@@ -16,6 +16,15 @@ export * from './useApprovals';
 export * from './useMobileApp';
 export * from './useHROnboarding';
 
+// New hooks (March 2026 - Duplicate elimination)
+export * from './usePayroll';
+export * from './useUserManagement';
+export * from './useReports';
+export * from './useClients';
+export * from './useConsultants';
+export * from './useStats';
+export * from './useDocuments';
+
 // Generic hooks (useFetch, useMutate for custom endpoints)
 export * from './useApi';
 
@@ -30,3 +39,7 @@ export { leadKeys } from './useLeads';
 export { onboardingKeys } from './useOnboarding';
 export { chatKeys } from './useChat';
 export { projectKeys } from './useProjects';
+export { clientKeys } from './useClients';
+export { consultantKeys } from './useConsultants';
+export { statsKeys } from './useStats';
+export { documentKeys } from './useDocuments';

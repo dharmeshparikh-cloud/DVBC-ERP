@@ -1,6 +1,5 @@
 import React, { useState, useContext } from 'react';
-import axios from 'axios';
-import { API, AuthContext } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -11,7 +10,18 @@ import {
   ChevronDown, ChevronUp, Settings, UserPlus, Key, Save
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useUsersWithRoles,
+  useRoles,
+  useRoleDetails,
+  usePermissionModules,
+  useRegisterUser,
+  useUpdateUserRole,
+  useCreateRole,
+  useUpdateRole,
+  useDeleteRole
+} from '../hooks/useUserManagement';
 
 const UserManagement = () => {
   const { user } = useContext(AuthContext);
@@ -43,77 +53,48 @@ const UserManagement = () => {
     description: ''
   });
   
-  const [permissionModules, setPermissionModules] = useState(null);
   const [editingPermissions, setEditingPermissions] = useState({});
   
   const isAdmin = user?.role === 'admin';
 
-  // Fetch users and roles with React Query
-  const { data: usersRolesData, isLoading: loading } = useQuery({
-    queryKey: ['users-roles-management'],
-    queryFn: async () => {
-      const [usersRes, rolesRes] = await Promise.all([
-        axios.get(`${API}/users-with-roles`),
-        axios.get(`${API}/roles`)
-      ]);
-      const usersData = usersRes.data?.items || usersRes.data || [];
-      const rolesData = rolesRes.data?.items || rolesRes.data || [];
-      return {
-        users: Array.isArray(usersData) ? usersData : [],
-        roles: Array.isArray(rolesData) ? rolesData : []
-      };
-    },
-    staleTime: 3 * 60 * 1000, // 3 minutes
-  });
+  // React Query: Fetch data
+  const { data: users = [], isLoading: usersLoading } = useUsersWithRoles();
+  const { data: roles = [], isLoading: rolesLoading } = useRoles();
+  const { data: permissionModules = [] } = usePermissionModules();
+  
+  const loading = usersLoading || rolesLoading;
 
-  const users = usersRolesData?.users || [];
-  const roles = usersRolesData?.roles || [];
+  // React Query: Mutations
+  const registerUserMutation = useRegisterUser();
+  const updateUserRoleMutation = useUpdateUserRole();
+  const createRoleMutation = useCreateRole();
+  const updateRoleMutation = useUpdateRole();
+  const deleteRoleMutation = useDeleteRole();
 
-  const invalidateData = () => {
-    queryClient.invalidateQueries({ queryKey: ['users-roles-management'] });
-  };
-
-  const fetchPermissionModules = async () => {
-    if (permissionModules) return permissionModules;
-    try {
-      const res = await axios.get(`${API}/permission-modules`);
-      const modules = res.data?.items || res.data || [];
-      setPermissionModules(Array.isArray(modules) ? modules : []);
-      return modules;
-    } catch (error) {
-      toast.error('Failed to load permission modules');
-      return null;
-    }
-  };
-
-  const handleCreateUser = async () => {
+  const handleCreateUser = () => {
     if (!newUserData.email || !newUserData.password || !newUserData.full_name) {
       toast.error('Please fill in all required fields');
       return;
     }
     
-    try {
-      await axios.post(`${API}/auth/register`, newUserData);
-      toast.success('User created successfully');
-      setCreateUserDialog(false);
-      setNewUserData({ email: '', password: '', full_name: '', role: 'consultant', department: '' });
-      invalidateData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create user');
-    }
+    registerUserMutation.mutate(newUserData, {
+      onSuccess: () => {
+        toast.success('User created successfully');
+        setCreateUserDialog(false);
+        setNewUserData({ email: '', password: '', full_name: '', role: 'consultant', department: '' });
+      },
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create user')
+    });
   };
 
-  const handleUpdateUserRole = async (userId, newRole) => {
-    try {
-      await axios.patch(`${API}/users/${userId}/role?role=${newRole}`);
-      toast.success('User role updated');
-      invalidateData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to update role');
-    }
+  const handleUpdateUserRole = (userId, newRole) => {
+    updateUserRoleMutation.mutate({ userId, role: newRole }, {
+      onSuccess: () => toast.success('User role updated'),
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to update role')
+    });
   };
 
-  const handleCreateRole = async () => {
+  const handleCreateRole = () => {
     if (!newRoleData.id || !newRoleData.name) {
       toast.error('Role ID and Name are required');
       return;
@@ -122,45 +103,34 @@ const UserManagement = () => {
     // Convert name to snake_case ID if not provided properly
     const roleId = newRoleData.id.toLowerCase().replace(/\s+/g, '_');
     
-    try {
-      await axios.post(`${API}/roles`, {
-        id: roleId,
-        name: newRoleData.name,
-        description: newRoleData.description
-      });
-      toast.success('Role created successfully');
-      setCreateRoleDialog(false);
-      setNewRoleData({ id: '', name: '', description: '' });
-      invalidateData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create role');
-    }
+    createRoleMutation.mutate({ 
+      name: newRoleData.name, 
+      description: newRoleData.description,
+      permissions: {}
+    }, {
+      onSuccess: () => {
+        toast.success('Role created successfully');
+        setCreateRoleDialog(false);
+        setNewRoleData({ id: '', name: '', description: '' });
+      },
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to create role')
+    });
   };
 
-  const handleDeleteRole = async (roleId) => {
+  const handleDeleteRole = (roleId) => {
     if (!window.confirm(`Are you sure you want to delete role "${roleId}"?`)) return;
     
-    try {
-      await axios.delete(`${API}/roles/${roleId}`);
-      toast.success('Role deleted');
-      invalidateData();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to delete role');
-    }
+    deleteRoleMutation.mutate(roleId, {
+      onSuccess: () => toast.success('Role deleted'),
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to delete role')
+    });
   };
 
   const openPermissionsDialog = async (role) => {
     setSelectedRoleData(role);
-    await fetchPermissionModules();
-    
-    // Get current permissions for this role
-    try {
-      const res = await axios.get(`${API}/roles/${role.id}`);
-      setEditingPermissions(res.data.permissions || {});
-      setPermissionsDialog(true);
-    } catch (error) {
-      toast.error('Failed to load role permissions');
-    }
+    // Load existing permissions
+    setEditingPermissions(role.permissions || {});
+    setPermissionsDialog(true);
   };
 
   const handlePermissionChange = (module, action, value) => {
@@ -173,16 +143,17 @@ const UserManagement = () => {
     }));
   };
 
-  const savePermissions = async () => {
-    try {
-      await axios.patch(`${API}/roles/${selectedRoleData.id}`, {
-        permissions: editingPermissions
-      });
-      toast.success('Permissions saved successfully');
-      setPermissionsDialog(false);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to save permissions');
-    }
+  const savePermissions = () => {
+    updateRoleMutation.mutate({ 
+      roleId: selectedRoleData.id, 
+      permissions: editingPermissions 
+    }, {
+      onSuccess: () => {
+        toast.success('Permissions saved successfully');
+        setPermissionsDialog(false);
+      },
+      onError: (error) => toast.error(error.response?.data?.detail || 'Failed to save permissions')
+    });
   };
 
   const filteredUsers = users.filter(u => {
@@ -568,11 +539,11 @@ const UserManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          {permissionModules && (
+          {permissionModules?.modules?.length > 0 && (
             <div className="space-y-4 mt-4">
               {permissionModules.modules.map(module => {
                 const modulePerms = editingPermissions[module.id] || {};
-                const actions = permissionModules.actions[module.id] || permissionModules.actions.common;
+                const actions = permissionModules.actions?.[module.id] || permissionModules.actions?.common || [];
                 
                 return (
                   <div key={module.id} className="p-4 border border-zinc-200 rounded-sm">

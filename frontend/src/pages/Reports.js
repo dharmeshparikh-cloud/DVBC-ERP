@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import axios from 'axios';
-import { API, AuthContext } from '../App';
+import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -12,7 +11,13 @@ import {
   TrendingUp, Clock, CheckCircle, Filter, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
+import { 
+  useReportsList, 
+  useReportCategories, 
+  useReportStats, 
+  useReportPreview,
+  useGenerateReport 
+} from '../hooks/useReports';
 
 const CATEGORY_ICONS = {
   'Sales': TrendingUp,
@@ -33,6 +38,7 @@ const Reports = () => {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [selectedReportId, setSelectedReportId] = useState(null);
   
   // Update filter when URL params change
   useEffect(() => {
@@ -47,95 +53,64 @@ const Reports = () => {
   
   // Preview dialog
   const [previewDialog, setPreviewDialog] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
   
   // Download state
   const [downloading, setDownloading] = useState({});
 
-  // Fetch reports with React Query (caching enabled)
-  const { data: reportsData, isLoading: loading } = useQuery({
-    queryKey: ['reports-all'],
-    queryFn: async () => {
-      const [reportsRes, categoriesRes] = await Promise.all([
-        axios.get(`${API}/reports`),
-        axios.get(`${API}/reports/categories`)
-      ]);
-      
-      const reportsArr = reportsRes.data?.reports || reportsRes.data?.items || [];
-      const byCategory = reportsRes.data?.by_category || {};
-      const categoriesArr = categoriesRes.data?.items || categoriesRes.data || [];
-      
-      let stats = null;
-      try {
-        const statsRes = await axios.get(`${API}/reports/stats`);
-        stats = statsRes.data;
-      } catch (e) {
-        // Stats not available for this role
-      }
-      
-      return {
-        reports: Array.isArray(reportsArr) ? reportsArr : [],
-        reportsByCategory: byCategory,
-        categories: Array.isArray(categoriesArr) ? categoriesArr : [],
-        stats
-      };
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+  // React Query: Fetch data
+  const { data: reports = [], isLoading: reportsLoading } = useReportsList();
+  const { data: categories = [] } = useReportCategories();
+  const { data: stats } = useReportStats();
+  const { data: previewData, isLoading: previewLoading, refetch: refetchPreview } = useReportPreview(selectedReportId, { 
+    enabled: !!selectedReportId && previewDialog 
   });
+  
+  const loading = reportsLoading;
+  
+  // Group reports by category
+  const reportsByCategory = reports.reduce((acc, report) => {
+    const cat = report.category || 'Other';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(report);
+    return acc;
+  }, {});
+  
+  // React Query: Mutations
+  const generateReportMutation = useGenerateReport();
 
-  const reports = reportsData?.reports || [];
-  const reportsByCategory = reportsData?.reportsByCategory || {};
-  const categories = reportsData?.categories || [];
-  const stats = reportsData?.stats;
-
-  const handlePreview = async (reportId) => {
-    setPreviewLoading(true);
+  const handlePreview = (reportId) => {
+    setSelectedReportId(reportId);
     setPreviewDialog(true);
-    
-    try {
-      const res = await axios.get(`${API}/reports/${reportId}/preview`);
-      setPreviewData(res.data);
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to load preview');
-      setPreviewDialog(false);
-    } finally {
-      setPreviewLoading(false);
-    }
   };
 
   const handleDownload = async (reportId, format) => {
     const key = `${reportId}_${format}`;
     setDownloading(prev => ({ ...prev, [key]: true }));
     
-    try {
-      const res = await axios.post(
-        `${API}/reports/generate`,
-        { report_id: reportId, format },
-        { responseType: 'blob' }
-      );
-      
-      // Create download link
-      const blob = new Blob([res.data], { 
-        type: format === 'excel' 
-          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          : 'application/pdf'
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${reportId}_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success(`${format.toUpperCase()} downloaded successfully`);
-    } catch (error) {
-      toast.error('Failed to download report');
-    } finally {
-      setDownloading(prev => ({ ...prev, [key]: false }));
-    }
+    generateReportMutation.mutate({ reportId, format, filters: {} }, {
+      onSuccess: (data) => {
+        // Create download link from blob
+        const blob = new Blob([data], { 
+          type: format === 'excel' 
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'application/pdf'
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${reportId}_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success(`${format.toUpperCase()} downloaded`);
+        setDownloading(prev => ({ ...prev, [key]: false }));
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.detail || 'Download failed');
+        setDownloading(prev => ({ ...prev, [key]: false }));
+      }
+    });
   };
 
   const filteredReports = reports.filter(report => {

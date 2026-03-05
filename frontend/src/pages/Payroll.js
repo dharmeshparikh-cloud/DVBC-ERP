@@ -1,6 +1,5 @@
-import React, { useState, useContext } from 'react';
-import axios from 'axios';
-import { API, AuthContext } from '../App';
+import React, { useState, useContext, useEffect } from 'react';
+import { AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -8,7 +7,19 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { DollarSign, FileText, RefreshCw, Users as UsersIcon, Plus, Trash2, Save, Table2, Settings, Receipt, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { 
+  useSalarySlips, 
+  useSalaryComponents, 
+  usePayrollInputs, 
+  usePayrollEmployees,
+  useGenerateSalarySlip,
+  useGenerateBulkSalarySlips,
+  useAddSalaryComponent,
+  useDeleteSalaryComponent,
+  useSavePayrollInput,
+  useSaveBulkPayrollInputs
+} from '../hooks/usePayroll';
 
 const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 
@@ -21,90 +32,87 @@ const Payroll = () => {
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [viewSlip, setViewSlip] = useState(null);
   const [activeTab, setActiveTab] = useState('slips');
-  const [savingInputs, setSavingInputs] = useState(false);
   const [newComp, setNewComp] = useState({ type: 'earnings', name: '', calcType: 'fixed', value: '' });
   const [payrollInputs, setPayrollInputs] = useState([]);
 
   const isHR = ['admin', 'hr_manager'].includes(user?.role);
 
-  // Fetch payroll data with React Query
-  const { data: payrollData, isLoading: loading, refetch: refetchPayroll } = useQuery({
-    queryKey: ['payroll-data', month],
-    queryFn: async () => {
-      const [empRes, slipsRes, compRes] = await Promise.all([
-        axios.get(`${API}/employees/all`),
-        axios.get(`${API}/payroll/salary-slips?month=${month}`),
-        axios.get(`${API}/payroll/salary-components`)
-      ]);
-      
-      let inputs = [];
-      if (isHR) {
-        const inputRes = await axios.get(`${API}/payroll/inputs?month=${month}`);
-        inputs = Array.isArray(inputRes.data) ? inputRes.data : [];
-      }
-      
-      const empData = Array.isArray(empRes.data) ? empRes.data : [];
-      return {
-        employees: empData.filter(e => e.salary > 0),
-        slips: Array.isArray(slipsRes.data) ? slipsRes.data : [],
-        components: Array.isArray(compRes.data) ? compRes.data : [],
-        inputs
-      };
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    onSuccess: (data) => {
-      if (isHR && data.inputs) {
-        setPayrollInputs(data.inputs);
-      }
+  // React Query: Fetch payroll data
+  const { data: employeesData = [], isLoading: empLoading } = usePayrollEmployees();
+  const { data: slips = [], isLoading: slipsLoading, refetch: refetchSlips } = useSalarySlips(month);
+  const { data: componentsData, isLoading: compLoading } = useSalaryComponents();
+  const { data: inputsData = [], isLoading: inputsLoading } = usePayrollInputs(month, { enabled: isHR });
+  
+  // Derived data
+  const employees = employeesData.filter(e => e.salary > 0);
+  const components = componentsData || [];
+  const loading = empLoading || slipsLoading || compLoading;
+  
+  // Sync inputs data to local state
+  useEffect(() => {
+    if (isHR && inputsData.length > 0) {
+      setPayrollInputs(inputsData);
     }
-  });
+  }, [isHR, inputsData]);
 
-  const employees = payrollData?.employees || [];
-  const slips = payrollData?.slips || [];
-  const components = payrollData?.components || [];
+  // React Query: Mutations
+  const generateSlipMutation = useGenerateSalarySlip();
+  const generateBulkMutation = useGenerateBulkSalarySlips();
+  const addComponentMutation = useAddSalaryComponent();
+  const deleteComponentMutation = useDeleteSalaryComponent();
+  const saveInputMutation = useSavePayrollInput();
+  const saveBulkInputsMutation = useSaveBulkPayrollInputs();
 
-  const handleGenerate = async () => {
-    try {
-      if (selectedEmployee === 'all') {
-        const res = await axios.post(`${API}/payroll/generate-bulk`, { month });
-        toast.success(`Generated ${res.data.count} salary slips`);
-      } else {
-        await axios.post(`${API}/payroll/generate-slip`, { employee_id: selectedEmployee, month });
-        toast.success('Salary slip generated');
-      }
-      setGenerateDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['payroll-data', month] });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to generate');
+  const handleGenerate = () => {
+    if (selectedEmployee === 'all') {
+      generateBulkMutation.mutate({ month }, {
+        onSuccess: (data) => {
+          toast.success(`Generated ${data.count} salary slips`);
+          setGenerateDialogOpen(false);
+        },
+        onError: (error) => toast.error(error.response?.data?.detail || 'Failed to generate')
+      });
+    } else {
+      generateSlipMutation.mutate({ employeeId: selectedEmployee, month }, {
+        onSuccess: () => {
+          toast.success('Salary slip generated');
+          setGenerateDialogOpen(false);
+        },
+        onError: (error) => toast.error(error.response?.data?.detail || 'Failed to generate')
+      });
     }
+  };
+
+  // Refetch all payroll data
+  const refetchPayroll = () => {
+    queryClient.invalidateQueries({ queryKey: ['payroll'] });
   };
 
   // --- Salary Component Management ---
-  const addComponent = async () => {
+  const addComponent = () => {
     if (!newComp.name || !newComp.value) return toast.error('Name and value required');
-    try {
-      const payload = { type: newComp.type, name: newComp.name, key: newComp.name.toLowerCase().replace(/\s+/g, '_') };
-      if (newComp.calcType === 'percentage') payload.percentage = parseFloat(newComp.value);
-      else payload.fixed = parseFloat(newComp.value);
-      await axios.post(`${API}/payroll/salary-components/add`, payload);
-      toast.success(`${newComp.name} added`);
-      setAddCompDialog(false);
-      setNewComp({ type: 'earnings', name: '', calcType: 'fixed', value: '' });
-      queryClient.invalidateQueries({ queryKey: ['payroll-data', month] });
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to add');
-    }
+    
+    const payload = { type: newComp.type, name: newComp.name, key: newComp.name.toLowerCase().replace(/\s+/g, '_') };
+    if (newComp.calcType === 'percentage') payload.percentage = parseFloat(newComp.value);
+    else payload.fixed = parseFloat(newComp.value);
+    
+    addComponentMutation.mutate(payload, {
+      onSuccess: () => {
+        toast.success(`${newComp.name} added`);
+        setAddCompDialog(false);
+        setNewComp({ type: 'earnings', name: '', calcType: 'fixed', value: '' });
+      },
+      onError: (err) => toast.error(err.response?.data?.detail || 'Failed to add')
+    });
   };
 
-  const removeComponent = async (type, key, name) => {
+  const removeComponent = (type, key, name) => {
     if (!window.confirm(`Remove "${name}" from ${type}?`)) return;
-    try {
-      await axios.delete(`${API}/payroll/salary-components/${type}/${key}`);
-      toast.success(`${name} removed`);
-      queryClient.invalidateQueries({ queryKey: ['payroll-data', month] });
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to remove');
-    }
+    
+    deleteComponentMutation.mutate({ type, key }, {
+      onSuccess: () => toast.success(`${name} removed`),
+      onError: (err) => toast.error(err.response?.data?.detail || 'Failed to remove')
+    });
   };
 
   // --- Payroll Input Table ---
@@ -123,7 +131,7 @@ const Payroll = () => {
     return null;
   };
 
-  const saveAllInputs = async () => {
+  const saveAllInputs = () => {
     // Validate all rows
     const invalid = [];
     for (const inp of payrollInputs) {
@@ -134,30 +142,28 @@ const Payroll = () => {
       toast.error(`All fields are mandatory. Put 0 where not applicable.\nMissing: ${invalid.slice(0, 3).join(', ')}${invalid.length > 3 ? ` +${invalid.length - 3} more` : ''}`);
       return;
     }
-    setSavingInputs(true);
-    try {
-      await axios.post(`${API}/payroll/inputs/bulk`, { month, inputs: payrollInputs });
-      toast.success('Payroll inputs saved');
-    } catch (err) {
-      toast.error('Failed to save inputs');
-    } finally {
-      setSavingInputs(false);
-    }
+    
+    saveBulkInputsMutation.mutate({ month, inputs: payrollInputs }, {
+      onSuccess: () => toast.success('Payroll inputs saved'),
+      onError: () => toast.error('Failed to save inputs')
+    });
   };
 
-  const saveSingleInput = async (input) => {
+  const saveSingleInput = (input) => {
     const field = validateInput(input);
     if (field !== null) {
       toast.error(`All fields mandatory. "${field.replace(/_/g, ' ')}" is empty for ${input.name}. Put 0 if not applicable.`);
       return;
     }
-    try {
-      await axios.post(`${API}/payroll/inputs`, { ...input, month });
-      toast.success('Saved');
-    } catch (err) {
-      toast.error('Failed to save');
-    }
+    
+    saveInputMutation.mutate({ input, month }, {
+      onSuccess: () => toast.success('Saved'),
+      onError: () => toast.error('Failed to save')
+    });
   };
+
+  // Saving inputs state from mutation
+  const savingInputs = saveBulkInputsMutation.isPending;
 
   // --- Download payroll inputs as CSV ---
   const downloadTemplate = () => {
