@@ -15,7 +15,35 @@
 
 ## Completed Work - December 2025
 
-### Phase 84: HR Module Consolidation - December 2025 ✅ (Latest)
+### Phase 85: Remove Duplicate Leave Quotas - December 2025 ✅ (Latest)
+
+**Objective:** Remove duplicate leave policy settings from AttendanceLeaveSettings page.
+
+**Changes:**
+- Removed `leavePolicy` state and related hooks
+- Removed Leave Policy Card with leave quotas (CL/SL/EL, carry forward, probation)
+- Removed `saveLeavePolicyMutation` and `saveLeavePolicy` function
+- Updated page title: "Attendance & Leave Settings" → "Attendance Settings"
+- Updated description to reflect attendance-only focus
+- Added "Leave Policy Configuration" link card pointing to `/leave-policy-settings`
+- Updated Policy Summary to show only attendance rules
+
+**Before/After:**
+| Aspect | Before | After |
+|--------|--------|-------|
+| Page title | Attendance & Leave Settings | Attendance Settings |
+| Leave quotas | Duplicated here | Only in LeavePolicySettings |
+| Policy summary | Attendance + Leave | Attendance only |
+| Link to Leave Policy | None | Green card with button |
+
+**Files Modified:**
+- `/app/frontend/src/pages/hr/AttendanceLeaveSettings.js`
+
+**Data Integrity:** No API changes, no database changes. Users can still access leave policies via dedicated page.
+
+---
+
+### Phase 84: HR Module Consolidation - December 2025 ✅
 
 **Objective:** Consolidate overlapping HR pages to improve UX without breaking existing workflows.
 

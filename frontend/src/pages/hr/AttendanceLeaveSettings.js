@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { 
   Clock, Calendar, Settings, Save, RefreshCw, AlertTriangle,
-  Sun, Moon, Coffee, DollarSign, Users, CheckCircle, User,
+  Sun, Moon, Coffee, DollarSign, Users, User,
   Plus, Edit2, Trash2, Info, Badge
 } from 'lucide-react';
 import { useFetch } from '../../hooks/useApi';
@@ -40,17 +40,6 @@ const AttendanceLeaveSettings = () => {
     late_penalty_amount: 100
   });
 
-  // Leave Policy Settings
-  const [leavePolicy, setLeavePolicy] = useState({
-    casual_leave: 12,
-    sick_leave: 6,
-    earned_leave: 15,
-    carry_forward_enabled: false,
-    max_carry_forward: 5,
-    probation_leave_enabled: false,
-    probation_leave_days: 0
-  });
-
   // Consulting Roles
   const [consultingRoles, setConsultingRoles] = useState([]);
   
@@ -70,10 +59,7 @@ const AttendanceLeaveSettings = () => {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   // Query: Fetch attendance policy
-  const { data: attendancePolicyData, isLoading: loadingPolicy } = useFetch('/api/attendance/policy');
-
-  // Query: Fetch leave policy
-  const { data: leavePolicyData } = useFetch('/api/settings/leave-policy');
+  const { data: attendancePolicyData, isLoading: loadingPolicy, refetch: refetchAttendancePolicy } = useFetch('/api/attendance/policy');
 
   // Query: Fetch consulting employees
   const { data: consultingData } = useFetch('/api/attendance/consulting-employees');
@@ -100,12 +86,6 @@ const AttendanceLeaveSettings = () => {
       setConsultingRoles(attendancePolicyData.consulting_roles);
     }
   }, [attendancePolicyData]);
-
-  useEffect(() => {
-    if (leavePolicyData?.policy) {
-      setLeavePolicy(leavePolicyData.policy);
-    }
-  }, [leavePolicyData]);
 
   useEffect(() => {
     if (consultingData?.consulting_roles) {
@@ -214,26 +194,6 @@ const AttendanceLeaveSettings = () => {
     (editingPolicy && editingPolicy.employee_id === emp.id)
   );
 
-  // Mutation: Save leave policy
-  const saveLeavePolicyMutation = useMutation({
-    mutationFn: async () => {
-      return axios.post(`${API}/api/settings/leave-policy`, { policy: leavePolicy }, { headers });
-    },
-    onSuccess: () => {
-      toast.success('Leave policy saved successfully');
-      queryClient.invalidateQueries({ queryKey: ['/api/settings/leave-policy'] });
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.detail || 'Failed to save leave policy');
-    },
-    onSettled: () => setSaving(false)
-  });
-
-  const saveLeavePolicy = () => {
-    setSaving(true);
-    saveLeavePolicyMutation.mutate();
-  };
-
   const toggleWorkingDay = (day) => {
     setAttendancePolicy(prev => ({
       ...prev,
@@ -254,13 +214,13 @@ const AttendanceLeaveSettings = () => {
   }
 
   return (
-    <div className="p-6 space-y-6" data-testid="attendance-leave-settings">
+    <div className="p-6 space-y-6" data-testid="attendance-settings">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Attendance & Leave Settings</h1>
-          <p className="text-zinc-600">Configure attendance policies, working hours, and leave entitlements</p>
+          <h1 className="text-2xl font-bold text-zinc-900">Attendance Settings</h1>
+          <p className="text-zinc-600">Configure attendance policies, working hours, and grace periods</p>
         </div>
-        <Button onClick={fetchSettings} variant="outline" size="sm">
+        <Button onClick={() => refetchAttendancePolicy()} variant="outline" size="sm">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
@@ -550,140 +510,23 @@ const AttendanceLeaveSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Leave Policy */}
-      <Card className="bg-white border-zinc-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-green-400" />
-            Leave Policy
-          </CardTitle>
-          <CardDescription>Configure annual leave entitlements and rules</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Leave Entitlements */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-zinc-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <Sun className="w-5 h-5 text-blue-400" />
-                <Label className="text-zinc-800">Casual Leave</Label>
-              </div>
-              <Input
-                type="number"
-                min="0"
-                value={leavePolicy.casual_leave}
-                onChange={(e) => setLeavePolicy(prev => ({
-                  ...prev,
-                  casual_leave: parseInt(e.target.value) || 0
-                }))}
-                className="bg-zinc-100 border-zinc-300"
-              />
-              <p className="text-xs text-zinc-500 mt-1">Days per year</p>
-            </div>
-
-            <div className="bg-zinc-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-                <Label className="text-zinc-800">Sick Leave</Label>
-              </div>
-              <Input
-                type="number"
-                min="0"
-                value={leavePolicy.sick_leave}
-                onChange={(e) => setLeavePolicy(prev => ({
-                  ...prev,
-                  sick_leave: parseInt(e.target.value) || 0
-                }))}
-                className="bg-zinc-100 border-zinc-300"
-              />
-              <p className="text-xs text-zinc-500 mt-1">Days per year</p>
-            </div>
-
-            <div className="bg-zinc-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <Label className="text-zinc-800">Earned Leave</Label>
-              </div>
-              <Input
-                type="number"
-                min="0"
-                value={leavePolicy.earned_leave}
-                onChange={(e) => setLeavePolicy(prev => ({
-                  ...prev,
-                  earned_leave: parseInt(e.target.value) || 0
-                }))}
-                className="bg-zinc-100 border-zinc-300"
-              />
-              <p className="text-xs text-zinc-500 mt-1">Days per year</p>
+      {/* Leave Policy Notice - Link to Leave Policy Settings */}
+      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-green-600" />
+            <div>
+              <p className="text-sm font-medium text-green-800">Leave Policy Configuration</p>
+              <p className="text-xs text-green-600">Configure leave entitlements, carry forward, and more in Leave Policy Settings</p>
             </div>
           </div>
-
-          {/* Additional Leave Rules */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg">
-              <div>
-                <Label className="text-zinc-800">Carry Forward Leaves</Label>
-                <p className="text-xs text-zinc-500">Allow unused leaves to carry forward to next year</p>
-              </div>
-              <Switch
-                checked={leavePolicy.carry_forward_enabled}
-                onCheckedChange={(checked) => setLeavePolicy(prev => ({
-                  ...prev,
-                  carry_forward_enabled: checked
-                }))}
-              />
-            </div>
-
-            {leavePolicy.carry_forward_enabled && (
-              <div className="ml-4">
-                <Label className="text-zinc-800">Maximum Carry Forward Days</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={leavePolicy.max_carry_forward}
-                  onChange={(e) => setLeavePolicy(prev => ({
-                    ...prev,
-                    max_carry_forward: parseInt(e.target.value) || 0
-                  }))}
-                  className="bg-zinc-50 border-zinc-300 w-32"
-                />
-              </div>
-            )}
-
-            <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg">
-              <div>
-                <Label className="text-zinc-800">Probation Period Leaves</Label>
-                <p className="text-xs text-zinc-500">Allow limited leaves during probation period</p>
-              </div>
-              <Switch
-                checked={leavePolicy.probation_leave_enabled}
-                onCheckedChange={(checked) => setLeavePolicy(prev => ({
-                  ...prev,
-                  probation_leave_enabled: checked
-                }))}
-              />
-            </div>
-
-            {leavePolicy.probation_leave_enabled && (
-              <div className="ml-4">
-                <Label className="text-zinc-800">Probation Leave Days</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={leavePolicy.probation_leave_days}
-                  onChange={(e) => setLeavePolicy(prev => ({
-                    ...prev,
-                    probation_leave_days: parseInt(e.target.value) || 0
-                  }))}
-                  className="bg-zinc-50 border-zinc-300 w-32"
-                />
-              </div>
-            )}
-          </div>
-
-          <Button onClick={saveLeavePolicy} disabled={saving} className="bg-green-600 hover:bg-green-700">
-            <Save className="w-4 h-4 mr-2" />
-            Save Leave Policy
-          </Button>
+          <a 
+            href="/leave-policy-settings" 
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Open Leave Policy
+          </a>
         </CardContent>
       </Card>
 
@@ -692,31 +535,19 @@ const AttendanceLeaveSettings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-zinc-600" />
-            Current Policy Summary
+            Current Attendance Summary
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-medium text-zinc-700 mb-2">Attendance Rules</h4>
-              <ul className="text-sm text-zinc-600 space-y-1">
-                <li>Working Days: {attendancePolicy.working_days.map(d => d.slice(0, 3)).join(', ')}</li>
-                <li>Non-Consulting: {attendancePolicy.non_consulting.check_in} - {attendancePolicy.non_consulting.check_out}</li>
-                <li>Consulting: {attendancePolicy.consulting.check_in} - {attendancePolicy.consulting.check_out}</li>
-                <li>Grace: {attendancePolicy.grace_days_per_month} days/month with {attendancePolicy.grace_period_minutes} min tolerance</li>
-                <li>Penalty: ₹{attendancePolicy.late_penalty_amount}/day beyond grace</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-zinc-700 mb-2">Leave Entitlements</h4>
-              <ul className="text-sm text-zinc-600 space-y-1">
-                <li>Casual Leave: {leavePolicy.casual_leave} days/year</li>
-                <li>Sick Leave: {leavePolicy.sick_leave} days/year</li>
-                <li>Earned Leave: {leavePolicy.earned_leave} days/year</li>
-                <li>Carry Forward: {leavePolicy.carry_forward_enabled ? `Up to ${leavePolicy.max_carry_forward} days` : 'Disabled'}</li>
-                <li>Total Annual: {leavePolicy.casual_leave + leavePolicy.sick_leave + leavePolicy.earned_leave} days</li>
-              </ul>
-            </div>
+          <div>
+            <h4 className="text-sm font-medium text-zinc-700 mb-2">Attendance Rules</h4>
+            <ul className="text-sm text-zinc-600 space-y-1">
+              <li>Working Days: {attendancePolicy.working_days.map(d => d.slice(0, 3)).join(', ')}</li>
+              <li>Non-Consulting: {attendancePolicy.non_consulting.check_in} - {attendancePolicy.non_consulting.check_out}</li>
+              <li>Consulting: {attendancePolicy.consulting.check_in} - {attendancePolicy.consulting.check_out}</li>
+              <li>Grace: {attendancePolicy.grace_days_per_month} days/month with {attendancePolicy.grace_period_minutes} min tolerance</li>
+              <li>Penalty: ₹{attendancePolicy.late_penalty_amount}/day beyond grace</li>
+            </ul>
           </div>
         </CardContent>
       </Card>
