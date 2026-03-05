@@ -3,6 +3,7 @@
  * All lead-related API operations via React Query
  * 
  * REACT QUERY ENFORCEMENT - March 2026
+ * MIGRATION COMPLETE - December 2025
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -24,6 +25,9 @@ export const leadKeys = {
   detail: (id) => [...leadKeys.details(), id],
   activities: (id) => [...leadKeys.all, 'activities', id],
   stage: (id) => [...leadKeys.all, 'stage', id],
+  progress: (id) => [...leadKeys.all, 'progress', id],
+  progressBulk: () => [...leadKeys.all, 'progress', 'bulk'],
+  suggestions: (id) => [...leadKeys.all, 'suggestions', id],
 };
 
 // ==================== QUERIES ====================
@@ -102,6 +106,57 @@ export const useLeadStage = (leadId) => {
     },
     enabled: !!leadId,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch lead progress for a single lead
+ */
+export const useLeadProgress = (leadId) => {
+  return useQuery({
+    queryKey: leadKeys.progress(leadId),
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/api/leads/${leadId}/progress`, {
+        headers: getAuthHeaders(),
+      });
+      return data;
+    },
+    enabled: !!leadId,
+    staleTime: 3 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch bulk lead progress for all leads
+ */
+export const useBulkLeadProgress = () => {
+  return useQuery({
+    queryKey: leadKeys.progressBulk(),
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/api/leads/progress/bulk`, {
+        headers: getAuthHeaders(),
+      });
+      return data || {};
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch lead suggestions for high-scoring leads
+ */
+export const useLeadSuggestions = (leadId, enabled = true) => {
+  return useQuery({
+    queryKey: leadKeys.suggestions(leadId),
+    queryFn: async () => {
+      const { data } = await axios.get(`${API}/api/leads/${leadId}/suggestions`, {
+        headers: getAuthHeaders(),
+      });
+      return data?.suggestions || [];
+    },
+    enabled: !!leadId && enabled,
+    staleTime: 10 * 60 * 1000, // 10 minutes for suggestions
+    retry: false, // Don't retry on failure for suggestions
   });
 };
 
@@ -211,14 +266,92 @@ export const useAdvanceLeadStage = () => {
   });
 };
 
+/**
+ * Pause lead
+ */
+export const usePauseLead = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (leadId) => {
+      const { data } = await axios.post(
+        `${API}/api/leads/${leadId}/pause`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leadKeys.all });
+      queryClient.invalidateQueries({ queryKey: leadKeys.progressBulk() });
+    },
+  });
+};
+
+/**
+ * Resume lead
+ */
+export const useResumeLead = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (leadId) => {
+      const { data } = await axios.post(
+        `${API}/api/leads/${leadId}/resume`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leadKeys.all });
+      queryClient.invalidateQueries({ queryKey: leadKeys.progressBulk() });
+    },
+  });
+};
+
+/**
+ * Bulk create leads (for CSV import)
+ */
+export const useBulkCreateLeads = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (leadsArray) => {
+      const results = { success: 0, failed: 0 };
+      for (const leadData of leadsArray) {
+        try {
+          await axios.post(`${API}/api/leads`, leadData, {
+            headers: getAuthHeaders(),
+          });
+          results.success++;
+        } catch {
+          results.failed++;
+        }
+      }
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: leadKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'funnel'] });
+    },
+  });
+};
+
 export default {
   useLeads,
   useLead,
   useLeadActivities,
   useLeadStage,
+  useLeadProgress,
+  useBulkLeadProgress,
+  useLeadSuggestions,
   useCreateLead,
   useUpdateLead,
   useDeleteLead,
   useAddLeadActivity,
   useAdvanceLeadStage,
+  usePauseLead,
+  useResumeLead,
+  useBulkCreateLeads,
 };

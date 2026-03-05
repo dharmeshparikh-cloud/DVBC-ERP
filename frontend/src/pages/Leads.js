@@ -1,23 +1,30 @@
 import React, { useState, useContext, useMemo, useRef, useCallback, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { API, AuthContext } from '../App';
+import { AuthContext } from '../App';
 import { usePermissions } from '../contexts/PermissionContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Mail, Phone, Briefcase, ExternalLink, Bell, TrendingUp, DollarSign, Eye, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Save, Pause, Play, MoreVertical, CheckCircle, Circle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Mail, Phone, Briefcase, ExternalLink, TrendingUp, DollarSign, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Pause, Play, CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
-import { StageResumeBar } from '../components/sales-funnel/BusinessLogicUI';
-import { Progress } from '../components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useLeads as useLeadsQuery,
+  useBulkLeadProgress,
+  useLeadProgress,
+  useCreateLead,
+  useUpdateLead,
+  usePauseLead,
+  useResumeLead,
+  useBulkCreateLeads,
+  leadKeys,
+} from '../hooks/useLeads';
 
 // Funnel Progress Indicator Component
 const FunnelProgressIndicator = ({ progress, onClick }) => {
@@ -131,7 +138,6 @@ const Leads = () => {
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [csvData, setCsvData] = useState('');
   const [csvPreview, setCsvPreview] = useState([]);
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -140,50 +146,54 @@ const Leads = () => {
   const [viewMode, setViewMode] = useState('list'); // Default to list view
   const [showDraftSelector, setShowDraftSelector] = useState(false);
 
-  // Fetch leads with React Query
-  const { data: leadsData, isLoading: loading, refetch: refetchLeads } = useQuery({
-    queryKey: ['leads', { status: selectedStatus }],
-    queryFn: async () => {
-      const params = selectedStatus ? { status: selectedStatus } : {};
-      const response = await axios.get(`${API}/leads`, { params });
-      // Sort by lead score descending
-      return response.data.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0));
-    },
-    staleTime: 3 * 60 * 1000, // 3 minutes
-  });
+  // React Query hooks for data fetching
+  const { data: leadsResponse, isLoading: loading, refetch: refetchLeads } = useLeadsQuery({ status: selectedStatus });
+  const { data: leadProgress = {} } = useBulkLeadProgress();
 
-  // Fetch lead progress in bulk
-  const { data: leadProgress = {} } = useQuery({
-    queryKey: ['leads', 'progress', 'bulk'],
-    queryFn: async () => {
-      const res = await axios.get(`${API}/leads/progress/bulk`);
-      return res.data || {};
-    },
-    staleTime: 3 * 60 * 1000,
-  });
+  // Sort leads by lead score descending
+  // API returns data as { items: [...] } or { leads: [...] } or just array
+  const leads = useMemo(() => {
+    const data = leadsResponse?.items || leadsResponse?.leads || leadsResponse || [];
+    return Array.isArray(data) ? [...data].sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0)) : [];
+  }, [leadsResponse]);
 
-  const leads = leadsData || [];
+  // React Query mutations
+  const createLeadMutation = useCreateLead();
+  const updateLeadMutation = useUpdateLead();
+  const pauseLeadMutation = usePauseLead();
+  const resumeLeadMutation = useResumeLead();
+  const bulkCreateLeadsMutation = useBulkCreateLeads();
 
-  // Fetch suggestions for high-scoring leads
+  // Suggestions are now fetched via prefetching in a controlled way
+  // We prefetch suggestions for high-scoring leads when the leads list loads
   useEffect(() => {
     if (leads.length > 0) {
-      leads.forEach(async (lead) => {
+      leads.forEach((lead) => {
         if (lead.lead_score >= 60 && !suggestions[lead.id]) {
-          try {
-            const suggestionsRes = await axios.get(`${API}/leads/${lead.id}/suggestions`);
-            if (suggestionsRes.data.suggestions?.length > 0) {
-              setSuggestions(prev => ({
-                ...prev,
-                [lead.id]: suggestionsRes.data.suggestions
-              }));
+          // Prefetch suggestions query - it will be cached by React Query
+          queryClient.prefetchQuery({
+            queryKey: leadKeys.suggestions(lead.id),
+            queryFn: async () => {
+              const API = process.env.REACT_APP_BACKEND_URL;
+              const token = localStorage.getItem('token');
+              const headers = token ? { Authorization: `Bearer ${token}` } : {};
+              const res = await fetch(`${API}/api/leads/${lead.id}/suggestions`, { headers });
+              if (!res.ok) return [];
+              const data = await res.json();
+              return data?.suggestions || [];
+            },
+            staleTime: 10 * 60 * 1000,
+          }).then((data) => {
+            if (data?.length > 0) {
+              setSuggestions(prev => ({ ...prev, [lead.id]: data }));
             }
-          } catch (error) {
+          }).catch(() => {
             // Silently fail for suggestions
-          }
+          });
         }
       });
     }
-  }, [leads]);
+  }, [leads, queryClient, suggestions]);
   
   // Lead status options for dropdown filter
   const leadStatusOptions = [
@@ -292,10 +302,9 @@ const Leads = () => {
   };
 
   // Refetch helper for cache invalidation
-  // Refetch helper for cache invalidation
   const fetchLeads = () => {
     refetchLeads();
-    queryClient.invalidateQueries({ queryKey: ['leads', 'progress', 'bulk'] });
+    queryClient.invalidateQueries({ queryKey: leadKeys.progressBulk() });
   };
 
   // Navigate to current stage when clicking on lead
@@ -305,15 +314,27 @@ const Leads = () => {
       toast.info('This lead is paused. Resume it to continue the sales flow.');
       return;
     }
-    try {
-      const progressRes = await axios.get(`${API}/leads/${lead.id}/progress`);
-      if (progressRes.data.next_url) {
-        navigate(progressRes.data.next_url);
-      } else {
-        navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`);
+    // Use prefetched progress or navigate to default
+    const cachedProgress = queryClient.getQueryData(leadKeys.progress(lead.id));
+    if (cachedProgress?.next_url) {
+      navigate(cachedProgress.next_url);
+    } else {
+      // Fetch progress if not cached
+      try {
+        const API = process.env.REACT_APP_BACKEND_URL;
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${API}/api/leads/${lead.id}/progress`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.next_url) {
+            navigate(data.next_url);
+            return;
+          }
+        }
+      } catch {
+        // Fallback on error
       }
-    } catch (error) {
-      // Fallback to pricing plans if progress API fails
       navigate(`/sales-funnel/pricing-plans?leadId=${lead.id}`);
     }
   };
@@ -322,9 +343,8 @@ const Leads = () => {
   const handlePauseLead = async (leadId, e) => {
     e?.stopPropagation();
     try {
-      await axios.post(`${API}/leads/${leadId}/pause`);
+      await pauseLeadMutation.mutateAsync(leadId);
       toast.success('Lead paused successfully');
-      fetchLeads();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to pause lead');
     }
@@ -333,9 +353,8 @@ const Leads = () => {
   const handleResumeLead = async (leadId, e) => {
     e?.stopPropagation();
     try {
-      await axios.post(`${API}/leads/${leadId}/resume`);
+      await resumeLeadMutation.mutateAsync(leadId);
       toast.success('Lead resumed successfully');
-      fetchLeads();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to resume lead');
     }
@@ -343,9 +362,8 @@ const Leads = () => {
 
   const handleStatusChange = async (leadId, newStatus) => {
     try {
-      await axios.patch(`${API}/leads/${leadId}`, { status: newStatus });
+      await updateLeadMutation.mutateAsync({ id: leadId, status: newStatus });
       toast.success(`Lead status updated to ${newStatus}`);
-      fetchLeads();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to update status');
     }
@@ -354,8 +372,7 @@ const Leads = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API}/leads`, formData);
-      const newLead = response.data;
+      const newLead = await createLeadMutation.mutateAsync(formData);
       toast.success('Lead created successfully! Redirecting to Sales Funnel...');
       setDialogOpen(false);
       
@@ -378,7 +395,18 @@ const Leads = () => {
       // Lead step will be ticked, Meeting step will be current
       navigate(`/sales-funnel-onboarding?leadId=${newLead.id}`);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create lead');
+      // Handle validation errors which may be an array or object
+      const detail = error.response?.data?.detail;
+      let errorMessage = 'Failed to create lead';
+      if (typeof detail === 'string') {
+        errorMessage = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        // Validation errors are usually in format [{loc: [...], msg: '...', type: '...'}]
+        errorMessage = detail.map(d => d.msg || d.message || String(d)).join(', ');
+      } else if (detail && typeof detail === 'object') {
+        errorMessage = detail.msg || detail.message || JSON.stringify(detail);
+      }
+      toast.error(errorMessage);
     }
   };
 
@@ -434,38 +462,31 @@ const Leads = () => {
       return;
     }
     
-    setUploading(true);
-    let success = 0;
-    let failed = 0;
+    // Map CSV rows to lead data format
+    const leadsToCreate = parsed.map(row => ({
+      first_name: row.first_name || row.firstname || row.name?.split(' ')[0] || '',
+      last_name: row.last_name || row.lastname || row.name?.split(' ').slice(1).join(' ') || '',
+      company: row.company || row.organization || '',
+      job_title: row.job_title || row.title || row.designation || '',
+      email: row.email || '',
+      phone: row.phone || row.mobile || '',
+      linkedin_url: row.linkedin || row.linkedin_url || '',
+      source: row.source || 'CSV Import',
+      notes: row.notes || ''
+    }));
     
-    for (const row of parsed) {
-      try {
-        await axios.post(`${API}/leads`, {
-          first_name: row.first_name || row.firstname || row.name?.split(' ')[0] || '',
-          last_name: row.last_name || row.lastname || row.name?.split(' ').slice(1).join(' ') || '',
-          company: row.company || row.organization || '',
-          job_title: row.job_title || row.title || row.designation || '',
-          email: row.email || '',
-          phone: row.phone || row.mobile || '',
-          linkedin_url: row.linkedin || row.linkedin_url || '',
-          source: row.source || 'CSV Import',
-          notes: row.notes || ''
-        });
-        success++;
-      } catch (error) {
-        failed++;
+    try {
+      const results = await bulkCreateLeadsMutation.mutateAsync(leadsToCreate);
+      setCsvDialogOpen(false);
+      setCsvData('');
+      setCsvPreview([]);
+      
+      if (results.success > 0) {
+        toast.success(`Successfully imported ${results.success} leads${results.failed > 0 ? `, ${results.failed} failed` : ''}`);
+      } else {
+        toast.error('Failed to import leads');
       }
-    }
-    
-    setUploading(false);
-    setCsvDialogOpen(false);
-    setCsvData('');
-    setCsvPreview([]);
-    
-    if (success > 0) {
-      toast.success(`Successfully imported ${success} leads${failed > 0 ? `, ${failed} failed` : ''}`);
-      fetchLeads();
-    } else {
+    } catch (error) {
       toast.error('Failed to import leads');
     }
   };
@@ -866,11 +887,11 @@ const Leads = () => {
               </Button>
               <Button 
                 onClick={handleBulkUpload} 
-                disabled={uploading || parseCSV(csvData).length === 0}
+                disabled={bulkCreateLeadsMutation.isPending || parseCSV(csvData).length === 0}
                 className="flex-1 bg-zinc-950 text-white"
                 data-testid="import-csv-btn"
               >
-                {uploading ? 'Importing...' : `Import ${parseCSV(csvData).length} Leads`}
+                {bulkCreateLeadsMutation.isPending ? 'Importing...' : `Import ${parseCSV(csvData).length} Leads`}
               </Button>
             </div>
           </div>
