@@ -1,140 +1,124 @@
 {
-  "project_name": "NETRA - Sales Funnel & Client Onboarding",
+  "project_name": "NETRA ERP Login Redesign",
   "design_philosophy": {
-    "identity": "E1 - The Anti-AI Designer",
+    "identity": "The Glass Citadel",
     "core_principles": [
-      "Fusion over Imitation: ERP structure + Fintech polish",
-      "Emotion First: The user should feel 'In Control' and 'Progressing'",
-      "Content is King: Every step explains 'Why'",
-      "Negative Space: High density data needs room to breathe"
+      "Trust through Clarity: No hidden elements, clear hierarchy.",
+      "Growth & Vision: Emerald greens symbolize growth; the design feels expansive.",
+      "Tactile Precision: Inputs and buttons feel physical and responsive."
     ],
-    "theme": "Premium Light (Corporate/Consulting)",
-    "visual_style": "Clean, structured, vertical-timeline driven, with subtle glassmorphic accents."
+    "mood": "Professional, Secure, Modern, Fluid"
   },
   "typography": {
     "font_family": {
-      "headings": "Manrope, sans-serif",
+      "headings": "Inter, sans-serif",
       "body": "Inter, sans-serif",
-      "mono": "JetBrains Mono, monospace"
+      "data_inputs": "JetBrains Mono, monospace"
     },
-    "installation_command": "npm install @fontsource/manrope @fontsource/inter",
     "scale": {
-      "h1": "text-4xl font-bold tracking-tight text-slate-900",
-      "h2": "text-3xl font-semibold tracking-tight text-slate-900",
-      "h3": "text-2xl font-semibold text-slate-800",
-      "h4": "text-xl font-medium text-slate-800",
-      "body_lg": "text-lg leading-relaxed text-slate-600",
-      "body_base": "text-base leading-relaxed text-slate-600",
-      "body_sm": "text-sm text-slate-500",
-      "caption": "text-xs font-medium uppercase tracking-wider text-slate-400"
+      "h1": "text-4xl md:text-5xl font-semibold tracking-tight",
+      "h2": "text-3xl font-medium tracking-tight",
+      "h3": "text-xl font-medium text-emerald-900",
+      "body_lg": "text-lg text-zinc-600 leading-relaxed",
+      "body_sm": "text-sm text-zinc-500 font-medium",
+      "label": "text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2 block"
     }
   },
   "colors": {
     "palette": {
-      "primary": {
-        "DEFAULT": "#1e1b4b",
-        "foreground": "#ffffff",
-        "hover": "#312e81"
-      },
-      "secondary": {
-        "DEFAULT": "#f8fafc",
-        "foreground": "#0f172a"
-      },
-      "accent": {
-        "DEFAULT": "#4f46e5",
-        "foreground": "#ffffff",
-        "glow": "rgba(79, 70, 229, 0.5)"
-      },
-      "success": {
-        "DEFAULT": "#10b981",
-        "subtle": "#d1fae5"
-      },
       "background": {
-        "page": "#f1f5f9",
-        "card": "#ffffff",
-        "sidebar": "#ffffff"
+        "page": "bg-zinc-50",
+        "panel_right": "bg-emerald-950",
+        "glass_card": "bg-white/10 backdrop-blur-md border border-white/10"
+      },
+      "primary": {
+        "main": "bg-emerald-600",
+        "hover": "hover:bg-emerald-700",
+        "text": "text-emerald-600"
+      },
+      "text": {
+        "primary": "text-zinc-900",
+        "secondary": "text-zinc-500",
+        "inverse": "text-white"
       },
       "border": {
-        "DEFAULT": "#e2e8f0",
-        "subtle": "#f1f5f9"
+        "default": "border-zinc-200",
+        "focus": "ring-emerald-500/20"
       }
     },
-    "usage_rules": [
-      "Use Primary (Deep Indigo) for main actions and active states.",
-      "Use Accent (Electric Indigo/Violet) for focus rings and active step indicators.",
-      "Backgrounds should never be pure white (#ffffff) for the main page canvas; use #f1f5f9 (Slate-100).",
-      "Sidebar and Cards should be pure white to pop against the grey background."
-    ]
+    "gradients": {
+      "vision_panel": "bg-gradient-to-br from-emerald-900 via-emerald-950 to-zinc-950"
+    }
   },
-  "layout_structure": {
-    "type": "Split View (Sidebar + Main Content)",
-    "sidebar": {
-      "width": "w-80 (20rem) or w-96 (24rem)",
-      "position": "fixed left-0 top-0 h-full",
-      "style": "bg-white border-r border-slate-200 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
-      "content": "Vertical Step Timeline"
-    },
-    "main_content": {
-      "margin": "ml-80 or ml-96",
-      "width": "calc(100% - 20rem)",
-      "padding": "p-8 md:p-12",
-      "style": "bg-slate-100 min-h-screen"
+  "layout": {
+    "structure": "Grid Layout (Mobile: 1 col, Desktop: 12 cols)",
+    "desktop_split": "Left: 5 cols (Form), Right: 7 cols (Vision Panel)",
+    "container_padding": "p-6 md:p-12 lg:p-24",
+    "z_index": {
+      "base": "z-0",
+      "content": "z-10",
+      "overlay": "z-20",
+      "modal": "z-50"
     }
   },
   "components": {
-    "StepTimeline": {
-      "description": "Vertical list of steps with connecting lines.",
-      "visuals": {
-        "line": "w-0.5 bg-slate-200 absolute left-4 top-10 bottom-0",
-        "node_active": "w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 ring-4 ring-indigo-50 z-10 relative",
-        "node_completed": "w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center z-10 relative",
-        "node_pending": "w-8 h-8 rounded-full bg-white border-2 border-slate-200 text-slate-400 flex items-center justify-center z-10 relative",
-        "text_active": "font-bold text-slate-900",
-        "text_pending": "font-medium text-slate-500"
-      }
+    "button": {
+      "base": "h-12 px-8 rounded-lg font-medium transition-all duration-300 transform active:scale-95",
+      "primary": "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/40 hover:-translate-y-0.5",
+      "secondary": "bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300",
+      "ghost": "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
     },
-    "WorkspacePanel": {
-      "description": "The active area where the user works.",
-      "container": "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden",
-      "header": "px-8 py-6 border-b border-slate-100 bg-white sticky top-0 z-10",
-      "body": "p-8 space-y-6",
-      "footer": "px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center"
+    "input": {
+      "wrapper": "relative group",
+      "field": "h-12 w-full rounded-lg border border-zinc-200 bg-white px-4 text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-200 font-medium",
+      "label_floating": "absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none transition-all duration-200 group-focus-within:-translate-y-[28px] group-focus-within:text-xs group-focus-within:text-emerald-600 bg-white px-1"
     },
-    "ProgressBar": {
-      "location": "Top of Sidebar or Top of Main Content",
-      "style": "h-1.5 bg-slate-100 rounded-full overflow-hidden",
-      "fill": "h-full bg-primary transition-all duration-500 ease-out"
+    "card": {
+      "glass": "rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-8"
     }
   },
-  "interactive_states": {
-    "hover": "All clickable cards/items must have `hover:bg-slate-50` and `transition-colors duration-200`.",
-    "focus": "All inputs must have `focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500`.",
-    "step_transition": "Use Framer Motion `AnimatePresence` for smooth cross-fading between step content."
+  "visual_enhancers": {
+    "texture": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")",
+    "shadows": {
+      "soft": "shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
+      "glow": "shadow-[0_0_50px_-12px_rgb(16,185,129,0.25)]"
+    },
+    "images": {
+      "logo_url": "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png",
+      "background_texture": "https://images.unsplash.com/photo-1765207373297-9c562a2521d0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBvZmZpY2UlMjBhcmNoaXRlY3R1cmUlMjBhYnN0cmFjdCUyMGJsdXIlMjBtaW5pbWFsfGVufDB8fHx8MTc3Mjg1MzEzNXww&ixlib=rb-4.1.0&q=85"
+    }
   },
-  "assets": {
-    "icons_library": "lucide-react",
-    "logo_placeholder": "Use a text placeholder 'NETRA' with font-bold if no logo image is available."
+  "motion": {
+    "entrance": {
+      "initial": { "opacity": 0, "y": 20 },
+      "animate": { "opacity": 1, "y": 0 },
+      "transition": { "duration": 0.6, "ease": [0.22, 1, 0.36, 1] }
+    },
+    "hover": {
+      "scale": 1.02
+    }
   },
-  "steps_config": [
-    { "id": 1, "label": "Lead Details", "description": "Review & qualify", "icon": "User" },
-    { "id": 2, "label": "Meeting Record", "description": "Log initial discussion", "icon": "Video" },
-    { "id": 3, "label": "Pricing Plan", "description": "Configure services", "icon": "CreditCard" },
-    { "id": 4, "label": "Scope of Work", "description": "Define deliverables", "icon": "FileText" },
-    { "id": 5, "label": "Quotation", "description": "Generate quote", "icon": "FileOutput" },
-    { "id": 6, "label": "Agreement", "description": "Legal contract", "icon": "Scale" },
-    { "id": 7, "label": "Record Payment", "description": "Advance received", "icon": "Banknote" },
-    { "id": 8, "label": "Kickoff Request", "description": "Internal handover", "icon": "Rocket" },
-    { "id": 9, "label": "Project Created", "description": "Success!", "icon": "CheckCircle" }
+  "accessibility": {
+    "focus_visible": "focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2",
+    "contrast_check": "Ensure text-zinc-500 is only used on white backgrounds. Use text-zinc-400 for placeholders only."
+  },
+  "instructions_to_main_agent": [
+    "INSTALL: `npm install framer-motion` or `yarn add framer-motion` for the animations.",
+    "LAYOUT: Use a min-h-screen flex col md:grid md:grid-cols-12 overflow-hidden.",
+    "LEFT PANEL (Cols 1-5): Flex col justify-center p-8 md:p-12 relative z-10 bg-zinc-50.",
+    "RIGHT PANEL (Cols 6-12): Relative hidden md:flex flex-col justify-center items-center bg-emerald-950 overflow-hidden.",
+    "RIGHT PANEL BACKGROUND: Apply the 'background_texture' image with `mix-blend-overlay` and opacity-20. Add the SVG noise texture on top.",
+    "RIGHT PANEL CONTENT: Create a 'Glass Stack' of features. Use the provided glass_card style. Rotate cards slightly for a 'tossed' look.",
+    "LOGO: Place the logo at the top left of the Left Panel (w-32).",
+    "FORM: Center the form vertically in the Left Panel. Max width 420px.",
+    "INPUTS: Use the 'Floating Label' style defined in components.input.",
+    "TESTING: Add data-testid to ALL interactive elements (e.g., 'login-email-input', 'login-submit-button')."
   ],
-  "universal_guidelines": [
-    "Do not use generic centered layouts.",
-    "Dark colors look good when used independently without gradients.",
-    "Use glass-morphism effects with backdrop filters (12-24px blur) for sticky headers/footers.",
-    "Every interaction needs micro-animations.",
-    "Use 2-3x more spacing than feels comfortable.",
-    "NEVER use AI assistant Emoji characters.",
-    "Components MUST use named exports.",
-    "Use 'sonner' for toasts."
-  ],
-  "instructions_to_main_agent": "Create a main layout file (e.g., `SalesFunnelLayout.jsx`) that manages the state of the wizard. Use a 'currentStep' state to render the appropriate sub-component in the right panel. Mock the sub-components (PricingBuilder, SOWBuilder) with simple placeholder cards if they don't exist, but ensure the routing/logic is ready to connect. Ensure the Sidebar is responsive (collapses to a top bar on mobile)."
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do not use gradients for dark solid colors.",
+    "Avoid centering text in the main form; keep it left-aligned for readability.",
+    "Use 'JetBrains Mono' for the Employee ID field to distinguish it from regular text.",
+    "Ensure the Google Login button is styled as 'Secondary' but with the Google icon.",
+    "Use `lucide-react` for icons (Lock, User, Check, Eye, EyeOff)."
+  ]
 }
