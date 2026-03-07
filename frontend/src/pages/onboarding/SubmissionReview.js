@@ -1345,7 +1345,17 @@ const SubmissionReview = () => {
               </CardHeader>
               <CardContent>
                 <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
-                  {!hv.documents_verified && (submission.documents?.length || 0) > 0 && (
+                  {/* Check minimum documents requirement */}
+                  {(submission.documents?.length || 0) < 2 && (
+                    <li className="flex items-start gap-2">
+                      <span className="font-medium">Upload Documents:</span>
+                      <span className="text-blue-600">
+                        {2 - (submission.documents?.length || 0)} more document(s) required. 
+                        Scroll up to "Documents" section and upload required documents.
+                      </span>
+                    </li>
+                  )}
+                  {!hv.documents_verified && (submission.documents?.length || 0) >= 2 && (
                     <li className="flex items-start gap-2">
                       <span className="font-medium">Verify Documents:</span>
                       <span className="text-blue-600">Click "Verify All Documents" in the Documents section above</span>
@@ -1363,11 +1373,18 @@ const SubmissionReview = () => {
                       <span className="text-blue-600">Fill Department, Manager, Joining Date & Email, then Save Assignment</span>
                     </li>
                   )}
-                  {hv.documents_verified && hv.bank_verified && hrAssignment.department && hrAssignment.reporting_manager_id && hrAssignment.joining_date && hrAssignment.official_email && submission.status === 'submitted' && (
-                    <li className="flex items-start gap-2 text-green-700">
-                      <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <span className="font-medium">Ready to Complete!</span>
-                      <span>Click "Complete Onboarding" below</span>
+                  {/* All ready - show success message */}
+                  {hv.documents_verified && hv.bank_verified && 
+                   hrAssignment.department && hrAssignment.reporting_manager_id && 
+                   hrAssignment.joining_date && hrAssignment.official_email && 
+                   (submission.documents?.length || 0) >= 2 && 
+                   submission.status === 'submitted' && (
+                    <li className="flex items-start gap-2 text-green-700 bg-green-50 p-3 rounded-lg -ml-4">
+                      <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="font-semibold">Ready to Complete!</span>
+                        <p className="text-green-600 mt-1">All verifications done. Click "Complete Onboarding" button below to finish.</p>
+                      </div>
                     </li>
                   )}
                 </ol>
@@ -1375,7 +1392,7 @@ const SubmissionReview = () => {
             </Card>
           )}
 
-          {/* Actions */}
+          {/* Actions - Show for submitted status */}
           {submission.status === 'submitted' && (
             <Card>
               <CardHeader>
@@ -1429,6 +1446,51 @@ const SubmissionReview = () => {
                       </Button>
                     </div>
                   </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Status message for Draft/In Progress - candidate hasn't submitted yet */}
+          {['draft', 'in_progress'].includes(submission.status) && (
+            <Card className="border-amber-200 bg-amber-50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-amber-800 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Awaiting Candidate Submission
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-amber-700">
+                  This candidate has <strong>{submission.status === 'draft' ? 'not started' : 'started but not completed'}</strong> their onboarding form.
+                </p>
+                <p className="text-sm text-amber-600 mt-2">
+                  Once they submit, you'll be able to review and complete the onboarding process.
+                </p>
+                {canApprove && (
+                  <div className="mt-4 pt-4 border-t border-amber-200">
+                    <p className="text-xs text-amber-600 mb-2">HR Actions (Optional):</p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toast.info('Reminder email feature coming soon')}
+                        className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                      >
+                        <Send className="w-3 h-3 mr-1" />
+                        Send Reminder
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowRevisionDialog(true)}
+                        className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Request Revision
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
