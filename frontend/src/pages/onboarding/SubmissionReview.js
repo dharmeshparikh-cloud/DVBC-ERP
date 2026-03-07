@@ -916,8 +916,9 @@ const SubmissionReview = () => {
                     <CheckCircle2 className="w-3 h-3 mr-1" />
                     Verified
                   </Badge>
-                ) : canApprove && submission.status === 'submitted' ? (
-                  <Button size="sm" onClick={handleVerifyBank} disabled={processing}>
+                ) : canApprove && ['submitted', 'draft', 'revision_requested', 'in_progress'].includes(submission.status) ? (
+                  <Button size="sm" onClick={handleVerifyBank} disabled={processing} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
                     Verify Bank
                   </Button>
                 ) : null}

@@ -273,9 +273,9 @@ async def verify_documents(
     """HR Manager verifies all uploaded documents."""
     db = get_db()
     
-    # Only HR Manager or Admin can verify
-    if current_user.role not in ["hr_manager", "admin"]:
-        raise HTTPException(status_code=403, detail="Only HR Manager or Admin can verify documents")
+    # Only HR team or Admin can verify
+    if current_user.role not in ["hr_manager", "hr_admin", "hr_executive", "admin"]:
+        raise HTTPException(status_code=403, detail="Only HR team or Admin can verify documents")
     
     now = datetime.now(timezone.utc).isoformat()
     
@@ -425,8 +425,8 @@ async def verify_bank(
     """HR Manager verifies bank details."""
     db = get_db()
     
-    if current_user.role not in ["hr_manager", "admin"]:
-        raise HTTPException(status_code=403, detail="Only HR Manager or Admin can verify bank details")
+    if current_user.role not in ["hr_manager", "hr_admin", "hr_executive", "admin"]:
+        raise HTTPException(status_code=403, detail="Only HR team or Admin can verify bank details")
     
     now = datetime.now(timezone.utc).isoformat()
     
