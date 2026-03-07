@@ -12,7 +12,7 @@ async def run_test():
         page = await context.new_page()
         
         test_results = []
-        base_url = "https://data-sync-upgrade.preview.emergentagent.com"
+        base_url = "https://hr-module-staging.preview.emergentagent.com"
         
         # Step 1: Login
         print("=" * 60)

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -17,7 +17,8 @@ import { Separator } from '../../components/ui/separator';
 import { 
   ArrowLeft, User, GraduationCap, Briefcase, Building2, Phone, FileText,
   CheckCircle2, XCircle, AlertTriangle, Loader2, Download, ExternalLink,
-  Calendar, Mail, Shield, CreditCard, Clock, Send, Edit, Check, Printer, Upload, Eye
+  Calendar, Mail, Shield, CreditCard, Clock, Send, Edit, Check, Printer, Upload, Eye,
+  Rocket
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -181,24 +182,27 @@ const SubmissionReview = () => {
     onError: () => {
       toast.error('Failed to load submission');
       navigate('/onboarding-hub');
-    },
-    onSuccess: (data) => {
-      // Pre-fill HR assignment form
-      if (data.hr_assigned) {
-        setHrAssignment({
-          department: data.hr_assigned.department || '',
-          reporting_manager_id: data.hr_assigned.reporting_manager_id || '',
-          reporting_manager_name: data.hr_assigned.reporting_manager_name || '',
-          joining_date: data.hr_assigned.joining_date || '',
-          official_email: data.hr_assigned.official_email || '',
-          employment_type: data.hr_assigned.employment_type || 'full_time',
-          designation: data.hr_assigned.designation || data.offered_position || '',
-        });
-      } else if (data.offered_position) {
-        setHrAssignment(prev => ({ ...prev, designation: data.offered_position }));
-      }
     }
   });
+
+  // Sync HR assignment form with submission data (works on both fresh fetch and cache hit)
+  useEffect(() => {
+    if (submission) {
+      if (submission.hr_assigned) {
+        setHrAssignment({
+          department: submission.hr_assigned.department || '',
+          reporting_manager_id: submission.hr_assigned.reporting_manager_id || '',
+          reporting_manager_name: submission.hr_assigned.reporting_manager_name || '',
+          joining_date: submission.hr_assigned.joining_date || '',
+          official_email: submission.hr_assigned.official_email || '',
+          employment_type: submission.hr_assigned.employment_type || 'full_time',
+          designation: submission.hr_assigned.designation || submission.offered_position || '',
+        });
+      } else if (submission.offered_position) {
+        setHrAssignment(prev => ({ ...prev, designation: submission.offered_position }));
+      }
+    }
+  }, [submission]);
 
   // Fetch managers using React Query
   const { data: managersData = [] } = useQuery({
@@ -1334,8 +1338,8 @@ const SubmissionReview = () => {
             </CardContent>
           </Card>
 
-          {/* Next Steps Guide */}
-          {submission.status !== 'completed' && submission.status !== 'rejected' && (
+          {/* Next Steps Guide - Only for 'submitted' status where HR can take action */}
+          {submission.status === 'submitted' && (
             <Card className="border-blue-200 bg-blue-50/50">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base text-blue-800 flex items-center gap-2">
@@ -1377,8 +1381,7 @@ const SubmissionReview = () => {
                   {hv.documents_verified && hv.bank_verified && 
                    hrAssignment.department && hrAssignment.reporting_manager_id && 
                    hrAssignment.joining_date && hrAssignment.official_email && 
-                   (submission.documents?.length || 0) >= 2 && 
-                   submission.status === 'submitted' && (
+                   (submission.documents?.length || 0) >= 2 && (
                     <li className="flex items-start gap-2 text-green-700 bg-green-50 p-3 rounded-lg -ml-4">
                       <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" />
                       <div>
@@ -1462,11 +1465,30 @@ const SubmissionReview = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-amber-700">
-                  This candidate has <strong>{submission.status === 'draft' ? 'not started' : 'started but not completed'}</strong> their onboarding form.
+                  This candidate has <strong>started filling</strong> their onboarding form but <strong>has not submitted</strong> it yet.
                 </p>
                 <p className="text-sm text-amber-600 mt-2">
-                  Once they submit, you'll be able to review and complete the onboarding process.
+                  The candidate needs to click "Submit" on their onboarding form. Once they submit, you can complete the onboarding process.
                 </p>
+                
+                {/* Workflow Guide */}
+                <div className="mt-4 p-3 bg-white/60 rounded-lg border border-amber-200">
+                  <p className="text-xs font-semibold text-amber-800 mb-2">Onboarding Workflow:</p>
+                  <div className="flex items-center gap-2 text-xs text-amber-700">
+                    <span className="px-2 py-1 bg-amber-100 rounded font-medium">1. Candidate Submits</span>
+                    <span>→</span>
+                    <span className="px-2 py-1 bg-blue-100 rounded">2. HR Verifies & Completes</span>
+                    <span>→</span>
+                    <span className="px-2 py-1 bg-green-100 rounded flex items-center gap-1">
+                      <Rocket className="w-3 h-3" />
+                      3. Go-Live Dashboard
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-2">
+                    Currently stuck at step 1. The "Complete Onboarding" and "Go-Live" buttons will appear after the candidate submits.
+                  </p>
+                </div>
+
                 {canApprove && (
                   <div className="mt-4 pt-4 border-t border-amber-200">
                     <p className="text-xs text-amber-600 mb-2">HR Actions (Optional):</p>
@@ -1490,6 +1512,36 @@ const SubmissionReview = () => {
                         Request Revision
                       </Button>
                     </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Status message for Invited - candidate hasn't started */}
+          {submission.status === 'invited' && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-blue-800 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Invite Sent - Waiting for Candidate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-blue-700">
+                  The onboarding invite has been sent. The candidate has <strong>not started</strong> filling out their form yet.
+                </p>
+                {canApprove && (
+                  <div className="mt-4 pt-4 border-t border-blue-200">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast.info('Reminder email feature coming soon')}
+                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    >
+                      <Send className="w-3 h-3 mr-1" />
+                      Resend Invite
+                    </Button>
                   </div>
                 )}
               </CardContent>

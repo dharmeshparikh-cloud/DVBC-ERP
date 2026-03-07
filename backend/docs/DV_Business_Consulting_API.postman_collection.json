@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://data-sync-upgrade.preview.emergentagent.com",
+      "value": "https://hr-module-staging.preview.emergentagent.com",
       "type": "string"
     },
     {

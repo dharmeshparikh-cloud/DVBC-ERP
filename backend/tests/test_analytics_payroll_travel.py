@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 # API Base URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://data-sync-upgrade.preview.emergentagent.com"
+    BASE_URL = "https://hr-module-staging.preview.emergentagent.com"
 
 # Test credentials
 ADMIN_EMAIL = "admin@dvbc.com"
