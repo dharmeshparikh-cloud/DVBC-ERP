@@ -109,7 +109,7 @@ const NewJoinerPipeline = () => {
   const { data: submissions = [], isLoading, refetch } = useQuery({
     queryKey: ['onboarding-submissions', 'pipeline'],
     queryFn: async () => {
-      const response = await axios.get(`${API}/api/onboarding/submissions`, getAuthHeaders());
+      const response = await axios.get(`${API}/onboarding/submissions`, getAuthHeaders());
       return response.data || [];
     },
     enabled: !!user,
@@ -120,7 +120,7 @@ const NewJoinerPipeline = () => {
   const { data: recentEmployees = [] } = useQuery({
     queryKey: ['employees', 'recent-joiners'],
     queryFn: async () => {
-      const response = await axios.get(`${API}/api/employees`, getAuthHeaders());
+      const response = await axios.get(`${API}/employees`, getAuthHeaders());
       const employees = response.data?.items || response.data || [];
       // Filter to those joined in last 30 days
       const thirtyDaysAgo = new Date();
@@ -203,7 +203,7 @@ const NewJoinerPipeline = () => {
 
     try {
       setSending(true);
-      await axios.post(`${API}/api/onboarding/invite`, inviteForm, getAuthHeaders());
+      await axios.post(`${API}/onboarding/invite`, inviteForm, getAuthHeaders());
       toast.success('Invite sent successfully!');
       setInviteForm({ candidate_name: '', candidate_email: '', offered_position: '' });
       setShowInviteDialog(false);
