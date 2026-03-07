@@ -187,7 +187,7 @@ async def list_submissions(
     
     submissions = await db.onboarding_submissions.find(
         query, {"_id": 0}
-    ).sort("invited_at", -1).to_list(100)
+    ).sort([("created_at", -1), ("invited_at", -1)]).to_list(100)
     
     # Calculate progress for each
     for sub in submissions:

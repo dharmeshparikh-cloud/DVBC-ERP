@@ -17,7 +17,7 @@ import { Separator } from '../../components/ui/separator';
 import { 
   ArrowLeft, User, GraduationCap, Briefcase, Building2, Phone, FileText,
   CheckCircle2, XCircle, AlertTriangle, Loader2, Download, ExternalLink,
-  Calendar, Mail, Shield, CreditCard, Clock, Send, Edit, Check, Printer, Upload
+  Calendar, Mail, Shield, CreditCard, Clock, Send, Edit, Check, Printer, Upload, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -167,7 +167,7 @@ const SubmissionReview = () => {
   // Get token from localStorage (same as App.js pattern)
   const getToken = () => localStorage.getItem('token');
   const authHeaders = { headers: { Authorization: `Bearer ${getToken()}` } };
-  const canApprove = user?.role === 'hr_manager' || user?.role === 'admin';
+  const canApprove = ['hr_manager', 'hr_admin', 'hr_executive', 'admin'].includes(user?.role);
 
   // Fetch submission using React Query
   const { data: submission, isLoading: loading, refetch: refetchSubmission } = useQuery({
@@ -1055,7 +1055,7 @@ const SubmissionReview = () => {
                   <AlertTriangle className="w-3 h-3 mr-1" />
                   No Documents
                 </Badge>
-              ) : canApprove && submission.status === 'submitted' ? (
+              ) : canApprove && ['submitted', 'revision_requested', 'draft'].includes(submission.status) ? (
                 <Button size="sm" onClick={handleVerifyDocuments} disabled={processing}>
                   Verify All Documents
                 </Button>
@@ -1332,6 +1332,47 @@ const SubmissionReview = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Next Steps Guide */}
+          {submission.status !== 'completed' && submission.status !== 'rejected' && (
+            <Card className="border-blue-200 bg-blue-50/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-blue-800 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Next Steps Required
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
+                  {!hv.documents_verified && (submission.documents?.length || 0) > 0 && (
+                    <li className="flex items-start gap-2">
+                      <span className="font-medium">Verify Documents:</span>
+                      <span className="text-blue-600">Click "Verify All Documents" in the Documents section above</span>
+                    </li>
+                  )}
+                  {!hv.bank_verified && submission.bank_details?.account_number && (
+                    <li className="flex items-start gap-2">
+                      <span className="font-medium">Verify Bank Details:</span>
+                      <span className="text-blue-600">Click "Verify Bank" in the Bank Details section</span>
+                    </li>
+                  )}
+                  {(!hrAssignment.department || !hrAssignment.reporting_manager_id || !hrAssignment.joining_date || !hrAssignment.official_email) && (
+                    <li className="flex items-start gap-2">
+                      <span className="font-medium">Complete HR Assignment:</span>
+                      <span className="text-blue-600">Fill Department, Manager, Joining Date & Email, then Save Assignment</span>
+                    </li>
+                  )}
+                  {hv.documents_verified && hv.bank_verified && hrAssignment.department && hrAssignment.reporting_manager_id && hrAssignment.joining_date && hrAssignment.official_email && submission.status === 'submitted' && (
+                    <li className="flex items-start gap-2 text-green-700">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span className="font-medium">Ready to Complete!</span>
+                      <span>Click "Complete Onboarding" below</span>
+                    </li>
+                  )}
+                </ol>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Actions */}
           {submission.status === 'submitted' && (

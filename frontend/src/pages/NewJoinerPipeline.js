@@ -110,7 +110,9 @@ const NewJoinerPipeline = () => {
     queryKey: ['onboarding-submissions', 'pipeline'],
     queryFn: async () => {
       const response = await axios.get(`${API}/onboarding/submissions`, getAuthHeaders());
-      return response.data || [];
+      const data = response.data || [];
+      // Sort by created_at descending (latest first)
+      return data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
