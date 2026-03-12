@@ -15,7 +15,72 @@
 
 ## Completed Work - March 2026
 
-### Phase 89: Recurring Meetings & Team Calendar - March 2026 ✅ (Latest)
+### Phase 90: Employee Portal Access Management (Option A) - March 2026 ✅ (Latest)
+
+**Objective:** Add manual credential management for active employees, allowing HR/Admin to generate portal access for employees without accounts and reset passwords for existing users.
+
+### Features Implemented
+
+**1. Generate Portal Access Button**
+- Located in Portal Access Management section on Go-Live Dashboard
+- Shows for active employees (go_live_status='active') WITHOUT user_id
+- Creates new user account with secure random password (12 chars)
+- Sends credential emails to both employee AND HR
+- Displays credentials in dialog with copy buttons
+- Sets `must_change_password=true` for first login
+
+**2. Reset Password Button**
+- Located in Portal Access Management section on Go-Live Dashboard
+- Shows for active employees WITH existing user_id
+- Confirmation dialog before execution with warning about invalidating current password
+- Generates new secure random password
+- Updates user record with new hash and `must_change_password=true`
+- Sends new credentials to both employee AND HR
+- Displays credentials in dialog after success
+
+**3. Enhanced Credentials Dialog**
+- Dynamic title based on action type ('generate' vs 'reset')
+- Color-coded styling (green for generate, blue for reset)
+- Employee ID and Password fields with individual copy buttons
+- "Copy All" button for convenience
+- Security note about password change requirement
+
+**4. Real-time Updates**
+- Employee list and checklist refresh after operations
+- React Query cache invalidation ensures UI stays current
+- Linkages updated in payroll and CTC structures
+
+### New API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/go-live/generate-portal-access/{employee_id}` | POST | Creates user account for active employee without portal access |
+| `/api/go-live/reset-password/{employee_id}` | POST | Resets password for employee with existing user account |
+
+### Files Modified
+
+**Backend:**
+- `/app/backend/routers/go_live.py` - Endpoints already implemented (lines 837-1179)
+
+**Frontend:**
+- `/app/frontend/src/pages/GoLiveDashboard.js`:
+  - Added `generatePortalAccessMutation` and `resetPasswordMutation`
+  - Added `resetPasswordDialog` state for confirmation modal
+  - Added `handleGeneratePortalAccess`, `handleResetPasswordClick`, `handleConfirmResetPassword` handlers
+  - Added Portal Access Management section UI (visible only for active employees)
+  - Enhanced credentials dialog for both action types
+  - Added Reset Password confirmation dialog with warning text
+
+### Testing
+
+- **Backend:** 100% (15/15 pytest tests passed)
+- **Frontend:** 100% (All UI elements and flows working)
+- **Test Report:** `/app/test_reports/iteration_152.json`
+- **Test File:** `/app/backend/tests/test_portal_access_management.py`
+
+---
+
+### Phase 89: Recurring Meetings & Team Calendar - March 2026 ✅
 
 **Objective:** Implement recurring meeting schedules, team calendar view with conflict detection, auto-send MOM on meeting completion, and configurable meeting reminders.
 
