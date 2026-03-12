@@ -30,6 +30,7 @@ from services.bank_validation_service import (
     ALLOWED_BANK_PROOF_TYPES,
     MAX_BANK_PROOF_SIZE
 )
+from services.cache_service import cache
 import re
 
 
@@ -598,6 +599,9 @@ async def approve_go_live_request(
             "created_at": now
         })
     
+    # Invalidate employee list cache to reflect status change immediately
+    cache.invalidate_pattern("list:employees")
+    
     # Audit log
     await db.go_live_audit_logs.insert_one({
         "id": str(uuid.uuid4()),
@@ -1016,6 +1020,9 @@ async def generate_portal_access(
         )
     except Exception as e:
         print(f"Failed to send HR notification email: {e}")
+    
+    # Invalidate employee list cache
+    cache.invalidate_pattern("list:employees")
     
     return {
         "message": "Portal access created successfully",
