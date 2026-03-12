@@ -98,13 +98,30 @@ const GoLiveDashboard = () => {
     },
   });
 
+  // State for credential display
+  const [credentialDialog, setCredentialDialog] = useState({ open: false, data: null });
+
   // Mutation: Approve Go-Live
   const approveMutation = useMutation({
     mutationFn: async (requestId) => {
-      await axios.post(`${API}/go-live/${requestId}/approve`);
+      const response = await axios.post(`${API}/go-live/${requestId}/approve`);
+      return response.data;
     },
-    onSuccess: () => {
-      toast.success('Go-Live approved! Employee is now active.');
+    onSuccess: (data) => {
+      // Show credentials dialog if temp password was generated
+      if (data.temp_password) {
+        setCredentialDialog({ 
+          open: true, 
+          data: {
+            employee_name: data.employee_name,
+            employee_id: data.employee_id,
+            temp_password: data.temp_password,
+            note: data.credentials_note
+          }
+        });
+      } else {
+        toast.success('Go-Live approved! Employee is now active.');
+      }
       queryClient.invalidateQueries({ queryKey: ['go-live', 'pending'] });
       queryClient.invalidateQueries({ queryKey: ['employees', 'go-live'] });
       if (selectedEmployee) {
@@ -1031,6 +1048,91 @@ const GoLiveDashboard = () => {
                 Upload More
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials Display Dialog */}
+      <Dialog open={credentialDialog.open} onOpenChange={(open) => !open && setCredentialDialog({ open: false, data: null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="w-5 h-5" />
+              Go-Live Approved - Login Credentials Created
+            </DialogTitle>
+          </DialogHeader>
+          {credentialDialog.data && (
+            <div className="space-y-4">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                A user account has been created for <strong>{credentialDialog.data.employee_name}</strong>. 
+                Please share these credentials with the employee if they did not receive the welcome email.
+              </p>
+              
+              <div className={`p-4 rounded-lg border-2 border-dashed ${isDark ? 'bg-zinc-800 border-zinc-600' : 'bg-amber-50 border-amber-300'}`}>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-zinc-500">Employee ID (Username)</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className={`flex-1 px-3 py-2 rounded font-mono text-lg ${isDark ? 'bg-zinc-900' : 'bg-white'}`}>
+                        {credentialDialog.data.employee_id}
+                      </code>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(credentialDialog.data.employee_id);
+                          toast.success('Employee ID copied!');
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-medium text-zinc-500">Temporary Password</label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className={`flex-1 px-3 py-2 rounded font-mono text-lg ${isDark ? 'bg-zinc-900' : 'bg-white'}`}>
+                        {credentialDialog.data.temp_password}
+                      </code>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(credentialDialog.data.temp_password);
+                          toast.success('Password copied!');
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+                <Key className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <p className="text-blue-700 dark:text-blue-300">
+                  The employee will be prompted to change this password on their first login.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                const data = credentialDialog.data;
+                const text = `Employee ID: ${data.employee_id}\nTemporary Password: ${data.temp_password}`;
+                navigator.clipboard.writeText(text);
+                toast.success('Credentials copied to clipboard!');
+              }}
+              variant="outline"
+            >
+              Copy All
+            </Button>
+            <Button onClick={() => setCredentialDialog({ open: false, data: null })}>
+              Done
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

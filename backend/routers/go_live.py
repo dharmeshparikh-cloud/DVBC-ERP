@@ -15,10 +15,12 @@ from typing import Optional
 import uuid
 import os
 import io
+import secrets
+import string
 
 from .models import User
 from .deps import get_db, get_role_group, has_role
-from .auth import get_current_user
+from .auth import get_current_user, get_password_hash
 from services.email_service import send_email
 from services.bank_validation_service import (
     validate_ifsc, 
@@ -29,6 +31,12 @@ from services.bank_validation_service import (
     MAX_BANK_PROOF_SIZE
 )
 import re
+
+
+def generate_random_password(length: int = 12) -> str:
+    """Generate a secure random password."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 async def generate_employee_id(db) -> str:
@@ -517,6 +525,40 @@ async def approve_go_live_request(
         {"$set": employee_update}
     )
     
+    # CREATE USER ACCOUNT for portal access (if not already exists)
+    temp_password = None
+    user_id = employee.get("user_id")
+    
+    if not user_id:
+        # Generate temporary password
+        temp_password = generate_random_password()
+        
+        # Create user record
+        user_id = str(uuid.uuid4())
+        final_employee_id = generated_employee_id or employee.get("employee_id")
+        
+        user_record = {
+            "id": user_id,
+            "employee_id": final_employee_id,
+            "email": employee.get("email") or employee.get("personal_email"),
+            "full_name": f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+            "role": "employee",  # Default role for new employees
+            "password_hash": get_password_hash(temp_password),
+            "is_active": True,
+            "must_change_password": True,  # Force password change on first login
+            "created_at": now,
+            "created_by": current_user.id,
+            "created_via": "go_live_approval"
+        }
+        
+        await db.users.insert_one(user_record)
+        
+        # Update employee with user_id
+        await db.employees.update_one(
+            {"id": request.get("employee_id")},
+            {"$set": {"user_id": user_id, "portal_access_enabled": True}}
+        )
+    
     # Also update the onboarding submission if exists
     if employee.get("onboarding_submission_id"):
         await db.onboarding_submissions.update_one(
@@ -583,12 +625,21 @@ async def approve_go_live_request(
         # ERP Login URL
         erp_login_url = os.environ.get("FRONTEND_URL", "https://hr-module-staging.preview.emergentagent.com") + "/login"
         
+        # Prepare password section for email
+        password_section = ""
+        if temp_password:
+            password_section = f"""
+                <tr><td style="padding: 8px 0; color: #666;">Temporary Password:</td>
+                    <td style="padding: 8px 0; font-weight: bold; background: #fef3c7; padding: 8px; border-radius: 4px; font-family: monospace;">{temp_password}</td>
+                </tr>
+            """
+        
         if employee_email:
             try:
                 # Email to Employee with login details
                 await send_email(
                     to_email=employee_email,
-                    subject="Welcome to D&V Business Consulting - Your Account is Now Active!",
+                    subject="Welcome to D&V Business Consulting - Your Login Credentials",
                     html_content=f"""
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                         <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center;">
@@ -600,9 +651,10 @@ async def approve_go_live_request(
                             <p>Congratulations! Your employee account has been activated. You can now access the NETRA ERP portal.</p>
                             
                             <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f97316;">
-                                <h3 style="margin-top: 0; color: #333;">Your Login Details</h3>
+                                <h3 style="margin-top: 0; color: #333;">Your Login Credentials</h3>
                                 <table style="width: 100%; border-collapse: collapse;">
-                                    <tr><td style="padding: 8px 0; color: #666;">Employee ID:</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('employee_id')}</td></tr>
+                                    <tr><td style="padding: 8px 0; color: #666;">Employee ID (Username):</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('employee_id')}</td></tr>
+                                    {password_section}
                                     <tr><td style="padding: 8px 0; color: #666;">Official Email:</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('email')}</td></tr>
                                     <tr><td style="padding: 8px 0; color: #666;">Department:</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('department')}</td></tr>
                                     <tr><td style="padding: 8px 0; color: #666;">Designation:</td><td style="padding: 8px 0; font-weight: bold;">{employee_full.get('designation')}</td></tr>
@@ -616,9 +668,15 @@ async def approve_go_live_request(
                                 </a>
                             </div>
                             
-                            <p style="background: #fef3c7; padding: 12px; border-radius: 6px; font-size: 14px;">
-                                <strong>Note:</strong> Use your <strong>Employee ID</strong> and the password shared during onboarding to login.
-                            </p>
+                            <div style="background: #fef3c7; padding: 12px; border-radius: 6px; font-size: 14px;">
+                                <strong>Important Security Note:</strong>
+                                <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                                    <li>Use your <strong>Employee ID</strong> as username</li>
+                                    {'<li>Use the <strong>Temporary Password</strong> shown above for first login</li>' if temp_password else ''}
+                                    <li>You will be prompted to change your password on first login</li>
+                                    <li>Keep your credentials secure and do not share them</li>
+                                </ul>
+                            </div>
                             
                             <p>If you have any questions or need assistance, please contact HR.</p>
                             
@@ -660,6 +718,8 @@ async def approve_go_live_request(
                                     <p><strong>Status:</strong> <span style="color: #16a34a; font-weight: bold;">ACTIVE</span></p>
                                 </div>
                                 
+                                {'<div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;"><h4 style="margin-top: 0; color: #92400e;">Login Credentials (For HR Reference)</h4><p style="margin: 0;"><strong>Employee ID:</strong> ' + str(employee_full.get('employee_id')) + '</p><p style="margin: 5px 0 0;"><strong>Temporary Password:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">' + str(temp_password) + '</code></p><p style="margin-top: 10px; font-size: 12px; color: #78350f;">Share these credentials with the employee if they did not receive the welcome email.</p></div>' if temp_password else ''}
+                                
                                 <p>The employee can now login to NETRA ERP using their Employee ID.</p>
                                 <p>You can view their details in the <a href="https://hr-module-staging.preview.emergentagent.com/employees?edit={employee_full.get('id')}">Employee Directory</a>.</p>
                             </div>
@@ -669,11 +729,19 @@ async def approve_go_live_request(
                 except Exception as e:
                     print(f"Failed to send Go-Live approval email to HR: {e}")
     
-    return {
+    response_data = {
         "message": "Go-Live approved. Employee is now active.",
         "status": "approved",
-        "employee_name": request.get("employee_name")
+        "employee_name": request.get("employee_name"),
+        "employee_id": generated_employee_id or employee.get("employee_id")
     }
+    
+    # Include temporary password in response for HR to see
+    if temp_password:
+        response_data["temp_password"] = temp_password
+        response_data["credentials_note"] = "A user account has been created. Please share these credentials with the employee if they did not receive the welcome email."
+    
+    return response_data
 
 
 @router.post("/{request_id}/reject")
