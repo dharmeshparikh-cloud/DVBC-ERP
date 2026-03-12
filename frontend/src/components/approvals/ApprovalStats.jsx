@@ -1,16 +1,17 @@
 /**
  * ApprovalStats - Statistics Cards Component
  * Displays approval counts in a responsive grid
+ * Memoized to prevent unnecessary re-renders
  */
 
-import React from 'react';
-import { Card, CardContent } from '../../ui/card';
+import React, { memo } from 'react';
+import { Card, CardContent } from '../ui/card';
 import { 
   Clock, DollarSign, CreditCard, Rocket, Shield, 
   Receipt, Send, CheckCircle, XCircle, User, FileText, Play
 } from 'lucide-react';
 
-const StatCard = ({ label, value, icon: Icon, color, isDark, className = '' }) => (
+const StatCard = memo(({ label, value, icon: Icon, color, isDark, className = '' }) => (
   <Card className={`${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'} shadow-none rounded-lg ${className}`}>
     <CardContent className="p-2.5 md:p-4">
       <div className="flex items-center justify-between">
@@ -24,9 +25,11 @@ const StatCard = ({ label, value, icon: Icon, color, isDark, className = '' }) =
       </div>
     </CardContent>
   </Card>
-);
+));
 
-export const ApprovalStats = ({
+StatCard.displayName = 'StatCard';
+
+export const ApprovalStats = memo(({
   isDark,
   isAdmin,
   isHR,
@@ -184,6 +187,8 @@ export const ApprovalStats = ({
       />
     </div>
   );
-};
+});
+
+ApprovalStats.displayName = 'ApprovalStats';
 
 export default ApprovalStats;

@@ -1,29 +1,30 @@
 /**
  * MobileHeader - Header Component for Mobile App
  * Shows user greeting, date, and quick status
+ * Memoized to prevent unnecessary re-renders
  */
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Bell, Sun, Moon } from 'lucide-react';
 
-export const MobileHeader = ({
+export const MobileHeader = memo(({
   userName,
   currentTime,
   onNotificationClick
 }) => {
-  const greeting = (() => {
+  const greeting = useMemo(() => {
     const hour = currentTime.getHours();
     if (hour < 12) return 'Good Morning';
     if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
-  })();
+  }, [currentTime]);
 
-  const formattedDate = currentTime.toLocaleDateString('en-IN', {
+  const formattedDate = useMemo(() => currentTime.toLocaleDateString('en-IN', {
     weekday: 'long',
     day: 'numeric',
     month: 'short',
     year: 'numeric'
-  });
+  }), [currentTime]);
 
   const getGreetingIcon = () => {
     const hour = currentTime.getHours();
@@ -44,7 +45,6 @@ export const MobileHeader = ({
           data-testid="notification-btn"
         >
           <Bell className="w-5 h-5" />
-          {/* Notification badge - can be made dynamic */}
         </button>
       </div>
       
@@ -56,6 +56,8 @@ export const MobileHeader = ({
       </div>
     </header>
   );
-};
+});
+
+MobileHeader.displayName = 'MobileHeader';
 
 export default MobileHeader;

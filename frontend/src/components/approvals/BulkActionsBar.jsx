@@ -1,13 +1,14 @@
 /**
  * BulkActionsBar - Bulk Selection Actions Component
  * Shows when items are selected for bulk approve/reject
+ * Memoized to prevent unnecessary re-renders
  */
 
-import React from 'react';
-import { Button } from '../../ui/button';
+import React, { memo } from 'react';
+import { Button } from '../ui/button';
 import { CheckSquare, CheckCircle, XCircle } from 'lucide-react';
 
-export const BulkActionsBar = ({
+export const BulkActionsBar = memo(({
   isDark,
   selectedCount,
   onApproveAll,
@@ -57,6 +58,8 @@ export const BulkActionsBar = ({
       </div>
     </div>
   );
-};
+});
+
+BulkActionsBar.displayName = 'BulkActionsBar';
 
 export default BulkActionsBar;

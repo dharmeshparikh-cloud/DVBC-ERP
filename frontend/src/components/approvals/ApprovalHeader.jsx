@@ -1,18 +1,18 @@
 /**
  * ApprovalHeader - Header Component for Approvals Center
  * Includes title, real-time indicator, refresh button
+ * Memoized to prevent unnecessary re-renders
  */
 
-import React from 'react';
-import { Button } from '../../ui/button';
-import { RefreshCw, Menu, Bell } from 'lucide-react';
+import React, { memo } from 'react';
+import { Button } from '../ui/button';
+import { RefreshCw, Menu } from 'lucide-react';
 
-export const ApprovalHeader = ({
+export const ApprovalHeader = memo(({
   isDark,
   wsConnected,
   lastRefresh,
   loading,
-  mobileMenuOpen,
   onRefresh,
   onToggleMobileMenu
 }) => {
@@ -80,6 +80,8 @@ export const ApprovalHeader = ({
       </div>
     </div>
   );
-};
+});
+
+ApprovalHeader.displayName = 'ApprovalHeader';
 
 export default ApprovalHeader;

@@ -1,9 +1,10 @@
 /**
  * CtcApprovalsSection - CTC Structure Approvals
  * Admin-only section for reviewing and approving CTC structures
+ * Memoized to prevent unnecessary re-renders
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
@@ -17,7 +18,7 @@ const formatCurrency = (amount) => {
   return `₹${amount.toLocaleString('en-IN')}`;
 };
 
-export const CtcApprovalsSection = ({
+export const CtcApprovalsSection = memo(({
   isDark,
   ctcApprovals = [],
   onViewCtc,
@@ -86,6 +87,8 @@ export const CtcApprovalsSection = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+CtcApprovalsSection.displayName = 'CtcApprovalsSection';
 
 export default CtcApprovalsSection;

@@ -1,11 +1,12 @@
 /**
  * MobileNavigation - Bottom Tab Navigation for Mobile App
+ * Memoized to prevent unnecessary re-renders
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Home, Clock, Calendar, Receipt, Navigation, User } from 'lucide-react';
 
-const NavItem = ({ icon: Icon, label, active, onClick }) => (
+const NavItem = memo(({ icon: Icon, label, active, onClick }) => (
   <button
     onClick={onClick}
     className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-lg transition-colors flex-1 min-w-0 ${
@@ -18,9 +19,11 @@ const NavItem = ({ icon: Icon, label, active, onClick }) => (
     <Icon className={`w-5 h-5 ${active ? 'text-orange-600' : ''}`} />
     <span className="text-[10px] mt-0.5 truncate">{label}</span>
   </button>
-);
+));
 
-export const MobileNavigation = ({
+NavItem.displayName = 'NavItem';
+
+export const MobileNavigation = memo(({
   activeTab,
   onTabChange,
   isSalesTeam = false
@@ -49,6 +52,8 @@ export const MobileNavigation = ({
       </div>
     </nav>
   );
-};
+});
+
+MobileNavigation.displayName = 'MobileNavigation';
 
 export default MobileNavigation;
