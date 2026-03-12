@@ -623,7 +623,7 @@ async def approve_go_live_request(
             reporting_manager_name = manager.get("full_name") if manager else "To be assigned"
         
         # ERP Login URL
-        erp_login_url = os.environ.get("FRONTEND_URL", "https://hr-module-staging.preview.emergentagent.com") + "/login"
+        erp_login_url = os.environ.get("FRONTEND_URL", "https://portal-access-16.preview.emergentagent.com") + "/login"
         
         # Prepare password section for email
         password_section = ""
@@ -721,7 +721,7 @@ async def approve_go_live_request(
                                 {'<div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;"><h4 style="margin-top: 0; color: #92400e;">Login Credentials (For HR Reference)</h4><p style="margin: 0;"><strong>Employee ID:</strong> ' + str(employee_full.get('employee_id')) + '</p><p style="margin: 5px 0 0;"><strong>Temporary Password:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">' + str(temp_password) + '</code></p><p style="margin-top: 10px; font-size: 12px; color: #78350f;">Share these credentials with the employee if they did not receive the welcome email.</p></div>' if temp_password else ''}
                                 
                                 <p>The employee can now login to NETRA ERP using their Employee ID.</p>
-                                <p>You can view their details in the <a href="https://hr-module-staging.preview.emergentagent.com/employees?edit={employee_full.get('id')}">Employee Directory</a>.</p>
+                                <p>You can view their details in the <a href="https://portal-access-16.preview.emergentagent.com/employees?edit={employee_full.get('id')}">Employee Directory</a>.</p>
                             </div>
                         </div>
                         """
@@ -829,6 +829,353 @@ async def reject_go_live_request(
     return {
         "message": "Go-Live request rejected",
         "status": "rejected"
+    }
+
+
+# ==================== PORTAL ACCESS MANAGEMENT ====================
+
+@router.post("/generate-portal-access/{employee_id}")
+async def generate_portal_access(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generate portal access (user account with login credentials) for an existing active employee.
+    This is for employees who completed Go-Live but didn't get credentials created,
+    or for manually onboarded employees.
+    
+    ACCESS: Admin and HR Manager only.
+    
+    Creates:
+    - User account with generated password
+    - Updates employee with user_id linkage
+    - Sends email to employee with credentials
+    - Sends email to HR with backup of credentials
+    """
+    db = get_db()
+    
+    # Authorization: Admin and HR Manager
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or ["hr_manager"]
+    allowed_roles = list(set(admin_roles + hr_admin_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only Admin or HR Manager can generate portal access")
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Check if user already exists
+    if employee.get("user_id"):
+        existing_user = await db.users.find_one({"id": employee["user_id"]}, {"_id": 0})
+        if existing_user:
+            raise HTTPException(
+                status_code=400, 
+                detail="Portal access already exists for this employee. Use 'Reset Password' instead."
+            )
+    
+    # Check if employee has required info
+    if not employee.get("employee_id"):
+        raise HTTPException(status_code=400, detail="Employee ID not assigned. Complete Go-Live approval first.")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Generate temporary password
+    temp_password = generate_random_password()
+    
+    # Create user record
+    user_id = str(uuid.uuid4())
+    user_record = {
+        "id": user_id,
+        "employee_id": employee.get("employee_id"),
+        "email": employee.get("email") or employee.get("personal_email"),
+        "full_name": employee.get("full_name") or f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip(),
+        "role": "employee",
+        "password_hash": get_password_hash(temp_password),
+        "is_active": True,
+        "must_change_password": True,
+        "created_at": now,
+        "created_by": current_user.id,
+        "created_via": "portal_access_generation"
+    }
+    
+    await db.users.insert_one(user_record)
+    
+    # Update employee with user_id and portal_access flag
+    await db.employees.update_one(
+        {"id": employee.get("id")},
+        {"$set": {
+            "user_id": user_id,
+            "portal_access_enabled": True,
+            "portal_access_enabled_at": now,
+            "portal_access_enabled_by": current_user.id
+        }}
+    )
+    
+    # Also update any linked payroll records to reflect the user_id
+    await db.payroll.update_many(
+        {"employee_id": employee.get("id")},
+        {"$set": {"user_id": user_id}}
+    )
+    
+    # Update CTC structure if exists
+    await db.ctc_structures.update_many(
+        {"employee_id": employee.get("id")},
+        {"$set": {"user_id": user_id}}
+    )
+    
+    # Audit log
+    await db.go_live_audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "employee_id": employee.get("id"),
+        "action": "portal_access_generated",
+        "actor_id": current_user.id,
+        "actor_name": current_user.full_name,
+        "actor_role": current_user.role,
+        "details": {"employee_code": employee.get("employee_id")},
+        "timestamp": now
+    })
+    
+    # Send emails
+    employee_email = employee.get("email") or employee.get("personal_email")
+    erp_login_url = os.environ.get("FRONTEND_URL", "https://portal-access-16.preview.emergentagent.com") + "/login"
+    employee_name = employee.get("full_name") or f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
+    
+    if employee_email:
+        try:
+            await send_email(
+                to_email=employee_email,
+                subject="Your NETRA ERP Portal Access Credentials",
+                html_content=f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center;">
+                        <h1 style="color: white; margin: 0;">Portal Access Created</h1>
+                        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">D&V Business Consulting - NETRA ERP</p>
+                    </div>
+                    <div style="padding: 30px; background: #f9f9f9;">
+                        <p>Dear <strong>{employee_name}</strong>,</p>
+                        <p>Your portal access has been created. You can now login to the NETRA ERP system.</p>
+                        
+                        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f97316;">
+                            <h3 style="margin-top: 0; color: #333;">Your Login Credentials</h3>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Employee ID (Username):</td>
+                                    <td style="padding: 8px 0; font-weight: bold;">{employee.get('employee_id')}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Temporary Password:</td>
+                                    <td style="padding: 8px 0; font-weight: bold; background: #fef3c7; padding: 8px; border-radius: 4px; font-family: monospace;">{temp_password}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{erp_login_url}" style="display: inline-block; background: #f97316; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                Login to NETRA ERP
+                            </a>
+                        </div>
+                        
+                        <div style="background: #fef3c7; padding: 12px; border-radius: 6px; font-size: 14px;">
+                            <strong>Security Note:</strong> You will be prompted to change your password on first login.
+                        </div>
+                    </div>
+                </div>
+                """
+            )
+        except Exception as e:
+            print(f"Failed to send portal access email to employee: {e}")
+    
+    # Send email to the HR who initiated (current user)
+    try:
+        await send_email(
+            to_email=current_user.email if hasattr(current_user, 'email') else None,
+            subject=f"Portal Access Created: {employee_name}",
+            html_content=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #16a34a; padding: 20px; text-align: center;">
+                    <h2 style="color: white; margin: 0;">Portal Access Created ✓</h2>
+                </div>
+                <div style="padding: 30px; background: #f9f9f9;">
+                    <p>Portal access has been created for <strong>{employee_name}</strong>.</p>
+                    
+                    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                        <h4 style="margin-top: 0; color: #92400e;">Login Credentials (For HR Reference)</h4>
+                        <p><strong>Employee ID:</strong> {employee.get('employee_id')}</p>
+                        <p><strong>Temporary Password:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">{temp_password}</code></p>
+                        <p style="margin-top: 10px; font-size: 12px; color: #78350f;">Share with employee if they did not receive the email.</p>
+                    </div>
+                </div>
+            </div>
+            """
+        )
+    except Exception as e:
+        print(f"Failed to send HR notification email: {e}")
+    
+    return {
+        "message": "Portal access created successfully",
+        "employee_id": employee.get("employee_id"),
+        "employee_name": employee_name,
+        "temp_password": temp_password,
+        "user_id": user_id
+    }
+
+
+@router.post("/reset-password/{employee_id}")
+async def reset_employee_password(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reset password for an existing employee user account.
+    Generates a new temporary password and sends it via email.
+    
+    ACCESS: Admin and HR Manager only.
+    """
+    db = get_db()
+    
+    # Authorization
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or ["hr_manager"]
+    allowed_roles = list(set(admin_roles + hr_admin_roles))
+    
+    if not has_role(current_user.role, allowed_roles):
+        raise HTTPException(status_code=403, detail="Only Admin or HR Manager can reset passwords")
+    
+    # Get employee
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Check if user exists
+    if not employee.get("user_id"):
+        raise HTTPException(
+            status_code=400, 
+            detail="No portal access exists for this employee. Use 'Generate Portal Access' first."
+        )
+    
+    user = await db.users.find_one({"id": employee["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User account not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Generate new temporary password
+    temp_password = generate_random_password()
+    
+    # Update user password
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "password_hash": get_password_hash(temp_password),
+            "must_change_password": True,
+            "password_reset_at": now,
+            "password_reset_by": current_user.id
+        }}
+    )
+    
+    # Audit log
+    await db.go_live_audit_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "employee_id": employee.get("id"),
+        "action": "password_reset",
+        "actor_id": current_user.id,
+        "actor_name": current_user.full_name,
+        "actor_role": current_user.role,
+        "details": {"employee_code": employee.get("employee_id")},
+        "timestamp": now
+    })
+    
+    # Send emails
+    employee_email = employee.get("email") or employee.get("personal_email")
+    erp_login_url = os.environ.get("FRONTEND_URL", "https://portal-access-16.preview.emergentagent.com") + "/login"
+    employee_name = employee.get("full_name") or f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
+    
+    if employee_email:
+        try:
+            await send_email(
+                to_email=employee_email,
+                subject="Your NETRA ERP Password Has Been Reset",
+                html_content=f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 30px; text-align: center;">
+                        <h1 style="color: white; margin: 0;">Password Reset</h1>
+                        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">NETRA ERP</p>
+                    </div>
+                    <div style="padding: 30px; background: #f9f9f9;">
+                        <p>Dear <strong>{employee_name}</strong>,</p>
+                        <p>Your password has been reset by HR. Please use the new credentials below to login.</p>
+                        
+                        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                            <h3 style="margin-top: 0; color: #333;">New Login Credentials</h3>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Employee ID (Username):</td>
+                                    <td style="padding: 8px 0; font-weight: bold;">{employee.get('employee_id')}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">New Temporary Password:</td>
+                                    <td style="padding: 8px 0; font-weight: bold; background: #dbeafe; padding: 8px; border-radius: 4px; font-family: monospace;">{temp_password}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{erp_login_url}" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                                Login to NETRA ERP
+                            </a>
+                        </div>
+                        
+                        <div style="background: #dbeafe; padding: 12px; border-radius: 6px; font-size: 14px;">
+                            <strong>Security Note:</strong> You will be prompted to change this password on login.
+                        </div>
+                    </div>
+                </div>
+                """
+            )
+        except Exception as e:
+            print(f"Failed to send password reset email to employee: {e}")
+    
+    # Notify HR
+    try:
+        hr_email = current_user.email if hasattr(current_user, 'email') else None
+        if hr_email:
+            await send_email(
+                to_email=hr_email,
+                subject=f"Password Reset Completed: {employee_name}",
+                html_content=f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: #3b82f6; padding: 20px; text-align: center;">
+                        <h2 style="color: white; margin: 0;">Password Reset Completed ✓</h2>
+                    </div>
+                    <div style="padding: 30px; background: #f9f9f9;">
+                        <p>Password has been reset for <strong>{employee_name}</strong> ({employee.get('employee_id')}).</p>
+                        
+                        <div style="background: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <h4 style="margin-top: 0;">New Credentials (For HR Reference)</h4>
+                            <p><strong>Employee ID:</strong> {employee.get('employee_id')}</p>
+                            <p><strong>New Password:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">{temp_password}</code></p>
+                        </div>
+                    </div>
+                </div>
+                """
+            )
+    except Exception as e:
+        print(f"Failed to send HR notification: {e}")
+    
+    return {
+        "message": "Password reset successfully",
+        "employee_id": employee.get("employee_id"),
+        "employee_name": employee_name,
+        "temp_password": temp_password
     }
 
 

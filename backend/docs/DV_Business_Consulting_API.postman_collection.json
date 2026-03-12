@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://hr-module-staging.preview.emergentagent.com",
+      "value": "https://portal-access-16.preview.emergentagent.com",
       "type": "string"
     },
     {

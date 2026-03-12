@@ -6,13 +6,13 @@ import { AuthContext, API, handleApiError } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { ErrorDisplay } from '../components/ErrorDisplay';
 import { 
   Rocket, CheckCircle, XCircle, Clock, User, Building2, 
   CreditCard, FileText, Key, AlertTriangle, ChevronRight,
   Shield, Send, Eye, Mail, Upload, Download, Trash2, Loader2,
-  CheckCircle2, XOctagon, RefreshCw, Search
+  CheckCircle2, XOctagon, RefreshCw, Search, KeyRound, RotateCcw
 } from 'lucide-react';
 
 const GoLiveDashboard = () => {
@@ -100,6 +100,9 @@ const GoLiveDashboard = () => {
 
   // State for credential display
   const [credentialDialog, setCredentialDialog] = useState({ open: false, data: null });
+  
+  // State for reset password confirmation
+  const [resetPasswordDialog, setResetPasswordDialog] = useState({ open: false, employeeId: null, employeeName: null });
 
   // Mutation: Approve Go-Live
   const approveMutation = useMutation({
@@ -181,9 +184,78 @@ const GoLiveDashboard = () => {
     },
   });
 
+  // Mutation: Generate Portal Access (for active employees without user account)
+  const generatePortalAccessMutation = useMutation({
+    mutationFn: async (employeeId) => {
+      const response = await axios.post(`${API}/go-live/generate-portal-access/${employeeId}`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Show credentials dialog
+      setCredentialDialog({
+        open: true,
+        data: {
+          employee_name: data.employee_name,
+          employee_id: data.employee_id,
+          temp_password: data.temp_password,
+          note: 'Portal access created. Employee will be prompted to change password on first login.',
+          action_type: 'generate'
+        }
+      });
+      queryClient.invalidateQueries({ queryKey: ['employees', 'go-live'] });
+      if (selectedEmployee) {
+        fetchChecklist(selectedEmployee.id);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to generate portal access');
+    },
+  });
+
+  // Mutation: Reset Password
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (employeeId) => {
+      const response = await axios.post(`${API}/go-live/reset-password/${employeeId}`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setResetPasswordDialog({ open: false, employeeId: null, employeeName: null });
+      // Show credentials dialog
+      setCredentialDialog({
+        open: true,
+        data: {
+          employee_name: data.employee_name,
+          employee_id: data.employee_id,
+          temp_password: data.temp_password,
+          note: 'Password reset successful. Employee will be prompted to change password on login.',
+          action_type: 'reset'
+        }
+      });
+      queryClient.invalidateQueries({ queryKey: ['employees', 'go-live'] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Failed to reset password');
+    },
+  });
+
   const handleEnablePortalAccess = async (employeeId) => {
     if (!confirm('This will create login credentials for the employee. Continue?')) return;
     enablePortalAccessMutation.mutate(employeeId);
+  };
+
+  const handleGeneratePortalAccess = async (employeeId) => {
+    if (!confirm('This will create a new user account and send login credentials to the employee. Continue?')) return;
+    generatePortalAccessMutation.mutate(employeeId);
+  };
+
+  const handleResetPasswordClick = (employeeId, employeeName) => {
+    setResetPasswordDialog({ open: true, employeeId, employeeName });
+  };
+
+  const handleConfirmResetPassword = () => {
+    if (resetPasswordDialog.employeeId) {
+      resetPasswordMutation.mutate(resetPasswordDialog.employeeId);
+    }
   };
 
   const handleSubmitGoLive = async () => {
@@ -885,6 +957,65 @@ const GoLiveDashboard = () => {
                   )}
                 </div>
 
+                {/* Portal Access Management Section */}
+                {checklist.employee.go_live_status === 'active' && (
+                  <div className={`mb-6 p-4 rounded-lg border ${isDark ? 'bg-emerald-900/20 border-emerald-700' : 'bg-emerald-50/50 border-emerald-200'}`}>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <KeyRound className="w-5 h-5 text-emerald-500" />
+                      Portal Access Management
+                    </h3>
+                    
+                    <div className="flex flex-wrap gap-3">
+                      {/* Generate Portal Access - shown when employee doesn't have user_id */}
+                      {!checklist.checklist.portal_access?.completed && (
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => handleGeneratePortalAccess(checklist.employee.id)}
+                          disabled={generatePortalAccessMutation.isPending}
+                          data-testid="generate-portal-access-btn"
+                        >
+                          {generatePortalAccessMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Key className="w-4 h-4 mr-2" />
+                          )}
+                          Generate Portal Access
+                        </Button>
+                      )}
+                      
+                      {/* Reset Password - shown when employee has user_id */}
+                      {checklist.checklist.portal_access?.completed && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                          onClick={() => handleResetPasswordClick(
+                            checklist.employee.id,
+                            checklist.employee.name
+                          )}
+                          disabled={resetPasswordMutation.isPending}
+                          data-testid="reset-password-btn"
+                        >
+                          {resetPasswordMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                          )}
+                          Reset Password
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Help text */}
+                    <p className={`text-xs mt-3 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                      {!checklist.checklist.portal_access?.completed 
+                        ? "Generate login credentials for this employee. They'll receive an email with their temporary password."
+                        : "Reset password will send a new temporary password. Employee will be required to change it on first login."}
+                    </p>
+                  </div>
+                )}
+
                 {/* Go-Live Request Info */}
                 {checklist.request && (
                   <div className={`p-4 rounded-lg mb-6 border ${
@@ -1056,19 +1187,34 @@ const GoLiveDashboard = () => {
       <Dialog open={credentialDialog.open} onOpenChange={(open) => !open && setCredentialDialog({ open: false, data: null })}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="w-5 h-5" />
-              Go-Live Approved - Login Credentials Created
+            <DialogTitle className={`flex items-center gap-2 ${
+              credentialDialog.data?.action_type === 'reset' ? 'text-blue-600' : 'text-green-600'
+            }`}>
+              {credentialDialog.data?.action_type === 'reset' ? (
+                <RotateCcw className="w-5 h-5" />
+              ) : (
+                <CheckCircle className="w-5 h-5" />
+              )}
+              {credentialDialog.data?.action_type === 'reset' 
+                ? 'Password Reset Successful' 
+                : credentialDialog.data?.action_type === 'generate'
+                ? 'Portal Access Created'
+                : 'Login Credentials Created'}
             </DialogTitle>
           </DialogHeader>
           {credentialDialog.data && (
             <div className="space-y-4">
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                A user account has been created for <strong>{credentialDialog.data.employee_name}</strong>. 
-                Please share these credentials with the employee if they did not receive the welcome email.
+                {credentialDialog.data?.action_type === 'reset' 
+                  ? `A new password has been generated for ${credentialDialog.data.employee_name}. Please share these credentials with the employee.`
+                  : `A user account has been created for ${credentialDialog.data.employee_name}. Please share these credentials with the employee if they did not receive the welcome email.`}
               </p>
               
-              <div className={`p-4 rounded-lg border-2 border-dashed ${isDark ? 'bg-zinc-800 border-zinc-600' : 'bg-amber-50 border-amber-300'}`}>
+              <div className={`p-4 rounded-lg border-2 border-dashed ${
+                credentialDialog.data?.action_type === 'reset'
+                  ? isDark ? 'bg-zinc-800 border-blue-600' : 'bg-blue-50 border-blue-300'
+                  : isDark ? 'bg-zinc-800 border-zinc-600' : 'bg-amber-50 border-amber-300'
+              }`}>
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-medium text-zinc-500">Employee ID (Username)</label>
@@ -1090,7 +1236,9 @@ const GoLiveDashboard = () => {
                   </div>
                   
                   <div>
-                    <label className="text-xs font-medium text-zinc-500">Temporary Password</label>
+                    <label className="text-xs font-medium text-zinc-500">
+                      {credentialDialog.data?.action_type === 'reset' ? 'New Temporary Password' : 'Temporary Password'}
+                    </label>
                     <div className="flex items-center gap-2 mt-1">
                       <code className={`flex-1 px-3 py-2 rounded font-mono text-lg ${isDark ? 'bg-zinc-900' : 'bg-white'}`}>
                         {credentialDialog.data.temp_password}
@@ -1110,10 +1258,14 @@ const GoLiveDashboard = () => {
                 </div>
               </div>
               
-              <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+              <div className={`flex items-start gap-2 p-3 rounded-lg text-sm ${
+                credentialDialog.data?.action_type === 'reset'
+                  ? 'bg-blue-50 dark:bg-blue-900/20'
+                  : 'bg-blue-50 dark:bg-blue-900/20'
+              }`}>
                 <Key className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                 <p className="text-blue-700 dark:text-blue-300">
-                  The employee will be prompted to change this password on their first login.
+                  {credentialDialog.data.note || 'The employee will be prompted to change this password on their first login.'}
                 </p>
               </div>
             </div>
@@ -1132,6 +1284,57 @@ const GoLiveDashboard = () => {
             </Button>
             <Button onClick={() => setCredentialDialog({ open: false, data: null })}>
               Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Confirmation Dialog */}
+      <Dialog open={resetPasswordDialog.open} onOpenChange={(open) => !open && setResetPasswordDialog({ open: false, employeeId: null, employeeName: null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              Confirm Password Reset
+            </DialogTitle>
+            <DialogDescription className="text-zinc-600 dark:text-zinc-400">
+              This action cannot be undone. The existing password will be invalidated.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm">
+              Are you sure you want to reset the password for <strong>{resetPasswordDialog.employeeName}</strong>?
+            </p>
+            <div className={`mt-4 p-3 rounded-lg ${isDark ? 'bg-amber-900/20' : 'bg-amber-50'}`}>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                <strong>What will happen:</strong>
+              </p>
+              <ul className="text-sm text-amber-700 dark:text-amber-300 list-disc list-inside mt-2 space-y-1">
+                <li>A new temporary password will be generated</li>
+                <li>The employee's current password will be invalidated</li>
+                <li>Email with new credentials will be sent to the employee</li>
+                <li>Employee must change password on next login</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setResetPasswordDialog({ open: false, employeeId: null, employeeName: null })}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="bg-amber-600 hover:bg-amber-700"
+              onClick={handleConfirmResetPassword}
+              disabled={resetPasswordMutation.isPending}
+            >
+              {resetPasswordMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RotateCcw className="w-4 h-4 mr-2" />
+              )}
+              Reset Password
             </Button>
           </DialogFooter>
         </DialogContent>
