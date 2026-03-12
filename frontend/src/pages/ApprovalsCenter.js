@@ -19,7 +19,14 @@ import {
 import { toast } from 'sonner';
 import { useTheme } from '../contexts/ThemeContext';
 import { ApprovalCard, StatCard } from '../components/approvals/ApprovalCard';
-import { ApprovalHeader, ApprovalStats, BulkActionsBar } from '../components/approvals';
+import { 
+  ApprovalHeader, 
+  ApprovalStats, 
+  BulkActionsBar,
+  CtcApprovalsSection,
+  GoLiveApprovalsSection,
+  ExpenseApprovalsSection
+} from '../components/approvals';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   usePendingApprovals,
@@ -818,63 +825,13 @@ const ApprovalsCenter = () => {
       />
 
       {/* CTC Approvals Section - Only for Admin */}
-      {isAdmin && ctcApprovals.length > 0 && (
-        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-          <CardHeader className="pb-3">
-            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <DollarSign className="w-5 h-5 text-purple-500" />
-              Pending CTC Approvals ({ctcApprovals.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {ctcApprovals.map((ctc, idx) => (
-                <div 
-                  key={idx}
-                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
-                >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                          {ctc.employee_name || 'Unknown Employee'}
-                        </span>
-                        <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                          CTC Structure
-                        </Badge>
-                      </div>
-                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                        <span>Annual CTC: <strong className="text-purple-600">{formatCurrency(ctc.annual_ctc)}</strong></span>
-                        <span className="mx-2">•</span>
-                        <span>Effective: {ctc.effective_date || 'N/A'}</span>
-                      </div>
-                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                        Submitted by: {ctc.created_by || 'HR'} on {new Date(ctc.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { setSelectedCtc(ctc); setCtcDetailDialog(true); }}
-                        className={isDark ? 'border-zinc-600' : ''}
-                      >
-                        <Eye className="w-4 h-4 mr-1" /> View
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => { setSelectedCtc(ctc); setCtcDetailDialog(true); }}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" /> Approve
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {isAdmin && (
+        <CtcApprovalsSection
+          isDark={isDark}
+          ctcApprovals={ctcApprovals}
+          onViewCtc={(ctc) => { setSelectedCtc(ctc); setCtcDetailDialog(true); }}
+          onApproveCtc={(ctc) => { setSelectedCtc(ctc); setCtcDetailDialog(true); }}
+        />
       )}
 
       {/* Permission Change Requests Section - For Admin */}
@@ -959,73 +916,29 @@ const ApprovalsCenter = () => {
       )}
 
       {/* Go-Live Approvals Section - For Admin */}
-      {isAdmin && goLiveApprovals.length > 0 && (
-        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`}>
-          <CardHeader className="pb-3">
-            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <Rocket className="w-5 h-5 text-emerald-500" />
-              Pending Go-Live Approvals ({goLiveApprovals.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {goLiveApprovals.map((req, idx) => (
-                <div 
-                  key={idx}
-                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
-                >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                          {req.employee_name} ({req.employee_code})
-                        </span>
-                        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                          Go-Live
-                        </Badge>
-                      </div>
-                      <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                        <span>Department: {req.department || 'N/A'}</span>
-                        <span className="mx-2">•</span>
-                        <span>Designation: {req.designation || 'N/A'}</span>
-                      </div>
-                      <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                        Submitted by: {req.submitted_by_name} on {new Date(req.submitted_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          setSelectedGoLive(req);
-                          await fetchGoLiveChecklist(req.employee_id);
-                          setGoLiveDetailDialog(true);
-                        }}
-                        className={isDark ? 'border-zinc-600' : ''}
-                        data-testid={`view-golive-${req.id}`}
-                      >
-                        <Eye className="w-4 h-4 mr-1" /> View Checklist
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          setSelectedGoLive(req);
-                          await fetchGoLiveChecklist(req.employee_id);
-                          setGoLiveDetailDialog(true);
-                        }}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                        data-testid={`approve-golive-${req.id}`}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" /> Review & Approve
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {isAdmin && (
+        <GoLiveApprovalsSection
+          isDark={isDark}
+          goLiveApprovals={goLiveApprovals}
+          onViewGoLive={async (req) => {
+            setSelectedGoLive(req);
+            await fetchGoLiveChecklist(req.employee_id);
+            setGoLiveDetailDialog(true);
+          }}
+          onApproveGoLive={async (req) => {
+            setSelectedGoLive(req);
+            await fetchGoLiveChecklist(req.employee_id);
+            setGoLiveDetailDialog(true);
+          }}
+          onRejectGoLive={async (req) => {
+            const reason = prompt('Enter rejection reason:');
+            if (reason) {
+              setComments(reason);
+              handleGoLiveAction(req.id, 'reject');
+            }
+          }}
+          actionLoading={actionLoading}
+        />
       )}
 
       {/* Employee Modification Requests Section - For Admin */}
@@ -1316,143 +1229,26 @@ const ApprovalsCenter = () => {
       )}
 
       {/* Expense Approvals Section - For Managers and HR (merged from ExpenseApprovals) */}
-      {(isManager || isHR) && expenseApprovals.length > 0 && (
-        <Card className={`mb-6 ${isDark ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-200'}`} data-testid="expense-approvals-section">
-          <CardHeader className="pb-3">
-            <CardTitle className={`text-base flex items-center gap-2 ${isDark ? 'text-zinc-100' : ''}`}>
-              <Receipt className="w-5 h-5 text-emerald-500" />
-              Pending Expense Approvals ({expenseApprovals.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {expenseApprovals.map((expense, idx) => (
-                <div 
-                  key={expense.id || idx}
-                  className={`p-4 rounded-lg border ${isDark ? 'border-zinc-700 bg-zinc-900/50' : 'border-zinc-200 bg-zinc-50'}`}
-                  data-testid={`expense-approval-${expense.id}`}
-                >
-                  <div className="flex flex-col gap-3">
-                    {/* Header Row */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`font-medium ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                            {expense.employee_name || 'Employee'}
-                          </span>
-                          <Badge className={`${expense.status === 'pending' ? 'bg-amber-100 text-amber-700' : expense.status === 'revision_required' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'} ${isDark ? 'dark:bg-amber-900/30 dark:text-amber-400' : ''}`}>
-                            {expense.status === 'pending' ? 'Pending' : expense.status === 'revision_required' ? 'Revision Required' : expense.status === 'hr_approved' ? 'Pending Admin' : expense.status}
-                          </Badge>
-                          {expense.receipts?.length > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                              <Paperclip className="w-3 h-3 mr-1" />
-                              {expense.receipts.length} receipt(s)
-                            </Badge>
-                          )}
-                        </div>
-                        <div className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                          {expense.is_office_expense ? 'Office Expense' : (expense.client_name || expense.project_name || expense.description || 'Expense')}
-                          {expense.notes && ` • ${expense.notes}`}
-                        </div>
-                        {expense.line_items?.length > 0 && (
-                          <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                            {expense.line_items.map(item => item.category).join(', ')}
-                          </div>
-                        )}
-                        <div className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                          {expense.created_at && new Date(expense.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-bold text-emerald-600">
-                          ₹{(expense.total_amount || expense.amount || 0).toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Action Buttons Row */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-700/50">
-                      {/* View/Upload Receipts */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedExpense(expense);
-                          fetchExpenseReceipts(expense.id);
-                          setReceiptsListDialog(true);
-                        }}
-                        className="text-zinc-600"
-                        data-testid={`view-receipts-${expense.id}`}
-                      >
-                        <Paperclip className="w-4 h-4 mr-1" />
-                        Receipts
-                      </Button>
-                      
-                      {/* Send Back Button */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedExpense(expense);
-                          setSendBackDialog(true);
-                        }}
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                        data-testid={`send-back-${expense.id}`}
-                      >
-                        <RotateCcw className="w-4 h-4 mr-1" />
-                        Send Back
-                      </Button>
-                      
-                      {/* Partial Approval Button */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedExpense(expense);
-                          setApprovedAmount(String(expense.total_amount || expense.amount || 0));
-                          setPartialApprovalDialog(true);
-                        }}
-                        className="text-purple-600 border-purple-200 hover:bg-purple-50"
-                        data-testid={`modify-amount-${expense.id}`}
-                      >
-                        <Edit3 className="w-4 h-4 mr-1" />
-                        Modify Amount
-                      </Button>
-                      
-                      {/* Reject Button */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedExpense(expense);
-                          setExpenseDetailDialog(true);
-                        }}
-                        disabled={actionLoading}
-                        className="text-red-600 border-red-200 hover:bg-red-50"
-                        data-testid={`reject-expense-${expense.id}`}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Reject
-                      </Button>
-                      
-                      {/* Approve Button */}
-                      <Button
-                        size="sm"
-                        onClick={() => openExpenseDetails(expense)}
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                        disabled={actionLoading}
-                        data-testid={`approve-expense-${expense.id}`}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {(isManager || isHR) && (
+        <ExpenseApprovalsSection
+          isDark={isDark}
+          expenseApprovals={expenseApprovals}
+          onViewExpense={(expense) => {
+            setSelectedExpense(expense);
+            fetchExpenseReceipts(expense.id);
+            setReceiptsListDialog(true);
+          }}
+          onApproveExpense={(expense) => openExpenseDetails(expense)}
+          onRejectExpense={(expense) => {
+            setSelectedExpense(expense);
+            setExpenseDetailDialog(true);
+          }}
+          onSendBackExpense={(expense) => {
+            setSelectedExpense(expense);
+            setSendBackDialog(true);
+          }}
+          actionLoading={actionLoading}
+        />
       )}
 
       {/* Bank Change Approvals Section - For Admin and HR */}

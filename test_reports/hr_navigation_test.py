@@ -12,7 +12,7 @@ async def run_test():
         page = await context.new_page()
         
         test_results = []
-        base_url = "https://portal-access-16.preview.emergentagent.com"
+        base_url = "https://modular-erp-preview-1.preview.emergentagent.com"
         
         # Step 1: Login
         print("=" * 60)
