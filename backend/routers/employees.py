@@ -1119,6 +1119,32 @@ async def get_employee_stats(current_user: User = Depends(get_current_user)):
     }
 
 
+@router.get("/integrity/audit")
+async def run_integrity_audit(current_user: User = Depends(get_current_user)):
+    """
+    Run comprehensive integrity audit on employee data.
+    
+    ACCESS: Admin only.
+    
+    Returns audit report with:
+    - Employee statistics
+    - Lifecycle anomalies detected
+    - Risk assessment
+    - Recommendations
+    """
+    db = get_db()
+    
+    # Admin only
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Only Admin can run integrity audits")
+    
+    from services.integrity_monitor import IntegrityMonitor
+    
+    report = await IntegrityMonitor.run_audit(db)
+    return report
+
+
 @router.get("/lookup/by-code/{emp_code}")
 async def lookup_employee_by_code(emp_code: str, current_user: User = Depends(get_current_user)):
     """Lookup employee by employee code (e.g., EMP001)."""

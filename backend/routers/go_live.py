@@ -272,6 +272,9 @@ async def submit_go_live_request(
         "timestamp": now
     })
     
+    # Invalidate cache after status change
+    cache.invalidate_pattern("list:employees")
+    
     return {
         "message": "Go-Live request submitted for admin approval",
         "request_id": request_id,
@@ -829,6 +832,9 @@ async def reject_go_live_request(
         "details": {"reason": reason},
         "timestamp": now
     })
+    
+    # Invalidate cache after status change
+    cache.invalidate_pattern("list:employees")
     
     return {
         "message": "Go-Live request rejected",
