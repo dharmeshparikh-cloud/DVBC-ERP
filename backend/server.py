@@ -129,6 +129,15 @@ async def startup_db_client():
     except Exception as e:
         logger.warning(f"WebSocket ping task error: {e}")
     
+    # Initialize and start the Integrity Audit Scheduler
+    try:
+        from services.integrity_scheduler import get_integrity_scheduler
+        scheduler = get_integrity_scheduler(db)
+        await scheduler.start()
+        logger.info("Integrity audit scheduler started (daily at 02:00 UTC)")
+    except Exception as e:
+        logger.warning(f"Integrity scheduler initialization error: {e}")
+    
     logger.info(f"Connected to MongoDB: {db_name}")
     logger.info("NETRA ERP started successfully")
 
@@ -137,6 +146,15 @@ async def startup_db_client():
 async def shutdown_db_client():
     """Close database connection and cleanup."""
     global client
+    
+    # Stop integrity scheduler
+    try:
+        from services.integrity_scheduler import get_integrity_scheduler
+        scheduler = get_integrity_scheduler()
+        if scheduler:
+            await scheduler.stop()
+    except Exception as e:
+        logger.warning(f"Integrity scheduler stop error: {e}")
     
     # Close Redis connection
     try:

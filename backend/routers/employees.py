@@ -1145,6 +1145,76 @@ async def run_integrity_audit(current_user: User = Depends(get_current_user)):
     return report
 
 
+@router.get("/integrity/scheduler/status")
+async def get_scheduler_status(current_user: User = Depends(get_current_user)):
+    """
+    Get integrity scheduler status.
+    
+    ACCESS: Admin only.
+    """
+    # Admin only
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Only Admin can view scheduler status")
+    
+    from services.integrity_scheduler import get_integrity_scheduler
+    scheduler = get_integrity_scheduler()
+    
+    if not scheduler:
+        return {"status": "not_initialized", "message": "Scheduler not running"}
+    
+    return scheduler.get_status()
+
+
+@router.post("/integrity/scheduler/run-now")
+async def trigger_audit_now(current_user: User = Depends(get_current_user)):
+    """
+    Trigger an immediate integrity audit.
+    
+    ACCESS: Admin only.
+    """
+    db = get_db()
+    
+    # Admin only
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Only Admin can trigger audits")
+    
+    from services.integrity_scheduler import get_integrity_scheduler
+    scheduler = get_integrity_scheduler(db)
+    
+    if not scheduler:
+        raise HTTPException(status_code=500, detail="Scheduler not initialized")
+    
+    report = await scheduler.run_audit_now()
+    return report
+
+
+@router.get("/integrity/reports")
+async def get_audit_reports(
+    limit: int = 10,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get recent integrity audit reports.
+    
+    ACCESS: Admin only.
+    """
+    db = get_db()
+    
+    # Admin only
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ["admin"]
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Only Admin can view audit reports")
+    
+    reports = await db.integrity_audit_reports.find(
+        {},
+        {"_id": 0}
+    ).sort("timestamp", -1).limit(limit).to_list(limit)
+    
+    return {"reports": reports, "count": len(reports)}
+
+
 @router.get("/lookup/by-code/{emp_code}")
 async def lookup_employee_by_code(emp_code: str, current_user: User = Depends(get_current_user)):
     """Lookup employee by employee code (e.g., EMP001)."""
