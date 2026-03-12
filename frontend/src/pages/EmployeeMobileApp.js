@@ -23,6 +23,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Import modular components for better maintainability
+import { MobileNavigation, MobileHeader } from '../components/mobile';
+
 const EmployeeMobileApp = () => {
   const { user, logout } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('home');
