@@ -9,7 +9,7 @@ import { Badge } from '../../components/ui/badge';
 import { 
   Search, FileText, Clock, CheckCircle, AlertCircle, Loader2, Eye, 
   BarChart3, Filter, Building2, Calendar, Users, ListTodo, ArrowRight,
-  DollarSign, UserCheck, Briefcase, ChevronRight
+  DollarSign, UserCheck, Briefcase, ChevronRight, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -17,6 +17,7 @@ import ViewToggle from '../../components/ViewToggle';
 import ConsultingStageNav from '../../components/ConsultingStageNav';
 import { sanitizeDisplayText } from '../../utils/sanitize';
 import { useQuery } from '@tanstack/react-query';
+import { isProjectReadOnly } from '../../utils/projectActions';
 
 const STATUS_CONFIG = {
   pending_kickoff: { label: 'Pending Kickoff', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -72,8 +73,8 @@ const MyProjects = () => {
       return {
         projects: filteredProjects,
         sowList: handedOverSOWs,
-        leads: leadsRes.data || [],
-        employees: employeesRes.data || []
+        leads: Array.isArray(leadsRes.data) ? leadsRes.data : leadsRes.data?.items || [],
+        employees: Array.isArray(employeesRes.data) ? employeesRes.data : employeesRes.data?.items || []
       };
     },
     staleTime: 3 * 60 * 1000, // 3 minutes
@@ -283,18 +284,26 @@ const MyProjects = () => {
                   const progress = getProgress(sow);
                   const scopeCounts = getScopeCounts(sow);
                   const consultants = getAssignedConsultants(project);
+                  const readOnly = isProjectReadOnly(status);
                   
                   return (
                     <tr 
                       key={sow.id} 
-                      className="hover:bg-zinc-50 cursor-pointer transition-colors"
+                      className={`hover:bg-zinc-50 cursor-pointer transition-colors ${readOnly ? 'opacity-75' : ''}`}
                       onClick={() => navigate(`/consulting/project-tasks/${sow.id}`)}
                       data-testid={`project-row-${sow.id}`}
                     >
                       <td className="px-4 py-3">
-                        <span className="font-medium text-zinc-900">
-                          {sanitizeDisplayText(lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Client')}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-zinc-900">
+                            {sanitizeDisplayText(lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown Client')}
+                          </span>
+                          {readOnly && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-sm font-medium flex items-center gap-1" data-testid={`view-only-badge-${sow.id}`}>
+                              <Lock className="w-3 h-3" /> View Only
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-600">
                         {sanitizeDisplayText(lead?.company) || '-'}
@@ -350,15 +359,18 @@ const MyProjects = () => {
                             size="sm"
                             className="h-8"
                             title="View SOW"
+                            data-testid={`view-sow-btn-${sow.id}`}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
                           <Button
-                            onClick={() => navigate(`/consulting/project-tasks/${sow.id}`)}
+                            onClick={() => !readOnly && navigate(`/consulting/project-tasks/${sow.id}`)}
                             variant="ghost"
                             size="sm"
-                            className="h-8"
-                            title="Manage Tasks"
+                            className={`h-8 ${readOnly ? 'opacity-40 cursor-not-allowed' : ''}`}
+                            disabled={readOnly}
+                            title={readOnly ? 'Project completed — view only' : 'Manage Tasks'}
+                            data-testid={`manage-tasks-btn-${sow.id}`}
                           >
                             <ListTodo className="w-4 h-4" />
                           </Button>
@@ -381,11 +393,12 @@ const MyProjects = () => {
               const progress = getProgress(sow);
               const scopeCounts = getScopeCounts(sow);
               const consultants = getAssignedConsultants(project);
+              const readOnly = isProjectReadOnly(status);
               
               return (
                 <Card 
                   key={sow.id} 
-                  className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
+                  className={`border-zinc-200 shadow-none rounded-sm transition-colors cursor-pointer ${readOnly ? 'border-amber-200 bg-amber-50/30 hover:border-amber-300' : 'hover:border-zinc-300'}`}
                   onClick={() => navigate(`/consulting/project-tasks/${sow.id}`)}
                   data-testid={`project-card-${sow.id}`}
                 >
@@ -421,6 +434,11 @@ const MyProjects = () => {
                             <span className={`text-xs px-2 py-0.5 rounded-sm flex-shrink-0 ${statusConfig.color}`}>
                               {statusConfig.label}
                             </span>
+                            {readOnly && (
+                              <span className="text-xs px-2 py-0.5 rounded-sm flex-shrink-0 bg-amber-100 text-amber-700 font-medium flex items-center gap-1" data-testid={`view-only-card-badge-${sow.id}`}>
+                                <Lock className="w-3 h-3" /> View Only
+                              </span>
+                            )}
                           </div>
 
                           {/* Company & Key Info */}
@@ -508,19 +526,35 @@ const MyProjects = () => {
                           variant="outline"
                           size="sm"
                           className="rounded-sm"
+                          data-testid={`card-view-sow-btn-${sow.id}`}
                         >
                           <Eye className="w-4 h-4 mr-1" />
                           View SOW
                         </Button>
-                        <Button
-                          onClick={() => navigate(`/consulting/project-tasks/${sow.id}`)}
-                          size="sm"
-                          className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                        >
-                          <ListTodo className="w-4 h-4 mr-1" />
-                          Tasks
-                          <ArrowRight className="w-4 h-4 ml-1" />
-                        </Button>
+                        {readOnly ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-sm opacity-40 cursor-not-allowed border-amber-200 text-amber-700"
+                            disabled
+                            title="Project completed — modifications disabled"
+                            data-testid={`card-tasks-btn-disabled-${sow.id}`}
+                          >
+                            <Lock className="w-4 h-4 mr-1" />
+                            Tasks Locked
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => navigate(`/consulting/project-tasks/${sow.id}`)}
+                            size="sm"
+                            className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                            data-testid={`card-tasks-btn-${sow.id}`}
+                          >
+                            <ListTodo className="w-4 h-4 mr-1" />
+                            Tasks
+                            <ArrowRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>

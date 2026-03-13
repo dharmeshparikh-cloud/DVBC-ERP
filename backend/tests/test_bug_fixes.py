@@ -12,7 +12,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://netra-erp-mobile.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-mobile-audit.preview.emergentagent.com')
 
 @pytest.fixture(scope="session")
 def auth_token():

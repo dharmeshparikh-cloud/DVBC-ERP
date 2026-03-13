@@ -103,5 +103,5 @@
   "retest_needed": false,
   "should_main_agent_self_test": false,
   "context_for_next_testing_agent": "Step navigation blocking feature is fully implemented and working. The validateCurrentStep() function validates all fields in sequence for each step. handleNext() blocks navigation when validation fails. Step indicators block forward navigation but allow backward navigation. All toast error messages are specific to the missing/invalid field.",
-  "testing_url": "https://netra-erp-mobile.preview.emergentagent.com/onboarding/candidate/{token}"
+  "testing_url": "https://erp-mobile-audit.preview.emergentagent.com/onboarding/candidate/{token}"
 }
