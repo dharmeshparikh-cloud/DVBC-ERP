@@ -95,7 +95,9 @@ const useDraft = (
       if (module) params.module = module;
       
       const response = await axios.get(`${API}/drafts`, { params });
-      setDrafts(response.data || []);
+      // Handle both old array response and new {data: []} format
+      const draftsData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setDrafts(draftsData);
     } catch (error) {
       console.error('Failed to fetch drafts:', error);
     } finally {

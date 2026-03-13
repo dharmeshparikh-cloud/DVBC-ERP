@@ -66,7 +66,8 @@ const EmployeeWorkflows = () => {
     queryKey: ['departments-list'],
     queryFn: async () => {
       const res = await axios.get(`${API}/employees/departments/list`);
-      return res.data || [];
+      // Handle both old array response and new {data: []} format
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
     }
   });
 

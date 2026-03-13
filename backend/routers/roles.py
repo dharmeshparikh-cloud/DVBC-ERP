@@ -127,7 +127,8 @@ async def delete_role(role_id: str, current_user: User = Depends(get_current_use
 @router.get("/categories/sow")
 async def get_sow_role_categories(current_user: User = Depends(get_current_user)):
     """Get SOW role categories"""
-    return ["discovery", "implementation", "training", "support", "management"]
+    categories = ["discovery", "implementation", "training", "support", "management"]
+    return {"success": True, "data": categories}
 
 
 # Role Permissions endpoints

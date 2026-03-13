@@ -146,7 +146,7 @@ async def get_drafts(
     
     drafts = await db.drafts.find(query, {"_id": 0}).sort("updated_at", -1).to_list(limit)
     
-    return [normalize_draft(d) for d in drafts]
+    return {"success": True, "data": [normalize_draft(d) for d in drafts], "total": len(drafts)}
 
 
 @router.get("/check")

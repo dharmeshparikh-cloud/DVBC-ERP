@@ -200,7 +200,8 @@ const Chat = () => {
     if (!currentUser?.id) return;
     try {
       const res = await axios.get(`${API_URL}/api/chat/conversations/${conversationId}/messages`);
-      setMessages(res.data);
+      // Ensure messages is always an array
+      setMessages(Array.isArray(res.data) ? res.data : []);
       
       // Mark all as read
       await axios.post(`${API_URL}/api/chat/conversations/${conversationId}/read-all?user_id=${currentUser.id}`);

@@ -530,7 +530,7 @@ async def admin_list_categories():
     """Admin: List all categories."""
     db = get_db()
     categories = await db.help_categories.find().sort("order", 1).to_list(100)
-    return [serialize_doc(c) for c in categories]
+    return {"success": True, "data": [serialize_doc(c) for c in categories]}
 
 
 @router.post("/admin/categories")

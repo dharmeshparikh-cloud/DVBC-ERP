@@ -1070,7 +1070,8 @@ async def get_departments(current_user: User = Depends(get_current_user)):
     db = get_db()
     
     departments = await db.employees.distinct("department")
-    return [d for d in departments if d]
+    dept_list = [d for d in departments if d]
+    return {"success": True, "data": dept_list}
 
 
 @router.get("/stats/summary")

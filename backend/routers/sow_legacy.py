@@ -45,7 +45,8 @@ class SOWChangeRequestCreate(BaseModel):
 @router.get("/categories")
 async def get_sow_categories(current_user: User = Depends(get_current_user)):
     """Get available SOW categories"""
-    return ["discovery", "implementation", "training", "support", "custom"]
+    categories = ["discovery", "implementation", "training", "support", "custom"]
+    return {"success": True, "data": categories}
 
 
 @router.post("")
