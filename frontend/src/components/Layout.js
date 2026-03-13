@@ -672,9 +672,9 @@ const Layout = () => {
   );
 
   return (
-    <div className={`flex min-h-screen transition-colors duration-200 ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
+    <div className={`flex min-h-screen max-h-screen overflow-hidden transition-colors duration-200 ${isDark ? 'bg-zinc-950' : 'bg-white'}`}>
       {/* Desktop Sidebar - New Modern Design */}
-      <aside className="hidden md:block flex-shrink-0" data-testid="sidebar">
+      <aside className="hidden md:block flex-shrink-0 h-screen sticky top-0" data-testid="sidebar">
         <ModernSidebar
           user={user}
           logout={logout}
@@ -716,7 +716,7 @@ const Layout = () => {
         </>
       )}
 
-      <main className="flex-1 flex flex-col pb-16 md:pb-0">
+      <main className="flex-1 flex flex-col pb-16 md:pb-0 overflow-y-auto max-h-screen">
         {/* Header */}
         <div className={`flex items-center justify-between px-4 md:px-8 py-3 border-b sticky top-0 z-10 transition-colors duration-200 ${
           isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-100 bg-white'

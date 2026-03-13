@@ -27,6 +27,10 @@ import {
   HelpCircle, ArrowRightLeft, ChevronRight, Bell, MoreVertical, PanelLeftClose, PanelLeft
 } from 'lucide-react';
 
+// Storage keys for scroll persistence
+const SIDEBAR_SCROLL_KEY = 'sidebar_scroll_position';
+const SIDEBAR_ICON_SCROLL_KEY = 'sidebar_icon_scroll_position';
+
 // Icon mapping for menu sections
 const SECTION_ICONS = {
   dashboard: LayoutDashboard,
@@ -87,6 +91,56 @@ const ModernSidebar = ({
   const sidebarRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
   const profileMenuRef = useRef(null);
+  
+  // Refs for scroll persistence
+  const expandedNavRef = useRef(null);
+  const iconNavRef = useRef(null);
+  const isRestoringScroll = useRef(false);
+
+  // Restore scroll position on mount and route changes
+  useEffect(() => {
+    const restoreScrollPosition = () => {
+      isRestoringScroll.current = true;
+      
+      // Restore expanded panel scroll
+      const savedExpandedScroll = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+      if (savedExpandedScroll && expandedNavRef.current) {
+        expandedNavRef.current.scrollTop = parseInt(savedExpandedScroll, 10);
+      }
+      
+      // Restore icon bar scroll
+      const savedIconScroll = sessionStorage.getItem(SIDEBAR_ICON_SCROLL_KEY);
+      if (savedIconScroll && iconNavRef.current) {
+        iconNavRef.current.scrollTop = parseInt(savedIconScroll, 10);
+      }
+      
+      // Reset flag after a short delay
+      requestAnimationFrame(() => {
+        isRestoringScroll.current = false;
+      });
+    };
+    
+    // Restore immediately
+    restoreScrollPosition();
+    
+    // Also restore after a brief delay to handle React re-renders
+    const timeoutId = setTimeout(restoreScrollPosition, 50);
+    
+    return () => clearTimeout(timeoutId);
+  }, [location.pathname]);
+
+  // Save scroll position on scroll events
+  const handleExpandedScroll = useCallback((e) => {
+    if (!isRestoringScroll.current) {
+      sessionStorage.setItem(SIDEBAR_SCROLL_KEY, e.target.scrollTop.toString());
+    }
+  }, []);
+  
+  const handleIconScroll = useCallback((e) => {
+    if (!isRestoringScroll.current) {
+      sessionStorage.setItem(SIDEBAR_ICON_SCROLL_KEY, e.target.scrollTop.toString());
+    }
+  }, []);
 
   // Toggle section expansion - useCallback to avoid stale closure
   // IMPORTANT: Defined before keyboard navigation useEffect to avoid hoisting issues
@@ -649,7 +703,11 @@ const ModernSidebar = ({
         </div>
 
         {/* Navigation Icons */}
-        <div className="flex-1 py-4 px-2.5 space-y-2 overflow-y-auto">
+        <div 
+          ref={iconNavRef}
+          onScroll={handleIconScroll}
+          className="flex-1 py-4 px-2.5 space-y-2 overflow-y-auto scrollbar-thin"
+        >
           {menuSections.filter(s => s.show).map(section => (
             <div key={section.key} className="relative">
               <IconBarItem section={section} />
@@ -860,7 +918,11 @@ const ModernSidebar = ({
           </div>
 
           {/* Navigation Sections */}
-          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          <div 
+            ref={expandedNavRef}
+            onScroll={handleExpandedScroll}
+            className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin"
+          >
             {/* Dashboard Link */}
             <Link
               to="/"
