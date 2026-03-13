@@ -13,6 +13,7 @@ import {
   ChevronRight, TrendingUp, MapPin, Mail, Phone
 } from 'lucide-react';
 import { toast } from 'sonner';
+import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const EmployeeScorecard = () => {
   const { user } = useContext(AuthContext);
@@ -90,6 +91,7 @@ const EmployeeScorecard = () => {
 
   return (
     <div className="space-y-6" data-testid="employee-scorecard">
+      <MyWorkspaceNav />
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-zinc-900">Employee Scorecard</h1>

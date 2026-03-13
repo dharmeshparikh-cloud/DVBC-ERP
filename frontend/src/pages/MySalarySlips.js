@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Dialog, DialogContent } from '../components/ui/dialog';
 import { FileText, DollarSign, TrendingUp, Download, X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png";
 
@@ -228,6 +229,7 @@ const MySalarySlips = () => {
 
   return (
     <div data-testid="my-salary-slips-page">
+      <MyWorkspaceNav />
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">My Salary Slips</h1>
         <p className="text-zinc-500">View and download your monthly salary statements</p>

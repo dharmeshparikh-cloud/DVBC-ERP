@@ -15,6 +15,7 @@ import {
   CreditCard, Edit2, Save, X, Clock, CheckCircle, AlertCircle,
   FileText, Upload, Send, UserCog, Shield, Search, Loader2, Trash2, Eye
 } from 'lucide-react';
+import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const MyDetails = () => {
   const { user } = useContext(AuthContext);
@@ -205,6 +206,7 @@ const MyDetails = () => {
 
   return (
     <div className={`space-y-6 ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+      <MyWorkspaceNav />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

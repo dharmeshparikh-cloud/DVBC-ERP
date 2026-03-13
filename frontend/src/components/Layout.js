@@ -440,6 +440,7 @@ const Layout = () => {
     { name: 'My Leaves', href: '/my-leaves', icon: Calendar },
     { name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet },
     { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
+    { name: 'My Projects', href: '/consulting/my-projects', icon: Briefcase },
     { name: 'My Drafts', href: '/my-drafts', icon: FileText },
     { name: 'My Details', href: '/my-details', icon: UserCog },
     { name: 'My Scorecard', href: '/employee-scorecard', icon: Star },

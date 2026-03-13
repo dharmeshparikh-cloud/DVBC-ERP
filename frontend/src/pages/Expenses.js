@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const EXPENSE_CATEGORIES = [
   { value: 'travel', label: 'Travel' },
@@ -266,6 +267,7 @@ const Expenses = () => {
 
   return (
     <div data-testid="expenses-page">
+      <MyWorkspaceNav />
       <div className="mb-6">
         <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
           MY EXPENSES

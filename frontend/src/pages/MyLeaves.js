@@ -13,6 +13,7 @@ import useDraft from '../hooks/useDraft';
 import DraftIndicator from '../components/DraftIndicator';
 import DraftSelector from '../components/DraftSelector';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const LEAVE_TYPES = [
   { value: 'casual_leave', label: 'Casual Leave', key: 'casual' },
@@ -159,6 +160,7 @@ const MyLeaves = () => {
 
   return (
     <div data-testid="my-leaves-page">
+      <MyWorkspaceNav />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">My Leaves</h1>

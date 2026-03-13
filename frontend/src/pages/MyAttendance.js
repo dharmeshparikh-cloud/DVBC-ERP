@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { CheckCircle, XCircle, Clock, CalendarDays, Home, Coffee, MapPin, Building2, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickCheckInModal from '../components/QuickCheckInModal';
+import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const STATUS_STYLES = {
   present: { label: 'Present', color: 'bg-emerald-100 text-emerald-700' },
@@ -45,6 +46,7 @@ const MyAttendance = () => {
 
   return (
     <div data-testid="my-attendance-page">
+      <MyWorkspaceNav />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 dark:text-zinc-100 mb-2">My Attendance</h1>

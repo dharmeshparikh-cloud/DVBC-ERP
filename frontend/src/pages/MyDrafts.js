@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
+import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 // Universal Draft type configuration - covers ALL modules
 const DRAFT_TYPES = {
@@ -257,6 +258,7 @@ const MyDrafts = () => {
 
   return (
     <div className="space-y-6 p-6" data-testid="my-drafts-page">
+      <MyWorkspaceNav />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

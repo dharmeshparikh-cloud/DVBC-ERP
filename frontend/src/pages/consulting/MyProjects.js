@@ -22,6 +22,7 @@ import ConsultingStageNav from '../../components/ConsultingStageNav';
 import { sanitizeDisplayText } from '../../utils/sanitize';
 import { useQuery } from '@tanstack/react-query';
 import { isProjectReadOnly } from '../../utils/projectActions';
+import MyWorkspaceNav from '../../components/MyWorkspaceNav';
 
 const STATUS_CONFIG = {
   pending_kickoff: { label: 'Pending Kickoff', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -197,6 +198,7 @@ const MyProjects = () => {
 
   return (
     <div data-testid="my-projects-page">
+      <MyWorkspaceNav />
       {/* Stage Navigation */}
       <ConsultingStageNav 
         currentStage={3} 

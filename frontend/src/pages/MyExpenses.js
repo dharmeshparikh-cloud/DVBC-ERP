@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import useDraft from '../hooks/useDraft';
 import DraftIndicator from '../components/DraftIndicator';
 import DraftSelector from '../components/DraftSelector';
+import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const CATEGORIES = ['Travel', 'Local Conveyance', 'Food', 'Accommodation', 'Office Supplies', 'Communication', 'Client Entertainment', 'Other'];
 
@@ -216,6 +217,7 @@ const MyExpenses = () => {
 
   return (
     <div data-testid="my-expenses-page">
+      <MyWorkspaceNav />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">My Expenses</h1>
