@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List
 from datetime import datetime, timezone
 import uuid
-from .deps import get_db, MANAGER_ROLES
+from .deps import get_db, MANAGER_ROLES, ADMIN_ROLES
 from .models import User
 from .auth import get_current_user
 
@@ -124,7 +124,9 @@ async def update_consultant_profile(consultant_id: str, data: dict, current_user
 
 @router.put("/{consultant_id}/profile")
 async def replace_consultant_profile(consultant_id: str, data: dict, current_user: User = Depends(get_current_user)):
-    """Replace consultant profile (full update)"""
+    """Replace consultant profile (full update) — self or admin only"""
+    if current_user.id != consultant_id and current_user.role not in ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Can only update your own profile")
     return await update_consultant_profile(consultant_id, data, current_user)
 
 

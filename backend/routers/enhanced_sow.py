@@ -293,10 +293,14 @@ async def create_sow_from_sales_selection(
 @router.post("/{sow_id}/complete-handover")
 async def complete_sales_handover(
     sow_id: str,
-    current_user_id: str = None,
-    current_user_role: str = "admin"
+    current_user: User = Depends(get_current_user)
 ):
     """Mark sales handover as complete - locks original snapshot"""
+    # Only sales roles and admins can complete handover
+    allowed = ADMIN_ROLES + ["sales_manager", "sales_executive", "executive", "principal_consultant"]
+    if current_user.role not in allowed:
+        raise HTTPException(status_code=403, detail="Not authorized to complete handover")
+
     db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
@@ -902,8 +906,7 @@ async def create_scope_task(
     sow_id: str,
     scope_id: str,
     task_data: dict,
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    current_user: User = Depends(get_current_user)
 ):
     """Create a task under a specific scope"""
     db = get_db()
@@ -925,17 +928,17 @@ async def create_scope_task(
         "id": str(uuid.uuid4()),
         "name": task_data.get("name", "Untitled Task"),
         "description": task_data.get("description", ""),
-        "status": "pending",  # pending, in_progress, completed, approved
+        "status": "pending",
         "priority": task_data.get("priority", "medium"),
         "due_date": task_data.get("due_date"),
         "assigned_to_id": task_data.get("assigned_to_id"),
         "assigned_to_name": task_data.get("assigned_to_name"),
-        "created_by_id": current_user_id,
-        "created_by_name": current_user_name,
+        "created_by_id": current_user.id,
+        "created_by_name": f"{current_user.first_name} {current_user.last_name}",
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
         "attachments": [],
-        "approval_status": None,  # None, pending, manager_approved, client_approved, fully_approved
+        "approval_status": None,
         "manager_approval": None,
         "client_approval": None,
         "notes": task_data.get("notes", "")
@@ -966,8 +969,7 @@ async def update_scope_task(
     scope_id: str,
     task_id: str,
     task_update: dict,
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    current_user: User = Depends(get_current_user)
 ):
     """Update a task within a scope"""
     db = get_db()
@@ -1193,15 +1195,20 @@ async def approve_task(
     scope_id: str,
     task_id: str,
     approval_data: dict,
-    current_user_id: str = None,
-    current_user_name: str = "Unknown",
-    current_user_role: str = "consultant"
+    current_user: User = Depends(get_current_user)
 ):
     """
     Process approval from Manager or Client.
     Approval type: 'manager' or 'client'
     Both can approve independently (parallel).
     """
+    # Only managers, admins, and principal consultants can approve as manager
+    approval_type = approval_data.get("approval_type", "manager")
+    if approval_type == "manager":
+        allowed = ADMIN_ROLES + ["manager", "project_manager", "principal_consultant", "lead_consultant", "sales_manager"]
+        if current_user.role not in allowed:
+            raise HTTPException(status_code=403, detail="Not authorized to provide manager approval")
+
     db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
     if not sow:
@@ -1233,8 +1240,8 @@ async def approve_task(
         
         task["manager_approval"]["status"] = "approved" if approved else "rejected"
         task["manager_approval"]["approved_at"] = now.isoformat()
-        task["manager_approval"]["approved_by_id"] = current_user_id
-        task["manager_approval"]["approved_by_name"] = current_user_name
+        task["manager_approval"]["approved_by_id"] = current_user.id
+        task["manager_approval"]["approved_by_name"] = f"{current_user.first_name} {current_user.last_name}"
         task["manager_approval"]["notes"] = notes
         
     elif approval_type == "client":
@@ -1243,8 +1250,8 @@ async def approve_task(
         
         task["client_approval"]["status"] = "approved" if approved else "rejected"
         task["client_approval"]["approved_at"] = now.isoformat()
-        task["client_approval"]["approved_by_id"] = current_user_id
-        task["client_approval"]["approved_by_name"] = current_user_name
+        task["client_approval"]["approved_by_id"] = current_user.id
+        task["client_approval"]["approved_by_name"] = f"{current_user.first_name} {current_user.last_name}"
         task["client_approval"]["notes"] = notes
     
     # Check if fully approved (both Manager and Client approved)

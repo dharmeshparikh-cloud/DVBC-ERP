@@ -372,7 +372,9 @@ async def get_pending_agreements(current_user: User = Depends(get_current_user))
 
 @router.post("/{agreement_id}/sign")
 async def sign_agreement(agreement_id: str, data: AgreementSignatureData, current_user: User = Depends(get_current_user)):
-    """Record agreement signature"""
+    """Record agreement signature — requires manager/admin/sales role"""
+    if current_user.role not in ADMIN_ROLES and current_user.role not in SALES_MANAGER_ROLES and current_user.role not in MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail="Not authorized to sign agreements")
     db = get_db()
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
@@ -469,7 +471,10 @@ async def upload_signed_agreement(agreement_id: str, data: dict, current_user: U
 
 @router.post("/{agreement_id}/record-payment")
 async def record_agreement_payment(agreement_id: str, data: AgreementPaymentRecord, current_user: User = Depends(get_current_user)):
-    """Record a payment against agreement"""
+    """Record a payment against agreement — requires finance/admin/sales manager role"""
+    allowed = ADMIN_ROLES + list(SALES_MANAGER_ROLES) + list(MANAGER_ROLES)
+    if current_user.role not in allowed:
+        raise HTTPException(status_code=403, detail="Not authorized to record payments")
     db = get_db()
     
     agreement = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})

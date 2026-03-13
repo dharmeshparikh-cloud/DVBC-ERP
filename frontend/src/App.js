@@ -301,26 +301,26 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="sales-funnel/approvals" element={<ManagerApprovals />} />
         <Route path="client-onboarding" element={<ClientOnboarding />} />
         <Route path="sales-funnel-onboarding" element={<SalesFunnelOnboarding />} />
-        <Route path="consulting/projects" element={<ConsultingSOWList />} />
+        <Route path="consulting/projects" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingSOWList /></RoleGuard>} />
         <Route path="consulting/my-projects" element={<MyProjects />} />
-        <Route path="consulting/assign-team/:projectId" element={<AssignTeam />} />
-        <Route path="consulting/project-tasks/:sowId" element={<ConsultingProjectTasks />} />
-        <Route path="consulting/sow-changes" element={<SOWChangeRequests />} />
-        <Route path="consulting/payments" element={<PaymentReminders />} />
-        <Route path="consultants" element={<Consultants />} />
-        <Route path="consultant-dashboard" element={<ConsultantDashboard />} />
+        <Route path="consulting/assign-team/:projectId" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery']}><AssignTeam /></RoleGuard>} />
+        <Route path="consulting/project-tasks/:sowId" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingProjectTasks /></RoleGuard>} />
+        <Route path="consulting/sow-changes" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><SOWChangeRequests /></RoleGuard>} />
+        <Route path="consulting/payments" element={<RoleGuard allowedRoles={['principal_consultant', 'lead_consultant', 'project_manager']} allowedDepts={['Consulting', 'Finance']}><PaymentReminders /></RoleGuard>} />
+        <Route path="consultants" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'HR', 'Delivery']}><Consultants /></RoleGuard>} />
+        <Route path="consultant-dashboard" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><ConsultantDashboard /></RoleGuard>} />
         <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />
         <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
         <Route path="projects/:projectId/payments" element={<ProjectPaymentDetails />} />
         <Route path="payments" element={<ProjectPayments />} />
         <Route path="timesheets" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><Timesheets /></RoleGuard>} />
-        <Route path="handover-alerts" element={<HandoverAlerts />} />
-        <Route path="kickoff-requests" element={<KickoffRequests />} />
+        <Route path="handover-alerts" element={<RoleGuard allowedRoles={['sales_manager', 'principal_consultant', 'lead_consultant', 'project_manager']} allowedDepts={['Sales', 'Consulting']}><HandoverAlerts /></RoleGuard>} />
+        <Route path="kickoff-requests" element={<RoleGuard allowedRoles={['sales_manager', 'principal_consultant', 'lead_consultant', 'project_manager']} allowedDepts={['Sales', 'Consulting']}><KickoffRequests /></RoleGuard>} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="user-management" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><UserManagement /></RoleGuard>} />
         <Route path="employees" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><Employees /></RoleGuard>} />
-        <Route path="password-management" element={<EmployeeAccessPermissions />} />
-        <Route path="employee-access-permissions" element={<EmployeeAccessPermissions />} />
+        <Route path="password-management" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><EmployeeAccessPermissions /></RoleGuard>} />
+        <Route path="employee-access-permissions" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><EmployeeAccessPermissions /></RoleGuard>} />
         <Route path="approvals" element={<ApprovalsCenter />} />
         <Route path="manager-leads" element={<RoleGuard allowedRoles={['sales_manager', 'manager', 'principal_consultant']} allowedDepts={['Sales']}><ManagerLeadsDashboard /></RoleGuard>} />
         <Route path="team-leads" element={<Navigate to="/manager-leads" replace />} />
@@ -334,14 +334,14 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="security-audit" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><SecurityAuditLog /></RoleGuard>} />
         <Route path="gantt-chart" element={<GanttChart />} />
         <Route path="downloads" element={<Downloads />} />
-        <Route path="sales-dashboard" element={<SalesDashboard />} />
-        <Route path="consulting-dashboard" element={<ConsultingDashboard />} />
-        <Route path="hr-dashboard" element={<HRDashboard />} />
+        <Route path="sales-dashboard" element={<RoleGuard allowedRoles={['sales_manager', 'executive', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales']}><SalesDashboard /></RoleGuard>} />
+        <Route path="consulting-dashboard" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingDashboard /></RoleGuard>} />
+        <Route path="hr-dashboard" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><HRDashboard /></RoleGuard>} />
         <Route path="admin-masters" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><AdminMasters /></RoleGuard>} />
         <Route path="permission-manager" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><PermissionManager /></RoleGuard>} />
-        <Route path="permission-dashboard" element={<PermissionDashboard />} />
-        <Route path="employee-permissions" element={<EmployeeAccessPermissions />} />
-        <Route path="department-access" element={<DepartmentAccessManager />} />
+        <Route path="permission-dashboard" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><PermissionDashboard /></RoleGuard>} />
+        <Route path="employee-permissions" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><EmployeeAccessPermissions /></RoleGuard>} />
+        <Route path="department-access" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><DepartmentAccessManager /></RoleGuard>} />
         <Route path="expense-approvals" element={<Navigate to="/approvals" replace />} />
         <Route path="employee-scorecard" element={<EmployeeScorecard />} />
         <Route path="role-management" element={<RoleManagement />} />
