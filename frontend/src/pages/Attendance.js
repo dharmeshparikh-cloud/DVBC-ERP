@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
+import { LazyImage } from '../components/ui/lazy-image';
 import { Plus, Upload, CheckCircle, XCircle, Clock, CalendarDays, Building2, MapPin, Home, Camera, Navigation, Loader2, LogIn, LogOut, AlertCircle, Car, Bike, RotateCcw, Send, X, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -657,7 +658,12 @@ const Attendance = () => {
                         <div className="border border-zinc-200 rounded-md p-3 bg-zinc-50">
                           {selfieData ? (
                             <div className="relative">
-                              <img src={selfieData} alt="Selfie" className="w-full h-40 object-cover rounded-md" />
+                              <LazyImage 
+                                src={selfieData} 
+                                alt="Selfie" 
+                                className="w-full h-40 rounded-md"
+                                objectFit="cover"
+                              />
                               <button
                                 type="button"
                                 onClick={() => { setSelfieData(null); startCamera(); }}

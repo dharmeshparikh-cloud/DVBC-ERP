@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { LazyImage } from '../components/ui/lazy-image';
 import { 
   Receipt, Plus, Search, Eye, Edit2, Send, Check, 
   Clock, XCircle, CheckCircle, DollarSign, Calendar,
@@ -604,13 +605,13 @@ const Expenses = () => {
                     </div>
                   </div>
                   {lineItemForm.receipt && lineItemForm.receipt.file_type?.startsWith('image/') && (
-                    <div className="w-16 h-16 rounded border border-zinc-200 overflow-hidden">
-                      <img 
-                        src={lineItemForm.receipt.file_data} 
-                        alt="Receipt preview" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    <LazyImage 
+                      src={lineItemForm.receipt.file_data} 
+                      alt="Receipt preview" 
+                      width={64}
+                      height={64}
+                      className="rounded border border-zinc-200"
+                    />
                   )}
                 </div>
               </div>

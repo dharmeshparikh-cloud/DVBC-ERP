@@ -13,6 +13,7 @@ import {
   useSubmitTravelReimbursement,
   useLocationSearch
 } from '../hooks/useMobileApp';
+import { LazyImage } from '../components/ui/lazy-image';
 import { 
   CheckCircle, Clock, MapPin, LogIn, LogOut, Calendar, Receipt, 
   Home, Building2, Navigation, Loader2, AlertCircle, ChevronRight,
@@ -983,7 +984,12 @@ const EmployeeMobileApp = () => {
                 </>
               ) : selfieData ? (
                 <>
-                  <img src={selfieData} alt="Selfie" className="w-full h-full object-cover" />
+                  <LazyImage 
+                    src={selfieData} 
+                    alt="Selfie" 
+                    className="w-full h-full"
+                    objectFit="cover"
+                  />
                   <button 
                     onClick={retakeSelfie}
                     className="absolute bottom-4 right-4 px-4 py-2 bg-white/90 rounded-xl flex items-center gap-2 text-sm font-medium"
@@ -1544,9 +1550,13 @@ const EmployeeMobileApp = () => {
                       <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
                         <div className="flex items-center gap-3">
                           {item.receipt && (
-                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-100">
-                              <img src={item.receipt} alt="Receipt" className="w-full h-full object-cover" />
-                            </div>
+                            <LazyImage 
+                              src={item.receipt} 
+                              alt="Receipt" 
+                              width={40}
+                              height={40}
+                              className="rounded-lg"
+                            />
                           )}
                           <div>
                             <p className="text-sm font-medium text-zinc-800">{item.description}</p>

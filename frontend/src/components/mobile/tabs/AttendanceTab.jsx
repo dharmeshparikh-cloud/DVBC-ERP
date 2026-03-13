@@ -9,6 +9,7 @@ import {
   CheckCircle, CheckCircle2, Clock, MapPin, Building2, 
   Calendar, Camera, XCircle 
 } from 'lucide-react';
+import { LazyImage } from '../../ui/lazy-image';
 
 export const AttendanceTab = memo(({
   currentTime,
@@ -116,9 +117,13 @@ export const AttendanceTab = memo(({
                 </p>
               </div>
               {record.selfie && (
-                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-zinc-200">
-                  <img src={record.selfie} alt="selfie" className="w-full h-full object-cover" />
-                </div>
+                <LazyImage 
+                  src={record.selfie} 
+                  alt="selfie" 
+                  width={32}
+                  height={32}
+                  className="rounded-full border-2 border-zinc-200"
+                />
               )}
             </div>
           ))}

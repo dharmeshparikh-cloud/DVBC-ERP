@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
+import { LazyImage } from '../../components/ui/lazy-image';
 import { 
   CheckCircle, XCircle, Clock, MapPin, User, Calendar, 
   Building2, AlertCircle, Eye, ThumbsUp, ThumbsDown, Loader2,
@@ -134,7 +135,13 @@ const HRAttendanceApprovals = () => {
                   {/* Selfie Thumbnail */}
                   <div className="w-14 h-14 rounded-lg overflow-hidden bg-zinc-200 dark:bg-zinc-700 flex-shrink-0">
                     {record.selfie ? (
-                      <img src={record.selfie} alt="selfie" className="w-full h-full object-cover" />
+                      <LazyImage 
+                        src={record.selfie} 
+                        alt="selfie" 
+                        width={56}
+                        height={56}
+                        className="rounded-lg"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <User className="w-6 h-6 text-zinc-400" />
@@ -203,7 +210,12 @@ const HRAttendanceApprovals = () => {
                   </p>
                   <div className="w-full aspect-[3/4] rounded-lg overflow-hidden bg-zinc-200 dark:bg-zinc-700">
                     {selectedRecord.selfie ? (
-                      <img src={selectedRecord.selfie} alt="selfie" className="w-full h-full object-cover" />
+                      <LazyImage 
+                        src={selectedRecord.selfie} 
+                        alt="selfie" 
+                        className="w-full h-full rounded-lg"
+                        objectFit="cover"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <User className="w-12 h-12 text-zinc-400" />

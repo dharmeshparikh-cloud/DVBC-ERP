@@ -100,6 +100,15 @@
 | sales_manager | sales-dashboard, leads, kickoff |
 | consultant | mobile, attendance, leave, expenses |
 
+**5. LazyImage Applied to Image-Heavy Pages**
+| Page | Images Converted |
+|------|------------------|
+| `AttendanceTab.jsx` | Selfie thumbnails in history |
+| `HRAttendanceApprovals.js` | Selfie thumbnails + detail view |
+| `Attendance.js` | Selfie preview in check-in |
+| `EmployeeMobileApp.js` | Selfie + receipt thumbnails |
+| `Expenses.js` | Receipt preview images |
+
 ### Bundle Analysis (Post-Build)
 - Main bundle: 681KB (code-split across ~100 chunks)
 - Largest chunks: 394KB (vendor), 121KB (UI library)
@@ -110,6 +119,11 @@
 - `/app/frontend/src/utils/routePreloader.js` - NEW
 - `/app/frontend/src/components/ui/loading-skeleton.jsx` - NEW
 - `/app/frontend/src/components/ui/lazy-image.jsx` - NEW
+- `/app/frontend/src/components/mobile/tabs/AttendanceTab.jsx` - LazyImage
+- `/app/frontend/src/pages/hr/HRAttendanceApprovals.js` - LazyImage
+- `/app/frontend/src/pages/Attendance.js` - LazyImage
+- `/app/frontend/src/pages/EmployeeMobileApp.js` - LazyImage
+- `/app/frontend/src/pages/Expenses.js` - LazyImage
 
 ---
 
