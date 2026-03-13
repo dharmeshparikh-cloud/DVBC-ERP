@@ -16,7 +16,37 @@
 
 ## Completed Work - March 2026
 
-### Phase 105: Deep RBAC & Navigation Gap Audit — All Roles - March 13, 2026 ✅ (Latest)
+### Phase 106: Button-Level E2E RBAC Hardening - March 13, 2026 ✅ (Latest)
+
+**Objective:** Deep button-level audit — secure all mutation endpoints and route-protect all remaining pages.
+
+**Backend Security Fixes (Critical):**
+1. `enhanced_sow.py` — 4 endpoints converted from spoofable plain params to `Depends(get_current_user)`:
+   - `approve_task`: Now requires JWT + manager/admin role check
+   - `complete_handover`: Now requires JWT + sales role check
+   - `create_scope_task`: Now requires JWT auth
+   - `update_scope_task`: Now requires JWT auth
+2. `agreements.py` — Added role checks:
+   - `sign_agreement`: Requires manager/admin/sales role
+   - `record_agreement_payment`: Requires finance/admin/sales role
+3. `consultants.py` — Added self-or-admin check to `replace_consultant_profile`
+4. Bug fix (testing agent): Added missing `ADMIN_ROLES` import to `consultants.py`
+
+**Frontend Route Guards Added (25+ routes):**
+- Consulting pages: `/consulting/projects`, `/consulting/assign-team`, `/consulting/project-tasks`, `/consulting/sow-changes`, `/consulting/payments`, `/consultants`, `/consultant-dashboard`
+- Sales pages: `/handover-alerts`, `/kickoff-requests` (managers/sales only)
+- HR pages: `/password-management`, `/employee-access-permissions`
+- Admin pages: `/permission-dashboard`, `/employee-permissions`, `/department-access`
+- Dashboards: `/sales-dashboard`, `/consulting-dashboard`, `/hr-dashboard` (role-gated)
+
+**Remaining Backend Refactor (P1 follow-up):**
+- ~40 enhanced_sow.py endpoints still use `current_user_id`/`current_user_name` plain params for TRACKING (not authorization). These should eventually migrate to `Depends(get_current_user)`.
+
+**Testing:** 100% pass (30+ tests — 14 backend, 16+ frontend). Admin bypass, Sales Manager blocks, backend 401/403 responses all verified.
+
+---
+
+### Phase 105: Deep RBAC & Navigation Gap Audit — All Roles - March 13, 2026 ✅
 
 **Objective:** Comprehensive RBAC audit across all 13 roles, fix navigation gaps, add route protection, fix data filtering.
 
