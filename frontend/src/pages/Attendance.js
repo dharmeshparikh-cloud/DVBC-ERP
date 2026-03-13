@@ -141,7 +141,8 @@ const Attendance = () => {
       // Fallback: fetch all clients
       try {
         const clientsRes = await axios.get(`${API}/clients`);
-        setAssignedClients(clientsRes.data.map(c => ({
+        const clientsData = Array.isArray(clientsRes.data) ? clientsRes.data : (clientsRes.data?.items || []);
+        setAssignedClients(clientsData.map(c => ({
           id: c.id,
           client_name: c.company_name,
           project_name: null

@@ -164,22 +164,21 @@ const Layout = () => {
   // Quick Check-in Modal state
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
 
-  // Sidebar scroll position ref
-  const sidebarNavRef = React.useRef(null);
-
-  // Persist sidebar scroll position across navigations
-  useEffect(() => {
-    const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
-    if (savedScrollPosition && sidebarNavRef.current) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        if (sidebarNavRef.current) {
-          sidebarNavRef.current.scrollTop = parseInt(savedScrollPosition, 10);
-        }
-      }, 50);
+  // Sidebar scroll position - using callback ref for reliable scroll restoration
+  // When the nav element mounts (including mobile sidebar remount), this callback fires
+  const sidebarNavRefCallback = useCallback((node) => {
+    if (node) {
+      // Restore saved scroll position when element mounts
+      const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
+      if (savedScrollPosition) {
+        // Use requestAnimationFrame to ensure DOM is fully ready
+        requestAnimationFrame(() => {
+          node.scrollTop = parseInt(savedScrollPosition, 10);
+        });
+      }
     }
-  }, [location.pathname]);
-
+  }, []);
+  
   // Save scroll position when it changes
   const handleSidebarScroll = useCallback((e) => {
     sessionStorage.setItem('sidebarScrollPosition', e.target.scrollTop.toString());
@@ -475,7 +474,7 @@ const Layout = () => {
 
       {/* Scrollable Navigation */}
       <nav 
-        ref={sidebarNavRef}
+        ref={sidebarNavRefCallback}
         onScroll={handleSidebarScroll}
         className="flex-1 px-2 py-1.5 overflow-y-auto scrollbar-thin" 
         data-testid="nav-container"

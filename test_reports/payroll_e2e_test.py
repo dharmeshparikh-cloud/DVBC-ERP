@@ -21,7 +21,7 @@ import random
 import string
 
 # Configuration
-API_URL = "https://payroll-e2e-test.preview.emergentagent.com"
+API_URL = "https://netra-erp-mobile.preview.emergentagent.com"
 ADMIN_CREDENTIALS = {"employee_id": "ADMIN001", "password": "admin123"}
 
 def generate_random_string(length=6):

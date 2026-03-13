@@ -16,7 +16,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://payroll-e2e-test.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://netra-erp-mobile.preview.emergentagent.com')
 
 # Test credentials
 HR_CREDENTIALS = {"employee_id": "DVC037", "password": "test123"}

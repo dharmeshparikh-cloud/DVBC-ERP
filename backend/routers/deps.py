@@ -358,3 +358,68 @@ async def get_current_user_from_token(token: str = Depends(oauth2_scheme)):
     # Import here to avoid circular import
     from .models import User
     return User(**user)
+
+
+
+# ==================== STANDARDIZED API RESPONSE HELPERS ====================
+
+def api_response(
+    data: Any = None, 
+    success: bool = True, 
+    message: str = None,
+    total: int = None,
+    page: int = None,
+    limit: int = None
+) -> Dict[str, Any]:
+    """
+    Create a standardized API response.
+    
+    Usage:
+        return api_response(data=users, total=len(users))
+        return api_response(data=[], message="No records found")
+        return api_response(success=False, message="Error occurred")
+    
+    Returns:
+        {
+            "success": True,
+            "data": [...],      # Always an array or object
+            "message": null,
+            "pagination": { "total": 0, "page": 1, "limit": 10 }  # Optional
+        }
+    """
+    response = {
+        "success": success,
+        "data": data if data is not None else [],
+    }
+    
+    if message:
+        response["message"] = message
+    
+    # Add pagination if provided
+    if total is not None or page is not None or limit is not None:
+        response["pagination"] = {
+            "total": total or (len(data) if isinstance(data, list) else 0),
+            "page": page or 1,
+            "limit": limit or 10
+        }
+    
+    return response
+
+
+def ensure_list(data: Any) -> List:
+    """
+    Ensure data is always a list.
+    
+    Usage:
+        items = ensure_list(some_data)  # Always returns []
+    """
+    if data is None:
+        return []
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        # Check for common array keys
+        for key in ['items', 'results', 'data', 'records', 'rows']:
+            if key in data and isinstance(data[key], list):
+                return data[key]
+    return []
