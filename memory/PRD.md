@@ -69,6 +69,37 @@
 - `/app/frontend/src/pages/NewJoinerPipeline.js`
 - `/app/frontend/src/pages/onboarding/SubmissionReview.js`
 
+### P1: Standardize Bank Details Schema - Implemented ✅
+
+**Problem:** Bank details were stored inconsistently - some employees had flat fields (`bank_account_number`, `bank_name`, `ifsc_code`) while others had nested `bank_details` object.
+
+**Solution:**
+
+1. **Backend Endpoints Added:**
+   - `GET /api/payroll/bank-schema-status` - Shows migration status
+   - `POST /api/payroll/standardize-bank-details-bulk` - Bulk migration
+
+2. **Frontend Component:** `BankSchemaPanel.jsx`
+   - Visual display of schema status (old vs new format counts)
+   - Bank details completeness check
+   - One-click migration button
+   - Schema format comparison (before/after)
+
+3. **Payroll Page Updated:**
+   - New "Data Health" tab with HeartPulse icon
+   - Shows bank schema status and migration tools
+
+**Migration Results:**
+- 8 employees migrated from old format to new nested format
+- 0 employees remaining on old format
+- 51 employees now using standardized `bank_details` object
+
+**Files Created/Modified:**
+- `/app/backend/routers/payroll.py` - Added 2 new endpoints
+- `/app/frontend/src/components/payroll/BankSchemaPanel.jsx` - New component
+- `/app/frontend/src/components/payroll/index.js` - Export added
+- `/app/frontend/src/pages/Payroll.js` - Added Data Health tab
+
 **Test Files Created:**
 - `/app/test_reports/payroll_e2e_test.py` - Full E2E test script
 - `/app/test_reports/payroll_e2e_report.json` - Test results

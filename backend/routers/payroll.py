@@ -1448,6 +1448,123 @@ async def standardize_bank_details(employee_id: str, current_user: User = Depend
     return {"message": "Bank details standardized", "bank_details": bank_details}
 
 
+@router.post("/standardize-bank-details-bulk")
+async def standardize_bank_details_bulk(current_user: User = Depends(get_current_user)):
+    """
+    Migrate ALL employees' bank details to standardized format.
+    Consolidates flat fields (bank_account_number, bank_name, ifsc_code) 
+    into nested bank_details object and removes old fields.
+    
+    Admin only.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can run bulk standardization")
+    
+    db = get_db()
+    
+    # Find all employees with old-style bank fields
+    employees = await db.employees.find(
+        {"$or": [
+            {"bank_account_number": {"$exists": True}},
+            {"bank_name": {"$exists": True}},
+            {"ifsc_code": {"$exists": True}}
+        ]},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1,
+         "bank_account_number": 1, "bank_name": 1, "ifsc_code": 1, "bank_details": 1}
+    ).to_list(1000)
+    
+    migrated = 0
+    skipped = 0
+    errors = []
+    
+    for emp in employees:
+        try:
+            # Consolidate bank details
+            bank_details = {
+                "account_number": emp.get("bank_account_number") or (emp.get("bank_details", {}) or {}).get("account_number"),
+                "bank_name": emp.get("bank_name") or (emp.get("bank_details", {}) or {}).get("bank_name"),
+                "ifsc_code": emp.get("ifsc_code") or (emp.get("bank_details", {}) or {}).get("ifsc_code"),
+                "account_type": (emp.get("bank_details", {}) or {}).get("account_type", "savings"),
+                "branch": (emp.get("bank_details", {}) or {}).get("branch", "")
+            }
+            
+            # Only migrate if there's data to migrate
+            if bank_details["account_number"] or bank_details["bank_name"] or bank_details["ifsc_code"]:
+                await db.employees.update_one(
+                    {"id": emp["id"]},
+                    {
+                        "$set": {"bank_details": bank_details},
+                        "$unset": {"bank_account_number": "", "bank_name": "", "ifsc_code": ""}
+                    }
+                )
+                migrated += 1
+            else:
+                skipped += 1
+        except Exception as e:
+            errors.append({
+                "employee_id": emp.get("employee_id"),
+                "error": str(e)
+            })
+    
+    return {
+        "message": f"Bulk standardization complete",
+        "total_processed": len(employees),
+        "migrated": migrated,
+        "skipped": skipped,
+        "errors": errors
+    }
+
+
+@router.get("/bank-schema-status")
+async def get_bank_schema_status(current_user: User = Depends(get_current_user)):
+    """
+    Get status of bank details schema migration.
+    Shows how many employees are using old vs new format.
+    """
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can view schema status")
+    
+    db = get_db()
+    
+    # Count employees with old-style fields
+    old_format_count = await db.employees.count_documents({
+        "$or": [
+            {"bank_account_number": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"bank_name": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"ifsc_code": {"$exists": True, "$ne": None, "$ne": ""}}
+        ]
+    })
+    
+    # Count employees with new-style nested bank_details
+    new_format_count = await db.employees.count_documents({
+        "bank_details.account_number": {"$exists": True, "$ne": None, "$ne": ""}
+    })
+    
+    # Count total active employees
+    total_active = await db.employees.count_documents({"go_live_status": "active"})
+    
+    # Get sample of employees still using old format
+    old_format_samples = await db.employees.find(
+        {"$or": [
+            {"bank_account_number": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"bank_name": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"ifsc_code": {"$exists": True, "$ne": None, "$ne": ""}}
+        ]},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1}
+    ).limit(10).to_list(10)
+    
+    is_standardized = old_format_count == 0
+    
+    return {
+        "is_standardized": is_standardized,
+        "total_active_employees": total_active,
+        "old_format_count": old_format_count,
+        "new_format_count": new_format_count,
+        "old_format_samples": old_format_samples,
+        "recommendation": "Run bulk standardization" if old_format_count > 0 else "Schema is already standardized"
+    }
+
+
 
 # ==================== ATTENDANCE GAP DETECTION ====================
 

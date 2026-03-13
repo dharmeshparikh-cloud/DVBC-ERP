@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { DollarSign, FileText, RefreshCw, Users as UsersIcon, Plus, Trash2, Save, Table2, Settings, Receipt, Download, Upload, Shield, FileSpreadsheet } from 'lucide-react';
+import { DollarSign, FileText, RefreshCw, Users as UsersIcon, Plus, Trash2, Save, Table2, Settings, Receipt, Download, Upload, Shield, FileSpreadsheet, HeartPulse } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { 
@@ -20,7 +20,7 @@ import {
   useSavePayrollInput,
   useSaveBulkPayrollInputs
 } from '../hooks/usePayroll';
-import { PayrollApprovalPanel, ExcelUploadPanel } from '../components/payroll';
+import { PayrollApprovalPanel, ExcelUploadPanel, BankSchemaPanel } from '../components/payroll';
 
 const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 
@@ -259,6 +259,7 @@ const Payroll = () => {
     { id: 'components', label: 'Components', icon: Settings },
     { id: 'approval', label: 'Approval', icon: Shield },
     { id: 'bulk-upload', label: 'Bulk Upload', icon: FileSpreadsheet },
+    { id: 'data-health', label: 'Data Health', icon: HeartPulse },
   ];
 
   return (
@@ -560,6 +561,14 @@ const Payroll = () => {
             queryClient.invalidateQueries(['payroll-employees']);
             queryClient.invalidateQueries(['payroll-inputs', month]);
           }}
+        />
+      )}
+
+      {/* Data Health Tab */}
+      {activeTab === 'data-health' && (
+        <BankSchemaPanel 
+          API={`${window.location.origin}/api`}
+          authHeaders={{ headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }}
         />
       )}
 
