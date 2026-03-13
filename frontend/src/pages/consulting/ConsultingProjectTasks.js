@@ -13,10 +13,11 @@ import {
   ArrowLeft, Plus, Check, X, CheckCircle, Clock,
   FileText, Upload, Download, Eye, Edit2, Save, Send,
   Loader2, XCircle, Paperclip, ListTodo, User, Users,
-  Calendar, BarChart3, AlertCircle
+  Calendar, BarChart3, AlertCircle, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { isActionAllowed, isProjectReadOnly, ACTIONS, getDisabledReason } from '../../utils/projectActions';
 
 const STATUS_CONFIG = {
   not_started: { label: 'Not Started', color: 'bg-zinc-100 text-zinc-700' },
@@ -104,6 +105,13 @@ const ConsultingProjectTasks = () => {
   }, [sow?.lead_id, leads]);
 
   const loading = sowLoading;
+  
+  // Project status check - determines if actions are allowed
+  const projectStatus = sow?.status || 'active';
+  const isReadOnly = isProjectReadOnly(projectStatus);
+  const canCreateTask = isActionAllowed(projectStatus, ACTIONS.CREATE_TASK);
+  const canEditTask = isActionAllowed(projectStatus, ACTIONS.EDIT_TASK);
+  const canUploadDocument = isActionAllowed(projectStatus, ACTIONS.UPLOAD_DOCUMENT);
 
   // Get tasks from SOW (scopes act as main tasks)
   const tasks = useMemo(() => {
@@ -136,6 +144,10 @@ const ConsultingProjectTasks = () => {
   }), [tasks, tasksByStatus]);
 
   const openEditTask = (task) => {
+    if (!canEditTask) {
+      toast.error(getDisabledReason(projectStatus, ACTIONS.EDIT_TASK));
+      return;
+    }
     setSelectedTask(task);
     setTaskEdits({
       status: task.status,
@@ -296,15 +308,25 @@ const ConsultingProjectTasks = () => {
 
   return (
     <div data-testid="project-tasks-page">
+      {/* Read-only Banner for Completed Projects */}
+      {isReadOnly && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-sm flex items-center gap-2">
+          <Lock className="w-4 h-4 text-amber-600" />
+          <span className="text-sm text-amber-800">
+            This project is <strong>{projectStatus}</strong>. Actions are view-only.
+          </span>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="mb-6">
         <Button onClick={() => navigate('/consulting/projects')} variant="ghost" className="mb-4 hover:bg-zinc-100 rounded-sm">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Projects
         </Button>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+            <h1 className="text-xl md:text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
               Project Tasks
             </h1>
             <p className="text-zinc-500">
@@ -314,11 +336,17 @@ const ConsultingProjectTasks = () => {
           <div className="flex items-center gap-3">
             <Button
               onClick={() => {
+                if (isReadOnly) {
+                  toast.info('View-only mode: Cannot send approvals for completed projects');
+                  return;
+                }
                 setApprovalType('manager');
                 setApprovalDialog(true);
               }}
               variant="outline"
-              className="rounded-sm"
+              className={`rounded-sm ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isReadOnly}
+              title={isReadOnly ? 'Project is completed' : ''}
               data-testid="send-manager-approval-btn"
             >
               <User className="w-4 h-4 mr-2" />
@@ -326,10 +354,16 @@ const ConsultingProjectTasks = () => {
             </Button>
             <Button
               onClick={() => {
+                if (isReadOnly) {
+                  toast.info('View-only mode: Cannot send approvals for completed projects');
+                  return;
+                }
                 setApprovalType('client');
                 setApprovalDialog(true);
               }}
-              className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+              className={`bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isReadOnly}
+              title={isReadOnly ? 'Project is completed' : ''}
               data-testid="send-client-approval-btn"
             >
               <Send className="w-4 h-4 mr-2" />

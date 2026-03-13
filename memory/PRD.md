@@ -16,7 +16,55 @@
 
 ## Completed Work - March 2026
 
-### Phase 101: Array.isArray Guards Applied to High-Risk Files - March 13, 2026 ✅ (Latest)
+### Phase 102: Consulting Project Actions Audit - March 13, 2026 ✅ (Latest)
+
+**Objective:** Ensure project status controls available actions. Completed projects should be view-only.
+
+**New Utility Created:**
+- `/app/frontend/src/utils/projectActions.js`
+  - `PROJECT_STATUS` constants (pending_kickoff, active, completed, on_hold, cancelled)
+  - `ACTIONS` constants (create_task, edit_task, assign_consultant, etc.)
+  - `isActionAllowed(status, action)` - Check if action is permitted
+  - `isProjectReadOnly(status)` - Check if project is read-only
+  - `getDisabledReason(status, action)` - Get tooltip message
+
+**Files Updated:**
+
+1. **ConsultingProjectTasks.js**
+   - Added read-only banner for completed projects
+   - Disabled "Send to Manager" and "Send to Client" buttons when completed
+   - `openEditTask()` now checks `canEditTask` permission
+
+2. **AssignTeam.js**
+   - Added Lock badge and view-only indicator
+   - Disabled "Add Consultant" button when project completed
+   - Hidden "Remove" buttons and "Save & Continue" when completed
+   - Shows warning message about disabled team modifications
+
+3. **ConsultingScopeView.js**
+   - Added read-only banner for completed projects
+   - Disabled "Add Scope" button when completed
+   - `openEditDialog()` and `openAddTaskDialog()` now check permissions
+   - Shows status badge next to project title
+
+**Action Permissions Matrix:**
+
+| Action | pending_kickoff | active | completed | on_hold |
+|--------|----------------|--------|-----------|---------|
+| Create Task | ❌ | ✅ | ❌ | ❌ |
+| Edit Task | ❌ | ✅ | ❌ | ❌ |
+| Assign Consultant | ❌ | ✅ | ❌ | ❌ |
+| Create Scope | ❌ | ✅ | ❌ | ❌ |
+| Upload Document | ❌ | ✅ | ❌ | ❌ |
+| View Details | ✅ | ✅ | ✅ | ✅ |
+| Download Document | ✅ | ✅ | ✅ | ✅ |
+| Export Data | ✅ | ✅ | ✅ | ✅ |
+
+**Stage Navigation:** Remains visible for historical navigation but action buttons are disabled based on status.
+
+---
+
+### Phase 101: Array.isArray Guards Applied to High-Risk Files - March 13, 2026 ✅
 
 **Audit Results:**
 - Scanned all frontend pages for unsafe `.map()`, `.filter()`, `.reduce()` patterns

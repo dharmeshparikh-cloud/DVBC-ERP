@@ -8,17 +8,19 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Progress } from '../../components/ui/progress';
+import { Badge } from '../../components/ui/badge';
 import { 
   ArrowLeft, Plus, Check, X, CheckCircle, AlertCircle, Clock,
   FileText, Upload, Download, Eye, Edit2, Save, Send,
   Calendar, BarChart3, Columns3, History, Loader2, XCircle,
   ChevronRight, Paperclip, MessageSquare, Ban, ChevronDown,
-  ListTodo, User, Users, Sparkles
+  ListTodo, User, Users, Sparkles, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, addWeeks, addDays, startOfWeek } from 'date-fns';
 import { Gantt, ViewMode } from 'gantt-task-react';
 import "gantt-task-react/dist/index.css";
+import { isActionAllowed, isProjectReadOnly, ACTIONS, getDisabledReason } from '../../utils/projectActions';
 
 const STATUS_CONFIG = {
   not_started: { label: 'Not Started', color: 'bg-zinc-100 text-zinc-700', icon: Clock },
@@ -81,7 +83,16 @@ const ConsultingScopeView = () => {
   const canAddScopesRoles = ['project_manager', 'consultant', 'principal_consultant', 'admin'];
   
   const isConsultingTeam = consultingRoles.includes(user?.role) || user?.role === 'admin';
-  const canAddScopes = canAddScopesRoles.includes(user?.role);
+  const canAddScopesRole = canAddScopesRoles.includes(user?.role);
+  
+  // Project status checks
+  const projectStatus = sow?.status || 'active';
+  const isReadOnly = isProjectReadOnly(projectStatus);
+  const canCreateScope = isActionAllowed(projectStatus, ACTIONS.CREATE_SCOPE) && canAddScopesRole;
+  const canEditScope = isActionAllowed(projectStatus, ACTIONS.EDIT_SCOPE);
+  const canCreateTask = isActionAllowed(projectStatus, ACTIONS.CREATE_TASK);
+  const canEditTask = isActionAllowed(projectStatus, ACTIONS.EDIT_TASK);
+  const canUploadDoc = isActionAllowed(projectStatus, ACTIONS.UPLOAD_DOCUMENT);
 
   useEffect(() => {
     fetchData();
@@ -123,6 +134,10 @@ const ConsultingScopeView = () => {
   };
 
   const openEditDialog = (scope) => {
+    if (!canEditScope) {
+      toast.error(getDisabledReason(projectStatus, ACTIONS.EDIT_SCOPE) || 'Cannot edit scope');
+      return;
+    }
     setSelectedScope(scope);
     setScopeEdits({
       status: scope.status,
@@ -256,6 +271,10 @@ const ConsultingScopeView = () => {
   };
 
   const openAddTaskDialog = (scope) => {
+    if (!canCreateTask) {
+      toast.error(getDisabledReason(projectStatus, ACTIONS.CREATE_TASK) || 'Cannot create tasks');
+      return;
+    }
     setSelectedScope(scope);
     setNewTask({ name: '', description: '', priority: 'medium', due_date: '', assigned_to_id: '' });
     setAddTaskDialog(true);
@@ -553,27 +572,52 @@ const ConsultingScopeView = () => {
 
   return (
     <div data-testid="consulting-scope-view-page">
+      {/* Read-only Banner for Completed Projects */}
+      {isReadOnly && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-sm flex items-center gap-2">
+          <Lock className="w-4 h-4 text-amber-600" />
+          <span className="text-sm text-amber-800">
+            This project is <strong>{projectStatus}</strong>. Actions are view-only.
+          </span>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="mb-6">
         <Button onClick={() => navigate('/sales-funnel/pricing-plans')} variant="ghost" className="mb-4 hover:bg-zinc-100 rounded-sm">
           <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
           Back to Pricing Plans
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-              Project Scope
-            </h1>
-            <p className="text-zinc-500">
-              {lead ? `${lead.first_name} ${lead.last_name} - ${lead.company}` : 'Project Scope of Work'}
-            </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-xl md:text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+                Project Scope
+              </h1>
+              <p className="text-zinc-500">
+                {lead ? `${lead.first_name} ${lead.last_name} - ${lead.company}` : 'Project Scope of Work'}
+              </p>
+            </div>
+            {isReadOnly && (
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                <Lock className="w-3 h-3 mr-1" />
+                {projectStatus}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-3">
-            {canAddScopes && (
+            {canCreateScope && (
               <Button
-                onClick={() => setAddScopeDialog(true)}
+                onClick={() => {
+                  if (isReadOnly) {
+                    toast.info('View-only: Cannot add scopes to completed project');
+                    return;
+                  }
+                  setAddScopeDialog(true);
+                }}
                 variant="outline"
-                className="rounded-sm"
+                className={`rounded-sm ${isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isReadOnly}
                 data-testid="add-scope-btn"
               >
                 <Plus className="w-4 h-4 mr-2" />

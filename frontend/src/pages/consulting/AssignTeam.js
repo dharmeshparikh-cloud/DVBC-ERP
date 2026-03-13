@@ -11,12 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { 
   Users, UserPlus, Search, CheckCircle, Loader2, ArrowRight, 
-  Building2, Calendar, DollarSign, FileText, Trash2, AlertCircle
+  Building2, Calendar, DollarSign, FileText, Trash2, AlertCircle, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConsultingStageNav from '../../components/ConsultingStageNav';
 import { sanitizeDisplayText } from '../../utils/sanitize';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { isActionAllowed, isProjectReadOnly, ACTIONS, getDisabledReason } from '../../utils/projectActions';
 
 const CONSULTANT_ROLES = [
   { value: 'lead_consultant', label: 'Lead Consultant' },
@@ -77,6 +78,12 @@ const AssignTeam = () => {
   const project = teamData?.project;
   const consultants = teamData?.consultants || [];
   const kickoffRequest = teamData?.kickoffRequest;
+  
+  // Project status check
+  const projectStatus = project?.status || 'active';
+  const isReadOnly = isProjectReadOnly(projectStatus);
+  const canAssignConsultant = isActionAllowed(projectStatus, ACTIONS.ASSIGN_CONSULTANT) && canAssignTeam;
+  const canRemoveConsultant = isActionAllowed(projectStatus, ACTIONS.REMOVE_CONSULTANT) && canAssignTeam;
 
   const invalidateData = () => {
     queryClient.invalidateQueries({ queryKey: ['assign-team', projectId] });
@@ -235,20 +242,41 @@ const AssignTeam = () => {
         {/* Team Assignment */}
         <Card className="border-zinc-200 shadow-none rounded-sm lg:col-span-2">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-medium">Assigned Team ({assignedTeam.length})</CardTitle>
-            {canAssignTeam && (
-              <Button onClick={() => setShowAddDialog(true)} size="sm" data-testid="add-consultant-btn">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-medium">Assigned Team ({assignedTeam.length})</CardTitle>
+              {isReadOnly && (
+                <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                  <Lock className="w-3 h-3 mr-1" />
+                  View Only
+                </Badge>
+              )}
+            </div>
+            {canAssignConsultant && (
+              <Button 
+                onClick={() => setShowAddDialog(true)} 
+                size="sm" 
+                data-testid="add-consultant-btn"
+                disabled={isReadOnly}
+                className={isReadOnly ? 'opacity-50 cursor-not-allowed' : ''}
+                title={isReadOnly ? 'Project is completed - cannot modify team' : ''}
+              >
                 <UserPlus className="w-4 h-4 mr-1" />
                 Add Consultant
               </Button>
             )}
           </CardHeader>
           <CardContent>
+            {isReadOnly && (
+              <div className="mb-4 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Project is {projectStatus}. Team modifications are disabled.
+              </div>
+            )}
             {assignedTeam.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
                 <p className="text-zinc-500">No consultants assigned yet</p>
-                <p className="text-sm text-zinc-400">Click "Add Consultant" to build your team</p>
+                {!isReadOnly && <p className="text-sm text-zinc-400">Click "Add Consultant" to build your team</p>}
               </div>
             ) : (
               <div className="space-y-3">
@@ -271,7 +299,7 @@ const AssignTeam = () => {
                       <Badge variant="outline" className="text-xs">
                         {CONSULTANT_ROLES.find(r => r.value === member.role)?.label || member.role}
                       </Badge>
-                      {canAssignTeam && (
+                      {canRemoveConsultant && !isReadOnly && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -298,24 +326,26 @@ const AssignTeam = () => {
         >
           Back to Kickoff Requests
         </Button>
-        <Button
-          onClick={handleSaveAndContinue}
-          disabled={assignedTeam.length === 0 || saving}
-          className="bg-zinc-950 text-white hover:bg-zinc-800"
-          data-testid="save-team-btn"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
+        {!isReadOnly && (
+          <Button
+            onClick={handleSaveAndContinue}
+            disabled={assignedTeam.length === 0 || saving}
+            className="bg-zinc-950 text-white hover:bg-zinc-800"
+            data-testid="save-team-btn"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
             <>
               Save & Continue
               <ArrowRight className="w-4 h-4 ml-2" />
             </>
           )}
         </Button>
+        )}
       </div>
 
       {/* Add Consultant Dialog */}
