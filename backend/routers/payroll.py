@@ -972,3 +972,476 @@ async def get_leave_policy_adjustments_for_payroll(
         },
         "net_adjustment": round(encash_amount - lop_deduction, 2)
     }
+
+
+
+# ==================== PAYROLL APPROVAL WORKFLOW ====================
+
+PAYROLL_STATUSES = ["draft", "submitted", "hr_approved", "finance_approved", "disbursed", "rejected"]
+
+
+@router.get("/payroll-run")
+async def get_payroll_runs(
+    month: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get payroll run records with approval status."""
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can view payroll runs")
+    
+    db = get_db()
+    query = {}
+    if month:
+        query["month"] = month
+    if status:
+        query["status"] = status
+    
+    runs = await db.payroll_runs.find(query, {"_id": 0}).sort("month", -1).to_list(100)
+    return runs
+
+
+@router.post("/payroll-run/create")
+async def create_payroll_run(data: dict, current_user: User = Depends(get_current_user)):
+    """Create a new payroll run for a month (initiates approval workflow)."""
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can create payroll runs")
+    
+    db = get_db()
+    month = data.get("month")
+    if not month:
+        raise HTTPException(status_code=400, detail="Month is required (YYYY-MM)")
+    
+    # Check if payroll run already exists for this month
+    existing = await db.payroll_runs.find_one({"month": month}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Payroll run already exists for {month}. Status: {existing.get('status')}")
+    
+    # Get salary slips count for this month
+    slips = await db.salary_slips.find({"month": month}, {"_id": 0}).to_list(1000)
+    if not slips:
+        raise HTTPException(status_code=400, detail=f"No salary slips generated for {month}. Generate slips first.")
+    
+    total_gross = sum(s.get("gross_salary", 0) for s in slips)
+    total_deductions = sum(s.get("total_deductions", 0) for s in slips)
+    total_net = sum(s.get("net_salary", 0) for s in slips)
+    total_reimbursements = sum(s.get("expense_reimbursement_total", 0) for s in slips)
+    
+    payroll_run = {
+        "id": str(uuid.uuid4()),
+        "month": month,
+        "status": "draft",
+        "employee_count": len(slips),
+        "total_gross": round(total_gross, 2),
+        "total_deductions": round(total_deductions, 2),
+        "total_net": round(total_net, 2),
+        "total_reimbursements": round(total_reimbursements, 2),
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "approval_history": [{
+            "action": "created",
+            "status": "draft",
+            "by": current_user.id,
+            "by_name": current_user.full_name,
+            "at": datetime.now(timezone.utc).isoformat()
+        }],
+        "is_locked": False
+    }
+    
+    await db.payroll_runs.insert_one(payroll_run)
+    payroll_run.pop("_id", None)
+    
+    return {"message": f"Payroll run created for {month}", "payroll_run": payroll_run}
+
+
+@router.post("/payroll-run/{run_id}/submit")
+async def submit_payroll_for_approval(run_id: str, current_user: User = Depends(get_current_user)):
+    """Submit payroll run for HR approval."""
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can submit payroll")
+    
+    db = get_db()
+    run = await db.payroll_runs.find_one({"id": run_id}, {"_id": 0})
+    if not run:
+        raise HTTPException(status_code=404, detail="Payroll run not found")
+    
+    if run.get("status") != "draft":
+        raise HTTPException(status_code=400, detail=f"Cannot submit. Current status: {run.get('status')}")
+    
+    # Lock the payroll data
+    now = datetime.now(timezone.utc).isoformat()
+    await db.payroll_runs.update_one(
+        {"id": run_id},
+        {
+            "$set": {
+                "status": "submitted",
+                "is_locked": True,
+                "locked_at": now,
+                "locked_by": current_user.id,
+                "submitted_at": now,
+                "submitted_by": current_user.id,
+                "submitted_by_name": current_user.full_name
+            },
+            "$push": {
+                "approval_history": {
+                    "action": "submitted",
+                    "status": "submitted",
+                    "by": current_user.id,
+                    "by_name": current_user.full_name,
+                    "at": now
+                }
+            }
+        }
+    )
+    
+    # Lock all salary slips for this month
+    await db.salary_slips.update_many(
+        {"month": run["month"]},
+        {"$set": {"is_locked": True, "locked_at": now, "payroll_run_id": run_id}}
+    )
+    
+    return {"message": "Payroll submitted for approval and locked"}
+
+
+@router.post("/payroll-run/{run_id}/approve")
+async def approve_payroll(run_id: str, data: dict = None, current_user: User = Depends(get_current_user)):
+    """Approve payroll run (HR Manager → Finance → Admin)."""
+    db = get_db()
+    run = await db.payroll_runs.find_one({"id": run_id}, {"_id": 0})
+    if not run:
+        raise HTTPException(status_code=404, detail="Payroll run not found")
+    
+    current_status = run.get("status")
+    now = datetime.now(timezone.utc).isoformat()
+    comments = (data or {}).get("comments", "")
+    
+    # Determine next status based on current status and role
+    if current_status == "submitted":
+        if current_user.role not in ["hr_manager", "admin"]:
+            raise HTTPException(status_code=403, detail="Only HR Manager can approve submitted payroll")
+        new_status = "hr_approved"
+        action = "hr_approved"
+    elif current_status == "hr_approved":
+        if current_user.role not in ["admin", "finance_manager"]:
+            raise HTTPException(status_code=403, detail="Only Finance/Admin can approve HR-approved payroll")
+        new_status = "finance_approved"
+        action = "finance_approved"
+    elif current_status == "finance_approved":
+        if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Only Admin can give final approval")
+        new_status = "disbursed"
+        action = "disbursed"
+    else:
+        raise HTTPException(status_code=400, detail=f"Cannot approve. Current status: {current_status}")
+    
+    await db.payroll_runs.update_one(
+        {"id": run_id},
+        {
+            "$set": {
+                "status": new_status,
+                f"{action}_at": now,
+                f"{action}_by": current_user.id,
+                f"{action}_by_name": current_user.full_name
+            },
+            "$push": {
+                "approval_history": {
+                    "action": action,
+                    "status": new_status,
+                    "by": current_user.id,
+                    "by_name": current_user.full_name,
+                    "comments": comments,
+                    "at": now
+                }
+            }
+        }
+    )
+    
+    # If disbursed, mark salary slips as disbursed
+    if new_status == "disbursed":
+        await db.salary_slips.update_many(
+            {"month": run["month"]},
+            {"$set": {"status": "disbursed", "disbursed_at": now}}
+        )
+    
+    return {"message": f"Payroll {action}", "new_status": new_status}
+
+
+@router.post("/payroll-run/{run_id}/reject")
+async def reject_payroll(run_id: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Reject payroll run with reason (unlocks for corrections)."""
+    if current_user.role not in ["hr_manager", "admin", "finance_manager"]:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Finance/Admin can reject payroll")
+    
+    db = get_db()
+    run = await db.payroll_runs.find_one({"id": run_id}, {"_id": 0})
+    if not run:
+        raise HTTPException(status_code=404, detail="Payroll run not found")
+    
+    reason = data.get("reason", "")
+    if not reason:
+        raise HTTPException(status_code=400, detail="Rejection reason is required")
+    
+    current_status = run.get("status")
+    if current_status in ["draft", "rejected", "disbursed"]:
+        raise HTTPException(status_code=400, detail=f"Cannot reject. Current status: {current_status}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.payroll_runs.update_one(
+        {"id": run_id},
+        {
+            "$set": {
+                "status": "rejected",
+                "is_locked": False,  # Unlock for corrections
+                "rejected_at": now,
+                "rejected_by": current_user.id,
+                "rejected_by_name": current_user.full_name,
+                "rejection_reason": reason
+            },
+            "$push": {
+                "approval_history": {
+                    "action": "rejected",
+                    "status": "rejected",
+                    "by": current_user.id,
+                    "by_name": current_user.full_name,
+                    "reason": reason,
+                    "at": now
+                }
+            }
+        }
+    )
+    
+    # Unlock salary slips for corrections
+    await db.salary_slips.update_many(
+        {"month": run["month"]},
+        {"$set": {"is_locked": False}}
+    )
+    
+    return {"message": "Payroll rejected and unlocked for corrections"}
+
+
+@router.post("/payroll-run/{run_id}/resubmit")
+async def resubmit_payroll(run_id: str, current_user: User = Depends(get_current_user)):
+    """Resubmit rejected payroll after corrections."""
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can resubmit payroll")
+    
+    db = get_db()
+    run = await db.payroll_runs.find_one({"id": run_id}, {"_id": 0})
+    if not run:
+        raise HTTPException(status_code=404, detail="Payroll run not found")
+    
+    if run.get("status") != "rejected":
+        raise HTTPException(status_code=400, detail="Can only resubmit rejected payroll")
+    
+    # Recalculate totals from updated slips
+    slips = await db.salary_slips.find({"month": run["month"]}, {"_id": 0}).to_list(1000)
+    total_gross = sum(s.get("gross_salary", 0) for s in slips)
+    total_deductions = sum(s.get("total_deductions", 0) for s in slips)
+    total_net = sum(s.get("net_salary", 0) for s in slips)
+    total_reimbursements = sum(s.get("expense_reimbursement_total", 0) for s in slips)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.payroll_runs.update_one(
+        {"id": run_id},
+        {
+            "$set": {
+                "status": "submitted",
+                "is_locked": True,
+                "locked_at": now,
+                "total_gross": round(total_gross, 2),
+                "total_deductions": round(total_deductions, 2),
+                "total_net": round(total_net, 2),
+                "total_reimbursements": round(total_reimbursements, 2),
+                "resubmitted_at": now,
+                "resubmitted_by": current_user.id
+            },
+            "$push": {
+                "approval_history": {
+                    "action": "resubmitted",
+                    "status": "submitted",
+                    "by": current_user.id,
+                    "by_name": current_user.full_name,
+                    "at": now
+                }
+            }
+        }
+    )
+    
+    # Re-lock salary slips
+    await db.salary_slips.update_many(
+        {"month": run["month"]},
+        {"$set": {"is_locked": True, "locked_at": now}}
+    )
+    
+    return {"message": "Payroll resubmitted for approval"}
+
+
+# ==================== PAYROLL LOCKING ====================
+
+@router.get("/lock-status/{month}")
+async def get_payroll_lock_status(month: str, current_user: User = Depends(get_current_user)):
+    """Check if payroll is locked for a month."""
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can check lock status")
+    
+    db = get_db()
+    run = await db.payroll_runs.find_one({"month": month}, {"_id": 0})
+    
+    if not run:
+        return {
+            "month": month,
+            "is_locked": False,
+            "status": None,
+            "can_modify_attendance": True,
+            "can_modify_leaves": True,
+            "can_modify_expenses": True,
+            "can_regenerate_slips": True
+        }
+    
+    is_locked = run.get("is_locked", False)
+    status = run.get("status")
+    
+    return {
+        "month": month,
+        "is_locked": is_locked,
+        "status": status,
+        "payroll_run_id": run.get("id"),
+        "can_modify_attendance": not is_locked,
+        "can_modify_leaves": not is_locked,
+        "can_modify_expenses": not is_locked,
+        "can_regenerate_slips": status in ["draft", "rejected"],
+        "locked_at": run.get("locked_at"),
+        "locked_by_name": run.get("submitted_by_name")
+    }
+
+
+@router.post("/unlock/{month}")
+async def unlock_payroll_month(month: str, data: dict, current_user: User = Depends(get_current_user)):
+    """Emergency unlock payroll for a month (Admin only with reason)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only Admin can unlock payroll")
+    
+    db = get_db()
+    reason = data.get("reason", "")
+    if not reason:
+        raise HTTPException(status_code=400, detail="Unlock reason is required")
+    
+    run = await db.payroll_runs.find_one({"month": month}, {"_id": 0})
+    if not run:
+        raise HTTPException(status_code=404, detail=f"No payroll run found for {month}")
+    
+    if run.get("status") == "disbursed":
+        raise HTTPException(status_code=400, detail="Cannot unlock disbursed payroll")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.payroll_runs.update_one(
+        {"id": run["id"]},
+        {
+            "$set": {
+                "is_locked": False,
+                "status": "draft",
+                "unlocked_at": now,
+                "unlocked_by": current_user.id,
+                "unlock_reason": reason
+            },
+            "$push": {
+                "approval_history": {
+                    "action": "emergency_unlock",
+                    "status": "draft",
+                    "by": current_user.id,
+                    "by_name": current_user.full_name,
+                    "reason": reason,
+                    "at": now
+                }
+            }
+        }
+    )
+    
+    # Unlock salary slips
+    await db.salary_slips.update_many(
+        {"month": month},
+        {"$set": {"is_locked": False}}
+    )
+    
+    return {"message": f"Payroll for {month} unlocked. Reason: {reason}"}
+
+
+# ==================== BANK DETAILS STANDARDIZATION ====================
+
+@router.get("/employees-bank-status")
+async def get_employees_bank_status(current_user: User = Depends(get_current_user)):
+    """Get list of employees with incomplete bank details."""
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can view bank status")
+    
+    db = get_db()
+    employees = await db.employees.find(
+        {"go_live_status": "active"},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, 
+         "bank_account_number": 1, "bank_name": 1, "ifsc_code": 1, "bank_details": 1}
+    ).to_list(500)
+    
+    incomplete = []
+    complete = []
+    
+    for emp in employees:
+        # Check both old format and new format
+        account = emp.get("bank_account_number") or (emp.get("bank_details", {}) or {}).get("account_number")
+        bank = emp.get("bank_name") or (emp.get("bank_details", {}) or {}).get("bank_name")
+        ifsc = emp.get("ifsc_code") or (emp.get("bank_details", {}) or {}).get("ifsc_code")
+        
+        emp_data = {
+            "employee_id": emp.get("id"),
+            "employee_code": emp.get("employee_id"),
+            "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+            "has_account": bool(account),
+            "has_bank_name": bool(bank),
+            "has_ifsc": bool(ifsc)
+        }
+        
+        if account and bank and ifsc:
+            complete.append(emp_data)
+        else:
+            incomplete.append(emp_data)
+    
+    return {
+        "total_active": len(employees),
+        "complete_count": len(complete),
+        "incomplete_count": len(incomplete),
+        "incomplete_employees": incomplete
+    }
+
+
+@router.post("/standardize-bank-details/{employee_id}")
+async def standardize_bank_details(employee_id: str, current_user: User = Depends(get_current_user)):
+    """Migrate employee bank details to standardized format."""
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can update bank details")
+    
+    db = get_db()
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Consolidate bank details
+    bank_details = {
+        "account_number": employee.get("bank_account_number") or (employee.get("bank_details", {}) or {}).get("account_number"),
+        "bank_name": employee.get("bank_name") or (employee.get("bank_details", {}) or {}).get("bank_name"),
+        "ifsc_code": employee.get("ifsc_code") or (employee.get("bank_details", {}) or {}).get("ifsc_code"),
+        "account_type": (employee.get("bank_details", {}) or {}).get("account_type", "savings"),
+        "branch": (employee.get("bank_details", {}) or {}).get("branch", "")
+    }
+    
+    await db.employees.update_one(
+        {"id": employee_id},
+        {
+            "$set": {"bank_details": bank_details},
+            "$unset": {"bank_account_number": "", "bank_name": "", "ifsc_code": ""}
+        }
+    )
+    
+    return {"message": "Bank details standardized", "bank_details": bank_details}

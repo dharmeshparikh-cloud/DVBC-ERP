@@ -110,11 +110,83 @@
 - `/api/payroll/summary-report` - ✅ Working
 
 ### Recommendations Prioritized
-1. **HIGH:** Add payroll approval workflow (draft → submitted → approved)
-2. **HIGH:** Add payroll locking after generation
-3. **MEDIUM:** Standardize bank details schema
-4. **MEDIUM:** Auto-link expenses to payroll period
-5. **LOW:** Attendance gap detection
+1. **HIGH:** Add payroll approval workflow (draft → submitted → approved) ✅ IMPLEMENTED
+2. **HIGH:** Add payroll locking after generation ✅ IMPLEMENTED
+3. **MEDIUM:** Standardize bank details schema ✅ IMPLEMENTED
+4. **MEDIUM:** Auto-link expenses to payroll period ⏳ PENDING
+5. **LOW:** Attendance gap detection ⏳ PENDING
+
+---
+
+### Phase 96: Payroll Approval Workflow & Bulk Import - March 2026 ✅
+
+**Objective:** Implement payroll approval workflow, locking mechanism, and bulk Excel upload capabilities.
+
+### Features Implemented
+
+**1. Payroll Approval Workflow**
+- Status flow: `draft → submitted → hr_approved → finance_approved → disbursed`
+- Role-based approval: HR Manager → Finance → Admin
+- Rejection with reason & unlock for corrections
+- Resubmit after corrections
+- Full audit trail with approval_history
+
+**2. Payroll Locking Mechanism**
+- Auto-lock when payroll is submitted
+- Prevents changes to attendance, leave, expenses for locked month
+- Emergency unlock (Admin only with reason)
+- Lock status check API for frontend validation
+
+**3. Bank Details Standardization**
+- Migration API to consolidate bank details to nested object format
+- Bank status report showing incomplete records
+- Validation before salary disbursement
+
+**4. Send Reminder for Onboarding**
+- HR can send reminder emails to pending candidates
+- Auto-regenerate expired tokens
+- Custom message support
+- Reminder history tracking
+- Pending reminders dashboard
+
+**5. Excel Bulk Upload**
+- Templates: employees, attendance, leave_balance, salary_structure
+- Dry-run validation before import
+- Detailed error reporting
+- Template download with sample data
+
+### New API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/payroll/payroll-run` | GET | List payroll runs |
+| `/api/payroll/payroll-run/create` | POST | Create new payroll run |
+| `/api/payroll/payroll-run/{id}/submit` | POST | Submit for approval |
+| `/api/payroll/payroll-run/{id}/approve` | POST | Approve payroll |
+| `/api/payroll/payroll-run/{id}/reject` | POST | Reject with reason |
+| `/api/payroll/payroll-run/{id}/resubmit` | POST | Resubmit after fix |
+| `/api/payroll/lock-status/{month}` | GET | Check lock status |
+| `/api/payroll/unlock/{month}` | POST | Emergency unlock |
+| `/api/payroll/employees-bank-status` | GET | Bank details report |
+| `/api/onboarding/submissions/{id}/send-reminder` | POST | Send reminder |
+| `/api/onboarding/pending-reminders` | GET | Candidates needing reminder |
+| `/api/excel-upload/templates` | GET | Available templates |
+| `/api/excel-upload/templates/{id}/download` | GET | Download template |
+| `/api/excel-upload/upload/{type}` | POST | Upload and process Excel |
+
+### Files Modified/Created
+- `/app/backend/routers/payroll.py` - Added approval workflow & locking (400+ lines)
+- `/app/backend/routers/onboarding.py` - Added reminder endpoints (250+ lines)
+- `/app/backend/routers/excel_upload.py` - NEW (600+ lines)
+- `/app/backend/server.py` - Registered excel_upload router
+- `/app/memory/PAYROLL_SYSTEM_AUDIT.md` - Complete audit report
+
+### Testing Results
+- All new APIs verified via curl
+- Payroll lock status: ✅ Working
+- Bank status report: ✅ Working
+- Excel templates: ✅ Working (4 templates available)
+- Pending reminders: ✅ Working
 
 **Objective:** Implement code splitting and predictive route preloading for faster page loads.
 

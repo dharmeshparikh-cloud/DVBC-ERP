@@ -316,6 +316,9 @@ from routers import data_integrity as data_integrity_router
 # Meeting Schedules (Recurring meetings, Calendar, Conflict detection)
 from routers import meeting_schedules as meeting_schedules_router
 
+# Excel Upload (Bulk Import - employees, attendance, leave, salary)
+from routers import excel_upload as excel_upload_router
+
 # ==================== INCLUDE ALL ROUTERS ====================
 
 # Core
@@ -435,6 +438,9 @@ api_router.include_router(employee_consent_router.router)
 
 # Data Integrity (P1 architectural fixes)
 api_router.include_router(data_integrity_router.router)
+
+# Excel Upload (Bulk Import)
+api_router.include_router(excel_upload_router.router)
 
 # WebSocket for real-time updates (under /api prefix for proper routing through ingress)
 from routers import websocket_router

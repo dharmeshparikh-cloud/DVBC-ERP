@@ -1513,3 +1513,257 @@ def validate_submission_complete(submission: dict) -> list:
         errors.append("Bank details not verified by HR")
     
     return errors
+
+
+
+# ==================== REMINDER ENDPOINTS ====================
+
+@router.post("/submissions/{submission_id}/send-reminder")
+async def send_onboarding_reminder(
+    submission_id: str,
+    data: dict = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    HR sends a reminder email to candidate to complete their onboarding submission.
+    Only applicable for pending/incomplete submissions.
+    """
+    db = get_db()
+    
+    # Authorization - HR roles only
+    hr_roles = ["hr_manager", "hr_executive", "admin"]
+    if not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR can send reminders")
+    
+    # Get submission
+    submission = await db.onboarding_submissions.find_one({"id": submission_id}, {"_id": 0})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    # Check if reminder is applicable
+    status = submission.get("status", "")
+    if status in ["submitted", "verified", "completed"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot send reminder. Submission is already {status}."
+        )
+    
+    # Check token expiry
+    token = submission.get("token")
+    expires_at = submission.get("expires_at")
+    token_expired = False
+    
+    if expires_at:
+        try:
+            exp_date = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if exp_date < datetime.now(timezone.utc):
+                token_expired = True
+        except (ValueError, TypeError):
+            pass
+    
+    # Regenerate token if expired
+    if token_expired:
+        token = secrets.token_urlsafe(32)
+        new_expires = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRY_DAYS)
+        await db.onboarding_submissions.update_one(
+            {"id": submission_id},
+            {
+                "$set": {
+                    "token": token,
+                    "expires_at": new_expires.isoformat()
+                }
+            }
+        )
+    
+    # Get candidate details
+    candidate_email = submission.get("candidate_email")
+    candidate_name = submission.get("candidate_name")
+    offered_position = submission.get("offered_position")
+    
+    if not candidate_email:
+        raise HTTPException(status_code=400, detail="Candidate email not found")
+    
+    # Build reminder message
+    custom_message = (data or {}).get("message", "")
+    
+    # Track reminder
+    now = datetime.now(timezone.utc)
+    reminder_count = submission.get("reminder_count", 0) + 1
+    
+    await db.onboarding_submissions.update_one(
+        {"id": submission_id},
+        {
+            "$set": {
+                "last_reminder_at": now.isoformat(),
+                "last_reminder_by": current_user.id,
+                "reminder_count": reminder_count
+            },
+            "$push": {
+                "reminder_history": {
+                    "sent_at": now.isoformat(),
+                    "sent_by": current_user.id,
+                    "sent_by_name": current_user.full_name,
+                    "message": custom_message,
+                    "token_regenerated": token_expired
+                }
+            }
+        }
+    )
+    
+    # Send reminder email
+    try:
+        frontend_url = os.environ.get("FRONTEND_URL", "https://modular-erp-preview-1.preview.emergentagent.com")
+        onboarding_link = f"{frontend_url}/onboarding/{token}"
+        
+        email_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0;">NETRA ERP</h1>
+                <p style="color: rgba(255,255,255,0.9); margin-top: 5px;">Onboarding Reminder</p>
+            </div>
+            
+            <div style="padding: 30px; background: #fff;">
+                <h2 style="color: #1f2937;">Hello {candidate_name},</h2>
+                
+                <p style="color: #374151; line-height: 1.6;">
+                    This is a friendly reminder to complete your onboarding process for the position of 
+                    <strong>{offered_position}</strong> at DVBC.
+                </p>
+                
+                {f'<div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;"><strong>Message from HR:</strong><br/>{custom_message}</div>' if custom_message else ''}
+                
+                <p style="color: #374151;">
+                    Please click the button below to continue your onboarding submission:
+                </p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{onboarding_link}" 
+                       style="background: #f97316; color: white; padding: 15px 40px; 
+                              text-decoration: none; border-radius: 8px; font-weight: bold;
+                              display: inline-block;">
+                        Complete Onboarding
+                    </a>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px;">
+                    {'<strong>Note:</strong> Your previous link has expired. This email contains a new link.' if token_expired else 'This link will expire in 7 days.'}
+                </p>
+                
+                <p style="color: #6b7280; font-size: 14px;">
+                    If you have any questions, please contact our HR team.
+                </p>
+            </div>
+            
+            <div style="background: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
+                <p>This is an automated reminder from NETRA ERP</p>
+                <p>© {datetime.now().year} DVBC. All rights reserved.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        await send_email(
+            to_email=candidate_email,
+            subject=f"Reminder: Complete Your Onboarding - {offered_position}",
+            html_content=email_body
+        )
+        
+        return {
+            "message": f"Reminder sent successfully to {candidate_email}",
+            "reminder_count": reminder_count,
+            "token_regenerated": token_expired
+        }
+        
+    except Exception as e:
+        # Still track the reminder attempt
+        return {
+            "message": f"Reminder tracked but email failed: {str(e)}",
+            "reminder_count": reminder_count,
+            "email_sent": False
+        }
+
+
+@router.get("/submissions/{submission_id}/reminder-history")
+async def get_reminder_history(
+    submission_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get reminder history for a submission."""
+    db = get_db()
+    
+    hr_roles = ["hr_manager", "hr_executive", "admin"]
+    if not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR can view reminder history")
+    
+    submission = await db.onboarding_submissions.find_one(
+        {"id": submission_id},
+        {"_id": 0, "reminder_history": 1, "reminder_count": 1, "last_reminder_at": 1}
+    )
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    return {
+        "submission_id": submission_id,
+        "reminder_count": submission.get("reminder_count", 0),
+        "last_reminder_at": submission.get("last_reminder_at"),
+        "history": submission.get("reminder_history", [])
+    }
+
+
+@router.get("/pending-reminders")
+async def get_pending_reminders(
+    days_since_invite: int = 3,
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of candidates who haven't submitted and may need reminders."""
+    db = get_db()
+    
+    hr_roles = ["hr_manager", "hr_executive", "admin"]
+    if not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR can view pending reminders")
+    
+    # Calculate cutoff date
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days_since_invite)
+    
+    # Find pending submissions older than cutoff
+    submissions = await db.onboarding_submissions.find(
+        {
+            "status": {"$in": ["pending", "in_progress", "revision_requested"]},
+            "created_at": {"$lt": cutoff.isoformat()}
+        },
+        {"_id": 0}
+    ).to_list(100)
+    
+    candidates_needing_reminder = []
+    for sub in submissions:
+        last_reminder = sub.get("last_reminder_at")
+        
+        # Check if reminder was sent in last 2 days
+        needs_reminder = True
+        if last_reminder:
+            try:
+                last_rem_date = datetime.fromisoformat(last_reminder.replace("Z", "+00:00"))
+                if last_rem_date > (datetime.now(timezone.utc) - timedelta(days=2)):
+                    needs_reminder = False
+            except (ValueError, TypeError):
+                pass
+        
+        if needs_reminder:
+            candidates_needing_reminder.append({
+                "id": sub.get("id"),
+                "candidate_name": sub.get("candidate_name"),
+                "candidate_email": sub.get("candidate_email"),
+                "offered_position": sub.get("offered_position"),
+                "status": sub.get("status"),
+                "invited_at": sub.get("created_at"),
+                "reminder_count": sub.get("reminder_count", 0),
+                "last_reminder_at": last_reminder,
+                "days_since_invite": (datetime.now(timezone.utc) - datetime.fromisoformat(sub.get("created_at", datetime.now(timezone.utc).isoformat()).replace("Z", "+00:00"))).days if sub.get("created_at") else 0
+            })
+    
+    return {
+        "total": len(candidates_needing_reminder),
+        "candidates": sorted(candidates_needing_reminder, key=lambda x: x.get("days_since_invite", 0), reverse=True)
+    }
