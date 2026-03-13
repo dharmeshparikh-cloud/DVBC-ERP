@@ -187,6 +187,68 @@
 - Bank status report: ✅ Working
 - Excel templates: ✅ Working (4 templates available)
 - Pending reminders: ✅ Working
+- Attendance gap detection: ✅ Working (detected 3 employees with gaps)
+- Auto-link expenses: ✅ Working
+
+---
+
+### Phase 97: Payroll Frontend UI & Gap Detection - March 2026 ✅
+
+**Objective:** Build frontend UI for payroll approval workflow, Excel upload, and implement attendance gap detection.
+
+### Features Implemented
+
+**1. Payroll Approval Panel (Frontend)**
+- File: `/app/frontend/src/components/payroll/PayrollApprovalPanel.jsx`
+- Displays payroll run status with color-coded badges
+- Summary stats: Employees, Gross, Deductions, Net Payable
+- Action buttons: Submit, Approve, Reject, Resubmit, Emergency Unlock
+- Approval history dialog with audit trail
+- Rejection reason dialog with required input
+
+**2. Excel Upload Panel (Frontend)**
+- File: `/app/frontend/src/components/payroll/ExcelUploadPanel.jsx`
+- 4 template cards: employees, attendance, leave_balance, salary_structure
+- Template download with sample data
+- File upload with drag-drop UI
+- Dry-run validation before import
+- Results dialog showing valid/error counts
+
+**3. Attendance Gap Detection (Backend)**
+- Endpoint: `/api/payroll/attendance-gaps/{month}`
+- Detects employees with missing attendance for working days
+- Excludes weekends, holidays, and days before joining
+- Returns attendance percentage per employee
+- Fill gaps endpoint for bulk marking absent/leave
+
+**4. Auto-link Expenses to Payroll Period (Backend)**
+- Endpoint: `/api/expenses/auto-link-payroll-period`
+- Links approved expenses to YYYY-MM payroll period
+- Creates payroll_reimbursement records automatically
+- Handles locked months by linking to next month
+
+### New Payroll Tabs
+| Tab | Purpose |
+|-----|---------|
+| Salary Slips | View/generate slips |
+| Payroll Inputs | Manual adjustments |
+| Components | Earnings/Deductions config |
+| **Approval** | NEW - Workflow management |
+| **Bulk Upload** | NEW - Excel imports |
+
+### Files Created/Modified
+- `/app/frontend/src/components/payroll/PayrollApprovalPanel.jsx` - NEW
+- `/app/frontend/src/components/payroll/ExcelUploadPanel.jsx` - NEW
+- `/app/frontend/src/components/payroll/index.js` - NEW
+- `/app/frontend/src/pages/Payroll.js` - Added new tabs
+- `/app/backend/routers/payroll.py` - Added gap detection APIs
+- `/app/backend/routers/expenses.py` - Added auto-link API
+
+### Testing Results
+- Approval Panel UI: ✅ Renders correctly
+- Bulk Upload UI: ✅ Shows 4 templates with download/upload buttons
+- Attendance Gap Detection: ✅ Found 3 employees with gaps (9, 7, 7 days)
+- All tabs navigable without errors
 
 **Objective:** Implement code splitting and predictive route preloading for faster page loads.
 

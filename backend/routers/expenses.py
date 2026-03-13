@@ -1294,3 +1294,128 @@ async def get_expense_stats(
         "by_status": {r["_id"]: {"count": r["count"], "total": r["total"]} for r in status_results if r["_id"]},
         "by_category": {r["_id"]: {"count": r["count"], "total": r["total"]} for r in category_results if r["_id"]}
     }
+
+
+
+# ==================== AUTO-LINK EXPENSES TO PAYROLL PERIOD ====================
+
+@router.post("/auto-link-payroll-period")
+async def auto_link_expenses_to_payroll(
+    data: dict = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Auto-link approved expenses to payroll period based on expense_date.
+    Only HR/Admin can run this.
+    """
+    hr_roles = ["admin", "hr_manager", "hr_executive"]
+    if current_user.role not in hr_roles:
+        raise HTTPException(status_code=403, detail="Only HR can auto-link expenses")
+    
+    db = get_db()
+    
+    # Find approved expenses without payroll_period
+    expenses = await db.expenses.find({
+        "status": "approved",
+        "$or": [
+            {"payroll_period": None},
+            {"payroll_period": ""},
+            {"payroll_period": {"$exists": False}}
+        ]
+    }, {"_id": 0}).to_list(500)
+    
+    linked_count = 0
+    errors = []
+    
+    for exp in expenses:
+        # Determine payroll period from expense_date
+        expense_date = exp.get("expense_date") or exp.get("created_at", "")[:10]
+        if not expense_date:
+            errors.append({"id": exp.get("id"), "error": "No expense_date"})
+            continue
+        
+        # Extract YYYY-MM
+        try:
+            payroll_period = expense_date[:7]  # "2026-03-15" -> "2026-03"
+            if len(payroll_period) != 7 or payroll_period[4] != '-':
+                raise ValueError("Invalid date format")
+        except (ValueError, IndexError):
+            errors.append({"id": exp.get("id"), "error": f"Invalid date: {expense_date}"})
+            continue
+        
+        # Check if payroll is locked for that period
+        payroll_run = await db.payroll_runs.find_one({"month": payroll_period}, {"_id": 0})
+        if payroll_run and payroll_run.get("is_locked"):
+            # Link to next month instead
+            year, month = int(payroll_period[:4]), int(payroll_period[5:7])
+            month += 1
+            if month > 12:
+                month = 1
+                year += 1
+            payroll_period = f"{year:04d}-{month:02d}"
+        
+        # Update expense with payroll_period
+        await db.expenses.update_one(
+            {"id": exp.get("id")},
+            {"$set": {
+                "payroll_period": payroll_period,
+                "payroll_linked_at": datetime.now(timezone.utc).isoformat(),
+                "payroll_linked_by": current_user.id
+            }}
+        )
+        
+        # Create payroll_reimbursement record
+        reimb = {
+            "id": str(uuid.uuid4()),
+            "employee_id": exp.get("employee_id"),
+            "expense_id": exp.get("id"),
+            "amount": exp.get("total_amount") or exp.get("amount", 0),
+            "description": exp.get("description", "Expense Reimbursement"),
+            "payroll_period": payroll_period,
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Check if reimbursement already exists
+        existing = await db.payroll_reimbursements.find_one({
+            "expense_id": exp.get("id")
+        }, {"_id": 0})
+        
+        if not existing:
+            await db.payroll_reimbursements.insert_one(reimb)
+        
+        linked_count += 1
+    
+    return {
+        "message": f"Auto-linked {linked_count} expenses to payroll periods",
+        "linked_count": linked_count,
+        "error_count": len(errors),
+        "errors": errors[:10] if errors else []
+    }
+
+
+@router.get("/unlinked-approved")
+async def get_unlinked_approved_expenses(current_user: User = Depends(get_current_user)):
+    """Get approved expenses not yet linked to a payroll period."""
+    hr_roles = ["admin", "hr_manager", "hr_executive"]
+    if current_user.role not in hr_roles:
+        raise HTTPException(status_code=403, detail="Only HR can view unlinked expenses")
+    
+    db = get_db()
+    
+    expenses = await db.expenses.find({
+        "status": "approved",
+        "$or": [
+            {"payroll_period": None},
+            {"payroll_period": ""},
+            {"payroll_period": {"$exists": False}}
+        ]
+    }, {"_id": 0}).to_list(100)
+    
+    total_amount = sum(e.get("total_amount") or e.get("amount", 0) for e in expenses)
+    
+    return {
+        "count": len(expenses),
+        "total_amount": round(total_amount, 2),
+        "expenses": expenses
+    }

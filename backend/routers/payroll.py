@@ -5,8 +5,9 @@ Extracted from server.py for better modularity and load performance.
 
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
+import calendar
 from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, DEFAULT_PAGE_SIZE, LARGE_QUERY_SIZE
 from .models import User
 from .auth import get_current_user
@@ -1445,3 +1446,200 @@ async def standardize_bank_details(employee_id: str, current_user: User = Depend
     )
     
     return {"message": "Bank details standardized", "bank_details": bank_details}
+
+
+
+# ==================== ATTENDANCE GAP DETECTION ====================
+
+@router.get("/attendance-gaps/{month}")
+async def get_attendance_gaps(month: str, current_user: User = Depends(get_current_user)):
+    """
+    Detect attendance gaps for a payroll month.
+    Returns employees with missing attendance records for working days.
+    """
+    if current_user.role not in HR_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR can view attendance gaps")
+    
+    db = get_db()
+    
+    # Get all active (Go-Live) employees
+    employees = await db.employees.find(
+        {"go_live_status": "active", "is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "employee_id": 1, "first_name": 1, "last_name": 1, "department": 1, "date_of_joining": 1}
+    ).to_list(500)
+    
+    if not employees:
+        return {"message": "No active employees found", "gaps": []}
+    
+    # Get holidays for the month
+    holidays = await db.holidays.find({
+        "date": {"$regex": f"^{month}"}
+    }, {"_id": 0, "date": 1}).to_list(31)
+    holiday_dates = set(h.get("date") for h in holidays)
+    
+    # Generate expected working days for the month
+    year, month_num = int(month[:4]), int(month[5:7])
+    _, days_in_month = calendar.monthrange(year, month_num)
+    
+    working_days = []
+    for day in range(1, days_in_month + 1):
+        date_str = f"{month}-{day:02d}"
+        dt = datetime(year, month_num, day)
+        # Skip weekends (Saturday=5, Sunday=6)
+        if dt.weekday() < 5 and date_str not in holiday_dates:
+            working_days.append(date_str)
+    
+    # Get attendance records for all employees for this month
+    attendance_records = await db.attendance.find({
+        "date": {"$regex": f"^{month}"},
+        "approval_status": {"$in": ["approved", None, "pending_approval"]}
+    }, {"_id": 0, "employee_id": 1, "date": 1, "status": 1}).to_list(10000)
+    
+    # Build attendance map
+    attendance_map = {}
+    for rec in attendance_records:
+        emp_id = rec.get("employee_id")
+        date = rec.get("date")
+        if emp_id not in attendance_map:
+            attendance_map[emp_id] = set()
+        attendance_map[emp_id].add(date)
+    
+    # Get leave records
+    leave_records = await db.leave_requests.find({
+        "status": "approved",
+        "$or": [
+            {"start_date": {"$regex": f"^{month}"}},
+            {"end_date": {"$regex": f"^{month}"}}
+        ]
+    }, {"_id": 0, "employee_id": 1, "start_date": 1, "end_date": 1}).to_list(1000)
+    
+    # Build leave map
+    leave_map = {}
+    for leave in leave_records:
+        emp_id = leave.get("employee_id")
+        if emp_id not in leave_map:
+            leave_map[emp_id] = set()
+        # Add all dates in leave range
+        try:
+            start = datetime.fromisoformat(leave["start_date"])
+            end = datetime.fromisoformat(leave["end_date"])
+            current = start
+            while current <= end:
+                leave_map[emp_id].add(current.strftime("%Y-%m-%d"))
+                current += timedelta(days=1)
+        except (ValueError, TypeError):
+            pass
+    
+    # Detect gaps for each employee
+    gaps = []
+    for emp in employees:
+        emp_id = emp.get("id")
+        emp_attendance = attendance_map.get(emp_id, set())
+        emp_leaves = leave_map.get(emp_id, set())
+        
+        # Check joining date - don't flag gaps before joining
+        joining_date = emp.get("date_of_joining", "")
+        
+        missing_days = []
+        for wd in working_days:
+            # Skip if before joining date
+            if joining_date and wd < joining_date:
+                continue
+            
+            # Skip if today or in future
+            if wd >= datetime.now().strftime("%Y-%m-%d"):
+                continue
+            
+            # Check if has attendance or leave
+            if wd not in emp_attendance and wd not in emp_leaves:
+                missing_days.append(wd)
+        
+        if missing_days:
+            gaps.append({
+                "employee_id": emp_id,
+                "employee_code": emp.get("employee_id"),
+                "employee_name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip(),
+                "department": emp.get("department"),
+                "missing_days": missing_days,
+                "missing_count": len(missing_days),
+                "total_working_days": len(working_days),
+                "attendance_percentage": round((len(working_days) - len(missing_days)) / len(working_days) * 100, 1) if working_days else 0
+            })
+    
+    # Sort by missing count descending
+    gaps.sort(key=lambda x: x["missing_count"], reverse=True)
+    
+    return {
+        "month": month,
+        "total_working_days": len(working_days),
+        "holidays": len(holiday_dates),
+        "employees_with_gaps": len(gaps),
+        "total_employees": len(employees),
+        "gaps": gaps
+    }
+
+
+@router.post("/fill-attendance-gaps")
+async def fill_attendance_gaps(data: dict, current_user: User = Depends(get_current_user)):
+    """
+    Bulk fill attendance gaps with a specified status.
+    Used to mark missing days as absent/leave.
+    """
+    if current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR Manager/Admin can fill gaps")
+    
+    db = get_db()
+    
+    employee_id = data.get("employee_id")
+    dates = data.get("dates", [])
+    status = data.get("status", "absent")  # absent, on_leave, holiday
+    notes = data.get("notes", "Filled via attendance gap detection")
+    
+    if not employee_id or not dates:
+        raise HTTPException(status_code=400, detail="employee_id and dates are required")
+    
+    valid_statuses = ["absent", "on_leave", "holiday", "half_day"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    # Verify employee exists
+    employee = await db.employees.find_one({"id": employee_id}, {"_id": 0, "id": 1, "employee_id": 1})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    created_count = 0
+    skipped_count = 0
+    
+    for date in dates:
+        # Check if record already exists
+        existing = await db.attendance.find_one({
+            "employee_id": employee_id,
+            "date": date
+        }, {"_id": 0, "id": 1})
+        
+        if existing:
+            skipped_count += 1
+            continue
+        
+        # Create attendance record
+        record = {
+            "id": str(uuid.uuid4()),
+            "employee_id": employee_id,
+            "employee_code": employee.get("employee_id"),
+            "date": date,
+            "status": status,
+            "notes": notes,
+            "approval_status": "approved",  # Auto-approve gap fills
+            "source": "gap_fill",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": current_user.id
+        }
+        
+        await db.attendance.insert_one(record)
+        created_count += 1
+    
+    return {
+        "message": f"Created {created_count} attendance records, skipped {skipped_count} existing",
+        "created": created_count,
+        "skipped": skipped_count
+    }
