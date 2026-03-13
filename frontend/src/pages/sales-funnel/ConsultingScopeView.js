@@ -94,12 +94,15 @@ const ConsultingScopeView = () => {
           params: { current_user_role: user?.role }
         }),
         axios.get(`${API}/sow-masters/categories`),
-        axios.get(`${API}/employees`).catch(() => ({ data: [] }))
+        axios.get(`${API}/employees/all`).catch(() => ({ data: [] }))
       ]);
       
       setSow(sowRes.data);
-      setCategories(catsRes.data || []);
-      setEmployees(employeesRes.data || []);
+      // Handle both array and {data: []} response formats
+      const catsData = Array.isArray(catsRes.data) ? catsRes.data : (catsRes.data?.data || catsRes.data?.items || []);
+      setCategories(catsData);
+      const empData = Array.isArray(employeesRes.data) ? employeesRes.data : (employeesRes.data?.data || employeesRes.data?.items || []);
+      setEmployees(empData);
       
       // Fetch lead info
       if (sowRes.data?.lead_id) {
@@ -300,7 +303,7 @@ const ConsultingScopeView = () => {
     setSelectedScope(scope);
     setSelectedTask(task);
     // Pre-fill with any manager data
-    const managers = employees.filter(e => e.role === 'manager' || e.role === 'admin');
+    const managers = (Array.isArray(employees) ? employees : []).filter(e => e.role === 'manager' || e.role === 'admin');
     setApprovalData({
       manager_id: managers[0]?.id || '',
       manager_name: managers[0] ? `${managers[0].first_name} ${managers[0].last_name}` : '',
@@ -1183,7 +1186,7 @@ const ConsultingScopeView = () => {
                 className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent"
               >
                 <option value="">Select category...</option>
-                {categories.map(cat => (
+                {(Array.isArray(categories) ? categories : []).map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
@@ -1408,7 +1411,7 @@ const ConsultingScopeView = () => {
                 data-testid="task-assign-select"
               >
                 <option value="">Unassigned</option>
-                {employees.map(emp => (
+                {Array.isArray(employees) && employees.map(emp => (
                   <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
                 ))}
               </select>
@@ -1469,7 +1472,7 @@ const ConsultingScopeView = () => {
                 data-testid="approval-manager-select"
               >
                 <option value="">Select Manager...</option>
-                {employees.filter(e => e.role === 'manager' || e.role === 'admin').map(emp => (
+                {(Array.isArray(employees) ? employees : []).filter(e => e.role === 'manager' || e.role === 'admin').map(emp => (
                   <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
                 ))}
               </select>
