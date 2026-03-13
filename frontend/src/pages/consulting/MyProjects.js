@@ -53,10 +53,11 @@ const MyProjects = () => {
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager' || user?.role === 'project_manager';
   const isConsultant = user?.role?.includes('consultant');
+  const isSalesRole = user?.role === 'sales_manager' || user?.role === 'executive';
 
   // Fetch all data with React Query
   const { data: projectsData, isLoading: loading, refetch } = useQuery({
-    queryKey: ['my-projects', user?.id, isConsultant, isAdmin, isManager],
+    queryKey: ['my-projects', user?.id, isConsultant, isAdmin, isManager, isSalesRole],
     queryFn: async () => {
       const [projectsRes, sowRes, leadsRes, employeesRes] = await Promise.all([
         axios.get(`${API}/projects`).catch(() => ({ data: [] })),
@@ -66,7 +67,7 @@ const MyProjects = () => {
       ]);
       
       // Filter SOWs to only show handed-over ones
-      const handedOverSOWs = (sowRes.data || []).filter(sow => sow.sales_handover_complete);
+      let handedOverSOWs = (sowRes.data || []).filter(sow => sow.sales_handover_complete);
       
       // Filter projects based on role
       let filteredProjects = projectsRes.data || [];
@@ -75,6 +76,11 @@ const MyProjects = () => {
         filteredProjects = filteredProjects.filter(p => 
           p.assigned_consultants?.some(c => c.user_id === user?.id)
         );
+      }
+
+      // Sales roles only see SOWs they created
+      if (isSalesRole && !isAdmin) {
+        handedOverSOWs = handedOverSOWs.filter(sow => sow.created_by === user?.id);
       }
       
       return {

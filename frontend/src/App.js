@@ -10,6 +10,7 @@ import { StageGuardProvider } from './contexts/StageGuardContext';
 import StageGuardDialog from './components/StageGuardDialog';
 import { SalesPortalRedirect, HRPortalRedirect } from './components/PortalRedirect';
 import ErrorBoundary from './components/ErrorBoundary';
+import RoleGuard from './components/RoleGuard';
 import { PageLoadingSkeleton } from './components/ui/loading-skeleton';
 
 // React Query for data caching
@@ -267,9 +268,9 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="consulting-meetings" element={<ConsultingMeetings />} />
         <Route path="meeting-calendar" element={<MeetingCalendar />} />
         <Route path="org-chart" element={<OrgChart />} />
-        <Route path="leave-management" element={<LeaveManagement />} />
-        <Route path="attendance" element={<Attendance />} />
-        <Route path="payroll" element={<Payroll />} />
+        <Route path="leave-management" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><LeaveManagement /></RoleGuard>} />
+        <Route path="attendance" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><Attendance /></RoleGuard>} />
+        <Route path="payroll" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Finance']}><Payroll /></RoleGuard>} />
         <Route path="ctc-designer" element={<CTCDesigner />} />
         <Route path="document-center" element={<DocumentCenter />} />
         <Route path="document-builder" element={<Navigate to="/document-center" replace />} />
@@ -312,32 +313,32 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="projects/:projectId/kickoff" element={<KickoffMeeting />} />
         <Route path="projects/:projectId/payments" element={<ProjectPaymentDetails />} />
         <Route path="payments" element={<ProjectPayments />} />
-        <Route path="timesheets" element={<Timesheets />} />
+        <Route path="timesheets" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><Timesheets /></RoleGuard>} />
         <Route path="handover-alerts" element={<HandoverAlerts />} />
         <Route path="kickoff-requests" element={<KickoffRequests />} />
         <Route path="profile" element={<UserProfile />} />
-        <Route path="user-management" element={<UserManagement />} />
-        <Route path="employees" element={<Employees />} />
+        <Route path="user-management" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><UserManagement /></RoleGuard>} />
+        <Route path="employees" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Admin']}><Employees /></RoleGuard>} />
         <Route path="password-management" element={<EmployeeAccessPermissions />} />
         <Route path="employee-access-permissions" element={<EmployeeAccessPermissions />} />
         <Route path="approvals" element={<ApprovalsCenter />} />
-        <Route path="manager-leads" element={<ManagerLeadsDashboard />} />
+        <Route path="manager-leads" element={<RoleGuard allowedRoles={['sales_manager', 'manager', 'principal_consultant']} allowedDepts={['Sales']}><ManagerLeadsDashboard /></RoleGuard>} />
         <Route path="team-leads" element={<Navigate to="/manager-leads" replace />} />
-        <Route path="target-management" element={<TargetManagement />} />
+        <Route path="target-management" element={<RoleGuard allowedRoles={['sales_manager', 'principal_consultant']} allowedDepts={['Sales']}><TargetManagement /></RoleGuard>} />
         <Route path="targets" element={<Navigate to="/target-management" replace />} />
         <Route path="clients" element={<Clients />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="travel-reimbursement" element={<TravelReimbursement />} />
         <Route path="reports" element={<Reports />} />
         <Route path="report-builder" element={<CustomReportBuilder />} />
-        <Route path="security-audit" element={<SecurityAuditLog />} />
+        <Route path="security-audit" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><SecurityAuditLog /></RoleGuard>} />
         <Route path="gantt-chart" element={<GanttChart />} />
         <Route path="downloads" element={<Downloads />} />
         <Route path="sales-dashboard" element={<SalesDashboard />} />
         <Route path="consulting-dashboard" element={<ConsultingDashboard />} />
         <Route path="hr-dashboard" element={<HRDashboard />} />
-        <Route path="admin-masters" element={<AdminMasters />} />
-        <Route path="permission-manager" element={<PermissionManager />} />
+        <Route path="admin-masters" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><AdminMasters /></RoleGuard>} />
+        <Route path="permission-manager" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><PermissionManager /></RoleGuard>} />
         <Route path="permission-dashboard" element={<PermissionDashboard />} />
         <Route path="employee-permissions" element={<EmployeeAccessPermissions />} />
         <Route path="department-access" element={<DepartmentAccessManager />} />

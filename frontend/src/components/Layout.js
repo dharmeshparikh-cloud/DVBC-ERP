@@ -28,7 +28,7 @@ import {
 // Legacy role-based access (kept for backward compatibility only when API fails)
 const HR_ROLES_FALLBACK = ['admin', 'hr_manager', 'hr_executive'];
 const SALES_ROLES_FALLBACK = ['admin', 'sales_manager', 'sales_executive', 'executive', 'senior_consultant', 'principal_consultant'];
-const CONSULTING_ROLES_FALLBACK = ['admin', 'consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant'];
+const CONSULTING_ROLES_FALLBACK = ['admin', 'consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager'];
 const ADMIN_ROLES_FALLBACK = ['admin'];
 
 const Layout = () => {
@@ -136,7 +136,7 @@ const Layout = () => {
   // This ensures HR Manager doesn't see Sales section, Sales Executive doesn't see HR section, etc.
   const showHR = sidebarVisibility?.hr_section ?? (hasDepartment('HR') || HR_ROLES_FALLBACK.includes(role));
   const showSales = sidebarVisibility?.sales_section ?? (hasDepartment('Sales') || SALES_ROLES_FALLBACK.includes(role));
-  const showConsulting = sidebarVisibility?.consulting_section ?? (hasDepartment('Consulting') || CONSULTING_ROLES_FALLBACK.includes(role));
+  const showConsulting = sidebarVisibility?.consulting_section ?? (hasDepartment('Consulting') || hasDepartment('Delivery') || hasDepartment('Operations') || CONSULTING_ROLES_FALLBACK.includes(role) || role === 'manager');
   const showFinance = hasDepartment('Finance');
   const showAdmin = sidebarVisibility?.admin_section ?? (hasDepartment('Admin') || ADMIN_ROLES_FALLBACK.includes(role));
   const isConsultant = role === 'consultant';
@@ -450,6 +450,7 @@ const Layout = () => {
   // Communication items merged into workspace (visible for all users)
   const workspaceWithCommunication = [
     ...workspaceItems,
+    ...(canViewApprovals ? [{ name: 'Approvals', href: '/approvals', icon: ClipboardCheck }] : []),
     { name: 'Team Chat', href: '/chat', icon: MessageCircle },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
   ];

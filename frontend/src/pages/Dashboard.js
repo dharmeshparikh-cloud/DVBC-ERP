@@ -37,7 +37,8 @@ const getUserDomain = (user) => {
   if (role.includes('hr') || role === 'hr_manager' || role === 'hr_executive') return 'hr';
   if (role === 'executive' || role === 'sales_manager') return 'sales';
   if (role === 'consultant' || role.includes('consultant') || role === 'project_manager') return 'consulting';
-  if (role === 'admin' || role === 'manager') return 'admin';
+  if (role === 'admin') return 'admin';
+  if (role === 'manager') return 'general';
   
   return 'general';
 };
