@@ -8,11 +8,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Calendar, Users, IndianRupee, ListTodo, UserPlus, PlayCircle, Clock, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Plus, Calendar, Users, IndianRupee, ListTodo, UserPlus, PlayCircle, Clock, AlertTriangle, CheckCircle2, RefreshCw, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInDays, isPast } from 'date-fns';
 import ProjectConsultantAssignment from '../components/ProjectConsultantAssignment';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { isProjectReadOnly } from '../utils/projectActions';
 
 // Helper function to calculate days remaining/overdue
 const getTimelineInfo = (project) => {
@@ -424,37 +425,48 @@ const Projects = () => {
 
                 {/* Action Buttons */}
                 <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => navigate(`/projects/${project.id}/kickoff`)}
-                    size="sm"
-                    className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                    data-testid={`kickoff-btn-${project.id}`}
-                  >
-                    <PlayCircle className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                    Kick-off
-                  </Button>
-                  <Button
-                    onClick={() => navigate(`/projects/${project.id}/tasks`)}
-                    size="sm"
-                    variant="outline"
-                    className="rounded-sm"
-                  >
-                    <ListTodo className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                    Tasks
-                  </Button>
-                  {canEdit && (
-                    <Button
-                      onClick={() => {
-                        setSelectedProject(project);
-                        setAssignDialogOpen(true);
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className="rounded-sm"
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                      Assign Consultant
-                    </Button>
+                  {isProjectReadOnly(project.status) ? (
+                    <>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded-sm border border-amber-200">
+                        <Lock className="w-3.5 h-3.5" />
+                        View Only — Project {project.status}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => navigate(`/projects/${project.id}/kickoff`)}
+                        size="sm"
+                        className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+                        data-testid={`kickoff-btn-${project.id}`}
+                      >
+                        <PlayCircle className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                        Kick-off
+                      </Button>
+                      <Button
+                        onClick={() => navigate(`/projects/${project.id}/tasks`)}
+                        size="sm"
+                        variant="outline"
+                        className="rounded-sm"
+                      >
+                        <ListTodo className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                        Tasks
+                      </Button>
+                      {canEdit && (
+                        <Button
+                          onClick={() => {
+                            setSelectedProject(project);
+                            setAssignDialogOpen(true);
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="rounded-sm"
+                        >
+                          <UserPlus className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                          Assign Consultant
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               </CardContent>

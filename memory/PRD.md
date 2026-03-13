@@ -29,7 +29,12 @@
    - **Reopen Button (Admin only):** Blue "Reopen" button on completed project cards/rows. Triggers confirmation dialog. On confirm, calls backend API to reset scopes to "in_progress".
    - **Bug Fix:** Fixed `leads.find is not a function` crash — `leads` and `employees` APIs return `{ items, pagination }`.
 
-2. **`/app/backend/routers/enhanced_sow.py`**
+2. **`/app/frontend/src/pages/Projects.js`**
+   - Imported `isProjectReadOnly` and `Lock` icon
+   - Replaced Kick-off/Tasks/Assign Consultant buttons with "View Only — Project {status}" badge for completed/cancelled projects
+   - Active projects retain all action buttons as before
+
+3. **`/app/backend/routers/enhanced_sow.py`**
    - Added `POST /{sow_id}/reopen` endpoint (admin-only)
    - Validates project is fully completed before reopening
    - Resets all "completed" scopes to "in_progress", stamps `reopened_at` and `reopened_by`
