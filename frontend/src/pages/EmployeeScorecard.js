@@ -18,8 +18,8 @@ const EmployeeScorecard = () => {
   const { user } = useContext(AuthContext);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [employeeTimeline, setEmployeeTimeline] = useState(null);
-  const [linkedRecords, setLinkedRecords] = useState(null);
+  const [employeeTimeline, setEmployeeTimeline] = useState({ timeline: [], total_events: 0 });
+  const [linkedRecords, setLinkedRecords] = useState({ linked_records: {} });
   const [showDetailDialog, setShowDetailDialog] = useState(false);
 
   // React Query: Stats Summary
