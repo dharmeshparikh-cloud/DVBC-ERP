@@ -16,7 +16,39 @@
 
 ## Completed Work - March 2026
 
-### Phase 104: My Workspace Sync — Cross-Navigation & Sidebar Unification - March 13, 2026 ✅ (Latest)
+### Phase 105: Deep RBAC & Navigation Gap Audit — All Roles - March 13, 2026 ✅ (Latest)
+
+**Objective:** Comprehensive RBAC audit across all 13 roles, fix navigation gaps, add route protection, fix data filtering.
+
+**Gaps Fixed:**
+1. **MyProjects data leak** — Added `isSalesRole` check to filter SOWs by `created_by === user.id` for sales_manager/executive roles
+2. **`lean_consultant` missing from CONSULTING_ROLES_FALLBACK** — Added (6 users affected)
+3. **`project_manager` missing from CONSULTING_ROLES_FALLBACK** — Added
+4. **`manager` can't see Consulting** — Added Delivery/Operations depts + manager role to `showConsulting`
+5. **No Approvals in workspace** — Added conditional "Approvals" link to workspace when `canViewApprovals` is true
+6. **Dashboard domain mismatch** — `manager` now maps to 'general' (was incorrectly 'admin')
+
+**Route Protection Added (RoleGuard):**
+- `/payroll`, `/leave-management`, `/attendance` → HR only
+- `/employees` → HR/Admin only
+- `/user-management`, `/admin-masters`, `/permission-manager`, `/security-audit` → Admin only
+- `/target-management`, `/manager-leads` → Sales Manager/Manager
+- `/timesheets` → Consulting roles/Delivery dept
+
+**Files Created:**
+- `/app/frontend/src/components/RoleGuard.js` — Reusable role+dept guard with "Access Restricted" UI
+
+**Files Updated:**
+- `App.js` — 11 routes wrapped with RoleGuard
+- `Layout.js` — Role fallbacks, section visibility, workspace Approvals link
+- `consulting/MyProjects.js` — Sales role data filtering
+- `Dashboard.js` — Domain mapping fix
+
+**Testing:** 100% pass (22/22 tests) — Admin access, Sales Manager blocks, sidebar visibility, data filtering all verified.
+
+---
+
+### Phase 104: My Workspace Sync — Cross-Navigation & Sidebar Unification - March 13, 2026 ✅
 
 **Objective:** Add "My Projects" to workspace section + create unified cross-navigation bar across all "My" pages.
 
