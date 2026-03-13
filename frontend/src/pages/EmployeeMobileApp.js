@@ -24,7 +24,14 @@ import {
 import { toast } from 'sonner';
 
 // Import modular components for better maintainability
-import { MobileNavigation, MobileHeader } from '../components/mobile';
+import { 
+  MobileNavigation, 
+  MobileHeader,
+  AttendanceTab as AttendanceTabComponent,
+  LeaveTab as LeaveTabComponent,
+  ExpenseTab as ExpenseTabComponent,
+  TravelTab as TravelTabComponent
+} from '../components/mobile';
 
 const EmployeeMobileApp = () => {
   const { user, logout } = useContext(AuthContext);
@@ -889,338 +896,40 @@ const EmployeeMobileApp = () => {
     </div>
   );
 
-  // Attendance Tab
+  // Attendance Tab - Using modular component
   const AttendanceTab = () => (
-    <div className="space-y-4 pb-24">
-      {/* Check-in Card */}
-      <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl">
-        <div className="text-center">
-          <p className="text-indigo-200 text-sm mb-2">{formatDate(currentTime)}</p>
-          <p className="text-5xl font-bold tracking-wider mb-4">{formatTime(currentTime)}</p>
-          
-          {checkInStatus ? (
-            <div className="bg-white/10 rounded-2xl p-4 backdrop-blur">
-              <div className={`flex items-center justify-center gap-2 mb-2 ${
-                checkInStatus.approval_status === 'approved' ? 'text-emerald-300' :
-                checkInStatus.approval_status === 'pending_approval' ? 'text-amber-300' : 'text-red-300'
-              }`}>
-                {checkInStatus.approval_status === 'approved' ? <CheckCircle className="w-5 h-5" /> :
-                 checkInStatus.approval_status === 'pending_approval' ? <Clock className="w-5 h-5" /> :
-                 <XCircle className="w-5 h-5" />}
-                <span className="font-medium">
-                  {checkInStatus.approval_status === 'approved' ? "You're Checked In" :
-                   checkInStatus.approval_status === 'pending_approval' ? "Pending HR Approval" : "Check-in Rejected"}
-                </span>
-              </div>
-              <p className="text-sm text-indigo-200">
-                {checkInStatus.check_in_time ? 
-                  `Since ${new Date(checkInStatus.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` :
-                  'Today'}
-              </p>
-              {checkInStatus.geo_location?.address && (
-                <p className="text-xs text-indigo-300 mt-2 flex items-center justify-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {checkInStatus.geo_location.address.split(',').slice(0, 2).join(',')}
-                </p>
-              )}
-              {checkInStatus.location_validation?.matched_location && (
-                <p className="text-xs text-emerald-300 mt-1">
-                  Verified: {checkInStatus.location_validation.matched_location}
-                </p>
-              )}
-            </div>
-          ) : (
-            <button 
-              onClick={openCheckIn}
-              className="w-full py-4 bg-white text-indigo-700 rounded-2xl font-semibold text-lg shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2"
-            >
-              <Camera className="w-6 h-6" />
-              Check In with Selfie
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Monthly Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { label: 'Office', value: (attendanceData?.records || []).filter(r => r.work_location === 'in_office' && r.approval_status === 'approved').length, icon: Building2, color: 'emerald' },
-          { label: 'On-Site', value: (attendanceData?.records || []).filter(r => r.work_location === 'onsite' && r.approval_status === 'approved').length, icon: MapPin, color: 'blue' },
-          { label: 'Pending', value: (attendanceData?.records || []).filter(r => r.approval_status === 'pending_approval').length, icon: Clock, color: 'amber' },
-          { label: 'Leave', value: attendanceData?.summary?.on_leave || 0, icon: Calendar, color: 'purple' },
-        ].map((item, i) => (
-          <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100">
-            <div className={`w-10 h-10 rounded-xl bg-${item.color}-100 text-${item.color}-600 flex items-center justify-center mb-2`}>
-              <item.icon className="w-5 h-5" />
-            </div>
-            <p className="text-2xl font-bold text-zinc-900">{item.value}</p>
-            <p className="text-xs text-zinc-500">{item.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Attendance History */}
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
-        <div className="p-4 border-b border-zinc-100">
-          <h3 className="font-semibold text-zinc-900">Attendance History</h3>
-        </div>
-        <div className="divide-y divide-zinc-100">
-          {(attendanceData?.records || []).slice(0, 10).map((record, i) => (
-            <div key={i} className="flex items-center gap-3 p-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                record.approval_status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
-                record.approval_status === 'pending_approval' ? 'bg-amber-100 text-amber-600' :
-                record.approval_status === 'rejected' ? 'bg-red-100 text-red-600' :
-                'bg-blue-100 text-blue-600'
-              }`}>
-                {record.approval_status === 'approved' && <CheckCircle2 className="w-5 h-5" />}
-                {record.approval_status === 'pending_approval' && <Clock className="w-5 h-5" />}
-                {record.approval_status === 'rejected' && <XCircle className="w-5 h-5" />}
-                {!record.approval_status && <CheckCircle2 className="w-5 h-5" />}
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-zinc-900">{record.date}</p>
-                <p className="text-xs text-zinc-500">
-                  {record.work_location === 'in_office' ? 'Office' : 'On-Site'}
-                  {record.approval_status === 'pending_approval' && ' - Pending'}
-                  {record.approval_status === 'rejected' && ' - Rejected'}
-                </p>
-              </div>
-              {record.selfie && (
-                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-zinc-200">
-                  <img src={record.selfie} alt="selfie" className="w-full h-full object-cover" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <AttendanceTabComponent
+      currentTime={currentTime}
+      formatTime={formatTime}
+      formatDate={formatDate}
+      checkInStatus={checkInStatus}
+      attendanceData={attendanceData}
+      onCheckIn={openCheckIn}
+    />
   );
 
-  // Leave Tab
+  // Leave Tab - Using modular component
   const LeaveTab = () => (
-    <div className="space-y-4 pb-24">
-      <div className="grid grid-cols-3 gap-3">
-        {leaveBalance && [
-          { type: 'Casual', data: leaveBalance.casual, color: 'blue', icon: Coffee },
-          { type: 'Sick', data: leaveBalance.sick, color: 'red', icon: AlertCircle },
-          { type: 'Earned', data: leaveBalance.earned, color: 'emerald', icon: TrendingUp },
-        ].map((item, i) => (
-          <div key={i} className={`bg-gradient-to-br from-${item.color}-500 to-${item.color}-600 rounded-2xl p-4 text-white`}>
-            <item.icon className="w-6 h-6 mb-2 opacity-80" />
-            <p className="text-3xl font-bold">{item.data?.available || 0}</p>
-            <p className="text-xs opacity-80">{item.type}</p>
-          </div>
-        ))}
-      </div>
-
-      <button 
-        onClick={() => setShowLeaveModal(true)}
-        onTouchEnd={(e) => { e.preventDefault(); setShowLeaveModal(true); }}
-        className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition touch-manipulation cursor-pointer"
-        style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
-        data-testid="apply-leave-btn"
-      >
-        <Plus className="w-5 h-5" />
-        Apply for Leave
-      </button>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
-        <div className="p-4 border-b border-zinc-100">
-          <h3 className="font-semibold text-zinc-900">Recent Requests</h3>
-        </div>
-        <div className="p-8 text-center text-zinc-500">
-          <Calendar className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
-          <p>No recent leave requests</p>
-        </div>
-      </div>
-    </div>
+    <LeaveTabComponent
+      leaveBalance={leaveBalance}
+      onApplyLeave={() => setShowLeaveModal(true)}
+    />
   );
 
-  // Expense Tab
+  // Expense Tab - Using modular component
   const ExpenseTab = () => (
-    <div className="space-y-4 pb-24">
-      <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-3xl p-6 text-white shadow-xl">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-amber-100 text-sm">Total Claims</p>
-            <p className="text-3xl font-bold">₹{expenses.reduce((sum, e) => sum + (e.total_amount || 0), 0).toLocaleString()}</p>
-          </div>
-          <Wallet className="w-12 h-12 opacity-50" />
-        </div>
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="bg-white/20 rounded-xl p-2 text-center">
-            <p className="text-xl font-bold">{expenses.filter(e => e.status === 'pending').length}</p>
-            <p className="text-xs opacity-80">Pending</p>
-          </div>
-          <div className="bg-white/20 rounded-xl p-2 text-center">
-            <p className="text-xl font-bold">{expenses.filter(e => e.status === 'approved').length}</p>
-            <p className="text-xs opacity-80">Approved</p>
-          </div>
-          <div className="bg-white/20 rounded-xl p-2 text-center">
-            <p className="text-xl font-bold">{expenses.filter(e => e.status === 'reimbursed').length}</p>
-            <p className="text-xs opacity-80">Paid</p>
-          </div>
-        </div>
-      </div>
-
-      <button 
-        onClick={() => setShowExpenseModal(true)}
-        onTouchEnd={(e) => { e.preventDefault(); setShowExpenseModal(true); }}
-        className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition touch-manipulation cursor-pointer"
-        style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
-        data-testid="add-expense-btn"
-      >
-        <Plus className="w-5 h-5" />
-        Add New Expense
-      </button>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
-        <div className="p-4 border-b border-zinc-100">
-          <h3 className="font-semibold text-zinc-900">Recent Expenses</h3>
-        </div>
-        {expenses.length > 0 ? (
-          <div className="divide-y divide-zinc-100">
-            {expenses.slice(0, 5).map((expense, i) => (
-              <div key={i} className="flex items-center gap-3 p-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  expense.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
-                  expense.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                  expense.status === 'reimbursed' ? 'bg-blue-100 text-blue-600' :
-                  'bg-red-100 text-red-600'
-                }`}>
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-zinc-900">{expense.description || 'Expense'}</p>
-                  <p className="text-xs text-zinc-500">{expense.expense_date || expense.created_at?.split('T')[0]}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-zinc-900">₹{(expense.total_amount || 0).toLocaleString()}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    expense.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                    expense.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                    expense.status === 'reimbursed' ? 'bg-blue-100 text-blue-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>{expense.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-8 text-center text-zinc-500">
-            <Receipt className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
-            <p>No expenses yet</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <ExpenseTabComponent
+      expenses={expenses}
+      onAddExpense={() => setShowExpenseModal(true)}
+    />
   );
 
-  // Travel Tab (for Sales team)
+  // Travel Tab (for Sales team) - Using modular component
   const TravelTab = () => (
-    <div className="space-y-4 pb-24">
-      <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-3xl p-6 text-white shadow-xl">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-teal-100 text-sm">Travel Claims</p>
-            <p className="text-3xl font-bold">₹{travelClaims.reduce((sum, c) => sum + (c.final_amount || 0), 0).toLocaleString()}</p>
-          </div>
-          <Car className="w-12 h-12 opacity-50" />
-        </div>
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="bg-white/20 rounded-xl p-2 text-center">
-            <p className="text-xl font-bold">{travelClaims.filter(c => c.status === 'pending').length}</p>
-            <p className="text-xs opacity-80">Pending</p>
-          </div>
-          <div className="bg-white/20 rounded-xl p-2 text-center">
-            <p className="text-xl font-bold">{travelClaims.filter(c => c.status === 'approved').length}</p>
-            <p className="text-xs opacity-80">Approved</p>
-          </div>
-          <div className="bg-white/20 rounded-xl p-2 text-center">
-            <p className="text-xl font-bold">{travelClaims.reduce((sum, c) => sum + (c.distance_km || 0), 0).toFixed(0)}</p>
-            <p className="text-xs opacity-80">Total km</p>
-          </div>
-        </div>
-      </div>
-
-      <button 
-        onClick={() => { setShowTravelModal(true); fetchTravelClaims(); }}
-        onTouchEnd={(e) => { e.preventDefault(); setShowTravelModal(true); fetchTravelClaims(); }}
-        className="w-full py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition touch-manipulation cursor-pointer"
-        style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
-        data-testid="add-travel-btn"
-      >
-        <Plus className="w-5 h-5" />
-        New Travel Claim
-      </button>
-
-      {/* Travel Rates Info */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-zinc-100">
-        <h3 className="font-semibold text-zinc-900 mb-3">Reimbursement Rates</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-            <Car className="w-6 h-6 text-blue-600" />
-            <div>
-              <p className="font-semibold text-zinc-900">₹7/km</p>
-              <p className="text-xs text-zinc-500">Car</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl">
-            <Bike className="w-6 h-6 text-emerald-600" />
-            <div>
-              <p className="font-semibold text-zinc-900">₹3/km</p>
-              <p className="text-xs text-zinc-500">Two Wheeler</p>
-            </div>
-          </div>
-        </div>
-        <p className="text-xs text-zinc-500 mt-3">
-          Cab/Public transport: Submit actual receipt for reimbursement
-        </p>
-      </div>
-
-      {/* Recent Travel Claims */}
-      <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
-        <div className="p-4 border-b border-zinc-100">
-          <h3 className="font-semibold text-zinc-900">Recent Travel Claims</h3>
-        </div>
-        {travelClaims.length > 0 ? (
-          <div className="divide-y divide-zinc-100">
-            {travelClaims.slice(0, 5).map((claim, i) => (
-              <div key={i} className="flex items-center gap-3 p-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  claim.status === 'approved' ? 'bg-emerald-100 text-emerald-600' :
-                  claim.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                  'bg-red-100 text-red-600'
-                }`}>
-                  <Car className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-zinc-900 text-sm truncate">
-                    {claim.start_location?.name || 'Start'} → {claim.end_location?.name || 'End'}
-                  </p>
-                  <p className="text-xs text-zinc-500">{claim.travel_date} • {claim.distance_km} km</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-zinc-900">₹{(claim.final_amount || 0).toLocaleString()}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    claim.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                    claim.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>{claim.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-8 text-center text-zinc-500">
-            <Car className="w-12 h-12 mx-auto mb-3 text-zinc-300" />
-            <p>No travel claims yet</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <TravelTabComponent
+      travelClaims={travelClaims}
+      onAddTravel={() => { setShowTravelModal(true); fetchTravelClaims(); }}
+    />
   );
 
   // Check-in Modal with Selfie
