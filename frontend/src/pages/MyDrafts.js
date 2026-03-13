@@ -116,7 +116,8 @@ const MyDrafts = () => {
         ? `${API}/drafts` 
         : `${API}/drafts?draft_type=${filter}`;
       const res = await axios.get(url);
-      return res.data;
+      // Handle both old array response and new {data: []} format
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
     }
   });
 

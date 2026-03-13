@@ -300,38 +300,38 @@ const Payroll = () => {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-5">
+      {/* Stats - Responsive */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-5">
         {[
           { icon: FileText, label: 'Slips Generated', value: slips.length, tid: 'payroll-slip-count' },
           { icon: DollarSign, label: 'Total Payout', value: fmt(totalPayout) },
           { icon: UsersIcon, label: 'Active Employees', value: employees.length },
         ].map((s, i) => (
           <Card key={i} className="border-zinc-200 shadow-none rounded-sm">
-            <CardContent className="p-4 flex items-center gap-3">
+            <CardContent className="p-3 md:p-4 flex items-center gap-3">
               <s.icon className="w-5 h-5 text-zinc-300" />
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-zinc-500">{s.label}</div>
-                <div className="text-xl font-semibold text-zinc-950" data-testid={s.tid}>{s.value}</div>
+                <div className="text-lg md:text-xl font-semibold text-zinc-950" data-testid={s.tid}>{s.value}</div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Tabs + Month */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex gap-0.5 bg-zinc-100 rounded-sm p-0.5">
+      {/* Tabs + Month - Stack on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div className="flex gap-0.5 bg-zinc-100 rounded-sm p-0.5 overflow-x-auto">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} data-testid={`tab-${t.id}`}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-sm transition-colors whitespace-nowrap ${
                 activeTab === t.id ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
               }`}>
               <t.icon className="w-3.5 h-3.5" /> {t.label}
             </button>
           ))}
         </div>
-        <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="rounded-sm border-zinc-200 w-40 h-8 text-xs" data-testid="payroll-month" />
+        <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="rounded-sm border-zinc-200 w-full sm:w-40 h-10 sm:h-8 text-sm sm:text-xs" data-testid="payroll-month" />
       </div>
 
       {loading ? (

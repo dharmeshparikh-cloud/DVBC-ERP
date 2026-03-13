@@ -171,9 +171,23 @@ const Layout = () => {
       // Restore saved scroll position when element mounts
       const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
       if (savedScrollPosition) {
-        // Use requestAnimationFrame to ensure DOM is fully ready
+        const scrollValue = parseInt(savedScrollPosition, 10);
+        // Use multiple attempts to ensure scroll is applied after layout
+        // Mobile sidebar needs extra time due to CSS transitions
+        const applyScroll = () => {
+          if (node && scrollValue > 0) {
+            node.scrollTop = scrollValue;
+          }
+        };
+        
+        // Try immediately
+        applyScroll();
+        
+        // Try after RAF (layout complete)
         requestAnimationFrame(() => {
-          node.scrollTop = parseInt(savedScrollPosition, 10);
+          applyScroll();
+          // Try again after a short delay (for mobile CSS transitions)
+          setTimeout(applyScroll, 100);
         });
       }
     }

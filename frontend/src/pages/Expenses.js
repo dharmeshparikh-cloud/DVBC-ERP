@@ -266,70 +266,70 @@ const Expenses = () => {
 
   return (
     <div data-testid="expenses-page">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-          Expenses
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+          MY EXPENSES
         </h1>
-        <p className="text-zinc-500">Submit and track expense reimbursements</p>
+        <p className="text-sm md:text-base text-zinc-500">Submit expenses and track reimbursement status</p>
       </div>
 
-      {/* Stats Cards (HR/Admin only) */}
+      {/* Stats Cards - Responsive 2x2 on mobile, 4-col on desktop */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
           <Card className="border-zinc-200 shadow-none rounded-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase text-zinc-500">Pending</p>
-                  <p className="text-2xl font-semibold text-yellow-600">{stats.pending_count}</p>
+                  <p className="text-[10px] md:text-xs uppercase text-zinc-500">Pending</p>
+                  <p className="text-xl md:text-2xl font-semibold text-yellow-600">{stats.pending_count}</p>
                 </div>
-                <Clock className="w-8 h-8 text-yellow-200" />
+                <Clock className="w-6 h-6 md:w-8 md:h-8 text-yellow-200" />
               </div>
             </CardContent>
           </Card>
           <Card className="border-zinc-200 shadow-none rounded-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase text-zinc-500">Approved</p>
-                  <p className="text-2xl font-semibold text-emerald-600">{stats.approved_count}</p>
+                  <p className="text-[10px] md:text-xs uppercase text-zinc-500">Approved</p>
+                  <p className="text-xl md:text-2xl font-semibold text-emerald-600">{stats.approved_count}</p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-emerald-200" />
+                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-emerald-200" />
               </div>
             </CardContent>
           </Card>
           <Card className="border-zinc-200 shadow-none rounded-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase text-zinc-500">Reimbursed</p>
-                  <p className="text-2xl font-semibold text-green-600">{stats.reimbursed_count}</p>
+                  <p className="text-[10px] md:text-xs uppercase text-zinc-500">Reimbursed</p>
+                  <p className="text-xl md:text-2xl font-semibold text-green-600">₹{stats.reimbursed_amount?.toLocaleString() || 0}</p>
                 </div>
-                <Check className="w-8 h-8 text-green-200" />
+                <Check className="w-6 h-6 md:w-8 md:h-8 text-green-200" />
               </div>
             </CardContent>
           </Card>
           <Card className="border-zinc-200 shadow-none rounded-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase text-zinc-500">Pending Amount</p>
-                  <p className="text-2xl font-semibold text-zinc-950">₹{stats.pending_amount?.toLocaleString()}</p>
+                  <p className="text-[10px] md:text-xs uppercase text-zinc-500">Total Claims</p>
+                  <p className="text-xl md:text-2xl font-semibold text-zinc-950">₹{stats.total_amount?.toLocaleString() || 0}</p>
                 </div>
-                <DollarSign className="w-8 h-8 text-zinc-300" />
+                <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-zinc-300" />
               </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      {/* Actions - Stack on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="w-full sm:w-auto">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-10 px-3 rounded-sm border border-zinc-200 bg-white text-sm"
+            className="h-10 w-full sm:w-[150px] px-3 rounded-sm border border-zinc-200 bg-white text-sm"
           >
             <option value="">All Status</option>
             <option value="draft">Draft</option>
@@ -342,7 +342,7 @@ const Expenses = () => {
         
         <Button 
           onClick={() => { resetForm(); setCreateDialog(true); }}
-          className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+          className="w-full sm:w-auto bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none min-h-[44px]"
           data-testid="new-expense-btn"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -350,19 +350,21 @@ const Expenses = () => {
         </Button>
       </div>
 
-      {/* Expenses List */}
+      {/* Expenses List - Mobile cards, Desktop table */}
       <Card className="border-zinc-200 shadow-none rounded-sm">
         <CardContent className="p-0">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-left">Employee</th>
-                <th className="px-4 py-3 text-left">Client/Project</th>
-                <th className="px-4 py-3 text-left">Items</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Actions</th>
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-zinc-50 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-left">Employee</th>
+                  <th className="px-4 py-3 text-left">Client/Project</th>
+                  <th className="px-4 py-3 text-left">Items</th>
+                  <th className="px-4 py-3 text-right">Amount</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -447,6 +449,9 @@ const Expenses = () => {
               ))}
             </tbody>
           </table>
+          </div>
+          {/* End Desktop Table */}
+          
           {expenses.length === 0 && (
             <div className="text-center py-12 text-zinc-400">
               <Receipt className="w-12 h-12 mx-auto mb-4 opacity-50" />

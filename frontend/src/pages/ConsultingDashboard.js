@@ -141,21 +141,21 @@ const ConsultingDashboard = () => {
         </Card>
       )}
 
-      {/* Project Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Project Stats - Responsive grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card 
           className="border-zinc-200 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all"
           onClick={() => navigate('/projects')}
           data-testid="active-projects-card"
         >
-          <CardContent className="pt-6">
+          <CardContent className="p-4 md:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-500">Active Projects</p>
-                <p className="text-3xl font-bold text-zinc-900 mt-1">{projects.active || 0}</p>
+                <p className="text-xs md:text-sm text-zinc-500">Active Projects</p>
+                <p className="text-2xl md:text-3xl font-bold text-zinc-900 mt-1">{projects.active || 0}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Briefcase className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
               </div>
             </div>
             <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
@@ -169,14 +169,14 @@ const ConsultingDashboard = () => {
           onClick={() => navigate('/projects?status=completed')}
           data-testid="completed-projects-card"
         >
-          <CardContent className="pt-6">
+          <CardContent className="p-4 md:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-500">Completed</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">{projects.completed || 0}</p>
+                <p className="text-xs md:text-sm text-zinc-500">Completed</p>
+                <p className="text-2xl md:text-3xl font-bold text-green-600 mt-1">{projects.completed || 0}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
               </div>
             </div>
             <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
@@ -190,14 +190,14 @@ const ConsultingDashboard = () => {
           onClick={() => navigate('/projects?status=on_hold')}
           data-testid="onhold-projects-card"
         >
-          <CardContent className="pt-6">
+          <CardContent className="p-4 md:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-500">On Hold</p>
-                <p className="text-3xl font-bold text-amber-600 mt-1">{projects.on_hold || 0}</p>
+                <p className="text-xs md:text-sm text-zinc-500">On Hold</p>
+                <p className="text-2xl md:text-3xl font-bold text-amber-600 mt-1">{projects.on_hold || 0}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-amber-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                <Clock className="w-5 h-5 md:w-6 md:h-6 text-amber-600" />
               </div>
             </div>
             <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
@@ -211,14 +211,14 @@ const ConsultingDashboard = () => {
           onClick={() => navigate('/projects?status=at_risk')}
           data-testid="atrisk-projects-card"
         >
-          <CardContent className="pt-6">
+          <CardContent className="p-4 md:pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-zinc-500">At Risk</p>
-                <p className="text-3xl font-bold text-red-600 mt-1">{projects.at_risk || 0}</p>
+                <p className="text-xs md:text-sm text-zinc-500">At Risk</p>
+                <p className="text-2xl md:text-3xl font-bold text-red-600 mt-1">{projects.at_risk || 0}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-red-600" />
               </div>
             </div>
             <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
