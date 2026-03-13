@@ -127,6 +127,7 @@ const SubmissionReview = () => {
   const queryClient = useQueryClient();
   
   const [processing, setProcessing] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
   
   // HR Assignment form
   const [hrAssignment, setHrAssignment] = useState({
@@ -234,6 +235,25 @@ const SubmissionReview = () => {
 
   const handleSaveAssignment = () => {
     saveAssignmentMutation.mutate(hrAssignment);
+  };
+
+  // Send reminder to candidate
+  const handleSendReminder = async () => {
+    try {
+      setSendingReminder(true);
+      await axios.post(
+        `${API}/onboarding/submissions/${submissionId}/send-reminder`,
+        {},
+        authHeaders
+      );
+      toast.success(`Reminder sent to ${submission?.candidate_name}`);
+      queryClient.invalidateQueries({ queryKey: ['onboarding-submission', submissionId] });
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || 'Failed to send reminder';
+      toast.error(errorMsg);
+    } finally {
+      setSendingReminder(false);
+    }
   };
 
   // Mutation for verifying documents
@@ -726,6 +746,22 @@ const SubmissionReview = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Send Reminder button for invited and draft status */}
+          {canApprove && ['invited', 'draft'].includes(submission.status) && (
+            <Button 
+              variant="outline" 
+              onClick={handleSendReminder} 
+              disabled={sendingReminder}
+              data-testid="send-reminder-btn"
+            >
+              {sendingReminder ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Mail className="w-4 h-4 mr-2" />
+              )}
+              Send Reminder
+            </Button>
+          )}
           <Button variant="outline" onClick={handlePrint} data-testid="print-btn">
             <Printer className="w-4 h-4 mr-2" />
             Print Form

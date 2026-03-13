@@ -1,0 +1,175 @@
+{
+  "test_name": "Payroll E2E Test",
+  "timestamp": "2026-03-13T08:46:47.728722",
+  "api_url": "https://payroll-e2e-test.preview.emergentagent.com",
+  "test_month": "2026-03",
+  "test_employee": {
+    "id": "1ce418c7-b770-402a-bf58-d6ef357527e3",
+    "code": "EMP002"
+  },
+  "payroll_run_id": "95a062ff-d5da-47fe-ba75-d0e9048b8877",
+  "summary": {
+    "total_steps": 13,
+    "passed": 13,
+    "failed": 0,
+    "success_rate": "100.0%"
+  },
+  "results": [
+    {
+      "step": 1,
+      "status": "PASS",
+      "message": "Admin login successful",
+      "data": {
+        "role": "admin"
+      },
+      "timestamp": "2026-03-13T08:46:43.180703"
+    },
+    {
+      "step": 2,
+      "status": "PASS",
+      "message": "Employee created: EMP002",
+      "data": {
+        "id": "1ce418c7-b770-402a-bf58-d6ef357527e3",
+        "employee_id": "EMP002",
+        "salary": 50000
+      },
+      "timestamp": "2026-03-13T08:46:43.358005"
+    },
+    {
+      "step": 3,
+      "status": "PASS",
+      "message": "Portal access granted",
+      "data": {
+        "user_id": "ca59c1d9-a8e8-40b6-938b-0786880a15d9",
+        "login_id": "EMP002",
+        "temp_password": "Welcome@EMP002"
+      },
+      "timestamp": "2026-03-13T08:46:44.317500"
+    },
+    {
+      "step": "3B",
+      "status": "PASS",
+      "message": "Employee status updated",
+      "data": {
+        "message": "Update processed",
+        "updated_fields": [
+          "go_live_status",
+          "is_active"
+        ]
+      },
+      "timestamp": "2026-03-13T08:46:44.719394"
+    },
+    {
+      "step": 4,
+      "status": "PASS",
+      "message": "CTC structure assigned",
+      "data": {
+        "annual_ctc": 600000,
+        "structure_id": null,
+        "status": "approved"
+      },
+      "timestamp": "2026-03-13T08:46:44.898631"
+    },
+    {
+      "step": 5,
+      "status": "PASS",
+      "message": "Attendance logged for 10 days",
+      "data": {
+        "days_logged": 10,
+        "month": "2026-03"
+      },
+      "timestamp": "2026-03-13T08:46:46.465217"
+    },
+    {
+      "step": 6,
+      "status": "PASS",
+      "message": "Payroll inputs saved",
+      "data": {
+        "month": "2026-03",
+        "present_days": 20,
+        "working_days": 22
+      },
+      "timestamp": "2026-03-13T08:46:46.612239"
+    },
+    {
+      "step": 7,
+      "status": "PASS",
+      "message": "Salary slip generated",
+      "data": {
+        "slip_id": "99df8b5d-d64c-4534-91df-7210ed81663e",
+        "gross_salary": 600000.0,
+        "net_salary": 406150.0,
+        "total_earnings": 482850.0,
+        "total_deductions": 76700.0
+      },
+      "timestamp": "2026-03-13T08:46:46.794204"
+    },
+    {
+      "step": 8,
+      "status": "PASS",
+      "message": "Existing payroll run found",
+      "data": {
+        "run_id": "95a062ff-d5da-47fe-ba75-d0e9048b8877",
+        "status": "disbursed"
+      },
+      "timestamp": "2026-03-13T08:46:47.115270"
+    },
+    {
+      "step": 9,
+      "status": "PASS",
+      "message": "Payroll may already be submitted",
+      "data": {
+        "detail": "Cannot submit. Current status: disbursed"
+      },
+      "timestamp": "2026-03-13T08:46:47.261961"
+    },
+    {
+      "step": 10,
+      "status": "PASS",
+      "message": "Payroll may already be approved",
+      "data": {
+        "detail": "Cannot approve. Current status: disbursed"
+      },
+      "timestamp": "2026-03-13T08:46:47.415028"
+    },
+    {
+      "step": 11,
+      "status": "PASS",
+      "message": "Salary slip verified",
+      "data": {
+        "employee_name": "PayrollTest_pwrzyn Employee",
+        "month": "2026-03",
+        "gross_salary": 600000.0,
+        "total_earnings": 482850.0,
+        "total_deductions": 76700.0,
+        "net_salary": 406150.0,
+        "is_locked": null,
+        "earnings_breakdown": [
+          "Basic Salary",
+          "HRA",
+          "Special Allowance",
+          "Conveyance Allowance",
+          "Medical Allowance"
+        ],
+        "deductions_breakdown": [
+          "Provident Fund",
+          "Professional Tax",
+          "ESI"
+        ]
+      },
+      "timestamp": "2026-03-13T08:46:47.586735"
+    },
+    {
+      "step": 12,
+      "status": "PASS",
+      "message": "Lock status verified",
+      "data": {
+        "is_locked": true,
+        "status": "disbursed",
+        "can_modify_attendance": false,
+        "can_regenerate_slips": false
+      },
+      "timestamp": "2026-03-13T08:46:47.727191"
+    }
+  ]
+}

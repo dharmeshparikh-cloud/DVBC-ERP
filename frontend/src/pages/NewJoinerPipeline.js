@@ -102,6 +102,7 @@ const NewJoinerPipeline = () => {
     offered_position: '',
   });
   const [sending, setSending] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(null); // Track which item is sending reminder
 
   const isHR = ['hr_manager', 'hr_executive', 'hr_admin', 'admin'].includes(user?.role);
 
@@ -215,6 +216,28 @@ const NewJoinerPipeline = () => {
       toast.error(err.response?.data?.detail || 'Failed to send invite');
     } finally {
       setSending(false);
+    }
+  };
+
+  // Send reminder to candidate
+  const handleSendReminder = async (e, item) => {
+    e.stopPropagation(); // Prevent card click navigation
+    const submissionId = item.id || item._id;
+    
+    try {
+      setSendingReminder(submissionId);
+      await axios.post(
+        `${API}/onboarding/submissions/${submissionId}/send-reminder`,
+        {},
+        getAuthHeaders()
+      );
+      toast.success(`Reminder sent to ${item.candidate_name}`);
+      refetch();
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || 'Failed to send reminder';
+      toast.error(errorMsg);
+    } finally {
+      setSendingReminder(null);
     }
   };
 
@@ -401,11 +424,27 @@ const NewJoinerPipeline = () => {
                             </div>
                             <ChevronRight className={`w-4 h-4 flex-shrink-0 ${isDark ? 'text-zinc-600' : 'text-zinc-300'}`} />
                           </div>
-                          {item.status && (
-                            <div className="mt-2">
-                              {getStatusBadge(item.status)}
-                            </div>
-                          )}
+                          <div className="flex items-center justify-between mt-2">
+                            {item.status && getStatusBadge(item.status)}
+                            {/* Show Send Reminder button for invited and draft status */}
+                            {isHR && ['invited', 'draft'].includes(item.status) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={(e) => handleSendReminder(e, item)}
+                                disabled={sendingReminder === (item.id || item._id)}
+                                data-testid={`send-reminder-${item.id || item._id}`}
+                              >
+                                {sendingReminder === (item.id || item._id) ? (
+                                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                                ) : (
+                                  <Mail className="w-3 h-3 mr-1" />
+                                )}
+                                Remind
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
