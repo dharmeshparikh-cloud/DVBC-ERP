@@ -16,17 +16,27 @@
 
 ## Completed Work - March 2026
 
-### Phase 103: MyProjects Page — Completed Project Actions Disabled - March 13, 2026 ✅ (Latest)
+### Phase 103: MyProjects Page — Completed Project Actions Disabled + Reopen Feature - March 13, 2026 ✅ (Latest)
 
-**Objective:** Disable all modifying action buttons on project cards/rows in the MyProjects list page for completed projects.
+**Objective:** Disable all modifying action buttons on project cards/rows in the MyProjects list page for completed projects. Add admin-only "Reopen Project" capability.
 
 **Files Updated:**
 1. **`/app/frontend/src/pages/consulting/MyProjects.js`**
    - Imported `isProjectReadOnly` from `projectActions.js`
-   - Added `Lock` icon import
-   - **Card View:** Completed projects now show amber "View Only" badge, amber card border, and "Tasks Locked" disabled button instead of the active "Tasks →" button. "View SOW" remains enabled (view-only action).
-   - **List View:** Completed project rows show "View Only" badge next to client name, dimmed row (opacity-75), and disabled "Manage Tasks" icon button.
-   - **Bug Fix:** Fixed `leads.find is not a function` crash — `leads` and `employees` APIs return `{ items, pagination }` but code assumed raw arrays. Added `Array.isArray()` check with `.items` fallback.
+   - Added `Lock`, `RotateCcw` icon imports, `AlertDialog` components
+   - **Card View:** Completed projects now show amber "View Only" badge, amber card border, and "Tasks Locked" disabled button. "View SOW" remains enabled.
+   - **List View:** Completed project rows show "View Only" badge, dimmed row, disabled "Manage Tasks" icon.
+   - **Reopen Button (Admin only):** Blue "Reopen" button on completed project cards/rows. Triggers confirmation dialog. On confirm, calls backend API to reset scopes to "in_progress".
+   - **Bug Fix:** Fixed `leads.find is not a function` crash — `leads` and `employees` APIs return `{ items, pagination }`.
+
+2. **`/app/backend/routers/enhanced_sow.py`**
+   - Added `POST /{sow_id}/reopen` endpoint (admin-only)
+   - Validates project is fully completed before reopening
+   - Resets all "completed" scopes to "in_progress", stamps `reopened_at` and `reopened_by`
+   - Logs audit entry via `audit_logging.log_audit()`
+
+3. **`/app/backend/routers/audit_logging.py`**
+   - Added `PROJECT_REOPEN = "project.reopen"` action type
 
 ---
 

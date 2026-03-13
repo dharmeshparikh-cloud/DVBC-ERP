@@ -6,10 +6,14 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+} from '../../components/ui/alert-dialog';
 import { 
   Search, FileText, Clock, CheckCircle, AlertCircle, Loader2, Eye, 
   BarChart3, Filter, Building2, Calendar, Users, ListTodo, ArrowRight,
-  DollarSign, UserCheck, Briefcase, ChevronRight, Lock
+  DollarSign, UserCheck, Briefcase, ChevronRight, Lock, RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -41,6 +45,8 @@ const MyProjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('card');
+  const [reopeningSowId, setReopeningSowId] = useState(null);
+  const [reopening, setReopening] = useState(false);
 
   // Role-based access
   const isAdmin = user?.role === 'admin';
@@ -164,6 +170,21 @@ const MyProjects = () => {
     pendingKickoff: sowList.filter(s => getProjectStatus(s) === 'pending_kickoff').length,
     active: sowList.filter(s => getProjectStatus(s) === 'active').length,
     completed: sowList.filter(s => getProjectStatus(s) === 'completed').length,
+  };
+
+  const handleReopenProject = async () => {
+    if (!reopeningSowId) return;
+    setReopening(true);
+    try {
+      await axios.post(`${API}/enhanced-sow/${reopeningSowId}/reopen`, { reason: 'Admin reopened via My Projects' });
+      toast.success('Project reopened successfully');
+      refetch();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to reopen project');
+    } finally {
+      setReopening(false);
+      setReopeningSowId(null);
+    }
   };
 
   if (loading) {
@@ -374,6 +395,18 @@ const MyProjects = () => {
                           >
                             <ListTodo className="w-4 h-4" />
                           </Button>
+                          {readOnly && isAdmin && (
+                            <Button
+                              onClick={() => setReopeningSowId(sow.id)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              title="Reopen Project"
+                              data-testid={`list-reopen-btn-${sow.id}`}
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -532,17 +565,31 @@ const MyProjects = () => {
                           View SOW
                         </Button>
                         {readOnly ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-sm opacity-40 cursor-not-allowed border-amber-200 text-amber-700"
-                            disabled
-                            title="Project completed — modifications disabled"
-                            data-testid={`card-tasks-btn-disabled-${sow.id}`}
-                          >
-                            <Lock className="w-4 h-4 mr-1" />
-                            Tasks Locked
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-sm opacity-40 cursor-not-allowed border-amber-200 text-amber-700"
+                              disabled
+                              title="Project completed — modifications disabled"
+                              data-testid={`card-tasks-btn-disabled-${sow.id}`}
+                            >
+                              <Lock className="w-4 h-4 mr-1" />
+                              Tasks Locked
+                            </Button>
+                            {isAdmin && (
+                              <Button
+                                onClick={() => setReopeningSowId(sow.id)}
+                                variant="outline"
+                                size="sm"
+                                className="rounded-sm border-blue-200 text-blue-700 hover:bg-blue-50"
+                                data-testid={`reopen-project-btn-${sow.id}`}
+                              >
+                                <RotateCcw className="w-4 h-4 mr-1" />
+                                Reopen
+                              </Button>
+                            )}
+                          </>
                         ) : (
                           <Button
                             onClick={() => navigate(`/consulting/project-tasks/${sow.id}`)}
@@ -576,6 +623,31 @@ const MyProjects = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Reopen Project Confirmation Dialog */}
+      <AlertDialog open={!!reopeningSowId} onOpenChange={(open) => !open && setReopeningSowId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reopen This Project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will change all completed scopes back to "in progress" and make the project active again. 
+              Team members will be able to modify tasks and scopes. This action is logged for audit purposes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reopening} data-testid="reopen-cancel-btn">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReopenProject}
+              disabled={reopening}
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="reopen-confirm-btn"
+            >
+              {reopening ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-1" />}
+              {reopening ? 'Reopening...' : 'Confirm Reopen'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

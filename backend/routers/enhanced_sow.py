@@ -1481,3 +1481,63 @@ async def get_project_sow(
     }
 
 
+
+
+# ============== Reopen Project ==============
+
+class ReopenProjectRequest(BaseModel):
+    reason: Optional[str] = None
+
+@router.post("/{sow_id}/reopen")
+async def reopen_project(sow_id: str, body: ReopenProjectRequest = ReopenProjectRequest(), current_user: User = Depends(get_current_user)):
+    """Reopen a completed project. Admin only.
+    Resets all 'completed' scopes back to 'in_progress' so the project becomes active again.
+    """
+    if current_user.role not in ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only admins can reopen projects")
+
+    db = get_db()
+    sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
+    if not sow:
+        raise HTTPException(status_code=404, detail="SOW not found")
+
+    # Verify project is actually completed
+    scopes = sow.get("scopes", [])
+    if not sow.get("consulting_kickoff_complete"):
+        raise HTTPException(status_code=400, detail="Project has not been kicked off yet")
+
+    completed_scopes = [s for s in scopes if s.get("status") in ("completed", "not_applicable")]
+    active_scopes = [s for s in scopes if s.get("status") not in ("completed", "not_applicable")]
+    if active_scopes:
+        raise HTTPException(status_code=400, detail="Project is not fully completed")
+
+    # Reset completed scopes to in_progress
+    now = datetime.now(timezone.utc).isoformat()
+    updated_scopes = []
+    for scope in scopes:
+        if scope.get("status") == "completed":
+            scope["status"] = "in_progress"
+            scope["progress_percentage"] = scope.get("progress_percentage", 100)
+            scope["reopened_at"] = now
+            scope["reopened_by"] = current_user.id
+        updated_scopes.append(scope)
+
+    await db.enhanced_sow.update_one(
+        {"id": sow_id},
+        {"$set": {"scopes": updated_scopes, "updated_at": now}}
+    )
+
+    # Audit log
+    from .audit_logging import log_audit
+    await log_audit(
+        action="project.reopen",
+        entity_type="enhanced_sow",
+        entity_id=sow_id,
+        performed_by=current_user.id,
+        changes={"reason": body.reason or "Admin reopened project"},
+        before_state={"scopes_completed": len(completed_scopes)},
+        after_state={"scopes_reopened": len([s for s in updated_scopes if s.get("reopened_at") == now])},
+        metadata={"admin_email": current_user.email}
+    )
+
+    return {"success": True, "message": "Project reopened successfully", "reopened_scopes": len(completed_scopes)}

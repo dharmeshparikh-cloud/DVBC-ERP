@@ -62,6 +62,7 @@ class AuditAction:
     PROJECT_CREATE = "project.create"
     PROJECT_UPDATE = "project.update"
     PROJECT_COMPLETE = "project.complete"
+    PROJECT_REOPEN = "project.reopen"
     PAYMENT_RECORD = "payment.record"
     
     # System actions
