@@ -10,6 +10,7 @@ import { StageGuardProvider } from './contexts/StageGuardContext';
 import StageGuardDialog from './components/StageGuardDialog';
 import { SalesPortalRedirect, HRPortalRedirect } from './components/PortalRedirect';
 import ErrorBoundary from './components/ErrorBoundary';
+import { PageLoadingSkeleton } from './components/ui/loading-skeleton';
 
 // React Query for data caching
 import { QueryClientProvider, queryClient } from './lib/queryClient';
@@ -153,6 +154,7 @@ const NewJoinerPipeline = lazy(() => import('./pages/NewJoinerPipeline'));
 
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { setupAxiosInterceptors } from './utils/useApi';
+import { preloadRoutesByRole } from './utils/routePreloader';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -221,11 +223,7 @@ function AppRouter({ user, login, logout, loading }) {
   };
 
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full" />
-      </div>
-    }>
+    <Suspense fallback={<PageLoadingSkeleton message="Loading page..." />}>
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       
@@ -421,6 +419,10 @@ function App() {
     try {
       const response = await axios.get(`${API}/auth/me`);
       setUser(response.data);
+      // Preload routes based on user role for faster navigation
+      if (response.data?.role) {
+        preloadRoutesByRole(response.data.role);
+      }
     } catch (error) {
       console.error('Failed to fetch user:', error);
       localStorage.removeItem('token');
@@ -434,6 +436,10 @@ function App() {
     localStorage.setItem('token', token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(userData);
+    // Preload routes based on user role for faster navigation
+    if (userData?.role) {
+      preloadRoutesByRole(userData.role);
+    }
   };
 
   const logout = () => {
