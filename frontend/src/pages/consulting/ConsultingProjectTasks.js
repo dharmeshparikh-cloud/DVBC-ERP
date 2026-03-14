@@ -63,9 +63,7 @@ const ConsultingProjectTasks = () => {
   const { data: sow, isLoading: sowLoading, refetch: refetchSow } = useQuery({
     queryKey: ['sow', sowId],
     queryFn: async () => {
-      const response = await axios.get(`${API}/enhanced-sow/${sowId}`, {
-        params: { current_user_role: user?.role }
-      });
+      const response = await axios.get(`${API}/enhanced-sow/${sowId}`);
       return response.data;
     },
     enabled: !!sowId,
@@ -164,14 +162,7 @@ const ConsultingProjectTasks = () => {
     mutationFn: async ({ taskId, edits }) => {
       const response = await axios.patch(
         `${API}/enhanced-sow/${sow.id}/scopes/${taskId}`,
-        edits,
-        {
-          params: {
-            current_user_id: user?.id,
-            current_user_name: user?.full_name || user?.email,
-            current_user_role: user?.role
-          }
-        }
+        edits
       );
       return response.data;
     },
@@ -196,13 +187,7 @@ const ConsultingProjectTasks = () => {
     mutationFn: async ({ taskId, fileData }) => {
       const response = await axios.post(
         `${API}/enhanced-sow/${sow.id}/scopes/${taskId}/attachments`,
-        fileData,
-        {
-          params: {
-            current_user_id: user?.id,
-            current_user_name: user?.full_name || user?.email
-          }
-        }
+        fileData
       );
       return response.data;
     },
@@ -247,11 +232,6 @@ const ConsultingProjectTasks = () => {
         notes: data.notes,
         approval_cycle: 'monthly',
         period_label: format(new Date(), 'MMMM yyyy')
-      }, {
-        params: {
-          current_user_id: user?.id,
-          current_user_name: user?.full_name || user?.email
-        }
       });
       return response.data;
     },

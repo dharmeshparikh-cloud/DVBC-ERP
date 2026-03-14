@@ -81,8 +81,7 @@ async def list_enhanced_sows(
 async def request_manager_approval(
     sow_id: str,
     approval_data: dict,
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    current_user: User = Depends(get_current_user)
 ):
     """Request approval from reporting manager for specific scopes"""
     db = get_db()
@@ -98,8 +97,8 @@ async def request_manager_approval(
         "type": "manager_approval",
         "scope_ids": approval_data.get("scope_ids", []),
         "notes": approval_data.get("notes", ""),
-        "requested_by": current_user_id,
-        "requested_by_name": current_user_name,
+        "requested_by": current_user.id,
+        "requested_by_name": f"{current_user.first_name} {current_user.last_name}",
         "requested_at": now.isoformat(),
         "status": "pending"
     }
@@ -130,14 +129,19 @@ async def request_manager_approval(
 async def create_sow_from_sales_selection(
     pricing_plan_id: str,
     selection: dict,  # SalesScopeSelection
-    current_user_id: str = None,
-    current_user_name: str = "Unknown",
-    current_user_role: str = "admin"
+    current_user: User = Depends(get_current_user)
 ):
     """
     Sales team creates SOW by selecting scopes from master.
     Creates original scope snapshot (locked) and working scopes.
     """
+    # Only sales roles and admins can create SOWs
+    allowed = ADMIN_ROLES + ["sales_manager", "sales_executive", "executive", "principal_consultant"]
+    if current_user.role not in allowed:
+        raise HTTPException(status_code=403, detail="Not authorized to create SOW")
+
+    current_user_id = current_user.id
+    current_user_name = f"{current_user.first_name} {current_user.last_name}"
     db = get_db()
     # Verify pricing plan exists
     plan = await db.pricing_plans.find_one({"id": pricing_plan_id}, {"_id": 0})
@@ -324,7 +328,7 @@ async def complete_sales_handover(
 # ============== Consulting Team Endpoints ==============
 
 @router.get("/{sow_id}")
-async def get_enhanced_sow(sow_id: str, current_user_role: str = "admin"):
+async def get_enhanced_sow(sow_id: str, current_user: User = Depends(get_current_user)):
     """Get enhanced SOW - consulting team doesn't see pricing data"""
     db = get_db()
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
@@ -332,7 +336,7 @@ async def get_enhanced_sow(sow_id: str, current_user_role: str = "admin"):
         raise HTTPException(status_code=404, detail="SOW not found")
     
     # If consulting team, remove any pricing-related data
-    if is_consulting_team(current_user_role):
+    if is_consulting_team(current_user.role):
         # Remove any accidentally included pricing info
         if "pricing_data" in sow:
             del sow["pricing_data"]
@@ -341,7 +345,7 @@ async def get_enhanced_sow(sow_id: str, current_user_role: str = "admin"):
 
 
 @router.get("/by-pricing-plan/{pricing_plan_id}")
-async def get_enhanced_sow_by_pricing_plan(pricing_plan_id: str, current_user_role: str = "admin"):
+async def get_enhanced_sow_by_pricing_plan(pricing_plan_id: str, current_user: User = Depends(get_current_user)):
     """Get enhanced SOW by pricing plan ID"""
     db = get_db()
     sow = await db.enhanced_sow.find_one({"pricing_plan_id": pricing_plan_id}, {"_id": 0})
@@ -349,7 +353,7 @@ async def get_enhanced_sow_by_pricing_plan(pricing_plan_id: str, current_user_ro
         raise HTTPException(status_code=404, detail="Enhanced SOW not found for this pricing plan")
     
     # If consulting team, remove any pricing-related data
-    if is_consulting_team(current_user_role):
+    if is_consulting_team(current_user.role):
         if "pricing_data" in sow:
             del sow["pricing_data"]
     
@@ -361,9 +365,7 @@ async def update_scope_item(
     sow_id: str,
     scope_id: str,
     update: dict,  # ConsultingScopeUpdate
-    current_user_id: str = None,
-    current_user_name: str = "Unknown",
-    current_user_role: str = "consultant"
+    current_user: User = Depends(get_current_user)
 ):
     """Update scope item - consulting team updates progress"""
     db = get_db()
@@ -383,8 +385,8 @@ async def update_scope_item(
     # Build change log entry
     change_log_entry = {
         "id": str(uuid.uuid4()),
-        "changed_by": current_user_id,
-        "changed_by_name": current_user_name,
+        "changed_by": current_user.id,
+        "changed_by_name": f"{current_user.first_name} {current_user.last_name}",
         "changed_at": now.isoformat(),
         "old_value": {},
         "new_value": {},
@@ -425,8 +427,8 @@ async def update_scope_item(
     
     # Add revision metadata if revising
     if update.get("revision_status"):
-        scope["revision_by"] = current_user_id
-        scope["revision_by_name"] = current_user_name
+        scope["revision_by"] = current_user.id
+        scope["revision_by_name"] = f"{current_user.first_name} {current_user.last_name}"
         scope["revision_at"] = now.isoformat()
         if update.get("client_consent_for_revision"):
             scope["client_consent_for_revision"] = True
@@ -455,13 +457,11 @@ async def update_scope_item(
 async def add_scope_item(
     sow_id: str,
     scope_data: dict,  # AddScopeRequest
-    current_user_id: str = None,
-    current_user_name: str = "Unknown",
-    current_user_role: str = "consultant"
+    current_user: User = Depends(get_current_user)
 ):
     """Add new scope - consulting team can add but NOT delete"""
     db = get_db()
-    if not can_add_scopes(current_user_role):
+    if not can_add_scopes(current_user.role):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to add scopes. Only PM, Consultant, or Principal Consultant can add scopes."
@@ -480,6 +480,7 @@ async def add_scope_item(
         raise HTTPException(status_code=404, detail="Category not found")
     
     now = datetime.now(timezone.utc)
+    user_full_name = f"{current_user.first_name} {current_user.last_name}"
     
     new_scope = {
         "id": str(uuid.uuid4()),
@@ -490,10 +491,10 @@ async def add_scope_item(
         "name": scope_data.get("name"),
         "description": scope_data.get("description"),
         "source": "consulting_added",
-        "added_by": current_user_id,
-        "added_by_name": current_user_name,
+        "added_by": current_user.id,
+        "added_by_name": user_full_name,
         "added_at": now.isoformat(),
-        "revision_status": "confirmed",  # Auto-confirmed since consulting added it
+        "revision_status": "confirmed",
         "status": "not_started",
         "progress_percentage": 0,
         "days_spent": 0,
@@ -504,8 +505,8 @@ async def add_scope_item(
         "attachments": [],
         "change_log": [{
             "id": str(uuid.uuid4()),
-            "changed_by": current_user_id,
-            "changed_by_name": current_user_name,
+            "changed_by": current_user.id,
+            "changed_by_name": user_full_name,
             "changed_at": now.isoformat(),
             "change_type": "scope_added",
             "old_value": {},
@@ -537,9 +538,8 @@ async def add_scope_item(
 async def upload_scope_attachment(
     sow_id: str,
     scope_id: str,
-    attachment_data: dict,  # filename, file_data (base64), description
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    attachment_data: dict,
+    current_user: User = Depends(get_current_user)
 ):
     """Upload attachment to a scope item"""
     db = get_db()
@@ -555,6 +555,7 @@ async def upload_scope_attachment(
     
     scope = scopes[scope_idx]
     now = datetime.now(timezone.utc)
+    user_full_name = f"{current_user.first_name} {current_user.last_name}"
     
     # Create attachment record
     attachment = {
@@ -563,13 +564,13 @@ async def upload_scope_attachment(
         "original_filename": attachment_data.get("filename"),
         "file_type": attachment_data.get("filename", "").split(".")[-1] if "." in attachment_data.get("filename", "") else "unknown",
         "file_size": len(base64.b64decode(attachment_data.get("file_data", ""))) if attachment_data.get("file_data") else 0,
-        "uploaded_by": current_user_id,
-        "uploaded_by_name": current_user_name,
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": user_full_name,
         "uploaded_at": now.isoformat(),
         "description": attachment_data.get("description")
     }
     
-    # Store file data (in production, use cloud storage)
+    # Store file data
     await db.sow_attachments.insert_one({
         "id": attachment["id"],
         "file_data": attachment_data.get("file_data"),
@@ -586,8 +587,8 @@ async def upload_scope_attachment(
         scope["change_log"] = []
     scope["change_log"].append({
         "id": str(uuid.uuid4()),
-        "changed_by": current_user_id,
-        "changed_by_name": current_user_name,
+        "changed_by": current_user.id,
+        "changed_by_name": user_full_name,
         "changed_at": now.isoformat(),
         "change_type": "attachment_added",
         "old_value": {},
@@ -637,9 +638,8 @@ async def download_scope_attachment(sow_id: str, scope_id: str, attachment_id: s
 @router.post("/{sow_id}/roadmap/submit")
 async def submit_roadmap_for_approval(
     sow_id: str,
-    submit_data: dict,  # RoadmapSubmitRequest
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    submit_data: dict,
+    current_user: User = Depends(get_current_user)
 ):
     """Submit current roadmap for client approval"""
     db = get_db()
@@ -661,8 +661,8 @@ async def submit_roadmap_for_approval(
         "period_label": submit_data.get("period_label"),
         "scopes_snapshot": scopes_snapshot,
         "status": "pending_client_approval",
-        "submitted_by": current_user_id,
-        "submitted_by_name": current_user_name,
+        "submitted_by": current_user.id,
+        "submitted_by_name": f"{current_user.first_name} {current_user.last_name}",
         "submitted_at": now.isoformat(),
         "created_at": now.isoformat()
     }
@@ -690,9 +690,8 @@ async def submit_roadmap_for_approval(
 async def record_client_approval_response(
     sow_id: str,
     version: int,
-    response_data: dict,  # ClientApprovalResponse
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    response_data: dict,
+    current_user: User = Depends(get_current_user)
 ):
     """Record client's response to roadmap approval request"""
     db = get_db()
@@ -756,9 +755,8 @@ async def record_client_approval_response(
 @router.post("/{sow_id}/consent-documents")
 async def upload_consent_document(
     sow_id: str,
-    doc_data: dict,  # filename, file_data, consent_type, consent_for, related_item_id, notes
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    doc_data: dict,
+    current_user: User = Depends(get_current_user)
 ):
     """Upload client consent document (email screenshot, signed doc)"""
     db = get_db()
@@ -767,6 +765,7 @@ async def upload_consent_document(
         raise HTTPException(status_code=404, detail="SOW not found")
     
     now = datetime.now(timezone.utc)
+    user_full_name = f"{current_user.first_name} {current_user.last_name}"
     
     consent_doc = {
         "id": str(uuid.uuid4()),
@@ -774,11 +773,11 @@ async def upload_consent_document(
         "original_filename": doc_data.get("filename"),
         "file_type": doc_data.get("filename", "").split(".")[-1] if "." in doc_data.get("filename", "") else "unknown",
         "file_size": len(base64.b64decode(doc_data.get("file_data", ""))) if doc_data.get("file_data") else 0,
-        "consent_type": doc_data.get("consent_type", "document"),  # email, document, verbal_noted
-        "consent_for": doc_data.get("consent_for", "roadmap_approval"),  # scope_revision, roadmap_approval
+        "consent_type": doc_data.get("consent_type", "document"),
+        "consent_for": doc_data.get("consent_for", "roadmap_approval"),
         "related_item_id": doc_data.get("related_item_id"),
-        "uploaded_by": current_user_id,
-        "uploaded_by_name": current_user_name,
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": user_full_name,
         "uploaded_at": now.isoformat(),
         "notes": doc_data.get("notes")
     }
@@ -1023,8 +1022,7 @@ async def upload_task_attachment(
     scope_id: str,
     task_id: str,
     attachment_data: dict,
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    current_user: User = Depends(get_current_user)
 ):
     """Upload attachment to a task"""
     db = get_db()
@@ -1047,6 +1045,7 @@ async def upload_task_attachment(
     
     now = datetime.now(timezone.utc)
     task = tasks[task_idx]
+    user_full_name = f"{current_user.first_name} {current_user.last_name}"
     
     # Create attachment
     attachment = {
@@ -1054,8 +1053,8 @@ async def upload_task_attachment(
         "filename": f"{str(uuid.uuid4())}_{attachment_data.get('filename')}",
         "original_filename": attachment_data.get("filename"),
         "file_type": attachment_data.get("filename", "").split(".")[-1] if "." in attachment_data.get("filename", "") else "unknown",
-        "uploaded_by": current_user_id,
-        "uploaded_by_name": current_user_name,
+        "uploaded_by": current_user.id,
+        "uploaded_by_name": user_full_name,
         "uploaded_at": now.isoformat(),
         "description": attachment_data.get("description")
     }
@@ -1095,8 +1094,7 @@ async def request_task_approval(
     scope_id: str,
     task_id: str,
     approval_request: dict,
-    current_user_id: str = None,
-    current_user_name: str = "Unknown"
+    current_user: User = Depends(get_current_user)
 ):
     """
     Initiate approval request for a task.
@@ -1122,12 +1120,13 @@ async def request_task_approval(
     
     now = datetime.now(timezone.utc)
     task = tasks[task_idx]
+    user_full_name = f"{current_user.first_name} {current_user.last_name}"
     
     # Initialize approval tracking
     task["approval_status"] = "pending"
     task["approval_request_date"] = now.isoformat()
-    task["approval_requested_by_id"] = current_user_id
-    task["approval_requested_by_name"] = current_user_name
+    task["approval_requested_by_id"] = current_user.id
+    task["approval_requested_by_name"] = user_full_name
     task["approval_notes"] = approval_request.get("notes", "")
     
     # Manager approval tracking
@@ -1164,7 +1163,7 @@ async def request_task_approval(
         }}
     )
     
-    # Create notification records for reminders (2-day reminder logic can be handled by a cron job)
+    # Create notification records
     notification = {
         "id": str(uuid.uuid4()),
         "type": "task_approval_request",
@@ -1172,8 +1171,8 @@ async def request_task_approval(
         "scope_id": scope_id,
         "task_id": task_id,
         "task_name": task.get("name"),
-        "requested_by_id": current_user_id,
-        "requested_by_name": current_user_name,
+        "requested_by_id": current_user.id,
+        "requested_by_name": user_full_name,
         "manager_id": approval_request.get("manager_id"),
         "client_email": approval_request.get("client_email"),
         "created_at": now.isoformat(),
@@ -1307,8 +1306,7 @@ async def approve_task(
 @router.get("/{sow_id}/tasks/pending-approvals")
 async def get_pending_task_approvals(
     sow_id: str,
-    current_user_id: str = None,
-    current_user_role: str = "consultant"
+    current_user: User = Depends(get_current_user)
 ):
     """Get all tasks pending approval for this SOW"""
     db = get_db()
@@ -1332,7 +1330,7 @@ async def get_pending_task_approvals(
 @router.get("/{sow_id}/history")
 async def get_sow_history(
     sow_id: str,
-    current_user_role: str = "consultant"
+    current_user: User = Depends(get_current_user)
 ):
     """
     Get complete change history for a SOW.
@@ -1340,8 +1338,8 @@ async def get_sow_history(
     """
     db = get_db()
     # Check permission
-    allowed_roles = ["admin", "principal_consultant", "principal_consultant", "manager", "reporting_manager"]
-    if current_user_role not in allowed_roles:
+    allowed_roles = ADMIN_ROLES + ["principal_consultant", "manager", "project_manager", "lead_consultant"]
+    if current_user.role not in allowed_roles:
         raise HTTPException(status_code=403, detail="Not authorized to view SOW history")
     
     sow = await db.enhanced_sow.find_one({"id": sow_id}, {"_id": 0})
@@ -1426,12 +1424,10 @@ async def get_sow_history(
 @router.get("/project/{project_id}/sow")
 async def get_project_sow(
     project_id: str,
-    current_user_id: str = None,
-    current_user_role: str = "consultant"
+    current_user: User = Depends(get_current_user)
 ):
     """
     Get inherited SOW for a project.
-    Shows the SOW linked to the project (inherited from sales flow).
     Access: Assigned Consultant (view only), PM/Principal/Admin (edit)
     """
     db = get_db()
@@ -1462,20 +1458,19 @@ async def get_project_sow(
         raise HTTPException(status_code=404, detail="No SOW found for this project")
     
     # Determine access level
-    can_edit = current_user_role in PROJECT_ROLES
+    can_edit = current_user.role in PROJECT_ROLES
     
     # Check if user is assigned consultant
     is_assigned = False
-    if current_user_id:
-        assigned_consultants = project.get("assigned_consultants", [])
-        is_assigned = current_user_id in assigned_consultants
+    assigned_consultants = project.get("assigned_consultants", [])
+    is_assigned = current_user.id in assigned_consultants
     
     # For consultants not assigned, deny access
-    if current_user_role == "consultant" and not is_assigned and not can_edit:
+    if current_user.role == "consultant" and not is_assigned and not can_edit:
         raise HTTPException(status_code=403, detail="Not authorized to view this SOW")
     
     # Remove pricing data for consulting team
-    if is_consulting_team(current_user_role) and not can_edit:
+    if is_consulting_team(current_user.role) and not can_edit:
         if "pricing_data" in sow:
             del sow["pricing_data"]
     

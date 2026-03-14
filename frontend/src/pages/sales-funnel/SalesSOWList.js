@@ -116,12 +116,7 @@ const SalesSOWList = () => {
 
   const handleCompleteHandover = async (sowId) => {
     try {
-      await axios.post(`${API}/enhanced-sow/${sowId}/complete-handover`, null, {
-        params: {
-          current_user_id: user?.id,
-          current_user_role: user?.role
-        }
-      });
+      await axios.post(`${API}/enhanced-sow/${sowId}/complete-handover`);
       toast.success('SOW handed over to consulting team');
       fetchData();
     } catch (error) {

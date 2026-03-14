@@ -101,9 +101,7 @@ const ConsultingScopeView = () => {
   const fetchData = async () => {
     try {
       const [sowRes, catsRes, employeesRes] = await Promise.all([
-        axios.get(`${API}/enhanced-sow/by-pricing-plan/${pricingPlanId}`, {
-          params: { current_user_role: user?.role }
-        }),
+        axios.get(`${API}/enhanced-sow/by-pricing-plan/${pricingPlanId}`),
         axios.get(`${API}/sow-masters/categories`),
         axios.get(`${API}/employees/all`).catch(() => ({ data: [] }))
       ]);
@@ -158,14 +156,7 @@ const ConsultingScopeView = () => {
     try {
       await axios.patch(
         `${API}/enhanced-sow/${sow.id}/scopes/${selectedScope.id}`,
-        scopeEdits,
-        {
-          params: {
-            current_user_id: user?.id,
-            current_user_name: user?.full_name || user?.email,
-            current_user_role: user?.role
-          }
-        }
+        scopeEdits
       );
       
       toast.success('Scope updated successfully');
@@ -186,14 +177,7 @@ const ConsultingScopeView = () => {
     try {
       await axios.post(
         `${API}/enhanced-sow/${sow.id}/scopes`,
-        newScope,
-        {
-          params: {
-            current_user_id: user?.id,
-            current_user_name: user?.full_name || user?.email,
-            current_user_role: user?.role
-          }
-        }
+        newScope
       );
       
       toast.success('Scope added successfully');
@@ -214,13 +198,7 @@ const ConsultingScopeView = () => {
     try {
       await axios.post(
         `${API}/enhanced-sow/${sow.id}/roadmap/submit`,
-        roadmapData,
-        {
-          params: {
-            current_user_id: user?.id,
-            current_user_name: user?.full_name || user?.email
-          }
-        }
+        roadmapData
       );
       
       toast.success('Roadmap submitted for client approval');
@@ -290,9 +268,7 @@ const ConsultingScopeView = () => {
         assigned_to_name: assignee ? `${assignee.first_name} ${assignee.last_name}` : null
       };
       
-      await axios.post(`${API}/enhanced-sow/${sow.id}/scopes/${selectedScope.id}/tasks`, payload, {
-        params: { current_user_id: user?.id, current_user_name: user?.name || user?.email }
-      });
+      await axios.post(`${API}/enhanced-sow/${sow.id}/scopes/${selectedScope.id}/tasks`, payload);
       
       toast.success('Task created successfully');
       setAddTaskDialog(false);
@@ -306,9 +282,7 @@ const ConsultingScopeView = () => {
 
   const handleUpdateTask = async (scopeId, taskId, updates) => {
     try {
-      await axios.patch(`${API}/enhanced-sow/${sow.id}/scopes/${scopeId}/tasks/${taskId}`, updates, {
-        params: { current_user_id: user?.id, current_user_name: user?.name || user?.email }
-      });
+      await axios.patch(`${API}/enhanced-sow/${sow.id}/scopes/${scopeId}/tasks/${taskId}`, updates);
       
       toast.success('Task updated');
       fetchData();
@@ -321,7 +295,6 @@ const ConsultingScopeView = () => {
   const openApprovalDialog = (scope, task) => {
     setSelectedScope(scope);
     setSelectedTask(task);
-    // Pre-fill with any manager data
     const managers = (Array.isArray(employees) ? employees : []).filter(e => e.role === 'manager' || e.role === 'admin');
     setApprovalData({
       manager_id: managers[0]?.id || '',
@@ -337,9 +310,7 @@ const ConsultingScopeView = () => {
     if (!selectedScope || !selectedTask) return;
     
     try {
-      await axios.post(`${API}/enhanced-sow/${sow.id}/scopes/${selectedScope.id}/tasks/${selectedTask.id}/request-approval`, approvalData, {
-        params: { current_user_id: user?.id, current_user_name: user?.name || user?.email }
-      });
+      await axios.post(`${API}/enhanced-sow/${sow.id}/scopes/${selectedScope.id}/tasks/${selectedTask.id}/request-approval`, approvalData);
       
       toast.success('Approval request sent to Manager and Client');
       setTaskApprovalDialog(false);
@@ -356,8 +327,6 @@ const ConsultingScopeView = () => {
         approval_type: approvalType,
         approved,
         notes
-      }, {
-        params: { current_user_id: user?.id, current_user_name: user?.name || user?.email, current_user_role: user?.role }
       });
       
       toast.success(`Task ${approved ? 'approved' : 'rejected'} by ${approvalType}`);
@@ -500,13 +469,6 @@ const ConsultingScopeView = () => {
         { 
           start_date: task.start.toISOString(), 
           end_date: task.end.toISOString() 
-        },
-        {
-          params: {
-            current_user_id: user?.id,
-            current_user_name: user?.full_name || user?.email,
-            current_user_role: user?.role
-          }
         }
       );
       toast.success('Timeline updated');
@@ -521,14 +483,7 @@ const ConsultingScopeView = () => {
     try {
       await axios.patch(
         `${API}/enhanced-sow/${sow.id}/scopes/${task.id}`,
-        { progress_percentage: Math.round(task.progress) },
-        {
-          params: {
-            current_user_id: user?.id,
-            current_user_name: user?.full_name || user?.email,
-            current_user_role: user?.role
-          }
-        }
+        { progress_percentage: Math.round(task.progress) }
       );
       toast.success('Progress updated');
     } catch (error) {

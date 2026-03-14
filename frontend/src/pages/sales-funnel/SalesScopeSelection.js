@@ -134,14 +134,7 @@ const SalesScopeSelection = () => {
       
       await axios.post(
         `${API}/enhanced-sow/${pricingPlanId}/sales-selection`,
-        payload,
-        {
-          params: {
-            current_user_id: user?.id,
-            current_user_name: user?.full_name || user?.email,
-            current_user_role: user?.role
-          }
-        }
+        payload
       );
       
       toast.success('Scope of Work created successfully!');
