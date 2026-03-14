@@ -49,45 +49,85 @@ const MyProjects = () => {
   const [reopeningSowId, setReopeningSowId] = useState(null);
   const [reopening, setReopening] = useState(false);
 
-  // Role-based access
+  // Role-based access - Correct business logic
   const isAdmin = user?.role === 'admin';
-  const isManager = user?.role === 'manager' || user?.role === 'project_manager';
-  const isConsultant = user?.role?.includes('consultant');
-  const isSalesRole = user?.role === 'sales_manager' || user?.role === 'executive';
+  const isPrincipalConsultant = user?.role === 'principal_consultant';
+  const isSeniorConsultant = user?.role === 'senior_consultant';
+  const isConsultant = user?.role === 'consultant';
+  const isSalesManager = user?.role === 'sales_manager';
+  const isSalesExecutive = user?.role === 'executive';
+  const isSalesRole = isSalesManager || isSalesExecutive;
+  
+  // Only Admin and Principal Consultant can see ALL data
+  const canSeeAll = isAdmin || isPrincipalConsultant;
 
   // Fetch all data with React Query
   const { data: projectsData, isLoading: loading, refetch } = useQuery({
-    queryKey: ['my-projects', user?.id, isConsultant, isAdmin, isManager, isSalesRole],
+    queryKey: ['my-projects', user?.id, user?.role],
     queryFn: async () => {
-      const [projectsRes, sowRes, leadsRes, employeesRes] = await Promise.all([
+      const [projectsRes, sowRes, leadsRes, employeesRes, reporteesRes] = await Promise.all([
         axios.get(`${API}/projects`).catch(() => ({ data: [] })),
         axios.get(`${API}/enhanced-sow/list?role=consulting`).catch(() => ({ data: [] })),
         axios.get(`${API}/leads`).catch(() => ({ data: [] })),
-        axios.get(`${API}/employees`).catch(() => ({ data: [] }))
+        axios.get(`${API}/employees`).catch(() => ({ data: [] })),
+        // Fetch reportees for hierarchical access
+        axios.get(`${API}/employees/reportees/${user?.id}`).catch(() => ({ data: [] }))
       ]);
+      
+      const allEmployees = Array.isArray(employeesRes.data) ? employeesRes.data : employeesRes.data?.items || [];
+      const reportees = Array.isArray(reporteesRes.data) ? reporteesRes.data : [];
+      const reporteeIds = reportees.map(r => r.user_id || r.id);
       
       // Filter SOWs to only show handed-over ones
       let handedOverSOWs = (sowRes.data || []).filter(sow => sow.sales_handover_complete);
       
       // Filter projects based on role
       let filteredProjects = projectsRes.data || [];
-      if (isConsultant && !isAdmin && !isManager) {
-        // Consultants only see their assigned projects
+      
+      // Admin & Principal Consultant: See ALL
+      if (canSeeAll) {
+        // No filtering - see everything
+      }
+      // Senior Consultant: See own + reportees' assigned projects
+      else if (isSeniorConsultant) {
+        filteredProjects = filteredProjects.filter(p => 
+          p.assigned_consultants?.some(c => 
+            c.user_id === user?.id || reporteeIds.includes(c.user_id)
+          )
+        );
+        handedOverSOWs = handedOverSOWs.filter(sow => 
+          sow.created_by === user?.id || reporteeIds.includes(sow.created_by)
+        );
+      }
+      // Consultant: See only own assigned projects
+      else if (isConsultant) {
         filteredProjects = filteredProjects.filter(p => 
           p.assigned_consultants?.some(c => c.user_id === user?.id)
         );
-      }
-
-      // Sales roles only see SOWs they created
-      if (isSalesRole && !isAdmin) {
         handedOverSOWs = handedOverSOWs.filter(sow => sow.created_by === user?.id);
+      }
+      // Sales Manager: See own + reportees' SOWs
+      else if (isSalesManager) {
+        handedOverSOWs = handedOverSOWs.filter(sow => 
+          sow.created_by === user?.id || reporteeIds.includes(sow.created_by)
+        );
+        // Sales roles typically don't see project assignments, filter to related projects
+        const sowIds = handedOverSOWs.map(s => s.id);
+        filteredProjects = filteredProjects.filter(p => sowIds.includes(p.sow_id));
+      }
+      // Sales Executive: See only own SOWs
+      else if (isSalesExecutive) {
+        handedOverSOWs = handedOverSOWs.filter(sow => sow.created_by === user?.id);
+        const sowIds = handedOverSOWs.map(s => s.id);
+        filteredProjects = filteredProjects.filter(p => sowIds.includes(p.sow_id));
       }
       
       return {
         projects: filteredProjects,
         sowList: handedOverSOWs,
         leads: Array.isArray(leadsRes.data) ? leadsRes.data : leadsRes.data?.items || [],
-        employees: Array.isArray(employeesRes.data) ? employeesRes.data : employeesRes.data?.items || []
+        employees: allEmployees,
+        reportees: reportees
       };
     },
     staleTime: 3 * 60 * 1000, // 3 minutes

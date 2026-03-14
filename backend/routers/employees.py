@@ -128,6 +128,37 @@ async def get_consultant_employees(current_user: User = Depends(get_current_user
     return consultants
 
 
+
+@router.get("/reportees/{user_id}")
+async def get_reportees(user_id: str, current_user: User = Depends(get_current_user)):
+    """
+    Get all employees who report to a given user (direct and indirect reportees).
+    Used for hierarchical data access in My Projects, Leads, etc.
+    """
+    db = get_db()
+    
+    # Get direct reportees
+    direct_reportees = await db.employees.find(
+        {"reporting_to": user_id},
+        {"_id": 0, "id": 1, "user_id": 1, "employee_id": 1, "full_name": 1, "role": 1}
+    ).to_list(500)
+    
+    # For a more complete hierarchy, get indirect reportees too
+    all_reportees = list(direct_reportees)
+    reportee_ids = [r.get("user_id") or r.get("id") for r in direct_reportees]
+    
+    # Get second level reportees (employees reporting to direct reportees)
+    if reportee_ids:
+        indirect_reportees = await db.employees.find(
+            {"reporting_to": {"$in": reportee_ids}},
+            {"_id": 0, "id": 1, "user_id": 1, "employee_id": 1, "full_name": 1, "role": 1}
+        ).to_list(500)
+        all_reportees.extend(indirect_reportees)
+    
+    return all_reportees
+
+
+
 @router.post("")
 async def create_employee(data: dict, current_user: User = Depends(get_current_user)):
     """Create a new employee."""
