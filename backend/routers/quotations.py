@@ -41,12 +41,24 @@ async def create_quotation(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new quotation and send email notification"""
+    """
+    Create a new quotation and send email notification.
+    
+    FUNNEL PREREQUISITE: Pricing Plan must exist for this lead.
+    """
     db = get_db()
     
     lead = await db.leads.find_one({"id": data.lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # FUNNEL VALIDATION: Check if pricing plan exists for this lead
+    pricing_plan = await db.pricing_plans.find_one({"lead_id": data.lead_id}, {"_id": 0, "id": 1})
+    if not pricing_plan:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot create quotation: A Pricing Plan must be created first. Please complete the Pricing step in the sales funnel."
+        )
     
     quotation_id = str(uuid.uuid4())
     quotation_number = f"QT-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"

@@ -85,6 +85,8 @@ async def create_agreement(
     
     ACCESS: All sales roles (including Sales Executive) can create agreements.
     
+    FUNNEL PREREQUISITE: Quotation must exist for this lead.
+    
     WORKFLOW:
     1. Sales Executive creates agreement → status: 'draft'
     2. Sales Executive reviews and submits for approval → status: 'pending_approval'
@@ -103,6 +105,14 @@ async def create_agreement(
     lead = await db.leads.find_one({"id": data.lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # FUNNEL VALIDATION: Check if quotation exists for this lead
+    quotation = await db.quotations.find_one({"lead_id": data.lead_id}, {"_id": 0, "id": 1})
+    if not quotation:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot create agreement: A Quotation must be created first. Please complete the Quotation step in the sales funnel."
+        )
     
     agreement_id = str(uuid.uuid4())
     agreement_number = f"AGR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"

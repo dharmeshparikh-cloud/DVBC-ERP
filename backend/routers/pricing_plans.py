@@ -74,6 +74,8 @@ async def create_pricing_plan(
     """
     Create a new pricing plan.
     tenure_months is AUTO-CALCULATED from len(schedule_breakdown).
+    
+    FUNNEL PREREQUISITE: Meeting with MOM must exist for this lead.
     """
     db = get_db()
     
@@ -81,6 +83,18 @@ async def create_pricing_plan(
     lead = await db.leads.find_one({"id": data.lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # FUNNEL VALIDATION: Check if meeting with MOM exists for this lead
+    meeting = await db.meetings.find_one({
+        "lead_id": data.lead_id,
+        "mom": {"$exists": True, "$ne": "", "$ne": None}
+    }, {"_id": 0, "id": 1})
+    
+    if not meeting:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot create pricing plan: A meeting with MOM (Minutes of Meeting) must be recorded first. Please complete the Meeting step in the sales funnel."
+        )
     
     # Check if pricing plan already exists for this lead
     existing = await db.pricing_plans.find_one({"lead_id": data.lead_id}, {"_id": 0})
