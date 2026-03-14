@@ -16,7 +16,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://netra-followups.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-startup-fix.preview.emergentagent.com')
 if not BASE_URL.endswith('/api'):
     API_URL = BASE_URL.rstrip('/') + '/api'
 else:

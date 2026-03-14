@@ -14,6 +14,8 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import ViewToggle from '../../components/ViewToggle';
+import FollowUpActionButton from '../../components/FollowUpActionButton';
+import PageRefreshButton from '../../components/PageRefreshButton';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-zinc-100 text-zinc-700', icon: FileText },
@@ -32,7 +34,7 @@ const SalesSOWList = () => {
   const [viewMode, setViewMode] = useState('list');
 
   // React Query: SOW List
-  const { data: sowList = [], isLoading: loadingSOW } = useQuery({
+  const { data: sowList = [], isLoading: loadingSOW, refetch: refetchSOW } = useQuery({
     queryKey: ['enhanced-sow', 'list', 'sales'],
     queryFn: async () => {
       const res = await axios.get(`${API}/enhanced-sow/list?role=sales`);
@@ -139,9 +141,12 @@ const SalesSOWList = () => {
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
           Scope of Work
         </h1>
-        <p className="text-zinc-500">
-          Manage and track all project scopes created by sales team
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-zinc-500">
+            Manage and track all project scopes created by sales team
+          </p>
+          <PageRefreshButton onClick={() => refetchSOW()} loading={loadingSOW} />
+        </div>
       </div>
 
       {/* Stats */}
@@ -249,6 +254,7 @@ const SalesSOWList = () => {
                       </td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-2">
+                          <FollowUpActionButton entityType="sow" entityId={sow.id} leadId={sow.lead_id} clientName={lead?.company || 'SOW Client'} />
                           <Button
                             onClick={() => navigate(`/sales-funnel/scope-selection/${sow.pricing_plan_id}`)}
                             variant="ghost"

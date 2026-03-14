@@ -132,7 +132,7 @@ Add post-write verification to critical endpoints:
 
 | Setting | Value | Status |
 |---------|-------|--------|
-| Frontend API URL | `https://netra-followups.preview.emergentagent.com` | ✅ |
+| Frontend API URL | `https://erp-startup-fix.preview.emergentagent.com` | ✅ |
 | Backend MongoDB | Connected | ✅ |
 | Redis Cache | Fallback to in-memory | ⚠️ |
 

@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import ViewToggle from '../../components/ViewToggle';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import FollowUpActionButton from '../../components/FollowUpActionButton';
+import PageRefreshButton from '../../components/PageRefreshButton';
 
 const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
@@ -117,7 +119,7 @@ const Agreements = () => {
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
 
   // Fetch agreements data with React Query
-  const { data: agreementsData, isLoading: loading } = useQuery({
+  const { data: agreementsData, isLoading: loading, refetch: refetchAgreements } = useQuery({
     queryKey: ['agreements-data', leadId],
     queryFn: async () => {
       const [agreementsRes, quotationsRes, leadsRes, templatesRes, plansRes] = await Promise.all([
@@ -401,6 +403,7 @@ const Agreements = () => {
             <p className="text-zinc-500">Create and manage client agreements</p>
           </div>
           <div className="flex items-center gap-3">
+            <PageRefreshButton onClick={() => refetchAgreements()} loading={loading} />
             <ViewToggle viewMode={viewMode} onChange={setViewMode} />
             {canEdit && (
               <Button
@@ -477,6 +480,7 @@ const Agreements = () => {
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
+                        <FollowUpActionButton entityType="agreement" entityId={agreement.id} leadId={agreement.lead_id} clientName={getLeadName(agreement.lead_id)} />
                         <Button
                           onClick={() => navigate(`/sales-funnel/agreement/${agreement.id}`)}
                           size="sm"

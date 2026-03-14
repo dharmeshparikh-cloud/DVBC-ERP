@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import FollowUpActionButton from '../components/FollowUpActionButton';
+import PageRefreshButton from '../components/PageRefreshButton';
 
 const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low', color: 'bg-zinc-100 text-zinc-700' },
@@ -63,7 +65,7 @@ const Meetings = () => {
   });
 
   // React Query: Meetings
-  const { data: meetings = [], isLoading: loading } = useQuery({
+  const { data: meetings = [], isLoading: loading, refetch: refetchMeetings } = useQuery({
     queryKey: ['meetings'],
     queryFn: async () => {
       const res = await axios.get(`${API}/meetings`);
@@ -314,7 +316,9 @@ const Meetings = () => {
           </h1>
           <p className="text-zinc-500">Track meetings, create Minutes of Meeting, and manage action items</p>
         </div>
-        {canEdit && (
+        <div className="flex items-center gap-2">
+          <PageRefreshButton onClick={() => refetchMeetings()} loading={loading} />
+          {canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button data-testid="add-meeting-button" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
@@ -505,6 +509,7 @@ const Meetings = () => {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
 
       {loading ? (
@@ -672,6 +677,7 @@ const Meetings = () => {
                             MOM
                           </Button>
                         )}
+                        <FollowUpActionButton entityType="meeting" entityId={meeting.id} leadId={meeting.lead_id} clientName={project?.client_name || meeting.title || 'Meeting'} />
                       </div>
                     </div>
                   </div>

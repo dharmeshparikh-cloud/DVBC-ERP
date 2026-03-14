@@ -137,6 +137,33 @@ async def startup_db_client():
         logger.info("Integrity audit scheduler started (daily at 02:00 UTC)")
     except Exception as e:
         logger.warning(f"Integrity scheduler initialization error: {e}")
+
+    # Initialize CEO Daily Report Scheduler (23:59 IST = Asia/Kolkata)
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        import pytz
+        from services.ceo_report import CEOReportGenerator
+
+        ceo_scheduler = AsyncIOScheduler(timezone=pytz.timezone('Asia/Kolkata'))
+        ceo_report = CEOReportGenerator(db)
+
+        ceo_scheduler.add_job(
+            ceo_report.send_report,
+            CronTrigger(hour=23, minute=59, timezone=pytz.timezone('Asia/Kolkata')),
+            id='ceo_daily_report',
+            name='CEO Daily Intelligence Report (23:59 IST)',
+            replace_existing=True,
+        )
+        ceo_scheduler.start()
+
+        # Store reference for manual trigger
+        app.state.ceo_report = ceo_report
+
+        next_run = ceo_scheduler.get_job('ceo_daily_report').next_run_time
+        logger.info(f"CEO Daily Report scheduler started — next run: {next_run}")
+    except Exception as e:
+        logger.warning(f"CEO Report scheduler initialization error: {e}")
     
     logger.info(f"Connected to MongoDB: {db_name}")
     logger.info("NETRA ERP started successfully")
@@ -232,6 +259,51 @@ async def system_status():
     status["checks"]["api"] = "operational"
     
     return status
+
+from routers.deps import get_current_user_from_token
+from fastapi import Depends as _Dep, HTTPException as _HTTPExc
+from fastapi.responses import HTMLResponse as _HTMLResponse
+
+
+@app.post("/api/ceo-report/trigger")
+async def trigger_ceo_report(current_user=_Dep(get_current_user_from_token)):
+    """Manually trigger the CEO Daily Report. Admin only."""
+    if current_user.role != "admin":
+        raise _HTTPExc(status_code=403, detail="Admin only")
+    try:
+        ceo_report = app.state.ceo_report
+        result = await ceo_report.send_report()
+        return {"status": result.get("delivery_status"), "message": "CEO Report triggered", "details": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/ceo-report/preview")
+async def preview_ceo_report(current_user=_Dep(get_current_user_from_token)):
+    """Preview the CEO report without sending email. Admin only."""
+    if current_user.role != "admin":
+        raise _HTTPExc(status_code=403, detail="Admin only")
+    try:
+        ceo_report = app.state.ceo_report
+        report_data = await ceo_report.generate_report()
+        html = ceo_report._render_html(report_data)
+        return _HTMLResponse(content=html)
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/ceo-report/logs")
+async def get_ceo_report_logs(current_user=_Dep(get_current_user_from_token)):
+    """Get CEO report email delivery logs. Admin only."""
+    if current_user.role != "admin":
+        raise _HTTPExc(status_code=403, detail="Admin only")
+    logs = await db.system_email_logs.find(
+        {"email_type": "ceo_daily_report"},
+        {"_id": 0}
+    ).sort("date", -1).to_list(30)
+    for log in logs:
+        if hasattr(log.get("date"), "isoformat"):
+            log["date"] = log["date"].isoformat()
+    return {"logs": logs}
+
 
 
 # ==================== ROUTER IMPORTS AND INCLUSION ====================

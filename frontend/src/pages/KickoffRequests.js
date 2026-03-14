@@ -22,6 +22,8 @@ import { sanitizeDisplayText } from '../utils/sanitize';
 import { useFetch } from '../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
+import FollowUpActionButton from '../components/FollowUpActionButton';
+import PageRefreshButton from '../components/PageRefreshButton';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -437,6 +439,7 @@ const KickoffRequests = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <PageRefreshButton onClick={() => refetchRequests()} loading={loading} />
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
           {isSalesRole && (
             <Button onClick={() => setShowCreateDialog(true)} data-testid="create-kickoff-btn">
@@ -597,10 +600,13 @@ const KickoffRequests = () => {
                       <td className="px-4 py-3 text-sm text-zinc-600">{sanitizeDisplayText(request.requested_by_name) || 'Unknown'}</td>
                       <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(request)} className="h-8" data-testid={`view-details-btn-${request.id}`}>
-                          <Eye className="w-4 h-4 mr-1" />
-                          {isPMRole ? 'Review' : 'View'}
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <FollowUpActionButton entityType="kickoff" entityId={request.id} leadId={request.lead_id} clientName={request.client_name} />
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(request)} className="h-8" data-testid={`view-details-btn-${request.id}`}>
+                            <Eye className="w-4 h-4 mr-1" />
+                            {isPMRole ? 'Review' : 'View'}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

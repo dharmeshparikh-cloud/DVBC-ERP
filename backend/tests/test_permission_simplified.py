@@ -13,7 +13,7 @@ import requests
 import os
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://netra-followups.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-startup-fix.preview.emergentagent.com')
 
 
 class TestDepartmentAccessMyAccess:

@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import MobileAppWidget from '../components/MobileAppWidget';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useAllEmployees,
@@ -428,7 +429,10 @@ const Employees = () => {
                 </span>
               )}
             </div>
-            <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+            <div className="flex items-center gap-2">
+              <PageRefreshButton onClick={() => refetchEmployees()} loading={empLoading} />
+              <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+            </div>
           </div>
 
           {/* Employees Display */}

@@ -14,6 +14,8 @@ import { format, differenceInDays, isPast } from 'date-fns';
 import ProjectConsultantAssignment from '../components/ProjectConsultantAssignment';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isProjectReadOnly } from '../utils/projectActions';
+import FollowUpActionButton from '../components/FollowUpActionButton';
+import PageRefreshButton from '../components/PageRefreshButton';
 
 // Helper function to calculate days remaining/overdue
 const getTimelineInfo = (project) => {
@@ -119,6 +121,7 @@ const Projects = () => {
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400">Track your consulting projects and deliverables</p>
         </div>
+        <PageRefreshButton onClick={() => refetch()} loading={loading} />
         {/* Projects can only be created via Kickoff Request handover from Sales team */}
         {false && canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -425,6 +428,7 @@ const Projects = () => {
 
                 {/* Action Buttons */}
                 <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-2">
+                  <FollowUpActionButton entityType="project" entityId={project.id} clientName={project.client_name || project.name} />
                   {isProjectReadOnly(project.status) ? (
                     <>
                       <Button

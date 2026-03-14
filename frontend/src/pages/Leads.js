@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Plus, Mail, Phone, Briefcase, ExternalLink, TrendingUp, DollarSign, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Pause, Play, CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
+import FollowUpActionButton from '../components/FollowUpActionButton';
+import PageRefreshButton from '../components/PageRefreshButton';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
@@ -609,6 +611,7 @@ const Leads = () => {
           <p className="text-zinc-500">Manage your sales pipeline ({filteredLeads.length} of {leads.length} leads)</p>
         </div>
         <div className="flex items-center gap-3">
+          <PageRefreshButton onClick={() => refetchLeads()} loading={loading} />
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
           {canEdit && (
             <>
@@ -1074,6 +1077,7 @@ const Leads = () => {
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
+                        <FollowUpActionButton entityType="lead" entityId={lead.id} clientName={lead.company || `${lead.first_name} ${lead.last_name}`} />
                         {/* Pause/Resume for managers */}
                         {isManagerOrAbove && (
                           isPaused ? (

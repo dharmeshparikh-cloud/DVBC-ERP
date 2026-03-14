@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
+import FollowUpActionButton from '../../components/FollowUpActionButton';
+import PageRefreshButton from '../../components/PageRefreshButton';
 
 const PAYMENT_MODES = [
   { value: 'bank_transfer', label: 'Bank Transfer / NEFT / RTGS' },
@@ -49,7 +51,7 @@ const PaymentVerification = () => {
   });
 
   // Fetch agreements using React Query
-  const { data: agreementsData = [], isLoading: loading } = useQuery({
+  const { data: agreementsData = [], isLoading: loading, refetch: refetchPayments } = useQuery({
     queryKey: ['agreements', 'approved'],
     queryFn: async () => {
       const response = await axios.get(`${API}/agreements`, {
@@ -215,6 +217,7 @@ const PaymentVerification = () => {
               Verify first installment payment before initiating project kickoff
             </p>
           </div>
+          <PageRefreshButton onClick={() => refetchPayments()} loading={loading} />
         </div>
       </div>
 
@@ -338,7 +341,7 @@ const PaymentVerification = () => {
                         <span>SOW handed over to Consulting team</span>
                       </div>
                     )}
-                    <div className="mt-4">
+                    <div className="mt-4 flex gap-2">
                       <Button 
                         onClick={handleProceedToKickoff}
                         className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-sm"
@@ -347,6 +350,7 @@ const PaymentVerification = () => {
                         <Send className="w-4 h-4 mr-2" />
                         Create Kickoff Request
                       </Button>
+                      <FollowUpActionButton entityType="payment" entityId={selectedAgreement?.id || ''} leadId={selectedAgreement?.lead_id} clientName={selectedAgreement?.party_name || selectedAgreement?.client_name || 'Client'} variant="button" />
                     </div>
                   </div>
                 ) : (

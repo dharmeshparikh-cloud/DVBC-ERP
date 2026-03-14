@@ -14,6 +14,8 @@ import useDraft from '../../hooks/useDraft';
 import DraftIndicator from '../../components/DraftIndicator';
 import DraftSelector from '../../components/DraftSelector';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import FollowUpActionButton from '../../components/FollowUpActionButton';
+import PageRefreshButton from '../../components/PageRefreshButton';
 
 // Generate draft title from quotation data
 const generateQuotationDraftTitle = (data) => {
@@ -80,7 +82,7 @@ const Quotations = () => {
   }, [formData, dialogOpen, autoSave]);
 
   // Fetch quotations data with React Query
-  const { data: quotationsData, isLoading: loading } = useQuery({
+  const { data: quotationsData, isLoading: loading, refetch: refetchQuotations } = useQuery({
     queryKey: ['quotations-data', leadId],
     queryFn: async () => {
       const [quotationsRes, plansRes, leadsRes, agreementsRes] = await Promise.all([
@@ -275,6 +277,7 @@ const Quotations = () => {
               Create Quotation
             </Button>
           )}
+          <PageRefreshButton onClick={() => refetchQuotations()} loading={loading} />
         </div>
       </div>
 
@@ -380,6 +383,7 @@ const Quotations = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <FollowUpActionButton entityType="quotation" entityId={quotation.id} leadId={quotation.lead_id} clientName={getLeadName(quotation.lead_id)} />
                     <Button
                       onClick={() => openDetailDialog(quotation)}
                       size="sm"
