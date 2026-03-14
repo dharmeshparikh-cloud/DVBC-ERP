@@ -443,9 +443,9 @@ const WorkflowPage = () => {
             module: 'Finance', 
             icon: DollarSign, 
             stats: [
-              { label: 'Revenue YTD', value: '₹4.5Cr', link: '/reports' },
-              { label: 'Pending Invoices', value: '15', link: '/invoices' },
-              { label: 'This Month Payroll', value: '₹28L', link: '/payroll' },
+              { label: 'Revenue YTD', value: '₹0', link: '/reports' },
+              { label: 'Pending Invoices', value: '0', link: '/invoices' },
+              { label: 'This Month Payroll', value: '₹0', link: '/payroll' },
             ]
           },
         ].map(({ module, icon: Icon, stats }) => {

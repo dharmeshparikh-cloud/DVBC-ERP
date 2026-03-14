@@ -46,10 +46,10 @@ const AdminDashboard = () => {
     hr: statsData.hr,
     consulting: statsData.consulting,
     finance: { 
-      revenue: 45000000, 
-      pendingInvoices: 18, 
-      receivables: 12500000,
-      profitMargin: 32 
+      revenue: statsData.finance?.revenue || 0, 
+      pendingInvoices: statsData.finance?.pendingInvoices || 0, 
+      receivables: statsData.finance?.receivables || 0,
+      profitMargin: statsData.finance?.profitMargin || 0 
     }
   } : null;
 
@@ -73,21 +73,21 @@ const AdminDashboard = () => {
   const hrStats = stats?.hr || {};
   const consultingStats = stats?.consulting || {};
   
-  // Project status for pie chart
+  // Project status for pie chart - use 0 as fallback for empty data
   const projectStatus = [
-    { name: 'On Track', value: consultingStats.onTrack || 15, color: '#10b981' },
-    { name: 'At Risk', value: consultingStats.atRisk || 5, color: '#f59e0b' },
-    { name: 'Delayed', value: consultingStats.delayed || 3, color: '#ef4444' },
+    { name: 'On Track', value: consultingStats.onTrack || 0, color: '#10b981' },
+    { name: 'At Risk', value: consultingStats.atRisk || 0, color: '#f59e0b' },
+    { name: 'Delayed', value: consultingStats.delayed || 0, color: '#ef4444' },
   ];
 
-  // Monthly trend data (mock - would come from backend)
+  // Monthly trend data - use 0 as fallback for empty data
   const monthlyTrend = [
-    { month: 'Jul', sales: 35, consulting: 28 },
-    { month: 'Aug', sales: 42, consulting: 32 },
-    { month: 'Sep', sales: 38, consulting: 35 },
-    { month: 'Oct', sales: 45, consulting: 38 },
-    { month: 'Nov', sales: 52, consulting: 42 },
-    { month: 'Dec', sales: salesPipeline.total || 47, consulting: consultingStats.activeProjects || 45 },
+    { month: 'Jul', sales: 0, consulting: 0 },
+    { month: 'Aug', sales: 0, consulting: 0 },
+    { month: 'Sep', sales: 0, consulting: 0 },
+    { month: 'Oct', sales: 0, consulting: 0 },
+    { month: 'Nov', sales: 0, consulting: 0 },
+    { month: 'Dec', sales: salesPipeline.total || 0, consulting: consultingStats.activeProjects || 0 },
   ];
 
   if (loading) {
@@ -206,7 +206,7 @@ const AdminDashboard = () => {
             <div className="relative">
               <p className="text-white/80 text-xs md:text-sm font-medium">Total Revenue (YTD)</p>
               <p className="text-3xl md:text-5xl font-bold mt-1 md:mt-2 text-white">
-                {formatCurrency(stats?.finance?.revenue || 45000000).replace('₹', '')}
+                {formatCurrency(stats?.finance?.revenue || 0).replace('₹', '')}
               </p>
             </div>
             <div className="flex items-center gap-2 md:gap-4 relative mt-2">
@@ -233,7 +233,7 @@ const AdminDashboard = () => {
           <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
             <BarChart3 className="w-6 h-6 md:w-8 md:h-8 opacity-80" />
             <div>
-              <p className="text-2xl md:text-3xl font-bold">{salesPipeline.total || 234}</p>
+              <p className="text-2xl md:text-3xl font-bold">{salesPipeline.total || 0}</p>
               <p className="text-orange-100 text-xs md:text-sm">Active Leads</p>
             </div>
           </CardContent>
@@ -250,7 +250,7 @@ const AdminDashboard = () => {
             <Target className={`w-5 h-5 md:w-6 md:h-6 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
             <div>
               <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                {stats?.sales?.ratios?.lead_to_closure || 20.1}%
+                {stats?.sales?.ratios?.lead_to_closure || 0}%
               </p>
               <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Conversion Rate</p>
             </div>
@@ -336,7 +336,7 @@ const AdminDashboard = () => {
           <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
             <Calendar className="w-5 h-5 md:w-6 md:h-6 opacity-80" />
             <div>
-              <p className="text-2xl md:text-3xl font-bold">{stats?.sales?.meetings?.today || 8}</p>
+              <p className="text-2xl md:text-3xl font-bold">{stats?.sales?.meetings?.today || 0}</p>
               <p className="text-blue-100 text-xs md:text-sm">Meetings Today</p>
             </div>
           </CardContent>
@@ -352,7 +352,7 @@ const AdminDashboard = () => {
           <CardContent className="pt-3 md:pt-4 h-full flex flex-col justify-between min-h-[100px] md:min-h-[140px]">
             <AlertCircle className="w-5 h-5 md:w-6 md:h-6 opacity-80" />
             <div>
-              <p className="text-2xl md:text-3xl font-bold">{hrStats.pendingApprovals || 24}</p>
+              <p className="text-2xl md:text-3xl font-bold">{hrStats.pendingApprovals || 0}</p>
               <p className="text-amber-100 text-xs md:text-sm">Pending Actions</p>
             </div>
           </CardContent>
@@ -371,15 +371,15 @@ const AdminDashboard = () => {
               <div>
                 <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Team Present</p>
                 <p className={`text-2xl md:text-4xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                  {hrStats.presentToday || 79}
+                  {hrStats.presentToday || 0}
                   <span className={`text-sm md:text-lg ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                    /{hrStats.totalEmployees || 86}
+                    /{hrStats.totalEmployees || 0}
                   </span>
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-xl md:text-3xl font-bold text-emerald-500">
-                  {hrStats.attendanceRate || 91.8}%
+                  {hrStats.attendanceRate || 0}%
                 </p>
                 <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Attendance</p>
               </div>
@@ -400,7 +400,7 @@ const AdminDashboard = () => {
               <Activity className="w-4 h-4 md:w-5 md:h-5 opacity-80" />
             </div>
             <div className="flex items-end gap-2 md:gap-4">
-              <p className="text-2xl md:text-4xl font-bold">{consultingStats.utilization || 87}%</p>
+              <p className="text-2xl md:text-4xl font-bold">{consultingStats.utilization || 0}%</p>
               <div className="flex items-center gap-1 text-green-300 text-xs md:text-sm mb-1">
                 <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4" />
                 +5%
@@ -481,7 +481,7 @@ const AdminDashboard = () => {
             <Flame className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
             <div>
               <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                {stats?.sales?.temperature?.hot || 47}
+                {stats?.sales?.temperature?.hot || 0}
               </p>
               <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Hot Leads</p>
             </div>
@@ -499,7 +499,7 @@ const AdminDashboard = () => {
             <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
             <div>
               <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                {stats?.sales?.closures?.this_month || 12}
+                {stats?.sales?.closures?.this_month || 0}
               </p>
               <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>Closed This Month</p>
             </div>
@@ -517,7 +517,7 @@ const AdminDashboard = () => {
             <Users className={`w-5 h-5 md:w-6 md:h-6 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
             <div>
               <p className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                {hrStats.onLeave || 7}
+                {hrStats.onLeave || 0}
               </p>
               <p className={`text-xs md:text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>On Leave Today</p>
             </div>
