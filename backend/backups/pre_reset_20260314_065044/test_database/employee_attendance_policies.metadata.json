@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"d1d790de440745c6a27ae0bd4fe2f261","collectionName":"employee_attendance_policies","type":"collection"}

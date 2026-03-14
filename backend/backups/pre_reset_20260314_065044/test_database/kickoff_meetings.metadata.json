@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"cf53c5b90ec44c129ef739368d6156af","collectionName":"kickoff_meetings","type":"collection"}

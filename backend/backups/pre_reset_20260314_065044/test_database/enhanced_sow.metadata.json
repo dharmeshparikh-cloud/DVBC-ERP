@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"lead_id":{"$numberInt":"1"}},"name":"idx_enhanced_sow_lead","background":true}],"uuid":"0567c48fc35a43a38d8b7515a446819a","collectionName":"enhanced_sow","type":"collection"}

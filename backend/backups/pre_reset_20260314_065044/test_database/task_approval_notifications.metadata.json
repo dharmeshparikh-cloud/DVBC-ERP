@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"8e949d1a54a64517a1f220270f76f3ec","collectionName":"task_approval_notifications","type":"collection"}

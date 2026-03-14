@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"b9c737557ffe4cc4bb4b7273b05a804f","collectionName":"travel_reimbursements","type":"collection"}

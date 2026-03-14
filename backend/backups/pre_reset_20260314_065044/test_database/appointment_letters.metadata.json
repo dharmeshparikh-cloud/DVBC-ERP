@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"71b1c718f5374d80b4fc5767f6bc90d3","collectionName":"appointment_letters","type":"collection"}
