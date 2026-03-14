@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
 import SalesFunnelProgress from '../../components/SalesFunnelProgress';
 import ViewToggle from '../../components/ViewToggle';
+import PageRefreshButton from '../../components/PageRefreshButton';
 import { useFetch, useMutate } from '../../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -65,7 +66,7 @@ const ProformaInvoice = () => {
   };
 
   // Query: Fetch invoices (quotations) using React Query
-  const { data: invoicesData, isLoading: invoicesLoading } = useFetch('/api/quotations', {
+  const { data: invoicesData, isLoading: invoicesLoading, refetch: refetchInvoices } = useFetch('/api/quotations', {
     params: leadId ? { lead_id: leadId } : {}
   });
   const invoices = Array.isArray(invoicesData) ? invoicesData : [];
@@ -507,6 +508,7 @@ const ProformaInvoice = () => {
             <p className="text-zinc-500">Create and manage proforma invoices for clients</p>
           </div>
           <div className="flex items-center gap-3">
+            <PageRefreshButton onClick={() => refetchInvoices()} loading={invoicesLoading} />
             <ViewToggle viewMode={viewMode} onChange={setViewMode} />
             {/* Back Button */}
             <Button

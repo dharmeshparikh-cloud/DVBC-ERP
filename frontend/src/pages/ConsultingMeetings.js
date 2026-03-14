@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
+import PageRefreshButton from '../components/PageRefreshButton';
 import {
   Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle,
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
@@ -53,7 +54,7 @@ const ConsultingMeetings = () => {
   const canEdit = CONSULTING_ROLES.includes(user?.role) && user?.role !== 'manager';
 
   // React Query: Meetings
-  const { data: meetings = [], isLoading: loading } = useQuery({
+  const { data: meetings = [], isLoading: loading, refetch: refetchMeetings } = useQuery({
     queryKey: ['meetings', 'consulting'],
     queryFn: async () => {
       const res = await axios.get(`${API}/meetings?meeting_type=consulting`);
@@ -237,6 +238,8 @@ const ConsultingMeetings = () => {
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Consulting Meetings</h1>
           <p className="text-zinc-500">Manage client project meetings, MOM, and track commitments</p>
         </div>
+        <div className="flex items-center gap-2">
+        <PageRefreshButton onClick={() => refetchMeetings()} loading={loading} />
         {canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -350,6 +353,7 @@ const ConsultingMeetings = () => {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
 
       {/* Tabs */}

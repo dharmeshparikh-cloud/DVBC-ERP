@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { CheckCircle, XCircle, Clock, CalendarDays, Home, Coffee, MapPin, Building2, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
+import PageRefreshButton from '../components/PageRefreshButton';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
@@ -26,7 +27,7 @@ const MyAttendance = () => {
   const queryClient = useQueryClient();
 
   // React Query: My Attendance
-  const { data, isLoading: loading } = useQuery({
+  const { data, isLoading: loading, refetch: refetchAttendance } = useQuery({
     queryKey: ['my', 'attendance', month],
     queryFn: async () => {
       const { data } = await axios.get(`${API}/my/attendance?month=${month}`);
@@ -55,6 +56,7 @@ const MyAttendance = () => {
         
         {/* Today's Status with Quick Check-in Button */}
         <div className="flex items-center gap-4">
+          <PageRefreshButton onClick={() => refetchAttendance()} loading={loading} />
           <div className="flex flex-col items-end gap-1">
             <div 
               className={`flex items-center gap-2 px-4 py-2 rounded-lg ${

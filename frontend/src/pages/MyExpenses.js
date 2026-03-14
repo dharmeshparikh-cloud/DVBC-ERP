@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import useDraft from '../hooks/useDraft';
 import DraftIndicator from '../components/DraftIndicator';
 import DraftSelector from '../components/DraftSelector';
+import PageRefreshButton from '../components/PageRefreshButton';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const CATEGORIES = ['Travel', 'Local Conveyance', 'Food', 'Accommodation', 'Office Supplies', 'Communication', 'Client Entertainment', 'Other'];
@@ -81,7 +82,7 @@ const MyExpenses = () => {
   }, [formData, dialogOpen, autoSave]);
 
   // React Query: My Expenses Data
-  const { data: expenseData, isLoading: loading } = useQuery({
+  const { data: expenseData, isLoading: loading, refetch: refetchExpenses } = useQuery({
     queryKey: ['my', 'expenses'],
     queryFn: async () => {
       const res = await axios.get(`${API}/my/expenses`);
@@ -223,6 +224,8 @@ const MyExpenses = () => {
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">My Expenses</h1>
           <p className="text-zinc-500">Submit expenses and track reimbursement status</p>
         </div>
+        <div className="flex items-center gap-2">
+        <PageRefreshButton onClick={() => refetchExpenses()} loading={loading} />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="add-expense-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
@@ -357,6 +360,7 @@ const MyExpenses = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats */}

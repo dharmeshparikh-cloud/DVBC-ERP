@@ -10,6 +10,7 @@ import {
   Search, CheckCircle, Clock, XCircle, Users
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import PageRefreshButton from '../components/PageRefreshButton';
 import axios from 'axios';
 
 const Invoices = () => {
@@ -108,10 +109,7 @@ const Invoices = () => {
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
-          <Button onClick={fetchInvoices} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          <PageRefreshButton onClick={() => refetchInvoices()} loading={loading} />
         </div>
       </div>
 

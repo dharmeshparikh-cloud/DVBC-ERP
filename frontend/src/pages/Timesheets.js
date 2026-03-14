@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import {
   Clock, Calendar, Plus, Check, X, ChevronLeft, ChevronRight,
@@ -45,7 +46,7 @@ const Timesheets = () => {
   });
 
   // React Query: Timesheet for current week
-  const { data: timesheetRecord, isLoading: loading } = useQuery({
+  const { data: timesheetRecord, isLoading: loading, refetch: refetchTimesheets } = useQuery({
     queryKey: ['timesheets', weekStart],
     queryFn: async () => {
       const res = await axios.get(`${API}/timesheets?week_start=${weekStart}`);
@@ -197,6 +198,7 @@ const Timesheets = () => {
           <p className="text-sm text-zinc-500">Log your work hours by project</p>
         </div>
         <div className="flex items-center gap-2">
+          <PageRefreshButton onClick={() => refetchTimesheets()} loading={loading} />
           {isEditable && (
             <>
               <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>

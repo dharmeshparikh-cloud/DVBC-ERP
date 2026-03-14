@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
+import PageRefreshButton from '../../components/PageRefreshButton';
 
 const STATUS_CONFIG = {
   pending_kickoff: { label: 'Pending Kickoff', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -29,7 +30,7 @@ const ConsultingSOWList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Fetch SOW list with React Query
-  const { data: sowData, isLoading: loading } = useQuery({
+  const { data: sowData, isLoading: loading, refetch: refetchSOW } = useQuery({
     queryKey: ['consulting-sow-list'],
     queryFn: async () => {
       const [sowRes, leadsRes] = await Promise.all([
@@ -127,13 +128,16 @@ const ConsultingSOWList = () => {
   return (
     <div data-testid="consulting-sow-list-page">
       {/* Header */}
-      <div className="mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
           My Projects
         </h1>
         <p className="text-zinc-500">
           Manage and track all consulting projects and scopes
         </p>
+        </div>
+        <PageRefreshButton onClick={() => refetchSOW()} loading={loading} />
       </div>
 
       {/* Stats */}

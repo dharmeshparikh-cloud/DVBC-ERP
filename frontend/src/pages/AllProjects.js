@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -187,6 +188,7 @@ const AllProjects = () => {
         
         {/* Stats Banner */}
         <div className="flex items-center gap-4">
+          <PageRefreshButton onClick={() => refetchProjects()} loading={loading} />
           <div className="bg-black/5 px-4 py-2 rounded-lg border border-black/10">
             <p className="text-xs text-black/50">Total Projects</p>
             <p className="text-xl font-bold text-black">{projects.length}</p>

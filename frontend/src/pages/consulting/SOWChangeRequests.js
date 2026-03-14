@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
+import PageRefreshButton from '../../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
@@ -63,7 +64,7 @@ const SOWChangeRequests = () => {
   const isPM = user?.role === 'project_manager' || user?.role === 'manager' || user?.role === 'admin';
 
   // React Query: My Requests
-  const { data: requests = [], isLoading: loadingRequests } = useQuery({
+  const { data: requests = [], isLoading: loadingRequests, refetch: refetchRequests } = useQuery({
     queryKey: ['sow-change-requests'],
     queryFn: async () => {
       const res = await axios.get(`${API}/sow-change-requests`);
@@ -191,10 +192,13 @@ const SOWChangeRequests = () => {
             Request and manage changes to project scopes
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <PageRefreshButton onClick={() => refetchRequests()} loading={loadingRequests} />
         <Button onClick={() => setShowCreateDialog(true)} data-testid="new-change-request-btn">
           <Plus className="w-4 h-4 mr-2" />
           New Change Request
         </Button>
+        </div>
       </div>
 
       {/* Tabs */}

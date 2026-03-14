@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -14,7 +15,7 @@ const HandoverAlerts = () => {
   const navigate = useNavigate();
 
   // React Query: Handover Alerts
-  const { data: alerts = [], isLoading: loading } = useQuery({
+  const { data: alerts = [], isLoading: loading, refetch: refetchAlerts } = useQuery({
     queryKey: ['projects', 'handover-alerts'],
     queryFn: async () => {
       const response = await axios.get(`${API}/projects/handover-alerts`);
@@ -71,13 +72,16 @@ const HandoverAlerts = () => {
 
   return (
     <div data-testid="handover-alerts-page">
-      <div className="mb-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
           Handover Alerts
         </h1>
         <p className="text-zinc-500">
           Projects must be handed over within 15 days of agreement approval
         </p>
+        </div>
+        <PageRefreshButton onClick={() => refetchAlerts()} loading={loading} />
       </div>
 
       {/* Summary Stats */}

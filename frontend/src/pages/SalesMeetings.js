@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle, Calendar, Trash2, ChevronDown, ChevronUp, FileText, FolderOpen, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -102,7 +103,7 @@ const SalesMeetings = () => {
   const queryClient = useQueryClient();
 
   // React Query: Meetings
-  const { data: meetings = [], isLoading: loading } = useQuery({
+  const { data: meetings = [], isLoading: loading, refetch: refetchMeetings } = useQuery({
     queryKey: ['sales-meetings'],
     queryFn: async () => {
       const res = await axios.get(`${API}/sales-meetings`);
@@ -241,6 +242,7 @@ const SalesMeetings = () => {
           <p className="text-zinc-500">Track sales meetings, calls, and follow-ups with leads</p>
         </div>
         <div className="flex items-center gap-3">
+          <PageRefreshButton onClick={() => refetchMeetings()} loading={loading} />
           {/* Drafts Button */}
           {drafts.length > 0 && (
             <Button variant="outline" onClick={() => setShowDraftSelector(true)} className="gap-2">

@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { LazyImage } from '../components/ui/lazy-image';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { Plus, Upload, CheckCircle, XCircle, Clock, CalendarDays, Building2, MapPin, Home, Camera, Navigation, Loader2, LogIn, LogOut, AlertCircle, Car, Bike, RotateCcw, Send, X, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -101,7 +102,7 @@ const Attendance = () => {
   const summary = summaryData || [];
 
   // React Query: Attendance Records
-  const { data: recordsData, isLoading: loading } = useQuery({
+  const { data: recordsData, isLoading: loading, refetch: refetchRecords } = useQuery({
     queryKey: ['attendance', 'records', startDate, endDate],
     queryFn: async () => {
       const { data } = await axios.get(`${API}/attendance?date_from=${startDate}&date_to=${endDate}`);
@@ -454,6 +455,8 @@ const Attendance = () => {
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Attendance</h1>
           <p className="text-zinc-500">Track employee attendance with manual entry or Excel upload</p>
         </div>
+        <div className="flex items-center gap-2">
+        <PageRefreshButton onClick={() => refetchRecords()} loading={loading} />
         {isHR && (
           <div className="flex gap-2">
             <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
@@ -770,6 +773,7 @@ const Attendance = () => {
             </Dialog>
           </div>
         )}
+        </div>
       </div>
 
       {/* Month picker + Stats */}

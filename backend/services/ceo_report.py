@@ -457,5 +457,8 @@ class CEOReportGenerator:
 
         # Store log
         await self.db.system_email_logs.insert_one(log_entry)
+        log_entry.pop("_id", None)
+        if hasattr(log_entry.get("date"), "isoformat"):
+            log_entry["date"] = log_entry["date"].isoformat()
 
         return log_entry

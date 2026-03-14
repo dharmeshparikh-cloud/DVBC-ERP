@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import PageRefreshButton from '../../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { 
   Calendar, Clock, AlertTriangle, CheckCircle, Building2, 
@@ -48,7 +49,7 @@ const PaymentReminders = () => {
   const [submitting, setSubmitting] = useState(false);
 
   // React Query: Payment Reminders
-  const { data: reminders = [], isLoading: loading } = useQuery({
+  const { data: reminders = [], isLoading: loading, refetch: refetchReminders } = useQuery({
     queryKey: ['payment-reminders'],
     queryFn: async () => {
       const res = await axios.get(`${API}/payment-reminders`);
@@ -213,6 +214,7 @@ const PaymentReminders = () => {
             Upcoming payment installments by project
           </p>
         </div>
+        <PageRefreshButton onClick={() => refetchReminders()} loading={loading} />
       </div>
 
       {/* Stats Cards */}

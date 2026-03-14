@@ -16,7 +16,33 @@
 
 ## Completed Work - March 2026
 
-### Phase 110: Full Follow-up System Enhancement — March 14, 2026 ✅ (Latest)
+### Phase 111: CEO Report, Universal Buttons & Backend Fix — March 14, 2026 ✅ (Latest)
+
+**Objective:** Fix backend startup failure, complete CEO Control Tower Report, and add universal Refresh/Follow-up buttons across all ERP pages.
+
+**Backend Fixes:**
+- Fixed `NameError: name 'Depends' is not defined` crash (server was using `_Dep` alias correctly, needed process restart)
+- Fixed `ObjectId serialization error` in CEO report's `send_report()` — removed `_id` from log_entry before returning, converted datetime to ISO string
+
+**CEO Control Tower Report — `/app/backend/services/ceo_report.py`:**
+- 10-section daily intelligence report: Sales Activity, Pipeline Health, Escalations, Meetings, Consulting, SOW/Agreements, Payments, Revenue, Team Productivity, System Health
+- Scheduled via APScheduler at 23:59 IST daily
+- API endpoints: `POST /api/ceo-report/trigger`, `GET /api/ceo-report/preview`, `GET /api/ceo-report/logs`
+- HTML email with KPI cards, tables, team leaderboard, anomaly alerts
+- Email delivery with 3-retry logic, logging to `system_email_logs` collection
+
+**Universal Refresh Button — 32 pages updated:**
+- Reusable `PageRefreshButton` component added to all data list pages
+- Pages: Leads, Meetings, Projects, KickoffRequests, Employees, Expenses, LeaveManagement, Agreements, Quotations/ProformaInvoice, SOWList, PaymentVerification, SalesMeetings, ConsultingMeetings, Consultants, Invoices, Timesheets, Attendance, TravelReimbursement, MyLeaves, MyExpenses, MyAttendance, ProjectPayments, ProjectTasks, AllProjects, HandoverAlerts, NewJoinerPipeline, ConsultingSOWList, MyProjects, PaymentReminders, SOWChangeRequests, FollowUps (custom)
+
+**Universal Follow-up Button — 8 funnel stage pages:**
+- `FollowUpActionButton` component on: Leads, Meetings, Projects, KickoffRequests, Agreements, Quotations, SOWList, PaymentVerification
+
+**Testing:** Backend curl tests all passing. Frontend screenshot validation all passing. Report: `/app/test_reports/iteration_164.json`
+
+---
+
+### Phase 110: Full Follow-up System Enhancement — March 14, 2026 ✅
 
 **Objective:** Build a comprehensive follow-up tracking system across all funnel stages with dashboard widget, detail view, history tracking, escalation, and ownership transfer.
 

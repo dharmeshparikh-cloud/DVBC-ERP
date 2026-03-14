@@ -13,6 +13,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -286,6 +287,7 @@ const NewJoinerPipeline = () => {
         </div>
         
         <div className="flex items-center gap-3">
+          <PageRefreshButton onClick={() => refetch()} loading={isLoading} />
           <div className="relative">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
             <Input

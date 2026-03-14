@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { 
   Car, Bike, MapPin, Calendar, CheckCircle, XCircle, 
   Clock, TrendingUp, IndianRupee, Filter, Search,
@@ -17,7 +18,7 @@ const TravelReimbursement = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // React Query: Travel Claims
-  const { data: claimsData, isLoading: loading } = useQuery({
+  const { data: claimsData, isLoading: loading, refetch: refetchClaims } = useQuery({
     queryKey: ['travel', 'reimbursements', filter, selectedMonth],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -145,6 +146,7 @@ const TravelReimbursement = () => {
           <p className="text-zinc-500 dark:text-zinc-400">Manage employee travel claims and reimbursements</p>
         </div>
         <div className="flex items-center gap-3">
+          <PageRefreshButton onClick={() => refetchClaims()} loading={loading} />
           <input
             type="month"
             value={selectedMonth}

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   Plus, ArrowLeft, CheckCircle, Clock, AlertCircle, 
@@ -75,7 +76,7 @@ const ProjectTasks = () => {
   });
 
   // React Query: Tasks
-  const { data: tasks = [], isLoading: loading } = useQuery({
+  const { data: tasks = [], isLoading: loading, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks', { project_id: projectId }],
     queryFn: async () => {
       const res = await axios.get(`${API}/tasks?project_id=${projectId}`);
@@ -245,6 +246,8 @@ const ProjectTasks = () => {
             </h1>
             <p className="text-zinc-500">{project?.client_name}</p>
           </div>
+          <div className="flex items-center gap-2">
+          <PageRefreshButton onClick={() => refetchTasks()} loading={loading} />
           <Button
             onClick={() => { resetForm(); setEditingTask(null); setDialogOpen(true); }}
             data-testid="add-task-btn"
@@ -253,6 +256,7 @@ const ProjectTasks = () => {
             <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
             Add Task
           </Button>
+          </div>
         </div>
       </div>
 

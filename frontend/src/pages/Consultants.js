@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Users, Plus, Briefcase, TrendingUp, Search, UserCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,7 +27,7 @@ const Consultants = () => {
   });
 
   // React Query: Consultants
-  const { data: consultantsData, isLoading: loading } = useQuery({
+  const { data: consultantsData, isLoading: loading, refetch: refetchConsultants } = useQuery({
     queryKey: ['consultants'],
     queryFn: async () => {
       const response = await axios.get(`${API}/consultants`);
@@ -83,6 +84,8 @@ const Consultants = () => {
           </h1>
           <p className="text-zinc-500">Manage consultants and their project assignments</p>
         </div>
+        <div className="flex items-center gap-2">
+        <PageRefreshButton onClick={() => refetchConsultants()} loading={loading} />
         {isAdmin && (
           <Button
             onClick={() => setDialogOpen(true)}
@@ -93,6 +96,7 @@ const Consultants = () => {
             Add Consultant
           </Button>
         )}
+        </div>
       </div>
 
       {/* Search */}

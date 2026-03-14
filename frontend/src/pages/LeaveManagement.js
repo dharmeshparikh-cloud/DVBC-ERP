@@ -7,6 +7,7 @@ import { Clock, CheckCircle, XCircle, Calendar, AlertCircle } from 'lucide-react
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import PageRefreshButton from '../components/PageRefreshButton';
 
 const STATUS_STYLES = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -22,7 +23,7 @@ const LeaveManagement = () => {
   const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
 
   // Fetch leave requests with React Query
-  const { data: leaveData, isLoading: loading } = useQuery({
+  const { data: leaveData, isLoading: loading, refetch: refetchLeaves } = useQuery({
     queryKey: ['leave-requests', isHR],
     queryFn: async () => {
       const promises = [axios.get(`${API}/leave-requests`)];
@@ -55,6 +56,7 @@ const LeaveManagement = () => {
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Leave Management</h1>
           <p className="text-zinc-500">Review and approve leave requests from employees</p>
         </div>
+        <PageRefreshButton onClick={() => refetchLeaves()} loading={loading} />
       </div>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">

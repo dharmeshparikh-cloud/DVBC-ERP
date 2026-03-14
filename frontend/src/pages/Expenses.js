@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import PageRefreshButton from '../components/PageRefreshButton';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const EXPENSE_CATEGORIES = [
@@ -69,7 +70,7 @@ const Expenses = () => {
   const isHROrAdmin = ['admin', 'hr_manager', 'manager'].includes(user?.role);
 
   // Fetch expenses with React Query
-  const { data: expensesData, isLoading: loading } = useQuery({
+  const { data: expensesData, isLoading: loading, refetch: refetchExpenses } = useQuery({
     queryKey: ['expenses-data', filterStatus],
     queryFn: async () => {
       const [expensesRes, clientsRes, projectsRes] = await Promise.all([
@@ -268,11 +269,14 @@ const Expenses = () => {
   return (
     <div data-testid="expenses-page">
       <MyWorkspaceNav />
-      <div className="mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
         <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
           MY EXPENSES
         </h1>
         <p className="text-sm md:text-base text-zinc-500">Submit expenses and track reimbursement status</p>
+        </div>
+        <PageRefreshButton onClick={() => refetchExpenses()} loading={loading} />
       </div>
 
       {/* Stats Cards - Responsive 2x2 on mobile, 4-col on desktop */}

@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import ViewToggle from '../../components/ViewToggle';
 import ConsultingStageNav from '../../components/ConsultingStageNav';
 import { sanitizeDisplayText } from '../../utils/sanitize';
+import PageRefreshButton from '../../components/PageRefreshButton';
 import { useQuery } from '@tanstack/react-query';
 import { isProjectReadOnly } from '../../utils/projectActions';
 import MyWorkspaceNav from '../../components/MyWorkspaceNav';
@@ -265,6 +266,7 @@ const MyProjects = () => {
              'Your assigned projects'}
           </p>
         </div>
+        <PageRefreshButton onClick={() => refetch()} loading={loading} />
       </div>
 
       {/* Stats Cards */}

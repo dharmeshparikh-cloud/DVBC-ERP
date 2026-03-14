@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
+import PageRefreshButton from '../components/PageRefreshButton';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -21,7 +22,7 @@ const ProjectPayments = () => {
   const canViewAllPayments = ['admin', 'principal_consultant', 'project_manager', 'manager'].includes(user?.role);
 
   // React Query: My Payments
-  const { data: myPayments = { payments: [], total_projects: 0, can_view_amounts: false }, isLoading: loading } = useQuery({
+  const { data: myPayments = { payments: [], total_projects: 0, can_view_amounts: false }, isLoading: loading, refetch: refetchPayments } = useQuery({
     queryKey: ['project-payments', 'my-payments'],
     queryFn: async () => {
       const res = await axios.get(`${API}/project-payments/my-payments`);
@@ -77,7 +78,8 @@ const ProjectPayments = () => {
   return (
     <div data-testid="project-payments-page">
       {/* Header */}
-      <div className="mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
         <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
           Project Payments
         </h1>
@@ -86,6 +88,8 @@ const ProjectPayments = () => {
             ? 'Track payment schedules and received amounts for your projects'
             : 'View upcoming payment schedules for your projects'}
         </p>
+        </div>
+        <PageRefreshButton onClick={() => refetchPayments()} loading={loading} />
       </div>
 
       {/* Summary Cards - Different display based on role */}

@@ -13,6 +13,7 @@ import useDraft from '../hooks/useDraft';
 import DraftIndicator from '../components/DraftIndicator';
 import DraftSelector from '../components/DraftSelector';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import PageRefreshButton from '../components/PageRefreshButton';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const LEAVE_TYPES = [
@@ -87,7 +88,7 @@ const MyLeaves = () => {
   }, [formData, dialogOpen, autoSave]);
 
   // Fetch leave data with React Query
-  const { data: leaveData, isLoading: loading } = useQuery({
+  const { data: leaveData, isLoading: loading, refetch: refetchLeaves } = useQuery({
     queryKey: ['my-leaves'],
     queryFn: async () => {
       const [reqRes, balRes] = await Promise.all([
@@ -166,6 +167,8 @@ const MyLeaves = () => {
           <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">My Leaves</h1>
           <p className="text-zinc-500">Apply for leave, track status, and view balance</p>
         </div>
+        <div className="flex items-center gap-2">
+        <PageRefreshButton onClick={() => refetchLeaves()} loading={loading} />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="apply-leave-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
@@ -258,6 +261,7 @@ const MyLeaves = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Leave Balance */}
