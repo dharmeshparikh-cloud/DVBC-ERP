@@ -177,6 +177,7 @@ const FollowUps = () => {
   const pendingCount = followUps.filter(f => f.status === 'pending').length;
   const paymentCount = followUps.filter(f => f.type === 'payment').length;
   const leadCount = followUps.filter(f => f.type === 'lead').length;
+  const meetingCount = followUps.filter(f => f.type === 'meeting').length;
 
   return (
     <div className="p-6 space-y-6" data-testid="follow-ups-page">
@@ -184,8 +185,8 @@ const FollowUps = () => {
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Follow-ups</h1>
           <p className="text-zinc-600">
-            {isSales && isConsulting ? 'Lead & Payment follow-ups' : 
-             isSales ? 'Lead follow-ups' : 'Payment follow-ups'}
+            {isSales && isConsulting ? 'Lead, Meeting & Payment follow-ups' : 
+             isSales ? 'Lead & Meeting follow-ups' : 'Payment follow-ups'}
           </p>
         </div>
         <Button onClick={fetchFollowUps} variant="outline" size="sm">
@@ -252,6 +253,21 @@ const FollowUps = () => {
             </CardContent>
           </Card>
         )}
+        {isSales && (
+          <Card className="bg-white border-zinc-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <CalendarCheck className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-zinc-900">{meetingCount}</p>
+                  <p className="text-sm text-zinc-600">Meeting Follow-ups</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Filters */}
@@ -262,15 +278,16 @@ const FollowUps = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-xs bg-zinc-50 border-zinc-300"
         />
-        {isSales && isConsulting && (
+        {(isSales || isConsulting) && (
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-40 bg-zinc-50 border-zinc-300">
+            <SelectTrigger className="w-40 bg-zinc-50 border-zinc-300" data-testid="follow-up-type-filter">
               <SelectValue placeholder="Filter" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="payment">Payments</SelectItem>
-              <SelectItem value="lead">Leads</SelectItem>
+              {isConsulting && <SelectItem value="payment">Payments</SelectItem>}
+              {isSales && <SelectItem value="lead">Leads</SelectItem>}
+              {isSales && <SelectItem value="meeting">Meetings</SelectItem>}
             </SelectContent>
           </Select>
         )}
@@ -307,9 +324,11 @@ const FollowUps = () => {
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-zinc-800">{followUp.title}</p>
                         <span className={`px-2 py-0.5 text-xs rounded ${
-                          followUp.type === 'payment' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                          followUp.type === 'payment' ? 'bg-blue-100 text-blue-700' : 
+                          followUp.type === 'meeting' ? 'bg-green-100 text-green-700' : 
+                          'bg-purple-100 text-purple-700'
                         }`}>
-                          {followUp.type === 'payment' ? 'Payment' : 'Lead'}
+                          {followUp.type === 'payment' ? 'Payment' : followUp.type === 'meeting' ? 'Meeting' : 'Lead'}
                         </span>
                       </div>
                       <p className="text-sm text-zinc-600">{followUp.description}</p>

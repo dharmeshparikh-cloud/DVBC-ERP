@@ -175,6 +175,8 @@ class LeadCreate(BaseModel):
     source: Optional[str] = None
     notes: Optional[str] = None
     assigned_to: Optional[str] = None
+    next_follow_up: Optional[datetime] = None
+    follow_up_notes: Optional[str] = None
 
 
 class LeadUpdate(BaseModel):

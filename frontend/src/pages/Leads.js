@@ -245,6 +245,8 @@ const Leads = () => {
     linkedin_url: '',
     source: '',
     notes: '',
+    next_follow_up: '',
+    follow_up_notes: '',
   });
 
   // Register form data getter for save-on-leave
@@ -296,6 +298,7 @@ const Leads = () => {
     setFormData({
       first_name: '', last_name: '', company: '', job_title: '',
       email: '', phone: '', linkedin_url: '', source: '', notes: '',
+      next_follow_up: '', follow_up_notes: '',
     });
     setShowDraftSelector(false);
     setDialogOpen(true);
@@ -372,7 +375,17 @@ const Leads = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const newLead = await createLeadMutation.mutateAsync(formData);
+      const payload = { ...formData };
+      // Convert date string to ISO datetime for backend
+      if (payload.next_follow_up) {
+        payload.next_follow_up = new Date(payload.next_follow_up).toISOString();
+      } else {
+        delete payload.next_follow_up;
+      }
+      if (!payload.follow_up_notes) {
+        delete payload.follow_up_notes;
+      }
+      const newLead = await createLeadMutation.mutateAsync(payload);
       toast.success('Lead created successfully! Redirecting to Sales Funnel...');
       setDialogOpen(false);
       
@@ -389,6 +402,8 @@ const Leads = () => {
         linkedin_url: '',
         source: '',
         notes: '',
+        next_follow_up: '',
+        follow_up_notes: '',
       });
       
       // Auto-redirect to Sales Funnel with the new lead
@@ -766,6 +781,35 @@ const Leads = () => {
                     rows={3}
                     className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="next_follow_up" className="text-sm font-medium text-zinc-950">
+                      Next Follow-up Date
+                    </Label>
+                    <Input
+                      id="next_follow_up"
+                      data-testid="lead-next-follow-up"
+                      type="date"
+                      value={formData.next_follow_up}
+                      onChange={(e) => updateFormData('next_follow_up', e.target.value)}
+                      className="rounded-sm border-zinc-200"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="follow_up_notes" className="text-sm font-medium text-zinc-950">
+                      Follow-up Notes
+                    </Label>
+                    <Input
+                      id="follow_up_notes"
+                      data-testid="lead-follow-up-notes"
+                      value={formData.follow_up_notes}
+                      onChange={(e) => updateFormData('follow_up_notes', e.target.value)}
+                      placeholder="e.g., Call to discuss proposal"
+                      className="rounded-sm border-zinc-200"
+                    />
+                  </div>
                 </div>
 
                 <Button
