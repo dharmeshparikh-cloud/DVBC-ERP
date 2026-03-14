@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://view-details-gate.preview.emergentagent.com",
+      "value": "https://netra-followups.preview.emergentagent.com",
       "type": "string"
     },
     {

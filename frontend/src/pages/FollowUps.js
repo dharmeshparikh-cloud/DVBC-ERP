@@ -17,32 +17,48 @@ const FollowUps = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const isSales = ['admin', 'sales_manager', 'sales_executive'].includes(user?.role);
-  const isConsulting = ['admin', 'consultant', 'lead_consultant', 'principal_consultant', 'manager'].includes(user?.role);
+  const isSales = ['admin', 'sales_manager', 'executive', 'sales_executive'].includes(user?.role);
+  const isConsulting = ['admin', 'consultant', 'senior_consultant', 'principal_consultant', 'manager'].includes(user?.role);
 
-  // Query: Fetch payments
+  // Query: Fetch payments (for consulting team)
   const { data: payments = [], isLoading: paymentsLoading, refetch: refetchPayments } = useQuery({
     queryKey: ['consulting-payments-followups'],
     queryFn: async () => {
       const res = await axios.get(`${API}/consulting/payments`);
       return Array.isArray(res.data) ? res.data : [];
-    }
+    },
+    enabled: isConsulting
   });
 
-  // Query: Fetch leads
-  const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
+  // Query: Fetch leads (for sales team)
+  const { data: leadsData = [], isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
     queryKey: ['leads-followups'],
     queryFn: async () => {
       const res = await axios.get(`${API}/leads`);
-      return Array.isArray(res.data) ? res.data : [];
-    }
+      return Array.isArray(res.data) ? res.data : res.data?.items || [];
+    },
+    enabled: isSales
   });
 
-  const loading = paymentsLoading || leadsLoading;
+  // Query: Fetch meetings with next_meeting_date (for sales team)
+  const { data: meetings = [], isLoading: meetingsLoading, refetch: refetchMeetings } = useQuery({
+    queryKey: ['meetings-followups'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/meetings`);
+      return Array.isArray(res.data) ? res.data : res.data?.items || [];
+    },
+    enabled: isSales
+  });
+
+  const loading = paymentsLoading || leadsLoading || meetingsLoading;
+  const leads = Array.isArray(leadsData) ? leadsData : [];
 
   // Memoized follow-ups computation
   const followUps = useMemo(() => {
-    // Transform payment reminders (for consultants)
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    // Transform payment reminders (for consulting team)
     const paymentFollowUps = payments
       .filter(p => p.status === 'pending' || p.status === 'overdue')
       .map(p => ({
@@ -54,35 +70,62 @@ const FollowUps = () => {
         status: p.status,
         priority: p.status === 'overdue' ? 'high' : 'medium',
         contact: p.client_contact,
-        amount: p.amount
+        amount: p.amount,
+        icon: DollarSign
       }));
 
-    // Transform leads (for sales)
+    // Transform leads with next_follow_up (for sales team)
     const leadFollowUps = leads
       .filter(l => l.status !== 'converted' && l.status !== 'lost')
       .filter(l => l.next_follow_up)
-      .map(l => ({
-        id: l.id,
-        type: 'lead',
-        title: `Lead Follow-up: ${l.company_name || l.contact_name}`,
-        description: `Status: ${l.status} - Source: ${l.source || 'N/A'}`,
-        due_date: l.next_follow_up,
-        status: new Date(l.next_follow_up) < new Date() ? 'overdue' : 'pending',
-        priority: l.priority || 'medium',
-        contact: l.contact_phone || l.contact_email,
-        lead_status: l.status
-      }));
+      .map(l => {
+        const dueDate = new Date(l.next_follow_up);
+        dueDate.setHours(0, 0, 0, 0);
+        return {
+          id: `lead-${l.id}`,
+          type: 'lead',
+          title: `Lead Follow-up: ${l.company || l.first_name + ' ' + l.last_name}`,
+          description: l.follow_up_notes || `Status: ${l.status} - ${l.phone || l.email || 'No contact'}`,
+          due_date: l.next_follow_up,
+          status: dueDate < now ? 'overdue' : 'pending',
+          priority: dueDate < now ? 'high' : 'medium',
+          contact: l.phone || l.email,
+          lead_id: l.id,
+          icon: Users
+        };
+      });
 
-    let combined = [...paymentFollowUps, ...leadFollowUps];
+    // Transform meetings with next_meeting_date (for sales team)
+    const meetingFollowUps = meetings
+      .filter(m => m.next_meeting_date)
+      .map(m => {
+        const dueDate = new Date(m.next_meeting_date);
+        dueDate.setHours(0, 0, 0, 0);
+        return {
+          id: `meeting-${m.id}`,
+          type: 'meeting',
+          title: `Meeting Follow-up: ${m.client_name || m.lead_company || 'Client'}`,
+          description: m.next_steps || `From MOM on ${new Date(m.meeting_date).toLocaleDateString()}`,
+          due_date: m.next_meeting_date,
+          status: dueDate < now ? 'overdue' : 'pending',
+          priority: dueDate < now ? 'high' : 'medium',
+          contact: m.attendees,
+          meeting_id: m.id,
+          lead_id: m.lead_id,
+          icon: CalendarCheck
+        };
+      });
+
+    let combined = [...paymentFollowUps, ...leadFollowUps, ...meetingFollowUps];
 
     // Filter based on user role
     if (isSales && !isConsulting) {
-      combined = combined.filter(f => f.type === 'lead');
+      combined = combined.filter(f => f.type === 'lead' || f.type === 'meeting');
     } else if (isConsulting && !isSales) {
       combined = combined.filter(f => f.type === 'payment');
     }
 
-    // Apply filter
+    // Apply type filter
     if (filter !== 'all') {
       combined = combined.filter(f => f.type === filter);
     }
@@ -95,11 +138,12 @@ const FollowUps = () => {
     });
 
     return combined;
-  }, [payments, leads, filter, isSales, isConsulting]);
+  }, [payments, leads, meetings, filter, isSales, isConsulting]);
 
   const fetchFollowUps = () => {
     refetchPayments();
     refetchLeads();
+    refetchMeetings();
   };
 
   const getStatusBadge = (status) => {

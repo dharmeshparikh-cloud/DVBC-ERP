@@ -146,6 +146,8 @@ class Lead(BaseModel):
     created_by: str
     lead_score: Optional[int] = 0
     score_breakdown: Optional[dict] = None
+    next_follow_up: Optional[datetime] = None  # Follow-up date for reminders
+    follow_up_notes: Optional[str] = None  # Notes for the follow-up
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     enriched_at: Optional[datetime] = None
@@ -197,6 +199,8 @@ class LeadUpdate(BaseModel):
     source: Optional[str] = None
     notes: Optional[str] = None
     assigned_to: Optional[str] = None
+    next_follow_up: Optional[datetime] = None
+    follow_up_notes: Optional[str] = None
 
 
 class Project(BaseModel):
