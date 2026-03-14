@@ -16,7 +16,40 @@
 
 ## Completed Work - March 2026
 
-### Phase 106: Button-Level E2E RBAC Hardening - March 13, 2026 ✅ (Latest)
+### Phase 107: Complete enhanced_sow.py Auth Migration - March 13, 2026 ✅ (Latest)
+
+**Objective:** Migrate ALL remaining enhanced_sow.py endpoints from spoofable plain parameters to JWT-authenticated `Depends(get_current_user)`. Clean up ALL frontend calls.
+
+**Backend — 15 Endpoints Migrated:**
+- `request_manager_approval` → JWT + user identity from token
+- `create_sow_from_sales_selection` → JWT + sales role check
+- `get_enhanced_sow` → JWT (replaces `current_user_role` query param)
+- `get_enhanced_sow_by_pricing_plan` → JWT
+- `update_scope_item` → JWT (replaces 3 spoofable params)
+- `add_scope_item` → JWT + `can_add_scopes()` role check
+- `upload_scope_attachment` → JWT
+- `submit_roadmap_for_approval` → JWT
+- `record_client_approval_response` → JWT
+- `upload_consent_document` → JWT
+- `upload_task_attachment` → JWT
+- `request_task_approval` → JWT
+- `get_pending_task_approvals` → JWT
+- `get_sow_history` → JWT + admin/PM/principal role check
+- `get_project_sow` → JWT + assigned consultant access check
+
+**Frontend — 5 Files Cleaned:**
+- `ConsultingProjectTasks.js` — Removed 3 `params: { current_user_* }` blocks
+- `ConsultingScopeView.js` — Removed 8 `params: { current_user_* }` blocks
+- `SalesScopeSelection.js` — Removed params from sales-selection call
+- `SalesSOWList.js` — Removed params from complete-handover call
+
+**Result:** ZERO remaining `current_user_id/name/role` patterns in entire codebase (frontend + backend). All auth now flows through JWT Bearer token via axios interceptor.
+
+**Testing:** 100% pass (19 backend pytest + frontend admin/sales_manager flows). Regression test file: `/app/backend/tests/test_enhanced_sow_auth_migration.py`
+
+---
+
+### Phase 106: Button-Level E2E RBAC Hardening - March 13, 2026 ✅
 
 **Objective:** Deep button-level audit — secure all mutation endpoints and route-protect all remaining pages.
 
