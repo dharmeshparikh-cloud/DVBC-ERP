@@ -471,8 +471,8 @@ function App() {
             </PermissionProvider>
           </AuthContext.Provider>
         </ThemeProvider>
-        {/* React Query DevTools - only shows in development */}
-        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+        {/* React Query DevTools - disabled for cleaner production UX */}
+        {/* <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" /> */}
       </QueryClientProvider>
     </ErrorBoundary>
   );
