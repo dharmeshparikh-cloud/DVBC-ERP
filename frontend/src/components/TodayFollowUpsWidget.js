@@ -87,7 +87,7 @@ const TodayFollowUpsWidget = () => {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-medium text-zinc-800 truncate">{fu.client_name}</span>
-                    <span className={`px-1 py-0 text-[9px] rounded ${ENTITY_COLORS[fu.entity_type] || 'bg-zinc-100 text-zinc-500'}`}>
+                    <span className={`px-1.5 py-0.5 text-[11px] rounded font-semibold ${ENTITY_COLORS[fu.entity_type] || 'bg-zinc-100 text-zinc-500'}`}>
                       {ENTITY_LABELS[fu.entity_type] || fu.entity_type}
                     </span>
                   </div>

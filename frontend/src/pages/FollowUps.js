@@ -206,6 +206,16 @@ const FollowUps = () => {
   const openCount = followUps.filter(f => f.status === 'open').length;
   const escalationCount = escalations?.total || 0;
 
+  // Per-stage breakdown
+  const stageCounts = useMemo(() => {
+    const counts = {};
+    followUps.forEach(f => {
+      const type = f.entity_type || 'unknown';
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    return counts;
+  }, [followUps]);
+
   // Filter and search
   const filteredFollowUps = useMemo(() => {
     let result = followUps;
@@ -311,6 +321,36 @@ const FollowUps = () => {
         )}
       </div>
 
+      {/* Stage Breakdown */}
+      {Object.keys(stageCounts).length > 0 && (
+        <Card className="bg-white border-zinc-200" data-testid="stage-breakdown-card">
+          <CardContent className="py-4">
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">By Funnel Stage</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ENTITY_LABELS).map(([key, label]) => {
+                const count = stageCounts[key] || 0;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFilter(filter === key ? 'all' : key)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                      filter === key
+                        ? 'ring-2 ring-zinc-400 shadow-sm'
+                        : 'hover:shadow-sm'
+                    } ${ENTITY_COLORS[key] || 'bg-zinc-100 text-zinc-600'}`}
+                    data-testid={`stage-count-${key}`}
+                  >
+                    <span>{label}</span>
+                    <span className="font-bold">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Escalation Alert for Managers */}
       {isManager && escalationCount > 0 && (
         <Card className="border-red-300 bg-red-50">
@@ -327,7 +367,7 @@ const FollowUps = () => {
                     <div className="w-2 h-2 rounded-full bg-red-500" />
                     <div>
                       <span className="font-medium text-zinc-800 text-sm">{esc.client_name}</span>
-                      <span className={`ml-2 px-1.5 py-0.5 text-[10px] rounded ${ENTITY_COLORS[esc.entity_type] || 'bg-zinc-100 text-zinc-600'}`}>{ENTITY_LABELS[esc.entity_type]}</span>
+                      <span className={`ml-2 px-2 py-0.5 text-xs rounded font-semibold ${ENTITY_COLORS[esc.entity_type] || 'bg-zinc-100 text-zinc-600'}`}>{ENTITY_LABELS[esc.entity_type]}</span>
                     </div>
                     <span className="text-xs text-zinc-500">Assigned: {esc.assigned_to_name}</span>
                   </div>
@@ -400,13 +440,20 @@ const FollowUps = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium text-zinc-800">{fu.client_name}</span>
-                            <span className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${ENTITY_COLORS[fu.entity_type] || 'bg-zinc-100 text-zinc-600'}`}>{ENTITY_LABELS[fu.entity_type] || fu.entity_type}</span>
+                            <span className={`px-2 py-0.5 text-xs rounded font-semibold ${ENTITY_COLORS[fu.entity_type] || 'bg-zinc-100 text-zinc-600'}`} data-testid={`stage-badge-${fu.id}`}>{ENTITY_LABELS[fu.entity_type] || fu.entity_type}</span>
+                            {fu.priority === 'high' && <Badge variant="destructive" className="text-[10px] px-1.5">High</Badge>}
                             {fu.status === 'closed' && <Badge variant="secondary" className="text-[10px]">Closed</Badge>}
+                            {isOverdue && fu.status === 'open' && (() => {
+                              const days = Math.abs(Math.floor((new Date(fu.due_date).setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / (1000*60*60*24)));
+                              return days >= 2 ? <Badge variant="destructive" className="text-[10px] px-1.5">Escalated</Badge> : null;
+                            })()}
                           </div>
                           <p className="text-sm text-zinc-500 mt-0.5 truncate">{fu.last_follow_up_summary || fu.notes || 'No notes'}</p>
-                          {fu.assigned_to_name && fu.assigned_to !== user?.id && (
-                            <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1"><UserCheck className="w-3 h-3" />{fu.assigned_to_name}</p>
-                          )}
+                          <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400">
+                            {fu.assigned_to_name && (
+                              <span className="flex items-center gap-1"><UserCheck className="w-3 h-3" />{fu.assigned_to_name}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right ml-4 shrink-0">
@@ -440,12 +487,30 @@ const FollowUps = () => {
 
           {selectedFollowUp && (
             <div className="space-y-5">
+              {/* Stage Banner */}
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${ENTITY_COLORS[selectedFollowUp.entity_type] || 'bg-zinc-100 text-zinc-600'}`} data-testid="detail-stage-banner">
+                <CalendarCheck className="w-4 h-4" />
+                <span className="font-semibold text-sm">Funnel Stage: {ENTITY_LABELS[selectedFollowUp.entity_type] || selectedFollowUp.entity_type}</span>
+              </div>
+
               {/* Current Info */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-zinc-400">Priority:</span> <span className={`ml-1 font-medium ${selectedFollowUp.priority === 'high' ? 'text-red-600' : selectedFollowUp.priority === 'low' ? 'text-green-600' : 'text-yellow-600'}`}>{selectedFollowUp.priority}</span></div>
                 <div><span className="text-zinc-400">Assigned to:</span> <span className="ml-1">{selectedFollowUp.assigned_to_name}</span></div>
                 <div><span className="text-zinc-400">Created by:</span> <span className="ml-1">{selectedFollowUp.created_by_name}</span></div>
-                <div><span className="text-zinc-400">Status:</span> <Badge variant={selectedFollowUp.status === 'open' ? 'default' : 'secondary'} className="ml-1 text-xs">{selectedFollowUp.status}</Badge></div>
+                <div><span className="text-zinc-400">Status:</span> <Badge variant={selectedFollowUp.status === 'open' ? 'default' : 'secondary'} className="ml-1 text-xs">{selectedFollowUp.status}</Badge>
+                  {selectedFollowUp.status === 'open' && (() => {
+                    const due = new Date(selectedFollowUp.due_date);
+                    const today = new Date(); today.setHours(0,0,0,0); due.setHours(0,0,0,0);
+                    const days = Math.floor((today - due) / (1000*60*60*24));
+                    if (days >= 2) return <Badge variant="destructive" className="ml-1 text-xs">Escalated</Badge>;
+                    if (days >= 1) return <Badge variant="outline" className="ml-1 text-xs text-red-500 border-red-300">Overdue</Badge>;
+                    if (days === 0) return <Badge variant="outline" className="ml-1 text-xs text-yellow-600 border-yellow-300">Due Today</Badge>;
+                    return null;
+                  })()}
+                </div>
+                <div><span className="text-zinc-400">Due Date:</span> <span className="ml-1 font-medium">{selectedFollowUp.due_date ? new Date(selectedFollowUp.due_date).toLocaleDateString() : 'N/A'}</span></div>
+                {selectedFollowUp.created_at && <div><span className="text-zinc-400">Created:</span> <span className="ml-1">{new Date(selectedFollowUp.created_at).toLocaleDateString()}</span></div>}
               </div>
 
               {selectedFollowUp.last_follow_up_summary && (
