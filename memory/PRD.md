@@ -16,7 +16,29 @@
 
 ## Completed Work - March 2026
 
-### Phase 107: Complete enhanced_sow.py Auth Migration - March 13, 2026 ✅ (Latest)
+### Phase 108: Fix "View Details" Button for Completed Projects - March 14, 2026 ✅ (Latest)
+
+**Objective:** Fix usability regression where completed projects showed "View Only" label but had no clickable button to access project details.
+
+**Problem:** After implementing project action controls (disabling modifications for completed projects), users could no longer navigate to view completed project details.
+
+**Files Modified:**
+1. `frontend/src/pages/consulting/MyProjects.js` — Replaced disabled "Tasks Locked" button with clickable "View Details" button that navigates to `/consulting/project-tasks/{sow_id}`
+2. `frontend/src/pages/Projects.js` — Added "View Details" button that navigates to `/projects/{project_id}/tasks`
+
+**Changes:**
+- Both pages now show a "View Details" button alongside the "View Only" badge for completed projects
+- Button navigates to the project's tasks page (read-only view)
+- Admin "Reopen Project" button remains available on MyProjects page
+
+**Testing:** Screenshot verification confirmed:
+- View Details button appears on Projects page for completed projects
+- Button successfully navigates to project tasks page
+- 3 completed projects visible with View Details functionality working
+
+---
+
+### Phase 107: Complete enhanced_sow.py Auth Migration - March 13, 2026 ✅
 
 **Objective:** Migrate ALL remaining enhanced_sow.py endpoints from spoofable plain parameters to JWT-authenticated `Depends(get_current_user)`. Clean up ALL frontend calls.
 

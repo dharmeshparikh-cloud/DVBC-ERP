@@ -427,9 +427,19 @@ const Projects = () => {
                 <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-2">
                   {isProjectReadOnly(project.status) ? (
                     <>
+                      <Button
+                        onClick={() => navigate(`/projects/${project.id}/tasks`)}
+                        size="sm"
+                        variant="outline"
+                        className="rounded-sm"
+                        data-testid={`view-details-btn-${project.id}`}
+                      >
+                        <ListTodo className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                        View Details
+                      </Button>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700 rounded-sm border border-amber-200">
                         <Lock className="w-3.5 h-3.5" />
-                        View Only — Project {project.status}
+                        View Only
                       </span>
                     </>
                   ) : (

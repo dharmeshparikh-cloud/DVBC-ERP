@@ -575,15 +575,14 @@ const MyProjects = () => {
                         {readOnly ? (
                           <>
                             <Button
+                              onClick={() => navigate(`/consulting/project-tasks/${sow.id}`)}
                               variant="outline"
                               size="sm"
-                              className="rounded-sm opacity-40 cursor-not-allowed border-amber-200 text-amber-700"
-                              disabled
-                              title="Project completed — modifications disabled"
-                              data-testid={`card-tasks-btn-disabled-${sow.id}`}
+                              className="rounded-sm"
+                              data-testid={`view-details-btn-${sow.id}`}
                             >
-                              <Lock className="w-4 h-4 mr-1" />
-                              Tasks Locked
+                              <Eye className="w-4 h-4 mr-1" />
+                              View Details
                             </Button>
                             {isAdmin && (
                               <Button

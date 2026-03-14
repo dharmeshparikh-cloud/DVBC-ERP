@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://erp-mobile-audit.preview.emergentagent.com",
+      "value": "https://view-details-gate.preview.emergentagent.com",
       "type": "string"
     },
     {
