@@ -372,6 +372,55 @@ const KickoffRequests = () => {
   const pendingRequests = requests.filter(r => r.status === 'pending');
   const returnedRequests = requests.filter(r => r.status === 'returned');
   const processedRequests = requests.filter(r => !['pending', 'returned'].includes(r.status));
+  
+  // Check if user has any eligible agreements for kickoff
+  const eligibleAgreements = agreements.filter(a => a.status === 'approved');
+  const hasEligibleAgreements = eligibleAgreements.length > 0;
+  const hasAnyRequests = requests.length > 0;
+
+  // Show guidance when there's nothing to do
+  if (!hasAnyRequests && isSalesRole && !hasEligibleAgreements) {
+    return (
+      <div className="space-y-6" data-testid="kickoff-requests-page">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900">Kickoff Requests</h1>
+          <p className="text-sm text-zinc-500">Send project handoffs to consulting team</p>
+        </div>
+        
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="space-y-3">
+                <h3 className="font-semibold text-amber-800">No Projects Ready for Kickoff</h3>
+                <p className="text-sm text-amber-700">
+                  To create a kickoff request, you must first complete the sales funnel:
+                </p>
+                <ol className="text-sm text-amber-700 list-decimal list-inside space-y-1 ml-2">
+                  <li><strong>Lead</strong> - Create and qualify a lead</li>
+                  <li><strong>Meeting</strong> - Record a meeting with Minutes of Meeting (MOM)</li>
+                  <li><strong>Pricing</strong> - Create a pricing plan</li>
+                  <li><strong>SOW</strong> - Define the scope of work</li>
+                  <li><strong>Quotation</strong> - Generate and send quotation</li>
+                  <li><strong>Agreement</strong> - Get agreement approved by Principal Consultant</li>
+                  <li><strong>Payment</strong> - First installment must be verified</li>
+                  <li><strong>Kickoff</strong> - Then you can create a kickoff request</li>
+                </ol>
+                <div className="pt-2">
+                  <Button onClick={() => navigate('/leads')} variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100">
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Go to Leads to Start
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-testid="kickoff-requests-page">

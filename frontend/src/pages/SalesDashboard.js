@@ -742,14 +742,21 @@ const SalesDashboard = () => {
         </>
       )}
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Quick Actions - Funnel-aware */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'New Lead', href: '/leads', icon: Users, color: 'bg-blue-600 hover:bg-blue-700' },
-          { label: 'View Pipeline', href: '/leads', icon: TrendingUp, color: 'bg-indigo-600 hover:bg-indigo-700' },
-          { label: 'Kickoff Requests', href: '/kickoff-requests', icon: Briefcase, color: 'bg-amber-600 hover:bg-amber-700' },
-          { label: isManager ? 'Team Dashboard' : 'My Leads', href: isManager ? '/manager-leads-dashboard' : '/leads', icon: BarChart3, color: 'bg-emerald-600 hover:bg-emerald-700' },
-        ].map((action, i) => (
+          { label: 'New Lead', href: '/leads', icon: Users, color: 'bg-blue-600 hover:bg-blue-700', show: true },
+          { label: 'View Pipeline', href: '/leads', icon: TrendingUp, color: 'bg-indigo-600 hover:bg-indigo-700', show: true },
+          { 
+            label: 'Kickoff Requests', 
+            href: '/kickoff-requests', 
+            icon: Briefcase, 
+            color: 'bg-amber-600 hover:bg-amber-700',
+            // Only show if user is manager or has agreements in payment stage
+            show: isManager || (myFunnelData?.payment > 0)
+          },
+          { label: isManager ? 'Team Dashboard' : 'My Leads', href: isManager ? '/manager-leads-dashboard' : '/leads', icon: BarChart3, color: 'bg-emerald-600 hover:bg-emerald-700', show: true },
+        ].filter(action => action.show).map((action, i) => (
           <Link key={i} to={action.href}>
             <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer">
               <CardContent className="pt-4 pb-4 flex items-center gap-3">
