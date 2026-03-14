@@ -16,7 +16,28 @@
 
 ## Completed Work - March 2026
 
-### Phase 108: Fix "View Details" Button for Completed Projects - March 14, 2026 ✅ (Latest)
+### Phase 109: Unified Follow-ups Feature - March 14, 2026 ✅ (Latest)
+
+**Objective:** Complete the unified "Today's Follow-ups" feature that combines data from leads (next_follow_up), meetings (next_meeting_date), and consulting payments into a single dashboard.
+
+**Backend Changes:**
+- `models.py` — Added `next_follow_up` and `follow_up_notes` fields to `LeadCreate` model (were already on `LeadUpdate` and `Lead`)
+- Fixed legacy meeting data where `attendees` field was stored as string instead of array (caused /api/meetings 500 error)
+
+**Frontend Changes:**
+1. **Leads.js** — Added "Next Follow-up Date" (date picker) and "Follow-up Notes" (text input) fields to the Add Lead form. Handles date-to-ISO conversion on submit.
+2. **FollowUps.js** — Multiple fixes:
+   - Added "Meeting" type badge (green) alongside existing "Lead" (purple) and "Payment" (blue) badges
+   - Added "Meetings" option to the type filter dropdown
+   - Made type filter dropdown visible to all sales users (was only visible to admin)
+   - Added "Meeting Follow-ups" summary card with count
+   - Updated page subtitle to include meetings
+
+**Testing:** 100% pass rate (backend + frontend). Test report: `/app/test_reports/iteration_161.json`
+
+---
+
+### Phase 108: Fix "View Details" Button for Completed Projects - March 14, 2026 ✅
 
 **Objective:** Fix usability regression where completed projects showed "View Only" label but had no clickable button to access project details.
 
