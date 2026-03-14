@@ -194,6 +194,46 @@ async def api_health_check():
     return {"status": "healthy", "service": "NETRA ERP API", "version": "2.0.0"}
 
 
+@app.get("/api/system-status")
+async def system_status():
+    """
+    Real-time system status check for dashboard.
+    Checks: Database connectivity, API responsiveness, core collections.
+    """
+    from datetime import datetime, timezone
+    status = {
+        "overall": "operational",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "checks": {}
+    }
+    
+    try:
+        # Check database connectivity
+        await db.command("ping")
+        status["checks"]["database"] = "operational"
+    except Exception as e:
+        status["checks"]["database"] = "degraded"
+        status["overall"] = "degraded"
+    
+    try:
+        # Check core collections exist
+        collections = await db.list_collection_names()
+        core_collections = ["users", "employees", "rbac_roles"]
+        missing = [c for c in core_collections if c not in collections]
+        if missing:
+            status["checks"]["collections"] = "degraded"
+            status["overall"] = "degraded"
+        else:
+            status["checks"]["collections"] = "operational"
+    except Exception:
+        status["checks"]["collections"] = "error"
+        status["overall"] = "degraded"
+    
+    status["checks"]["api"] = "operational"
+    
+    return status
+
+
 # ==================== ROUTER IMPORTS AND INCLUSION ====================
 
 from fastapi import APIRouter, Depends
