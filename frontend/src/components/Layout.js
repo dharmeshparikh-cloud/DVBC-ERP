@@ -884,8 +884,8 @@ const Layout = () => {
       {/* Global Search Modal */}
       <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
-      {/* Onboarding Tour (for first-time users) */}
-      <OnboardingTour />
+      {/* Onboarding Tour disabled for cleaner UX */}
+      {/* <OnboardingTour /> */}
 
       {/* Guidance System */}
       <FloatingHelpButton />

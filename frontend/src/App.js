@@ -458,7 +458,8 @@ function App() {
               <ApprovalProvider>
                 <GuidanceProvider>
                   <Toaster position="top-right" />
-                  <PWAInstallPrompt />
+                  {/* PWA Install Prompt disabled for cleaner UX */}
+                  {/* <PWAInstallPrompt /> */}
                   <BrowserRouter>
                     <StageGuardProvider>
                       <StageGuardDialog />
