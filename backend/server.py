@@ -304,6 +304,56 @@ async def get_ceo_report_logs(current_user=_Dep(get_current_user_from_token)):
             log["date"] = log["date"].isoformat()
     return {"logs": logs}
 
+@app.get("/api/ceo-report/config")
+async def get_ceo_report_config(current_user=_Dep(get_current_user_from_token)):
+    """Get CEO report configuration. Admin only."""
+    if current_user.role != "admin":
+        raise _HTTPExc(status_code=403, detail="Admin only")
+    config = await db.system_settings.find_one({"key": "ceo_report_config"}, {"_id": 0})
+    import os
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_configured = bool(smtp_user and os.environ.get("SMTP_PASSWORD", ""))
+    default = {
+        "recipient": app.state.ceo_report.recipient if hasattr(app.state, "ceo_report") else "dharmesh.parikh@dvconsulting.co.in",
+        "schedule_time": "23:59",
+        "timezone": "Asia/Kolkata",
+        "enabled": True,
+        "smtp_status": "configured" if smtp_configured else "not_configured",
+        "smtp_user": smtp_user,
+    }
+    if config:
+        default.update({k: v for k, v in config.items() if k != "key"})
+    return default
+
+@app.put("/api/ceo-report/config")
+async def update_ceo_report_config(request: Request, current_user=_Dep(get_current_user_from_token)):
+    """Update CEO report config (recipient, enabled). Admin only."""
+    if current_user.role != "admin":
+        raise _HTTPExc(status_code=403, detail="Admin only")
+    body = await request.json()
+    allowed = {"recipient", "enabled"}
+    updates = {k: v for k, v in body.items() if k in allowed}
+    if "recipient" in updates:
+        app.state.ceo_report.recipient = updates["recipient"]
+    await db.system_settings.update_one(
+        {"key": "ceo_report_config"},
+        {"$set": {**updates, "key": "ceo_report_config"}},
+        upsert=True
+    )
+    return {"status": "ok", "updated": updates}
+
+@app.get("/api/ceo-report/data")
+async def get_ceo_report_data(current_user=_Dep(get_current_user_from_token)):
+    """Get raw CEO report data (JSON) for dashboard display. Admin only."""
+    if current_user.role != "admin":
+        raise _HTTPExc(status_code=403, detail="Admin only")
+    try:
+        ceo_report = app.state.ceo_report
+        report_data = await ceo_report.generate_report()
+        return report_data
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 
 
 # ==================== ROUTER IMPORTS AND INCLUSION ====================

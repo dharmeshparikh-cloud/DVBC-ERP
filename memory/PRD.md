@@ -27,9 +27,20 @@
 **CEO Control Tower Report — `/app/backend/services/ceo_report.py`:**
 - 10-section daily intelligence report: Sales Activity, Pipeline Health, Escalations, Meetings, Consulting, SOW/Agreements, Payments, Revenue, Team Productivity, System Health
 - Scheduled via APScheduler at 23:59 IST daily
-- API endpoints: `POST /api/ceo-report/trigger`, `GET /api/ceo-report/preview`, `GET /api/ceo-report/logs`
+- API endpoints: `POST /api/ceo-report/trigger`, `GET /api/ceo-report/preview`, `GET /api/ceo-report/logs`, `GET /api/ceo-report/data`, `GET/PUT /api/ceo-report/config`
 - HTML email with KPI cards, tables, team leaderboard, anomaly alerts
 - Email delivery with 3-retry logic, logging to `system_email_logs` collection
+- Fixed: now properly checks `send_email` return value instead of silently marking as "sent"
+
+**CEO Report Admin Dashboard — `/app/frontend/src/pages/CEOReportDashboard.js` (NEW):**
+- Route: `/ceo-report` (Admin only)
+- KPI cards for all 10 report sections rendered live from MongoDB data
+- Escalation alerts with client name, assignee, overdue days
+- Pipeline health breakdown, Operations stats, System Health metrics
+- Delivery History with sent/failed status badges
+- Settings panel: configurable recipient email, SMTP status indicator, schedule info
+- Actions: Refresh Data, Preview Email (iframe), Send Now, Save Config
+- Sidebar nav: Added under Admin menu as "CEO Report"
 
 **Universal Refresh Button — 32 pages updated:**
 - Reusable `PageRefreshButton` component added to all data list pages

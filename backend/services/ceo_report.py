@@ -430,15 +430,25 @@ class CEOReportGenerator:
             last_error = None
             for attempt in range(3):
                 try:
-                    await send_email(
+                    result = await send_email(
                         to_email=self.recipient,
                         subject=subject,
                         html_content=html,
                     )
-                    log_entry["delivery_status"] = "sent"
-                    log_entry["failure_message"] = None
-                    logger.info(f"CEO Daily Report sent to {self.recipient}")
-                    break
+                    if result.get("status") == "sent":
+                        log_entry["delivery_status"] = "sent"
+                        log_entry["failure_message"] = None
+                        logger.info(f"CEO Daily Report sent to {self.recipient}")
+                        break
+                    elif result.get("status") == "skipped":
+                        last_error = result.get("message", "SMTP not configured")
+                        logger.warning(f"Email skipped: {last_error}")
+                        break
+                    else:
+                        last_error = result.get("message", "Unknown error")
+                        logger.warning(f"Email attempt {attempt+1} failed: {last_error}")
+                        if attempt < 2:
+                            await asyncio.sleep(5)
                 except Exception as e:
                     last_error = str(e)
                     logger.warning(f"Email attempt {attempt+1} failed: {e}")

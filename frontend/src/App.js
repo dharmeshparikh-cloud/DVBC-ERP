@@ -81,6 +81,7 @@ const Expenses = lazy(() => import('./pages/Expenses'));
 const Reports = lazy(() => import('./pages/Reports'));
 const CustomReportBuilder = lazy(() => import('./pages/CustomReportBuilder'));
 const SecurityAuditLog = lazy(() => import('./pages/SecurityAuditLog'));
+const CEOReportDashboard = lazy(() => import('./pages/CEOReportDashboard'));
 const GanttChart = lazy(() => import('./pages/GanttChart'));
 const Downloads = lazy(() => import('./pages/Downloads'));
 const SalesDashboard = lazy(() => import('./pages/SalesDashboard'));
@@ -332,6 +333,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="reports" element={<Reports />} />
         <Route path="report-builder" element={<CustomReportBuilder />} />
         <Route path="security-audit" element={<RoleGuard allowedRoles={[]} allowedDepts={['Admin']}><SecurityAuditLog /></RoleGuard>} />
+        <Route path="ceo-report" element={<RoleGuard allowedRoles={['admin']} allowedDepts={[]}><CEOReportDashboard /></RoleGuard>} />
         <Route path="gantt-chart" element={<GanttChart />} />
         <Route path="downloads" element={<Downloads />} />
         <Route path="sales-dashboard" element={<RoleGuard allowedRoles={['sales_manager', 'executive', 'principal_consultant', 'senior_consultant']} allowedDepts={['Sales']}><SalesDashboard /></RoleGuard>} />
