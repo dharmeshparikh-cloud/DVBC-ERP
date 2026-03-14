@@ -9,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import LockableCard from '../components/LockableCard';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
+import TodayFollowUpsWidget from '../components/TodayFollowUpsWidget';
 import { 
   RevenueExpanded, LeadsExpanded, MeetingsExpanded, 
   ProjectsExpanded, AttendanceExpanded 
@@ -159,6 +160,9 @@ const AdminDashboard = () => {
 
       {/* RBAC Widget - Shows current permissions */}
       <RBACWidget />
+
+      {/* Today's Follow-ups Widget */}
+      <TodayFollowUpsWidget />
 
       {/* Quick Attendance Card - Light Blue to Dark Blue Gradient */}
       <Card 

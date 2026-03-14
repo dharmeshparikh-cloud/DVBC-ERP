@@ -15,6 +15,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import RBACWidget from '../components/RBACWidget';
+import TodayFollowUpsWidget from '../components/TodayFollowUpsWidget';
 import { usePermissions } from '../contexts/PermissionContext';
 import { useQuery } from '@tanstack/react-query';
 
@@ -140,6 +141,9 @@ const SalesDashboard = () => {
 
       {/* RBAC Widget - Shows current permissions */}
       <RBACWidget />
+
+      {/* Today's Follow-ups Widget */}
+      <TodayFollowUpsWidget />
 
       {/* Target vs Achievement - My Performance */}
       {myFunnelData?.targets && (

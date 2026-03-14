@@ -8,6 +8,7 @@ import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, 
 import { sanitizeDisplayText } from '../utils/sanitize';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
+import TodayFollowUpsWidget from '../components/TodayFollowUpsWidget';
 
 // React Query hooks for data fetching with caching
 import { 
@@ -182,6 +183,9 @@ const Dashboard = () => {
       <div className="mb-6">
         <RBACWidget />
       </div>
+
+      {/* Today's Follow-ups Widget */}
+      <TodayFollowUpsWidget />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {statCards.map((stat) => {

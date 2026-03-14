@@ -482,6 +482,9 @@ api_router.include_router(data_integrity_router.router)
 # Excel Upload (Bulk Import)
 api_router.include_router(excel_upload_router.router)
 
+from routers import follow_ups as follow_ups_router
+api_router.include_router(follow_ups_router.router)
+
 # WebSocket for real-time updates (under /api prefix for proper routing through ingress)
 from routers import websocket_router
 api_router.include_router(websocket_router.router)
