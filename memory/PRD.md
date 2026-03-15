@@ -11,13 +11,43 @@
 - **Caching**: Redis (with in-memory fallback) + React Query client-side
 - **Real-time**: WebSocket for live updates
 - **Monitoring**: Integrity Scheduler (daily 02:00 UTC)
-- **Google Maps API**: Available for location services
+- **Google Maps API**: Available for location services (Places, Distance Matrix, Directions)
 
 ---
 
 ## Completed Work - March 2026
 
-### Phase 115: Meeting Card Upload & UI Bug Fixes — March 15, 2026 ✅ (Latest)
+### Phase 116: Meeting Location & Travel Tracking — March 15, 2026 ✅ (Latest)
+
+**Objective:** Add Google Maps integration for offline meeting travel details.
+
+**Features Implemented:**
+
+1. **MeetingLocationPicker Component** (`/app/frontend/src/components/MeetingLocationPicker.js`)
+   - Google Places Autocomplete for location search
+   - Start Location, End Location, Via Locations (multi-location support)
+   - Travel Mode selection (Car, Bike, Transit, Walk)
+   - Round Trip toggle
+   - Calculate Distance button using Google Distance Matrix API
+   - Shows one-way and round-trip distances with estimated travel time
+   - Total KM for expense claim calculation
+
+2. **Backend Travel Data Storage**
+   - Added `travel_details` field to meeting documents
+   - Stores: start/end locations with coordinates, via locations, travel mode, distance, duration
+
+3. **Frontend Integration**
+   - MeetingLocationPicker appears only for Offline meetings
+   - Travel data included in meeting submission payload
+
+**Files Modified:**
+- `MeetingRecord.js`: Added travelData state, MeetingLocationPicker integration
+- `meetings.py`: Added travel_details field to meeting document
+- `frontend/.env`: Added REACT_APP_GOOGLE_MAPS_API_KEY
+
+---
+
+### Phase 115: Meeting Card Upload & UI Bug Fixes — March 15, 2026 ✅
 
 **Bugs Fixed:**
 

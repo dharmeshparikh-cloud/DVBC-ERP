@@ -199,6 +199,8 @@ async def record_sales_meeting(
         "next_meeting_date": None,
         "mom_sent_to_client": False,
         "mom_sent_at": None,
+        # Travel details for offline meetings
+        "travel_details": data.get("travel_details"),
         # Metadata
         "created_by": current_user.id,
         "created_by_name": current_user.full_name,

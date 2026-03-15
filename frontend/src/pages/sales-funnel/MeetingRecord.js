@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
+import MeetingLocationPicker from '../../components/MeetingLocationPicker';
 
 // Draft storage key prefix
 const DRAFT_KEY_PREFIX = 'mom_draft_';
@@ -49,6 +50,22 @@ const MeetingRecord = () => {
     meeting_type: 'Online',
     attendees: [''],
     title: ''
+  });
+
+  // Travel data for offline meetings
+  const [travelData, setTravelData] = useState({
+    startLocation: '',
+    startLocationData: null,
+    endLocation: '',
+    endLocationData: null,
+    viaLocations: [],
+    isRoundTrip: false,
+    travelMode: 'DRIVING',
+    distance: null,
+    duration: null,
+    totalKm: 0,
+    startTime: '',
+    endTime: ''
   });
 
   // MOM (Minutes of Meeting) data
@@ -379,7 +396,23 @@ const MeetingRecord = () => {
         client_expectations: momData.client_expectations.filter(c => c.trim()),
         key_commitments: momData.key_commitments.filter(k => k.trim()),
         action_items: momData.action_items.filter(a => a.trim()),
-        next_steps: momData.next_steps
+        next_steps: momData.next_steps,
+        // Travel data for offline meetings
+        ...(formData.meeting_type === 'Offline' && travelData.startLocation ? {
+          travel_details: {
+            start_location: travelData.startLocation,
+            start_location_data: travelData.startLocationData,
+            end_location: travelData.endLocation,
+            end_location_data: travelData.endLocationData,
+            via_locations: travelData.viaLocations,
+            is_round_trip: travelData.isRoundTrip,
+            travel_mode: travelData.travelMode,
+            distance_km: travelData.totalKm,
+            duration_seconds: travelData.duration?.value || 0,
+            travel_start_time: travelData.startTime,
+            travel_end_time: travelData.endTime
+          }
+        } : {})
       };
 
       const response = await axios.post(`${API}/meetings/record`, payload);
@@ -414,6 +447,22 @@ const MeetingRecord = () => {
         key_commitments: [''],
         action_items: [''],
         next_steps: ''
+      });
+      
+      // Reset travel data
+      setTravelData({
+        startLocation: '',
+        startLocationData: null,
+        endLocation: '',
+        endLocationData: null,
+        viaLocations: [],
+        isRoundTrip: false,
+        travelMode: 'DRIVING',
+        distance: null,
+        duration: null,
+        totalKm: 0,
+        startTime: '',
+        endTime: ''
       });
       
       // Refresh meetings list
@@ -529,6 +578,16 @@ const MeetingRecord = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Travel Details for Offline Meetings */}
+            {formData.meeting_type === 'Offline' && (
+              <MeetingLocationPicker
+                value={travelData}
+                onChange={setTravelData}
+                meetingType={formData.meeting_type}
+                data-testid="meeting-location-picker"
+              />
+            )}
 
             <div className="space-y-2">
               <Label className="flex items-center justify-between">
