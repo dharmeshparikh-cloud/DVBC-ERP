@@ -167,6 +167,21 @@ const MOMScorecard = ({ period = 'month', isManager = false }) => {
             </div>
           </div>
         )}
+
+        {/* View Full Report Link - Manager Only */}
+        {isManager && (
+          <div className="border-t pt-3">
+            <Link 
+              to="/manager-mom-review" 
+              className="flex items-center justify-center gap-2 p-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+              data-testid="view-mom-review-link"
+            >
+              <FileText className="w-4 h-4" />
+              View Full MOM Report & Download PDF
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1277,3 +1277,197 @@ async def get_mom_scorecard(
         "top_performers": top_performers
     }
 
+
+@router.get("/analytics/manager-mom-review")
+async def get_manager_mom_review(
+    period: str = "month",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get detailed MOM review data for all reportees.
+    Only accessible by managers to review their team's MOM compliance.
+    Returns full meeting details with MOM content for verification.
+    """
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    # Check if user is a manager
+    if current_user.role not in MANAGER_ROLES:
+        raise HTTPException(status_code=403, detail="Only managers can access this report")
+    
+    # Calculate date range based on period
+    if period == "week":
+        date_start = (now - timedelta(days=now.weekday())).strftime("%Y-%m-%d")
+    elif period == "quarter":
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        date_start = datetime(now.year, quarter_month, 1).strftime("%Y-%m-%d")
+    elif period == "year":
+        date_start = datetime(now.year, 1, 1).strftime("%Y-%m-%d")
+    else:  # month (default)
+        date_start = datetime(now.year, now.month, 1).strftime("%Y-%m-%d")
+    
+    date_end = now.strftime("%Y-%m-%d")
+    
+    # Get all reportees
+    reportees = []
+    if current_user.role == 'admin':
+        # Admin sees all employees
+        all_employees = await db.employees.find({"status": "active"}, {"_id": 0}).to_list(500)
+        reportees = all_employees
+    else:
+        # Get direct and indirect reportees
+        direct_reportees = await db.employees.find(
+            {"reporting_manager_id": current_user.id, "status": "active"},
+            {"_id": 0}
+        ).to_list(100)
+        reportees = list(direct_reportees)
+        
+        # Get indirect reportees (one level down)
+        direct_ids = [r.get("user_id") or r.get("id") for r in direct_reportees if r.get("user_id") or r.get("id")]
+        if direct_ids:
+            indirect_reportees = await db.employees.find(
+                {"reporting_manager_id": {"$in": direct_ids}, "status": "active"},
+                {"_id": 0}
+            ).to_list(100)
+            reportees.extend(indirect_reportees)
+    
+    # Build employee lookup
+    employee_map = {}
+    for emp in reportees:
+        emp_id = emp.get("user_id") or emp.get("id")
+        if emp_id:
+            employee_map[emp_id] = {
+                "id": emp_id,
+                "employee_id": emp.get("employee_id"),
+                "name": f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip() or emp.get("name", "Unknown"),
+                "role": emp.get("role"),
+                "department": emp.get("department")
+            }
+    
+    reportee_ids = list(employee_map.keys())
+    
+    # Get all meetings for reportees in the date range
+    meetings = await db.meeting_records.find(
+        {
+            "assigned_to": {"$in": reportee_ids},
+            "created_at": {"$gte": date_start}
+        },
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Group meetings by employee and calculate stats
+    employee_meetings = {}
+    all_detailed_meetings = []
+    
+    for meeting in meetings:
+        emp_id = meeting.get("assigned_to")
+        if emp_id not in employee_meetings:
+            employee_meetings[emp_id] = {
+                "total": 0,
+                "with_mom": 0,
+                "without_mom": 0,
+                "sent_to_client": 0,
+                "meetings": []
+            }
+        
+        has_mom = bool(meeting.get("mom") or meeting.get("mom_generated"))
+        employee_meetings[emp_id]["total"] += 1
+        if has_mom:
+            employee_meetings[emp_id]["with_mom"] += 1
+        else:
+            employee_meetings[emp_id]["without_mom"] += 1
+        if meeting.get("mom_sent_to_client"):
+            employee_meetings[emp_id]["sent_to_client"] += 1
+        
+        # Get lead info for context
+        lead_company = meeting.get("company_name") or meeting.get("lead_company") or "Unknown"
+        
+        # Build detailed meeting record
+        mom_data = meeting.get("mom", {})
+        if isinstance(mom_data, str):
+            mom_data = {"summary": mom_data}
+        
+        detailed_meeting = {
+            "id": meeting.get("id"),
+            "employee_id": emp_id,
+            "employee_name": employee_map.get(emp_id, {}).get("name", "Unknown"),
+            "employee_code": employee_map.get(emp_id, {}).get("employee_id", ""),
+            "lead_id": meeting.get("lead_id"),
+            "company": lead_company,
+            "title": meeting.get("title") or f"Meeting with {lead_company}",
+            "meeting_date": meeting.get("meeting_date"),
+            "meeting_time": meeting.get("meeting_time"),
+            "meeting_type": meeting.get("type") or meeting.get("meeting_type", "sales"),
+            "mode": meeting.get("mode", "offline"),
+            "status": meeting.get("status", "completed"),
+            "has_mom": has_mom,
+            "mom_sent_to_client": meeting.get("mom_sent_to_client", False),
+            "mom": {
+                "summary": mom_data.get("summary") or meeting.get("notes", ""),
+                "key_decisions": mom_data.get("key_decisions", []),
+                "discussion_points": mom_data.get("discussion_points", []),
+                "client_concerns": mom_data.get("client_concerns", []),
+                "commitments_made": mom_data.get("commitments_made", []),
+                "next_steps": mom_data.get("next_steps", []),
+                "recorded_by": mom_data.get("recorded_by") or meeting.get("created_by_name"),
+                "recorded_at": mom_data.get("recorded_at") or meeting.get("created_at")
+            } if has_mom else None,
+            "action_items": meeting.get("action_items", []),
+            "attendees": meeting.get("attendees", []),
+            "travel_info": {
+                "origin": meeting.get("travel_origin"),
+                "destination": meeting.get("travel_destination"),
+                "distance_km": meeting.get("travel_distance_km"),
+                "travel_mode": meeting.get("travel_mode")
+            } if meeting.get("travel_distance_km") else None,
+            "created_at": meeting.get("created_at")
+        }
+        
+        employee_meetings[emp_id]["meetings"].append(detailed_meeting)
+        all_detailed_meetings.append(detailed_meeting)
+    
+    # Build employee summary with stats
+    employee_summaries = []
+    for emp_id, stats in employee_meetings.items():
+        emp_info = employee_map.get(emp_id, {})
+        completion_rate = round((stats["with_mom"] / stats["total"] * 100) if stats["total"] > 0 else 0, 1)
+        employee_summaries.append({
+            "employee_id": emp_id,
+            "employee_code": emp_info.get("employee_id", ""),
+            "name": emp_info.get("name", "Unknown"),
+            "role": emp_info.get("role"),
+            "department": emp_info.get("department"),
+            "total_meetings": stats["total"],
+            "with_mom": stats["with_mom"],
+            "without_mom": stats["without_mom"],
+            "sent_to_client": stats["sent_to_client"],
+            "completion_rate": completion_rate,
+            "meetings": sorted(stats["meetings"], key=lambda x: x.get("meeting_date") or "", reverse=True)
+        })
+    
+    # Sort by completion rate (lowest first for attention)
+    employee_summaries = sorted(employee_summaries, key=lambda x: x["completion_rate"])
+    
+    # Calculate overall stats
+    total_meetings = len(all_detailed_meetings)
+    total_with_mom = sum(1 for m in all_detailed_meetings if m["has_mom"])
+    total_sent_to_client = sum(1 for m in all_detailed_meetings if m["mom_sent_to_client"])
+    
+    return {
+        "period": period,
+        "date_range": {
+            "start": date_start,
+            "end": date_end
+        },
+        "overall_summary": {
+            "total_reportees": len(employee_summaries),
+            "total_meetings": total_meetings,
+            "meetings_with_mom": total_with_mom,
+            "meetings_without_mom": total_meetings - total_with_mom,
+            "mom_completion_rate": round((total_with_mom / total_meetings * 100) if total_meetings > 0 else 0, 1),
+            "mom_sent_to_client": total_sent_to_client
+        },
+        "employee_summaries": employee_summaries,
+        "all_meetings": sorted(all_detailed_meetings, key=lambda x: x.get("meeting_date") or "", reverse=True)
+    }
+

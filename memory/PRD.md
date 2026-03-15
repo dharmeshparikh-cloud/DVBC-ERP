@@ -15,9 +15,9 @@
 
 ---
 
-### Phase 120: MOM Scorecard Widget & Dashboard Enhancements — March 15, 2026 ✅ (Latest)
+### Phase 120: MOM Scorecard Widget & Manager MOM Review — March 15, 2026 ✅ (Latest)
 
-**Objective:** Add MOM Scorecard widget to dashboards and implement role-based visibility for Employee Scorecard.
+**Objective:** Add MOM Scorecard widget to dashboards and implement comprehensive Manager MOM Review page.
 
 **Features Implemented:**
 
@@ -27,36 +27,42 @@
    - Additional stats: Timely MOMs (within 24h), Sent to Client count
    - Manager view: Top performers ranked by MOM completion rate
    - Links to pending MOMs for quick action
+   - Link to full MOM Review page for managers
    - Added to Sales Dashboard and Admin Dashboard
 
-2. **Employee Scorecard Role-Based Visibility**
+2. **Manager MOM Review Page** (NEW)
+   - Full-page dedicated to reviewing team's MOM submissions
+   - Period selector: Week, Month, Quarter, Year
+   - Search and filter by employee name, company, status
+   - Summary cards: Team Members, Total Meetings, With/Without MOM, Completion Rate, Sent to Client
+   - **By Employee View**: Collapsible accordion showing each employee's meetings with full MOM details
+   - **All Meetings View**: Table view of all meetings with MOM status
+   - **PDF Download**: Comprehensive multi-page PDF report including:
+     - Employee MOM Summary table
+     - Detailed Meeting Records table
+     - Full MOM Content (Summary, Key Decisions, Commitments, Client Concerns)
+   - Accessible via sidebar: Sales > MOM Review (managers only)
+   - Route: `/manager-mom-review`
+
+3. **Employee Scorecard Role-Based Visibility**
    - Scorecard tab removed from workspace nav for regular employees
    - Scorecard removed from sidebar for non-Admin/HR/Manager roles
    - Only visible to: `admin`, `hr_manager`, `hr_executive`, `manager`
-   - Prevents employees from viewing their own scorecard ratings
 
-3. **My Projects Bug Fix**
+4. **My Projects Bug Fix**
    - Fixed `isManager is not defined` error on Projects page
    - Updated filtering logic for Sales team to show only WON/Closed leads
 
 **Files Created/Modified:**
-- `frontend/src/components/MOMScorecard.js` (NEW): MOM Scorecard widget component
-- `backend/routers/analytics.py`: Added `/analytics/mom-scorecard` endpoint
-- `frontend/src/pages/SalesDashboard.js`: Added MOMScorecard import and usage
-- `frontend/src/pages/AdminDashboard.js`: Added MOMScorecard import and usage
-- `frontend/src/components/MyWorkspaceNav.js`: Added role-based filtering for Scorecard
-- `frontend/src/components/Layout.js`: Added canViewScorecard check
-- `frontend/src/pages/consulting/MyProjects.js`: Fixed isManager, updated Sales filtering
+- `frontend/src/pages/ManagerMOMReview.js` (NEW): Full MOM Review page with PDF export
+- `frontend/src/components/MOMScorecard.js`: Added link to full report for managers
+- `backend/routers/analytics.py`: Added `/analytics/manager-mom-review` endpoint
+- `frontend/src/App.js`: Added route for ManagerMOMReview
+- `frontend/src/components/Layout.js`: Added MOM Review link to Sales sidebar (managers only)
 
-**API Endpoint:**
+**API Endpoints:**
 - `GET /api/analytics/mom-scorecard?period={week|month|quarter|year}`
-
-**MOM Inheritance in Kickoff Requests (Already Exists):**
-- Confirmed that MOM compilation is already implemented in KickoffRequests.js
-- Meeting History tab shows all MOMs with: summary, key decisions, discussion points, client concerns, commitments, next steps
-- Client Expectations Summary and Key Commitments Summary extracted from meetings
-
-**Testing:** Verified via screenshots - widgets displaying correctly on dashboards
+- `GET /api/analytics/manager-mom-review?period={week|month|quarter|year}` (managers only)
 
 ---
 
