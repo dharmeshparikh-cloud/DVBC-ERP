@@ -25,7 +25,11 @@
 - Fixed `ObjectId serialization error` in CEO report's `send_report()` — removed `_id` from log_entry before returning, converted datetime to ISO string
 
 **CEO Control Tower Report — `/app/backend/services/ceo_report.py`:**
-- 10-section daily intelligence report: Sales Activity, Pipeline Health, Escalations, Meetings, Consulting, SOW/Agreements, Payments, Revenue, Team Productivity, System Health
+- **13-section** daily intelligence report with MTD/QTD/YTD breakdowns:
+  - Sections 1-10: Sales Activity, Pipeline Health, Escalations, Meetings, Consulting Ops, SOW/Agreements, Payments, Revenue (MTD/QTD/YTD), Team Productivity, System Health
+  - Section 11: **HR Metrics** — Attendance (present/absent/WFH/leave), leaves pending/approved (MTD/QTD/YTD), new joiners (MTD/QTD/YTD), onboarding queue
+  - Section 12: **Consulting Team** — Consultants count, tasks (active/done/overdue), tasks completed (MTD/QTD/YTD), projects completed (MTD/QTD/YTD), logged hours MTD
+  - Section 13: **Finance & Expenses** — Expenses pending/approved (MTD/QTD/YTD), expense amounts (MTD/QTD/YTD), travel reimbursements (MTD/QTD/YTD), latest payroll status
 - Scheduled via APScheduler at 23:59 IST daily
 - API endpoints: `POST /api/ceo-report/trigger`, `GET /api/ceo-report/preview`, `GET /api/ceo-report/logs`, `GET /api/ceo-report/data`, `GET/PUT /api/ceo-report/config`
 - HTML email with KPI cards, tables, team leaderboard, anomaly alerts

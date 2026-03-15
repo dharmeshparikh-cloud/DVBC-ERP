@@ -101,6 +101,12 @@ const CEOReportDashboard = () => {
   const pay = reportData?.payments || {};
   const rev = reportData?.revenue || {};
   const sh = reportData?.system_health || {};
+  const hr = reportData?.hr_metrics || {};
+  const ct = reportData?.consulting_team || {};
+  const fe = reportData?.finance_expenses || {};
+  const att = hr.attendance_today || {};
+  const tasks = ct.tasks || {};
+  const inr = (v) => (v || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 
   if (loadingData) {
     return <div className="flex items-center justify-center h-64" data-testid="ceo-report-loading"><RefreshCw className="w-6 h-6 animate-spin text-zinc-400" /></div>;
@@ -170,11 +176,13 @@ const CEOReportDashboard = () => {
       </div>
 
       {/* KPI Row 2: Pipeline + Revenue */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <KPICard icon={CheckCircle} label="Closed Won" value={sa.closed_won} color="text-emerald-600" bg="bg-emerald-50" />
         <KPICard icon={XCircle} label="Closed Lost" value={sa.closed_lost} color="text-red-600" bg="bg-red-50" />
-        <KPICard icon={DollarSign} label="Today Revenue" value={`${(rev.today_revenue || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}`} color="text-emerald-700" bg="bg-emerald-50" />
-        <KPICard icon={DollarSign} label="MTD Revenue" value={`${(rev.mtd_revenue || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}`} color="text-blue-700" bg="bg-blue-50" />
+        <KPICard icon={DollarSign} label="Today Revenue" value={inr(rev.today_revenue)} color="text-emerald-700" bg="bg-emerald-50" />
+        <KPICard icon={DollarSign} label="MTD Revenue" value={inr(rev.mtd_revenue)} color="text-blue-700" bg="bg-blue-50" />
+        <KPICard icon={DollarSign} label="QTD Revenue" value={inr(rev.qtd_revenue)} color="text-indigo-700" bg="bg-indigo-50" />
+        <KPICard icon={DollarSign} label="YTD Revenue" value={inr(rev.ytd_revenue)} color="text-violet-700" bg="bg-violet-50" />
       </div>
 
       {/* Middle Section: Pipeline + Escalations + Consulting */}
@@ -283,6 +291,69 @@ const CEOReportDashboard = () => {
         </Card>
       </div>
 
+      {/* Section 11: HR Metrics */}
+      <Card className="border-violet-200 shadow-none rounded-sm" data-testid="ceo-hr-section">
+        <CardHeader className="py-3 px-4 border-b border-violet-100">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-violet-700"><Users className="w-4 h-4" /> HR Metrics</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 pt-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
+            <KPICard icon={Users} label="Employees" value={hr.total_employees} color="text-violet-600" bg="bg-violet-50" />
+            <KPICard icon={CheckCircle} label="Present" value={att.present} color="text-emerald-600" bg="bg-emerald-50" />
+            <KPICard icon={XCircle} label="Absent" value={att.absent} color="text-red-600" bg="bg-red-50" />
+            <KPICard icon={Shield} label="WFH" value={att.wfh} color="text-blue-600" bg="bg-blue-50" />
+            <KPICard icon={Calendar} label="On Leave" value={att.leave} color="text-amber-600" bg="bg-amber-50" />
+            <KPICard icon={Clock} label="Leaves Pending" value={hr.leaves_pending} color="text-amber-600" bg="bg-amber-50" />
+            <KPICard icon={Users} label="Onboarding Queue" value={hr.onboarding_pending} color="text-indigo-600" bg="bg-indigo-50" />
+          </div>
+          <PeriodTable rows={[
+            { label: 'Leaves Approved', mtd: hr.leaves_approved?.mtd, qtd: hr.leaves_approved?.qtd, ytd: hr.leaves_approved?.ytd },
+            { label: 'New Joiners', mtd: hr.new_joiners?.mtd, qtd: hr.new_joiners?.qtd, ytd: hr.new_joiners?.ytd },
+          ]} />
+        </CardContent>
+      </Card>
+
+      {/* Section 12: Consulting Team */}
+      <Card className="border-cyan-200 shadow-none rounded-sm" data-testid="ceo-consulting-team-section">
+        <CardHeader className="py-3 px-4 border-b border-cyan-100">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-cyan-700"><Briefcase className="w-4 h-4" /> Consulting Team Performance</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 pt-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+            <KPICard icon={Users} label="Consultants" value={ct.total_consultants} color="text-cyan-600" bg="bg-cyan-50" />
+            <KPICard icon={Clock} label="Tasks Active" value={tasks.in_progress} color="text-blue-600" bg="bg-blue-50" />
+            <KPICard icon={CheckCircle} label="Tasks Done" value={tasks.completed} color="text-emerald-600" bg="bg-emerald-50" />
+            <KPICard icon={AlertTriangle} label="Tasks Overdue" value={tasks.overdue} color="text-red-600" bg="bg-red-50" />
+            <KPICard icon={Clock} label="MTD Hours" value={`${(ct.mtd_logged_hours || 0).toFixed(0)}h`} color="text-indigo-600" bg="bg-indigo-50" />
+          </div>
+          <PeriodTable rows={[
+            { label: 'Tasks Completed', mtd: ct.tasks_completed?.mtd, qtd: ct.tasks_completed?.qtd, ytd: ct.tasks_completed?.ytd },
+            { label: 'Projects Completed', mtd: ct.projects_completed?.mtd, qtd: ct.projects_completed?.qtd, ytd: ct.projects_completed?.ytd },
+          ]} />
+        </CardContent>
+      </Card>
+
+      {/* Section 13: Finance & Expenses */}
+      <Card className="border-amber-200 shadow-none rounded-sm" data-testid="ceo-finance-section">
+        <CardHeader className="py-3 px-4 border-b border-amber-100">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 text-amber-700"><DollarSign className="w-4 h-4" /> Finance & Expenses</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 pt-3">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-3 mb-4">
+            <KPICard icon={Clock} label="Expenses Pending" value={fe.expenses_pending} color="text-amber-600" bg="bg-amber-50" />
+            <KPICard icon={Clock} label="Travel Pending" value={fe.travel_pending} color="text-amber-600" bg="bg-amber-50" />
+          </div>
+          <PeriodTable rows={[
+            { label: 'Expenses Approved', mtd: fe.expenses_approved?.mtd, qtd: fe.expenses_approved?.qtd, ytd: fe.expenses_approved?.ytd },
+            { label: 'Expense Amount', mtd: inr(fe.expense_amount?.mtd), qtd: inr(fe.expense_amount?.qtd), ytd: inr(fe.expense_amount?.ytd) },
+            { label: 'Travel Reimbursed', mtd: inr(fe.travel_amount?.mtd), qtd: inr(fe.travel_amount?.qtd), ytd: inr(fe.travel_amount?.ytd) },
+          ]} />
+          {fe.latest_payroll && (
+            <p className="text-xs text-zinc-500 mt-3">Latest Payroll: <span className="font-medium text-zinc-700">{fe.latest_payroll.month}</span> — Status: {fe.latest_payroll.status}</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Delivery Logs */}
       <Card className="border-zinc-200 shadow-none rounded-sm">
         <CardHeader className="py-3 px-4">
@@ -349,6 +420,30 @@ const KPICard = ({ icon: Icon, label, value, color, bg }) => (
       </div>
     </CardContent>
   </Card>
+);
+
+// MTD/QTD/YTD Period Table
+const PeriodTable = ({ rows }) => (
+  <div className="border border-zinc-200 rounded-sm overflow-hidden">
+    <table className="w-full text-xs">
+      <thead><tr className="bg-zinc-50">
+        <th className="text-left px-3 py-2 font-medium text-zinc-500 uppercase tracking-wide">Metric</th>
+        <th className="text-center px-3 py-2 font-medium text-zinc-500 uppercase tracking-wide">MTD</th>
+        <th className="text-center px-3 py-2 font-medium text-zinc-500 uppercase tracking-wide">QTD</th>
+        <th className="text-center px-3 py-2 font-medium text-zinc-500 uppercase tracking-wide">YTD</th>
+      </tr></thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-zinc-50'}>
+            <td className="px-3 py-2 text-zinc-700">{r.label}</td>
+            <td className="px-3 py-2 text-center font-semibold text-zinc-900 tabular-nums">{r.mtd ?? 0}</td>
+            <td className="px-3 py-2 text-center font-semibold text-zinc-900 tabular-nums">{r.qtd ?? 0}</td>
+            <td className="px-3 py-2 text-center font-semibold text-zinc-900 tabular-nums">{r.ytd ?? 0}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 );
 
 export default CEOReportDashboard;
