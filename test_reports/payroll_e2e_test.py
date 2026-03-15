@@ -21,7 +21,7 @@ import random
 import string
 
 # Configuration
-API_URL = "https://team-dashboard-pro-2.preview.emergentagent.com"
+API_URL = "https://sales-zen.preview.emergentagent.com"
 ADMIN_CREDENTIALS = {"employee_id": "ADMIN001", "password": "admin123"}
 
 def generate_random_string(length=6):

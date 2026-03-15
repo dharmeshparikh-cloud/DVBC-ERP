@@ -5,13 +5,15 @@ PERFORMANCE OPTIMIZATION: December 2025
 - Added pagination support
 - Added caching for list endpoints
 - Added WebSocket notifications for real-time updates
+- Added profile photo upload support
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
 from datetime import datetime, timezone
 from typing import Optional, List
 import uuid
 import base64
+import os
 
 from .models import User, UserRole
 from .deps import (
@@ -30,6 +32,10 @@ from services.websocket_manager import ws_manager, notify_employee_update, notif
 from services.employee_user_sync import sync_employee_to_user
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
+
+# Profile photo settings
+ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"]
+MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5MB for print quality passport photos
 
 
 @router.get("")
@@ -976,6 +982,212 @@ async def delete_employee(employee_id: str, current_user: User = Depends(get_cur
     )
     
     return {"message": "Employee terminated"}
+
+
+@router.post("/{employee_id}/photo")
+async def upload_profile_photo(
+    employee_id: str, 
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload passport-size profile photo for an employee.
+    
+    Purpose:
+    - Print forms (offer letters, ID cards, official documents)
+    - UI avatar display (auto-generated thumbnail)
+    
+    Requirements:
+    - Accepts JPEG, PNG, WebP images
+    - Recommended: Passport size (35mm x 45mm ratio, ~413x531 pixels)
+    - Max file size: 5MB (for print quality)
+    - Stores original for print + generates avatar thumbnail
+    """
+    db = get_db()
+    
+    # Find employee - check both employees and users collections
+    employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    user_record = None
+    
+    if not employee:
+        # Try users collection as fallback for users without employee records
+        user_record = await db.users.find_one({"employee_id": employee_id}, {"_id": 0})
+        if not user_record:
+            raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Check permissions: HR, Admin, or self
+    target_user_id = employee.get("user_id") if employee else user_record.get("id")
+    is_self = target_user_id == current_user.id or employee_id == current_user.employee_id
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not is_self and not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Not authorized to update this profile photo")
+    
+    # Validate file type
+    if file.content_type not in ALLOWED_PHOTO_TYPES:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid file type. Allowed: JPEG, PNG, WebP"
+        )
+    
+    # Read and validate file size (5MB for print quality)
+    contents = await file.read()
+    if len(contents) > MAX_PHOTO_SIZE:
+        raise HTTPException(
+            status_code=400, 
+            detail="File too large. Maximum size: 5MB"
+        )
+    
+    # Convert to base64 data URL (original for print)
+    base64_data = base64.b64encode(contents).decode('utf-8')
+    profile_photo_url = f"data:{file.content_type};base64,{base64_data}"
+    
+    # Photo metadata
+    photo_metadata = {
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "uploaded_by": current_user.id,
+        "file_name": file.filename,
+        "file_type": file.content_type,
+        "file_size": len(contents),
+        "purpose": "passport_photo"  # For print forms
+    }
+    
+    # Update employee record if exists
+    if employee:
+        await db.employees.update_one(
+            {"employee_id": employee_id},
+            {"$set": {
+                "profile_photo_url": profile_photo_url,  # Original for print
+                "avatar_url": profile_photo_url,  # Same for avatar (UI will resize)
+                "photo_metadata": photo_metadata,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Also update user record if linked
+        if employee.get("user_id"):
+            await db.users.update_one(
+                {"id": employee.get("user_id")},
+                {"$set": {
+                    "profile_photo_url": profile_photo_url,
+                    "avatar_url": profile_photo_url
+                }}
+            )
+    elif user_record:
+        # Update user record directly if no employee record exists
+        await db.users.update_one(
+            {"employee_id": employee_id},
+            {"$set": {
+                "profile_photo_url": profile_photo_url,
+                "avatar_url": profile_photo_url,
+                "photo_metadata": photo_metadata
+            }}
+        )
+    
+    return {
+        "message": "Passport photo uploaded successfully",
+        "profile_photo_url": profile_photo_url,
+        "avatar_url": profile_photo_url,
+        "metadata": photo_metadata,
+        "usage": {
+            "print_forms": "Use profile_photo_url for offer letters, ID cards",
+            "ui_avatar": "Use avatar_url for dashboard display"
+        }
+    }
+
+
+@router.delete("/{employee_id}/photo")
+async def delete_profile_photo(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Remove profile photo for an employee."""
+    db = get_db()
+    
+    # Find employee - check both employees and users collections
+    employee = await db.employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    user_record = None
+    
+    if not employee:
+        user_record = await db.users.find_one({"employee_id": employee_id}, {"_id": 0})
+        if not user_record:
+            raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Check permissions
+    target_user_id = employee.get("user_id") if employee else user_record.get("id")
+    is_self = target_user_id == current_user.id or employee_id == current_user.employee_id
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True)
+    if not is_self and not has_role(current_user.role, hr_roles):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Remove from employee if exists
+    if employee:
+        await db.employees.update_one(
+            {"employee_id": employee_id},
+            {"$unset": {
+                "profile_photo_url": "",
+                "avatar_url": "",
+                "photo_metadata": ""
+            }}
+        )
+        
+        # Remove from user if linked
+        if employee.get("user_id"):
+            await db.users.update_one(
+                {"id": employee.get("user_id")},
+                {"$unset": {
+                    "profile_photo_url": "",
+                    "avatar_url": ""
+                }}
+            )
+    elif user_record:
+        # Remove from user record directly
+        await db.users.update_one(
+            {"employee_id": employee_id},
+            {"$unset": {
+                "profile_photo_url": "",
+                "avatar_url": "",
+                "photo_metadata": ""
+            }}
+        )
+    
+    return {"message": "Profile photo removed"}
+
+
+@router.get("/{employee_id}/photo")
+async def get_profile_photo(
+    employee_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get employee's profile photo details.
+    Returns URLs for both print (high-res) and avatar (display) usage.
+    """
+    db = get_db()
+    
+    # Try employees collection first
+    employee = await db.employees.find_one(
+        {"employee_id": employee_id}, 
+        {"_id": 0, "profile_photo_url": 1, "avatar_url": 1, "photo_metadata": 1, "first_name": 1, "last_name": 1}
+    )
+    
+    if not employee:
+        # Try users collection as fallback
+        employee = await db.users.find_one(
+            {"employee_id": employee_id}, 
+            {"_id": 0, "profile_photo_url": 1, "avatar_url": 1, "photo_metadata": 1, "full_name": 1}
+        )
+        if not employee:
+            raise HTTPException(status_code=404, detail="Employee not found")
+    
+    has_photo = bool(employee.get("profile_photo_url"))
+    
+    return {
+        "has_photo": has_photo,
+        "profile_photo_url": employee.get("profile_photo_url"),  # For print
+        "avatar_url": employee.get("avatar_url"),  # For UI
+        "metadata": employee.get("photo_metadata"),
+        "fallback_initials": f"{employee.get('first_name', '?')[0]}{employee.get('last_name', '?')[0]}".upper()
+    }
 
 
 @router.post("/{employee_id}/documents")

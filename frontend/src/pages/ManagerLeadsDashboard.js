@@ -25,6 +25,7 @@ import {
   useManagerTargetVsAchievement 
 } from '../hooks/useStats';
 import { usePauseLead, useResumeLead } from '../hooks/useLeads';
+import ProfilePerformanceCard from '../components/ProfilePerformanceCard';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -259,6 +260,24 @@ const ManagerLeadsDashboard = () => {
           <RefreshCw className="w-4 h-4 mr-2" /> Refresh
         </Button>
       </div>
+
+      {/* Profile Performance Card for Manager */}
+      <ProfilePerformanceCard
+        user={user}
+        stats={{
+          dealsWon: targetVsAchievement?.achievements?.total_closed || 0,
+          dealsInProgress: subordinateLeads.filter(l => !['closed', 'lost', 'paused'].includes(l.status)).length,
+          revenue: targetVsAchievement?.achievements?.total_revenue || 0,
+          conversionRate: subordinateLeads.length > 0 
+            ? Math.round((targetVsAchievement?.achievements?.total_closed || 0) / subordinateLeads.length * 100) 
+            : 0,
+          targetAchievement: targetVsAchievement?.percentage || 0,
+          teamSize: Object.keys(leadsByEmployee).length,
+          trend: (targetVsAchievement?.percentage || 0) >= 50 ? 'up' : 'down'
+        }}
+        variant="manager"
+        data-testid="manager-profile-performance-card"
+      />
 
       {/* Today's Stats */}
       {todayStats && (

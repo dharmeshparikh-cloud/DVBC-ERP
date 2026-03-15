@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import RBACWidget from '../components/RBACWidget';
 import TodayFollowUpsWidget from '../components/TodayFollowUpsWidget';
 import MOMScorecard from '../components/MOMScorecard';
+import ProfilePerformanceCard from '../components/ProfilePerformanceCard';
 import { usePermissions } from '../contexts/PermissionContext';
 import { useQuery } from '@tanstack/react-query';
 
@@ -139,6 +140,21 @@ const SalesDashboard = () => {
           </Button>
         </div>
       </div>
+
+      {/* Profile Performance Card - Shows user profile with quick stats */}
+      <ProfilePerformanceCard
+        user={user}
+        stats={{
+          dealsWon: myFunnelData?.stage_counts?.complete || 0,
+          dealsInProgress: Object.values(myFunnelData?.stage_counts || {}).reduce((a, b) => a + b, 0) - (myFunnelData?.stage_counts?.complete || 0),
+          revenue: myFunnelData?.targets?.revenue?.achieved || 0,
+          conversionRate: myFunnelData?.conversion_rate || 0,
+          targetAchievement: myFunnelData?.targets?.revenue?.percentage || 0,
+          trend: (myFunnelData?.targets?.revenue?.percentage || 0) >= 50 ? 'up' : 'down'
+        }}
+        variant="default"
+        data-testid="profile-performance-card"
+      />
 
       {/* RBAC Widget - Shows current permissions */}
       <RBACWidget />

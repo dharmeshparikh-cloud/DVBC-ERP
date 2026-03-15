@@ -1,108 +1,78 @@
 <analysis>**original_problem_statement:**
-The user initially reported a critical bug in the employee onboarding form causing annoying validation popups. After this was fixed, the scope expanded to a comprehensive enhancement of the Minutes of Meeting (MOM) and expense claim functionality.
+The user initially requested a visual and functional overhaul of the Sales and Team Dashboards to make them more action-driven. This evolved through several iterations of design mockups.
 
-Most recently, the user requested a full-system stability audit to fix UI crashes and inconsistencies. This was followed by a major UI consolidation effort to simplify navigation for managers and enforce stricter governance, ensuring that sales funnel items (SOWs, Quotes, Agreements) can only be created through the lead management process, not from standalone pages. The latest task involves removing data duplication between Leads and a Client Master by integrating client details directly into the lead capture form and automating client creation.
+The final, approved plan is to implement a combined Profile Performance Hub and Focus Stream view. This enhancement must strictly adhere to the existing design system and UX governance rules. A key part of this feature is adding a profile photo upload functionality to the employee onboarding process. The uploaded photo will be displayed on the new dashboard widgets, with a fallback to a default avatar if no photo exists. The photo upload should handle passport-sized images suitable for print forms, while also generating thumbnails for UI avatars.
 
 **PRODUCT REQUIREMENTS:**
--   **ERP Stability:** Fix all UI crash risks, undefined variables, broken API responses, and inconsistent state rendering across the entire application.
--   **Funnel Governance:** All sales documents (Pricing, SOW, Quote, Agreement) must be created exclusively through the sales funnel process for a specific lead. Standalone creation pages must be removed.
--   **UI Consolidation:** Simplify the user interface, especially for managers. Remove duplicate pages and consolidate team performance metrics and actions into a single Team Dashboard.
--   **Client Master Integration:** Eliminate the separate Client Master data entry by capturing all client information (Industry, Website, Address) in the Add Lead form. A Client record should be automatically created when a lead's project kickoff is approved.
--   **Role-Based Access Control (RBAC):**
-    -   Restrict My Scorecard visibility to Admin and HR roles.
-    -   Ensure expense governance is applied to all roles, including Sales and Consulting, preventing manual expense creation outside of funnel activities.
-    -   The read/write access to the Clients page should be role-based.
--   **Dark Mode Compatibility:** Fix all UI components with hardcoded colors that do not adapt to dark mode.
--   **Clickable Scorecards:** All summary scorecards and stats cards on dashboards should be interactive, allowing users to click them to see the detailed data they represent.
--   **Manager MOM Review:** Provide a feature for reporting managers to view their team's MOM performance, with an option to download a detailed PDF report.
+-   **Dashboard Enhancement:**
+    -   Create a  widget to display an employee's photo, name, role, and key performance stats (e.g., Deals, Revenue, Conversion %).
+    -   Create a  widget to provide a zen mode view for working on a single deal at a time, with clear next actions.
+    -   Integrate these new widgets into the  and  pages.
+-   **Photo Upload in Onboarding:**
+    -   Add an optional, passport-sized photo upload field to the candidate onboarding form ( and ).
+    -   Create a backend endpoint to handle the image upload, storing the original file and generating a thumbnail for UI use.
+    -   Store the URL of the uploaded photo in the  and  database collections.
+-   **UX Governance:**
+    -   All new UI must strictly adhere to the existing design system (colors, typography, spacing, components).
+    -   Reuse existing Shadcn UI components wherever possible.
+    -   No changes to the core application layout, navigation, or existing dashboard structure are permitted without explicit approval.
+    -   The implementation must be fully responsive and dark-mode compatible.
+-   **Fallback Gracefully:** If a user has not uploaded a profile photo, the UI must display a default avatar with their initials.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack ERP. A comprehensive stability audit was recently completed, significantly improving UI reliability by fixing undefined variables, adding optional chaining, and centralizing role checks into a new  utility.
-
-A major UI and governance overhaul was implemented:
--   **Manager Dashboard:** A consolidated Team Dashboard () now serves as the primary view for managers. It includes collapsible sections for MOM Review and Team Funnel Activity.
--   **Funnel Governance:** Standalone pages for creating SOWs, Quotes, Agreements, etc., have been removed from the navigation. A new Team Funnel Activity widget on the Team Dashboard enforces that these items are created only through the lead funnel.
--   **MOM Features:** A MOM Scorecard widget has been added to dashboards, and a detailed Manager MOM Review page with PDF download capability was created and then integrated into the new Team Dashboard.
--   **Dark Mode & UI Fixes:** Hardcoded colors on dashboards and scorecards were fixed to be compatible with dark mode. Many static cards were made clickable to navigate to filtered data views.
--   **Lead/Client Integration:** The Add Lead form has been updated with new fields (Industry, Website, Address) to capture client data upfront.
+The application is a stable ERP system with a well-defined frontend design system based on Shadcn UI. A comprehensive RBAC refactor was recently completed, centralizing all frontend role-based logic into . The backend includes routers for managing employees and onboarding. The agent has already defined the backend API endpoint and logic for photo uploads in  and has created empty placeholder files for the new frontend components.
 
 **Last working item**:
--   **Last item agent was working:** The agent was implementing the Lead to Client Master integration. This involved:
-    1.  Adding company detail fields (Industry, Website, Address, etc.) to the  form.
-    2.  Modifying the backend kickoff approval endpoint () to automatically create a new record in the  collection using data from the associated lead.
-    3.  Updating the  page to be read-only and to filter data based on user roles (Sales/Consulting can only see their own clients).
+-   **Last item agent was working:** The agent was in the initial stages of implementing the Profile Photo and Performance Dashboard feature. After setting up the backend photo upload endpoint () and its image processing logic in , the agent created the empty files for the three required frontend components:
+    1.  
+    2.  
+    3.  
+    The immediate next step is to write the code for these components.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
--   **Which testing method agent to use?** both.
-    -   **Frontend:**
-        1.  Use the screenshot tool to verify the new Company Details section with Industry, Website, and Address fields is visible on the Add Lead form.
-        2.  Log in as a Sales Manager () and navigate to the Clients page. Verify the Add Client button is hidden and they can only see clients associated with their leads.
-    -   **Backend:**
-        1.  Use  or a test script to create a new lead with all the new company detail fields.
-        2.  Simulate the process of moving the lead through the funnel until the project kickoff is approved.
-        3.  Verify that a new document is successfully created in the  collection in the MongoDB database, containing the information from the lead.
+-   **Which testing method agent to use?** both
+    -   **Backend:** Use  to test the  endpoint with a test image file. Verify a URL is returned and the files (original and thumbnail) are saved correctly.
+    -   **Frontend:** Use the screenshot tool to verify:
+        1.  The new photo upload component appears correctly in the onboarding form.
+        2.  The  and  widgets render correctly on the Sales and Manager dashboards.
+        3.  The user's photo appears after upload, and the avatar fallback works correctly when no photo is present.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Incomplete Lead to Client Integration (P0)**
-    -   **Description:** The full end-to-end flow for integrating the Client Master into the Lead creation process is not yet complete or tested. This includes the UI changes on the  form, the backend logic for auto-creating a client on kickoff approval, and the role-based read-only view on the  page.
-    -   **Attempted fixes:** Code has been added to , , and .
-    -   **Next debug checklist:**
-        1.  Test the frontend UI for the new lead fields.
-        2.  Manually trigger the kickoff approval for a test lead and verify the  collection in MongoDB for a new entry.
-        3.  Verify the API endpoint for fetching clients () correctly filters based on the logged-in user's role.
-        4.  Test the  page UI as both a manager and an admin to confirm role-based permissions.
-    -   **Why fix this issue and what will be achieved with the fix?** To eliminate data duplication, streamline the lead-to-client workflow, and enforce data governance.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None.
-
--   **Issue 2: MOM Report PDF Download Verification (P1)**
-    -   **Description:** The user reported a PDF download error. The agent added test data and fixed dark mode UI issues, but a full verification of the PDF download functionality on the  was hampered by frequent session timeouts.
-    -   **Attempted fixes:** Test data was inserted into the  collection. UI issues were resolved.
-    -   **Next debug checklist:**
-        1.  Log in as a Sales Manager ().
-        2.  Navigate to the Team Dashboard.
-        3.  Expand the MOM Review section.
-        4.  Click the Download PDF button and verify a non-empty, correctly formatted PDF is generated.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a core requirement for manager oversight.
-    -   **Status:** TESTING PENDING
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** Frontend
-    -   **Blocked on other issue:** None.
+-   There are no outstanding bugs. The current focus is on a single, large feature implementation.
 
 **In progress Task List**:
--   **Task 1: Complete and Verify Lead-to-Client Integration (P0)**
-    -   **Where to resume:** Start by testing the changes made to , , and  as outlined in the Last working item testing plan.
-    -   **What will be achieved with this?** This will complete a key user request for data governance and process streamlining.
+-   **Task 1: Complete Profile Photo and Performance Dashboard Feature (P0)**
+    -   **Where to resume:** The three new React component files have been created but are empty. The agent needs to start by implementing the JSX and logic for .
+    -   **What will be achieved with this?** This will deliver a major UX enhancement requested by the user, including personalized dashboards and an improved onboarding flow.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None. This is the highest priority.
+    -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P0) **Investigate & Govern Consultant Expense Submission:** Audit the consulting module to understand how consultants submit expenses. Apply the same governance rule: expenses must be claimed through funnel activities, not the generic My Expenses page.
-    -   (P1) **Verify Sales Manager's View of Reportees:** The user wanted to confirm that managers can view the MOMs submitted by their direct reports. While the UI is in place, a final confirmation of this functionality is needed.
+    -   (P0) **Test End-to-End Kickoff Approval Flow:** This critical flow (Lead → Funnel → Kickoff Approval → Auto-Client Creation) was implemented but deferred for testing due to an empty database. This needs to be validated.
+    -   (P1) **Verify MOM PDF Download:** The functionality on the Team Dashboard was implemented but its testing was blocked. This needs a final verification.
+    -   (P1) **Investigate & Govern Consultant Expense Submission:** An audit is required to apply the same funnel-only governance rules to consultant expense claims.
 
 -   **Future Tasks:**
-    -   (P2) Refactor .
-    -   (P2) Refactor .
+    -   (P2) Refactor  (large file).
+    -   (P2) Refactor  (complex component).
     -   (P2) Remove orphan file: .
     -   (P2) Build the DVBC Marketing Hub.
     -   (P2) Implement a Consultant Incentive System.
     -   (P2) Implement an Internal Chat System.
 
 **Completed work in this session**
--   **ERP Stability Audit (DONE):** Performed a system-wide scan and fixed numerous crash risks, including undefined variables and unsafe data access. Created a central utility at  for consistent RBAC checks.
--   **UI & Navigation Consolidation (DONE):** Simplified the manager experience by removing standalone funnel pages (SOW, Quote, Agreement) from the sidebar and consolidating team metrics (MOM Review, Funnel Activity) into a single Team Dashboard.
--   **Strict Funnel Governance (DONE):** Enforced a rule that all sales documents can now only be created through the lead funnel process, preventing standalone creation.
--   **Dark Mode & UI Enhancements (DONE):** Fixed hardcoded colors in various dashboard components (, ) to ensure dark mode compatibility. Made multiple static scorecard cards clickable, navigating to filtered views.
--   **MOM Scorecard & Review (DONE):** Implemented a MOM Scorecard widget for dashboards and a detailed MOM Review section with PDF download capability, which was then integrated into the new consolidated Team Dashboard.
--   **Expense Governance on Mobile (DONE):** Applied role-based access control to the Add New Expense button in the  component.
--   **Bug Fix ():** Resolved a critical  crash on the  page.
+-   **RBAC Centralization (DONE):** Performed a massive refactor across ~38 frontend files to migrate all inline role-based access control logic to a single source of truth: .
+-   **Client Master Import Feature (DONE):** Implemented a feature for bulk-importing clients via an Excel template on the  page, including backend logic and API endpoints.
+-   **UI & Governance Cleanup (DONE):** Removed the standalone Sales Meetings and My Projects pages and their sidebar links to enforce stricter sales funnel governance, as requested by the user.
+-   **Lead-to-Client API (DONE):** Created and verified the new backend API router () required for the Clients page, resolving a critical gap where the frontend was calling a non-existent endpoint.
+-   **DB Configuration Fix (DONE):** Resolved a critical login issue by correcting the  in the  file to match the database where user data was stored.
+-   **Codebase Audit (DONE):** Performed a scan of the frontend codebase to identify technical debt, including duplicate variables, hooks, and inconsistent RBAC logic, which prompted the successful RBAC refactor.
+-   **Dashboard UX Design (DONE):** Engaged in a design process with the user, presenting multiple detailed mockups (including light/dark modes and images) which resulted in an approved implementation plan.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Large file needs refactoring:**  is too large and should be broken down.
@@ -116,81 +86,74 @@ A major UI and governance overhaul was implemented:
 
 
 **Key Technical Concepts**
--   **Centralized RBAC:** Creating a single utility () to manage role-based logic, improving consistency and maintainability.
--   **UI Consolidation Strategy:** Reducing navigation complexity by removing standalone pages and integrating their functionality into contextual, collapsible sections within a primary dashboard.
--   **Strict Data Governance:** Enforcing business rules by controlling UI elements (e.g., hiding Add buttons) and centralizing creation workflows (funnel-only).
--   **Backend Process Automation:** Triggering a business process (creating a client record) automatically based on a state change in another module (kickoff approval).
--   **Dynamic Component Styling:** Using CSS variables and opacity-based colors (e.g., ) to create components that work seamlessly in both light and dark modes.
+-   **Centralized RBAC:** All frontend role checks are now managed by helper functions in .
+-   **UX Governance:** Strict adherence to a pre-existing design system is mandatory for all UI changes. New features require a UI Change Report and approval before implementation.
+-   **Backend Image Processing:** Using Python with Pillow to handle  uploads, validate image properties (size, type), and generate multiple versions (original for print, thumbnail for UI).
+-   **Graceful Fallback:** Designing UI components (like avatars) to work correctly whether optional data (like a profile photo) is present or not.
+-   **Phased Implementation:** Breaking down a large feature into logical backend and frontend phases.
 
 **key DB schema**
--   **leads:** No schema change, but documents are now expected to contain new fields: , , , , , .
--   **clients:** This collection will be populated automatically with data from  upon kickoff approval.
+-   **employees:** a  field needs to be added.
+-   **users:** a  field needs to be added to sync with the employee record.
+
+**changes in tech stack**
+-   **Pillow:** This library was added to the backend dependencies to handle image processing for the photo upload feature.
 
 **All files of reference**
--   : The new central hub for managers.
--   : Contains the new fields for client data capture.
--   : Contains the backend logic for auto-creating a client.
--   : Contains the updated role-based view for clients.
--   : The new source of truth for frontend role checks.
--   : Contains the simplified sidebar navigation logic.
-
-**Areas that need refactoring**:
--    remains a large file that could be broken down.
--    is still a complex component.
--   The orphan file  still needs to be evaluated and likely removed.
+-   : Contains the new photo upload endpoint logic.
+-   : The single source of truth for all frontend RBAC.
+-   : The component to be built for handling uploads.
+-   : The component to be built for the user profile widget.
+-   : The component to be built for the single-deal view.
+-   : Target for integrating the photo upload component.
+-   : Target for integrating the new dashboard widgets.
 
 **key api endpoints**
--    (Updated): Now triggers client creation.
--    (Updated): Now filters results based on the user's role and their associated leads/projects.
--    (New): Fetches detailed MOM stats for a manager's team.
+-    (New, POST): Endpoint for uploading a user's profile photo.
+-    (New, GET): Fetches client data with role-based filtering.
+-    (New, POST): Endpoint for bulk-importing clients from an Excel file.
 
 **Critical Info for New Agent**
--   Your immediate priority is to **complete and test the Lead-to-Client integration**. Follow the testing plan in the Last working item section to ensure the end-to-end flow works as expected.
--   The user strongly prefers **UI consolidation and strict governance**. When adding new features, avoid creating new standalone pages. Instead, integrate them into existing dashboards like the Team Dashboard.
--   The environment has an **aggressive session timeout**. Be prepared to log in frequently or use  with saved tokens for reliable API testing.
--   Leverage the newly created  for any new frontend RBAC logic to maintain consistency. Do not write inline role checks.
--   After completing the Lead-to-Client task, verify the MOM PDF download functionality, as its testing was previously blocked by session timeouts.
-
-**documents and test reports created in this job**
--   
--    (updated multiple times)
--   
+-   **Your immediate priority is to implement the three new frontend components:** , , and . The files exist but are empty.
+-   **Strictly follow the UX Governance rules.** All UI changes must use the existing design system and components from . The approved plan is detailed in the  in the chat history. Do not deviate.
+-   **Complete the backend integration.** After building the frontend components, you must:
+    1.  Integrate  into the onboarding pages.
+    2.  Update the backend  router to handle the  when a candidate is submitted.
+    3.  Ensure the  field is added to the MongoDB schema for  and .
+-   **Test the full photo upload flow:** from onboarding to seeing the photo on the dashboard.
+-   Once the new dashboard feature is complete and verified, proceed to test the deferred P0 (Kickoff-to-Client) and P1 (MOM PDF Download) tasks.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Requested to fix hardcoded colors in dark mode and make stat cards clickable. (DONE)
-2.  **User:** Pointed out a remaining dark mode issue and asked for test data to be added for PDF downloads. (DONE)
-3.  **User:** Questioned why expense governance for the consulting team was missed. (Agent confirmed it was already in place).
-4.  **User:** Identified a critical governance issue where managers could create agreements/quotes outside the funnel. (DONE)
-5.  **User:** Agreed with consolidating funnel pages into dashboards (Option B) and applying funnel-only creation to all users. (DONE)
-6.  **User:** Pointed out data duplication between the Client master page and the Lead creation form. (IN PROGRESS)
-7.  **User:** Recommended integrating Client Master fields into the Lead form and automating client creation. (IN PROGRESS)
-8.  **User:** Confirmed the plan: enhance the lead form, auto-create clients on kickoff, and make the Clients page role-based read-only. (IN PROGRESS)
-9.  **User:** Provided login credentials for various roles.
-10. **User:** Asked for clarification on the data shown on the Sales Manager's dashboard. (Agent clarified it shows the manager's own data, with team data in separate widgets).
+1.  **User:** Approved the revised plan to add photo uploads to the onboarding flow and integrate them into the new dashboard UX. (IN PROGRESS)
+2.  **User:** Clarified that the uploaded photo should be passport size suitable for print forms, with a UI avatar version also generated. (Acknowledged)
+3.  **User:** Approved the UI Change Report with the modification to include photo uploads. (Acknowledged)
+4.  **User:** Requested to add a profile photo upload option to the onboarding flow, which would then be used in the new dashboard UX. (Acknowledged)
+5.  **User:** Approved the agent's plan to combine the Profile Hub and Focus Stream designs while adhering to strict UX governance rules. (Acknowledged)
+6.  **User:** Provided a detailed set of UX governance rules, locking down the design system and requiring all changes to be minimal and compliant. (Acknowledged)
+7.  **User:** Asked to combine elements from the Profile Hub and Focus Stream mockups. (Acknowledged)
+8.  **User:** Requested detailed mockups for Option 6 and Focus Stream in both light and dark modes. (DONE)
+9.  **User:** Asked for images and a new option including a user picture and quick performance stats. (DONE)
+10. **User:** Asked for 5 UX options for the dashboards. (DONE)
 
 **Project Health Check:**
--   **Broken:** The Lead-to-Client automated workflow is incomplete and untested.
+-   **Broken:** The new Profile Photo and Performance Dashboard feature is mid-implementation and not functional. The backend and frontend are not yet fully integrated.
 -   **Mocked:** None.
 
 **3rd Party Integrations**
--   **@react-google-maps/api:** Used for Google Maps integration.
+-   **Pillow:** (New) Used for backend image processing.
 -   **jspdf & jspdf-autotable:** Used for client-side PDF generation.
--   **Existing:** APScheduler, React Query, axios, xlsx, Redis, Razorpay.
+-   **Existing:** APScheduler, React Query, axios, xlsx, Redis, Razorpay, @react-google-maps/api.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, to verify the initial batch of fixes from the previous fork.
--   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Testing agent used after significant changes:** YES, for verifying the initial fixes and API creation.
 -   **Test files created:** None.
--   **Known regressions:** None. The stability audit should have reduced the likelihood of regressions.
+-   **Known regressions:** None.
 
 **Credentials to test flow:**
-| Role | Employee ID | Name | Department | Password |
-|---|---|---|---|---|
-| **Admin** |  | System Administrator | Administration |  |
-| **Sales Manager** |  | Dhamresh Parikh | Sales |  |
-| **Sales Executive** |  | Rahul Sharma | Sales |  |
-*Note: An HR user account does not currently exist in the database.*
+-   **Admin:**  / 
+-   **HR Manager:**  / 
+-   **Executive:**  / 
 
 **What agent forgot to execute**
--   The agent has not performed any testing or verification for the most recent feature: the Lead-to-Client integration. The code was written, but the end-to-end flow remains unvalidated.
--   A full, uninterrupted test of the Download PDF functionality for manager MOM reports is still pending due to session timeouts.</analysis>
+-   The agent has not yet modified the  router to handle saving the  upon form submission.
+-   The agent has not added the  field to the Pydantic models or the database schema update scripts (if any). This is a required step for the backend to work correctly.</analysis>

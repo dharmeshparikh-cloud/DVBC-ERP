@@ -15,11 +15,12 @@ import {
   UserPlus, FileText, Upload, CheckCircle, AlertCircle,
   Building2, Mail, Phone, Calendar, Wallet, User,
   ChevronRight, ChevronLeft, Save, X, Plus, Copy, Key, UserCheck,
-  Download, FileSpreadsheet, Users, Trash2, Eye, FolderOpen
+  Download, FileSpreadsheet, Users, Trash2, Eye, FolderOpen, Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
+import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 import { useAllEmployees, useSuggestedDepartment, useCreateEmployee, useGrantEmployeeAccess } from '../hooks/useHROnboarding';
 
 const ONBOARDING_STEPS = [
@@ -173,6 +174,7 @@ const HROnboarding = () => {
     driving_license: '',
     uan_number: '',
     esic_number: '',
+    profile_photo_url: '', // Passport photo URL for print forms
     
     // Employment Details (Tab 2 from Excel)
     employee_id: '',
@@ -1029,6 +1031,33 @@ Jane,Smith,jane.smith@company.com,jane.personal@gmail.com,9876543211,1992-05-20,
       case 1: // Personal Info
         return (
           <div className="space-y-4">
+            {/* Profile Photo Section */}
+            <div className="flex justify-center mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+              <div className="text-center">
+                <ProfilePhotoUpload
+                  employeeId={formData.employee_id}
+                  currentPhotoUrl={formData.profile_photo_url}
+                  fallbackInitials={`${formData.first_name?.[0] || ''}${formData.last_name?.[0] || ''}`.toUpperCase() || '?'}
+                  onUploadSuccess={(data) => {
+                    handleInputChange('profile_photo_url', data.profile_photo_url);
+                    toast.success('Photo uploaded');
+                  }}
+                  onRemoveSuccess={() => {
+                    handleInputChange('profile_photo_url', '');
+                    toast.success('Photo removed');
+                  }}
+                  size="lg"
+                  editable={!!formData.employee_id}
+                  showLabel={true}
+                />
+                {!formData.employee_id && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Employee ID required to upload photo. Will be generated on next step.
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>First Name *</Label>

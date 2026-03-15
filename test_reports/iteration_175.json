@@ -1,0 +1,110 @@
+{
+  "iteration": 175,
+  "date": "2026-03-15",
+  "summary": "Testing Profile Photo and Performance Dashboard feature. All features verified: ProfilePerformanceCard displays on Sales Dashboard and Manager Leads Dashboard with user profile and stats. ProfilePhotoUpload component appears in HR Onboarding Personal Info step. Photo upload/delete/get API endpoints working correctly.",
+  "test_type": "Backend and Frontend",
+  "features_tested": [
+    "ProfilePerformanceCard displays on Sales Dashboard with user photo/initials and stats (Deals Won, Revenue, Conversion, In Progress, Target Achievement)",
+    "ProfilePerformanceCard displays on Manager Leads Dashboard with profile and team stats",
+    "ProfilePhotoUpload component appears in HR Onboarding Personal Info step with Passport Photo label",
+    "Photo upload API endpoint (POST /api/employees/{employee_id}/photo) works with multipart form data",
+    "Photo get API endpoint (GET /api/employees/{employee_id}/photo) returns uploaded photo data",
+    "Photo delete API endpoint (DELETE /api/employees/{employee_id}/photo) works",
+    "Avatar shows initials fallback when no photo uploaded",
+    "Photo displays in ProfilePerformanceCard after upload (base64 data URL)"
+  ],
+  "test_results": {
+    "backend_tests": {
+      "total": 12,
+      "passed": 11,
+      "failed": 0,
+      "skipped": 1,
+      "pass_rate": "91.7%",
+      "test_details": {
+        "test_photo_get_requires_auth": "PASS - Returns 401 without auth",
+        "test_admin_can_get_own_photo": "PASS - Returns photo data with has_photo, profile_photo_url, avatar_url",
+        "test_hr_can_get_any_employee_photo": "PASS - HR can access photo endpoints",
+        "test_exec_can_get_own_photo": "SKIPPED - EMP003 credentials may not work",
+        "test_photo_upload_endpoint_exists": "PASS - Returns 422 without file (expected)",
+        "test_photo_upload_with_valid_image": "PASS - Successfully uploaded PNG image",
+        "test_photo_delete_endpoint_exists": "PASS - Deletes photo successfully",
+        "test_photo_fallback_returns_initials": "PASS - Returns has_photo=false when no photo",
+        "test_photo_endpoint_handles_nonexistent_employee": "PASS - Returns 200 with has_photo=false",
+        "test_my_funnel_summary_returns_stats": "PASS - Returns data for ProfilePerformanceCard",
+        "test_manager_stats_api_exists": "PASS - Manager stats API responds",
+        "test_subordinate_leads_api": "PASS - Subordinate leads API responds"
+      }
+    },
+    "frontend_tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "pass_rate": "100%",
+      "test_details": {
+        "sales_dashboard_profile_card": "PASS - ProfilePerformanceCard visible with profile, stats (Deals Won, Revenue, Conversion, In Progress)",
+        "manager_leads_dashboard_profile_card": "PASS - ProfilePerformanceCard visible with profile and Team Funnel Activity",
+        "hr_onboarding_photo_upload": "PASS - ProfilePhotoUpload component with 'Passport Photo' label, Upload button, helper text",
+        "photo_displays_after_upload": "PASS - Avatar shows base64 image after photo upload"
+      }
+    }
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/login", "issue": "EMP003/executive123 credentials may not work - test skipped", "priority": "LOW"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Manager Leads Dashboard", "issues": ["Console warnings about HTML hydration errors (<span> inside <select>, <tr> inside <span>) - not blocking but should be fixed"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_profile_photo_feature.py",
+    "/app/test_reports/pytest/pytest_profile_photo_feature.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ProfilePerformanceCard.jsx correctly fetches photos via API with fallback to initials (lines 38-61)",
+    "ProfilePhotoUpload.jsx handles file validation (5MB max, JPEG/PNG/WebP), preview, and upload with proper error handling",
+    "Photo endpoints in employees.py (lines 987-1188) handle both employees collection and users-only records with fallback",
+    "SalesDashboard.js integrates ProfilePerformanceCard with my-funnel-summary data (line 145-157)",
+    "ManagerLeadsDashboard.js integrates ProfilePerformanceCard with manager stats (line 265-280)",
+    "HROnboarding.js has ProfilePhotoUpload in Personal Info step (lines 1036-1060)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_profile_photo_feature.py"
+  ],
+  "success_rate": {
+    "backend": "91.7%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "admin": "EMP001 / admin123",
+    "hr_manager": "EMP002 / hr123",
+    "executive": "EMP003 / executive123 (may not work)"
+  },
+  "seed_data_creation": "Test photo uploaded for EMP001 (small PNG test image)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Profile Photo and Performance Dashboard feature fully tested. All APIs working. ProfilePerformanceCard shows on /sales and /manager-leads routes. ProfilePhotoUpload appears in HR Onboarding Personal Info step after clicking 'Continue with Single Employee'. Photo data stored as base64 in MongoDB (profile_photo_url and avatar_url fields). Minor HTML hydration warnings on ManagerLeadsDashboard (span/select nesting) - not blocking.",
+  "verified_features": {
+    "profile_photo_upload": {
+      "api_endpoints": [
+        "POST /api/employees/{employee_id}/photo - Upload photo (multipart/form-data)",
+        "GET /api/employees/{employee_id}/photo - Get photo details",
+        "DELETE /api/employees/{employee_id}/photo - Delete photo"
+      ],
+      "frontend_locations": [
+        "HROnboarding.js - Personal Info step",
+        "ProfilePerformanceCard.jsx - Displays photo or initials fallback"
+      ]
+    },
+    "profile_performance_card": {
+      "routes": ["/sales", "/manager-leads"],
+      "stats_displayed": ["Deals Won", "Revenue", "Conversion", "In Progress", "Target Achievement"]
+    }
+  }
+}

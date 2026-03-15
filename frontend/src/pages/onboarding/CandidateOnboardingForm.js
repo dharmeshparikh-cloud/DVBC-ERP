@@ -13,11 +13,12 @@ import { Alert, AlertDescription } from '../../components/ui/alert';
 import { 
   User, GraduationCap, Briefcase, Building2, Phone, AlertTriangle,
   ChevronRight, ChevronLeft, Upload, Check, FileText, Loader2, 
-  Shield, CheckCircle2, XCircle, Clock, Mail, Calendar, Users
+  Shield, CheckCircle2, XCircle, Clock, Mail, Calendar, Users, Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import ProfilePhotoUpload from '../../components/ProfilePhotoUpload';
 
 const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
@@ -104,6 +105,7 @@ const CandidateOnboardingForm = () => {
       aadhaar_number: '',
       passport_number: '',
       driving_license: '',
+      profile_photo_url: '', // Passport photo URL for print forms
       current_address: { street: '', city: '', state: '', pincode: '' },
       permanent_address: { street: '', city: '', state: '', pincode: '' },
     },
@@ -770,6 +772,33 @@ const CandidateOnboardingForm = () => {
       case 0: // Personal Details
         return (
           <div className="space-y-6">
+            {/* Profile Photo Section */}
+            <div className="flex justify-center mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+              <div className="text-center">
+                <ProfilePhotoUpload
+                  employeeId={submission?.employee_id}
+                  currentPhotoUrl={formData.candidate_details.profile_photo_url}
+                  fallbackInitials={`${formData.candidate_details.first_name?.[0] || ''}${formData.candidate_details.last_name?.[0] || ''}`.toUpperCase() || '?'}
+                  onUploadSuccess={(data) => {
+                    updateField('candidate_details.profile_photo_url', data.profile_photo_url);
+                    toast.success('Photo uploaded');
+                  }}
+                  onRemoveSuccess={() => {
+                    updateField('candidate_details.profile_photo_url', '');
+                    toast.success('Photo removed');
+                  }}
+                  size="lg"
+                  editable={!!submission?.employee_id}
+                  showLabel={true}
+                />
+                {!submission?.employee_id && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Photo upload will be available after form is created.
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="first_name">First Name *</Label>

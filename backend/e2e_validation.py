@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 load_dotenv('/app/backend/.env')
 
 # Configuration
-API_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://team-dashboard-pro-2.preview.emergentagent.com')
+API_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sales-zen.preview.emergentagent.com')
 if not API_URL.startswith('http'):
     API_URL = f"https://{API_URL}"
 
