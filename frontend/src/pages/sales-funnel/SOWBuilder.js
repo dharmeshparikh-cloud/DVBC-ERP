@@ -213,6 +213,13 @@ const SOWBuilder = () => {
   
   // Can approve/authorize (PM team only)
   const canApprove = isPMTeam;
+  
+  // Check if item is editable (approved/completed items locked unless admin)
+  const isItemEditable = (item) => {
+    if (user?.role === 'admin') return true;
+    const lockedStatuses = ['approved', 'completed', 'in_progress'];
+    return !lockedStatuses.includes(item.status);
+  };
 
   // Mutation: Create SOW
   const createSOWMutation = useMutation({
@@ -866,16 +873,22 @@ const SOWBuilder = () => {
               </>
             ) : (
               <>
-                {/* Sales team can edit */}
-                {canEditSOW && (
-                  <Button onClick={() => startEditing(item)} variant="ghost" size="sm" className="h-7 w-7 p-0 text-zinc-600">
+                {/* Sales team can edit - but not approved/completed items (admin can override) */}
+                {canEditSOW && isItemEditable(item) && (
+                  <Button onClick={() => startEditing(item)} variant="ghost" size="sm" className="h-7 w-7 p-0 text-zinc-600" title="Edit">
                     <Edit2 className="w-3 h-3" />
                   </Button>
                 )}
-                {canEditSOW && (
-                  <Button onClick={() => deleteItem(item.id)} variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500">
+                {canEditSOW && isItemEditable(item) && (
+                  <Button onClick={() => deleteItem(item.id)} variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500" title="Delete">
                     <Trash2 className="w-3 h-3" />
                   </Button>
+                )}
+                {/* Show lock icon for approved/completed items (non-admin) */}
+                {canEditSOW && !isItemEditable(item) && (
+                  <span className="text-amber-500 flex items-center gap-1 text-xs" title="Item is locked. Contact admin to edit.">
+                    <Lock className="w-3 h-3" />
+                  </span>
                 )}
                 {/* PM team can approve/reject pending items */}
                 {canApprove && item.status === 'pending_review' && (

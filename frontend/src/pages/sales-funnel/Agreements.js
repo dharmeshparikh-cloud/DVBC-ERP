@@ -397,6 +397,13 @@ const Agreements = () => {
   };
 
   const canEdit = user?.role !== 'manager';
+  
+  // Check if an agreement is editable (approved/signed agreements locked unless admin)
+  const isAgreementEditable = (agreement) => {
+    if (user?.role === 'admin') return true;
+    const lockedStatuses = ['approved', 'signed', 'sent'];
+    return !lockedStatuses.includes(agreement?.status);
+  };
 
   return (
     <div className="max-w-6xl mx-auto" data-testid="agreements-page">
@@ -473,7 +480,12 @@ const Agreements = () => {
                     data-testid={`agreement-row-${agreement.id}`}
                   >
                     <td className="px-4 py-3">
-                      <span className="font-medium text-zinc-900">{agreement.agreement_number}</span>
+                      <span className="font-medium text-zinc-900 flex items-center gap-1">
+                        {agreement.agreement_number}
+                        {!isAgreementEditable(agreement) && (
+                          <Lock className="w-3 h-3 text-amber-500" title="Locked - cannot be modified" />
+                        )}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{getLeadName(agreement.lead_id)}</td>
                     <td className="px-4 py-3 text-sm text-zinc-600 capitalize">{agreement.agreement_type}</td>
