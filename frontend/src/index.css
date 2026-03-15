@@ -48,31 +48,37 @@ code {
     }
 
     .dark {
-        --background: 240 6% 4%;
-        --foreground: 0 0% 90%;
-        --card: 240 6% 10%;
-        --card-foreground: 0 0% 90%;
-        --popover: 240 6% 10%;
-        --popover-foreground: 0 0% 90%;
+        --background: 240 4% 6%;
+        --foreground: 0 0% 100%;
+        --card: 240 4% 10%;
+        --card-foreground: 0 0% 100%;
+        --popover: 240 4% 10%;
+        --popover-foreground: 0 0% 100%;
         --primary: 0 0% 98%;
-        --primary-foreground: 240 5.9% 10%;
-        --secondary: 240 5% 18%;
-        --secondary-foreground: 0 0% 90%;
-        --muted: 240 5% 18%;
-        --muted-foreground: 240 5% 60%;
-        --accent: 240 5% 18%;
-        --accent-foreground: 0 0% 90%;
+        --primary-foreground: 240 4% 6%;
+        --secondary: 240 5% 17%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 240 5% 17%;
+        --muted-foreground: 0 0% 69%;
+        --accent: 25 100% 50%;
+        --accent-foreground: 0 0% 100%;
         --destructive: 0 62.8% 50%;
         --destructive-foreground: 0 0% 98%;
-        --border: 240 5% 18%;
-        --input: 240 5% 18%;
-        --ring: 240 5% 70%;
+        --border: 240 5% 17%;
+        --input: 240 5% 17%;
+        --ring: 25 100% 50%;
         
-        /* Custom theme variables - dark */
-        --sidebar-bg: 240 6% 6%;
-        --sidebar-border: 240 5% 15%;
-        --page-bg: 240 6% 4%;
-        --header-bg: 240 6% 6%;
+        /* NETRA Dark Theme Tokens */
+        --sidebar-bg: 240 4% 6%;
+        --sidebar-border: 240 5% 17%;
+        --page-bg: 240 4% 6%;
+        --header-bg: 240 4% 6%;
+        --erp-bg: #0F0F10;
+        --erp-card: #1A1A1C;
+        --erp-border: #2A2A2E;
+        --erp-text: #FFFFFF;
+        --erp-text-secondary: #B0B0B0;
+        --erp-accent: #FF6B00;
     }
 }
 

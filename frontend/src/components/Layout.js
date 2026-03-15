@@ -735,7 +735,7 @@ const Layout = () => {
       <main className="flex-1 flex flex-col pb-16 md:pb-0 overflow-y-auto max-h-screen">
         {/* Header */}
         <div className={`flex items-center justify-between px-4 md:px-8 py-3 border-b sticky top-0 z-10 transition-colors duration-200 ${
-          isDark ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-100 bg-white'
+          isDark ? 'border-[#2A2A2E] bg-[#0F0F10]' : 'border-zinc-100 bg-white'
         }`}>
           {/* Mobile Menu Button */}
           {isMobile && (
@@ -797,7 +797,7 @@ const Layout = () => {
         </div>
 
         {/* Main Content */}
-        <div className={`flex-1 p-4 md:p-8 transition-colors duration-200 ${isDark ? 'bg-zinc-950' : 'bg-zinc-50'}`}>
+        <div className={`flex-1 p-4 md:p-8 transition-colors duration-200 ${isDark ? 'bg-[#0F0F10]' : 'bg-zinc-50'}`}>
           <Outlet />
         </div>
       </main>
@@ -805,58 +805,60 @@ const Layout = () => {
       {/* Mobile Bottom Navigation */}
       {isMobile && (
         <nav className={`fixed bottom-0 left-0 right-0 border-t z-30 ${
-          isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'
-        }`}>
-          <div className="flex justify-around items-center h-16 px-2">
+          isDark ? 'bg-[#0F0F10] border-[#2A2A2E]' : 'bg-white border-zinc-200'
+        }`} data-testid="mobile-bottom-nav">
+          <div className="flex justify-around items-center h-16 px-1">
             {/* Home */}
             <Link
               to="/"
               className={`flex flex-col items-center justify-center flex-1 py-2 ${
-                isActive('/') 
-                  ? 'text-emerald-600' 
+                location.pathname === '/'
+                  ? isDark ? 'text-[#FF6B00]' : 'text-emerald-600'
                   : isDark ? 'text-zinc-500' : 'text-zinc-400'
               }`}
             >
-              <Home className="w-5 h-5" strokeWidth={isActive('/') ? 2 : 1.5} />
-              <span className="text-[10px] mt-1 font-medium">Home</span>
+              <Home className="w-5 h-5" strokeWidth={location.pathname === '/' ? 2 : 1.5} />
+              <span className="text-[10px] mt-0.5 font-medium">Home</span>
             </Link>
             
-            {/* Attendance */}
+            {/* Work (Leads/Meetings) */}
             <Link
-              to="/my-attendance"
+              to="/leads"
               className={`flex flex-col items-center justify-center flex-1 py-2 ${
-                isActive('/my-attendance') 
-                  ? 'text-emerald-600' 
+                ['/leads', '/sales-meetings', '/follow-ups'].some(p => location.pathname.startsWith(p))
+                  ? isDark ? 'text-[#FF6B00]' : 'text-emerald-600'
                   : isDark ? 'text-zinc-500' : 'text-zinc-400'
               }`}
             >
-              <Clock className="w-5 h-5" strokeWidth={isActive('/my-attendance') ? 2 : 1.5} />
-              <span className="text-[10px] mt-1 font-medium">Attendance</span>
+              <Briefcase className="w-5 h-5" strokeWidth={['/leads', '/sales-meetings', '/follow-ups'].some(p => location.pathname.startsWith(p)) ? 2 : 1.5} />
+              <span className="text-[10px] mt-0.5 font-medium">Work</span>
             </Link>
-            
+
             {/* Quick Check-in - Center Button */}
             <button
               onClick={() => setShowQuickCheckIn(true)}
-              className="flex flex-col items-center justify-center -mt-6"
+              className="flex flex-col items-center justify-center -mt-5"
               data-testid="mobile-quick-checkin-btn"
             >
-              <div className="w-14 h-14 rounded-full bg-emerald-600 flex items-center justify-center shadow-lg border-4 border-white dark:border-zinc-900">
-                <CheckCircle2 className="w-7 h-7 text-white" strokeWidth={2} />
+              <div className={`w-13 h-13 rounded-full flex items-center justify-center shadow-lg border-4 ${
+                isDark ? 'bg-[#FF6B00] border-[#0F0F10]' : 'bg-emerald-600 border-white'
+              }`}>
+                <CheckCircle2 className="w-6 h-6 text-white" strokeWidth={2} />
               </div>
-              <span className="text-[10px] mt-1 font-medium text-emerald-600">Check-in</span>
+              <span className={`text-[10px] mt-0.5 font-medium ${isDark ? 'text-[#FF6B00]' : 'text-emerald-600'}`}>Check-in</span>
             </button>
-            
-            {/* Leaves */}
+
+            {/* Expenses */}
             <Link
-              to="/my-leaves"
+              to="/expenses"
               className={`flex flex-col items-center justify-center flex-1 py-2 ${
-                isActive('/my-leaves') 
-                  ? 'text-emerald-600' 
+                location.pathname.startsWith('/expenses') || location.pathname.startsWith('/my-expenses')
+                  ? isDark ? 'text-[#FF6B00]' : 'text-emerald-600'
                   : isDark ? 'text-zinc-500' : 'text-zinc-400'
               }`}
             >
-              <Calendar className="w-5 h-5" strokeWidth={isActive('/my-leaves') ? 2 : 1.5} />
-              <span className="text-[10px] mt-1 font-medium">Leaves</span>
+              <Receipt className="w-5 h-5" strokeWidth={location.pathname.includes('expense') ? 2 : 1.5} />
+              <span className="text-[10px] mt-0.5 font-medium">Expenses</span>
             </Link>
             
             {/* Profile */}
@@ -864,12 +866,12 @@ const Layout = () => {
               to="/profile"
               className={`flex flex-col items-center justify-center flex-1 py-2 ${
                 isActive('/profile') 
-                  ? 'text-emerald-600' 
+                  ? isDark ? 'text-[#FF6B00]' : 'text-emerald-600'
                   : isDark ? 'text-zinc-500' : 'text-zinc-400'
               }`}
             >
               <UserCircle className="w-5 h-5" strokeWidth={isActive('/profile') ? 2 : 1.5} />
-              <span className="text-[10px] mt-1 font-medium">Profile</span>
+              <span className="text-[10px] mt-0.5 font-medium">Profile</span>
             </Link>
           </div>
         </nav>
