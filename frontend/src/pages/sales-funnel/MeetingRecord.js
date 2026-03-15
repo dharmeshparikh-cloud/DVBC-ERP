@@ -31,6 +31,7 @@ const MeetingRecord = () => {
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   const fileInputRef = useRef(null);
+  const existingMeetingFileInputRef = useRef(null);  // For uploading to existing meetings
   
   const [loading, setLoading] = useState(false);
   const [showMOMDialog, setShowMOMDialog] = useState(false);
@@ -290,6 +291,51 @@ const MeetingRecord = () => {
       }
     }
     setPendingAttachments([]);
+  };
+
+  // Handle file upload for EXISTING meeting cards
+  const handleExistingMeetingFileSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length || !selectedMeeting) return;
+    
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
+    
+    setUploadingFile(true);
+    
+    for (const file of files) {
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`Invalid file type: ${file.name}. Only photos and voice files allowed.`);
+        continue;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error(`File too large: ${file.name}. Maximum 20MB allowed.`);
+        continue;
+      }
+      
+      const attachmentType = file.type.startsWith('image/') ? 'photo' : 'voice';
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      formDataUpload.append('attachment_type', attachmentType);
+      
+      try {
+        await axios.post(`${API}/meetings/${selectedMeeting.id}/attachments`, formDataUpload, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success(`Uploaded ${file.name} successfully`);
+      } catch (error) {
+        console.error('Failed to upload attachment:', error);
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+    
+    setUploadingFile(false);
+    setSelectedMeeting(null);
+    invalidateData();
+    
+    // Reset input
+    if (existingMeetingFileInputRef.current) {
+      existingMeetingFileInputRef.current.value = '';
+    }
   };
 
   // Open MOM dialog - validate basic fields first
@@ -674,7 +720,11 @@ const MeetingRecord = () => {
                           {meeting.title || `Meeting ${index + 1}`}
                         </span>
                       </div>
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs border-green-400 text-green-600 dark:border-green-500 dark:text-green-400"
+                        style={{ backgroundColor: 'var(--green-bg, rgba(34, 197, 94, 0.15))' }}
+                      >
                         <CheckCircle className="w-3 h-3 mr-1" />
                         MOM Filled
                       </Badge>
@@ -734,15 +784,16 @@ const MeetingRecord = () => {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="text-xs h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="text-xs h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950"
+                          disabled={uploadingFile}
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedMeeting(meeting);
-                            fileInputRef.current?.click();
+                            existingMeetingFileInputRef.current?.click();
                           }}
                         >
                           <Upload className="w-3 h-3 mr-1" />
-                          Upload
+                          {uploadingFile && selectedMeeting?.id === meeting.id ? 'Uploading...' : 'Upload'}
                         </Button>
                       </div>
                       <FollowUpActionButton 
@@ -1133,6 +1184,17 @@ const MeetingRecord = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Hidden file input for uploading to existing meetings */}
+      <input
+        ref={existingMeetingFileInputRef}
+        type="file"
+        accept="image/*,audio/*"
+        multiple
+        onChange={handleExistingMeetingFileSelect}
+        className="hidden"
+        data-testid="existing-meeting-file-input"
+      />
     </div>
   );
 };

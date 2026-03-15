@@ -652,7 +652,12 @@ const PricingPlanBuilder = () => {
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        toast.error(detail.map(e => e.msg || 'Validation error').join(', '));
+        // Pydantic validation errors have loc (field location) and msg
+        const errorMessages = detail.map(e => {
+          const fieldPath = Array.isArray(e.loc) ? e.loc.join(' → ') : (e.loc || 'Unknown field');
+          return `${fieldPath}: ${e.msg || 'Invalid value'}`;
+        });
+        toast.error(errorMessages.join('\n'), { duration: 5000 });
       } else if (typeof detail === 'string') {
         toast.error(detail);
       } else {
