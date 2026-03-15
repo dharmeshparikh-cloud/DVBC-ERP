@@ -58,6 +58,7 @@ const MyProjects = () => {
   const isSalesManager = user?.role === 'sales_manager';
   const isSalesExecutive = user?.role === 'executive';
   const isSalesRole = isSalesManager || isSalesExecutive;
+  const isManager = ['manager', 'sales_manager', 'hr_manager', 'principal_consultant'].includes(user?.role);
   
   // Only Admin and Principal Consultant can see ALL data
   const canSeeAll = isAdmin || isPrincipalConsultant;
@@ -107,18 +108,36 @@ const MyProjects = () => {
         );
         handedOverSOWs = handedOverSOWs.filter(sow => sow.created_by === user?.id);
       }
-      // Sales Manager: See own + reportees' SOWs
+      // Sales Manager: See projects for leads owned by self or reportees that are WON or Closed
       else if (isSalesManager) {
-        handedOverSOWs = handedOverSOWs.filter(sow => 
-          sow.created_by === user?.id || reporteeIds.includes(sow.created_by)
-        );
-        // Sales roles typically don't see project assignments, filter to related projects
+        // Get all leads for this file
+        const allLeads = Array.isArray(leadsRes.data) ? leadsRes.data : leadsRes.data?.items || [];
+        // Find leads owned by this manager or their reportees that are WON or Closed
+        const wonClosedLeadIds = allLeads
+          .filter(lead => 
+            (lead.assigned_to === user?.id || reporteeIds.includes(lead.assigned_to)) &&
+            ['won', 'closed', 'WON', 'Closed'].includes(lead.status)
+          )
+          .map(lead => lead.id);
+        // Filter SOWs to those linked to WON/Closed leads
+        handedOverSOWs = handedOverSOWs.filter(sow => wonClosedLeadIds.includes(sow.lead_id));
+        // Filter projects to those linked to the SOWs
         const sowIds = handedOverSOWs.map(s => s.id);
         filteredProjects = filteredProjects.filter(p => sowIds.includes(p.sow_id));
       }
-      // Sales Executive: See only own SOWs
+      // Sales Executive: See projects for leads owned by self that are WON or Closed
       else if (isSalesExecutive) {
-        handedOverSOWs = handedOverSOWs.filter(sow => sow.created_by === user?.id);
+        // Get all leads for this file
+        const allLeads = Array.isArray(leadsRes.data) ? leadsRes.data : leadsRes.data?.items || [];
+        // Find leads owned by this sales executive that are WON or Closed
+        const wonClosedLeadIds = allLeads
+          .filter(lead => 
+            lead.assigned_to === user?.id &&
+            ['won', 'closed', 'WON', 'Closed'].includes(lead.status)
+          )
+          .map(lead => lead.id);
+        // Filter SOWs to those linked to WON/Closed leads
+        handedOverSOWs = handedOverSOWs.filter(sow => wonClosedLeadIds.includes(sow.lead_id));
         const sowIds = handedOverSOWs.map(s => s.id);
         filteredProjects = filteredProjects.filter(p => sowIds.includes(p.sow_id));
       }

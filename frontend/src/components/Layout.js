@@ -436,6 +436,9 @@ const Layout = () => {
     { name: 'Email Settings', href: '/email-settings', icon: MailCheck },
   ];
 
+  // Roles that can view Employee Scorecard
+  const canViewScorecard = ['admin', 'hr_manager', 'hr_executive', 'manager'].includes(role);
+  
   const workspaceItems = [
     { name: 'My Attendance', href: '/my-attendance', icon: CalendarDays },
     { name: 'My Leaves', href: '/my-leaves', icon: Calendar },
@@ -444,7 +447,7 @@ const Layout = () => {
     { name: 'My Projects', href: '/consulting/my-projects', icon: Briefcase },
     { name: 'My Drafts', href: '/my-drafts', icon: FileText },
     { name: 'My Details', href: '/my-details', icon: UserCog },
-    { name: 'My Scorecard', href: '/employee-scorecard', icon: Star },
+    ...(canViewScorecard ? [{ name: 'My Scorecard', href: '/employee-scorecard', icon: Star }] : []),
     { name: 'Mobile App', href: '/mobile-app', icon: Download },
   ];
 

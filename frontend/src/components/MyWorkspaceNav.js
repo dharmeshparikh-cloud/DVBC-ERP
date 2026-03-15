@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CalendarDays, Calendar, Wallet, Receipt, Briefcase, FileText, UserCog, Star } from 'lucide-react';
+import { AuthContext } from '../App';
 
 const NAV_ITEMS = [
   { label: 'Attendance', href: '/my-attendance', icon: CalendarDays },
@@ -10,16 +11,28 @@ const NAV_ITEMS = [
   { label: 'Projects', href: '/consulting/my-projects', icon: Briefcase },
   { label: 'Drafts', href: '/my-drafts', icon: FileText },
   { label: 'Details', href: '/my-details', icon: UserCog },
-  { label: 'Scorecard', href: '/employee-scorecard', icon: Star },
+  { label: 'Scorecard', href: '/employee-scorecard', icon: Star, adminOnly: true },
 ];
+
+// Roles that can access admin-only items like Scorecard
+const ADMIN_HR_ROLES = ['admin', 'hr_manager', 'hr_executive', 'manager'];
 
 const MyWorkspaceNav = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { user } = useContext(AuthContext);
+  
+  // Filter items based on role
+  const visibleItems = NAV_ITEMS.filter(item => {
+    if (item.adminOnly) {
+      return ADMIN_HR_ROLES.includes(user?.role);
+    }
+    return true;
+  });
 
   return (
     <div className="flex items-center gap-1 mb-5 pb-3 border-b border-zinc-200 overflow-x-auto scrollbar-hide" data-testid="my-workspace-nav">
-      {NAV_ITEMS.map(item => {
+      {visibleItems.map(item => {
         const Icon = item.icon;
         const isActive = pathname === item.href;
         return (
