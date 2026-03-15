@@ -14,7 +14,7 @@ import {
   ArrowLeft, Calendar, Users, Clock, Video, MapPin, Plus, Trash2, 
   Save, CheckCircle, FileText, AlertCircle, ChevronRight, Eye,
   MessageSquare, Target, Handshake, ListChecks, Upload, Image, Mic,
-  Download, X, File, RefreshCw, Rocket
+  Download, X, File, RefreshCw, Rocket, Route
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -1213,16 +1213,73 @@ const MeetingRecord = () => {
 
               {/* Key Commitments */}
               {selectedMeeting.key_commitments?.length > 0 && selectedMeeting.key_commitments.some(k => k) && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-xs text-green-600 font-medium mb-1">Key Commitments</p>
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/30 dark:border-green-800">
+                  <p className="text-xs text-green-600 font-medium mb-1 dark:text-green-400">Key Commitments</p>
                   <ul className="text-sm space-y-1">
                     {selectedMeeting.key_commitments.filter(k => k).map((com, i) => (
-                      <li key={i} className="flex items-start gap-2 text-green-900">
+                      <li key={i} className="flex items-start gap-2 text-green-900 dark:text-green-300">
                         <Handshake className="w-3 h-3 mt-1 text-green-500" />
                         {com}
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {/* Travel Details for Offline Meetings */}
+              {selectedMeeting.travel_details && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/30 dark:border-blue-800">
+                  <p className="text-xs text-blue-600 font-medium mb-3 dark:text-blue-400 flex items-center gap-2">
+                    <Route className="w-4 h-4" />
+                    Travel Details (Offline Meeting)
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-green-600 mt-0.5" />
+                      <div>
+                        <span className="text-zinc-500 dark:text-zinc-400">From:</span>
+                        <span className="ml-2 font-medium text-zinc-800 dark:text-zinc-200">{selectedMeeting.travel_details.start_location}</span>
+                      </div>
+                    </div>
+                    {selectedMeeting.travel_details.via_locations?.length > 0 && (
+                      <div className="flex items-start gap-2 pl-6">
+                        <span className="text-zinc-400">↓</span>
+                        <div className="text-zinc-600 dark:text-zinc-300">
+                          Via: {selectedMeeting.travel_details.via_locations.map(v => v.address).join(' → ')}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-red-600 mt-0.5" />
+                      <div>
+                        <span className="text-zinc-500 dark:text-zinc-400">To:</span>
+                        <span className="ml-2 font-medium text-zinc-800 dark:text-zinc-200">{selectedMeeting.travel_details.end_location}</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-zinc-500 dark:text-zinc-400 text-xs">Mode:</span>
+                        <span className="ml-2 font-medium text-zinc-800 dark:text-zinc-200">{selectedMeeting.travel_details.travel_mode}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 dark:text-zinc-400 text-xs">Round Trip:</span>
+                        <span className="ml-2 font-medium text-zinc-800 dark:text-zinc-200">{selectedMeeting.travel_details.is_round_trip ? 'Yes' : 'No'}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 dark:text-zinc-400 text-xs">Distance:</span>
+                        <span className="ml-2 font-bold text-green-700 dark:text-green-400">
+                          {selectedMeeting.travel_details.distance_km} km
+                          {selectedMeeting.travel_details.is_round_trip && ` (${(selectedMeeting.travel_details.distance_km * 2).toFixed(1)} km round trip)`}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 dark:text-zinc-400 text-xs">Travel Time:</span>
+                        <span className="ml-2 font-medium text-zinc-800 dark:text-zinc-200">
+                          {selectedMeeting.travel_details.travel_start_time} - {selectedMeeting.travel_details.travel_end_time}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

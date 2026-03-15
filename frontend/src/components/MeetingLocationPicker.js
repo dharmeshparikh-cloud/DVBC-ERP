@@ -96,6 +96,7 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className="pl-9"
+          data-testid="location-input"
         />
       </div>
     </div>
