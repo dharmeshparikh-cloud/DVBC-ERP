@@ -37,6 +37,7 @@ const ManagerLeadsDashboard = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [momSectionOpen, setMomSectionOpen] = useState(false);
   const [expandedMomEmployee, setExpandedMomEmployee] = useState(null);
+  const [funnelSectionOpen, setFunnelSectionOpen] = useState(true);
 
   const statusOptions = [
     { value: '', label: 'All Statuses' },
@@ -54,6 +55,19 @@ const ManagerLeadsDashboard = () => {
     { value: 'lost', label: 'Lost' }
   ];
 
+  // Funnel stages for display
+  const funnelStages = [
+    { id: 'lead', name: 'Lead', color: 'bg-gray-500/10 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30' },
+    { id: 'meeting', name: 'Meeting', color: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30' },
+    { id: 'pricing', name: 'Pricing', color: 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/30' },
+    { id: 'sow', name: 'SOW', color: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30' },
+    { id: 'quotation', name: 'Quote', color: 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-500/30' },
+    { id: 'agreement', name: 'Agreement', color: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-500/30' },
+    { id: 'payment', name: 'Payment', color: 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30' },
+    { id: 'kickoff', name: 'Kickoff', color: 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/30' },
+    { id: 'complete', name: 'Complete', color: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' }
+  ];
+
   // React Query: Subordinate Leads
   const { data: subordinateLeadsData = [], isLoading: loading, refetch: refetchLeads } = useSubordinateLeads();
   const subordinateLeads = subordinateLeadsData?.leads || subordinateLeadsData || [];
@@ -63,6 +77,16 @@ const ManagerLeadsDashboard = () => {
   const { data: todayStats } = useManagerTodayStats();
   const { data: performance } = useManagerPerformance();
   const { data: targetVsAchievement } = useManagerTargetVsAchievement();
+
+  // React Query: Team Funnel Data
+  const { data: funnelData } = useQuery({
+    queryKey: ['team-funnel-summary'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/api/analytics/funnel-summary`);
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
   // React Query: MOM Review Data
   const { data: momReviewData, refetch: refetchMom } = useQuery({
@@ -386,6 +410,125 @@ const ManagerLeadsDashboard = () => {
           </Card>
         </div>
       )}
+
+      {/* Team Funnel Activity - Replaces standalone pages */}
+      <Collapsible open={funnelSectionOpen} onOpenChange={setFunnelSectionOpen}>
+        <Card className="border-zinc-200 dark:border-zinc-700 shadow-none rounded-sm">
+          <CollapsibleTrigger className="w-full">
+            <CardHeader className="py-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-indigo-600" />
+                  Team Funnel Activity
+                  {funnelData?.summary && (
+                    <Badge variant="outline" className="ml-2">
+                      {funnelData.summary.total_leads} leads
+                    </Badge>
+                  )}
+                </CardTitle>
+                {funnelSectionOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {funnelData ? (
+                <div className="space-y-4">
+                  {/* Funnel Stage Cards - Clickable to filter leads */}
+                  <div className="grid grid-cols-9 gap-2">
+                    {funnelStages.map((stage, index) => {
+                      const count = funnelData.stage_counts?.[stage.id] || 0;
+                      return (
+                        <div key={stage.id} className="text-center relative">
+                          <div 
+                            className={`rounded-xl py-4 px-2 border-2 ${stage.color} hover:scale-105 transition-transform cursor-pointer`}
+                            onClick={() => navigate(`/leads?stage=${stage.id}`)}
+                          >
+                            <p className="text-2xl font-bold">{count}</p>
+                            <p className="text-xs mt-1 font-medium">{stage.name}</p>
+                          </div>
+                          {index < 8 && (
+                            <ChevronRight className="w-4 h-4 absolute -right-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600 z-10" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-4 gap-3 p-4 bg-zinc-500/5 dark:bg-zinc-500/10 rounded-lg">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-zinc-700 dark:text-zinc-300">{funnelData.summary?.total_leads || 0}</p>
+                      <p className="text-xs text-zinc-500">Total Leads</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-600">{funnelData.summary?.in_progress || 0}</p>
+                      <p className="text-xs text-zinc-500">In Progress</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-emerald-600">{funnelData.summary?.completed || 0}</p>
+                      <p className="text-xs text-zinc-500">Completed</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-indigo-600">{funnelData.summary?.conversion_rate?.toFixed(1) || 0}%</p>
+                      <p className="text-xs text-zinc-500">Conversion</p>
+                    </div>
+                  </div>
+
+                  {/* Employee Breakdown */}
+                  {funnelData.employee_breakdown?.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">By Team Member</h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                              <th className="text-left py-2 font-medium text-zinc-600 dark:text-zinc-400">Employee</th>
+                              {funnelStages.slice(0, 5).map(stage => (
+                                <th key={stage.id} className="text-center py-2 font-medium text-zinc-600 dark:text-zinc-400">{stage.name}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {funnelData.employee_breakdown.slice(0, 10).map((emp, idx) => (
+                              <tr key={idx} className="border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                                <td className="py-2 font-medium">{emp.employee_name}</td>
+                                {funnelStages.slice(0, 5).map(stage => (
+                                  <td key={stage.id} className="py-2 text-center">
+                                    <span 
+                                      className={`px-2 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 ${
+                                        emp.stage_counts?.[stage.id] > 0 ? stage.color : 'text-zinc-400'
+                                      }`}
+                                      onClick={() => navigate(`/leads?stage=${stage.id}&employee=${emp.employee_id}`)}
+                                    >
+                                      {emp.stage_counts?.[stage.id] || 0}
+                                    </span>
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Info about funnel-only creation */}
+                  <div className="flex items-center gap-2 p-3 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg text-sm">
+                    <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                    <span className="text-zinc-600 dark:text-zinc-400">
+                      All funnel items (Pricing, SOW, Quotes, Agreements) are created through <strong>Lead → Funnel</strong> only. 
+                      Click on any stage to view leads at that stage.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-zinc-500">Loading funnel data...</div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Target vs Achievement by Employee */}
       {targetVsAchievement && targetVsAchievement.employee_stats?.length > 0 && (

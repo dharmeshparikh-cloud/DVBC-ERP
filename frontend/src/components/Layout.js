@@ -373,16 +373,12 @@ const Layout = () => {
   ];
 
   // Sales items for MONITORING/CONTROL mode (Managers, Admins)
+  // Funnel stages (Pricing, SOW, Quotations, Agreements, Payment) removed - access ONLY through Lead → Funnel
   const fullSalesFlowItems = [
     { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3, stage: null },
     { name: 'Leads', href: '/leads', icon: Users, stage: 'LEAD' },
     { name: 'Team Dashboard', href: '/manager-leads', icon: Users, managerOnly: true, stage: null },
     { name: 'Sales Meetings', href: '/sales-meetings', icon: CalendarCheck, stage: 'MEETING' },
-    { name: 'SOW & Pricing', href: '/sales-funnel/pricing-plans', icon: FileText, stage: 'PRICING' },
-    { name: 'SOW Generator', href: '/sales-funnel/sow', icon: FileText, stage: 'SOW' },
-    { name: 'Quotations', href: '/sales-funnel/quotations', icon: Receipt, stage: 'QUOTATION' },
-    { name: 'Agreements', href: '/sales-funnel/agreements', icon: FileCheck, stage: 'AGREEMENT' },
-    { name: 'Payment Verification', href: '/sales-funnel/payment-verification', icon: CreditCard, stage: 'PAYMENT' },
     { name: 'Kickoff Requests', href: '/kickoff-requests', icon: Briefcase, stage: 'KICKOFF' },
     { name: 'Clients', href: '/clients', icon: Building2, stage: null },
     { name: 'Invoices', href: '/invoices', icon: Receipt, stage: null },
