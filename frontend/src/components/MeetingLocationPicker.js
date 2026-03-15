@@ -24,7 +24,7 @@ const TRAVEL_MODES = [
 // Load Google Maps script dynamically
 const loadGoogleMapsScript = () => {
   return new Promise((resolve, reject) => {
-    if (window.google && window.google.maps) {
+    if (window.google && window.google.maps && window.google.maps.places?.Autocomplete) {
       resolve(window.google.maps);
       return;
     }
@@ -37,10 +37,14 @@ const loadGoogleMapsScript = () => {
 
     const script = document.createElement('script');
     script.id = 'google-maps-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    // Use loading=async for Places library
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve(window.google.maps);
+    script.onload = () => {
+      // Wait a bit for Google Maps to fully initialize
+      setTimeout(() => resolve(window.google?.maps), 500);
+    };
     script.onerror = reject;
     document.head.appendChild(script);
   });
@@ -51,14 +55,26 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
   const autocompleteRef = useRef(null);
   const localInputRef = useRef(null);
   const ref = inputRef || localInputRef;
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    
     const initAutocomplete = async () => {
       try {
-        await loadGoogleMapsScript();
-        if (!ref.current || autocompleteRef.current) return;
+        const maps = await loadGoogleMapsScript();
+        if (!mounted || !ref.current) return;
+        
+        // Wait for places.Autocomplete to be available
+        if (!maps?.places?.Autocomplete) {
+          console.warn('Google Places Autocomplete class not available');
+          setIsReady(true); // Still mark as ready for manual entry
+          return;
+        }
+        
+        if (autocompleteRef.current) return;
 
-        autocompleteRef.current = new window.google.maps.places.Autocomplete(ref.current, {
+        autocompleteRef.current = new maps.places.Autocomplete(ref.current, {
           componentRestrictions: { country: 'in' },
           fields: ['formatted_address', 'geometry', 'name', 'place_id']
         });
@@ -77,12 +93,17 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
             onPlaceSelect?.(locationData);
           }
         });
+        
+        setIsReady(true);
       } catch (error) {
         console.error('Failed to load Google Maps:', error);
+        setIsReady(true); // Still allow manual entry
       }
     };
 
     initAutocomplete();
+    
+    return () => { mounted = false; };
   }, [onChange, onPlaceSelect, ref]);
 
   return (
