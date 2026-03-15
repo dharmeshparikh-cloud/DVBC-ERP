@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, History, Star, Building2, Save, Cloud } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, History, Star, Building2, Save, Cloud, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import useDraft from '../../hooks/useDraft';
@@ -16,6 +16,7 @@ import DraftSelector from '../../components/DraftSelector';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
+import LeadSelector, { LockedField } from '../../components/LeadSelector';
 
 // Generate draft title from quotation data
 const generateQuotationDraftTitle = (data) => {
@@ -59,6 +60,9 @@ const Quotations = () => {
     validity_days: 30,
     terms_and_conditions: 'Standard terms and conditions apply.\n\n1. Payment due within 15 days of invoice.\n2. Services subject to availability.\n3. This quotation is valid for 30 days.'
   });
+  
+  // SSOT: Track selected lead master data for locked field display
+  const [selectedLeadData, setSelectedLeadData] = useState(null);
   
   const formDataRef = useRef(formData);
   useEffect(() => {
@@ -561,42 +565,59 @@ const Quotations = () => {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-950">Lead *</Label>
-                <select
-                  value={formData.lead_id}
-                  onChange={(e) => {
-                    setFormData({ ...formData, lead_id: e.target.value, pricing_plan_id: '' });
-                    setSelectedPlanDetails(null);
-                  }}
-                  required
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-                >
-                  <option value="">Select a lead</option>
-                  {leads.map(lead => (
-                    <option key={lead.id} value={lead.id}>
-                      {lead.first_name} {lead.last_name} - {lead.company}
-                    </option>
-                  ))}
-                </select>
+            {/* SSOT: Lead Selection using LeadSelector component */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                Lead / Company *
+                {formData.lead_id && <Lock className="w-3 h-3 text-amber-500" />}
+              </Label>
+              <LeadSelector
+                value={formData.lead_id}
+                onChange={(leadId) => {
+                  setFormData({ ...formData, lead_id: leadId, pricing_plan_id: '' });
+                  setSelectedPlanDetails(null);
+                }}
+                onMasterDataLoad={(masterData) => {
+                  setSelectedLeadData(masterData);
+                }}
+                required={true}
+                placeholder="Search for a lead..."
+              />
+            </div>
+            
+            {/* SSOT: Display locked lead master data */}
+            {selectedLeadData && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm space-y-2">
+                <div className="text-xs font-medium text-amber-700 flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  Master Data (from Lead - Read Only)
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <LockedField label="Company" value={selectedLeadData.company} />
+                  <LockedField label="Contact Person" value={selectedLeadData.contact_person} />
+                  <LockedField label="Email" value={selectedLeadData.email} />
+                  <LockedField label="Phone" value={selectedLeadData.phone} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-950">Pricing Plan *</Label>
-                <select
-                  value={formData.pricing_plan_id}
-                  onChange={(e) => handlePlanSelect(e.target.value)}
-                  required
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-                >
-                  <option value="">Select a pricing plan</option>
-                  {pricingPlans.filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.project_duration_months} months ({plan.project_duration_type}) - {formatINR(plan.total_amount || calculatePlanTotals(plan).subtotal)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Pricing Plan *</Label>
+              <select
+                value={formData.pricing_plan_id}
+                onChange={(e) => handlePlanSelect(e.target.value)}
+                required
+                disabled={!formData.lead_id}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                data-testid="pricing-plan-select"
+              >
+                <option value="">{formData.lead_id ? 'Select a pricing plan' : 'Select a lead first'}</option>
+                {pricingPlans.filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.project_duration_months} months ({plan.project_duration_type}) - {formatINR(plan.total_amount || calculatePlanTotals(plan).subtotal)}
+                  </option>
+                ))}
+              </select>
             </div>
             
             {/* Show Team Deployment from selected Pricing Plan */}

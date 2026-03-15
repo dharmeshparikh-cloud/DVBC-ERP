@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 class ConsultingWorkflowTester:
     def __init__(self):
-        self.base_url = "https://sales-zen.preview.emergentagent.com/api"
+        self.base_url = "https://ssot-forms.preview.emergentagent.com/api"
         self.token = None
         self.user_id = None
         self.tests_run = 0

@@ -8,13 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { ArrowLeft, Plus, FileCheck, Send, Clock, CheckCircle, XCircle, Mail, Download, FileText, Trash2, Users, Eye, LayoutGrid, List, CreditCard } from 'lucide-react';
+import { ArrowLeft, Plus, FileCheck, Send, Clock, CheckCircle, XCircle, Mail, Download, FileText, Trash2, Users, Eye, LayoutGrid, List, CreditCard, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import ViewToggle from '../../components/ViewToggle';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
+import LeadSelector, { LockedField } from '../../components/LeadSelector';
 
 const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
@@ -114,6 +115,9 @@ const Agreements = () => {
     project_tenure_months: 12,
     team_deployment: []
   });
+
+  // SSOT: Track selected lead master data for locked field display
+  const [selectedLeadData, setSelectedLeadData] = useState(null);
 
   const [newTeamMember, setNewTeamMember] = useState({
     role: '',
@@ -673,40 +677,59 @@ const Agreements = () => {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-950">Lead *</Label>
-                <select
-                  value={formData.lead_id}
-                  onChange={(e) => setFormData({ ...formData, lead_id: e.target.value })}
-                  required
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-                >
-                  <option value="">Select a lead</option>
-                  {leads.map(lead => (
-                    <option key={lead.id} value={lead.id}>
-                      {lead.first_name} {lead.last_name} - {lead.company}
-                    </option>
-                  ))}
-                </select>
+            {/* SSOT: Lead Selection using LeadSelector component */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                Lead / Company *
+                {formData.lead_id && <Lock className="w-3 h-3 text-amber-500" />}
+              </Label>
+              <LeadSelector
+                value={formData.lead_id}
+                onChange={(leadId) => {
+                  setFormData({ ...formData, lead_id: leadId, quotation_id: '' });
+                  setInheritedFromPlan(false);
+                }}
+                onMasterDataLoad={(masterData) => {
+                  setSelectedLeadData(masterData);
+                }}
+                required={true}
+                placeholder="Search for a lead..."
+              />
+            </div>
+            
+            {/* SSOT: Display locked lead master data */}
+            {selectedLeadData && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm space-y-2">
+                <div className="text-xs font-medium text-amber-700 flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  Master Data (from Lead - Read Only)
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <LockedField label="Company" value={selectedLeadData.company} />
+                  <LockedField label="Contact Person" value={selectedLeadData.contact_person} />
+                  <LockedField label="Email" value={selectedLeadData.email} />
+                  <LockedField label="Phone" value={selectedLeadData.phone} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-950">Quotation *</Label>
-                <select
-                  value={formData.quotation_id}
-                  onChange={(e) => handleQuotationSelect(e.target.value)}
-                  required
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-                  data-testid="quotation-select"
-                >
-                  <option value="">Select a quotation</option>
-                  {quotations.filter(q => !formData.lead_id || q.lead_id === formData.lead_id).map(q => (
-                    <option key={q.id} value={q.id}>
-                      {q.quotation_number} - {formatINR(q.grand_total)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Quotation *</Label>
+              <select
+                value={formData.quotation_id}
+                onChange={(e) => handleQuotationSelect(e.target.value)}
+                required
+                disabled={!formData.lead_id}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                data-testid="quotation-select"
+              >
+                <option value="">{formData.lead_id ? 'Select a quotation' : 'Select a lead first'}</option>
+                {quotations.filter(q => !formData.lead_id || q.lead_id === formData.lead_id).map(q => (
+                  <option key={q.id} value={q.id}>
+                    {q.quotation_number} - {formatINR(q.grand_total)}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Inherited Team Info Banner */}
