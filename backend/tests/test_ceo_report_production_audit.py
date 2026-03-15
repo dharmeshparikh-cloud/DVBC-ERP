@@ -94,18 +94,23 @@ class TestCEOReportAuth:
         print(f"PASS: Sales Executive correctly denied preview access (403)")
     
     def test_unauthenticated_gets_401_on_all_endpoints(self):
-        """Unauthenticated requests should get 401"""
-        endpoints = [
+        """Unauthenticated requests should get 401 using correct HTTP methods"""
+        get_endpoints = [
             "/api/ceo-report/data",
             "/api/ceo-report/preview",
             "/api/ceo-report/config",
             "/api/ceo-report/logs",
-            "/api/ceo-report/trigger"
         ]
-        for endpoint in endpoints:
+        for endpoint in get_endpoints:
             res = requests.get(f"{BASE_URL}{endpoint}")
-            assert res.status_code == 401, f"Expected 401 on {endpoint}, got {res.status_code}"
-        print(f"PASS: All 5 endpoints return 401 for unauthenticated requests")
+            assert res.status_code == 401, f"Expected 401 on GET {endpoint}, got {res.status_code}"
+        # trigger is POST-only
+        res = requests.post(f"{BASE_URL}/api/ceo-report/trigger")
+        assert res.status_code == 401, f"Expected 401 on POST /api/ceo-report/trigger, got {res.status_code}"
+        # config PUT
+        res = requests.put(f"{BASE_URL}/api/ceo-report/config", json={})
+        assert res.status_code == 401, f"Expected 401 on PUT /api/ceo-report/config, got {res.status_code}"
+        print(f"PASS: All 6 endpoints return 401 for unauthenticated requests (correct HTTP methods)")
 
 
 class TestCEOReportDataSections:
@@ -350,6 +355,157 @@ class TestCEOReportDeliveryHistory:
         assert log["delivery_status"] in ["sent", "failed", "pending", "error", "skipped"], \
             f"Unexpected delivery_status: {log['delivery_status']}"
         print(f"PASS: Logs have required fields - first log status: {log['delivery_status']}")
+
+
+class TestCEOReportEdgeCases:
+    """Edge case and data integrity tests"""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.admin_creds = {"employee_id": "ADMIN001", "password": "Admin@2026"}
+        token_res = requests.post(f"{BASE_URL}/api/auth/login", json=self.admin_creds)
+        self.token = token_res.json().get("access_token") if token_res.status_code == 200 else None
+        self.headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+
+    def test_invalid_token_rejected(self):
+        """Expired/invalid token should be rejected"""
+        res = requests.get(f"{BASE_URL}/api/ceo-report/data", headers={"Authorization": "Bearer invalidtoken123"})
+        assert res.status_code == 401, f"Expected 401 for invalid token, got {res.status_code}"
+        print("PASS: Invalid token correctly rejected")
+
+    def test_config_update_with_invalid_fields_ignored(self):
+        """PUT config with unknown fields should not crash"""
+        assert self.token
+        res = requests.put(f"{BASE_URL}/api/ceo-report/config",
+            headers=self.headers, json={"recipient": "test@test.com", "hack_field": "malicious", "role": "superadmin"})
+        assert res.status_code == 200
+        data = res.json()
+        updated = data.get("updated", {})
+        assert "hack_field" not in updated, "Unknown field should be filtered"
+        assert "role" not in updated, "Role field should be filtered"
+        # Restore original
+        requests.put(f"{BASE_URL}/api/ceo-report/config",
+            headers=self.headers, json={"recipient": "dharmesh.parikh@dvconsulting.co.in"})
+        print("PASS: Invalid config fields filtered correctly")
+
+    def test_config_update_empty_body(self):
+        """PUT config with empty body should not crash"""
+        assert self.token
+        res = requests.put(f"{BASE_URL}/api/ceo-report/config", headers=self.headers, json={})
+        assert res.status_code == 200
+        print("PASS: Empty config update handled gracefully")
+
+    def test_data_all_sections_return_correct_types(self):
+        """Every section should return correct data types"""
+        assert self.token
+        res = requests.get(f"{BASE_URL}/api/ceo-report/data", headers=self.headers)
+        data = res.json()
+        # Revenue must be numeric
+        rev = data["revenue"]
+        for k in ["today_revenue", "mtd_revenue", "qtd_revenue", "ytd_revenue"]:
+            assert isinstance(rev[k], (int, float)), f"Revenue.{k} must be numeric, got {type(rev[k])}"
+        # Counts must be integers
+        assert isinstance(data["escalations"]["count"], int)
+        assert isinstance(data["pipeline_health"]["total_leads"], int)
+        assert isinstance(data["hr_metrics"]["total_employees"], int)
+        assert isinstance(data["consulting_team"]["total_consultants"], int)
+        # Lists must be lists
+        assert isinstance(data["escalations"]["items"], list)
+        assert isinstance(data["pipeline_health"]["stages"], list)
+        assert isinstance(data["team_productivity"]["team"], list)
+        print("PASS: All sections return correct data types")
+
+    def test_pipeline_total_matches_sum_of_stages(self):
+        """Pipeline total_leads should equal sum of all stage counts"""
+        assert self.token
+        res = requests.get(f"{BASE_URL}/api/ceo-report/data", headers=self.headers)
+        ph = res.json()["pipeline_health"]
+        stage_sum = sum(s["count"] for s in ph["stages"])
+        assert ph["total_leads"] == stage_sum, f"Total {ph['total_leads']} != sum {stage_sum}"
+        print(f"PASS: Pipeline total={ph['total_leads']} matches sum of stages={stage_sum}")
+
+    def test_mtd_qtd_ytd_logical_consistency(self):
+        """MTD <= QTD <= YTD for all period metrics"""
+        assert self.token
+        res = requests.get(f"{BASE_URL}/api/ceo-report/data", headers=self.headers)
+        data = res.json()
+        # Revenue
+        r = data["revenue"]
+        assert r["mtd_revenue"] <= r["qtd_revenue"] or r["qtd_revenue"] == 0
+        assert r["qtd_revenue"] <= r["ytd_revenue"] or r["ytd_revenue"] == 0
+        # Leads
+        sa = data["sales_activity"]
+        assert sa["mtd_leads"] <= sa["qtd_leads"] or sa["qtd_leads"] == 0
+        assert sa["qtd_leads"] <= sa["ytd_leads"] or sa["ytd_leads"] == 0
+        # HR leaves
+        la = data["hr_metrics"]["leaves_approved"]
+        assert la["mtd"] <= la["qtd"] or la["qtd"] == 0
+        assert la["qtd"] <= la["ytd"] or la["ytd"] == 0
+        print("PASS: MTD <= QTD <= YTD consistency verified")
+
+    def test_no_objectid_in_response(self):
+        """No MongoDB ObjectId should leak into API responses"""
+        assert self.token
+        import json
+        res = requests.get(f"{BASE_URL}/api/ceo-report/data", headers=self.headers)
+        text = res.text
+        assert "ObjectId" not in text, "ObjectId leak in data response"
+        res2 = requests.get(f"{BASE_URL}/api/ceo-report/logs", headers=self.headers)
+        text2 = res2.text
+        assert "ObjectId" not in text2, "ObjectId leak in logs response"
+        assert "_id" not in text2 or '"_id"' not in text2, "Raw _id field in logs response"
+        print("PASS: No ObjectId/raw _id leak in responses")
+
+    def test_trigger_creates_exactly_one_log(self):
+        """Each trigger should create exactly one log entry"""
+        assert self.token
+        # Get current log count
+        res1 = requests.get(f"{BASE_URL}/api/ceo-report/logs", headers=self.headers)
+        before_count = len(res1.json().get("logs", []))
+        # Trigger
+        requests.post(f"{BASE_URL}/api/ceo-report/trigger", headers=self.headers)
+        # Get new count
+        res2 = requests.get(f"{BASE_URL}/api/ceo-report/logs", headers=self.headers)
+        after_count = len(res2.json().get("logs", []))
+        assert after_count == before_count + 1, f"Expected {before_count+1} logs, got {after_count}"
+        print(f"PASS: Trigger created exactly 1 log entry ({before_count} -> {after_count})")
+
+    def test_concurrent_trigger_safety(self):
+        """Multiple rapid triggers should each create separate log entries"""
+        assert self.token
+        import concurrent.futures
+        res1 = requests.get(f"{BASE_URL}/api/ceo-report/logs", headers=self.headers)
+        before = len(res1.json().get("logs", []))
+        # Send 3 concurrent triggers
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(requests.post, f"{BASE_URL}/api/ceo-report/trigger", headers=self.headers) for _ in range(3)]
+            results = [f.result() for f in futures]
+        import time; time.sleep(2)
+        res2 = requests.get(f"{BASE_URL}/api/ceo-report/logs", headers=self.headers)
+        after = len(res2.json().get("logs", []))
+        assert after == before + 3, f"Expected {before+3} logs after 3 triggers, got {after}"
+        print(f"PASS: 3 concurrent triggers created 3 separate logs ({before} -> {after})")
+
+    def test_sales_manager_cannot_trigger_report(self):
+        """Non-admin POST /trigger must return 403"""
+        sm_token = requests.post(f"{BASE_URL}/api/auth/login",
+            json={"employee_id": "EMP002", "password": "Sales@123"}).json().get("access_token")
+        if not sm_token:
+            pytest.skip("Sales manager login unavailable")
+        res = requests.post(f"{BASE_URL}/api/ceo-report/trigger", headers={"Authorization": f"Bearer {sm_token}"})
+        assert res.status_code == 403, f"Expected 403 for non-admin trigger, got {res.status_code}"
+        print("PASS: Non-admin POST /trigger returns 403")
+
+    def test_sales_manager_cannot_update_config(self):
+        """Non-admin PUT /config must return 403"""
+        sm_token = requests.post(f"{BASE_URL}/api/auth/login",
+            json={"employee_id": "EMP002", "password": "Sales@123"}).json().get("access_token")
+        if not sm_token:
+            pytest.skip("Sales manager login unavailable")
+        res = requests.put(f"{BASE_URL}/api/ceo-report/config",
+            headers={"Authorization": f"Bearer {sm_token}"}, json={"recipient": "hacker@evil.com"})
+        assert res.status_code == 403, f"Expected 403 for non-admin config update, got {res.status_code}"
+        print("PASS: Non-admin PUT /config returns 403")
 
 
 if __name__ == "__main__":
