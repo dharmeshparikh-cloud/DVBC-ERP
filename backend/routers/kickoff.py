@@ -35,7 +35,7 @@ from websocket_manager import get_manager as get_ws_manager
 
 router = APIRouter(prefix="/kickoff-requests", tags=["Kickoff Requests"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://expense-funnel-hub.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://team-dashboard-pro-2.preview.emergentagent.com").replace("/api", "")
 LOGO_URL = "https://dvconsulting.co.in/wp-content/uploads/2020/02/logov4-min.png"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -1177,6 +1177,53 @@ async def client_confirm_approval(
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
+    
+    # AUTO-CREATE CLIENT MASTER from Lead data (when kickoff is accepted)
+    lead_for_client = await db.leads.find_one({"id": kickoff.get("lead_id")}, {"_id": 0}) if kickoff.get("lead_id") else None
+    if lead_for_client:
+        # Check if client master already exists for this company
+        existing_client_master = await db.client_master.find_one({
+            "company_name": {"$regex": f"^{lead_for_client.get('company', '')}$", "$options": "i"}
+        })
+        
+        if not existing_client_master:
+            tenure_months = kickoff.get("project_tenure_months", 12)
+            start_dt = datetime.strptime(confirmed_start, "%Y-%m-%d")
+            end_dt = start_dt + relativedelta(months=tenure_months)
+            
+            client_master_doc = {
+                "id": str(uuid.uuid4()),
+                "company_name": lead_for_client.get("company", kickoff.get("client_name")),
+                "industry": lead_for_client.get("industry", ""),
+                "website": lead_for_client.get("website", ""),
+                "city": lead_for_client.get("city", ""),
+                "state": lead_for_client.get("state", ""),
+                "country": lead_for_client.get("country", "India"),
+                "address": lead_for_client.get("address", ""),
+                "region": "West" if lead_for_client.get("state", "").lower() in ["maharashtra", "gujarat", "goa"] else "North",
+                # Sales Information
+                "lead_id": lead_for_client.get("id"),
+                "project_id": project_id,
+                "sales_owner_id": lead_for_client.get("assigned_to"),
+                "sales_owner_name": lead_for_client.get("assigned_to_name", ""),
+                "consulting_owner_id": kickoff.get("internal_approved_by"),
+                "consulting_owner_name": kickoff.get("internal_approved_by_name", ""),
+                # Contract dates
+                "contract_start_date": confirmed_start,
+                "contract_end_date": end_dt.strftime("%Y-%m-%d"),
+                "contract_value": kickoff.get("project_value"),
+                # Contacts
+                "primary_contact_name": f"{lead_for_client.get('first_name', '')} {lead_for_client.get('last_name', '')}".strip(),
+                "primary_contact_email": lead_for_client.get("email", ""),
+                "primary_contact_phone": lead_for_client.get("phone", ""),
+                "primary_contact_designation": lead_for_client.get("job_title", ""),
+                # Status
+                "status": "active",
+                "created_from": "kickoff_approval",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.client_master.insert_one(client_master_doc)
     
     # Send welcome email to client with credentials
     async def send_client_welcome_email():

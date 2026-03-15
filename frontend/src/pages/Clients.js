@@ -34,6 +34,18 @@ const Clients = () => {
   const [revenueDialog, setRevenueDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
 
+  // Role-based access
+  const isAdmin = user?.role === 'admin';
+  const isFinance = ['finance_manager', 'finance_executive', 'accounts'].includes(user?.role);
+  const isSales = ['sales_manager', 'executive', 'sales_executive'].includes(user?.role);
+  const isConsulting = ['principal_consultant', 'senior_consultant', 'consultant', 'project_manager'].includes(user?.role);
+  
+  // Can create/edit clients - only Admin/Finance
+  const canCreateClient = isAdmin || isFinance;
+  const canEditClient = isAdmin || isFinance;
+  // Can view - everyone but filtered by role
+  // canManage is defined below after form data to consolidate with other role checks
+
   // Form data
   const [formData, setFormData] = useState({
     company_name: '',
@@ -68,18 +80,35 @@ const Clients = () => {
     notes: ''
   });
 
-  const canManage = ['admin', 'project_manager', 'sales_manager', 'executive', 'manager'].includes(user?.role);
+  // canManage controls who can create/edit clients (Admin/Finance only)
+  const canManage = isAdmin || isFinance;
 
-  // Fetch clients with React Query
+  // Fetch clients with React Query - filtered by role
   const { data: clientsData, isLoading: loading } = useQuery({
-    queryKey: ['clients-all'],
+    queryKey: ['clients-all', user?.id, user?.role],
     queryFn: async () => {
       const [clientsRes, usersRes] = await Promise.all([
         axios.get(`${API}/clients`),
         axios.get(`${API}/users-with-roles`)
       ]);
-      const clientData = clientsRes.data?.items || clientsRes.data || [];
+      let clientData = clientsRes.data?.items || clientsRes.data || [];
       const userData = usersRes.data?.items || usersRes.data || [];
+      
+      // Filter clients based on role
+      if (!isAdmin && !isFinance) {
+        // Sales team sees clients where they are sales_owner
+        if (isSales) {
+          clientData = clientData.filter(c => 
+            c.sales_owner_id === user?.id || c.sales_person_id === user?.id
+          );
+        }
+        // Consulting team sees clients where they are consulting_owner
+        else if (isConsulting) {
+          clientData = clientData.filter(c => 
+            c.consulting_owner_id === user?.id
+          );
+        }
+      }
       
       let stats = null;
       if (canManage) {

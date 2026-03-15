@@ -23,7 +23,7 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://expense-funnel-hub.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://team-dashboard-pro-2.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ADMIN_CREDENTIALS = {"employee_id": "ADMIN001", "password": "admin123"}

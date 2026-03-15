@@ -475,6 +475,9 @@ from routers import employee_consent as employee_consent_router
 # Data Integrity (P1 architectural fixes - client lookup, team consolidation, CTC versioning)
 from routers import data_integrity as data_integrity_router
 
+# Client Master (read-only for Sales/Consulting, auto-created from kickoff)
+from routers import clients as clients_router
+
 # Meeting Schedules (Recurring meetings, Calendar, Conflict detection)
 from routers import meeting_schedules as meeting_schedules_router
 
@@ -600,6 +603,9 @@ api_router.include_router(employee_consent_router.router)
 
 # Data Integrity (P1 architectural fixes)
 api_router.include_router(data_integrity_router.router)
+
+# Client Master (read-only for Sales/Consulting, auto-created from kickoff)
+api_router.include_router(clients_router.router)
 
 # Excel Upload (Bulk Import)
 api_router.include_router(excel_upload_router.router)

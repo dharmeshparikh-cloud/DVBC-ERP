@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
-import { Plus, Mail, Phone, Briefcase, ExternalLink, TrendingUp, DollarSign, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Pause, Play, CheckCircle, Circle } from 'lucide-react';
+import { Plus, Mail, Phone, Briefcase, ExternalLink, TrendingUp, DollarSign, Search, Calendar, Upload, FileSpreadsheet, Download, X, FolderOpen, Pause, Play, CheckCircle, Circle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import FollowUpActionButton from '../components/FollowUpActionButton';
@@ -259,7 +259,22 @@ const Leads = () => {
     notes: '',
     next_follow_up: '',
     follow_up_notes: '',
+    // Company details (for Client Master integration)
+    industry: '',
+    website: '',
+    city: '',
+    state: '',
+    country: 'India',
+    address: '',
   });
+
+  // Industry options
+  const industryOptions = [
+    'Manufacturing', 'IT/Software', 'Healthcare', 'Finance/Banking',
+    'Retail', 'Education', 'Real Estate', 'Consulting', 'Logistics',
+    'Hospitality', 'Agriculture', 'Energy', 'Telecom', 'Automotive',
+    'Pharma', 'FMCG', 'Construction', 'Media', 'Government', 'Other'
+  ];
 
   // Register form data getter for save-on-leave
   const formDataRef = useRef(formData);
@@ -311,6 +326,7 @@ const Leads = () => {
       first_name: '', last_name: '', company: '', job_title: '',
       email: '', phone: '', linkedin_url: '', source: '', notes: '',
       next_follow_up: '', follow_up_notes: '',
+      industry: '', website: '', city: '', state: '', country: 'India', address: '',
     });
     setShowDraftSelector(false);
     setDialogOpen(true);
@@ -757,6 +773,103 @@ const Leads = () => {
                     placeholder="e.g., Website, Referral, RocketReach"
                     className="rounded-sm border-zinc-200"
                   />
+                </div>
+
+                {/* Company Details Section */}
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Company Details (Optional)
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="industry" className="text-sm font-medium text-zinc-950">
+                        Industry
+                      </Label>
+                      <select
+                        id="industry"
+                        data-testid="lead-industry"
+                        value={formData.industry}
+                        onChange={(e) => updateFormData('industry', e.target.value)}
+                        className="w-full px-3 py-2 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
+                      >
+                        <option value="">Select Industry</option>
+                        {industryOptions.map(ind => (
+                          <option key={ind} value={ind}>{ind}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="website" className="text-sm font-medium text-zinc-950">
+                        Website
+                      </Label>
+                      <Input
+                        id="website"
+                        data-testid="lead-website"
+                        value={formData.website}
+                        onChange={(e) => updateFormData('website', e.target.value)}
+                        placeholder="https://example.com"
+                        className="rounded-sm border-zinc-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 mt-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="city" className="text-sm font-medium text-zinc-950">
+                        City
+                      </Label>
+                      <Input
+                        id="city"
+                        data-testid="lead-city"
+                        value={formData.city}
+                        onChange={(e) => updateFormData('city', e.target.value)}
+                        placeholder="City"
+                        className="rounded-sm border-zinc-200"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state" className="text-sm font-medium text-zinc-950">
+                        State
+                      </Label>
+                      <Input
+                        id="state"
+                        data-testid="lead-state"
+                        value={formData.state}
+                        onChange={(e) => updateFormData('state', e.target.value)}
+                        placeholder="State"
+                        className="rounded-sm border-zinc-200"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="country" className="text-sm font-medium text-zinc-950">
+                        Country
+                      </Label>
+                      <Input
+                        id="country"
+                        data-testid="lead-country"
+                        value={formData.country}
+                        onChange={(e) => updateFormData('country', e.target.value)}
+                        placeholder="Country"
+                        className="rounded-sm border-zinc-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mt-3">
+                    <Label htmlFor="address" className="text-sm font-medium text-zinc-950">
+                      Full Address
+                    </Label>
+                    <Input
+                      id="address"
+                      data-testid="lead-address"
+                      value={formData.address}
+                      onChange={(e) => updateFormData('address', e.target.value)}
+                      placeholder="Street address"
+                      className="rounded-sm border-zinc-200"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
