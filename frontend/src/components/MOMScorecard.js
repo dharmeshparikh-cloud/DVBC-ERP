@@ -6,13 +6,15 @@ import {
   FileText, CheckCircle, Clock, AlertCircle, 
   Users, TrendingUp, Send, ArrowRight 
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const MOMScorecard = ({ period = 'month', isManager = false }) => {
+  const navigate = useNavigate();
+  
   const { data: momData, isLoading } = useQuery({
     queryKey: ['mom-scorecard', period],
     queryFn: async () => {
@@ -67,24 +69,24 @@ const MOMScorecard = ({ period = 'month', isManager = false }) => {
       <CardContent className="space-y-4">
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="text-center p-3 bg-zinc-50 rounded-lg">
-            <div className="text-2xl font-bold text-zinc-900">{summary.total_meetings || 0}</div>
-            <div className="text-xs text-zinc-500">Total Meetings</div>
+          <div className="text-center p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors" onClick={() => navigate('/sales-meetings')}>
+            <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{summary.total_meetings || 0}</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">Total Meetings</div>
           </div>
-          <div className="text-center p-3 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{summary.meetings_with_mom || 0}</div>
-            <div className="text-xs text-zinc-500">MOM Recorded</div>
+          <div className="text-center p-3 bg-green-500/10 dark:bg-green-500/20 rounded-lg cursor-pointer hover:bg-green-500/20 dark:hover:bg-green-500/30 transition-colors" onClick={() => navigate('/sales-meetings?status=completed')}>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{summary.meetings_with_mom || 0}</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">MOM Recorded</div>
           </div>
-          <div className="text-center p-3 bg-amber-50 rounded-lg">
-            <div className="text-2xl font-bold text-amber-600">{summary.meetings_without_mom || 0}</div>
-            <div className="text-xs text-zinc-500">Pending MOM</div>
+          <div className="text-center p-3 bg-amber-500/10 dark:bg-amber-500/20 rounded-lg cursor-pointer hover:bg-amber-500/20 dark:hover:bg-amber-500/30 transition-colors" onClick={() => navigate('/sales-meetings?status=pending')}>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{summary.meetings_without_mom || 0}</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">Pending MOM</div>
           </div>
         </div>
 
         {/* Completion Rate */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-600">MOM Completion Rate</span>
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">MOM Completion Rate</span>
             <span className={`text-sm font-semibold px-2 py-0.5 rounded ${getCompletionColor(summary.mom_completion_rate || 0)}`}>
               {summary.mom_completion_rate || 0}%
             </span>
@@ -94,22 +96,22 @@ const MOMScorecard = ({ period = 'month', isManager = false }) => {
 
         {/* Additional Metrics */}
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="flex items-center gap-2 p-2 bg-zinc-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded">
             <Clock className="w-4 h-4 text-blue-500" />
-            <span className="text-zinc-600">Timely MOMs:</span>
+            <span className="text-zinc-600 dark:text-zinc-400">Timely MOMs:</span>
             <span className="font-medium">{summary.timely_moms || 0}</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-zinc-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded">
             <Send className="w-4 h-4 text-green-500" />
-            <span className="text-zinc-600">Sent to Client:</span>
+            <span className="text-zinc-600 dark:text-zinc-400">Sent to Client:</span>
             <span className="font-medium">{summary.mom_sent_to_client || 0}</span>
           </div>
         </div>
 
         {/* Pending MOMs List */}
         {pendingMoms.length > 0 && (
-          <div className="border-t pt-3">
-            <h4 className="text-sm font-medium text-zinc-700 mb-2 flex items-center gap-2">
+          <div className="border-t dark:border-zinc-700 pt-3">
+            <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-500" />
               Pending MOMs ({momData?.pending_mom_count || 0})
             </h4>
@@ -118,10 +120,10 @@ const MOMScorecard = ({ period = 'month', isManager = false }) => {
                 <Link 
                   key={meeting.id || idx}
                   to={`/leads?lead_id=${meeting.lead_id}`}
-                  className="flex items-center justify-between p-2 bg-amber-50 rounded hover:bg-amber-100 transition-colors text-sm"
+                  className="flex items-center justify-between p-2 bg-amber-500/10 dark:bg-amber-500/20 rounded hover:bg-amber-500/20 dark:hover:bg-amber-500/30 transition-colors text-sm"
                 >
                   <div>
-                    <span className="font-medium text-zinc-800">{meeting.company || meeting.title}</span>
+                    <span className="font-medium text-zinc-800 dark:text-zinc-200">{meeting.company || meeting.title}</span>
                     {meeting.meeting_date && (
                       <span className="text-xs text-zinc-500 ml-2">
                         {new Date(meeting.meeting_date).toLocaleDateString()}

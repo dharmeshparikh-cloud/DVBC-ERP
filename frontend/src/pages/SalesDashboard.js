@@ -84,17 +84,17 @@ const SalesDashboard = () => {
 
   const getStageColor = (stage) => {
     const colors = {
-      lead: 'bg-gray-100 text-gray-700 border-gray-200',
-      meeting: 'bg-blue-100 text-blue-700 border-blue-200',
-      pricing: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-      sow: 'bg-purple-100 text-purple-700 border-purple-200',
-      quotation: 'bg-pink-100 text-pink-700 border-pink-200',
-      agreement: 'bg-orange-100 text-orange-700 border-orange-200',
-      payment: 'bg-amber-100 text-amber-700 border-amber-200',
-      kickoff: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-      complete: 'bg-emerald-100 text-emerald-700 border-emerald-200'
+      lead: 'bg-gray-500/10 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30',
+      meeting: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30',
+      pricing: 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/30',
+      sow: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30',
+      quotation: 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-500/30',
+      agreement: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-500/30',
+      payment: 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30',
+      kickoff: 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/30',
+      complete: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
     };
-    return colors[stage] || 'bg-zinc-100 text-zinc-700';
+    return colors[stage] || 'bg-zinc-500/10 dark:bg-zinc-500/20 text-zinc-700 dark:text-zinc-300';
   };
 
   const getProgressColor = (percentage) => {
@@ -243,12 +243,15 @@ const SalesDashboard = () => {
             <div className="grid grid-cols-9 gap-1">
               {Object.entries(myFunnelData.stage_counts).map(([stage, count], index) => (
                 <div key={stage} className="text-center relative">
-                  <div className={`rounded-lg py-3 px-1 border ${getStageColor(stage)}`}>
+                  <div 
+                    className={`rounded-lg py-3 px-1 border cursor-pointer hover:scale-105 transition-transform ${getStageColor(stage)}`}
+                    onClick={() => navigate(`/leads?stage=${stage}`)}
+                  >
                     <p className="text-xl font-bold">{count}</p>
                     <p className="text-[10px] mt-1 capitalize truncate">{stage}</p>
                   </div>
                   {index < 8 && (
-                    <ArrowRight className="w-3 h-3 absolute -right-2 top-1/2 -translate-y-1/2 text-zinc-300 z-10" />
+                    <ArrowRight className="w-3 h-3 absolute -right-2 top-1/2 -translate-y-1/2 text-zinc-300 dark:text-zinc-600 z-10" />
                   )}
                 </div>
               ))}
@@ -373,13 +376,16 @@ const SalesDashboard = () => {
                   
                   return (
                     <div key={stage.id} className="text-center relative">
-                      <div className={`rounded-xl py-4 px-2 border-2 ${getStageColor(stage.id)} hover:scale-105 transition-transform cursor-pointer`}>
+                      <div 
+                        className={`rounded-xl py-4 px-2 border-2 ${getStageColor(stage.id)} hover:scale-105 transition-transform cursor-pointer`}
+                        onClick={() => navigate(`/leads?stage=${stage.id}`)}
+                      >
                         <p className="text-2xl font-bold">{count}</p>
                         <p className="text-xs mt-1 font-medium">{stage.name}</p>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">{percentage}%</p>
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">{percentage}%</p>
                       </div>
                       {index < 8 && (
-                        <ChevronRight className="w-4 h-4 absolute -right-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10" />
+                        <ChevronRight className="w-4 h-4 absolute -right-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600 z-10" />
                       )}
                     </div>
                   );
