@@ -1,0 +1,67 @@
+{
+  "iteration": 167,
+  "date": "2026-01-15",
+  "summary": "Popup Bug Fix Verification - Employee Onboarding Form - ALL TESTS PASSED",
+  "test_type": "Frontend Only",
+  "bug_fix_tested": "Annoying popup/toast spam during form field typing in employee onboarding",
+  "test_results": {
+    "frontend_ui_tests": {
+      "total": 7,
+      "passed": 7,
+      "failed": 0,
+      "pass_rate": "100%",
+      "test_details": {
+        "test_1_no_toasts_first_name": "PASS - No toasts while typing in First Name field",
+        "test_2_no_toasts_phone": "PASS - No toasts while typing invalid phone number",
+        "test_3_inline_validation_blur": "PASS - Inline error messages only appear AFTER field blur (not during typing)",
+        "test_4_no_toasts_pan": "PASS - No toasts while typing in PAN field",
+        "test_5_no_toasts_aadhaar": "PASS - No toasts while typing in Aadhaar field",
+        "test_6_stepper_friendly_message": "PASS - Clicking future step shows friendly info toast 'Please use Save & Next button' instead of error spam",
+        "test_7_complete_flow": "PASS - Successfully filled Step 1 and moved to Step 2 without popup spam"
+      }
+    }
+  },
+  "fix_verification": {
+    "root_cause": "validateCurrentStep() was called during every React render (inside JSX on line 1765), triggering toast.error() on every keystroke",
+    "fix_applied": [
+      "Removed validateCurrentStep() call from render logic",
+      "Added touchedFields state to track field interactions (line 89)",
+      "Added handleFieldBlur and isFieldTouched helper functions (lines 485-490)",
+      "Changed inline validation to only show after onBlur event (lines 854-893)",
+      "Replaced stepper forward click with friendly info toast (line 1791)"
+    ],
+    "verified_behavior": {
+      "no_toast_during_typing": true,
+      "inline_errors_after_blur_only": true,
+      "stepper_shows_friendly_message": true,
+      "save_next_validates_properly": true
+    }
+  },
+  "test_credentials": {
+    "admin_login": "ADMIN001 / Admin@2026",
+    "test_onboarding_link": "https://form-validation-bug.preview.emergentagent.com/onboarding/candidate/i2R0in6CxB8wfWQLB85A1qD7yuxNBqmdPe174t3mChM"
+  },
+  "screenshots": [
+    ".screenshots/test3_blur_validation.png - Shows inline error after blur",
+    ".screenshots/test6_stepper.png - Shows friendly info toast on stepper click",
+    ".screenshots/complete_flow_test.png - Shows successful navigation to Step 2"
+  ],
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "action_items": [],
+  "updated_files": [],
+  "success_rate": {
+    "frontend": "100%"
+  },
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Popup bug fix verified. All 7 tests passed. touchedFields state and onBlur validation working correctly. No toast spam during typing.",
+  "verdict": "BUG FIX VERIFIED - 100% frontend tests passed"
+}

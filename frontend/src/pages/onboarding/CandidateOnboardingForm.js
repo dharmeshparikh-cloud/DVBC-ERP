@@ -85,6 +85,8 @@ const CandidateOnboardingForm = () => {
   const [saving, setSaving] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [lastSaved, setLastSaved] = useState(null);
+  // Track which fields have been touched (blurred) to show validation only after interaction
+  const [touchedFields, setTouchedFields] = useState({});
 
   // Form data
   const [formData, setFormData] = useState({
@@ -479,6 +481,14 @@ const CandidateOnboardingForm = () => {
     });
   };
 
+  // Mark field as touched when user leaves the field (onBlur)
+  const handleFieldBlur = (fieldPath) => {
+    setTouchedFields(prev => ({ ...prev, [fieldPath]: true }));
+  };
+
+  // Check if field is touched
+  const isFieldTouched = (fieldPath) => touchedFields[fieldPath] === true;
+
   const addEducation = () => {
     setFormData(prev => ({
       ...prev,
@@ -838,11 +848,12 @@ const CandidateOnboardingForm = () => {
                   inputMode="numeric"
                   value={formData.candidate_details.phone}
                   onChange={(e) => updateField('candidate_details.phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onBlur={() => handleFieldBlur('phone')}
                   placeholder="9876543210"
                   maxLength={10}
-                  className={formData.candidate_details.phone && !isValidIndianPhone(formData.candidate_details.phone) ? 'border-red-300 focus:border-red-500' : ''}
+                  className={isFieldTouched('phone') && formData.candidate_details.phone && !isValidIndianPhone(formData.candidate_details.phone) ? 'border-red-300 focus:border-red-500' : ''}
                 />
-                {formData.candidate_details.phone && !isValidIndianPhone(formData.candidate_details.phone) && (
+                {isFieldTouched('phone') && formData.candidate_details.phone && !isValidIndianPhone(formData.candidate_details.phone) && (
                   <p className="text-xs text-red-500 mt-1">Enter valid 10-digit number starting with 6-9</p>
                 )}
               </div>
@@ -854,11 +865,12 @@ const CandidateOnboardingForm = () => {
                   inputMode="numeric"
                   value={formData.candidate_details.alternate_phone}
                   onChange={(e) => updateField('candidate_details.alternate_phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onBlur={() => handleFieldBlur('alt_phone')}
                   placeholder="9876543210"
                   maxLength={10}
-                  className={formData.candidate_details.alternate_phone && !isValidIndianPhone(formData.candidate_details.alternate_phone) ? 'border-red-300 focus:border-red-500' : ''}
+                  className={isFieldTouched('alt_phone') && formData.candidate_details.alternate_phone && !isValidIndianPhone(formData.candidate_details.alternate_phone) ? 'border-red-300 focus:border-red-500' : ''}
                 />
-                {formData.candidate_details.alternate_phone && !isValidIndianPhone(formData.candidate_details.alternate_phone) && (
+                {isFieldTouched('alt_phone') && formData.candidate_details.alternate_phone && !isValidIndianPhone(formData.candidate_details.alternate_phone) && (
                   <p className="text-xs text-red-500 mt-1">Enter valid 10-digit number starting with 6-9</p>
                 )}
               </div>
@@ -872,11 +884,12 @@ const CandidateOnboardingForm = () => {
                   data-testid="pan-input"
                   value={formData.candidate_details.pan_number}
                   onChange={(e) => updateField('candidate_details.pan_number', e.target.value.toUpperCase())}
+                  onBlur={() => handleFieldBlur('pan')}
                   placeholder="ABCDE1234F"
                   maxLength={10}
-                  className={formData.candidate_details.pan_number && !isValidPAN(formData.candidate_details.pan_number) ? 'border-red-300 focus:border-red-500' : ''}
+                  className={isFieldTouched('pan') && formData.candidate_details.pan_number && !isValidPAN(formData.candidate_details.pan_number) ? 'border-red-300 focus:border-red-500' : ''}
                 />
-                {formData.candidate_details.pan_number && !isValidPAN(formData.candidate_details.pan_number) && (
+                {isFieldTouched('pan') && formData.candidate_details.pan_number && !isValidPAN(formData.candidate_details.pan_number) && (
                   <p className="text-xs text-red-500 mt-1">Enter valid PAN (5 letters, 4 digits, 1 letter)</p>
                 )}
               </div>
@@ -889,11 +902,12 @@ const CandidateOnboardingForm = () => {
                   inputMode="numeric"
                   value={formData.candidate_details.aadhaar_number}
                   onChange={(e) => updateField('candidate_details.aadhaar_number', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                  onBlur={() => handleFieldBlur('aadhaar')}
                   placeholder="123456789012"
                   maxLength={12}
-                  className={formData.candidate_details.aadhaar_number && !isValidAadhaar(formData.candidate_details.aadhaar_number) ? 'border-red-300 focus:border-red-500' : ''}
+                  className={isFieldTouched('aadhaar') && formData.candidate_details.aadhaar_number && !isValidAadhaar(formData.candidate_details.aadhaar_number) ? 'border-red-300 focus:border-red-500' : ''}
                 />
-                {formData.candidate_details.aadhaar_number && !isValidAadhaar(formData.candidate_details.aadhaar_number) && (
+                {isFieldTouched('aadhaar') && formData.candidate_details.aadhaar_number && !isValidAadhaar(formData.candidate_details.aadhaar_number) && (
                   <p className="text-xs text-red-500 mt-1">Enter valid 12-digit Aadhaar number</p>
                 )}
               </div>
@@ -1761,19 +1775,20 @@ const CandidateOnboardingForm = () => {
               
               const isComplete = isStepComplete();
               
-              // Can only go back, or to the next immediate step if current is complete
-              const canNavigate = index <= currentStep || (index === currentStep + 1 && validateCurrentStep());
+              // Navigation: can always go back, forward only via explicit button click
+              // REMOVED: validateCurrentStep() call here - it was causing toasts on every render!
+              const canNavigate = index <= currentStep;
               
               const handleStepClick = () => {
                 if (index < currentStep) {
                   // Can always go back
                   setCurrentStep(index);
                 } else if (index === currentStep) {
-                  // Already on this step
+                  // Already on this step - do nothing
                   return;
                 } else {
-                  // Trying to go forward - validate current step first
-                  toast.error('Please complete the current step before proceeding');
+                  // Trying to skip ahead - show gentle message (no validation toast spam)
+                  toast.info('Please use "Save & Next" button to proceed to the next step');
                 }
               };
               

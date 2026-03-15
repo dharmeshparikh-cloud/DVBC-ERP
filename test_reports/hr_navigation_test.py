@@ -12,7 +12,7 @@ async def run_test():
         page = await context.new_page()
         
         test_results = []
-        base_url = "https://erp-startup-fix.preview.emergentagent.com"
+        base_url = "https://form-validation-bug.preview.emergentagent.com"
         
         # Step 1: Login
         print("=" * 60)

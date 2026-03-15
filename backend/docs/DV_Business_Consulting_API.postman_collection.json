@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://erp-startup-fix.preview.emergentagent.com",
+      "value": "https://form-validation-bug.preview.emergentagent.com",
       "type": "string"
     },
     {
