@@ -16,7 +16,39 @@
 
 ## Completed Work - March 2026
 
-### Phase 113: Sales Meeting/MOM Workflow Fixes — March 15, 2026 ✅ (Latest)
+### Phase 114: Critical UI/Workflow Bug Fixes — March 15, 2026 ✅ (Latest)
+
+**Objective:** Fix multiple critical workflow issues reported by user.
+
+**Bugs Fixed:**
+
+1. **PricingPlanBuilder Crash (Critical)**
+   - **Error:** "Cannot access 'lead' before initialization" (Temporal Dead Zone)
+   - **Root Cause:** `useQuery` for `lead` was declared AFTER `generatePricingDraftTitle` callback which referenced `lead`
+   - **Fix:** Moved lead query declaration before the callback (lines 51-61)
+   - **Result:** PricingPlanBuilder loads correctly
+
+2. **Score Column Removed from Leads View**
+   - Removed Score column from table header and body (list view)
+   - Removed Score badge from card view
+   - Now shows: NAME, COMPANY, EMAIL, PROGRESS, ACTIONS
+   - Location: `Leads.js` lines 1006-1030, 1115-1157
+
+3. **Upload/View/Follow-up Buttons on Meeting Cards**
+   - Added View button (Eye icon) for MOM details
+   - Added Upload button (cloud upload icon) for attachments
+   - Added FollowUpActionButton (calendar icon) for follow-up scheduling
+   - Location: `MeetingRecord.js` lines 708-752
+
+4. **Orphan Function Calls Removed**
+   - Removed `fetchMasters()` and `fetchLead()` from useEffect (they don't exist)
+   - Location: `PricingPlanBuilder.js` lines 176-182
+
+**Testing:** 100% (5/5 tests passed). Report: `/app/test_reports/iteration_169.json`
+
+---
+
+### Phase 113: Sales Meeting/MOM Workflow Fixes — March 15, 2026 ✅
 
 **Objective:** Fix multiple workflow issues in the Sales Meeting/MOM system as reported by user.
 
