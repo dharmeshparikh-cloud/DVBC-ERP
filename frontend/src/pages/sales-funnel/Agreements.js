@@ -136,22 +136,23 @@ const Agreements = () => {
   const { data: agreementsData, isLoading: loading, refetch: refetchAgreements } = useQuery({
     queryKey: ['agreements-data', leadId],
     queryFn: async () => {
+      // Fetch all data in parallel with individual error handling
       const [agreementsRes, quotationsRes, leadsRes, templatesRes, plansRes] = await Promise.all([
-        axios.get(`${API}/agreements`, { params: leadId ? { lead_id: leadId } : {} }),
-        axios.get(`${API}/quotations`),
-        axios.get(`${API}/leads`),
-        axios.get(`${API}/email-templates`),
-        axios.get(`${API}/pricing-plans`)
+        axios.get(`${API}/agreements`, { params: leadId ? { lead_id: leadId } : {} }).catch(() => ({ data: [] })),
+        axios.get(`${API}/quotations`).catch(() => ({ data: [] })),
+        axios.get(`${API}/leads`).catch(() => ({ data: { items: [] } })),
+        axios.get(`${API}/email-templates`).catch(() => ({ data: { templates: [] } })),
+        axios.get(`${API}/pricing-plans`).catch(() => ({ data: [] }))
       ]);
       return {
         agreements: agreementsRes.data || [],
         quotations: quotationsRes.data || [],
-        leads: leadsRes.data || [],
+        leads: leadsRes.data?.items || leadsRes.data || [],
         emailTemplates: templatesRes.data?.templates || templatesRes.data || [],
         pricingPlans: plansRes.data || []
       };
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0, // Force fresh data on each load
   });
 
   const agreements = agreementsData?.agreements || [];

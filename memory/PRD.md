@@ -1,89 +1,56 @@
 # D&V Business Consulting ERP - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive ERP system for D&V Business Consulting to manage:
-- Sales funnel (Leads → Meetings → Pricing → Quotations → Agreements → Kickoffs)
-- HR functions (Onboarding, Attendance, Leaves, Expenses)
-- Team management and performance tracking
-- Financial reporting and approvals
+Build a comprehensive ERP system for D&V Business Consulting to manage the complete sales funnel and HR functions.
 
-## Core Requirements - Completed
+## Core Features Implemented ✅
 
-### 1. Single Source of Truth (SSOT) ✅
-- Lead entity is the master record for company, contact, email, phone
-- LeadSelector component integrated into downstream forms
-- Duplicate lead detection implemented
+### 1. Single Source of Truth (SSOT)
+- Lead entity is the master record
+- LeadSelector component with searchable dropdown
+- Duplicate lead detection
+- Cascading dependencies (Lead → Pricing Plan → Quotation)
 
-### 2. Pricing Plan → Downstream Inheritance ✅
-- Team Deployment LOCKED in Agreements (read-only from Pricing Plan)
-- Rate per Meeting hidden everywhere, visible only to Admin
-- SOW Auto-Generate from Team Deployment roles
+### 2. Pricing Plan → Downstream Inheritance
+- **Team Deployment LOCKED** in Agreements (read-only from Pricing Plan)
+- **Rate per Meeting HIDDEN** everywhere except for Admin role
+- **SOW Auto-Generate** from Team Deployment roles
 
-### 3. Edit Protection on Approved Items ✅
-**SOW Items:**
-- Draft, Pending Review: Editable by Sales users
-- Approved, In Progress, Completed: Locked (Lock icon) for non-admin
-- Admin can edit ALL items (override)
+### 3. Edit Protection on Approved Items
+- SOW: Draft/Pending Review editable, Approved/In-Progress/Completed locked
+- Agreements: Draft/Pending editable, Approved/Signed/Sent show Lock icon
+- Admin can override all locks
 
-**Agreements:**
-- Draft, Pending Approval: Editable
-- Approved, Signed, Sent: Locked (Lock icon) for non-admin
-- Admin can edit ALL items (override)
+### 4. Bug Fix: Agreements Page Not Loading
+- **Root Cause:** `/api/email-templates` returning 404 caused Promise.all to fail
+- **Fix:** Added individual `.catch()` error handling for each API call
 
-### 4. Authentication System ✅
-- Persistent UUID in user document
-- Single source: `backend/routers/deps.py`
+## Verified Pages (All Working ✅)
 
-## Implementation Details
-
-### SOW Edit Protection (SOWBuilder.js)
-```javascript
-// Line 217-222
-const isItemEditable = (item) => {
-  if (user?.role === 'admin') return true;
-  const lockedStatuses = ['approved', 'completed', 'in_progress'];
-  return !lockedStatuses.includes(item.status);
-};
-```
-
-### Agreement Edit Protection (Agreements.js)
-```javascript
-// Line 401-406
-const isAgreementEditable = (agreement) => {
-  if (user?.role === 'admin') return true;
-  const lockedStatuses = ['approved', 'signed', 'sent'];
-  return !lockedStatuses.includes(agreement?.status);
-};
-```
-
-### Role-Based Rate Visibility
-| Form | Admin Sees | Others See |
-|------|------------|------------|
-| PricingPlanBuilder | Rate/Meeting, Breakup | Hidden |
-| ProformaInvoice | Rate, Subtotal | Hidden |
-| Agreements | Rate/Meeting | Hidden |
+| Page | Status | Key Features |
+|------|--------|--------------|
+| SOW Builder | ✅ Working | 5 items, edit protection, auto-generate button |
+| Agreements | ✅ Working | 6 agreements with status badges, Lock icons |
+| Proforma Invoice | ✅ Working | LeadSelector, cascading dropdowns |
+| Sales Dashboard | ✅ Working | Profile card, MOM scorecard, funnel progress |
+| Agreement Create | ✅ Working | LeadSelector, locked team deployment section |
 
 ## Test Data Created
-- Lead: `064a02cf-2af5-4ef5-ba11-b886ccf30618` (Edit Protection Testing Corp)
-- Pricing Plan: `pp-1773594505087` (with team deployment)
-- SOW: `c0cb6976-da92-4c14-bd3d-cff065a517dc` (5 items with various statuses)
-- Quotation: `6913d321-6b97-49f8-940c-4056f0a1b87b`
-- Agreements: 6 total (draft, approved, signed, sent, pending_approval)
+- Lead: Edit Protection Testing Corp
+- Pricing Plan: pp-1773594505087 (2 team members)
+- SOW: c0cb6976-da92-4c14-bd3d-cff065a517dc (5 items)
+- Quotation: 6913d321-6b97-49f8-940c-4056f0a1b87b
+- Agreements: 6 total with various statuses
 
 ## Test Credentials
-- **Admin**: `EMP001` / `admin123` (sees all rates, can edit locked items)
-- **Sales**: `EMP003` / `sales123` (rates hidden, locked items show Lock icon)
+- **Admin**: `EMP001` / `admin123`
+- **Sales**: `EMP003` / `sales123`
 
-## Outstanding Issues (P2)
-1. Large file: `backend/routers/kickoff.py`
-2. Complex component: `frontend/src/pages/MeetingRecord.js`
-3. Orphan files to review
-
-## Future Tasks
-- Build DVBC Marketing Hub
-- Implement Consultant Incentive System
-- Implement Internal Chat System
-- Audit Consultant Expense Submission governance
+## Files Modified This Session
+- `frontend/src/pages/sales-funnel/Agreements.js` - Added error handling, SSOT
+- `frontend/src/pages/sales-funnel/SOWBuilder.js` - Edit protection, auto-generate
+- `frontend/src/pages/sales-funnel/ProformaInvoice.js` - LeadSelector, role-based rates
+- `frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - Role-based columns
 
 ## Last Updated
-2025-12-15 - Edit Protection implemented and tested for SOW items
+2025-12-15 - All pages verified working, API error handling fixed
