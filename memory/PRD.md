@@ -16,6 +16,52 @@
 ---
 
 
+
+### Phase 126: Profile Photo and Performance Dashboard — March 15, 2026 ✅ (Latest)
+
+**Objective:** Implement profile photo upload feature and ProfilePerformanceCard widget for dashboards.
+
+**Features Implemented:**
+
+1. **ProfilePhotoUpload Component** (`/frontend/src/components/ProfilePhotoUpload.jsx`)
+   - Passport-sized photo upload (max 5MB, JPEG/PNG/WebP)
+   - Preview before upload
+   - Change/Remove buttons
+   - Integrated into HR Onboarding (Personal Info step)
+   - Integrated into Candidate Onboarding form
+
+2. **ProfilePerformanceCard Component** (`/frontend/src/components/ProfilePerformanceCard.jsx`)
+   - Displays user avatar (photo or initials fallback)
+   - Shows name, role, department badge
+   - Performance stats: Deals Won, Revenue, Conversion %, In Progress
+   - Target Achievement progress bar
+   - Trend indicator (up/down/stable)
+   - Integrated into Sales Dashboard and Manager Leads Dashboard
+
+3. **Backend Photo Endpoints** (`/backend/routers/employees.py`)
+   - `POST /api/employees/{employee_id}/photo` - Upload photo
+   - `GET /api/employees/{employee_id}/photo` - Get photo details
+   - `DELETE /api/employees/{employee_id}/photo` - Remove photo
+   - Supports both employees collection and users-only records (fallback)
+   - Stores as base64 data URL in MongoDB (profile_photo_url, avatar_url fields)
+
+**Testing Results:**
+- Backend: 91.7% pass rate (11/12 tests)
+- Frontend: 100% pass rate (4/4 tests)
+- All photo upload/get/delete operations verified working
+
+**Files Modified/Created:**
+- `/frontend/src/components/ProfilePhotoUpload.jsx` - New
+- `/frontend/src/components/ProfilePerformanceCard.jsx` - New
+- `/frontend/src/pages/SalesDashboard.js` - Added ProfilePerformanceCard
+- `/frontend/src/pages/ManagerLeadsDashboard.js` - Added ProfilePerformanceCard
+- `/frontend/src/pages/HROnboarding.js` - Added ProfilePhotoUpload + profile_photo_url field
+- `/frontend/src/pages/onboarding/CandidateOnboardingForm.js` - Added ProfilePhotoUpload + profile_photo_url field
+- `/backend/routers/employees.py` - Photo upload/get/delete endpoints
+
+---
+
+
 ### Phase 125: P0/P1 Testing & DB Fix — March 15, 2026 ✅ (Latest)
 
 **Objective:** Test kickoff auto-client creation and MOM PDF download features.
