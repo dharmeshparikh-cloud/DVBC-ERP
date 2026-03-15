@@ -133,7 +133,8 @@ class CEOReportGenerator:
         pipeline = []
         stages = [
             ("new", "New Lead"), ("contacted", "Contacted"),
-            ("meeting_scheduled", "Meeting Scheduled"), ("proposal_sent", "Proposal Sent"),
+            ("meeting_scheduled", "Meeting Scheduled"), ("meeting", "Meeting Scheduled"),
+            ("proposal_sent", "Proposal Sent"),
             ("negotiation", "Negotiation"), ("sow_shared", "SOW Shared"),
             ("closed_won", "Closed Won"), ("closed_lost", "Closed Lost")
         ]
