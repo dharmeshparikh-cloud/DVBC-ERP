@@ -254,12 +254,12 @@ const FollowUps = () => {
   return (
     <div className="p-6 space-y-6" data-testid="follow-ups-page">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Follow-ups</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Follow-ups</h1>
           <p className="text-zinc-500 text-sm">Track and manage client follow-ups across all funnel stages</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={() => setShowCreateDialog(true)} size="sm" className="bg-zinc-950 text-white hover:bg-zinc-800" data-testid="create-follow-up-btn">
             <Plus className="w-4 h-4 mr-1" /> New Follow-up
           </Button>

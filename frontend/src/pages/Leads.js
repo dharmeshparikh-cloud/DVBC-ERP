@@ -614,14 +614,14 @@ const Leads = () => {
         description="Continue editing a lead or start a new one"
       />
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-1">
             Leads
           </h1>
-          <p className="text-zinc-500">Manage your sales pipeline ({filteredLeads.length} of {leads.length} leads)</p>
+          <p className="text-zinc-500 text-sm">Manage your sales pipeline ({filteredLeads.length} of {leads.length} leads)</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <PageRefreshButton onClick={() => refetchLeads()} loading={loading} />
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
           {canEdit && (

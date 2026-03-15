@@ -215,6 +215,33 @@ html.dark ::-webkit-scrollbar-thumb:hover { background: #3A3A3E; }
     background-size: 24px 24px;
 }
 
+/* ================================================
+   MOBILE-FIRST RESPONSIVE FIX
+   Prevents text/button overlap on all page headers.
+   Stacks title + actions vertically on mobile (<640px).
+   ================================================ */
+@media (max-width: 639px) {
+    /* Main content area page headers - stack vertically */
+    main .flex.items-center.justify-between {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+    }
+    /* Action button groups - allow wrapping */
+    main .flex.items-center.gap-3,
+    main .flex.items-center.gap-2,
+    main .flex.gap-2,
+    main .flex.gap-3 {
+        flex-wrap: wrap !important;
+    }
+    /* Prevent buttons from overflowing */
+    main button, main .btn {
+        white-space: nowrap;
+    }
+    /* Hide long button text on very small screens */
+    main .hidden.sm\:inline { display: none !important; }
+}
+
 .data-text {
     font-family: 'JetBrains Mono', monospace;
 }
