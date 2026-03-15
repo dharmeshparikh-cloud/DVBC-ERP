@@ -276,7 +276,7 @@ const AdminDashboard = () => {
 
         {/* Conversion Rate */}
         <LockableCard 
-          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-zinc-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-[#1A1A1C] to-[#131314] border-[#2A2A2E]' : 'bg-gradient-to-br from-white to-zinc-50 border-zinc-200'}`}
           cardId="conversion-rate"
           isDark={isDark}
           title="Conversion Rate"
@@ -294,7 +294,7 @@ const AdminDashboard = () => {
 
         {/* Project Health Pie */}
         <LockableCard 
-          className={`col-span-2 md:col-span-3 lg:col-span-4 row-span-1 md:row-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-slate-50 border-zinc-200'}`}
+          className={`col-span-2 md:col-span-3 lg:col-span-4 row-span-1 md:row-span-2 ${isDark ? 'bg-gradient-to-br from-[#1A1A1C] to-[#131314] border-[#2A2A2E]' : 'bg-gradient-to-br from-white to-slate-50 border-zinc-200'}`}
           cardId="project-health"
           isDark={isDark}
           title="Project Health"
@@ -395,7 +395,7 @@ const AdminDashboard = () => {
 
         {/* Team Present */}
         <LockableCard 
-          className={`col-span-1 md:col-span-3 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-emerald-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-3 ${isDark ? 'bg-gradient-to-br from-[#1A1A1C] to-[#131314] border-[#2A2A2E]' : 'bg-gradient-to-br from-white to-emerald-50 border-zinc-200'}`}
           cardId="team-present"
           isDark={isDark}
           title="Team Attendance"
@@ -446,7 +446,7 @@ const AdminDashboard = () => {
 
         {/* Performance Trend Chart */}
         <LockableCard 
-          className={`col-span-2 md:col-span-6 row-span-1 md:row-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-blue-50 border-zinc-200'}`}
+          className={`col-span-2 md:col-span-6 row-span-1 md:row-span-2 ${isDark ? 'bg-gradient-to-br from-[#1A1A1C] to-[#131314] border-[#2A2A2E]' : 'bg-gradient-to-br from-white to-blue-50 border-zinc-200'}`}
           cardId="performance-trend"
           isDark={isDark}
           title="Performance Trend"
@@ -507,7 +507,7 @@ const AdminDashboard = () => {
 
         {/* Hot Leads */}
         <LockableCard 
-          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-red-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-[#1A1A1C] to-[#131314] border-[#2A2A2E]' : 'bg-gradient-to-br from-white to-red-50 border-zinc-200'}`}
           cardId="hot-leads"
           isDark={isDark}
           title="Hot Leads"
@@ -525,7 +525,7 @@ const AdminDashboard = () => {
 
         {/* Closed Deals */}
         <LockableCard 
-          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-green-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-[#1A1A1C] to-[#131314] border-[#2A2A2E]' : 'bg-gradient-to-br from-white to-green-50 border-zinc-200'}`}
           cardId="closed-deals"
           isDark={isDark}
           title="Closed This Month"
@@ -543,7 +543,7 @@ const AdminDashboard = () => {
 
         {/* On Leave */}
         <LockableCard 
-          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 border-zinc-700' : 'bg-gradient-to-br from-white to-amber-50 border-zinc-200'}`}
+          className={`col-span-1 md:col-span-2 ${isDark ? 'bg-gradient-to-br from-[#1A1A1C] to-[#131314] border-[#2A2A2E]' : 'bg-gradient-to-br from-white to-amber-50 border-zinc-200'}`}
           cardId="on-leave"
           isDark={isDark}
           title="On Leave Today"
@@ -561,7 +561,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className={`p-3 md:p-4 rounded-lg ${isDark ? 'bg-zinc-800/50 border border-zinc-700' : 'bg-zinc-100'}`}>
+      <div className={`p-3 md:p-4 rounded-lg ${isDark ? 'bg-zinc-800/50 border border-[#2A2A2E]' : 'bg-zinc-100'}`}>
         <h3 className={`text-xs md:text-sm font-medium mb-2 md:mb-3 ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Quick Actions</h3>
         <div className="flex gap-2 md:gap-3 flex-wrap">
           <Link to="/leads">

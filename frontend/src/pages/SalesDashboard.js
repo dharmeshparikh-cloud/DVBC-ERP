@@ -404,7 +404,7 @@ const SalesDashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                      <tr className="border-b border-zinc-200 dark:border-[#2A2A2E]">
                         <th className="text-left py-3 px-2 font-medium text-zinc-600 dark:text-zinc-400">Employee</th>
                         <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Lead</th>
                         <th className="text-center py-3 px-1 font-medium text-zinc-600 dark:text-zinc-400">Meet</th>
@@ -465,7 +465,7 @@ const SalesDashboard = () => {
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">{trend.period}</p>
                       <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{trend.leads_created}</p>
                       <p className="text-xs text-zinc-500">New Leads</p>
-                      <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                      <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-[#2A2A2E]">
                         <p className="text-sm font-medium text-emerald-600">{trend.completed} closed</p>
                         <p className="text-xs text-zinc-500">{trend.conversion_rate}% conv.</p>
                       </div>
@@ -762,7 +762,7 @@ const SalesDashboard = () => {
           { label: isManager ? 'Team Dashboard' : 'My Leads', href: isManager ? '/manager-leads-dashboard' : '/leads', icon: BarChart3, color: 'bg-emerald-600 hover:bg-emerald-700', show: true },
         ].filter(action => action.show).map((action, i) => (
           <Link key={i} to={action.href}>
-            <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer">
+            <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-[#2A2A2E] transition-colors cursor-pointer">
               <CardContent className="pt-4 pb-4 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg ${action.color} flex items-center justify-center transition-colors`}>
                   <action.icon className="w-5 h-5 text-white" />
