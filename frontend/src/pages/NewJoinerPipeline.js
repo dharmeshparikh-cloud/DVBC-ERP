@@ -13,6 +13,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
+import PageHeader from '../components/ui/page-header';
 import PageRefreshButton from '../components/PageRefreshButton';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';

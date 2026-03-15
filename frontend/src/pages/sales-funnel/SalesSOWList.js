@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import ViewToggle from '../../components/ViewToggle';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
+import PageHeader from '../../components/ui/page-header';
 import PageRefreshButton from '../../components/PageRefreshButton';
 
 const STATUS_CONFIG = {

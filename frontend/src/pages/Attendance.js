@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { LazyImage } from '../components/ui/lazy-image';
+import PageHeader from '../components/ui/page-header';
 import PageRefreshButton from '../components/PageRefreshButton';
 import { Plus, Upload, CheckCircle, XCircle, Clock, CalendarDays, Building2, MapPin, Home, Camera, Navigation, Loader2, LogIn, LogOut, AlertCircle, Car, Bike, RotateCcw, Send, X, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';

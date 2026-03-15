@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const EXPENSE_CATEGORIES = [
@@ -269,15 +269,7 @@ const Expenses = () => {
   return (
     <div data-testid="expenses-page">
       <MyWorkspaceNav />
-      <div className="flex items-center justify-between mb-6">
-        <div>
-        <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-          MY EXPENSES
-        </h1>
-        <p className="text-sm md:text-base text-zinc-500">Submit expenses and track reimbursement status</p>
-        </div>
-        <PageRefreshButton onClick={() => refetchExpenses()} loading={loading} />
-      </div>
+      <PageHeader title="MY EXPENSES" subtitle="Submit expenses and track reimbursement status" onRefresh={() => refetchExpenses()} loading={loading} />
 
       {/* Stats Cards - Responsive 2x2 on mobile, 4-col on desktop */}
       {stats && (

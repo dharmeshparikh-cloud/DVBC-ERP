@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
+import PageHeader from '../../components/ui/page-header';
 import PageRefreshButton from '../../components/PageRefreshButton';
 
 const PAYMENT_MODES = [

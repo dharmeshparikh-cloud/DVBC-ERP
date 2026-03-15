@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import PageHeader from '../components/ui/page-header';
 import PageRefreshButton from '../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 

@@ -11,6 +11,7 @@ import { Plus, Mail, Phone, Briefcase, ExternalLink, TrendingUp, DollarSign, Sea
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import FollowUpActionButton from '../components/FollowUpActionButton';
+import PageHeader from '../components/ui/page-header';
 import PageRefreshButton from '../components/PageRefreshButton';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';

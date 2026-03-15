@@ -15,6 +15,7 @@ import DraftIndicator from '../../components/DraftIndicator';
 import DraftSelector from '../../components/DraftSelector';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
+import PageHeader from '../../components/ui/page-header';
 import PageRefreshButton from '../../components/PageRefreshButton';
 
 // Generate draft title from quotation data

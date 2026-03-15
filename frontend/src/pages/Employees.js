@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import MobileAppWidget from '../components/MobileAppWidget';
+import PageHeader from '../components/ui/page-header';
 import PageRefreshButton from '../components/PageRefreshButton';
 import { useQueryClient } from '@tanstack/react-query';
 import {

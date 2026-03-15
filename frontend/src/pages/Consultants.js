@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { Users, Plus, Briefcase, TrendingUp, Search, UserCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -77,27 +77,17 @@ const Consultants = () => {
 
   return (
     <div data-testid="consultants-page">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-            Consultants
-          </h1>
-          <p className="text-zinc-500">Manage consultants and their project assignments</p>
-        </div>
-        <div className="flex items-center gap-2">
-        <PageRefreshButton onClick={() => refetchConsultants()} loading={loading} />
-        {isAdmin && (
-          <Button
-            onClick={() => setDialogOpen(true)}
-            data-testid="add-consultant-btn"
-            className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-          >
-            <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-            Add Consultant
+      <PageHeader
+        title="Consultants"
+        subtitle="Manage consultants and their project assignments"
+        onRefresh={() => refetchConsultants()}
+        loading={loading}
+        actions={isAdmin && (
+          <Button onClick={() => setDialogOpen(true)} data-testid="add-consultant-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+            <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Add Consultant
           </Button>
         )}
-        </div>
-      </div>
+      />
 
       {/* Search */}
       <div className="mb-6">

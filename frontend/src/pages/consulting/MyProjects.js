@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import ViewToggle from '../../components/ViewToggle';
 import ConsultingStageNav from '../../components/ConsultingStageNav';
 import { sanitizeDisplayText } from '../../utils/sanitize';
+import PageHeader from '../../components/ui/page-header';
 import PageRefreshButton from '../../components/PageRefreshButton';
 import { useQuery } from '@tanstack/react-query';
 import { isProjectReadOnly } from '../../utils/projectActions';

@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
 import SalesFunnelProgress from '../../components/SalesFunnelProgress';
 import ViewToggle from '../../components/ViewToggle';
+import PageHeader from '../../components/ui/page-header';
 import PageRefreshButton from '../../components/PageRefreshButton';
 import { useFetch, useMutate } from '../../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';

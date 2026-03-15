@@ -15,6 +15,7 @@ import ProjectConsultantAssignment from '../components/ProjectConsultantAssignme
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isProjectReadOnly } from '../utils/projectActions';
 import FollowUpActionButton from '../components/FollowUpActionButton';
+import PageHeader from '../components/ui/page-header';
 import PageRefreshButton from '../components/PageRefreshButton';
 
 // Helper function to calculate days remaining/overdue

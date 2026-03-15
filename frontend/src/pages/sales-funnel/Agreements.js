@@ -14,6 +14,7 @@ import { formatINR } from '../../utils/currency';
 import ViewToggle from '../../components/ViewToggle';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
+import PageHeader from '../../components/ui/page-header';
 import PageRefreshButton from '../../components/PageRefreshButton';
 
 const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];

@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import useDraft from '../hooks/useDraft';
 import DraftIndicator from '../components/DraftIndicator';
 import DraftSelector from '../components/DraftSelector';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const CATEGORIES = ['Travel', 'Local Conveyance', 'Food', 'Accommodation', 'Office Supplies', 'Communication', 'Client Entertainment', 'Other'];
@@ -219,19 +219,18 @@ const MyExpenses = () => {
   return (
     <div data-testid="my-expenses-page">
       <MyWorkspaceNav />
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">My Expenses</h1>
-          <p className="text-zinc-500">Submit expenses and track reimbursement status</p>
-        </div>
-        <div className="flex items-center gap-2">
-        <PageRefreshButton onClick={() => refetchExpenses()} loading={loading} />
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="add-expense-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-              <Plus className="w-4 h-4 mr-2" /> New Expense
-            </Button>
-          </DialogTrigger>
+      <PageHeader
+        title="My Expenses"
+        subtitle="Submit expenses and track reimbursement status"
+        onRefresh={() => refetchExpenses()}
+        loading={loading}
+        actions={
+          <Button onClick={() => setDialogOpen(true)} data-testid="add-expense-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+            <Plus className="w-4 h-4 mr-2" /> New Expense
+          </Button>
+        }
+      />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <div className="flex items-center justify-between">
@@ -360,8 +359,6 @@ const MyExpenses = () => {
             </form>
           </DialogContent>
         </Dialog>
-        </div>
-      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3 mb-6">

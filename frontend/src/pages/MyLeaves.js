@@ -13,7 +13,7 @@ import useDraft from '../hooks/useDraft';
 import DraftIndicator from '../components/DraftIndicator';
 import DraftSelector from '../components/DraftSelector';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
 const LEAVE_TYPES = [
@@ -162,19 +162,18 @@ const MyLeaves = () => {
   return (
     <div data-testid="my-leaves-page">
       <MyWorkspaceNav />
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">My Leaves</h1>
-          <p className="text-zinc-500">Apply for leave, track status, and view balance</p>
-        </div>
-        <div className="flex items-center gap-2">
-        <PageRefreshButton onClick={() => refetchLeaves()} loading={loading} />
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="apply-leave-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-              <Plus className="w-4 h-4 mr-2" /> Apply Leave
-            </Button>
-          </DialogTrigger>
+      <PageHeader
+        title="My Leaves"
+        subtitle="Apply for leave, track status, and view balance"
+        onRefresh={() => refetchLeaves()}
+        loading={loading}
+        actions={
+          <Button onClick={() => setDialogOpen(true)} data-testid="apply-leave-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+            <Plus className="w-4 h-4 mr-2" /> Apply Leave
+          </Button>
+        }
+      />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="border-zinc-200 rounded-sm max-w-md">
             <DialogHeader>
               <div className="flex items-center justify-between">
@@ -261,8 +260,6 @@ const MyLeaves = () => {
             </form>
           </DialogContent>
         </Dialog>
-        </div>
-      </div>
 
       {/* Leave Balance */}
       {balance && (
