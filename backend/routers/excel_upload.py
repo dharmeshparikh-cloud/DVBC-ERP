@@ -77,6 +77,21 @@ async def get_upload_templates(current_user: User = Depends(get_current_user)):
             "sample_data": [
                 {"employee_id": "DVC001", "basic": 20000, "hra": 10000, "special_allowance": 15000}
             ]
+        },
+        {
+            "id": "client_master",
+            "name": "Client Master Import",
+            "description": "Bulk import existing clients",
+            "columns": ["company_name", "industry", "website", "city", "state", "country", 
+                       "address", "primary_contact_name", "primary_contact_email", 
+                       "primary_contact_phone", "primary_contact_designation", "contract_value", "notes"],
+            "required": ["company_name"],
+            "sample_data": [
+                {"company_name": "ABC Industries", "industry": "Manufacturing", "website": "https://abc.com",
+                 "city": "Mumbai", "state": "Maharashtra", "country": "India", "address": "123 Industrial Area",
+                 "primary_contact_name": "John Smith", "primary_contact_email": "john@abc.com",
+                 "primary_contact_phone": "9876543210", "primary_contact_designation": "CEO", "contract_value": 500000}
+            ]
         }
     ]
     
@@ -122,6 +137,17 @@ async def download_template(template_id: str, current_user: User = Depends(get_c
             "sample": [
                 ["DVC001", 600000, 20000, 10000, 15000, 1600, 1250, 2400, 200],
                 ["DVC002", 480000, 16000, 8000, 12000, 1600, 1000, 1920, 200]
+            ]
+        },
+        "client_master": {
+            "columns": ["company_name", "industry", "website", "city", "state", "country", 
+                       "address", "primary_contact_name", "primary_contact_email", 
+                       "primary_contact_phone", "primary_contact_designation", "contract_value", "notes"],
+            "sample": [
+                ["ABC Industries", "Manufacturing", "https://abc.com", "Mumbai", "Maharashtra", 
+                 "India", "123 Industrial Area", "John Smith", "john@abc.com", "9876543210", "CEO", 500000, "Key client"],
+                ["XYZ Tech", "IT/Software", "https://xyz.tech", "Bangalore", "Karnataka", 
+                 "India", "Tech Park", "Jane Doe", "jane@xyz.tech", "9876543211", "CTO", 800000, "New client"]
             ]
         }
     }
@@ -180,7 +206,15 @@ async def upload_excel(
     if current_user.role not in HR_ADMIN_ROLES:
         raise HTTPException(status_code=403, detail="Only HR/Admin can upload Excel files")
     
-    valid_types = ["employees", "attendance", "leave_balance", "salary_structure"]
+    valid_types = ["employees", "attendance", "leave_balance", "salary_structure", "client_master"]
+    
+    # Role check - client_master requires Admin/Finance
+    if upload_type == "client_master":
+        if current_user.role not in ["admin", "finance_manager", "finance_executive"]:
+            raise HTTPException(status_code=403, detail="Only Admin/Finance can upload client data")
+    elif current_user.role not in HR_ADMIN_ROLES:
+        raise HTTPException(status_code=403, detail="Only HR/Admin can upload Excel files")
+    
     if upload_type not in valid_types:
         raise HTTPException(status_code=400, detail=f"Invalid upload type. Must be one of: {valid_types}")
     
@@ -209,6 +243,8 @@ async def upload_excel(
         return await process_leave_balance_upload(db, df, dry_run, current_user)
     elif upload_type == "salary_structure":
         return await process_salary_structure_upload(db, df, dry_run, current_user)
+    elif upload_type == "client_master":
+        return await process_client_master_upload(db, df, dry_run, current_user)
 
 
 async def process_employee_upload(db, df: pd.DataFrame, dry_run: bool, current_user: User):
@@ -599,3 +635,117 @@ async def generate_employee_id(db) -> str:
 
 # Import regex for validation
 import re
+
+
+
+async def process_client_master_upload(db, df: pd.DataFrame, dry_run: bool, current_user: User):
+    """Process client master bulk upload."""
+    required_cols = ["company_name"]
+    
+    # Validate columns
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        raise HTTPException(status_code=400, detail=f"Missing required columns: {missing_cols}")
+    
+    results = {"valid": [], "errors": [], "warnings": []}
+    
+    for idx, row in df.iterrows():
+        row_num = idx + 2  # Excel row number (header is row 1)
+        
+        # Required field validation
+        company_name = str(row.get("company_name", "")).strip()
+        if not company_name:
+            results["errors"].append({
+                "row": row_num,
+                "error": "company_name is required",
+                "data": row.to_dict()
+            })
+            continue
+        
+        # Check for duplicate in existing data
+        existing = await db.client_master.find_one({
+            "company_name": {"$regex": f"^{re.escape(company_name)}$", "$options": "i"}
+        })
+        if existing:
+            results["warnings"].append({
+                "row": row_num,
+                "warning": f"Client '{company_name}' already exists - will be skipped",
+                "data": row.to_dict()
+            })
+            continue
+        
+        # Build contacts list if primary contact provided
+        contacts = []
+        primary_contact_name = str(row.get("primary_contact_name", "")).strip()
+        if primary_contact_name:
+            contacts.append({
+                "id": str(uuid.uuid4()),
+                "name": primary_contact_name,
+                "email": str(row.get("primary_contact_email", "")).strip(),
+                "phone": str(row.get("primary_contact_phone", "")).strip(),
+                "designation": str(row.get("primary_contact_designation", "")).strip(),
+                "is_primary": True,
+                "added_by": current_user.id,
+                "added_at": datetime.now(timezone.utc).isoformat()
+            })
+        
+        # Build valid record
+        client_record = {
+            "id": str(uuid.uuid4()),
+            "company_name": company_name,
+            "industry": str(row.get("industry", "")).strip() or "Other",
+            "website": str(row.get("website", "")).strip(),
+            "city": str(row.get("city", "")).strip(),
+            "state": str(row.get("state", "")).strip(),
+            "country": str(row.get("country", "India")).strip() or "India",
+            "address": str(row.get("address", "")).strip(),
+            "contacts": contacts,
+            "revenue_history": [],
+            "status": "active",
+            "created_from": "excel_import",
+            "created_by": current_user.id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Add contract_value if provided
+        contract_value = row.get("contract_value")
+        if pd.notna(contract_value):
+            try:
+                client_record["contract_value"] = float(contract_value)
+            except (ValueError, TypeError):
+                pass
+        
+        # Add notes if provided
+        notes = str(row.get("notes", "")).strip()
+        if notes:
+            client_record["notes"] = notes
+        
+        results["valid"].append({
+            "row": row_num,
+            "data": client_record
+        })
+    
+    # If not dry run, insert records
+    if not dry_run:
+        created_count = 0
+        for record in results["valid"]:
+            await db.client_master.insert_one(record["data"])
+            created_count += 1
+        
+        return {
+            "message": f"Successfully imported {created_count} clients",
+            "created": created_count,
+            "warnings": len(results["warnings"]),
+            "errors": len(results["errors"])
+        }
+    
+    return {
+        "dry_run": True,
+        "valid_count": len(results["valid"]),
+        "warning_count": len(results["warnings"]),
+        "error_count": len(results["errors"]),
+        "valid_records": results["valid"],
+        "warning_records": results["warnings"],
+        "error_records": results["errors"]
+    }

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { 
   Building2, Plus, Search, Eye, Edit2, Trash2, 
   User, Phone, Mail, MapPin, Calendar, DollarSign,
-  Globe, Users as UsersIcon, TrendingUp
+  Globe, Users as UsersIcon, TrendingUp, Upload, Download, FileSpreadsheet
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,7 +32,14 @@ const Clients = () => {
   const [editDialog, setEditDialog] = useState(false);
   const [contactDialog, setContactDialog] = useState(false);
   const [revenueDialog, setRevenueDialog] = useState(false);
+  const [importDialog, setImportDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  
+  // Import state
+  const [importFile, setImportFile] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Role-based access
   const isAdmin = user?.role === 'admin';
@@ -271,6 +278,88 @@ const Clients = () => {
     setEditDialog(true);
   };
 
+  // Excel Import Functions
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await axios.get(`${API}/excel-upload/templates/client_master/download`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'client_master_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Template downloaded');
+    } catch (error) {
+      toast.error('Failed to download template');
+    }
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error('Only Excel files (.xlsx, .xls) are allowed');
+      return;
+    }
+    
+    setImportFile(file);
+    setImportLoading(true);
+    
+    // Dry run to preview
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${API}/excel-upload/upload/client_master?dry_run=true`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setImportPreview(response.data);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to preview file');
+      setImportFile(null);
+      setImportPreview(null);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleImportConfirm = async () => {
+    if (!importFile) return;
+    
+    setImportLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      
+      const response = await axios.post(`${API}/excel-upload/upload/client_master?dry_run=false`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      toast.success(response.data.message || 'Import completed');
+      setImportDialog(false);
+      setImportFile(null);
+      setImportPreview(null);
+      invalidateData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to import clients');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const resetImport = () => {
+    setImportFile(null);
+    setImportPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const openViewDialog = async (client) => {
     try {
       const res = await axios.get(`${API}/clients/${client.id}`);
@@ -371,14 +460,25 @@ const Clients = () => {
         </div>
         
         {canManage && (
-          <Button 
-            onClick={() => { resetForm(); setCreateDialog(true); }}
-            className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-            data-testid="add-client-btn"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Client
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => { setImportDialog(true); resetImport(); }}
+              variant="outline"
+              className="border-zinc-300 hover:bg-zinc-50 rounded-sm shadow-none"
+              data-testid="import-clients-btn"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import
+            </Button>
+            <Button 
+              onClick={() => { resetForm(); setCreateDialog(true); }}
+              className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
+              data-testid="add-client-btn"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Client
+            </Button>
+          </div>
         )}
       </div>
 
@@ -871,6 +971,122 @@ const Clients = () => {
               </Button>
               <Button onClick={handleAddRevenue} className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
                 Add Revenue
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={importDialog} onOpenChange={setImportDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5" />
+              Import Clients from Excel
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Instructions */}
+            <div className="bg-blue-50 border border-blue-200 rounded-sm p-4 text-sm text-blue-800">
+              <p className="font-medium mb-2">Import Instructions:</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Download the template file</li>
+                <li>Fill in client data (only company_name is required)</li>
+                <li>Upload the filled Excel file</li>
+                <li>Review the preview and confirm import</li>
+              </ol>
+            </div>
+
+            {/* Download Template */}
+            <Button 
+              onClick={handleDownloadTemplate}
+              variant="outline"
+              className="w-full border-zinc-300 hover:bg-zinc-50 rounded-sm"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download Template
+            </Button>
+
+            {/* File Upload */}
+            <div className="space-y-2">
+              <Label>Upload Excel File</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileSelect}
+                className="w-full h-10 px-3 py-2 rounded-sm border border-zinc-200 bg-white text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200"
+              />
+            </div>
+
+            {/* Preview Results */}
+            {importLoading && (
+              <div className="text-center py-4 text-zinc-500">
+                Processing file...
+              </div>
+            )}
+
+            {importPreview && !importLoading && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-green-50 border border-green-200 rounded-sm p-3 text-center">
+                    <p className="text-2xl font-semibold text-green-700">{importPreview.valid_count || 0}</p>
+                    <p className="text-xs text-green-600">Valid Records</p>
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-sm p-3 text-center">
+                    <p className="text-2xl font-semibold text-yellow-700">{importPreview.warning_count || 0}</p>
+                    <p className="text-xs text-yellow-600">Warnings (Skipped)</p>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded-sm p-3 text-center">
+                    <p className="text-2xl font-semibold text-red-700">{importPreview.error_count || 0}</p>
+                    <p className="text-xs text-red-600">Errors</p>
+                  </div>
+                </div>
+
+                {/* Show warnings */}
+                {importPreview.warning_records?.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-sm p-3 max-h-32 overflow-y-auto">
+                    <p className="text-xs font-medium text-yellow-800 mb-2">Warnings (will be skipped):</p>
+                    {importPreview.warning_records.slice(0, 5).map((w, i) => (
+                      <p key={i} className="text-xs text-yellow-700">Row {w.row}: {w.warning}</p>
+                    ))}
+                    {importPreview.warning_records.length > 5 && (
+                      <p className="text-xs text-yellow-600 mt-1">...and {importPreview.warning_records.length - 5} more</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Show errors */}
+                {importPreview.error_records?.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-sm p-3 max-h-32 overflow-y-auto">
+                    <p className="text-xs font-medium text-red-800 mb-2">Errors:</p>
+                    {importPreview.error_records.slice(0, 5).map((e, i) => (
+                      <p key={i} className="text-xs text-red-700">Row {e.row}: {e.error}</p>
+                    ))}
+                    {importPreview.error_records.length > 5 && (
+                      <p className="text-xs text-red-600 mt-1">...and {importPreview.error_records.length - 5} more</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button 
+                onClick={() => { setImportDialog(false); resetImport(); }} 
+                variant="outline" 
+                className="flex-1 rounded-sm"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleImportConfirm} 
+                disabled={!importPreview || importPreview.valid_count === 0 || importLoading}
+                className="flex-1 bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none disabled:opacity-50"
+              >
+                {importLoading ? 'Importing...' : `Import ${importPreview?.valid_count || 0} Clients`}
               </Button>
             </div>
           </div>

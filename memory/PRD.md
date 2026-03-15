@@ -16,7 +16,51 @@
 ---
 
 
-### Phase 122: Lead-to-Client Master Integration & Clients API — March 15, 2026 ✅ (Latest)
+### Phase 123: Client Import & Funnel Governance Cleanup — March 15, 2026 ✅ (Latest)
+
+**Objective:** Add Excel import for Client Master and remove standalone pages that bypass funnel governance.
+
+**Changes Implemented:**
+
+1. **Client Master Excel Import Feature**
+   - Added "Import" button next to "Add Client" (Admin/Finance only)
+   - Import dialog with:
+     - Download Template button
+     - File upload with validation
+     - Preview showing valid/warning/error counts
+     - Dry-run validation before import
+   - Backend endpoint: POST `/api/excel-upload/upload/client_master`
+   - Template includes: company_name, industry, website, city, state, country, address, primary_contact_*, contract_value, notes
+
+2. **Removed Standalone Pages (Funnel Bypass Prevention)**
+   - **SalesMeetings.js** - DELETED
+     - Route `/sales-meetings` now redirects to `/leads`
+     - Meetings should only be recorded through Lead funnel
+     - MOM still visible via dashboard scorecards
+   - **MyProjects.js** - DELETED  
+     - Route `/consulting/my-projects` now redirects to `/clients`
+     - Projects accessible via Clients page
+
+3. **Sidebar Navigation Updates**
+   - Removed "Sales Meetings" from Sales section
+   - Removed "My Projects" from Workspace and Consulting sections
+   - Updated mobile navigation path references
+
+**Files Deleted:**
+- `frontend/src/pages/SalesMeetings.js`
+- `frontend/src/pages/consulting/MyProjects.js`
+
+**Files Modified:**
+- `frontend/src/App.js` - Removed lazy imports, routes redirect
+- `frontend/src/components/Layout.js` - Removed sidebar items
+- `frontend/src/pages/Clients.js` - Added Import button/dialog
+- `backend/routers/excel_upload.py` - Added client_master template and upload handler
+
+**Testing:** Screenshots verified Import dialog and sidebar changes working
+
+---
+
+### Phase 122: Lead-to-Client Master Integration & Clients API — March 15, 2026 ✅
 
 **Objective:** Integrate Client Master data capture into Lead creation and create backend API for Clients page.
 

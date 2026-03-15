@@ -374,11 +374,11 @@ const Layout = () => {
 
   // Sales items for MONITORING/CONTROL mode (Managers, Admins)
   // Funnel stages (Pricing, SOW, Quotations, Agreements, Payment) removed - access ONLY through Lead → Funnel
+  // Sales Meetings removed - meetings should be logged through Lead funnel only
   const fullSalesFlowItems = [
     { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3, stage: null },
     { name: 'Leads', href: '/leads', icon: Users, stage: 'LEAD' },
     { name: 'Team Dashboard', href: '/manager-leads', icon: Users, managerOnly: true, stage: null },
-    { name: 'Sales Meetings', href: '/sales-meetings', icon: CalendarCheck, stage: 'MEETING' },
     { name: 'Kickoff Requests', href: '/kickoff-requests', icon: Briefcase, stage: 'KICKOFF' },
     { name: 'Clients', href: '/clients', icon: Building2, stage: null },
     { name: 'Invoices', href: '/invoices', icon: Receipt, stage: null },
@@ -394,7 +394,7 @@ const Layout = () => {
 
   const consultingItems = isConsultant
     ? [
-        { name: 'My Projects', href: '/consulting/my-projects', icon: Briefcase },
+        // My Projects removed - access through Clients page instead
         { name: 'My Schedule', href: '/consulting-meetings', icon: Calendar },
         { name: 'Team Calendar', href: '/meeting-calendar', icon: CalendarDays },
         { name: 'My Clients', href: '/clients', icon: Building2 },
@@ -439,7 +439,7 @@ const Layout = () => {
     { name: 'My Leaves', href: '/my-leaves', icon: Calendar },
     { name: 'My Salary Slips', href: '/my-salary-slips', icon: Wallet },
     { name: 'My Expenses', href: '/my-expenses', icon: Receipt },
-    { name: 'My Projects', href: '/consulting/my-projects', icon: Briefcase },
+    // My Projects removed - access through Clients page
     { name: 'My Drafts', href: '/my-drafts', icon: FileText },
     { name: 'My Details', href: '/my-details', icon: UserCog },
     ...(canViewScorecard ? [{ name: 'My Scorecard', href: '/employee-scorecard', icon: Star }] : []),
@@ -823,12 +823,12 @@ const Layout = () => {
             <Link
               to="/leads"
               className={`flex flex-col items-center justify-center flex-1 py-2 ${
-                ['/leads', '/sales-meetings', '/follow-ups'].some(p => location.pathname.startsWith(p))
+                ['/leads', '/follow-ups'].some(p => location.pathname.startsWith(p))
                   ? isDark ? 'text-[#FF6B00]' : 'text-emerald-600'
                   : isDark ? 'text-zinc-500' : 'text-zinc-400'
               }`}
             >
-              <Briefcase className="w-5 h-5" strokeWidth={['/leads', '/sales-meetings', '/follow-ups'].some(p => location.pathname.startsWith(p)) ? 2 : 1.5} />
+              <Briefcase className="w-5 h-5" strokeWidth={['/leads', '/follow-ups'].some(p => location.pathname.startsWith(p)) ? 2 : 1.5} />
               <span className="text-[10px] mt-0.5 font-medium">Work</span>
             </Link>
 

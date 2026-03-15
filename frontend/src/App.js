@@ -26,7 +26,7 @@ import Dashboard from './pages/Dashboard';
 const Leads = lazy(() => import('./pages/Leads'));
 const Projects = lazy(() => import('./pages/Projects'));
 const AllProjects = lazy(() => import('./pages/AllProjects'));
-const SalesMeetings = lazy(() => import('./pages/SalesMeetings'));
+// SalesMeetings removed - meetings accessed via Lead funnel only, MOM visible in dashboard scorecards
 const ConsultingMeetings = lazy(() => import('./pages/ConsultingMeetings'));
 const MeetingCalendar = lazy(() => import('./pages/MeetingCalendar'));
 const OrgChart = lazy(() => import('./pages/OrgChart'));
@@ -59,7 +59,7 @@ const ClientOnboarding = lazy(() => import('./pages/ClientOnboarding'));
 const SalesFunnelOnboarding = lazy(() => import('./pages/SalesFunnelOnboarding'));
 const ConsultingSOWList = lazy(() => import('./pages/consulting/ConsultingSOWList'));
 const ConsultingProjectTasks = lazy(() => import('./pages/consulting/ConsultingProjectTasks'));
-const MyProjects = lazy(() => import('./pages/consulting/MyProjects'));
+// MyProjects removed - clients/projects accessible via Clients page
 const AssignTeam = lazy(() => import('./pages/consulting/AssignTeam'));
 const SOWChangeRequests = lazy(() => import('./pages/consulting/SOWChangeRequests'));
 const PaymentReminders = lazy(() => import('./pages/consulting/PaymentReminders'));
@@ -266,7 +266,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="leads" element={<Leads />} />
         <Route path="projects" element={<Projects />} />
         <Route path="all-projects" element={<AllProjects />} />
-        <Route path="sales-meetings" element={<SalesMeetings />} />
+        {/* sales-meetings route removed - meetings accessed via Lead funnel, MOM via dashboard */}
+        <Route path="sales-meetings" element={<Navigate to="/leads" replace />} />
         <Route path="consulting-meetings" element={<ConsultingMeetings />} />
         <Route path="meeting-calendar" element={<MeetingCalendar />} />
         <Route path="org-chart" element={<OrgChart />} />
@@ -304,7 +305,8 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="client-onboarding" element={<ClientOnboarding />} />
         <Route path="sales-funnel-onboarding" element={<SalesFunnelOnboarding />} />
         <Route path="consulting/projects" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingSOWList /></RoleGuard>} />
-        <Route path="consulting/my-projects" element={<MyProjects />} />
+        {/* consulting/my-projects route removed - access via Clients page */}
+        <Route path="consulting/my-projects" element={<Navigate to="/clients" replace />} />
         <Route path="consulting/assign-team/:projectId" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery']}><AssignTeam /></RoleGuard>} />
         <Route path="consulting/project-tasks/:sowId" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Operations']}><ConsultingProjectTasks /></RoleGuard>} />
         <Route path="consulting/sow-changes" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><SOWChangeRequests /></RoleGuard>} />
@@ -361,7 +363,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="workflow" element={<WorkflowPage />} />
         <Route path="tutorials" element={<OnboardingTutorial />} />
         {/* Sales Features accessible in Main ERP */}
-        <Route path="meetings" element={<Navigate to="/sales-meetings" replace />} />
+        <Route path="meetings" element={<Navigate to="/leads" replace />} />
         <Route path="team-performance" element={<SalesTeamPerformance />} />
         {/* HR Features accessible to Admin in Main ERP */}
         <Route path="team-workload" element={<HRTeamWorkload />} />
