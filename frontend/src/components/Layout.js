@@ -376,9 +376,7 @@ const Layout = () => {
   const fullSalesFlowItems = [
     { name: 'Sales Dashboard', href: '/sales-dashboard', icon: BarChart3, stage: null },
     { name: 'Leads', href: '/leads', icon: Users, stage: 'LEAD' },
-    { name: 'Team Leads', href: '/manager-leads', icon: Users, managerOnly: true, stage: null },
-    { name: 'Target Management', href: '/target-management', icon: Target, managerOnly: true, stage: null },
-    { name: 'MOM Review', href: '/manager-mom-review', icon: FileText, managerOnly: true, stage: null },
+    { name: 'Team Dashboard', href: '/manager-leads', icon: Users, managerOnly: true, stage: null },
     { name: 'Sales Meetings', href: '/sales-meetings', icon: CalendarCheck, stage: 'MEETING' },
     { name: 'SOW & Pricing', href: '/sales-funnel/pricing-plans', icon: FileText, stage: 'PRICING' },
     { name: 'SOW Generator', href: '/sales-funnel/sow', icon: FileText, stage: 'SOW' },

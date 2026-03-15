@@ -24,7 +24,7 @@ const HRLogin = () => {
 
   useEffect(() => {
     // If already logged in with an HR role, redirect to HR portal
-    if (user && HR_ROLES.includes(user.role)) {
+    if (user && HR_ROLES.includes(user?.role)) {
       navigate('/hr');
     } else if (user) {
       // Logged in but not an HR role - redirect to main app
@@ -48,7 +48,7 @@ const HRLogin = () => {
       const userData = response.data.user;
       
       // Check if user has an HR role
-      if (!HR_ROLES.includes(userData.role)) {
+      if (!HR_ROLES.includes(userData?.role)) {
         toast.error('Access denied. HR Portal is for HR team only.');
         setLoading(false);
         return;

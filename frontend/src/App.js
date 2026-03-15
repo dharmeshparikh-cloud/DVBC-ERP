@@ -191,15 +191,15 @@ function AppRouter({ user, login, logout, loading }) {
 
   // Sales roles check for portal access
   const SALES_ROLES = ['executive', 'sales_manager', 'manager'];
-  const isSalesUser = user && SALES_ROLES.includes(user.role);
+  const isSalesUser = user && SALES_ROLES.includes(user?.role);
   
   // HR roles check
   const HR_ROLES = ['hr_manager', 'hr_executive', 'hr_admin'];
-  const isHRUser = user && HR_ROLES.includes(user.role);
+  const isHRUser = user && HR_ROLES.includes(user?.role);
   
   // Consulting roles check
   const CONSULTING_ROLES = ['principal_consultant', 'senior_consultant', 'project_manager'];
-  const isConsultingUser = user && CONSULTING_ROLES.includes(user.role);
+  const isConsultingUser = user && CONSULTING_ROLES.includes(user?.role);
 
   const getDefaultDashboard = () => {
     if (user?.role === 'consultant') {

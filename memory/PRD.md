@@ -15,7 +15,53 @@
 
 ---
 
-### Phase 120: MOM Scorecard Widget & Manager MOM Review — March 15, 2026 ✅ (Latest)
+### Phase 121: Navigation Simplification & Team Dashboard Consolidation — March 15, 2026 ✅ (Latest)
+
+**Objective:** Consolidate manager pages into single Team Dashboard, simplify navigation, and complete stability audit.
+
+**Changes Implemented:**
+
+1. **Team Dashboard Consolidation** (`/manager-leads`)
+   - Renamed from "Team Leads" to "Team Dashboard"
+   - Added collapsible **MOM Review - Team Performance** section
+   - MOM stats: Team Members, Total Meetings, With/Without MOM, Sent to Client
+   - Completion rate progress bar
+   - **PDF Download** button for MOM report
+   - Expandable employee details with meeting MOM content
+   - All data fetched only when section is expanded (performance optimization)
+
+2. **Sidebar Navigation Simplified**
+   - Removed separate "Target Management" link (already in dashboard widgets)
+   - Removed separate "MOM Review" link (now collapsible section in Team Dashboard)
+   - Manager-only sidebar items reduced from 3 to 1: **Team Dashboard**
+   - Renamed "Team Leads" to "Team Dashboard" for clarity
+
+3. **ERP Stability Audit Completed**
+   - Created centralized role helper: `/utils/roles.js`
+   - Fixed 6 crash risks (unsafe property access, array mapping)
+   - Fixed unsafe role checks in: HRLogin.js, SalesLogin.js, HelpContentAdmin.js, App.js
+   - Verified Error Boundaries exist globally
+   - All 3 roles (Admin, Sales Manager, Sales Executive) pass stability tests
+
+**Files Modified:**
+- `frontend/src/pages/ManagerLeadsDashboard.js` - Added MOM Review collapsible section
+- `frontend/src/components/Layout.js` - Simplified sidebar, renamed to Team Dashboard
+- `frontend/src/utils/roles.js` (NEW) - Centralized role helper
+- Multiple files: Fixed unsafe property access patterns
+
+**Navigation Structure (Managers):**
+
+| Before | After |
+|--------|-------|
+| Team Leads | Team Dashboard (consolidated) |
+| Target Management | Removed (widget in dashboard) |
+| MOM Review | Removed (collapsible section) |
+
+**Testing:** All pages pass stability test across Admin, Sales Manager, and Sales Executive roles.
+
+---
+
+### Phase 120: MOM Scorecard Widget & Manager MOM Review — March 15, 2026 ✅
 
 **Objective:** Add MOM Scorecard widget to dashboards and implement comprehensive Manager MOM Review page.
 

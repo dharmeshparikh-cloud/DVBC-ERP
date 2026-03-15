@@ -123,7 +123,7 @@ const HelpContentAdmin = () => {
     }
   };
   
-  if (!user || user.role !== 'admin') {
+  if (!user || user?.role !== 'admin') {
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold text-red-600">Access Denied</h1>

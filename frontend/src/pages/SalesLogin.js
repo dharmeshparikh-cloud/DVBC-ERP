@@ -24,7 +24,7 @@ const SalesLogin = () => {
 
   useEffect(() => {
     // If already logged in with a sales role, redirect to sales dashboard
-    if (user && SALES_ROLES.includes(user.role)) {
+    if (user && SALES_ROLES.includes(user?.role)) {
       navigate('/sales');
     } else if (user) {
       // Logged in but not a sales role - redirect to main app
@@ -48,7 +48,7 @@ const SalesLogin = () => {
       const userData = response.data.user;
       
       // Check if user has a sales role
-      if (!SALES_ROLES.includes(userData.role)) {
+      if (!SALES_ROLES.includes(userData?.role)) {
         toast.error('Access denied. Sales Portal is for sales team only.');
         setLoading(false);
         return;

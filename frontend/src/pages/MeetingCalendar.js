@@ -660,12 +660,12 @@ const MeetingCalendar = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {conflictsData.conflicts?.slice(0, 5).map((conflict, idx) => (
+              {(conflictsData?.conflicts || []).slice(0, 5).map((conflict, idx) => (
                 <div key={idx} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-red-100 text-sm">
-                  <span className="font-medium text-zinc-900">{conflict.consultant_name}</span>
+                  <span className="font-medium text-zinc-900">{conflict?.consultant_name || 'Unknown'}</span>
                   <span className="text-red-600">has overlapping meetings:</span>
-                  <span className="text-zinc-600">{conflict.meeting_1?.title} ↔ {conflict.meeting_2?.title}</span>
-                  <span className="text-red-500 text-xs bg-red-100 px-2 py-0.5 rounded">({conflict.overlap_minutes} min overlap)</span>
+                  <span className="text-zinc-600">{conflict?.meeting_1?.title || 'Meeting 1'} ↔ {conflict?.meeting_2?.title || 'Meeting 2'}</span>
+                  <span className="text-red-500 text-xs bg-red-100 px-2 py-0.5 rounded">({conflict?.overlap_minutes || 0} min overlap)</span>
                 </div>
               ))}
             </div>

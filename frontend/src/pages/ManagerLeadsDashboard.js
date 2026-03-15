@@ -1,17 +1,23 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
+import { Progress } from '../components/ui/progress';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import { 
   Users, TrendingUp, Calendar, Phone, CheckCircle, UserX, 
-  Search, RefreshCw, Pause, Play, Eye, ChevronRight,
-  Target, DollarSign, BarChart3, Clock
+  Search, RefreshCw, Pause, Play, Eye, ChevronRight, ChevronDown,
+  Target, DollarSign, BarChart3, Clock, FileText, Download,
+  MessageSquare, Send, XCircle, AlertCircle, Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { 
   useSubordinateLeads, 
   useManagerTodayStats, 
@@ -20,6 +26,8 @@ import {
 } from '../hooks/useStats';
 import { usePauseLead, useResumeLead } from '../hooks/useLeads';
 
+const API = process.env.REACT_APP_BACKEND_URL;
+
 const ManagerLeadsDashboard = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -27,6 +35,8 @@ const ManagerLeadsDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [momSectionOpen, setMomSectionOpen] = useState(false);
+  const [expandedMomEmployee, setExpandedMomEmployee] = useState(null);
 
   const statusOptions = [
     { value: '', label: 'All Statuses' },
@@ -54,6 +64,17 @@ const ManagerLeadsDashboard = () => {
   const { data: performance } = useManagerPerformance();
   const { data: targetVsAchievement } = useManagerTargetVsAchievement();
 
+  // React Query: MOM Review Data
+  const { data: momReviewData, refetch: refetchMom } = useQuery({
+    queryKey: ['manager-mom-review', 'month'],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/api/analytics/manager-mom-review?period=month`);
+      return response.data;
+    },
+    staleTime: 3 * 60 * 1000,
+    enabled: momSectionOpen, // Only fetch when section is opened
+  });
+
   // Mutations from useLeads hook
   const pauseMutation = usePauseLead();
   const resumeMutation = useResumeLead();
@@ -78,6 +99,55 @@ const ManagerLeadsDashboard = () => {
       },
       onError: (error) => toast.error(error.response?.data?.detail || 'Failed to resume lead')
     });
+  };
+
+  // Generate MOM PDF Report
+  const generateMomPDF = () => {
+    if (!momReviewData) return;
+    try {
+      const doc = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      doc.setFontSize(16);
+      doc.text('MOM Review Report - Team Performance', pageWidth / 2, 15, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated: ${new Date().toLocaleDateString()} | Manager: ${user?.name || 'Manager'}`, pageWidth / 2, 22, { align: 'center' });
+      
+      // Summary
+      const summary = momReviewData.overall_summary || {};
+      doc.setFillColor(240, 249, 255);
+      doc.roundedRect(14, 28, pageWidth - 28, 15, 2, 2, 'F');
+      doc.setFontSize(9);
+      doc.setTextColor(30);
+      doc.text(`Team: ${summary.total_reportees || 0} | Meetings: ${summary.total_meetings || 0} | With MOM: ${summary.meetings_with_mom || 0} | Without: ${summary.meetings_without_mom || 0} | Rate: ${summary.mom_completion_rate || 0}%`, 20, 36);
+      
+      // Employee table
+      const empData = (momReviewData.employee_summaries || []).map(emp => [
+        emp.employee_code || '-',
+        emp.name || '-',
+        emp.total_meetings || 0,
+        emp.with_mom || 0,
+        emp.without_mom || 0,
+        `${emp.completion_rate || 0}%`,
+        emp.sent_to_client || 0
+      ]);
+      
+      doc.autoTable({
+        startY: 48,
+        head: [['Emp ID', 'Name', 'Total', 'With MOM', 'Without', 'Rate', 'Sent']],
+        body: empData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], fontSize: 8 },
+        bodyStyles: { fontSize: 7 }
+      });
+      
+      doc.save(`MOM_Review_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF downloaded');
+    } catch (error) {
+      toast.error('Failed to generate PDF');
+    }
   };
 
   const handleLeadClick = (lead) => {
@@ -228,7 +298,7 @@ const ManagerLeadsDashboard = () => {
               </div>
               {todayStats.absent_employees?.length > 0 && (
                 <div className="mt-2 text-xs text-red-600">
-                  {todayStats.absent_employees.map(e => e.name).join(', ')}
+                  {(todayStats.absent_employees || []).map(e => e?.name || 'Unknown').join(', ')}
                 </div>
               )}
             </CardContent>
@@ -405,6 +475,170 @@ const ManagerLeadsDashboard = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* MOM Review Section - Collapsible */}
+      <Collapsible open={momSectionOpen} onOpenChange={setMomSectionOpen}>
+        <Card className="border-zinc-200 shadow-none rounded-sm">
+          <CollapsibleTrigger className="w-full">
+            <CardHeader className="py-3 cursor-pointer hover:bg-zinc-50">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  MOM Review - Team Performance
+                  {momReviewData?.overall_summary && (
+                    <Badge variant="outline" className="ml-2">
+                      {momReviewData.overall_summary.mom_completion_rate || 0}% Complete
+                    </Badge>
+                  )}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {momSectionOpen && momReviewData && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        generateMomPDF();
+                      }}
+                      className="text-xs"
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      PDF
+                    </Button>
+                  )}
+                  {momSectionOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                </div>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              {momReviewData ? (
+                <div className="space-y-4">
+                  {/* MOM Summary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div className="text-center p-3 bg-zinc-50 rounded-lg">
+                      <Users className="w-5 h-5 mx-auto mb-1 text-blue-600" />
+                      <div className="text-xl font-bold">{momReviewData.overall_summary?.total_reportees || 0}</div>
+                      <div className="text-xs text-zinc-500">Team Members</div>
+                    </div>
+                    <div className="text-center p-3 bg-zinc-50 rounded-lg">
+                      <MessageSquare className="w-5 h-5 mx-auto mb-1 text-indigo-600" />
+                      <div className="text-xl font-bold">{momReviewData.overall_summary?.total_meetings || 0}</div>
+                      <div className="text-xs text-zinc-500">Total Meetings</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-600" />
+                      <div className="text-xl font-bold text-green-700">{momReviewData.overall_summary?.meetings_with_mom || 0}</div>
+                      <div className="text-xs text-green-600">With MOM</div>
+                    </div>
+                    <div className="text-center p-3 bg-red-50 rounded-lg">
+                      <XCircle className="w-5 h-5 mx-auto mb-1 text-red-600" />
+                      <div className="text-xl font-bold text-red-700">{momReviewData.overall_summary?.meetings_without_mom || 0}</div>
+                      <div className="text-xs text-red-600">Pending MOM</div>
+                    </div>
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <Send className="w-5 h-5 mx-auto mb-1 text-blue-600" />
+                      <div className="text-xl font-bold text-blue-700">{momReviewData.overall_summary?.mom_sent_to_client || 0}</div>
+                      <div className="text-xs text-blue-600">Sent to Client</div>
+                    </div>
+                  </div>
+
+                  {/* Completion Rate Progress */}
+                  <div className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg">
+                    <span className="text-sm text-zinc-600">MOM Completion Rate:</span>
+                    <div className="flex-1">
+                      <Progress value={momReviewData.overall_summary?.mom_completion_rate || 0} className="h-2" />
+                    </div>
+                    <span className={`text-sm font-semibold ${
+                      (momReviewData.overall_summary?.mom_completion_rate || 0) >= 80 ? 'text-green-600' :
+                      (momReviewData.overall_summary?.mom_completion_rate || 0) >= 50 ? 'text-amber-600' : 'text-red-600'
+                    }`}>
+                      {momReviewData.overall_summary?.mom_completion_rate || 0}%
+                    </span>
+                  </div>
+
+                  {/* Employee MOM List */}
+                  {momReviewData.employee_summaries?.length > 0 ? (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-zinc-700">Team Member Details</h4>
+                      {momReviewData.employee_summaries.map((emp) => (
+                        <Collapsible
+                          key={emp.employee_id}
+                          open={expandedMomEmployee === emp.employee_id}
+                          onOpenChange={() => setExpandedMomEmployee(
+                            expandedMomEmployee === emp.employee_id ? null : emp.employee_id
+                          )}
+                        >
+                          <CollapsibleTrigger className="w-full">
+                            <div className="flex items-center justify-between p-3 bg-white border rounded-lg hover:bg-zinc-50 cursor-pointer">
+                              <div className="flex items-center gap-3">
+                                {expandedMomEmployee === emp.employee_id ? 
+                                  <ChevronDown className="w-4 h-4 text-zinc-400" /> : 
+                                  <ChevronRight className="w-4 h-4 text-zinc-400" />
+                                }
+                                <span className="font-medium">{emp.name}</span>
+                                <Badge variant="outline" className="text-xs">{emp.employee_code}</Badge>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="text-sm text-zinc-500">{emp.total_meetings} meetings</span>
+                                <span className="text-sm text-green-600">{emp.with_mom} with MOM</span>
+                                <span className="text-sm text-red-600">{emp.without_mom} pending</span>
+                                <Badge className={`${
+                                  emp.completion_rate >= 80 ? 'bg-green-100 text-green-800' :
+                                  emp.completion_rate >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {emp.completion_rate}%
+                                </Badge>
+                              </div>
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="ml-8 mt-2 space-y-2">
+                              {emp.meetings?.map((meeting, idx) => (
+                                <div 
+                                  key={meeting.id || idx}
+                                  className={`p-3 rounded-lg border text-sm ${
+                                    meeting.has_mom ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Building2 className="w-4 h-4 text-zinc-400" />
+                                      <span className="font-medium">{meeting.company}</span>
+                                      {meeting.has_mom ? (
+                                        <Badge className="bg-green-100 text-green-800 text-xs">MOM Recorded</Badge>
+                                      ) : (
+                                        <Badge className="bg-red-100 text-red-800 text-xs">No MOM</Badge>
+                                      )}
+                                    </div>
+                                    <span className="text-xs text-zinc-500">
+                                      {meeting.meeting_date ? new Date(meeting.meeting_date).toLocaleDateString() : '-'}
+                                    </span>
+                                  </div>
+                                  {meeting.has_mom && meeting.mom?.summary && (
+                                    <div className="mt-2 p-2 bg-white rounded text-xs text-zinc-600">
+                                      <strong>Summary:</strong> {meeting.mom.summary}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-zinc-500">No meeting data found for this period</div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-zinc-500">Loading MOM data...</div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-3">
