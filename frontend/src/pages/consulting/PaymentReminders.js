@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import PageRefreshButton from '../../components/PageRefreshButton';
+import PageHeader from '../../components/ui/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { 
   Calendar, Clock, AlertTriangle, CheckCircle, Building2, 
@@ -204,18 +204,7 @@ const PaymentReminders = () => {
         onBack={() => navigate('/consulting/my-projects')}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
-            Payment Reminders
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            Upcoming payment installments by project
-          </p>
-        </div>
-        <PageRefreshButton onClick={() => refetchReminders()} loading={loading} />
-      </div>
+      <PageHeader title="Payment Reminders" subtitle="Upcoming payment installments by project" onRefresh={() => refetchReminders()} loading={loading} />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

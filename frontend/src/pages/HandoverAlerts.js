@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -72,17 +72,7 @@ const HandoverAlerts = () => {
 
   return (
     <div data-testid="handover-alerts-page">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-        <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-          Handover Alerts
-        </h1>
-        <p className="text-zinc-500">
-          Projects must be handed over within 15 days of agreement approval
-        </p>
-        </div>
-        <PageRefreshButton onClick={() => refetchAlerts()} loading={loading} />
-      </div>
+      <PageHeader title="Handover Alerts" subtitle="Projects must be handed over within 15 days of agreement approval" onRefresh={() => refetchAlerts()} loading={loading} />
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

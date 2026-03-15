@@ -7,7 +7,7 @@ import { Clock, CheckCircle, XCircle, Calendar, AlertCircle } from 'lucide-react
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 
 const STATUS_STYLES = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -51,13 +51,7 @@ const LeaveManagement = () => {
 
   return (
     <div data-testid="leave-management-page">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Leave Management</h1>
-          <p className="text-zinc-500">Review and approve leave requests from employees</p>
-        </div>
-        <PageRefreshButton onClick={() => refetchLeaves()} loading={loading} />
-      </div>
+      <PageHeader title="Leave Management" subtitle="Review and approve leave requests from employees" onRefresh={() => refetchLeaves()} loading={loading} />
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card className="border-zinc-200 shadow-none rounded-sm">

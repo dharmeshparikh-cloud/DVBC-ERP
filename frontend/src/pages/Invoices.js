@@ -10,7 +10,7 @@ import {
   Search, CheckCircle, Clock, XCircle, Users
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import axios from 'axios';
 
 const Invoices = () => {
@@ -98,20 +98,18 @@ const Invoices = () => {
   };
 
   return (
-    <div className="p-6 space-y-6" data-testid="invoices-page">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Invoices</h1>
-          <p className="text-zinc-600">All proforma invoices linked with sales employees</p>
-        </div>
-        <div className="flex gap-2">
+    <div className="space-y-6" data-testid="invoices-page">
+      <PageHeader
+        title="Invoices"
+        subtitle="All proforma invoices linked with sales employees"
+        onRefresh={() => refetchInvoices()}
+        loading={loading}
+        actions={
           <Button onClick={downloadCSV} variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
+            <Download className="w-4 h-4 mr-2" /> Export CSV
           </Button>
-          <PageRefreshButton onClick={() => refetchInvoices()} loading={loading} />
-        </div>
-      </div>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

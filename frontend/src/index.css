@@ -140,6 +140,26 @@ code {
   html.dark .bg-pink-100 { background-color: rgba(236,72,153,0.15) !important; }
   html.dark .bg-zinc-200 { background-color: #2A2A2E !important; }
 
+  /* -200 and -300 shade overrides for badges, icon bubbles */
+  html.dark .bg-red-200 { background-color: rgba(239,68,68,0.25) !important; }
+  html.dark .bg-red-300 { background-color: rgba(239,68,68,0.3) !important; }
+  html.dark .bg-emerald-200 { background-color: rgba(16,185,129,0.25) !important; }
+  html.dark .bg-green-200 { background-color: rgba(34,197,94,0.25) !important; }
+  html.dark .bg-yellow-200 { background-color: rgba(245,158,11,0.25) !important; }
+  html.dark .bg-blue-200 { background-color: rgba(59,130,246,0.25) !important; }
+  html.dark .bg-amber-200 { background-color: rgba(245,158,11,0.25) !important; }
+  html.dark .bg-purple-200 { background-color: rgba(168,85,247,0.25) !important; }
+  html.dark .bg-violet-200 { background-color: rgba(139,92,246,0.25) !important; }
+  html.dark .bg-teal-200 { background-color: rgba(20,184,166,0.25) !important; }
+  html.dark .bg-orange-200 { background-color: rgba(249,115,22,0.25) !important; }
+  html.dark .bg-pink-200 { background-color: rgba(236,72,153,0.25) !important; }
+  html.dark .bg-indigo-200 { background-color: rgba(99,102,241,0.25) !important; }
+  html.dark .bg-cyan-200 { background-color: rgba(6,182,212,0.25) !important; }
+  html.dark .bg-zinc-300 { background-color: #333338 !important; }
+
+  /* Filter/input background override */
+  html.dark .bg-zinc-50 { background-color: #1A1A1C !important; }
+
   /* Colored text - brighter */
   html.dark .text-emerald-700 { color: #34d399 !important; }
   html.dark .text-emerald-600 { color: #34d399 !important; }

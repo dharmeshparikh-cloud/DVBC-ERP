@@ -271,49 +271,49 @@ const FollowUps = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-white border-zinc-200">
+        <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]">
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-red-100 rounded-lg"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+              <div className="p-2.5 bg-red-100 dark:bg-red-950/30 rounded-lg"><AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" /></div>
               <div>
-                <p className="text-2xl font-bold text-zinc-900" data-testid="overdue-count">{overdueCount}</p>
-                <p className="text-xs text-zinc-500">Overdue</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-white" data-testid="overdue-count">{overdueCount}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Overdue</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white border-zinc-200">
+        <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]">
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-yellow-100 rounded-lg"><Clock className="w-5 h-5 text-yellow-600" /></div>
+              <div className="p-2.5 bg-yellow-100 dark:bg-yellow-950/30 rounded-lg"><Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" /></div>
               <div>
-                <p className="text-2xl font-bold text-zinc-900" data-testid="open-count">{openCount}</p>
-                <p className="text-xs text-zinc-500">Open</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-white" data-testid="open-count">{openCount}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Open</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white border-zinc-200">
+        <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]">
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-green-100 rounded-lg"><CheckCircle className="w-5 h-5 text-green-600" /></div>
+              <div className="p-2.5 bg-green-100 dark:bg-emerald-950/30 rounded-lg"><CheckCircle className="w-5 h-5 text-green-600 dark:text-emerald-400" /></div>
               <div>
-                <p className="text-2xl font-bold text-zinc-900">{followUps.length}</p>
-                <p className="text-xs text-zinc-500">Total</p>
+                <p className="text-2xl font-bold text-zinc-900 dark:text-white">{followUps.length}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
         {isManager && (
-          <Card className={`border-zinc-200 ${escalationCount > 0 ? 'bg-red-50 border-red-200' : 'bg-white'}`}>
+          <Card className={`border-zinc-200 dark:border-[#2A2A2E] ${escalationCount > 0 ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40' : 'bg-white dark:bg-[#1A1A1C]'}`}>
             <CardContent className="pt-5 pb-4">
               <div className="flex items-center gap-3">
-                <div className={`p-2.5 rounded-lg ${escalationCount > 0 ? 'bg-red-200' : 'bg-zinc-100'}`}>
-                  <AlertTriangle className={`w-5 h-5 ${escalationCount > 0 ? 'text-red-700' : 'text-zinc-500'}`} />
+                <div className={`p-2.5 rounded-lg ${escalationCount > 0 ? 'bg-red-200 dark:bg-red-950/40' : 'bg-zinc-100 dark:bg-[#2A2A2E]'}`}>
+                  <AlertTriangle className={`w-5 h-5 ${escalationCount > 0 ? 'text-red-700 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400'}`} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-zinc-900" data-testid="escalation-count">{escalationCount}</p>
-                  <p className="text-xs text-zinc-500">Escalations (2d+)</p>
+                  <p className="text-2xl font-bold text-zinc-900 dark:text-white" data-testid="escalation-count">{escalationCount}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Escalations (2d+)</p>
                 </div>
               </div>
             </CardContent>
@@ -323,7 +323,7 @@ const FollowUps = () => {
 
       {/* Stage Breakdown */}
       {Object.keys(stageCounts).length > 0 && (
-        <Card className="bg-white border-zinc-200" data-testid="stage-breakdown-card">
+        <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]" data-testid="stage-breakdown-card">
           <CardContent className="py-4">
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">By Funnel Stage</p>
             <div className="flex flex-wrap gap-2">
@@ -353,7 +353,7 @@ const FollowUps = () => {
 
       {/* Escalation Alert for Managers */}
       {isManager && escalationCount > 0 && (
-        <Card className="border-red-300 bg-red-50">
+        <Card className="border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-900/40">
           <CardContent className="py-4">
             <div className="flex items-center gap-3 mb-3">
               <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -362,7 +362,7 @@ const FollowUps = () => {
             </div>
             <div className="space-y-2">
               {(escalations?.items || []).slice(0, 5).map(esc => (
-                <div key={esc.id} className="flex items-center justify-between p-3 bg-white rounded border border-red-200 cursor-pointer hover:bg-red-50" onClick={() => openDetail(esc)} data-testid={`escalation-item-${esc.id}`}>
+                <div key={esc.id} className="flex items-center justify-between p-3 bg-white dark:bg-[#1A1A1C] rounded border border-red-200 dark:border-red-900/40 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20" onClick={() => openDetail(esc)} data-testid={`escalation-item-${esc.id}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-red-500" />
                     <div>
@@ -384,9 +384,9 @@ const FollowUps = () => {
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <Input placeholder="Search by client, notes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-xs bg-zinc-50 border-zinc-300" data-testid="follow-up-search" />
+        <Input placeholder="Search by client, notes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-xs border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-search" />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32 bg-zinc-50 border-zinc-300" data-testid="follow-up-status-filter">
+          <SelectTrigger className="w-32 border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-status-filter">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -395,7 +395,7 @@ const FollowUps = () => {
           </SelectContent>
         </Select>
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-40 bg-zinc-50 border-zinc-300" data-testid="follow-up-type-filter">
+          <SelectTrigger className="w-40 border-zinc-300 bg-white dark:bg-[#1A1A1C] dark:border-[#2A2A2E]" data-testid="follow-up-type-filter">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -408,7 +408,7 @@ const FollowUps = () => {
       </div>
 
       {/* Follow-ups List */}
-      <Card className="bg-white border-zinc-200">
+      <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <CalendarCheck className="w-5 h-5" />
@@ -431,7 +431,7 @@ const FollowUps = () => {
                   <div
                     key={fu.id}
                     data-testid={`follow-up-item-${fu.id}`}
-                    className={`p-4 rounded-lg border cursor-pointer hover:shadow-sm transition-shadow ${isOverdue ? 'bg-red-50 border-red-200' : fu.status === 'closed' ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-zinc-200'}`}
+                    className={`p-4 rounded-lg border cursor-pointer hover:shadow-sm transition-shadow ${isOverdue ? 'bg-red-50 border-red-200' : fu.status === 'closed' ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-zinc-200'} dark:bg-[#1A1A1C] dark:border-[#2A2A2E] ${isOverdue ? 'dark:bg-red-950/30 dark:border-red-900/50' : ''}`}
                     onClick={() => openDetail(fu)}
                   >
                     <div className="flex justify-between items-start">
@@ -514,7 +514,7 @@ const FollowUps = () => {
               </div>
 
               {selectedFollowUp.last_follow_up_summary && (
-                <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200">
+                <div className="p-3 bg-zinc-50 dark:bg-[#0F0F10] rounded-lg border border-zinc-200 dark:border-[#2A2A2E]">
                   <p className="text-xs text-zinc-400 mb-1">Last Summary</p>
                   <p className="text-sm text-zinc-700">{selectedFollowUp.last_follow_up_summary}</p>
                 </div>

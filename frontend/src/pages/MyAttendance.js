@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { CheckCircle, XCircle, Clock, CalendarDays, Home, Coffee, MapPin, Building2, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
 
@@ -48,16 +48,13 @@ const MyAttendance = () => {
   return (
     <div data-testid="my-attendance-page">
       <MyWorkspaceNav />
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 dark:text-zinc-100 mb-2">My Attendance</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">{data?.employee?.name || ''} {data?.employee?.employee_id ? `(${data.employee.employee_id})` : ''}</p>
-        </div>
-        
-        {/* Today's Status with Quick Check-in Button */}
-        <div className="flex items-center gap-4">
-          <PageRefreshButton onClick={() => refetchAttendance()} loading={loading} />
-          <div className="flex flex-col items-end gap-1">
+      <PageHeader
+        title="My Attendance"
+        subtitle={`${data?.employee?.name || ''} ${data?.employee?.employee_id ? `(${data.employee.employee_id})` : ''}`}
+        onRefresh={() => refetchAttendance()}
+        loading={loading}
+        actions={
+          <>
             <div 
               className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
                 todayCheckedIn 
@@ -77,22 +74,15 @@ const MyAttendance = () => {
                 <><Clock className="w-4 h-4" /> <span className="text-sm">Not checked in</span></>
               )}
             </div>
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">{todayFormatted}</span>
-          </div>
-          
-          {/* Quick Check-in Button - Single entry point for attendance */}
-          {!todayCheckedOut && (
-            <Button 
-              onClick={() => setShowQuickCheckIn(true)}
-              className="bg-emerald-600 hover:bg-emerald-700"
-              data-testid="quick-checkin-btn"
-            >
-              <LogIn className="w-4 h-4 mr-2" />
-              {todayCheckedIn ? 'Check Out' : 'Quick Check-in'}
-            </Button>
-          )}
-        </div>
-      </div>
+            {!todayCheckedOut && (
+              <Button onClick={() => setShowQuickCheckIn(true)} className="bg-emerald-600 hover:bg-emerald-700" data-testid="quick-checkin-btn">
+                <LogIn className="w-4 h-4 mr-2" />
+                {todayCheckedIn ? 'Check Out' : 'Quick Check-in'}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="flex items-center gap-4 mb-6">
         <CalendarDays className="w-4 h-4 text-zinc-500" />

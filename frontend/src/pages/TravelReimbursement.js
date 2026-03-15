@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { AuthContext, API } from '../App';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import { 
   Car, Bike, MapPin, Calendar, CheckCircle, XCircle, 
   Clock, TrendingUp, IndianRupee, Filter, Search,
@@ -140,21 +140,15 @@ const TravelReimbursement = () => {
   return (
     <div className="space-y-6" data-testid="travel-reimbursement-page">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Travel Reimbursement</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">Manage employee travel claims and reimbursements</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <PageRefreshButton onClick={() => refetchClaims()} loading={loading} />
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white text-sm"
-          />
-        </div>
-      </div>
+      <PageHeader
+        title="Travel Reimbursement"
+        subtitle="Manage employee travel claims and reimbursements"
+        onRefresh={() => refetchClaims()}
+        loading={loading}
+        actions={
+          <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="px-3 py-2 rounded-lg border border-zinc-200 dark:border-[#2A2A2E] dark:bg-[#1A1A1C] dark:text-white text-sm" />
+        }
+      />
 
       {/* Stats Cards */}
       {stats && (

@@ -13,7 +13,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
-import PageRefreshButton from '../../components/PageRefreshButton';
+import PageHeader from '../../components/ui/page-header';
 
 const STATUS_CONFIG = {
   pending_kickoff: { label: 'Pending Kickoff', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -128,17 +128,7 @@ const ConsultingSOWList = () => {
   return (
     <div data-testid="consulting-sow-list-page">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-        <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-          My Projects
-        </h1>
-        <p className="text-zinc-500">
-          Manage and track all consulting projects and scopes
-        </p>
-        </div>
-        <PageRefreshButton onClick={() => refetchSOW()} loading={loading} />
-      </div>
+      <PageHeader title="My Projects" subtitle="Manage and track all consulting projects and scopes" onRefresh={() => refetchSOW()} loading={loading} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

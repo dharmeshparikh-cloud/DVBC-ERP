@@ -7,7 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import PageRefreshButton from '../components/PageRefreshButton';
+import PageHeader from '../components/ui/page-header';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import {
   Clock, Calendar, Plus, Check, X, ChevronLeft, ChevronRight,
@@ -191,26 +191,22 @@ const Timesheets = () => {
 
   return (
     <div className="space-y-6" data-testid="timesheets-page">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Timesheets</h1>
-          <p className="text-sm text-zinc-500">Log your work hours by project</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PageRefreshButton onClick={() => refetchTimesheets()} loading={loading} />
-          {isEditable && (
-            <>
-              <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
-                <Save className="w-4 h-4 mr-2" /> Save Draft
-              </Button>
-              <Button onClick={() => handleSave(true)} disabled={saving}>
-                <Send className="w-4 h-4 mr-2" /> Submit for Approval
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Timesheets"
+        subtitle="Log your work hours by project"
+        onRefresh={() => refetchTimesheets()}
+        loading={loading}
+        actions={isEditable && (
+          <>
+            <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
+              <Save className="w-4 h-4 mr-2" /> Save Draft
+            </Button>
+            <Button onClick={() => handleSave(true)} disabled={saving}>
+              <Send className="w-4 h-4 mr-2" /> Submit for Approval
+            </Button>
+          </>
+        )}
+      />
 
       {/* Week Navigation */}
       <Card>
