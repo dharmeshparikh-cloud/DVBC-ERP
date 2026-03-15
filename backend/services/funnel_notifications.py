@@ -155,55 +155,116 @@ def meeting_mom_filled_email(
     company: str,
     meeting_title: str,
     meeting_date: str,
+    meeting_time: str,
     meeting_type: str,
     attendees: List[str],
     mom_summary: str,
     client_expectations: List[str],
     key_commitments: List[str],
     salesperson_name: str,
-    app_url: str
+    app_url: str,
+    previous_meetings: List[Dict[str, Any]] = None,
+    is_client_copy: bool = False
 ) -> Dict[str, str]:
     """
-    Email template for when MOM is filled after a meeting
+    Enhanced email template for MOM with meeting context.
+    Includes previous meeting summaries for context continuity.
     """
+    # Format meeting timestamp
+    try:
+        if isinstance(meeting_date, str):
+            date_obj = datetime.fromisoformat(meeting_date.replace('Z', '+00:00')) if 'T' in meeting_date else datetime.strptime(meeting_date, "%Y-%m-%d")
+            formatted_date = date_obj.strftime("%d %b %Y")
+        else:
+            formatted_date = str(meeting_date)
+    except (ValueError, TypeError):
+        formatted_date = str(meeting_date)
+    
+    timestamp_display = f"{formatted_date} at {meeting_time}" if meeting_time else formatted_date
+    
     details = [
         {"label": "Lead", "value": f"{lead_name} ({company})"},
         {"label": "Meeting", "value": meeting_title},
-        {"label": "Date", "value": meeting_date},
+        {"label": "Date & Time", "value": timestamp_display},
         {"label": "Type", "value": meeting_type},
         {"label": "Attendees", "value": ", ".join(attendees) if attendees else "N/A"},
         {"label": "Recorded By", "value": salesperson_name}
     ]
     
-    content = f"""
+    # Build previous meetings context section
+    previous_meetings_html = ""
+    if previous_meetings and len(previous_meetings) > 0:
+        prev_items = []
+        for i, pm in enumerate(previous_meetings[:5], 1):  # Max 5 previous meetings
+            pm_date = pm.get('meeting_date', 'N/A')
+            if isinstance(pm_date, str) and 'T' in pm_date:
+                try:
+                    pm_date = datetime.fromisoformat(pm_date.replace('Z', '+00:00')).strftime("%d %b %Y")
+                except (ValueError, TypeError):
+                    pass
+            pm_summary = pm.get('mom', pm.get('notes', ''))[:150]
+            if len(pm.get('mom', pm.get('notes', ''))) > 150:
+                pm_summary += "..."
+            prev_items.append(f"""
+                <div style="margin-bottom: 12px; padding: 12px; background-color: #f0f9ff; border-radius: 6px; border-left: 3px solid #0284c7;">
+                    <p style="margin: 0 0 4px 0; font-size: 11px; color: #0369a1; font-weight: 600;">Meeting {i} - {pm_date}</p>
+                    <p style="margin: 0; font-size: 12px; color: #374151; line-height: 1.4;">{pm_summary}</p>
+                </div>
+            """)
+        
+        previous_meetings_html = f"""
+            <div style="margin-top: 25px; padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 14px; font-weight: 600;">
+                    📋 Previous Meeting Context ({len(previous_meetings)} prior meeting{'s' if len(previous_meetings) > 1 else ''})
+                </h4>
+                {''.join(prev_items)}
+            </div>
+        """
+    
+    # Different intro for client vs internal
+    intro_text = f"""
+        <p style="margin: 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
+            {'Dear ' + lead_name + ',<br><br>Thank you for your time.' if is_client_copy else 'A new meeting has been recorded with Minutes of Meeting (MOM)'} for <strong>{company}</strong>.
+        </p>
+    """ if is_client_copy else f"""
         <p style="margin: 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
             A new meeting has been recorded with Minutes of Meeting (MOM) for <strong>{company}</strong>.
         </p>
+    """
+    
+    content = f"""
+        {intro_text}
         
         <div style="margin-top: 20px; padding: 15px; background-color: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px;">
-            <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 13px;">MOM Summary</h4>
+            <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 13px;">Meeting Summary</h4>
             <p style="margin: 0; color: #1e3a5f; font-size: 13px; line-height: 1.5;">{mom_summary}</p>
         </div>
         
         {_build_list_section("Client Expectations", client_expectations)}
-        {_build_list_section("Key Commitments", key_commitments)}
+        {_build_list_section("Our Commitments", key_commitments)}
+        
+        {previous_meetings_html}
     """
+    
+    badge_text = "MOM RECORDED" if not is_client_copy else "MEETING SUMMARY"
     
     html = BASE_TEMPLATE.format(
         title="Meeting MOM Recorded - NETRA",
         badge_color="#10b981",
-        badge_text="MOM RECORDED",
+        badge_text=badge_text,
         headline=f"Meeting Completed: {company}",
         content=content,
         details_section=_build_details_table(details),
-        action_section=_build_action_button("View in Sales Funnel", f"{app_url}/leads", "#3b82f6"),
+        action_section="" if is_client_copy else _build_action_button("View in Sales Funnel", f"{app_url}/leads", "#3b82f6"),
         year=datetime.now().year
     )
     
+    subject_prefix = "📋 Meeting Summary" if is_client_copy else "📋 MOM Recorded"
+    
     return {
-        "subject": f"📋 MOM Recorded: {meeting_title} - {company}",
+        "subject": f"{subject_prefix}: {meeting_title} - {company} ({timestamp_display})",
         "html": html,
-        "plain": f"Meeting MOM recorded for {company}.\n\nMOM Summary: {mom_summary}\n\nRecorded by: {salesperson_name}"
+        "plain": f"Meeting MOM recorded for {company}.\n\nDate: {timestamp_display}\nMOM Summary: {mom_summary}\n\nRecorded by: {salesperson_name}"
     }
 
 
@@ -587,13 +648,18 @@ def generate_test_email_previews(app_url: str = "https://form-validation-bug.pre
         company=test_data["company"],
         meeting_title="Discovery Call - Digital Transformation",
         meeting_date="2024-12-23",
+        meeting_time="14:30",
         meeting_type="Online (Zoom)",
         attendees=["Rajesh Mehta (CTO)", "Neha Gupta (IT Head)", "Priya Sharma (Sales)"],
         mom_summary="Discussed digital transformation roadmap. Key outcomes: 1. Client needs SAP S/4HANA implementation 2. Budget approved for Phase 1 (₹45L) 3. Timeline is 6 months 4. Weekly status reviews required",
         client_expectations=["Go-live within 6 months", "Zero business disruption", "Knowledge transfer to internal team"],
         key_commitments=["Dedicated senior consultant", "24/7 support during go-live", "Monthly executive reviews"],
         salesperson_name=test_data["salesperson_name"],
-        app_url=app_url
+        app_url=app_url,
+        previous_meetings=[
+            {"meeting_date": "2024-12-15T10:00:00", "mom": "Initial discovery call. Client expressed interest in digital transformation."},
+            {"meeting_date": "2024-12-18T14:00:00", "mom": "Technical deep dive with IT team. Discussed current SAP landscape."}
+        ]
     )
     
     # 2. Proforma/Quotation Email

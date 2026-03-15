@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { API, AuthContext } from '../../App';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -14,10 +14,14 @@ import {
   ArrowLeft, Calendar, Users, Clock, Video, MapPin, Plus, Trash2, 
   Save, CheckCircle, FileText, AlertCircle, ChevronRight, Eye,
   MessageSquare, Target, Handshake, ListChecks, Upload, Image, Mic,
-  Download, X, File
+  Download, X, File, RefreshCw, Rocket
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+// Draft storage key prefix
+const DRAFT_KEY_PREFIX = 'mom_draft_';
+const DRAFT_EXPIRY_DAYS = 2;
 
 const MeetingRecord = () => {
   const { user } = useContext(AuthContext);
@@ -33,6 +37,8 @@ const MeetingRecord = () => {
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [lastSavedDraft, setLastSavedDraft] = useState(null);
   
   // Meeting basic info
   const [formData, setFormData] = useState({
@@ -55,13 +61,104 @@ const MeetingRecord = () => {
     next_steps: ''
   });
 
+  // ===== Draft Auto-Save Logic =====
+  const getDraftKey = useCallback(() => `${DRAFT_KEY_PREFIX}${leadId}`, [leadId]);
+  
+  // Load draft on mount
+  useEffect(() => {
+    if (!leadId) return;
+    
+    const draftKey = getDraftKey();
+    const savedDraft = localStorage.getItem(draftKey);
+    
+    if (savedDraft) {
+      try {
+        const { data, timestamp } = JSON.parse(savedDraft);
+        const savedDate = new Date(timestamp);
+        const now = new Date();
+        const daysDiff = (now - savedDate) / (1000 * 60 * 60 * 24);
+        
+        // Check if draft is within expiry period (2 days)
+        if (daysDiff <= DRAFT_EXPIRY_DAYS) {
+          setHasDraft(true);
+          setLastSavedDraft(savedDate);
+        } else {
+          // Draft expired, remove it
+          localStorage.removeItem(draftKey);
+        }
+      } catch (e) {
+        localStorage.removeItem(draftKey);
+      }
+    }
+  }, [leadId, getDraftKey]);
+  
+  // Auto-save draft when MOM data changes (debounced)
+  useEffect(() => {
+    if (!leadId || !showMOMDialog) return;
+    
+    // Only save if there's meaningful content
+    const hasContent = momData.mom.trim() || momData.notes.trim() || 
+                       momData.discussion_points.some(p => p.trim()) ||
+                       momData.client_expectations.some(p => p.trim());
+    
+    if (!hasContent) return;
+    
+    const saveTimer = setTimeout(() => {
+      const draftKey = getDraftKey();
+      const draftData = {
+        data: { formData, momData },
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+      setLastSavedDraft(new Date());
+      setHasDraft(true);
+    }, 2000); // Debounce 2 seconds
+    
+    return () => clearTimeout(saveTimer);
+  }, [momData, formData, leadId, showMOMDialog, getDraftKey]);
+  
+  // Restore draft
+  const handleRestoreDraft = () => {
+    const draftKey = getDraftKey();
+    const savedDraft = localStorage.getItem(draftKey);
+    
+    if (savedDraft) {
+      try {
+        const { data } = JSON.parse(savedDraft);
+        if (data.formData) setFormData(data.formData);
+        if (data.momData) setMomData(data.momData);
+        toast.success('Draft restored successfully');
+      } catch (e) {
+        toast.error('Failed to restore draft');
+      }
+    }
+  };
+  
+  // Clear draft
+  const handleClearDraft = () => {
+    const draftKey = getDraftKey();
+    localStorage.removeItem(draftKey);
+    setHasDraft(false);
+    setLastSavedDraft(null);
+    toast.info('Draft cleared');
+  };
+  
+  // Clear draft after successful submission
+  const clearDraftAfterSubmit = () => {
+    const draftKey = getDraftKey();
+    localStorage.removeItem(draftKey);
+    setHasDraft(false);
+    setLastSavedDraft(null);
+  };
+
   // Fetch lead and meetings with React Query
-  const { data: meetingData } = useQuery({
+  const { data: meetingData, refetch: refetchMeetings } = useQuery({
     queryKey: ['meeting-records', leadId],
     queryFn: async () => {
       const [leadRes, meetingsRes] = await Promise.all([
         axios.get(`${API}/leads/${leadId}`),
-        axios.get(`${API}/leads/${leadId}/meetings`).catch(() => ({ data: [] }))
+        // Correct endpoint: /api/meetings/lead/{lead_id}
+        axios.get(`${API}/meetings/lead/${leadId}`).catch(() => ({ data: [] }))
       ]);
       return {
         lead: leadRes.data,
@@ -77,6 +174,7 @@ const MeetingRecord = () => {
 
   const invalidateData = () => {
     queryClient.invalidateQueries({ queryKey: ['meeting-records', leadId] });
+    refetchMeetings();
   };
 
   // Check if this is the first offline meeting
@@ -248,6 +346,9 @@ const MeetingRecord = () => {
 
       toast.success('Meeting recorded with MOM successfully!');
       setShowMOMDialog(false);
+      
+      // Clear draft after successful submission
+      clearDraftAfterSubmit();
       
       // Reset forms
       setFormData({
@@ -622,16 +723,32 @@ const MeetingRecord = () => {
             )}
 
             {meetings.length > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                <Button
-                  onClick={handleProceedToPricing}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  data-testid="proceed-to-pricing-btn"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Proceed to Pricing Plan
-                  <ChevronRight className="w-4 h-4 ml-2" />
-                </Button>
+              <div className="mt-6 pt-4 border-t-2 border-green-200">
+                {/* Prominent Call to Action */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Rocket className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-semibold text-green-800 dark:text-green-300">
+                      Ready to Proceed!
+                    </span>
+                    <Badge className="bg-green-600 text-white text-xs">
+                      {meetings.length} Meeting{meetings.length > 1 ? 's' : ''} Recorded
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-green-700 dark:text-green-400 mb-4">
+                    You have recorded {meetings.length} meeting{meetings.length > 1 ? 's' : ''}. Proceed to create pricing plan for the client.
+                  </p>
+                  <Button
+                    onClick={handleProceedToPricing}
+                    size="lg"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 h-12 text-base font-semibold"
+                    data-testid="proceed-to-pricing-btn"
+                  >
+                    <Rocket className="w-5 h-5 mr-2" />
+                    Proceed to Pricing Plan
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
@@ -650,6 +767,36 @@ const MeetingRecord = () => {
               Fill in the meeting details. MOM summary is required before submission.
             </DialogDescription>
           </DialogHeader>
+
+          {/* Draft indicator and restore option */}
+          {hasDraft && (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-amber-600" />
+                <span className="text-sm text-amber-800 dark:text-amber-300">
+                  Draft saved {lastSavedDraft ? new Date(lastSavedDraft).toLocaleString() : 'recently'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRestoreDraft}
+                  className="text-xs h-7 border-amber-300 text-amber-700 hover:bg-amber-100"
+                >
+                  Restore Draft
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearDraft}
+                  className="text-xs h-7 text-zinc-500 hover:text-red-600"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-5 py-4">
             {/* Meeting Notes */}

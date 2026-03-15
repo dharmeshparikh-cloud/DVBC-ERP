@@ -224,31 +224,92 @@ async def record_sales_meeting(
     if "_id" in meeting_doc:
         del meeting_doc["_id"]
     
-    # Send email notification in background
+    # Send email notification in background - to Managers, Client, and Reporting Manager
     async def send_mom_notification():
         try:
+            # Get previous meetings for context
+            previous_meetings = await db.meetings.find(
+                {"lead_id": lead_id, "id": {"$ne": meeting_id}},
+                {"_id": 0, "meeting_date": 1, "mom": 1, "notes": 1, "title": 1}
+            ).sort("meeting_date", -1).to_list(5)
+            
+            # Get manager emails
             manager_emails = await get_sales_manager_emails(db)
-            if manager_emails:
-                email_data = meeting_mom_filled_email(
-                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
-                    company=lead.get("company", "Unknown"),
-                    meeting_title=meeting_doc.get("title", "Sales Meeting"),
-                    meeting_date=meeting_date,
-                    meeting_type=meeting_type,
-                    attendees=data.get("attendees", []),
-                    mom_summary=mom[:500] if len(mom) > 500 else mom,
-                    client_expectations=data.get("client_expectations", [])[:5],
-                    key_commitments=data.get("key_commitments", [])[:5],
-                    salesperson_name=current_user.full_name,
-                    app_url=APP_URL
-                )
-                for email in manager_emails:
+            
+            # Get client email from lead
+            client_email = lead.get("email") or lead.get("contact_email")
+            
+            # Get reporting manager email
+            reporting_manager_email = None
+            if current_user.id:
+                user_record = await db.users.find_one({"id": current_user.id}, {"_id": 0, "reporting_manager_id": 1})
+                if user_record and user_record.get("reporting_manager_id"):
+                    manager = await db.users.find_one({"id": user_record["reporting_manager_id"]}, {"_id": 0, "email": 1})
+                    if manager:
+                        reporting_manager_email = manager.get("email")
+            
+            # Prepare email data with enhanced template
+            email_data = meeting_mom_filled_email(
+                lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+                company=lead.get("company", "Unknown"),
+                meeting_title=meeting_doc.get("title", "Sales Meeting"),
+                meeting_date=meeting_date,
+                meeting_time=meeting_time,
+                meeting_type=meeting_type,
+                attendees=data.get("attendees", []),
+                mom_summary=mom[:500] if len(mom) > 500 else mom,
+                client_expectations=data.get("client_expectations", [])[:5],
+                key_commitments=data.get("key_commitments", [])[:5],
+                salesperson_name=current_user.full_name,
+                app_url=APP_URL,
+                previous_meetings=previous_meetings
+            )
+            
+            # Send to managers
+            all_recipients = set(manager_emails or [])
+            if reporting_manager_email:
+                all_recipients.add(reporting_manager_email)
+            
+            for email in all_recipients:
+                if email:
                     await send_email(
                         to_email=email,
                         subject=email_data["subject"],
                         html_content=email_data["html"],
                         plain_content=email_data["plain"]
                     )
+            
+            # Send client copy (without internal action button)
+            if client_email:
+                client_email_data = meeting_mom_filled_email(
+                    lead_name=f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+                    company=lead.get("company", "Unknown"),
+                    meeting_title=meeting_doc.get("title", "Sales Meeting"),
+                    meeting_date=meeting_date,
+                    meeting_time=meeting_time,
+                    meeting_type=meeting_type,
+                    attendees=data.get("attendees", []),
+                    mom_summary=mom[:500] if len(mom) > 500 else mom,
+                    client_expectations=data.get("client_expectations", [])[:5],
+                    key_commitments=data.get("key_commitments", [])[:5],
+                    salesperson_name=current_user.full_name,
+                    app_url=APP_URL,
+                    previous_meetings=previous_meetings,
+                    is_client_copy=True
+                )
+                await send_email(
+                    to_email=client_email,
+                    subject=client_email_data["subject"],
+                    html_content=client_email_data["html"],
+                    plain_content=client_email_data["plain"]
+                )
+                
+                # Mark MOM as sent to client
+                await db.meetings.update_one(
+                    {"id": meeting_id},
+                    {"$set": {"mom_sent_to_client": True, "mom_sent_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                
         except Exception as e:
             print(f"Failed to send MOM notification: {e}")
     
