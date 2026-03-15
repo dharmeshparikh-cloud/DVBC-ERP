@@ -16,7 +16,6 @@ import { formatINR, numberToWords } from '../../utils/currency';
 import SalesFunnelProgress from '../../components/SalesFunnelProgress';
 import ViewToggle from '../../components/ViewToggle';
 import PageHeader from '../../components/ui/page-header';
-import PageRefreshButton from '../../components/PageRefreshButton';
 import { useFetch, useMutate } from '../../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -511,43 +510,23 @@ const ProformaInvoice = () => {
           </div>
         )}
 
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-              Proforma Invoice
-            </h1>
-            <p className="text-zinc-500">Create and manage proforma invoices for clients</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <PageRefreshButton onClick={() => refetchInvoices()} loading={invoicesLoading} />
+        <PageHeader
+          title="Proforma Invoice"
+          subtitle="Create and manage proforma invoices for clients"
+          onRefresh={() => refetchInvoices()}
+          loading={invoicesLoading}
+          actions={<>
             <ViewToggle viewMode={viewMode} onChange={setViewMode} />
-            {/* Back Button */}
-            <Button
-              onClick={handleBackToFlow}
-              variant="outline"
-              className="rounded-sm border-zinc-300"
-              data-testid="back-to-flow-btn"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
-              Back to SOW
+            <Button onClick={handleBackToFlow} variant="outline" className="rounded-sm border-zinc-300" data-testid="back-to-flow-btn">
+              <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} /> Back to SOW
             </Button>
-            
             {canEdit && (
-              <Button
-                onClick={() => {
-                  setSelectedPlanDetails(null);
-                  setSelectedLead(null);
-                  setDialogOpen(true);
-                }}
-                data-testid="create-invoice-btn"
-                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-              >
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                Create Proforma Invoice
+              <Button onClick={() => { setSelectedPlanDetails(null); setSelectedLead(null); setDialogOpen(true); }} data-testid="create-invoice-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Create Proforma Invoice
               </Button>
             )}
-          </div>
-        </div>
+          </>}
+        />
       </div>
 
       {/* View Toggle Tabs */}

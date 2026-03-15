@@ -10,7 +10,6 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import PageHeader from '../../components/ui/page-header';
-import PageRefreshButton from '../../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
@@ -183,24 +182,13 @@ const SOWChangeRequests = () => {
         onBack={() => navigate('/consulting/my-projects')}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
-            SOW Change Requests
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            Request and manage changes to project scopes
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-        <PageRefreshButton onClick={() => refetchRequests()} loading={loadingRequests} />
-        <Button onClick={() => setShowCreateDialog(true)} data-testid="new-change-request-btn">
-          <Plus className="w-4 h-4 mr-2" />
-          New Change Request
-        </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="SOW Change Requests"
+        subtitle="Request and manage changes to project scopes"
+        onRefresh={() => refetchRequests()}
+        loading={loadingRequests}
+        actions={<Button onClick={() => setShowCreateDialog(true)} data-testid="new-change-request-btn"><Plus className="w-4 h-4 mr-2" /> New Change Request</Button>}
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">

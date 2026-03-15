@@ -24,7 +24,6 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import FollowUpActionButton from '../components/FollowUpActionButton';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -428,28 +427,20 @@ const KickoffRequests = () => {
   return (
     <div className="space-y-6" data-testid="kickoff-requests-page">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Kickoff Requests</h1>
-          <p className="text-sm text-zinc-500">
-            {isSalesRole && isPMRole 
-              ? 'Send and manage project handoffs' 
-              : isSalesRole 
-                ? 'Send project handoffs to consulting team'
-                : 'Receive and accept incoming projects'}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <PageRefreshButton onClick={() => refetchRequests()} loading={loading} />
+      <PageHeader
+        title="Kickoff Requests"
+        subtitle={isSalesRole && isPMRole ? 'Send and manage project handoffs' : isSalesRole ? 'Send project handoffs to consulting team' : 'Receive and accept incoming projects'}
+        onRefresh={() => refetchRequests()}
+        loading={loading}
+        actions={<>
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
           {isSalesRole && (
             <Button onClick={() => setShowCreateDialog(true)} data-testid="create-kickoff-btn">
-              <Plus className="w-4 h-4 mr-2" />
-              New Kickoff Request
+              <Plus className="w-4 h-4 mr-2" /> New Kickoff Request
             </Button>
           )}
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Returned Requests (for Sales) */}
       {isSalesRole && returnedRequests.length > 0 && (

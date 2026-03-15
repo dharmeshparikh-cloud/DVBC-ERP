@@ -9,7 +9,6 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { LazyImage } from '../components/ui/lazy-image';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 import { Plus, Upload, CheckCircle, XCircle, Clock, CalendarDays, Building2, MapPin, Home, Camera, Navigation, Loader2, LogIn, LogOut, AlertCircle, Car, Bike, RotateCcw, Send, X, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -451,21 +450,25 @@ const Attendance = () => {
 
   return (
     <div data-testid="attendance-page">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Attendance</h1>
-          <p className="text-zinc-500">Track employee attendance with manual entry or Excel upload</p>
-        </div>
-        <div className="flex items-center gap-2">
-        <PageRefreshButton onClick={() => refetchRecords()} loading={loading} />
-        {isHR && (
+      <PageHeader
+        title="Attendance"
+        subtitle="Track employee attendance with manual entry or Excel upload"
+        onRefresh={() => refetchRecords()}
+        loading={loading}
+        actions={isHR && (
           <div className="flex gap-2">
+            <Button variant="outline" className="rounded-sm" onClick={() => setUploadDialogOpen(true)} data-testid="upload-attendance-btn">
+              <Upload className="w-4 h-4 mr-2" /> Bulk Upload
+            </Button>
+            <Button className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none" onClick={() => setDialogOpen(true)} data-testid="add-attendance-btn">
+              <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Add Record
+            </Button>
+          </div>
+        )}
+      />
+        {isHR && (
+          <div>
             <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="rounded-sm" data-testid="upload-attendance-btn">
-                  <Upload className="w-4 h-4 mr-2" /> Bulk Upload
-                </Button>
-              </DialogTrigger>
               <DialogContent className="border-zinc-200 rounded-sm max-w-lg">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Bulk Upload</DialogTitle>
@@ -487,11 +490,6 @@ const Attendance = () => {
               </DialogContent>
             </Dialog>
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { resetForm(); stopCamera(); } }}>
-              <DialogTrigger asChild>
-                <Button className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none" data-testid="add-attendance-btn">
-                  <Plus className="w-4 h-4 mr-2" /> Mark Attendance
-                </Button>
-              </DialogTrigger>
               <DialogContent className="border-zinc-200 rounded-sm max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Mark Attendance</DialogTitle>
@@ -774,8 +772,6 @@ const Attendance = () => {
             </Dialog>
           </div>
         )}
-        </div>
-      </div>
 
       {/* Month picker + Stats */}
       <div className="flex items-center gap-4 mb-6">

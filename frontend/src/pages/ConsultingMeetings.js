@@ -8,7 +8,6 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 import {
   Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle,
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
@@ -234,20 +233,19 @@ const ConsultingMeetings = () => {
 
   return (
     <div data-testid="consulting-meetings-page">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Consulting Meetings</h1>
-          <p className="text-zinc-500">Manage client project meetings, MOM, and track commitments</p>
-        </div>
-        <div className="flex items-center gap-2">
-        <PageRefreshButton onClick={() => refetchMeetings()} loading={loading} />
-        {canEdit && (
+      <PageHeader
+        title="Consulting Meetings"
+        subtitle="Manage client project meetings, MOM, and track commitments"
+        onRefresh={() => refetchMeetings()}
+        loading={loading}
+        actions={canEdit && (
+          <Button onClick={() => setDialogOpen(true)} data-testid="add-consulting-meeting-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+            <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> New Consulting Meeting
+          </Button>
+        )}
+      />
+      {canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-consulting-meeting-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> New Consulting Meeting
-              </Button>
-            </DialogTrigger>
             <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Schedule Consulting Meeting</DialogTitle>
@@ -354,8 +352,6 @@ const ConsultingMeetings = () => {
             </DialogContent>
           </Dialog>
         )}
-        </div>
-      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-zinc-200">

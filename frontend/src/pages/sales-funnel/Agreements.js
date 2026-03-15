@@ -15,7 +15,6 @@ import ViewToggle from '../../components/ViewToggle';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
-import PageRefreshButton from '../../components/PageRefreshButton';
 
 const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
@@ -406,28 +405,20 @@ const Agreements = () => {
           <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
           Back to Quotations
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-              Agreements
-            </h1>
-            <p className="text-zinc-500">Create and manage client agreements</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <PageRefreshButton onClick={() => refetchAgreements()} loading={loading} />
+        <PageHeader
+          title="Agreements"
+          subtitle="Create and manage client agreements"
+          onRefresh={() => refetchAgreements()}
+          loading={loading}
+          actions={<>
             <ViewToggle viewMode={viewMode} onChange={setViewMode} />
             {canEdit && (
-              <Button
-                onClick={() => setDialogOpen(true)}
-                data-testid="create-agreement-btn"
-                className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-              >
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                Create Agreement
+              <Button onClick={() => setDialogOpen(true)} data-testid="create-agreement-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Create Agreement
               </Button>
             )}
-          </div>
-        </div>
+          </>}
+        />
       </div>
 
       {loading ? (

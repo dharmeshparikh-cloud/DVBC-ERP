@@ -16,7 +16,6 @@ import { format } from 'date-fns';
 import ViewToggle from '../../components/ViewToggle';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
-import PageRefreshButton from '../../components/PageRefreshButton';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-zinc-100 text-zinc-700', icon: FileText },
@@ -147,18 +146,7 @@ const SalesSOWList = () => {
 
   return (
     <div data-testid="sales-sow-list-page">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-          Scope of Work
-        </h1>
-        <div className="flex items-center justify-between">
-          <p className="text-zinc-500">
-            Manage and track all project scopes created by sales team
-          </p>
-          <PageRefreshButton onClick={() => refetchSOW()} loading={loadingSOW} />
-        </div>
-      </div>
+      <PageHeader title="Scope of Work" subtitle="Manage and track all project scopes created by sales team" onRefresh={() => refetchSOW()} loading={loadingSOW} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

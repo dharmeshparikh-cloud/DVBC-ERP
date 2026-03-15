@@ -8,7 +8,6 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { 
   Plus, ArrowLeft, CheckCircle, Clock, AlertCircle, 
@@ -240,25 +239,13 @@ const ProjectTasks = () => {
           <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
           Back to Projects
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-              {project?.name || 'Project'} Tasks
-            </h1>
-            <p className="text-zinc-500">{project?.client_name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-          <PageRefreshButton onClick={() => refetchTasks()} loading={loading} />
-          <Button
-            onClick={() => { resetForm(); setEditingTask(null); setDialogOpen(true); }}
-            data-testid="add-task-btn"
-            className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-          >
-            <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-            Add Task
-          </Button>
-          </div>
-        </div>
+        <PageHeader
+          title={`${project?.name || 'Project'} Tasks`}
+          subtitle={project?.client_name}
+          onRefresh={() => refetchTasks()}
+          loading={loading}
+          actions={<Button onClick={() => { resetForm(); setEditingTask(null); setDialogOpen(true); }} data-testid="add-task-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"><Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Add Task</Button>}
+        />
       </div>
 
       {/* Stats Summary */}

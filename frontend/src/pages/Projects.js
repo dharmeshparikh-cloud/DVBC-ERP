@@ -16,7 +16,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isProjectReadOnly } from '../utils/projectActions';
 import FollowUpActionButton from '../components/FollowUpActionButton';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 
 // Helper function to calculate days remaining/overdue
 const getTimelineInfo = (project) => {
@@ -115,14 +114,7 @@ const Projects = () => {
 
   return (
     <div data-testid="projects-page">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 dark:text-zinc-100 mb-2">
-            Projects
-          </h1>
-          <p className="text-zinc-500 dark:text-zinc-400">Track your consulting projects and deliverables</p>
-        </div>
-        <PageRefreshButton onClick={() => refetch()} loading={loading} />
+      <PageHeader title="Projects" subtitle="Track your consulting projects and deliverables" onRefresh={() => refetch()} loading={loading} />
         {/* Projects can only be created via Kickoff Request handover from Sales team */}
         {false && canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -265,7 +257,6 @@ const Projects = () => {
             </DialogContent>
           </Dialog>
         )}
-      </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">

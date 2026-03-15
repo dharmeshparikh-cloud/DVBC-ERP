@@ -9,7 +9,6 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -178,30 +177,24 @@ const AllProjects = () => {
 
   return (
     <div data-testid="all-projects-page">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-black mb-2">
-            All Projects
-          </h1>
-          <p className="text-black/50">Manage consultant assignments for all projects</p>
-        </div>
-        
-        {/* Stats Banner */}
-        <div className="flex items-center gap-4">
-          <PageRefreshButton onClick={() => refetchProjects()} loading={loading} />
-          <div className="bg-black/5 px-4 py-2 rounded-lg border border-black/10">
-            <p className="text-xs text-black/50">Total Projects</p>
-            <p className="text-xl font-bold text-black">{projects.length}</p>
+      <PageHeader
+        title="All Projects"
+        subtitle="Manage consultant assignments for all projects"
+        onRefresh={() => refetchProjects()}
+        loading={loading}
+        actions={<div className="flex items-center gap-3">
+          <div className="bg-black/5 dark:bg-white/5 px-4 py-2 rounded-lg border border-black/10 dark:border-white/10">
+            <p className="text-xs text-black/50 dark:text-white/50">Total Projects</p>
+            <p className="text-xl font-bold text-black dark:text-white">{projects.length}</p>
           </div>
           {needsAssignmentCount > 0 && (
-            <div className="bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-              <p className="text-xs text-amber-600">Needs Assignment</p>
-              <p className="text-xl font-bold text-amber-700">{needsAssignmentCount}</p>
+            <div className="bg-amber-50 dark:bg-amber-950/30 px-4 py-2 rounded-lg border border-amber-200 dark:border-amber-900/40">
+              <p className="text-xs text-amber-600 dark:text-amber-400">Needs Assignment</p>
+              <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{needsAssignmentCount}</p>
             </div>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">

@@ -16,7 +16,6 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import FollowUpActionButton from '../components/FollowUpActionButton';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 
 const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low', color: 'bg-zinc-100 text-zinc-700' },
@@ -310,23 +309,19 @@ const Meetings = () => {
 
   return (
     <div data-testid="meetings-page">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-            Meetings & MOM
-          </h1>
-          <p className="text-zinc-500">Track meetings, create Minutes of Meeting, and manage action items</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <PageRefreshButton onClick={() => refetchMeetings()} loading={loading} />
+      <PageHeader
+        title="Meetings & MOM"
+        subtitle="Track meetings, create Minutes of Meeting, and manage action items"
+        onRefresh={() => refetchMeetings()}
+        loading={loading}
+        actions={canEdit && (
+          <Button onClick={() => setDialogOpen(true)} data-testid="add-meeting-button" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+            <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Schedule Meeting
+          </Button>
+        )}
+      />
           {canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-meeting-button" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                Schedule Meeting
-              </Button>
-            </DialogTrigger>
             <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Schedule New Meeting</DialogTitle>
@@ -510,8 +505,6 @@ const Meetings = () => {
             </DialogContent>
           </Dialog>
         )}
-        </div>
-      </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">

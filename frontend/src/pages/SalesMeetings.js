@@ -8,7 +8,6 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 import { Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle, Calendar, Trash2, ChevronDown, ChevronUp, FileText, FolderOpen, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -237,27 +236,26 @@ const SalesMeetings = () => {
         description="Continue editing a meeting or start a new one"
       />
 
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">Sales Meetings</h1>
-          <p className="text-zinc-500">Track sales meetings, calls, and follow-ups with leads</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <PageRefreshButton onClick={() => refetchMeetings()} loading={loading} />
-          {/* Drafts Button */}
+      <PageHeader
+        title="Sales Meetings"
+        subtitle="Track sales meetings, calls, and follow-ups with leads"
+        onRefresh={() => refetchMeetings()}
+        loading={loading}
+        actions={<>
           {drafts.length > 0 && (
             <Button variant="outline" onClick={() => setShowDraftSelector(true)} className="gap-2">
               <FolderOpen className="w-4 h-4" /> Drafts ({drafts.length})
             </Button>
           )}
-          
           {canEdit && (
+            <Button onClick={() => setDialogOpen(true)} data-testid="add-sales-meeting-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+              <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> New Sales Meeting
+            </Button>
+          )}
+        </>}
+      />
+      {canEdit && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button data-testid="add-sales-meeting-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                  <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> New Sales Meeting
-                </Button>
-              </DialogTrigger>
               <DialogContent className="border-zinc-200 rounded-sm max-w-xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 flex items-center justify-between">
@@ -344,8 +342,6 @@ const SalesMeetings = () => {
             </DialogContent>
           </Dialog>
         )}
-        </div>
-      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">

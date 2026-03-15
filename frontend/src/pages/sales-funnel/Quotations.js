@@ -16,7 +16,6 @@ import DraftSelector from '../../components/DraftSelector';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
-import PageRefreshButton from '../../components/PageRefreshButton';
 
 // Generate draft title from quotation data
 const generateQuotationDraftTitle = (data) => {
@@ -258,28 +257,17 @@ const Quotations = () => {
           <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
           Back to Leads
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-              Proforma Invoices / Quotations
-            </h1>
-            <p className="text-zinc-500">Manage proforma invoices during negotiations</p>
-          </div>
-          {canEdit && (
-            <Button
-              onClick={() => {
-                setSelectedPlanDetails(null);
-                setDialogOpen(true);
-              }}
-              data-testid="create-quotation-btn"
-              className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-            >
-              <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-              Create Quotation
+        <PageHeader
+          title="Proforma Invoices / Quotations"
+          subtitle="Manage proforma invoices during negotiations"
+          onRefresh={() => refetchQuotations()}
+          loading={loading}
+          actions={canEdit && (
+            <Button onClick={() => { setSelectedPlanDetails(null); setDialogOpen(true); }} data-testid="create-quotation-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+              <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Create Quotation
             </Button>
           )}
-          <PageRefreshButton onClick={() => refetchQuotations()} loading={loading} />
-        </div>
+        />
       </div>
 
       {/* View Toggle Tabs */}

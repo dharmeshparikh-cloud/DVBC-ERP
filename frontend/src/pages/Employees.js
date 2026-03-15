@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import MobileAppWidget from '../components/MobileAppWidget';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useAllEmployees,
@@ -304,12 +303,7 @@ const Employees = () => {
 
   return (
     <div data-testid="employees-page">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-          Employees
-        </h1>
-        <p className="text-zinc-500">Manage employee records and organizational structure</p>
-      </div>
+      <PageHeader title="Employees" subtitle="Manage employee records and organizational structure" onRefresh={() => refetchEmployees()} loading={empLoading} />
 
       {/* Stats Cards */}
       {stats && (
@@ -441,7 +435,6 @@ const Employees = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <PageRefreshButton onClick={() => refetchEmployees()} loading={empLoading} />
               <ViewToggle viewMode={viewMode} onChange={setViewMode} />
             </div>
           </div>

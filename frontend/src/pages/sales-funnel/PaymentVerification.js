@@ -17,7 +17,6 @@ import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
-import PageRefreshButton from '../../components/PageRefreshButton';
 
 const PAYMENT_MODES = [
   { value: 'bank_transfer', label: 'Bank Transfer / NEFT / RTGS' },
@@ -209,17 +208,7 @@ const PaymentVerification = () => {
           <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} />
           Back to Agreements
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-2">
-              Payment Verification
-            </h1>
-            <p className="text-zinc-500">
-              Verify first installment payment before initiating project kickoff
-            </p>
-          </div>
-          <PageRefreshButton onClick={() => refetchPayments()} loading={loading} />
-        </div>
+        <PageHeader title="Payment Verification" subtitle="Verify first installment payment before initiating project kickoff" onRefresh={() => refetchPayments()} loading={loading} />
       </div>
 
       {/* Flow Info Banner */}

@@ -14,7 +14,6 @@ import axios from 'axios';
 import { AuthContext, API } from '../App';
 import { useTheme } from '../contexts/ThemeContext';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -277,46 +276,23 @@ const NewJoinerPipeline = () => {
   return (
     <div className="space-y-6" data-testid="new-joiner-pipeline">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-            New Joiner Pipeline
-          </h1>
-          <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-            Track candidates from invite to active employee
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <PageRefreshButton onClick={() => refetch()} loading={isLoading} />
+      <PageHeader
+        title="New Joiner Pipeline"
+        subtitle="Track candidates from invite to active employee"
+        onRefresh={() => refetch()}
+        loading={isLoading}
+        actions={<>
           <div className="relative">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
-            <Input
-              placeholder="Search candidates..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-[250px]"
-              data-testid="pipeline-search"
-            />
+            <Input placeholder="Search candidates..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-[250px]" data-testid="pipeline-search" />
           </div>
-          
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={() => refetch()}
-            title="Refresh"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-
           {isHR && (
             <Button onClick={() => setShowInviteDialog(true)} data-testid="send-invite-btn">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Send Invite
+              <UserPlus className="w-4 h-4 mr-2" /> Send Invite
             </Button>
           )}
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Pipeline Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

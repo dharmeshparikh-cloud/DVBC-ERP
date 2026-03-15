@@ -12,7 +12,6 @@ import { toast } from 'sonner';
 import ViewToggle from '../components/ViewToggle';
 import FollowUpActionButton from '../components/FollowUpActionButton';
 import PageHeader from '../components/ui/page-header';
-import PageRefreshButton from '../components/PageRefreshButton';
 import useDraft from '../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../components/DraftSelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
@@ -614,52 +613,29 @@ const Leads = () => {
         description="Continue editing a lead or start a new one"
       />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-        <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight uppercase text-zinc-950 mb-1">
-            Leads
-          </h1>
-          <p className="text-zinc-500 text-sm">Manage your sales pipeline ({filteredLeads.length} of {leads.length} leads)</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <PageRefreshButton onClick={() => refetchLeads()} loading={loading} />
+      <PageHeader
+        title="Leads"
+        subtitle={`Manage your sales pipeline (${filteredLeads.length} of ${leads.length} leads)`}
+        onRefresh={() => refetchLeads()}
+        loading={loading}
+        actions={<>
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
-          {canEdit && (
-            <>
-              {/* Drafts Button */}
-              {drafts.length > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDraftSelector(true)}
-                  className="border-zinc-200 gap-2"
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  Drafts ({drafts.length})
-                </Button>
-              )}
-              
-              {/* CSV Upload Button */}
-              <Button
-                variant="outline"
-                onClick={() => setCsvDialogOpen(true)}
-                className="border-zinc-200"
-                data-testid="csv-upload-btn"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Import CSV
+          {canEdit && (<>
+            {drafts.length > 0 && (
+              <Button variant="outline" onClick={() => setShowDraftSelector(true)} className="border-zinc-200 gap-2">
+                <FolderOpen className="w-4 h-4" /> Drafts ({drafts.length})
               </Button>
-              
-              {/* Add Lead Button */}
+            )}
+            <Button variant="outline" onClick={() => setCsvDialogOpen(true)} className="border-zinc-200" data-testid="csv-upload-btn">
+              <Upload className="w-4 h-4 mr-2" /> Import CSV
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} data-testid="add-lead-button" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+              <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Add Lead
+            </Button>
+          </>)}
+        </>}
+      />
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    data-testid="add-lead-button"
-                    className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none"
-                  >
-                    <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                    Add Lead
-                  </Button>
-                </DialogTrigger>
               <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-semibold uppercase text-zinc-950 flex items-center justify-between">
@@ -836,10 +812,6 @@ const Leads = () => {
               </form>
             </DialogContent>
           </Dialog>
-          </>
-          )}
-        </div>
-      </div>
 
       {/* CSV Upload Dialog */}
       <Dialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen}>

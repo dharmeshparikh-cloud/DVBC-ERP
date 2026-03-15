@@ -21,7 +21,6 @@ import ViewToggle from '../../components/ViewToggle';
 import ConsultingStageNav from '../../components/ConsultingStageNav';
 import { sanitizeDisplayText } from '../../utils/sanitize';
 import PageHeader from '../../components/ui/page-header';
-import PageRefreshButton from '../../components/PageRefreshButton';
 import { useQuery } from '@tanstack/react-query';
 import { isProjectReadOnly } from '../../utils/projectActions';
 import MyWorkspaceNav from '../../components/MyWorkspaceNav';
@@ -255,20 +254,12 @@ const MyProjects = () => {
         onBack={() => navigate('/kickoff-requests')}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">
-            My Projects
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {isAdmin ? 'All consulting projects' : 
-             isManager ? 'Your team\'s projects' : 
-             'Your assigned projects'}
-          </p>
-        </div>
-        <PageRefreshButton onClick={() => refetch()} loading={loading} />
-      </div>
+      <PageHeader
+        title="My Projects"
+        subtitle={isAdmin ? 'All consulting projects' : isManager ? "Your team's projects" : 'Your assigned projects'}
+        onRefresh={() => refetch()}
+        loading={loading}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
