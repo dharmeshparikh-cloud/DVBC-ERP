@@ -623,8 +623,13 @@ const PricingPlanBuilder = () => {
     setLoading(true);
 
     try {
+      // Generate a default name for the pricing plan
+      const planName = `Pricing Plan - ${lead?.company || lead?.first_name || 'Lead'} - ${new Date().toLocaleDateString()}`;
+      
       const pricingPlan = {
         lead_id: leadId,
+        name: planName,  // Required by backend
+        total_amount: totalInvestment,  // Backend expects total_amount, not total_investment
         ...formData,
         total_investment: totalInvestment,
         consultants: convertToBackendFormat(),
@@ -652,10 +657,23 @@ const PricingPlanBuilder = () => {
     } catch (error) {
       const detail = error.response?.data?.detail;
       if (Array.isArray(detail)) {
-        // Pydantic validation errors have loc (field location) and msg
+        // Pydantic validation errors - map field names to user-friendly labels
+        const fieldLabels = {
+          'name': 'Plan Name',
+          'total_amount': 'Total Investment Amount',
+          'lead_id': 'Lead',
+          'payment_schedule': 'Payment Schedule',
+          'payment_plan': 'Payment Plan',
+          'payment_plan → start_date': 'Project Start Date',
+          'payment_plan → schedule_breakdown': 'Payment Schedule Breakdown',
+          'team_deployment': 'Team Deployment'
+        };
+        
         const errorMessages = detail.map(e => {
-          const fieldPath = Array.isArray(e.loc) ? e.loc.join(' → ') : (e.loc || 'Unknown field');
-          return `${fieldPath}: ${e.msg || 'Invalid value'}`;
+          const fieldPath = Array.isArray(e.loc) ? e.loc.filter(l => l !== 'body').join(' → ') : (e.loc || 'Unknown field');
+          const label = fieldLabels[fieldPath] || fieldPath.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          const message = e.msg?.replace('Field required', 'is required').replace('Value error, ', '') || 'Invalid value';
+          return `${label} ${message}`;
         });
         toast.error(errorMessages.join('\n'), { duration: 5000 });
       } else if (typeof detail === 'string') {

@@ -172,11 +172,14 @@ async def get_my_expenses(
     status: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get my expense claims"""
+    """Get my expense claims with summary"""
     db = get_db()
     
+    # Query by user_id (UUID), created_by (UUID), or employee_id (code)
     query = {
         "$or": [
+            {"user_id": current_user.id},
+            {"created_by": current_user.id},
             {"employee_id": current_user.id},
             {"employee_id": current_user.employee_id},
             {"submitted_by": current_user.id}
@@ -188,7 +191,31 @@ async def get_my_expenses(
     
     expenses = await db.expenses.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
-    return expenses
+    # Calculate summary
+    summary = {
+        "draft": 0,
+        "pending": 0,
+        "approved": 0,
+        "rejected": 0,
+        "reimbursed": 0,
+        "total_amount": 0,
+        "reimbursed_amount": 0
+    }
+    
+    for exp in expenses:
+        exp_status = exp.get("status", "draft")
+        amount = exp.get("total_amount") or exp.get("amount", 0)
+        
+        if exp_status in summary:
+            summary[exp_status] += 1
+        summary["total_amount"] += amount
+        if exp_status == "reimbursed":
+            summary["reimbursed_amount"] += amount
+    
+    return {
+        "expenses": expenses,
+        "summary": summary
+    }
 
 
 # ============== Projects & Timesheets ==============

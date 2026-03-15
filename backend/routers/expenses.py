@@ -1443,3 +1443,236 @@ async def get_unlinked_approved_expenses(current_user: User = Depends(get_curren
         "total_amount": round(total_amount, 2),
         "expenses": expenses
     }
+
+
+@router.get("/report/monthly-meeting-expenses")
+async def get_monthly_meeting_expense_report(
+    month: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get monthly meeting expense report for finance department.
+    Shows all meeting-related expenses with lead details for print/export.
+    
+    ACCESS: 
+    - Admin, HR Manager, Finance roles: See all expenses
+    - Regular employees: See only their own expenses
+    
+    Returns: Table with employee name, lead name, stage, date, travel mode, amount, status
+    """
+    db = get_db()
+    
+    # Access control - Finance, HR, Admin can see all, others see only their own
+    privileged_roles = ["admin", "hr_manager", "hr_executive", "finance_manager", "finance_executive", "accounts"]
+    can_view_all = current_user.role in privileged_roles
+    
+    # Default to current month
+    if not month:
+        month = datetime.now(timezone.utc).strftime("%Y-%m")
+    
+    # Parse month for date range
+    try:
+        year, mon = month.split("-")
+        start_date = f"{year}-{mon}-01"
+        # Get last day of month
+        if int(mon) == 12:
+            end_date = f"{int(year)+1}-01-01"
+        else:
+            end_date = f"{year}-{int(mon)+1:02d}-01"
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM")
+    
+    # Query meeting expenses - those with meeting_id or travel_details
+    query = {
+        "$or": [
+            {"meeting_id": {"$exists": True, "$ne": None}},
+            {"travel_details": {"$exists": True}},
+            {"subcategory": {"$regex": "meeting_travel", "$options": "i"}}
+        ],
+        "expense_date": {"$gte": start_date, "$lt": end_date}
+    }
+    
+    # Non-privileged users can only see their own expenses
+    if not can_view_all:
+        query["$and"] = [
+            {"$or": [
+                {"user_id": current_user.id},
+                {"created_by": current_user.id}
+            ]}
+        ]
+    
+    expenses = await db.expenses.find(query, {"_id": 0}).sort("expense_date", 1).to_list(500)
+    
+    # Enrich with lead and meeting data
+    report_items = []
+    total_amount = 0
+    total_approved = 0
+    total_pending = 0
+    total_rejected = 0
+    
+    for exp in expenses:
+        lead_id = exp.get("lead_id")
+        meeting_id = exp.get("meeting_id")
+        travel_details = exp.get("travel_details", {})
+        amount = exp.get("total_amount") or exp.get("amount", 0)
+        
+        # Get lead info if available
+        lead_name = exp.get("lead_name", "")
+        company = exp.get("company", "")
+        stage = ""
+        
+        if lead_id and not lead_name:
+            lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "first_name": 1, "last_name": 1, "company": 1, "current_stage": 1})
+            if lead:
+                lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+                company = lead.get("company", "")
+                stage = lead.get("current_stage", "")
+        
+        # Get meeting info if available
+        meeting_title = ""
+        if meeting_id:
+            meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0, "title": 1, "lead_id": 1})
+            if meeting:
+                meeting_title = meeting.get("title", "")
+                if not lead_id and meeting.get("lead_id"):
+                    lead = await db.leads.find_one({"id": meeting["lead_id"]}, {"_id": 0, "first_name": 1, "last_name": 1, "company": 1, "current_stage": 1})
+                    if lead:
+                        lead_name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+                        company = lead.get("company", "")
+                        stage = lead.get("current_stage", "")
+        
+        # Get employee name
+        employee_name = exp.get("employee_name", "")
+        if not employee_name and exp.get("user_id"):
+            user = await db.users.find_one({"id": exp["user_id"]}, {"_id": 0, "full_name": 1})
+            if user:
+                employee_name = user.get("full_name", "")
+        
+        # Calculate totals by status
+        status = exp.get("status", "pending")
+        total_amount += amount
+        if status == "approved":
+            total_approved += amount
+        elif status == "rejected":
+            total_rejected += amount
+        else:
+            total_pending += amount
+        
+        report_items.append({
+            "expense_id": exp.get("id"),
+            "employee_id": exp.get("employee_id"),
+            "employee_name": employee_name,
+            "lead_name": lead_name or "N/A",
+            "company": company or "N/A",
+            "stage": stage or exp.get("lead_stage", "N/A"),
+            "meeting_title": meeting_title or exp.get("description", ""),
+            "expense_date": exp.get("expense_date", "")[:10] if exp.get("expense_date") else "",
+            "travel_mode": travel_details.get("travel_mode", "N/A"),
+            "distance_km": travel_details.get("distance_km", 0),
+            "total_km": travel_details.get("total_km", travel_details.get("distance_km", 0)),
+            "is_round_trip": travel_details.get("is_round_trip", False),
+            "rate_per_km": travel_details.get("rate_per_km", 0),
+            "start_location": travel_details.get("start_location", ""),
+            "end_location": travel_details.get("end_location", ""),
+            "amount": round(amount, 2),
+            "status": status,
+            "approved_by": exp.get("hr_approved_by_name") or exp.get("admin_approved_by_name") or "",
+            "approved_at": (exp.get("hr_approved_at") or exp.get("admin_approved_at") or "")[:10] if (exp.get("hr_approved_at") or exp.get("admin_approved_at")) else "",
+            "payroll_period": exp.get("payroll_period", ""),
+            "payroll_linked": exp.get("payroll_linked", False)
+        })
+    
+    return {
+        "month": month,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_by": current_user.full_name,
+        "summary": {
+            "total_expenses": len(report_items),
+            "total_amount": round(total_amount, 2),
+            "approved_amount": round(total_approved, 2),
+            "pending_amount": round(total_pending, 2),
+            "rejected_amount": round(total_rejected, 2),
+            "approved_count": len([r for r in report_items if r["status"] == "approved"]),
+            "pending_count": len([r for r in report_items if r["status"] == "pending"]),
+            "rejected_count": len([r for r in report_items if r["status"] == "rejected"])
+        },
+        "expenses": report_items
+    }
+
+
+@router.get("/report/monthly-meeting-expenses/export")
+async def export_monthly_meeting_expense_report(
+    month: str = None,
+    format: str = "json",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Export monthly meeting expense report for finance department.
+    Supports JSON and CSV formats for printing/Excel import.
+    
+    ACCESS: Admin, HR Manager, Finance roles
+    """
+    # Get the report data
+    report = await get_monthly_meeting_expense_report(month, current_user)
+    
+    if format == "csv":
+        # Generate CSV content
+        import io
+        import csv
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Header
+        writer.writerow([
+            "Employee ID", "Employee Name", "Lead Name", "Company", "Stage",
+            "Meeting/Description", "Date", "Travel Mode", "Distance (km)", 
+            "Total KM", "Round Trip", "Rate/km", "Amount (Rs.)", "Status",
+            "Approved By", "Approved Date", "Payroll Period", "Payroll Linked"
+        ])
+        
+        # Data rows
+        for exp in report["expenses"]:
+            writer.writerow([
+                exp["employee_id"],
+                exp["employee_name"],
+                exp["lead_name"],
+                exp["company"],
+                exp["stage"],
+                exp["meeting_title"],
+                exp["expense_date"],
+                exp["travel_mode"],
+                exp["distance_km"],
+                exp["total_km"],
+                "Yes" if exp["is_round_trip"] else "No",
+                exp["rate_per_km"],
+                exp["amount"],
+                exp["status"].upper(),
+                exp["approved_by"],
+                exp["approved_at"],
+                exp["payroll_period"],
+                "Yes" if exp["payroll_linked"] else "No"
+            ])
+        
+        # Summary row
+        writer.writerow([])
+        writer.writerow(["SUMMARY"])
+        writer.writerow(["Total Expenses", report["summary"]["total_expenses"]])
+        writer.writerow(["Total Amount", f"Rs. {report['summary']['total_amount']:,.2f}"])
+        writer.writerow(["Approved", f"Rs. {report['summary']['approved_amount']:,.2f}", f"({report['summary']['approved_count']} items)"])
+        writer.writerow(["Pending", f"Rs. {report['summary']['pending_amount']:,.2f}", f"({report['summary']['pending_count']} items)"])
+        writer.writerow(["Rejected", f"Rs. {report['summary']['rejected_amount']:,.2f}", f"({report['summary']['rejected_count']} items)"])
+        
+        csv_content = output.getvalue()
+        
+        from fastapi.responses import Response
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=meeting_expenses_{report['month']}.csv"
+            }
+        )
+    
+    return report
+
