@@ -151,6 +151,8 @@ SYSTEM_INDEXES: List[Tuple[str, list, dict]] = [
     # Expenses
     ("expenses", [("id", 1)], {"unique": True, "background": True}),
     ("expenses", [("employee_id", 1)], {"background": True}),
+    ("expenses", [("user_id", 1)], {"background": True}),  # For ownership queries
+    ("expenses", [("created_by", 1)], {"background": True}),  # For ownership queries
     ("expenses", [("status", 1)], {"background": True}),
     ("expenses", [("approver_id", 1), ("status", 1)], {"background": True}),
     

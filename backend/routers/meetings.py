@@ -351,13 +351,15 @@ async def record_sales_meeting(
             expense_id = str(uuid.uuid4())
             expense_doc = {
                 "id": expense_id,
-                "employee_id": current_user.employee_id,
-                "user_id": current_user.id,
+                "employee_id": current_user.employee_id,  # Employee code for payroll
+                "user_id": current_user.id,  # UUID for ownership queries
+                "created_by": current_user.id,  # UUID for auth/ownership
                 "employee_name": current_user.full_name,
                 "category": "travel",
                 "subcategory": f"meeting_travel_{travel_mode.lower()}",
                 "description": f"Meeting Travel Expense - {lead.get('company', 'Client')} ({travel_mode})",
                 "amount": round(expense_amount, 2),
+                "total_amount": round(expense_amount, 2),  # For consistency with expense approval
                 "currency": "INR",
                 "expense_date": meeting_datetime.isoformat(),
                 "status": "pending",  # Goes to approval workflow

@@ -72,9 +72,15 @@ async def create_quick_expense(data: dict, current_user: User = Depends(get_curr
     """Create a quick expense with minimal fields."""
     db = get_db()
     
+    # Get employee record for proper linking
+    employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
+    employee_code = employee.get("employee_id") if employee else None
+    
     expense = {
         "id": str(uuid.uuid4()),
-        "employee_id": current_user.id,
+        "employee_id": employee_code,  # Employee code like EMP003
+        "user_id": current_user.id,  # UUID for ownership query
+        "employee_name": current_user.full_name,
         "category": data.get("category", "miscellaneous"),
         "amount": data.get("amount", 0),
         "currency": "INR",
@@ -158,10 +164,19 @@ async def get_expenses(
     query = {}
     
     # Non-privileged users can only see their own expenses
+    # Use $or to match by user_id (UUID) OR created_by for ownership
     if not can_view_all:
-        query["employee_id"] = current_user.id
+        query["$or"] = [
+            {"user_id": current_user.id},
+            {"created_by": current_user.id}
+        ]
     elif employee_id:
-        query["employee_id"] = employee_id
+        # Admin/HR filtering by specific employee - support both UUID and employee code
+        query["$or"] = [
+            {"user_id": employee_id},
+            {"employee_id": employee_id},
+            {"created_by": employee_id}
+        ]
     
     if status:
         query["status"] = status
@@ -1258,10 +1273,19 @@ async def get_expense_stats(
     
     query = {}
     
+    # Use $or to match by user_id (UUID) OR created_by for ownership
     if not can_view_all:
-        query["employee_id"] = current_user.id
+        query["$or"] = [
+            {"user_id": current_user.id},
+            {"created_by": current_user.id}
+        ]
     elif employee_id:
-        query["employee_id"] = employee_id
+        # Admin filtering by specific employee
+        query["$or"] = [
+            {"user_id": employee_id},
+            {"employee_id": employee_id},
+            {"created_by": employee_id}
+        ]
     
     if date_from and date_to:
         query["expense_date"] = {"$gte": date_from, "$lte": date_to}

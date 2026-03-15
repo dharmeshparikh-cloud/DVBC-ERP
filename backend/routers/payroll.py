@@ -436,7 +436,22 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
                 {"$set": {"status": "reimbursed", "reimbursed_at": datetime.now(timezone.utc).isoformat(), "reimbursed_in_month": month}}
             )
     
-    expense_query = {"employee_id": employee_id, "status": "approved", "payroll_period": month}
+    # Query expenses - support both employee_id (code) and user_id (UUID)
+    emp_code = employee.get("employee_id")  # Employee code like EMP003
+    user_id = employee.get("user_id")  # User UUID
+    
+    expense_query = {
+        "$or": [
+            {"employee_id": emp_code},
+            {"employee_id": employee_id},  # Some old records may use internal ID
+        ],
+        "status": "approved",
+        "payroll_period": month
+    }
+    if user_id:
+        expense_query["$or"].append({"user_id": user_id})
+        expense_query["$or"].append({"created_by": user_id})
+    
     direct_expenses = await db.expenses.find(expense_query, {"_id": 0}).to_list(100)
     for exp in direct_expenses:
         if exp.get("id") not in [r.get("expense_id") for r in payroll_reimb_records]:

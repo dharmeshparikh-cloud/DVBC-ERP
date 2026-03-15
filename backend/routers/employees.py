@@ -1318,8 +1318,13 @@ async def get_employee_timeline(employee_id: str, current_user: User = Depends(g
             "description": f"{leave.get('days')} day(s) - {leave.get('status', 'pending')}"
         })
     
-    # 5. Expenses
-    expenses = await db.expenses.find({"employee_id": employee_id}, {"_id": 0}).to_list(50)
+    # 5. Expenses - query by both employee_id (code) and user_id (UUID)
+    user_id = employee.get("user_id")
+    expense_query = {"$or": [{"employee_id": emp_code}]}
+    if user_id:
+        expense_query["$or"].append({"user_id": user_id})
+        expense_query["$or"].append({"created_by": user_id})
+    expenses = await db.expenses.find(expense_query, {"_id": 0}).to_list(50)
     for exp in expenses:
         timeline.append({
             "date": exp.get("created_at"),
@@ -1398,11 +1403,16 @@ async def get_employee_linked_records(employee_id: str, current_user: User = Dep
     user_id = employee.get("user_id")
     email = employee.get("email")
     
-    # Count linked records
+    # Count linked records - use $or for expenses to include user_id and created_by
+    expense_query = {"$or": [{"employee_id": employee_id}]}
+    if user_id:
+        expense_query["$or"].append({"user_id": user_id})
+        expense_query["$or"].append({"created_by": user_id})
+    
     linked = {
         "attendance": await db.attendance.count_documents({"employee_id": employee_id}),
         "leave_requests": await db.leave_requests.count_documents({"employee_id": employee_id}),
-        "expenses": await db.expenses.count_documents({"employee_id": employee_id}),
+        "expenses": await db.expenses.count_documents(expense_query),
         "salary_slips": await db.salary_slips.count_documents({"employee_id": employee_id}),
         "documents": await db.employee_documents.count_documents({"employee_id": employee_id}),
         "project_assignments": await db.project_assignments.count_documents(
