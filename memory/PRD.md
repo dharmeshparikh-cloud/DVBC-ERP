@@ -16,7 +16,32 @@
 
 ## Completed Work - March 2026
 
-### Phase 111: CEO Report, Universal Buttons & Backend Fix — March 14, 2026 ✅ (Latest)
+### Phase 112: Employee Onboarding Form Popup Bug Fix — March 15, 2026 ✅ (Latest)
+
+**Objective:** Fix critical UX bug where typing in employee onboarding form fields triggered continuous annoying toast popups with errors and instructions.
+
+**Root Cause Identified:**
+- `validateCurrentStep()` function was being called during React component render (line 1765 in stepper navigation logic)
+- Since this function contains `toast.error()` calls, every keystroke caused toast spam as React re-rendered on state changes
+
+**Fix Applied — `/app/frontend/src/pages/onboarding/CandidateOnboardingForm.js`:**
+1. **Added `touchedFields` state** (line 89) — Tracks which fields user has interacted with
+2. **Added `handleFieldBlur()` and `isFieldTouched()` helpers** (lines 488-491) — Mark fields as touched on blur
+3. **Removed `validateCurrentStep()` from render logic** (line 1774) — No longer called in JSX, only on explicit navigation
+4. **Changed stepper click behavior** (lines 1785-1791) — Shows friendly info toast "Please use 'Save & Next' button" instead of error spam
+5. **Updated inline validation display** (lines 854-893) — Phone, Alt Phone, PAN, Aadhaar fields now only show inline errors AFTER blur (not while typing)
+
+**Behavior After Fix:**
+- ✅ No toasts appear while user is typing
+- ✅ Inline validation errors only show after user leaves the field (onBlur)
+- ✅ Stepper navigation shows single friendly info message
+- ✅ "Save & Next" button validates and shows single consolidated error if needed
+
+**Testing:** 100% (7/7 frontend tests passed). Report: `/app/test_reports/iteration_167.json`
+
+---
+
+### Phase 111: CEO Report, Universal Buttons & Backend Fix — March 14, 2026 ✅
 
 **Objective:** Fix backend startup failure, complete CEO Control Tower Report, and add universal Refresh/Follow-up buttons across all ERP pages.
 
