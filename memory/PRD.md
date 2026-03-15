@@ -11,12 +11,35 @@
 - **Caching**: Redis (with in-memory fallback) + React Query client-side
 - **Real-time**: WebSocket for live updates
 - **Monitoring**: Integrity Scheduler (daily 02:00 UTC)
+- **Google Maps API**: Available for location services
 
 ---
 
 ## Completed Work - March 2026
 
-### Phase 114: Critical UI/Workflow Bug Fixes — March 15, 2026 ✅ (Latest)
+### Phase 115: Meeting Card Upload & UI Bug Fixes — March 15, 2026 ✅ (Latest)
+
+**Bugs Fixed:**
+
+1. **Upload Button Not Working on Meeting Cards**
+   - **Root Cause:** Shared file input ref between new meeting form and existing meeting cards
+   - **Fix:** Created separate `existingMeetingFileInputRef` and `handleExistingMeetingFileSelect` handler
+   - Location: `MeetingRecord.js` lines 34, 296-339, 1188-1196
+
+2. **MOM Filled Badge - Dark Theme Styling**
+   - Updated badge with dark theme classes
+   - Location: `MeetingRecord.js` lines 723-730
+
+3. **PricingPlanBuilder - Field Required Error UX**
+   - Improved Pydantic validation error display to show field path
+   - Format: "field_name → nested_field: Error message"
+   - Location: `PricingPlanBuilder.js` lines 652-665
+
+**Testing:** 100% (4/4 tests passed). Report: `/app/test_reports/iteration_170.json`
+
+---
+
+### Phase 114: Critical UI/Workflow Bug Fixes — March 15, 2026 ✅
 
 **Objective:** Fix multiple critical workflow issues reported by user.
 
