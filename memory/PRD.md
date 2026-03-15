@@ -15,6 +15,45 @@
 
 ---
 
+
+### Phase 117: Expense Query Identity Fix & Expense Claim Completion — March 15, 2026 ✅ (Latest)
+
+**Objective:** Fix critical expense query logic and complete meeting expense claim feature.
+
+**Critical Bug Fixed:**
+
+1. **Expense Query Identity Mismatch (Critical)**
+   - **Issue:** GET /expenses returned 0 results for users because it queried by `employee_id = current_user.id` (UUID) but meeting expenses stored `employee_id` as employee code (e.g., "EMP003")
+   - **Root Cause:** Inconsistent use of `employee_id` (code) vs `user_id` (UUID) across expense system
+   - **Fix:** Changed query to use `$or` to match by `user_id`, `created_by`, or `employee_id`
+   - **Result:** Users can now see all their expenses including meeting expenses
+
+2. **Files Modified:**
+   - `expenses.py` lines 158-172: GET /expenses query fix
+   - `expenses.py` lines 277-281: GET /stats/summary query fix  
+   - `expenses.py` lines 70-98: POST /quick expense - added user_id and employee_code
+   - `meetings.py` lines 354-358: Added user_id, created_by to meeting expense creation
+   - `employees.py` lines 1321-1328: Employee timeline expense query fix
+   - `payroll.py` lines 439-455: Payroll expense query fix
+   - `db_indexes.py` lines 153-156: Added indexes for user_id and created_by
+
+**Meeting Expense Claim Feature (Completed):**
+
+1. **Expense Calculation (Backend)**
+   - DRIVING: Rs. 7/km (doubled for round trips)
+   - TWO_WHEELER: Rs. 3/km (doubled for round trips)
+   - TRANSIT: Manual amount entry with proof upload
+   - ACCOMPANIED: No expense created (traveled with colleague)
+
+2. **Identity Fields Mapping:**
+   - `user_id` (UUID): For ownership queries via authentication
+   - `created_by` (UUID): For audit trail
+   - `employee_id` (code): For payroll/HR reference
+
+**Testing:** 100% (9/9 backend tests passed). Report: `/app/test_reports/iteration_171.json`
+
+---
+
 ## Completed Work - March 2026
 
 ### Phase 116: Meeting Location & Travel Tracking — March 15, 2026 ✅ (Latest)
