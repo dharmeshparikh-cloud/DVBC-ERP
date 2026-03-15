@@ -1177,38 +1177,91 @@ async def get_lead_ssot_data(
 async def search_leads_ssot(
     q: str = Query("", description="Search query"),
     limit: int = Query(20, le=50),
+    funnel_stage: str = Query("any", description="Filter by funnel stage: any, has_meeting, has_pricing_plan, has_quotation"),
     current_user: User = Depends(get_current_user)
 ):
     """
     Search leads for selection dropdown in downstream forms.
     Returns minimal data for selection UI.
+    
+    funnel_stage options:
+    - any: All leads (default)
+    - has_meeting: Leads with at least one meeting with MOM
+    - has_pricing_plan: Leads with at least one pricing plan
+    - has_quotation: Leads with at least one quotation
     """
     db = get_db()
     
+    # Build base query
+    base_query = {}
+    
     if len(q) < 2:
         # Return recent leads if query too short
-        cursor = db.leads.find(
-            {"$or": [
-                {"created_by": current_user.id},
-                {"assigned_to": current_user.id}
-            ]},
-            {
-                "_id": 0,
-                "id": 1,
-                "company": 1,
-                "first_name": 1,
-                "last_name": 1,
-                "email": 1,
-                "phone": 1,
-                "status": 1,
-                "city": 1
-            }
-        ).sort("updated_at", -1).limit(limit)
-        
-        leads = await cursor.to_list(length=limit)
+        base_query = {"$or": [
+            {"created_by": current_user.id},
+            {"assigned_to": current_user.id}
+        ]}
     else:
-        leads = await search_leads_for_dropdown(db, q, current_user.id, limit)
-        return {"leads": leads, "total": len(leads)}
+        # Text search query
+        search_regex = {"$regex": q, "$options": "i"}
+        base_query = {"$or": [
+            {"company": search_regex},
+            {"first_name": search_regex},
+            {"last_name": search_regex},
+            {"email": search_regex}
+        ]}
+    
+    # Get leads
+    cursor = db.leads.find(
+        base_query,
+        {
+            "_id": 0,
+            "id": 1,
+            "company": 1,
+            "first_name": 1,
+            "last_name": 1,
+            "email": 1,
+            "phone": 1,
+            "status": 1,
+            "city": 1
+        }
+    ).sort("updated_at", -1).limit(limit * 3)  # Fetch more to filter
+    
+    leads = await cursor.to_list(length=limit * 3)
+    
+    # Apply funnel stage filter
+    if funnel_stage != "any":
+        eligible_lead_ids = set()
+        
+        if funnel_stage == "has_meeting":
+            # Find leads with meetings that have MOM
+            meetings = await db.meetings.find(
+                {"mom": {"$exists": True, "$nin": ["", None]}},
+                {"lead_id": 1, "_id": 0}
+            ).to_list(1000)
+            eligible_lead_ids = {m["lead_id"] for m in meetings if m.get("lead_id")}
+            
+        elif funnel_stage == "has_pricing_plan":
+            # Find leads with pricing plans
+            plans = await db.pricing_plans.find(
+                {},
+                {"lead_id": 1, "_id": 0}
+            ).to_list(1000)
+            eligible_lead_ids = {p["lead_id"] for p in plans if p.get("lead_id")}
+            
+        elif funnel_stage == "has_quotation":
+            # Find leads with quotations
+            quotations = await db.quotations.find(
+                {},
+                {"lead_id": 1, "_id": 0}
+            ).to_list(1000)
+            eligible_lead_ids = {q["lead_id"] for q in quotations if q.get("lead_id")}
+        
+        # Filter leads by eligibility
+        leads = [lead for lead in leads if lead["id"] in eligible_lead_ids]
+    
+    # Limit results
+    leads = leads[:limit]
     
     formatted_leads = [
         {
@@ -1224,7 +1277,12 @@ async def search_leads_ssot(
         for lead in leads
     ]
     
-    return {"leads": formatted_leads, "total": len(formatted_leads)}
+    return {
+        "leads": formatted_leads, 
+        "total": len(formatted_leads),
+        "funnel_stage": funnel_stage,
+        "filtered": funnel_stage != "any"
+    }
 
 
 @router.get("/ssot/report")

@@ -35,6 +35,8 @@ const API = process.env.REACT_APP_BACKEND_URL;
  * @param {boolean} disabled - Whether selector is disabled
  * @param {string} placeholder - Placeholder text
  * @param {boolean} required - Whether selection is required
+ * @param {string} funnelStage - Required funnel stage: 'any', 'has_meeting', 'has_pricing_plan', 'has_quotation'
+ * @param {string} noEligibleMessage - Message when no eligible leads found
  */
 const LeadSelector = ({
   value,
@@ -43,18 +45,20 @@ const LeadSelector = ({
   disabled = false,
   placeholder = "Select a lead...",
   required = false,
-  className = ""
+  className = "",
+  funnelStage = "any",
+  noEligibleMessage = "No eligible leads found"
 }) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLead, setSelectedLead] = useState(null);
 
-  // Search leads
+  // Search leads with funnel stage filter
   const { data: searchResults, isLoading: searchLoading, refetch: searchLeads } = useQuery({
-    queryKey: ['lead-search', searchQuery],
+    queryKey: ['lead-search', searchQuery, funnelStage],
     queryFn: async () => {
       const response = await axios.get(`${API}/api/leads/ssot/search`, {
-        params: { q: searchQuery, limit: 20 }
+        params: { q: searchQuery, limit: 20, funnel_stage: funnelStage }
       });
       return response.data;
     },
@@ -150,9 +154,27 @@ const LeadSelector = ({
                   Searching...
                 </div>
               ) : leads.length === 0 ? (
-                <CommandEmpty>No leads found</CommandEmpty>
+                <div className="p-4 text-center">
+                  <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-zinc-700">{noEligibleMessage}</p>
+                  {funnelStage === "has_pricing_plan" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Create a Pricing Plan for your leads first
+                    </p>
+                  )}
+                  {funnelStage === "has_quotation" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Create a Quotation for your leads first
+                    </p>
+                  )}
+                  {funnelStage === "has_meeting" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Record a meeting with MOM for your leads first
+                    </p>
+                  )}
+                </div>
               ) : (
-                <CommandGroup heading="Leads">
+                <CommandGroup heading={`Leads ${searchResults?.filtered ? '(Eligible)' : ''}`}>
                   {leads.map((lead) => (
                     <CommandItem
                       key={lead.id}

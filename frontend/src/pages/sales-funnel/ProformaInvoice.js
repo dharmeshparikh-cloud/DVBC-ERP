@@ -881,7 +881,9 @@ const ProformaInvoice = () => {
                   setSelectedLeadMasterData(masterData);
                 }}
                 required={true}
-                placeholder="Search for a lead..."
+                placeholder="Search for a lead with pricing plan..."
+                funnelStage="has_pricing_plan"
+                noEligibleMessage="No leads with pricing plans found"
               />
             </div>
             

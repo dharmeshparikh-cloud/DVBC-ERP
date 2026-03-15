@@ -706,7 +706,9 @@ const Agreements = () => {
                   setSelectedLeadData(masterData);
                 }}
                 required={true}
-                placeholder="Search for a lead..."
+                placeholder="Search for a lead with quotation..."
+                funnelStage="has_quotation"
+                noEligibleMessage="No leads with quotations found"
               />
             </div>
             
