@@ -16,6 +16,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import RBACWidget from '../components/RBACWidget';
 import TodayFollowUpsWidget from '../components/TodayFollowUpsWidget';
+import MOMScorecard from '../components/MOMScorecard';
 import { usePermissions } from '../contexts/PermissionContext';
 import { useQuery } from '@tanstack/react-query';
 
@@ -144,6 +145,9 @@ const SalesDashboard = () => {
 
       {/* Today's Follow-ups Widget */}
       <TodayFollowUpsWidget />
+
+      {/* MOM Scorecard Widget */}
+      <MOMScorecard period={period} isManager={isManager} />
 
       {/* Target vs Achievement - My Performance */}
       {myFunnelData?.targets && (

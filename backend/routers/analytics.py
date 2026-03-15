@@ -1168,3 +1168,112 @@ async def get_velocity_metrics(
             f"Slowest deal: {max_total} days" if max_total else None
         ]
     }
+
+
+@router.get("/analytics/mom-scorecard")
+async def get_mom_scorecard(
+    period: str = "month",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get MOM (Minutes of Meeting) scorecard statistics.
+    Shows meetings with MOM recorded, pending MOMs, and performance metrics.
+    """
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    
+    # Calculate date range based on period
+    if period == "week":
+        date_start = (now - timedelta(days=now.weekday())).strftime("%Y-%m-%d")
+    elif period == "quarter":
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        date_start = datetime(now.year, quarter_month, 1).strftime("%Y-%m-%d")
+    elif period == "year":
+        date_start = datetime(now.year, 1, 1).strftime("%Y-%m-%d")
+    else:  # month (default)
+        date_start = datetime(now.year, now.month, 1).strftime("%Y-%m-%d")
+    
+    # Build query based on user role
+    is_manager = current_user.role in MANAGER_ROLES
+    query = {"created_at": {"$gte": date_start}}
+    
+    if not is_manager:
+        query["assigned_to"] = current_user.id
+    
+    # Get all meetings in the period
+    meetings = await db.meeting_records.find(query, {"_id": 0}).to_list(1000)
+    
+    total_meetings = len(meetings)
+    meetings_with_mom = sum(1 for m in meetings if m.get("mom") or m.get("mom_generated"))
+    meetings_without_mom = total_meetings - meetings_with_mom
+    
+    # Calculate MOM completion rate
+    mom_completion_rate = round((meetings_with_mom / total_meetings * 100) if total_meetings > 0 else 0, 1)
+    
+    # Get meetings pending MOM (scheduled/completed but no MOM recorded)
+    pending_mom = [m for m in meetings if m.get("status") in ["completed", "scheduled"] and not m.get("mom") and not m.get("mom_generated")]
+    
+    # MOM timeliness - meetings where MOM was recorded within 24 hours
+    timely_moms = 0
+    for m in meetings:
+        if m.get("mom_generated") and m.get("created_at") and m.get("mom_generated_at"):
+            try:
+                meeting_time = datetime.fromisoformat(m["created_at"].replace("Z", "+00:00")) if isinstance(m["created_at"], str) else m["created_at"]
+                mom_time = datetime.fromisoformat(m["mom_generated_at"].replace("Z", "+00:00")) if isinstance(m["mom_generated_at"], str) else m["mom_generated_at"]
+                if (mom_time - meeting_time).total_seconds() <= 86400:  # 24 hours
+                    timely_moms += 1
+            except:
+                pass
+    
+    # MOM sent to client count
+    mom_sent_to_client = sum(1 for m in meetings if m.get("mom_sent_to_client"))
+    
+    # Get top performers (if manager)
+    top_performers = []
+    if is_manager:
+        performer_stats = {}
+        for m in meetings:
+            emp_id = m.get("assigned_to")
+            if emp_id:
+                if emp_id not in performer_stats:
+                    performer_stats[emp_id] = {"total": 0, "with_mom": 0, "name": m.get("assigned_to_name", "Unknown")}
+                performer_stats[emp_id]["total"] += 1
+                if m.get("mom") or m.get("mom_generated"):
+                    performer_stats[emp_id]["with_mom"] += 1
+        
+        for emp_id, stats in performer_stats.items():
+            if stats["total"] > 0:
+                top_performers.append({
+                    "employee_id": emp_id,
+                    "name": stats["name"],
+                    "total_meetings": stats["total"],
+                    "moms_recorded": stats["with_mom"],
+                    "completion_rate": round(stats["with_mom"] / stats["total"] * 100, 1)
+                })
+        
+        top_performers = sorted(top_performers, key=lambda x: x["completion_rate"], reverse=True)[:5]
+    
+    return {
+        "period": period,
+        "summary": {
+            "total_meetings": total_meetings,
+            "meetings_with_mom": meetings_with_mom,
+            "meetings_without_mom": meetings_without_mom,
+            "mom_completion_rate": mom_completion_rate,
+            "timely_moms": timely_moms,
+            "mom_sent_to_client": mom_sent_to_client
+        },
+        "pending_mom_count": len(pending_mom),
+        "pending_moms": [
+            {
+                "id": m.get("id"),
+                "lead_id": m.get("lead_id"),
+                "title": m.get("title", "Meeting"),
+                "meeting_date": m.get("meeting_date"),
+                "company": m.get("company_name") or m.get("lead_company")
+            }
+            for m in pending_mom[:5]  # Top 5 pending
+        ],
+        "top_performers": top_performers
+    }
+

@@ -10,6 +10,7 @@ import LockableCard from '../components/LockableCard';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
 import TodayFollowUpsWidget from '../components/TodayFollowUpsWidget';
+import MOMScorecard from '../components/MOMScorecard';
 import { 
   RevenueExpanded, LeadsExpanded, MeetingsExpanded, 
   ProjectsExpanded, AttendanceExpanded 
@@ -163,6 +164,9 @@ const AdminDashboard = () => {
 
       {/* Today's Follow-ups Widget */}
       <TodayFollowUpsWidget />
+
+      {/* MOM Scorecard Widget */}
+      <MOMScorecard period="month" isManager={true} />
 
       {/* Quick Attendance Card - Light Blue to Dark Blue Gradient */}
       <Card 

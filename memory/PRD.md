@@ -15,7 +15,52 @@
 
 ---
 
-### Phase 119: Expense Governance, Clickable Scorecards & PDF Fix Verification — March 15, 2026 ✅ (Latest)
+### Phase 120: MOM Scorecard Widget & Dashboard Enhancements — March 15, 2026 ✅ (Latest)
+
+**Objective:** Add MOM Scorecard widget to dashboards and implement role-based visibility for Employee Scorecard.
+
+**Features Implemented:**
+
+1. **MOM Scorecard Widget**
+   - New widget showing MOM (Minutes of Meeting) statistics
+   - Metrics: Total Meetings, MOM Recorded, Pending MOM, Completion Rate
+   - Additional stats: Timely MOMs (within 24h), Sent to Client count
+   - Manager view: Top performers ranked by MOM completion rate
+   - Links to pending MOMs for quick action
+   - Added to Sales Dashboard and Admin Dashboard
+
+2. **Employee Scorecard Role-Based Visibility**
+   - Scorecard tab removed from workspace nav for regular employees
+   - Scorecard removed from sidebar for non-Admin/HR/Manager roles
+   - Only visible to: `admin`, `hr_manager`, `hr_executive`, `manager`
+   - Prevents employees from viewing their own scorecard ratings
+
+3. **My Projects Bug Fix**
+   - Fixed `isManager is not defined` error on Projects page
+   - Updated filtering logic for Sales team to show only WON/Closed leads
+
+**Files Created/Modified:**
+- `frontend/src/components/MOMScorecard.js` (NEW): MOM Scorecard widget component
+- `backend/routers/analytics.py`: Added `/analytics/mom-scorecard` endpoint
+- `frontend/src/pages/SalesDashboard.js`: Added MOMScorecard import and usage
+- `frontend/src/pages/AdminDashboard.js`: Added MOMScorecard import and usage
+- `frontend/src/components/MyWorkspaceNav.js`: Added role-based filtering for Scorecard
+- `frontend/src/components/Layout.js`: Added canViewScorecard check
+- `frontend/src/pages/consulting/MyProjects.js`: Fixed isManager, updated Sales filtering
+
+**API Endpoint:**
+- `GET /api/analytics/mom-scorecard?period={week|month|quarter|year}`
+
+**MOM Inheritance in Kickoff Requests (Already Exists):**
+- Confirmed that MOM compilation is already implemented in KickoffRequests.js
+- Meeting History tab shows all MOMs with: summary, key decisions, discussion points, client concerns, commitments, next steps
+- Client Expectations Summary and Key Commitments Summary extracted from meetings
+
+**Testing:** Verified via screenshots - widgets displaying correctly on dashboards
+
+---
+
+### Phase 119: Expense Governance, Clickable Scorecards & PDF Fix Verification — March 15, 2026 ✅
 
 **Objective:** Verify and test expense governance rules, clickable scorecards, and PDF download functionality.
 
