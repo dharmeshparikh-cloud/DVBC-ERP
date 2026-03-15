@@ -15,6 +15,61 @@
 
 ---
 
+
+### Phase 122: Lead-to-Client Master Integration & Clients API — March 15, 2026 ✅ (Latest)
+
+**Objective:** Integrate Client Master data capture into Lead creation and create backend API for Clients page.
+
+**Changes Implemented:**
+
+1. **Lead Form Company Details Section**
+   - Added 6 fields to Lead creation form: Industry, Website, City, State, Country, Address
+   - Fields stored with lead data for use in auto-client-creation
+   - Located in Leads.js lines 778-873
+
+2. **Clients Backend API (NEW)**
+   - Created `/app/backend/routers/clients.py` with full CRUD operations
+   - Role-based filtering:
+     - Admin/Finance: See all clients
+     - Sales: See clients where they are sales_owner
+     - Consulting: See clients where they are consulting_owner
+   - Endpoints:
+     - GET `/api/clients` - List clients with role-based filtering
+     - GET `/api/clients/stats/summary` - Client statistics
+     - GET `/api/clients/{id}` - Single client detail
+     - POST `/api/clients` - Create client (Admin/Finance only)
+     - PATCH `/api/clients/{id}` - Update client (Admin/Finance only)
+     - DELETE `/api/clients/{id}` - Deactivate client (Admin only)
+     - POST `/api/clients/{id}/contacts` - Add contact
+     - POST `/api/clients/{id}/revenue` - Add revenue record
+
+3. **Auto-Create Client on Kickoff Approval**
+   - When kickoff is client-approved, system auto-creates entry in `client_master` collection
+   - Uses lead data: company, industry, website, city, state, country, address
+   - Links sales_owner_id, consulting_owner_id, project_id
+   - Located in kickoff.py lines 1181-1227
+
+4. **Clients Page Role-Based Access**
+   - Fixed duplicate canManage declaration bug
+   - Only Admin/Finance can create/edit clients
+   - Sales/Consulting users can view (filtered by their ownership)
+   - "Add Client" button hidden for non-admin/finance roles
+   - Fixed API endpoint from `/users-with-roles` to `/users`
+
+**Files Created:**
+- `backend/routers/clients.py` - Client Master API router
+
+**Files Modified:**
+- `frontend/src/pages/Clients.js` - Fixed role-based access control, fixed API endpoint
+- `backend/server.py` - Registered clients router
+
+**Testing Results (iteration_174):**
+- Backend: 91.7% (11/12 passed)
+- Frontend: 100% (5/5 passed)
+- All P0 features verified working
+
+---
+
 ### Phase 121: Navigation Simplification & Team Dashboard Consolidation — March 15, 2026 ✅ (Latest)
 
 **Objective:** Consolidate manager pages into single Team Dashboard, simplify navigation, and complete stability audit.

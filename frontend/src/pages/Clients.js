@@ -89,7 +89,7 @@ const Clients = () => {
     queryFn: async () => {
       const [clientsRes, usersRes] = await Promise.all([
         axios.get(`${API}/clients`),
-        axios.get(`${API}/users-with-roles`)
+        axios.get(`${API}/users`)
       ]);
       let clientData = clientsRes.data?.items || clientsRes.data || [];
       const userData = usersRes.data?.items || usersRes.data || [];
