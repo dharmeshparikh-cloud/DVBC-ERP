@@ -1,0 +1,86 @@
+{
+  "iteration": 173,
+  "date": "2026-03-15",
+  "summary": "Frontend-only testing of expense governance (role-based button visibility), Follow-ups clickable scorecards, and Monthly Expense Report PDF download. All 4 test scenarios passed successfully.",
+  "test_type": "Frontend Only",
+  "features_tested": [
+    "Role-based Office Expense button visibility on My Expenses page",
+    "Sales Executive (EMP003) correctly cannot see Office Expense button",
+    "Admin (ADMIN001) correctly sees Office Expense button",
+    "Follow-ups page clickable scorecards filter functionality",
+    "Monthly Expense Report section expansion and Load Report button",
+    "Download PDF button is enabled when data exists"
+  ],
+  "test_results": {
+    "backend_tests": {
+      "total": 0,
+      "passed": 0,
+      "failed": 0,
+      "pass_rate": "N/A - Frontend only testing"
+    },
+    "frontend_tests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "pass_rate": "100%",
+      "test_details": {
+        "test1_sales_executive_no_office_expense_btn": "PASS - EMP003 (Sales Executive) logged in, navigated to /my-expenses, Office Expense button [data-testid='add-expense-btn'] is NOT visible",
+        "test2_admin_sees_office_expense_btn": "PASS - ADMIN001 (Admin) logged in, navigated to /my-expenses, Office Expense button [data-testid='add-expense-btn'] IS visible with text 'Office Expense'",
+        "test3_followups_clickable_scorecards": "PASS - Follow-ups page loaded with scorecards (Overdue: 6, Open: 30, Total: 30, Escalations: 4). Clicking scorecards changes statusFilter state to filter follow-ups list",
+        "test4_monthly_expense_report_pdf": "PASS - Monthly Expense Report section expands, month selector (2026-03) visible, Load Report button works, Download PDF button enabled and clickable"
+      }
+    }
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_173.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "MyExpenses.js line 347: canCreateManualExpense correctly checks for ['admin', 'hr_manager', 'hr_executive', 'accounts', 'finance_manager', 'finance_executive'] roles",
+    "MyExpenses.js lines 358-363: Conditional rendering of Office Expense button based on canCreateManualExpense is working correctly",
+    "FollowUps.js lines 276-337: Scorecard cards have onClick handlers that update statusFilter state - working as expected",
+    "URL path for My Expenses is /my-expenses (hyphen) not /my/expenses (slash) - sidebar links work correctly"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "sales_executive": "EMP003 / Sales@123",
+    "admin": "ADMIN001 / Admin@2026"
+  },
+  "seed_data_creation": "None - used existing data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Role-based expense governance working: Sales/Consulting users cannot see 'Office Expense' button on My Expenses page, only Admin/HR/Finance roles can. Follow-ups page scorecards are clickable and filter data. Monthly Expense Report PDF download button is functional. URL for My Expenses page is /my-expenses (with hyphen).",
+  "verified_features": {
+    "expense_governance": {
+      "canCreateManualExpense_roles": ["admin", "hr_manager", "hr_executive", "accounts", "finance_manager", "finance_executive"],
+      "sales_roles_excluded": true,
+      "button_test_id": "add-expense-btn",
+      "button_text": "Office Expense"
+    },
+    "followups_scorecards": {
+      "clickable": true,
+      "cards": ["Overdue", "Open", "Total", "Escalations"],
+      "filter_behavior": "Clicking card toggles statusFilter state",
+      "visual_feedback": "ring-2 class added when selected"
+    },
+    "monthly_expense_report": {
+      "section_header": "Monthly Expense Report",
+      "expandable": true,
+      "controls": ["month selector", "Load Report button", "Download PDF button"],
+      "pdf_library": "jspdf with jspdf-autotable"
+    }
+  }
+}

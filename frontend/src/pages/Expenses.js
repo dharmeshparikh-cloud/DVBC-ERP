@@ -41,6 +41,9 @@ const Expenses = () => {
   const queryClient = useQueryClient();
   const [filterStatus, setFilterStatus] = useState('');
 
+  // Only HR and Admin can create manual expenses (office expenses only)
+  const canCreateManualExpense = ['admin', 'hr_manager', 'hr_executive', 'accounts', 'finance_manager', 'finance_executive'].includes(user?.role);
+
   // Dialogs
   const [createDialog, setCreateDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
@@ -338,14 +341,16 @@ const Expenses = () => {
           </select>
         </div>
         
-        <Button 
-          onClick={() => { resetForm(); setCreateDialog(true); }}
-          className="w-full sm:w-auto bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none min-h-[44px]"
-          data-testid="new-expense-btn"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Expense
-        </Button>
+        {canCreateManualExpense && (
+          <Button 
+            onClick={() => { resetForm(); setCreateDialog(true); }}
+            className="w-full sm:w-auto bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none min-h-[44px]"
+            data-testid="new-expense-btn"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Office Expense
+          </Button>
+        )}
       </div>
 
       {/* Expenses List - Mobile cards, Desktop table */}

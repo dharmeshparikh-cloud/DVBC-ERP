@@ -15,8 +15,8 @@ import DraftIndicator from '../components/DraftIndicator';
 import DraftSelector from '../components/DraftSelector';
 import PageHeader from '../components/ui/page-header';
 import MyWorkspaceNav from '../components/MyWorkspaceNav';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const CATEGORIES = ['Travel', 'Local Conveyance', 'Food', 'Accommodation', 'Office Supplies', 'Communication', 'Client Entertainment', 'Other'];
 
@@ -68,8 +68,8 @@ const MyExpenses = () => {
   
   const [formData, setFormData] = useState({
     client_id: '', client_name: '', project_id: '', project_name: '',
-    is_office_expense: false, notes: '',
-    line_items: [{ category: 'Travel', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }]
+    is_office_expense: true, notes: '',  // Always office expense
+    line_items: [{ category: 'Office Supplies', description: '', amount: 0, date: new Date().toISOString().split('T')[0] }]
   });
   
   // Register form data getter for save-on-leave
@@ -190,7 +190,7 @@ const MyExpenses = () => {
     ]);
 
     // Table
-    doc.autoTable({
+    autoTable(doc, {
       startY: 55,
       head: [['#', 'Lead Name', 'Company', 'Stage', 'Date', 'Travel Mode', 'Distance', 'Round Trip', 'Amount', 'Status', 'Payroll']],
       body: tableData,
@@ -225,8 +225,8 @@ const MyExpenses = () => {
       }
     });
 
-    // Total Row
-    const finalY = doc.lastAutoTable.finalY + 5;
+    // Total Row - get finalY from the table
+    const finalY = (doc.lastAutoTable?.finalY || 100) + 5;
     doc.setFillColor(240, 240, 240);
     doc.rect(14, finalY, pageWidth - 28, 10, 'F');
     doc.setTextColor(0, 0, 0);
@@ -343,18 +343,23 @@ const MyExpenses = () => {
   const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN')}`;
   const sm = data.summary || {};
 
+  // Only HR and Admin can create manual expenses (office expenses only)
+  const canCreateManualExpense = ['admin', 'hr_manager', 'hr_executive', 'accounts', 'finance_manager', 'finance_executive'].includes(user?.role);
+
   return (
     <div data-testid="my-expenses-page">
       <MyWorkspaceNav />
       <PageHeader
         title="My Expenses"
-        subtitle="Submit expenses and track reimbursement status"
+        subtitle="View your expense claims and track reimbursement status"
         onRefresh={() => refetchExpenses()}
         loading={loading}
         actions={
-          <Button onClick={() => setDialogOpen(true)} data-testid="add-expense-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-            <Plus className="w-4 h-4 mr-2" /> New Expense
-          </Button>
+          canCreateManualExpense ? (
+            <Button onClick={() => setDialogOpen(true)} data-testid="add-expense-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+              <Plus className="w-4 h-4 mr-2" /> Office Expense
+            </Button>
+          ) : null
         }
       />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -362,8 +367,8 @@ const MyExpenses = () => {
             <DialogHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">New Expense</DialogTitle>
-                  <DialogDescription className="text-zinc-500">Add expense items for reimbursement</DialogDescription>
+                  <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Office Expense</DialogTitle>
+                  <DialogDescription className="text-zinc-500">Add office expense items for reimbursement (not client/meeting related)</DialogDescription>
                 </div>
                 <DraftIndicator saving={savingDraft} lastSaved={lastSaved} onSave={() => saveDraft(formData)} />
               </div>
@@ -380,37 +385,12 @@ const MyExpenses = () => {
             )}
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={formData.is_office_expense}
-                    onChange={(e) => setFormData({ ...formData, is_office_expense: e.target.checked })} className="w-4 h-4 rounded border-zinc-200" />
-                  Office Expense
-                </label>
+              {/* Office Expense is always true for manual expenses - hidden but enforced */}
+              <input type="hidden" value="true" name="is_office_expense" />
+              <div className="bg-blue-50 border border-blue-200 rounded-sm p-3 text-sm text-blue-700">
+                <strong>Note:</strong> This form is for office expenses only (supplies, equipment, etc.). 
+                Travel expenses for client meetings should be claimed through the Sales/Consulting Funnel.
               </div>
-              {!formData.is_office_expense && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Client</Label>
-                    <select value={formData.client_id} onChange={(e) => {
-                      const c = clients.find(cl => cl.id === e.target.value);
-                      setFormData({ ...formData, client_id: e.target.value, client_name: c?.company_name || '' });
-                    }} className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm">
-                      <option value="">Select client</option>
-                      {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Project</Label>
-                    <select value={formData.project_id} onChange={(e) => {
-                      const p = projects.find(pr => pr.id === e.target.value);
-                      setFormData({ ...formData, project_id: e.target.value, project_name: p?.name || '' });
-                    }} className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm">
-                      <option value="">Select project</option>
-                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-              )}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-zinc-950">Line Items</Label>
                 {formData.line_items.map((li, idx) => (

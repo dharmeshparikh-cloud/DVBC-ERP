@@ -272,9 +272,12 @@ const FollowUps = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Click to filter */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]">
+        <Card 
+          className={`bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E] cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'overdue' ? 'ring-2 ring-red-400' : ''}`}
+          onClick={() => setStatusFilter(statusFilter === 'overdue' ? 'open' : 'overdue')}
+        >
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-red-100 dark:bg-red-950/30 rounded-lg"><AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" /></div>
@@ -285,7 +288,10 @@ const FollowUps = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]">
+        <Card 
+          className={`bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E] cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'open' ? 'ring-2 ring-yellow-400' : ''}`}
+          onClick={() => setStatusFilter(statusFilter === 'open' ? 'all' : 'open')}
+        >
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-yellow-100 dark:bg-yellow-950/30 rounded-lg"><Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" /></div>
@@ -296,7 +302,10 @@ const FollowUps = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]">
+        <Card 
+          className={`bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E] cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' ? 'ring-2 ring-green-400' : ''}`}
+          onClick={() => setStatusFilter('all')}
+        >
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-green-100 dark:bg-emerald-950/30 rounded-lg"><CheckCircle className="w-5 h-5 text-green-600 dark:text-emerald-400" /></div>
@@ -308,7 +317,10 @@ const FollowUps = () => {
           </CardContent>
         </Card>
         {isManager && (
-          <Card className={`border-zinc-200 dark:border-[#2A2A2E] ${escalationCount > 0 ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40' : 'bg-white dark:bg-[#1A1A1C]'}`}>
+          <Card 
+            className={`border-zinc-200 dark:border-[#2A2A2E] cursor-pointer hover:shadow-md transition-shadow ${escalationCount > 0 ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40' : 'bg-white dark:bg-[#1A1A1C]'} ${statusFilter === 'escalated' ? 'ring-2 ring-red-500' : ''}`}
+            onClick={() => setStatusFilter(statusFilter === 'escalated' ? 'open' : 'escalated')}
+          >
             <CardContent className="pt-5 pb-4">
               <div className="flex items-center gap-3">
                 <div className={`p-2.5 rounded-lg ${escalationCount > 0 ? 'bg-red-200 dark:bg-red-950/40' : 'bg-zinc-100 dark:bg-[#2A2A2E]'}`}>

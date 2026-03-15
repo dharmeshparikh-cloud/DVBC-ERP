@@ -1457,8 +1457,8 @@ const EmployeeMobileApp = () => {
               <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-zinc-900">Add Expense</h2>
-                  <p className="text-sm text-zinc-500">Submit a new expense claim</p>
+                  <h2 className="text-xl font-bold text-zinc-900">Add Office Expense</h2>
+                  <p className="text-sm text-zinc-500">Submit office expense claims only</p>
                 </div>
                 <button onClick={() => setShowExpenseModal(false)} className="p-2">
                   <X className="w-6 h-6 text-zinc-400" />
@@ -1467,77 +1467,10 @@ const EmployeeMobileApp = () => {
             </div>
             
             <div className="p-6 space-y-4">
-              {/* Expense Type Selection */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setExpenseForm({ ...expenseForm, is_office_expense: true, client_id: '', client_name: '', project_id: '', project_name: '' })}
-                  className={`p-3 rounded-xl border-2 text-sm font-medium transition ${
-                    expenseForm.is_office_expense 
-                      ? 'border-amber-500 bg-amber-50 text-amber-700' 
-                      : 'border-zinc-200 text-zinc-600'
-                  }`}
-                >
-                  Office Expense
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setExpenseForm({ ...expenseForm, is_office_expense: false })}
-                  className={`p-3 rounded-xl border-2 text-sm font-medium transition ${
-                    !expenseForm.is_office_expense 
-                      ? 'border-amber-500 bg-amber-50 text-amber-700' 
-                      : 'border-zinc-200 text-zinc-600'
-                  }`}
-                >
-                  Client/Project
-                </button>
+              {/* Info Banner */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700">
+                <strong>Note:</strong> Client meeting travel expenses should be claimed through the Sales/Consulting Funnel during meeting record.
               </div>
-
-              {/* Client/Project Selection (if not office expense) */}
-              {!expenseForm.is_office_expense && (
-                <div className="space-y-3 p-3 bg-zinc-50 rounded-xl">
-                  <div>
-                    <label className="text-sm font-medium text-zinc-700 block mb-2">Client</label>
-                    <select
-                      value={expenseForm.client_id}
-                      onChange={(e) => {
-                        const client = clients.find(c => c.id === e.target.value);
-                        setExpenseForm({
-                          ...expenseForm,
-                          client_id: e.target.value,
-                          client_name: client?.name || ''
-                        });
-                      }}
-                      className="w-full p-3 rounded-xl border border-zinc-200 text-sm bg-white"
-                    >
-                      <option value="">Select Client</option>
-                      {clients.map(client => (
-                        <option key={client.id} value={client.id}>{client.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-zinc-700 block mb-2">Project</label>
-                    <select
-                      value={expenseForm.project_id}
-                      onChange={(e) => {
-                        const project = projects.find(p => p.id === e.target.value);
-                        setExpenseForm({
-                          ...expenseForm,
-                          project_id: e.target.value,
-                          project_name: project?.name || ''
-                        });
-                      }}
-                      className="w-full p-3 rounded-xl border border-zinc-200 text-sm bg-white"
-                    >
-                      <option value="">Select Project</option>
-                      {projects.filter(p => !expenseForm.client_id || p.client_id === expenseForm.client_id).map(project => (
-                        <option key={project.id} value={project.id}>{project.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
 
               {/* Line Items Section */}
               <div className="border-t border-zinc-200 pt-4">

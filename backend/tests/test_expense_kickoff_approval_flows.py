@@ -10,7 +10,7 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sales-funnel-claims.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://expense-funnel-hub.preview.emergentagent.com').rstrip('/')
 
 # Test credentials from review_request
 TEST_USERS = {

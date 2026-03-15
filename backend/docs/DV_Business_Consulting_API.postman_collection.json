@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://sales-funnel-claims.preview.emergentagent.com",
+      "value": "https://expense-funnel-hub.preview.emergentagent.com",
       "type": "string"
     },
     {
