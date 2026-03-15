@@ -48,6 +48,17 @@ const PricingPlanBuilder = () => {
   const [meetingAccessBlocked, setMeetingAccessBlocked] = useState(false);
   const [meetingAccessReason, setMeetingAccessReason] = useState('');
   
+  // Fetch lead info with React Query - MUST be before generatePricingDraftTitle
+  const { data: lead } = useQuery({
+    queryKey: ['lead', leadId],
+    queryFn: async () => {
+      const response = await axios.get(`${API}/leads/${leadId}`);
+      return response.data;
+    },
+    enabled: !!leadId,
+    staleTime: 5 * 60 * 1000,
+  });
+  
   // Draft system
   const generatePricingDraftTitle = useCallback((data) => {
     if (lead?.company) return `Pricing - ${lead.company}`;
@@ -90,17 +101,6 @@ const PricingPlanBuilder = () => {
   const tenureTypes = mastersData?.tenureTypes || [];
   const consultantRoles = mastersData?.consultantRoles || [];
   const meetingTypes = mastersData?.meetingTypes || [];
-
-  // Fetch lead info with React Query
-  const { data: lead } = useQuery({
-    queryKey: ['lead', leadId],
-    queryFn: async () => {
-      const response = await axios.get(`${API}/leads/${leadId}`);
-      return response.data;
-    },
-    enabled: !!leadId,
-    staleTime: 5 * 60 * 1000,
-  });
 
   // Check meeting access with React Query
   const { data: meetingAccessData } = useQuery({
@@ -181,10 +181,6 @@ const PricingPlanBuilder = () => {
   });
 
   useEffect(() => {
-    fetchMasters();
-    if (leadId) {
-      fetchLead();
-    }
     // Set default start date to today
     setPaymentPlan(prev => ({
       ...prev,

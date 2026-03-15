@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import FollowUpActionButton from '../../components/FollowUpActionButton';
 
 // Draft storage key prefix
 const DRAFT_KEY_PREFIX = 'mom_draft_';
@@ -706,16 +707,52 @@ const MeetingRecord = () => {
                     )}
                     
                     {meeting.mom && (
-                      <p className="text-xs text-zinc-600 line-clamp-2 bg-zinc-50 p-2 rounded mt-2">
+                      <p className="text-xs text-zinc-600 line-clamp-2 bg-zinc-50 dark:bg-zinc-800 p-2 rounded mt-2">
                         <strong>MOM:</strong> {meeting.mom}
                       </p>
                     )}
 
-                    <div className="flex items-center justify-end mt-2">
-                      <Button variant="ghost" size="sm" className="text-xs h-7">
-                        <Eye className="w-3 h-3 mr-1" />
-                        View Details
-                      </Button>
+                    {/* Attachment indicator */}
+                    {meeting.has_attachments && (
+                      <div className="flex items-center gap-1 text-xs text-emerald-600 mt-2">
+                        <Image className="w-3 h-3" />
+                        <span>Has attachments</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs h-7"
+                          onClick={() => handleViewMOM(meeting)}
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMeeting(meeting);
+                            fileInputRef.current?.click();
+                          }}
+                        >
+                          <Upload className="w-3 h-3 mr-1" />
+                          Upload
+                        </Button>
+                      </div>
+                      <FollowUpActionButton 
+                        entityType="meeting" 
+                        entityId={meeting.id} 
+                        clientName={lead?.company || 'Client'} 
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7"
+                      />
                     </div>
                   </div>
                 ))}

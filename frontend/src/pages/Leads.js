@@ -1018,14 +1018,12 @@ const Leads = () => {
                 <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Name</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Company</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Email</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Score</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Progress</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {filteredLeads.map((lead) => {
-                const scoreBadge = getScoreBadge(lead.lead_score || 0);
                 const progress = leadProgress[lead.id] || {};
                 const isPaused = lead.status === 'paused';
                 return (
@@ -1046,11 +1044,6 @@ const Leads = () => {
                     </td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{lead.company}</td>
                     <td className="px-4 py-3 text-sm text-zinc-600">{lead.email}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-sm ${scoreBadge.color} ${scoreBadge.text}`}>
-                        {lead.lead_score || 0} - {scoreBadge.label}
-                      </span>
-                    </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       {/* Funnel Progress Indicator */}
                       <FunnelProgressIndicator 
@@ -1122,7 +1115,6 @@ const Leads = () => {
         /* Card View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredLeads.map((lead) => {
-            const scoreBadge = getScoreBadge(lead.lead_score || 0);
             const leadSuggestions = suggestions[lead.id] || [];
             const progress = leadProgress[lead.id] || {};
             return (
@@ -1154,14 +1146,6 @@ const Leads = () => {
                           <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                         ))}
                       </select>
-                      <div className="flex items-center gap-1">
-                        <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-sm ${scoreBadge.color} ${scoreBadge.text}`}
-                        >
-                          {lead.lead_score || 0}
-                        </span>
-                        <span className="text-xs text-zinc-500 data-text">{scoreBadge.label}</span>
-                      </div>
                     </div>
                   </div>
                   

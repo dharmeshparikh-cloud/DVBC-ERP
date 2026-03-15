@@ -1,0 +1,114 @@
+{
+  "iteration": 169,
+  "date": "2026-03-15",
+  "summary": "Workflow Bug Fixes Testing - ALL TESTS PASSED. Verified: PricingPlanBuilder loads without temporal dead zone error, Score column removed from Leads view, View/Upload/Follow-up buttons present on meeting cards, navigation from Sales Funnel Onboarding to Pricing Plan works, and Proceed to Pricing Plan button in Meeting Record works correctly.",
+  "test_type": "Frontend Only",
+  "features_tested": [
+    "PricingPlanBuilder loads correctly without 'Cannot access lead before initialization' error",
+    "Leads page shows NAME, COMPANY, EMAIL, PROGRESS, ACTIONS columns (Score column removed)",
+    "Meeting Record page shows View, Upload, and Follow-up buttons on each meeting card",
+    "Navigate from Sales Funnel Onboarding -> Open Pricing Plan works correctly",
+    "Proceed to Pricing Plan button in Meeting Record works"
+  ],
+  "test_results": {
+    "frontend_tests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "pass_rate": "100%",
+      "test_details": {
+        "test_1_score_column_removed": "PASS - Leads page table headers show: NAME, COMPANY, EMAIL, PROGRESS, ACTIONS (no Score column)",
+        "test_2_pricing_plan_builder_loads": "PASS - PricingPlanBuilder at /sales-funnel/pricing-plans loads without 'Cannot access lead before initialization' error",
+        "test_3_meeting_card_buttons": "PASS - Meeting Record page shows 3 View buttons, 3 Upload buttons, and Follow-up icons on meeting cards",
+        "test_4_open_pricing_plan_navigation": "PASS - 'Open Pricing Plan' button on Sales Funnel Onboarding navigates to PricingPlanBuilder correctly",
+        "test_5_proceed_to_pricing_button": "PASS - 'Proceed to Pricing Plan' button on Meeting Record navigates to /sales-funnel/pricing-plans"
+      }
+    }
+  },
+  "bug_fixes_verified": {
+    "pricing_plan_builder_crash": {
+      "issue": "PricingPlanBuilder crashes with 'Cannot access lead before initialization' (temporal dead zone error)",
+      "root_cause": "useQuery for 'lead' was declared after generatePricingDraftTitle useCallback which referenced 'lead'",
+      "fix_location": "/app/frontend/src/pages/sales-funnel/PricingPlanBuilder.js lines 40-60",
+      "implementation": "Moved useQuery for lead before generatePricingDraftTitle callback definition",
+      "status": "FIXED AND VERIFIED"
+    },
+    "score_column_removal": {
+      "issue": "Score column needs to be removed from Leads view",
+      "fix_location": "/app/frontend/src/pages/Leads.js lines 1006-1030, 1115-1157",
+      "implementation": "Removed Score column from table header and body, removed Score badge from card view",
+      "status": "FIXED AND VERIFIED"
+    },
+    "meeting_card_buttons": {
+      "issue": "Upload/View/Follow-up buttons missing on meeting cards",
+      "fix_location": "/app/frontend/src/pages/sales-funnel/MeetingRecord.js lines 708-752",
+      "implementation": "Added View button (Eye icon), Upload button, and FollowUpActionButton to meeting cards",
+      "status": "FIXED AND VERIFIED"
+    }
+  },
+  "ui_verification": {
+    "leads_page": {
+      "table_columns": ["NAME", "COMPANY", "EMAIL", "PROGRESS", "ACTIONS"],
+      "score_column_present": false,
+      "leads_displayed": 3
+    },
+    "meeting_record_page": {
+      "meeting_history_count": 3,
+      "view_buttons_count": 3,
+      "upload_buttons_count": 3,
+      "follow_up_buttons_count": 3,
+      "mom_filled_badges": 3,
+      "proceed_to_pricing_button_visible": true
+    },
+    "pricing_plan_builder": {
+      "page_loads_without_error": true,
+      "shows_client_info": "Dharmesh Patikh - Dvbc",
+      "form_fields_loaded": true
+    }
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/leads/{id}/can-access-pricing",
+        "issue": "Returns 404 - endpoint may not exist or be deprecated",
+        "priority": "LOW",
+        "note": "Does not affect functionality - PricingPlanBuilder still loads correctly"
+      },
+      {
+        "endpoint": "WebSocket",
+        "issue": "Frequent WebSocket connection/reconnection attempts (cosmetic console logs)",
+        "priority": "LOW",
+        "note": "Does not affect functionality"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_169.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PricingPlanBuilder fix is correct - useQuery declarations must be before useCallback that references them to avoid temporal dead zone",
+    "Score column removal is complete in both list and card views",
+    "Meeting card buttons are properly implemented with View, Upload, and FollowUpActionButton"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A - frontend only testing",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "sales_executive": "EMP003 / Sales@123",
+    "test_lead_id": "2e8724b1-b9b7-4983-b3cc-6c47e5de4851"
+  },
+  "seed_data_creation": "None required - used existing test lead",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All bug fixes verified: 1) PricingPlanBuilder temporal dead zone fix working, 2) Score column removed from Leads page, 3) View/Upload/Follow-up buttons present on meeting cards. Meeting History shows 3 meetings with MOM Filled badges. Proceed to Pricing Plan button navigates correctly.",
+  "verdict": "ALL BUG FIXES VERIFIED - 100% tests passed"
+}
