@@ -12,7 +12,7 @@ import uuid
 
 from .models import User
 from .deps import get_db, PROJECT_ROLES, SENIOR_CONSULTING_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/project-payments", tags=["Project Payments"])
 

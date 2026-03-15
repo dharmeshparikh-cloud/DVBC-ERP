@@ -14,7 +14,7 @@ from openpyxl import load_workbook
 
 from .models import User
 from .deps import get_db, get_role_group
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/excel-upload", tags=["Excel Upload"])
 

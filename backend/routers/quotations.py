@@ -11,7 +11,7 @@ import os
 from pydantic import BaseModel
 from .deps import get_db, get_role_group, has_role
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 from services.email_service import send_email
 from services.funnel_notifications import proforma_generated_email, get_sales_manager_emails
 

@@ -12,7 +12,7 @@ import os
 
 from .models import User
 from .deps import get_db, sanitize_text, HR_ROLES, HR_ADMIN_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 
 # Import email service
 try:

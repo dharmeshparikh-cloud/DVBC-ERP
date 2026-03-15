@@ -14,7 +14,7 @@ import os
 from .models import Meeting, MeetingCreate, MOMCreate, ActionItemCreate, User
 from .models import SALES_MEETING_ROLES, CONSULTING_MEETING_ROLES
 from .deps import get_db
-from .auth import get_current_user
+from .deps import get_current_user
 from services.email_service import send_email
 from services.funnel_notifications import meeting_mom_filled_email, get_sales_manager_emails
 

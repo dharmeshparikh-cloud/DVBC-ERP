@@ -18,7 +18,7 @@ import os
 
 from .models import User
 from .deps import get_db, get_role_group, has_role
-from .auth import get_current_user
+from .deps import get_current_user
 from services.email_service import send_email
 
 router = APIRouter(prefix="/consent", tags=["Employee Consent"])

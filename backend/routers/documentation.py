@@ -13,7 +13,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 
 from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/documentation", tags=["Documentation"])

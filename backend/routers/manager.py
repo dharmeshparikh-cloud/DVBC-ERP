@@ -11,7 +11,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 from .deps import get_db, MANAGER_ROLES, clean_mongo_doc
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/manager", tags=["Manager (Team Data)"])

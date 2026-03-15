@@ -11,7 +11,7 @@ from pydantic import BaseModel
 import uuid
 
 from .deps import get_db, HR_ADMIN_ROLES, sanitize_text, get_role_group, has_role
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/department-access", tags=["Department Access"])

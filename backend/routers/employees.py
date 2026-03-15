@@ -21,7 +21,8 @@ from .deps import (
     get_role_group, has_role, PaginationParams, paginate_response,
     DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 )
-from .auth import get_current_user, get_password_hash
+from .deps import get_current_user
+from .auth import get_password_hash
 
 # Performance caching
 import sys

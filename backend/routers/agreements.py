@@ -14,7 +14,7 @@ from .deps import (
     SENIOR_CONSULTING_ROLES, require_roles, get_role_group, has_role
 )
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 from services.email_service import send_email
 from services.funnel_notifications import agreement_created_email, get_agreement_notification_emails
 

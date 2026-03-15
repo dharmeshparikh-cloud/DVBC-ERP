@@ -13,7 +13,7 @@ import uuid
 
 from .models import User, UserRole
 from .deps import get_db, HR_ROLES, HR_ADMIN_ROLES, HR_PM_ROLES, get_role_group, has_role
-from .auth import get_current_user
+from .deps import get_current_user
 from services.websocket_manager import ws_manager, notify_dashboard_refresh
 from services.redis_cache import CacheInvalidation
 

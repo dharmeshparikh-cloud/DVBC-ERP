@@ -14,7 +14,7 @@ from typing import List, Optional
 import uuid
 
 from .deps import get_db
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/clients", tags=["Client Master"])

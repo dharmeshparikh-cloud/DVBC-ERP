@@ -10,7 +10,7 @@ import uuid
 import calendar
 from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, DEFAULT_PAGE_SIZE, LARGE_QUERY_SIZE
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
 

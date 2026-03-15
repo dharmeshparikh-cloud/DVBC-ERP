@@ -15,7 +15,7 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 
 from .deps import get_db, ADMIN_ROLES, PROJECT_ROLES, get_role_group, has_role
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User, UserRole
 
 router = APIRouter(prefix="/project-completion", tags=["Project Completion"])

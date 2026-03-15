@@ -11,7 +11,7 @@ from pydantic import BaseModel
 import uuid
 
 from .deps import get_db, SALES_MANAGER_ROLES, ADMIN_ROLES, SALES_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/pricing-plans", tags=["Pricing Plans"])

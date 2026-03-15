@@ -360,6 +360,9 @@ async def get_current_user_from_token(token: str = Depends(oauth2_scheme)):
     return User(**user)
 
 
+# Canonical authentication dependency - use this across all routers
+get_current_user = get_current_user_from_token
+
 
 # ==================== STANDARDIZED API RESPONSE HELPERS ====================
 

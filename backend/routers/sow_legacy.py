@@ -10,7 +10,7 @@ import uuid
 from pydantic import BaseModel
 from .deps import get_db, HR_ADMIN_ROLES, MANAGER_ROLES
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/sow", tags=["SOW - Legacy"])
 

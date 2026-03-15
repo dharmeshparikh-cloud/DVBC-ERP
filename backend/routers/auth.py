@@ -15,7 +15,7 @@ import string
 import httpx
 
 from .models import User, UserCreate, UserLogin, Token
-from .deps import get_db, sanitize_text, SECRET_KEY, ALGORITHM
+from .deps import get_db, sanitize_text, SECRET_KEY, ALGORITHM, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -51,28 +51,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    """Get current authenticated user from JWT token."""
-    db = get_db()
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    user_data = await db.users.find_one({"email": email}, {"_id": 0})
-    if user_data is None:
-        raise credentials_exception
-    if isinstance(user_data.get('created_at'), str):
-        user_data['created_at'] = datetime.fromisoformat(user_data['created_at'])
-    return User(**user_data)
+# NOTE: get_current_user has been moved to deps.py
+# All routers should import from deps.py: from .deps import get_current_user
 
 
 async def log_security_event(event_type: str, email: str = None, details: dict = None, request: Request = None):
@@ -188,10 +168,17 @@ async def login(user_login: UserLogin, request: Request = None):
     
     user_data.pop('hashed_password', None)
     user = User(**user_data)
+    
+    # Ensure user has persistent ID stored in database
+    if not user_data.get('id'):
+        await db.users.update_one(
+            {"email": user.email}, 
+            {"$set": {"id": user.id}}
+        )
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": user.id}, expires_delta=access_token_expires  # Use user.id instead of email
     )
 
     await log_security_event("password_login_success", email=login_identifier, request=request)

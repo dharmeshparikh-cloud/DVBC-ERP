@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import uuid
 
 from .deps import get_db, SENIOR_CONSULTING_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User, UserRole
 
 router = APIRouter(tags=["Sales"])

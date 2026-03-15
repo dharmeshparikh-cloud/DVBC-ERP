@@ -19,7 +19,7 @@ import logging
 
 from .models import User, LeadStatus
 from .deps import get_db, get_role_group, has_role
-from .auth import get_current_user
+from .deps import get_current_user
 from .rbac_service import rbac
 
 # Performance caching

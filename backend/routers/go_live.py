@@ -19,8 +19,8 @@ import secrets
 import string
 
 from .models import User
-from .deps import get_db, get_role_group, has_role
-from .auth import get_current_user, get_password_hash
+from .deps import get_db, get_role_group, has_role, get_current_user
+from .auth import get_password_hash
 from services.email_service import send_email
 from services.bank_validation_service import (
     validate_ifsc, 

@@ -10,7 +10,7 @@ import uuid
 
 from .models import PaymentVerification, PaymentVerificationCreate, User
 from .deps import get_db, SALES_EXECUTIVE_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 

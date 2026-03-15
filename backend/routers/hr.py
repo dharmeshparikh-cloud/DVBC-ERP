@@ -9,7 +9,7 @@ import uuid
 
 from .models import User, UserRole
 from .deps import get_db, sanitize_text, HR_ROLES, HR_ADMIN_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/hr", tags=["HR"])
 

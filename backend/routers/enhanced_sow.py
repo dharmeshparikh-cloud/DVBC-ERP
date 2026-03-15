@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 import uuid
 import base64
 from .deps import get_db, PROJECT_ROLES, SALES_ROLES as GLOBAL_SALES_ROLES, CONSULTING_ROLES as GLOBAL_CONSULTING_ROLES, ADMIN_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/enhanced-sow", tags=["Enhanced SOW"])

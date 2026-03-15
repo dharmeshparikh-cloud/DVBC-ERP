@@ -17,7 +17,41 @@
 
 
 
-### Phase 126: Profile Photo and Performance Dashboard — March 15, 2026 ✅ (Latest)
+### Phase 127: Authentication Standardization — March 15, 2026 ✅
+
+**Objective:** Eliminate duplicate `get_current_user` functions and enforce strict architectural boundaries.
+
+**Root Cause of Lead Creation Bug:**
+- Two `get_current_user` functions existed (auth.py and deps.py)
+- JWT token stored `user.id` but auth.py searched by email
+- User IDs were regenerated on each request (not persisted)
+- RBAC check failed because `created_by` ID didn't match
+
+**Fixes Applied:**
+1. Consolidated `get_current_user` into `deps.py` (canonical source)
+2. Updated 57 router files to import from `deps.py`
+3. Removed duplicate from `auth.py` 
+4. Fixed JWT to store persistent `user.id`
+5. Added fallback RBAC check for `created_by_employee_id`
+6. Generated persistent UUIDs for all existing users
+
+**Files Modified:**
+- `backend/routers/deps.py` - Added `get_current_user` alias
+- `backend/routers/auth.py` - Removed duplicate, imports from deps
+- 57 router files - Updated imports to use deps.py
+- `backend/ARCHITECTURE.md` - Created architectural documentation
+
+**Architectural Boundaries Enforced:**
+- `auth.py` → Authentication flows ONLY (login, password, tokens)
+- `deps.py` → Dependencies ONLY (get_current_user, get_db, roles)
+- `models.py` → Pydantic models ONLY
+- `services/` → Business logic
+- `routers/` → HTTP endpoints (thin handlers)
+
+**Testing:** All 23 modules verified working with standardized auth
+
+---
+
 
 **Objective:** Implement profile photo upload feature and ProfilePerformanceCard widget for dashboards.
 

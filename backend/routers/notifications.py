@@ -7,7 +7,7 @@ from typing import Optional, List
 from datetime import datetime, timezone
 from .deps import get_db
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 

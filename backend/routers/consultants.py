@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import uuid
 from .deps import get_db, MANAGER_ROLES, ADMIN_ROLES
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/consultants", tags=["Consultants"])
 

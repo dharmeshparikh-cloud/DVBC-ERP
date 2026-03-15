@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from .models import Project, ProjectCreate, User, UserRole
 from .deps import get_db, get_role_group, has_role
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 

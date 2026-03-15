@@ -12,7 +12,7 @@ import uuid
 from pydantic import BaseModel
 from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, ADMIN_ROLES, get_role_group, has_role
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/leave-policies", tags=["Leave Policies"])
 

@@ -16,7 +16,7 @@ from .deps import (
     get_db, SALES_MANAGER_ROLES, SALES_ROLES, ADMIN_ROLES, 
     APPROVAL_ROLES, MANAGER_ROLES, SENIOR_CONSULTING_ROLES
 )
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/sales-funnel", tags=["Sales Funnel Business Logic"])

@@ -16,7 +16,7 @@ from enum import Enum
 import uuid
 
 from .deps import get_db, ADMIN_ROLES, HR_ADMIN_ROLES
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/permissions", tags=["Permissions"])

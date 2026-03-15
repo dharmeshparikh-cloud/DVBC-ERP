@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 from .deps import get_db, ADMIN_ROLES
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 

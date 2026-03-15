@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 
 from .deps import get_db
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/stage-guard", tags=["Stage Guard"])

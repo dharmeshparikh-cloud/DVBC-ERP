@@ -17,7 +17,7 @@ from .deps import (
     get_db, SALES_ROLES, ADMIN_ROLES, get_role_group, has_role,
     PaginationParams, paginate_response, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 )
-from .auth import get_current_user
+from .deps import get_current_user
 
 # Performance caching
 import sys
@@ -120,10 +120,14 @@ async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_
     if doc['enriched_at']:
         doc['enriched_at'] = doc['enriched_at'].isoformat()
     
-    # Add employee tracking info
+    # Add employee tracking info - from employee record or user record
     if employee:
         doc['created_by_employee_id'] = employee.get('employee_id')
         doc['created_by_name'] = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip()
+    elif current_user.employee_id:
+        # Fallback to user's employee_id if no employee record exists
+        doc['created_by_employee_id'] = current_user.employee_id
+        doc['created_by_name'] = current_user.full_name
     
     await db.leads.insert_one(doc)
     
@@ -412,7 +416,20 @@ async def get_lead(lead_id: str, current_user: User = Depends(get_current_user))
                 accessible_user_ids.extend([r.get("user_id") for r in reportees if r.get("user_id")])
         
         # Check if lead belongs to accessible users
-        if lead_data.get('assigned_to') not in accessible_user_ids and lead_data.get('created_by') not in accessible_user_ids:
+        # Check by user ID, employee_id, or created_by_employee_id
+        accessible_employee_ids = [current_user.employee_id] if current_user.employee_id else []
+        if user_employee:
+            accessible_employee_ids.append(user_employee.get("employee_id"))
+        
+        lead_assigned_to = lead_data.get('assigned_to')
+        lead_created_by = lead_data.get('created_by')
+        lead_created_by_employee_id = lead_data.get('created_by_employee_id')
+        
+        # Access check: user can access if they created it, are assigned to it, or their employee_id matches
+        is_owner = lead_created_by in accessible_user_ids or lead_assigned_to in accessible_user_ids
+        is_employee_match = lead_created_by_employee_id in accessible_employee_ids if lead_created_by_employee_id else False
+        
+        if not is_owner and not is_employee_match:
             raise HTTPException(status_code=403, detail="You don't have access to this lead")
     
     if isinstance(lead_data.get('created_at'), str):

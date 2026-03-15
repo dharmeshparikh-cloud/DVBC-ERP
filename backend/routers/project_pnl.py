@@ -9,7 +9,7 @@ from typing import Optional
 import uuid
 
 from .deps import get_db, MANAGER_ROLES, get_role_group, has_role
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 
 router = APIRouter(prefix="/project-pnl", tags=["Project P&L"])

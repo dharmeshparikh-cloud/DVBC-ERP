@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import sys
 import os
 
-from .auth import get_current_user
+from .deps import get_current_user
 from .models import User
 from .deps import get_db, get_role_group, has_role
 

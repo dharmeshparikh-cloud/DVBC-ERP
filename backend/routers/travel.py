@@ -12,7 +12,7 @@ import math
 import httpx
 from .deps import get_db, HR_ADMIN_ROLES, APPROVAL_ROLES, get_role_group, has_role
 from .models import User
-from .auth import get_current_user
+from .deps import get_current_user
 
 router = APIRouter(tags=["Travel"])
 
