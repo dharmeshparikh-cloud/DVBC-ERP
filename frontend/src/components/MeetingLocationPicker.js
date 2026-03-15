@@ -5,20 +5,23 @@ import { Label } from './ui/label';
 import { Card, CardContent } from './ui/card';
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { 
-  MapPin, Plus, Trash2, Navigation, RotateCcw, Car, 
-  Bike, Train, Footprints, Route, Clock, Calculator
+  MapPin, Plus, Trash2, RotateCcw, Car, 
+  Bike, Train, Route, Clock, Calculator, Users, Upload, IndianRupee
 } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+const API = process.env.REACT_APP_BACKEND_URL;
 
-// Travel modes for distance calculation
+// Travel modes with expense rates (Rs per km)
 const TRAVEL_MODES = [
-  { id: 'DRIVING', label: 'Car', icon: Car, color: 'text-blue-600' },
-  { id: 'TWO_WHEELER', label: 'Bike', icon: Bike, color: 'text-green-600' },
-  { id: 'TRANSIT', label: 'Transit', icon: Train, color: 'text-purple-600' },
-  { id: 'WALKING', label: 'Walk', icon: Footprints, color: 'text-orange-600' }
+  { id: 'DRIVING', label: 'Car', icon: Car, color: 'text-blue-600', ratePerKm: 7 },
+  { id: 'TWO_WHEELER', label: 'Bike', icon: Bike, color: 'text-green-600', ratePerKm: 3 },
+  { id: 'TRANSIT', label: 'Transit', icon: Train, color: 'text-purple-600', ratePerKm: 0, manualEntry: true },
+  { id: 'ACCOMPANIED', label: 'Accompanied', icon: Users, color: 'text-amber-600', ratePerKm: 0, noCalculation: true }
 ];
 
 // Load Google Maps script dynamically
@@ -128,7 +131,8 @@ const MeetingLocationPicker = ({
   value = {}, 
   onChange, 
   meetingType = 'Offline',
-  disabled = false 
+  disabled = false,
+  leadId = null
 }) => {
   const [startLocation, setStartLocation] = useState(value.startLocation || '');
   const [startLocationData, setStartLocationData] = useState(value.startLocationData || null);
@@ -142,9 +146,49 @@ const MeetingLocationPicker = ({
   const [calculating, setCalculating] = useState(false);
   const [startTime, setStartTime] = useState(value.startTime || '');
   const [endTime, setEndTime] = useState(value.endTime || '');
+  
+  // New expense-related state
+  const [transitAmount, setTransitAmount] = useState(value.transitAmount || '');
+  const [transitProof, setTransitProof] = useState(value.transitProof || null);
+  const [accompaniedBy, setAccompaniedBy] = useState(value.accompaniedBy || '');
+  const [employees, setEmployees] = useState([]);
+  const transitProofRef = useRef(null);
+
+  // Fetch employees for "Accompanied by" dropdown
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await axios.get(`${API}/users/list`);
+        setEmployees(response.data || []);
+      } catch (error) {
+        console.error('Failed to fetch employees:', error);
+      }
+    };
+    fetchEmployees();
+  }, []);
+
+  // Calculate expense amount based on travel mode and distance
+  const calculateExpenseAmount = useCallback(() => {
+    const mode = TRAVEL_MODES.find(m => m.id === travelMode);
+    if (!mode) return 0;
+    
+    if (mode.manualEntry) {
+      return parseFloat(transitAmount) || 0;
+    }
+    
+    if (mode.noCalculation) {
+      return 0; // Accompanied - no expense
+    }
+    
+    if (!distance) return 0;
+    
+    const totalKm = isRoundTrip ? (distance.value * 2) / 1000 : distance.value / 1000;
+    return Math.round(totalKm * mode.ratePerKm);
+  }, [travelMode, distance, isRoundTrip, transitAmount]);
 
   // Propagate changes to parent
   useEffect(() => {
+    const expenseAmount = calculateExpenseAmount();
     onChange?.({
       startLocation,
       startLocationData,
@@ -157,9 +201,27 @@ const MeetingLocationPicker = ({
       duration,
       startTime,
       endTime,
-      totalKm: distance ? (isRoundTrip ? distance.value * 2 / 1000 : distance.value / 1000) : 0
+      totalKm: distance ? (isRoundTrip ? distance.value * 2 / 1000 : distance.value / 1000) : 0,
+      // Expense data
+      expenseAmount,
+      transitAmount: travelMode === 'TRANSIT' ? parseFloat(transitAmount) || 0 : 0,
+      transitProof,
+      accompaniedBy: travelMode === 'ACCOMPANIED' ? accompaniedBy : null
     });
-  }, [startLocation, startLocationData, endLocation, endLocationData, viaLocations, isRoundTrip, travelMode, distance, duration, startTime, endTime, onChange]);
+  }, [startLocation, startLocationData, endLocation, endLocationData, viaLocations, isRoundTrip, travelMode, distance, duration, startTime, endTime, transitAmount, transitProof, accompaniedBy, onChange, calculateExpenseAmount]);
+
+  // Handle transit proof upload
+  const handleTransitProofUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File too large. Maximum 5MB allowed.');
+        return;
+      }
+      setTransitProof(file);
+      toast.success('Transit proof uploaded');
+    }
+  };
 
   // Add via location
   const addViaLocation = () => {
@@ -387,48 +449,133 @@ const MeetingLocationPicker = ({
                 >
                   <Icon className={`w-4 h-4 mr-1 ${isSelected ? 'text-white' : mode.color}`} />
                   {mode.label}
+                  {mode.ratePerKm > 0 && (
+                    <span className="ml-1 text-xs opacity-70">₹{mode.ratePerKm}/km</span>
+                  )}
                 </Button>
               );
             })}
           </div>
         </div>
 
-        {/* Round Trip Toggle */}
-        <div className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 rounded-lg border">
-          <Checkbox
-            id="round-trip"
-            checked={isRoundTrip}
-            onCheckedChange={setIsRoundTrip}
-            disabled={disabled}
-          />
-          <Label htmlFor="round-trip" className="flex items-center gap-2 cursor-pointer text-sm">
-            <RotateCcw className="w-4 h-4 text-purple-600" />
-            Round Trip (Return journey)
-          </Label>
-        </div>
+        {/* Transit Manual Amount Entry */}
+        {travelMode === 'TRANSIT' && (
+          <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800 space-y-3">
+            <div>
+              <Label className="text-xs text-purple-700 dark:text-purple-300">Transit Amount (₹)</Label>
+              <div className="relative mt-1">
+                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
+                <Input
+                  type="number"
+                  value={transitAmount}
+                  onChange={(e) => setTransitAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  className="pl-9"
+                  min="0"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-purple-700 dark:text-purple-300">Upload Proof (Ticket/Receipt) *</Label>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  ref={transitProofRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleTransitProofUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => transitProofRef.current?.click()}
+                  className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-100 dark:border-purple-600 dark:text-purple-300"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {transitProof ? transitProof.name : 'Upload Proof'}
+                </Button>
+                {transitProof && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setTransitProof(null)}
+                    className="text-red-500"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* Calculate Distance Button */}
-        <Button
-          type="button"
-          onClick={calculateDistance}
-          disabled={disabled || calculating || !startLocation || !endLocation}
-          className="w-full bg-blue-600 hover:bg-blue-700"
-        >
-          {calculating ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-              Calculating...
-            </>
-          ) : (
-            <>
-              <Calculator className="w-4 h-4 mr-2" />
-              Calculate Distance
-            </>
-          )}
-        </Button>
+        {/* Accompanied By Employee Selection */}
+        {travelMode === 'ACCOMPANIED' && (
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            <Label className="text-xs text-amber-700 dark:text-amber-300 mb-2 block">
+              <Users className="w-4 h-4 inline mr-1" />
+              Accompanied By (No expense claim)
+            </Label>
+            <Select value={accompaniedBy} onValueChange={setAccompaniedBy}>
+              <SelectTrigger className="bg-white dark:bg-zinc-900">
+                <SelectValue placeholder="Select employee" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id}>
+                    {emp.full_name} ({emp.employee_id})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+              Travel expenses will be claimed by the accompanying employee.
+            </p>
+          </div>
+        )}
 
-        {/* Distance Results */}
-        {distance && (
+        {/* Round Trip Toggle - Only show for Car/Bike */}
+        {(travelMode === 'DRIVING' || travelMode === 'TWO_WHEELER') && (
+          <div className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 rounded-lg border">
+            <Checkbox
+              id="round-trip"
+              checked={isRoundTrip}
+              onCheckedChange={setIsRoundTrip}
+              disabled={disabled}
+            />
+            <Label htmlFor="round-trip" className="flex items-center gap-2 cursor-pointer text-sm">
+              <RotateCcw className="w-4 h-4 text-purple-600" />
+              Round Trip (Return journey)
+            </Label>
+          </div>
+        )}
+
+        {/* Calculate Distance Button - Only for Car/Bike */}
+        {(travelMode === 'DRIVING' || travelMode === 'TWO_WHEELER') && (
+          <Button
+            type="button"
+            onClick={calculateDistance}
+            disabled={disabled || calculating || !startLocation || !endLocation}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            {calculating ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                Calculating...
+              </>
+            ) : (
+              <>
+                <Calculator className="w-4 h-4 mr-2" />
+                Calculate Distance
+              </>
+            )}
+          </Button>
+        )}
+
+        {/* Distance & Expense Results */}
+        {distance && (travelMode === 'DRIVING' || travelMode === 'TWO_WHEELER') && (
           <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
@@ -455,13 +602,41 @@ const MeetingLocationPicker = ({
                 </p>
               </div>
             )}
+            
+            {/* Expense Calculation */}
             <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-                Total KM for Expense Claim: <span className="font-bold text-green-700 dark:text-green-400">
-                  {isRoundTrip ? (distance.value * 2 / 1000).toFixed(1) : (distance.value / 1000).toFixed(1)} km
-                </span>
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Total KM: <span className="font-medium">{isRoundTrip ? (distance.value * 2 / 1000).toFixed(1) : (distance.value / 1000).toFixed(1)} km</span>
+                </p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Rate: ₹{TRAVEL_MODES.find(m => m.id === travelMode)?.ratePerKm}/km
+                </p>
+              </div>
+              <div className="mt-2 p-3 bg-white dark:bg-zinc-900 rounded-lg border-2 border-green-300 dark:border-green-600">
+                <p className="text-center">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">Expense Claim Amount</span>
+                  <span className="block text-2xl font-bold text-green-700 dark:text-green-400">
+                    ₹{calculateExpenseAmount()}
+                  </span>
+                </p>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Transit Expense Summary */}
+        {travelMode === 'TRANSIT' && transitAmount && (
+          <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
+            <p className="text-center">
+              <span className="text-xs text-purple-600 dark:text-purple-400">Transit Expense Claim</span>
+              <span className="block text-2xl font-bold text-purple-700 dark:text-purple-400">
+                ₹{parseFloat(transitAmount) || 0}
+              </span>
+              {!transitProof && (
+                <span className="text-xs text-red-500 mt-1 block">⚠️ Proof upload required</span>
+              )}
+            </p>
           </div>
         )}
       </CardContent>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="11" time="27.647" timestamp="2026-03-15T10:24:49.870547+00:00" hostname="agent-env-4b99e028-de57-4c6b-8520-56a99e843947"><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_driving_one_way_expense_calculation" time="3.145"><failure message="AssertionError: Expected expense to be created&#10;assert None is not None">backend/tests/test_meeting_expense_claim.py:139: in test_driving_one_way_expense_calculation
+    assert expense is not None, "Expected expense to be created"
+E   AssertionError: Expected expense to be created
+E   assert None is not None</failure></testcase><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_driving_round_trip_expense_calculation" time="2.316"><failure message="AssertionError: Expected expense to be created&#10;assert None is not None">backend/tests/test_meeting_expense_claim.py:188: in test_driving_round_trip_expense_calculation
+    assert expense is not None, "Expected expense to be created"
+E   AssertionError: Expected expense to be created
+E   assert None is not None</failure></testcase><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_two_wheeler_one_way_expense_calculation" time="2.445"><failure message="AssertionError: Expected expense to be created&#10;assert None is not None">backend/tests/test_meeting_expense_claim.py:238: in test_two_wheeler_one_way_expense_calculation
+    assert expense is not None, "Expected expense to be created"
+E   AssertionError: Expected expense to be created
+E   assert None is not None</failure></testcase><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_two_wheeler_round_trip_expense_calculation" time="2.610"><failure message="AssertionError: Expected expense to be created&#10;assert None is not None">backend/tests/test_meeting_expense_claim.py:284: in test_two_wheeler_round_trip_expense_calculation
+    assert expense is not None, "Expected expense to be created"
+E   AssertionError: Expected expense to be created
+E   assert None is not None</failure></testcase><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_transit_manual_amount_expense" time="2.296"><failure message="AssertionError: Expected expense to be created for transit&#10;assert None is not None">backend/tests/test_meeting_expense_claim.py:332: in test_transit_manual_amount_expense
+    assert expense is not None, "Expected expense to be created for transit"
+E   AssertionError: Expected expense to be created for transit
+E   assert None is not None</failure></testcase><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_accompanied_no_expense_created" time="2.269" /><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_expense_linked_to_meeting_and_lead" time="2.317"><failure message="AssertionError: Expected expense to be created&#10;assert None is not None">backend/tests/test_meeting_expense_claim.py:423: in test_expense_linked_to_meeting_and_lead
+    assert expense is not None, "Expected expense to be created"
+E   AssertionError: Expected expense to be created
+E   assert None is not None</failure></testcase><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_expense_status_pending_for_approval" time="2.355"><failure message="AssertionError: Expected expense to be created&#10;assert None is not None">backend/tests/test_meeting_expense_claim.py:477: in test_expense_status_pending_for_approval
+    assert expense is not None, "Expected expense to be created"
+E   AssertionError: Expected expense to be created
+E   assert None is not None</failure></testcase><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseClaim" name="test_online_meeting_no_travel_expense" time="2.279" /><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseEdgeCases" name="test_zero_distance_no_expense" time="2.886" /><testcase classname="tests.test_meeting_expense_claim.TestMeetingExpenseEdgeCases" name="test_transit_zero_amount_no_expense" time="2.324" /></testsuite></testsuites>

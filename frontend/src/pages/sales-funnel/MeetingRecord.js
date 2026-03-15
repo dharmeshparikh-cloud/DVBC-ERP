@@ -407,10 +407,15 @@ const MeetingRecord = () => {
             via_locations: travelData.viaLocations,
             is_round_trip: travelData.isRoundTrip,
             travel_mode: travelData.travelMode,
-            distance_km: travelData.totalKm,
+            // Send ONE-WAY distance, backend will calculate round trip if needed
+            distance_km: travelData.distance ? (travelData.distance.value / 1000) : 0,
             duration_seconds: travelData.duration?.value || 0,
             travel_start_time: travelData.startTime,
-            travel_end_time: travelData.endTime
+            travel_end_time: travelData.endTime,
+            // Transit-specific fields
+            transit_amount: travelData.transitAmount || 0,
+            // Accompanied by
+            accompanied_by: travelData.accompaniedBy || null
           }
         } : {})
       };

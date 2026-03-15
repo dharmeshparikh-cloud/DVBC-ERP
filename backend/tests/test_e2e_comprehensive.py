@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 
 # API Configuration
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://form-validation-bug.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://sales-funnel-claims.preview.emergentagent.com')
 
 # Test Credentials
 TEST_CREDENTIALS = {
