@@ -205,12 +205,12 @@ const MyDetails = () => {
   }
 
   return (
-    <div className={`space-y-6 ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
+    <div className={`space-y-6 ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`} data-testid="my-details-page">
       <MyWorkspaceNav />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="my-details-title">
             <UserCog className="w-6 h-6 text-orange-500" />
             My Details
           </h1>
@@ -222,7 +222,7 @@ const MyDetails = () => {
 
       {/* Pending Requests Banner */}
       {pendingRequests.length > 0 && (
-        <div className={`p-4 rounded-lg border ${isDark ? 'bg-amber-900/20 border-amber-700' : 'bg-amber-50 border-amber-200'}`}>
+        <div className={`p-4 rounded-lg border ${isDark ? 'bg-amber-900/20 border-amber-700' : 'bg-amber-50 border-amber-200'}`} data-testid="pending-requests-banner">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-5 h-5 text-amber-500" />
             <span className={`font-medium ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>
@@ -233,7 +233,7 @@ const MyDetails = () => {
             {pendingRequests.filter(r => r.status === 'pending').map(req => {
               const Icon = getSectionIcon(req.section);
               return (
-                <div key={req.id} className={`flex items-center gap-2 text-sm ${isDark ? 'text-amber-200' : 'text-amber-600'}`}>
+                <div key={req.id} className={`flex items-center gap-2 text-sm ${isDark ? 'text-amber-200' : 'text-amber-600'}`} data-testid={`pending-request-${req.id}`}>
                   <Icon className="w-4 h-4" />
                   <span className="capitalize">{req.section.replace('_', ' ')}</span>
                   <span className="text-xs px-2 py-0.5 rounded bg-amber-200 text-amber-800">
@@ -246,7 +246,7 @@ const MyDetails = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" data-testid="details-grid">
         {/* Personal Information */}
         <Card className={isDark ? 'bg-zinc-800 border-zinc-700' : ''}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">

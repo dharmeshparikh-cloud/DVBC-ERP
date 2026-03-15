@@ -297,10 +297,10 @@ const Notifications = () => {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-4xl mx-auto" data-testid="notifications-page">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">Notifications</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900" data-testid="notifications-title">Notifications</h1>
           <p className="text-sm text-zinc-500 mt-1">
             {unreadCount} unread, {actionableCount} require action
           </p>
@@ -309,6 +309,7 @@ const Notifications = () => {
           variant="outline" 
           onClick={markAllRead}
           disabled={unreadCount === 0}
+          data-testid="mark-all-read-btn"
         >
           <Check className="w-4 h-4 mr-2" />
           Mark All Read
@@ -316,7 +317,7 @@ const Notifications = () => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6" data-testid="notification-filters">
         {[
           { key: 'all', label: 'All', count: notifications.length },
           { key: 'unread', label: 'Unread', count: unreadCount },
@@ -328,6 +329,7 @@ const Notifications = () => {
             size="sm"
             onClick={() => setFilter(tab.key)}
             className={filter === tab.key ? 'bg-zinc-900' : ''}
+            data-testid={`filter-${tab.key}-btn`}
           >
             {tab.label}
             <Badge variant="secondary" className="ml-2 text-xs">
@@ -338,10 +340,10 @@ const Notifications = () => {
       </div>
 
       {/* Notifications List */}
-      <div className="space-y-3">
+      <div className="space-y-3" data-testid="notifications-list">
         {filteredNotifications.length === 0 ? (
           <Card>
-            <CardContent className="p-12 text-center">
+            <CardContent className="p-12 text-center" data-testid="empty-notifications">
               <Bell className="w-12 h-12 text-zinc-200 mx-auto mb-4" />
               <p className="text-zinc-500">No notifications</p>
             </CardContent>

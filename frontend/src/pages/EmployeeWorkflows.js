@@ -247,16 +247,17 @@ const EmployeeWorkflows = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6" data-testid="employee-workflows-page">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-950">EMPLOYEE WORKFLOWS</h1>
+          <h1 className="text-2xl font-bold text-zinc-950" data-testid="workflows-title">EMPLOYEE WORKFLOWS</h1>
           <p className="text-zinc-500">Manage transfer, promotion, CTC revision, and hierarchy change requests</p>
         </div>
         <Button 
           onClick={() => setNewRequestDialog(true)}
           className="bg-zinc-950 text-white hover:bg-zinc-800"
+          data-testid="new-request-btn"
         >
           New Request
         </Button>
