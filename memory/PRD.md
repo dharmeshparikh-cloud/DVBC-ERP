@@ -1,7 +1,7 @@
 # D&V Business Consulting ERP - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive ERP system for D&V Business Consulting to manage the complete sales funnel and HR functions.
+Build a comprehensive ERP system with proper sales funnel progression and data integrity.
 
 ## Core Features Implemented ✅
 
@@ -9,48 +9,70 @@ Build a comprehensive ERP system for D&V Business Consulting to manage the compl
 - Lead entity is the master record
 - LeadSelector component with searchable dropdown
 - Duplicate lead detection
-- Cascading dependencies (Lead → Pricing Plan → Quotation)
 
-### 2. Pricing Plan → Downstream Inheritance
-- **Team Deployment LOCKED** in Agreements (read-only from Pricing Plan)
-- **Rate per Meeting HIDDEN** everywhere except for Admin role
-- **SOW Auto-Generate** from Team Deployment roles
+### 2. Funnel Protection (NEW) ✅
+**Problem:** Users could bypass funnel stages by directly creating items without prerequisites
 
-### 3. Edit Protection on Approved Items
-- SOW: Draft/Pending Review editable, Approved/In-Progress/Completed locked
-- Agreements: Draft/Pending editable, Approved/Signed/Sent show Lock icon
-- Admin can override all locks
+**Solution Implemented:**
+1. **LeadSelector Filtering** - Only shows eligible leads based on funnel stage
+   - Quotations: Only leads with pricing plans
+   - Agreements: Only leads with quotations
+   
+2. **Create Button Disabling** - Disabled with tooltip when no eligible leads
+   - Shows info icon (ℹ️) and tooltip explaining next step
+   - Prevents user frustration
 
-### 4. Bug Fix: Agreements Page Not Loading
-- **Root Cause:** `/api/email-templates` returning 404 caused Promise.all to fail
-- **Fix:** Added individual `.catch()` error handling for each API call
+3. **Backend API Enhancement** - `/api/leads/ssot/search` accepts `funnel_stage` parameter
+   - Values: `any`, `has_meeting`, `has_pricing_plan`, `has_quotation`
 
-## Verified Pages (All Working ✅)
+### 3. Pricing Plan → Downstream Inheritance
+- Team Deployment LOCKED in Agreements
+- Rate per Meeting hidden except for Admin
+- SOW Auto-Generate from Team Deployment
 
-| Page | Status | Key Features |
-|------|--------|--------------|
-| SOW Builder | ✅ Working | 5 items, edit protection, auto-generate button |
-| Agreements | ✅ Working | 6 agreements with status badges, Lock icons |
-| Proforma Invoice | ✅ Working | LeadSelector, cascading dropdowns |
-| Sales Dashboard | ✅ Working | Profile card, MOM scorecard, funnel progress |
-| Agreement Create | ✅ Working | LeadSelector, locked team deployment section |
+### 4. Edit Protection on Approved Items
+- SOW: Approved/In Progress/Completed locked for non-admin
+- Agreements: Approved/Signed/Sent show Lock icon
 
-## Test Data Created
-- Lead: Edit Protection Testing Corp
-- Pricing Plan: pp-1773594505087 (2 team members)
-- SOW: c0cb6976-da92-4c14-bd3d-cff065a517dc (5 items)
-- Quotation: 6913d321-6b97-49f8-940c-4056f0a1b87b
-- Agreements: 6 total with various statuses
+## Files Created/Modified This Session
+
+### New Files
+- `frontend/src/hooks/useFunnelEligibility.js` - Hook for checking funnel eligibility
+
+### Modified Files
+- `frontend/src/components/LeadSelector.jsx` - Added funnelStage and noEligibleMessage props
+- `frontend/src/pages/sales-funnel/ProformaInvoice.js` - Funnel filtering + disabled button
+- `frontend/src/pages/sales-funnel/Agreements.js` - Funnel filtering + disabled button
+- `frontend/src/pages/Dashboard.js` - Quick action button with tooltip
+- `backend/routers/leads.py` - funnel_stage filter in SSOT search
+
+## Funnel Flow Enforcement
+
+```
+Lead → Meeting (MOM) → Pricing Plan → Quotation → Agreement → Kickoff
+  ↓         ↓              ↓            ↓           ↓
+Create   Record MOM    Create Plan   Create Quote  Create Agreement
+  ✅         ✅            ✅           ✅            ✅
+                       (filtered)    (filtered)    (filtered)
+```
+
+## Test Results
+- Backend: 100% (8/8 tests passed)
+- Frontend: 100% (all features verified)
 
 ## Test Credentials
 - **Admin**: `EMP001` / `admin123`
 - **Sales**: `EMP003` / `sales123`
 
-## Files Modified This Session
-- `frontend/src/pages/sales-funnel/Agreements.js` - Added error handling, SSOT
-- `frontend/src/pages/sales-funnel/SOWBuilder.js` - Edit protection, auto-generate
-- `frontend/src/pages/sales-funnel/ProformaInvoice.js` - LeadSelector, role-based rates
-- `frontend/src/pages/sales-funnel/PricingPlanBuilder.js` - Role-based columns
+## Outstanding Tasks (P2)
+- Refactor `backend/routers/kickoff.py`
+- Refactor `frontend/src/pages/MeetingRecord.js`
+- Review orphan files
+
+## Future Tasks
+- DVBC Marketing Hub
+- Consultant Incentive System
+- Internal Chat System
 
 ## Last Updated
-2025-12-15 - All pages verified working, API error handling fixed
+2025-12-15 - Funnel Protection with disabled buttons and filtered LeadSelector
