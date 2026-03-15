@@ -9,7 +9,7 @@ import { Label } from '../../components/ui/label';
 import { 
   ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, 
   Download, Printer, ArrowRight, Building2, Phone, Mail, MapPin, AlertCircle,
-  History, Star
+  History, Star, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
@@ -19,6 +19,7 @@ import PageHeader from '../../components/ui/page-header';
 import { useFetch, useMutate } from '../../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
+import LeadSelector from '../../components/LeadSelector';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -58,6 +59,9 @@ const ProformaInvoice = () => {
     payment_terms: 'ADVANCE',
     terms_and_conditions: '1) Payment to be paid via Bank transfer or cheques\n2) Payment refund is not permissible\n3) Any breach of information is subject to violation of agreement\n4) TDS amount to be paid regularly and submit challan to biller\n5) Disputes subject to Ahmedabad jurisdiction.'
   });
+
+  // SSOT: Track selected lead master data for display
+  const [selectedLeadMasterData, setSelectedLeadMasterData] = useState(null);
 
   // Company details (can be moved to config)
   const companyDetails = {
@@ -859,39 +863,45 @@ const ProformaInvoice = () => {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-950">Lead *</Label>
-                <select
-                  value={formData.lead_id}
-                  onChange={(e) => handleLeadSelect(e.target.value)}
-                  required
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-                >
-                  <option value="">Select a lead</option>
-                  {leads.map(lead => (
-                    <option key={lead.id} value={lead.id}>
-                      {lead.first_name} {lead.last_name} - {lead.company}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-zinc-950">Pricing Plan *</Label>
-                <select
-                  value={formData.pricing_plan_id}
-                  onChange={(e) => handlePlanSelect(e.target.value)}
-                  required
-                  className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm"
-                >
-                  <option value="">Select a pricing plan</option>
-                  {pricingPlans.filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
-                    <option key={plan.id} value={plan.id}>
-                      Plan #{plan.id.slice(-6).toUpperCase()} • {plan.project_duration_months} months ({plan.project_duration_type}) • {formatINR(plan.total_amount || plan.total_investment || calculatePlanTotals(plan).subtotal)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* SSOT: Lead Selection using LeadSelector component */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                Lead / Company *
+                {formData.lead_id && <Lock className="w-3 h-3 text-amber-500" />}
+              </Label>
+              <LeadSelector
+                value={formData.lead_id}
+                onChange={(leadId) => {
+                  const lead = leads.find(l => l.id === leadId);
+                  setSelectedLead(lead);
+                  setFormData({ ...formData, lead_id: leadId, pricing_plan_id: '' });
+                  setSelectedPlanDetails(null);
+                }}
+                onMasterDataLoad={(masterData) => {
+                  setSelectedLeadMasterData(masterData);
+                }}
+                required={true}
+                placeholder="Search for a lead..."
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-950">Pricing Plan *</Label>
+              <select
+                value={formData.pricing_plan_id}
+                onChange={(e) => handlePlanSelect(e.target.value)}
+                required
+                disabled={!formData.lead_id}
+                className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent focus:outline-none focus:ring-1 focus:ring-zinc-950 text-sm disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                data-testid="pricing-plan-select"
+              >
+                <option value="">{formData.lead_id ? 'Select a pricing plan' : 'Select a lead first'}</option>
+                {pricingPlans.filter(p => !formData.lead_id || p.lead_id === formData.lead_id).map(plan => (
+                  <option key={plan.id} value={plan.id}>
+                    Plan #{plan.id.slice(-6).toUpperCase()} • {plan.project_duration_months} months ({plan.project_duration_type}) • {formatINR(plan.total_amount || plan.total_investment || calculatePlanTotals(plan).subtotal)}
+                  </option>
+                ))}
+              </select>
             </div>
             
             {/* Show Team Deployment from selected Pricing Plan */}
