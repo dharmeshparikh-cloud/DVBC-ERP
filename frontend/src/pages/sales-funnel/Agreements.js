@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { ArrowLeft, Plus, FileCheck, Send, Clock, CheckCircle, XCircle, Mail, Download, FileText, Trash2, Users, Eye, LayoutGrid, List, CreditCard, Lock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
+import { ArrowLeft, Plus, FileCheck, Send, Clock, CheckCircle, XCircle, Mail, Download, FileText, Trash2, Users, Eye, LayoutGrid, List, CreditCard, Lock, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../../utils/currency';
 import ViewToggle from '../../components/ViewToggle';
@@ -16,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FollowUpActionButton from '../../components/FollowUpActionButton';
 import PageHeader from '../../components/ui/page-header';
 import LeadSelector, { LockedField } from '../../components/LeadSelector';
+import { useFunnelEligibility, getFunnelTooltip } from '../../hooks/useFunnelEligibility';
 
 const MEETING_FREQUENCIES = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly'];
 const MEETING_MODES = ['Online', 'Offline', 'Mixed'];
@@ -92,6 +94,9 @@ const Agreements = () => {
   const [downloading, setDownloading] = useState({});
   const [inheritedFromPlan, setInheritedFromPlan] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  
+  // Check if there are eligible leads (with quotations) for creating agreements
+  const { hasEligibleLeads, isLoading: eligibilityLoading } = useFunnelEligibility('has_quotation');
   
   // Auto-switch to card view on mobile
   useEffect(() => {
@@ -425,9 +430,29 @@ const Agreements = () => {
           actions={<>
             <ViewToggle viewMode={viewMode} onChange={setViewMode} />
             {canEdit && (
-              <Button onClick={() => setDialogOpen(true)} data-testid="create-agreement-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Create Agreement
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button 
+                        onClick={() => setDialogOpen(true)} 
+                        data-testid="create-agreement-btn" 
+                        className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!hasEligibleLeads || eligibilityLoading}
+                      >
+                        <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Create Agreement
+                        {!hasEligibleLeads && !eligibilityLoading && <Info className="w-3 h-3 ml-1 text-amber-300" />}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!hasEligibleLeads && !eligibilityLoading && (
+                    <TooltipContent side="bottom" className="bg-zinc-900 text-white border-zinc-700 max-w-xs">
+                      <p className="text-sm">{getFunnelTooltip('has_quotation')}</p>
+                      <p className="text-xs text-zinc-400 mt-1">Go to Quotations → Create a quotation first</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
           </>}
         />

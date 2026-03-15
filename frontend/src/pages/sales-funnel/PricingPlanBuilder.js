@@ -16,6 +16,7 @@ import useDraft from '../../hooks/useDraft';
 import DraftSelector, { DraftIndicator } from '../../components/DraftSelector';
 import { StageResumeBar } from '../../components/sales-funnel/BusinessLogicUI';
 import { useQuery } from '@tanstack/react-query';
+import { useFunnelEligibility, getFunnelTooltip } from '../../hooks/useFunnelEligibility';
 
 // Duration type to months mapping
 const DURATION_TYPE_MONTHS = {
@@ -47,6 +48,9 @@ const PricingPlanBuilder = () => {
   const [showDraftSelector, setShowDraftSelector] = useState(false);
   const [meetingAccessBlocked, setMeetingAccessBlocked] = useState(false);
   const [meetingAccessReason, setMeetingAccessReason] = useState('');
+  
+  // Check if there are eligible leads (with meetings + MOM) for creating pricing plans
+  const { hasEligibleLeads, isLoading: eligibilityLoading } = useFunnelEligibility('has_meeting');
   
   // Fetch lead info with React Query - MUST be before generatePricingDraftTitle
   const { data: lead } = useQuery({

@@ -4,11 +4,13 @@ import { AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, ClipboardCheck, ArrowRight, Shield, AlertTriangle, CheckCircle, XCircle, Building2, Calendar, Clock, LogIn } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
+import { Users, UserCheck, TrendingUp, Briefcase, Target, DollarSign, FileText, ClipboardCheck, ArrowRight, Shield, AlertTriangle, CheckCircle, XCircle, Building2, Calendar, Clock, LogIn, Info } from 'lucide-react';
 import { sanitizeDisplayText } from '../utils/sanitize';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
 import TodayFollowUpsWidget from '../components/TodayFollowUpsWidget';
+import { useFunnelEligibility, getFunnelTooltip } from '../hooks/useFunnelEligibility';
 
 // React Query hooks for data fetching with caching
 import { 
@@ -59,6 +61,11 @@ const Dashboard = () => {
     const role = user.role?.toLowerCase() || '';
     return role === 'admin' || role === 'manager' || role === 'executive' || role === 'sales_manager';
   };
+  
+  // Check funnel eligibility for quick actions
+  const { hasEligibleLeads: hasMeetingLeads } = useFunnelEligibility('has_meeting');
+  const { hasEligibleLeads: hasPricingPlanLeads } = useFunnelEligibility('has_pricing_plan');
+  const { hasEligibleLeads: hasQuotationLeads } = useFunnelEligibility('has_quotation');
 
   // React Query hooks - data fetching with automatic caching
   const { data: stats, isLoading: statsLoading } = useDashboardStats(isAdminOrGeneral);
@@ -259,17 +266,37 @@ const Dashboard = () => {
               </div>
               <ArrowRight className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
             </button>
-            <button
-              onClick={() => navigate('/sales-funnel/pricing-plans')}
-              data-testid="quick-action-create-pricing"
-              className="w-full text-left px-4 py-3 rounded-sm border border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 transition-colors text-sm text-zinc-950 flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-zinc-500" strokeWidth={1.5} />
-                Create Pricing Plan
-              </div>
-              <ArrowRight className="w-4 h-4 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
-            </button>
+            
+            {/* Create Pricing Plan - disabled if no leads with meetings */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => hasMeetingLeads && navigate('/sales-funnel/pricing-plans')}
+                    data-testid="quick-action-create-pricing"
+                    className={`w-full text-left px-4 py-3 rounded-sm border transition-colors text-sm flex items-center justify-between group ${
+                      hasMeetingLeads 
+                        ? 'border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300 text-zinc-950' 
+                        : 'border-zinc-100 bg-zinc-50 text-zinc-400 cursor-not-allowed'
+                    }`}
+                    disabled={!hasMeetingLeads}
+                  >
+                    <div className="flex items-center gap-2">
+                      <DollarSign className={`w-4 h-4 ${hasMeetingLeads ? 'text-zinc-500' : 'text-zinc-300'}`} strokeWidth={1.5} />
+                      Create Pricing Plan
+                      {!hasMeetingLeads && <Info className="w-3 h-3 text-amber-400" />}
+                    </div>
+                    <ArrowRight className={`w-4 h-4 ${hasMeetingLeads ? 'text-zinc-400 opacity-0 group-hover:opacity-100' : 'text-zinc-200'} transition-opacity`} strokeWidth={1.5} />
+                  </button>
+                </TooltipTrigger>
+                {!hasMeetingLeads && (
+                  <TooltipContent side="right" className="bg-zinc-900 text-white border-zinc-700 max-w-xs">
+                    <p className="text-sm">{getFunnelTooltip('has_meeting')}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+            
             <button
               onClick={() => navigate('/sales-funnel/quotations')}
               data-testid="quick-action-view-quotations"

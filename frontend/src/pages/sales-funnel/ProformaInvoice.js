@@ -6,10 +6,11 @@ import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
 import { 
   ArrowLeft, Plus, FileText, CheckCircle, Clock, Send, Users, Eye, 
   Download, Printer, ArrowRight, Building2, Phone, Mail, MapPin, AlertCircle,
-  History, Star, Lock
+  History, Star, Lock, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR, numberToWords } from '../../utils/currency';
@@ -20,6 +21,7 @@ import { useFetch, useMutate } from '../../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import LeadSelector from '../../components/LeadSelector';
+import { useFunnelEligibility, getFunnelTooltip } from '../../hooks/useFunnelEligibility';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -39,6 +41,9 @@ const ProformaInvoice = () => {
   const [selectedLead, setSelectedLead] = useState(null);
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  
+  // Check if there are eligible leads (with pricing plans) for creating quotations
+  const { hasEligibleLeads, isLoading: eligibilityLoading } = useFunnelEligibility('has_pricing_plan');
   
   // Auto-switch to card view on mobile
   useEffect(() => {
@@ -525,9 +530,29 @@ const ProformaInvoice = () => {
               <ArrowLeft className="w-4 h-4 mr-2" strokeWidth={1.5} /> Back to SOW
             </Button>
             {canEdit && (
-              <Button onClick={() => { setSelectedPlanDetails(null); setSelectedLead(null); setDialogOpen(true); }} data-testid="create-invoice-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Create Proforma Invoice
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button 
+                        onClick={() => { setSelectedPlanDetails(null); setSelectedLead(null); setDialogOpen(true); }} 
+                        data-testid="create-invoice-btn" 
+                        className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!hasEligibleLeads || eligibilityLoading}
+                      >
+                        <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Create Proforma Invoice
+                        {!hasEligibleLeads && !eligibilityLoading && <Info className="w-3 h-3 ml-1 text-amber-300" />}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!hasEligibleLeads && !eligibilityLoading && (
+                    <TooltipContent side="bottom" className="bg-zinc-900 text-white border-zinc-700 max-w-xs">
+                      <p className="text-sm">{getFunnelTooltip('has_pricing_plan')}</p>
+                      <p className="text-xs text-zinc-400 mt-1">Go to Pricing Plans → Create a plan first</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
           </>}
         />
