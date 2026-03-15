@@ -14,6 +14,7 @@ import {
   Shield, Send, Eye, Mail, Upload, Download, Trash2, Loader2,
   CheckCircle2, XOctagon, RefreshCw, Search, KeyRound, RotateCcw
 } from 'lucide-react';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR, isHRManager as checkIsHRManager } from '../utils/roles';
 
 const GoLiveDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -34,9 +35,9 @@ const GoLiveDashboard = () => {
   const [showBankProofsDialog, setShowBankProofsDialog] = useState(false);
   const fileInputRef = useRef(null);
   
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
-  const canVerifyBank = isAdmin || user?.role === 'hr_manager';
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
+  const canVerifyBank = isAdmin || checkIsHRManager(user);
   const canUploadProof = isAdmin || isHR;
 
   // React Query: Employees

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../components/ui/page-header';
+import { isHR as checkIsHR } from '../utils/roles';
 
 const STATUS_STYLES = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -20,7 +21,7 @@ const LeaveManagement = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('my');
 
-  const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
+  const isHR = checkIsHR(user);
 
   // Fetch leave requests with React Query
   const { data: leaveData, isLoading: loading, refetch: refetchLeaves } = useQuery({

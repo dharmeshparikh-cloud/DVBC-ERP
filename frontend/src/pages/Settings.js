@@ -17,11 +17,12 @@ import {
   Lock,
   ChevronRight
 } from 'lucide-react';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR } from '../utils/roles';
 
 const Settings = () => {
   const { user } = useContext(AuthContext);
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive', 'admin'].includes(user?.role);
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
 
   const settingsGroups = [
     {

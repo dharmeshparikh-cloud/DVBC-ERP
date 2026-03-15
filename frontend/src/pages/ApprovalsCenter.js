@@ -67,6 +67,7 @@ import {
   useRejectModificationRequest,
   useBulkApprovalAction
 } from '../hooks/useApprovals';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR, isManager as checkIsManager, isSeniorConsultant as checkIsSC, isPrincipalConsultant as checkIsPC } from '../utils/roles';
 
 const APPROVAL_TYPE_LABELS = {
   sow_item: 'SOW Item',
@@ -85,12 +86,12 @@ const ApprovalsCenter = () => {
   const isDark = theme === 'dark';
   const queryClient = useQueryClient();
   
-  // Role checks
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
-  const isManager = ['admin', 'manager', 'hr_manager', 'project_manager'].includes(user?.role);
-  const isSC = user?.role === 'senior_consultant';
-  const isPC = user?.role === 'principal_consultant';
+  // Role checks - using centralized roles.js
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
+  const isManager = checkIsManager(user);
+  const isSC = checkIsSC(user);
+  const isPC = checkIsPC(user);
   
   // React Query: Data fetching with role-based enabling
   const { data: pendingApprovalsData = [], isLoading: pendingLoading, refetch: refetchPending } = usePendingApprovals();

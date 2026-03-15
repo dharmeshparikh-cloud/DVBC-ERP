@@ -14,6 +14,7 @@ import {
   User, FileText, Target
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { isAdmin as checkIsAdmin, isHRAdmin } from '../utils/roles';
 
 const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low', color: 'bg-zinc-100 text-zinc-700' },
@@ -59,8 +60,8 @@ const HRStaffingRequests = () => {
   });
   const [skillInput, setSkillInput] = useState('');
 
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['admin', 'hr_manager'].includes(user?.role);
+  const isAdmin = checkIsAdmin(user);
+  const isHR = isHRAdmin(user);
 
   // React Query: Staffing Requests
   const { data: requests = [], isLoading: loading } = useQuery({

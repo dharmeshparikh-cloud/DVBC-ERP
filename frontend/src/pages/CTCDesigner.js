@@ -15,6 +15,7 @@ import {
   ChevronRight, PiggyBank, Heart, Car, Wallet, Gift, Settings,
   Plus, Minus, Edit2, Save, ToggleLeft
 } from 'lucide-react';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR, canManageCTC } from '../utils/roles';
 
 // Default component master (fallback)
 const DEFAULT_COMPONENTS = [
@@ -37,8 +38,8 @@ const CTCDesigner = () => {
   const { theme } = useTheme();
   const queryClient = useQueryClient();
   const isDark = theme === 'dark';
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
 
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [annualCTC, setAnnualCTC] = useState('');

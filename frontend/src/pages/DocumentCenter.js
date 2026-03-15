@@ -26,6 +26,7 @@ import {
   useDownloadDocument,
   useSendDocumentEmail 
 } from '../hooks/useDocuments';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR, canManageDocuments } from '../utils/roles';
 
 // Document types configuration
 const DOCUMENT_TYPES = [
@@ -253,9 +254,9 @@ const DocumentCenter = () => {
   
   const printRef = useRef();
 
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
-  const canManage = isAdmin || isHR;
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
+  const canManage = canManageDocuments(user);
 
   // Refetch all data
   const fetchAllData = () => {

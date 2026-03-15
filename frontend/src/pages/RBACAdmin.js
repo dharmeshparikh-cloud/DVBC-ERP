@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { useFetch, useMutate } from '../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
+import { isAdmin as checkIsAdmin } from '../utils/roles';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -54,7 +55,7 @@ const RBACAdmin = () => {
     color: '#6B7280'
   });
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = checkIsAdmin(user);
 
   // Query: Fetch roles using centralized hook
   const { data: rolesData, isLoading: rolesLoading } = useFetch('/api/rbac/roles');

@@ -31,6 +31,7 @@ import {
   useUpdateMobileAccess
 } from '../hooks/useEmployees';
 import { useUsersWithRoles } from '../hooks/useUserManagement';
+import { isAdmin as checkIsAdmin, isHRManager as checkIsHRManager, canManageEmployees } from '../utils/roles';
 
 const EMPLOYMENT_TYPES = [
   { value: 'full_time', label: 'Full Time' },
@@ -103,13 +104,14 @@ const Employees = () => {
     }
   });
 
-  const isAdmin = user?.role === 'admin';
-  const isHRManager = user?.role === 'hr_manager';
-  const canManage = isAdmin || isHRManager;
+  const isAdmin = checkIsAdmin(user);
+  const isHRManager = checkIsHRManager(user);
+  const canManage = canManageEmployees(user);
 
   // React Query: Fetch employees and departments using hooks
   const { data: employeesRaw = [], isLoading: empLoading, refetch: refetchEmployees } = useAllEmployees();
-  const { data: departments = [] } = useDepartmentsList();
+  const { data: departmentsData } = useDepartmentsList();
+  const departments = Array.isArray(departmentsData) ? departmentsData : [];
   const { data: stats } = useEmployeeStats();
   const { data: usersWithRoles = [] } = useUsersWithRoles();
   const { data: orgChart } = useOrgChart({ enabled: activeView === 'orgchart' });

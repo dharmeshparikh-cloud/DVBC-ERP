@@ -11,6 +11,7 @@ import { LazyImage } from '../components/ui/lazy-image';
 import PageHeader from '../components/ui/page-header';
 import { Plus, Upload, CheckCircle, XCircle, Clock, CalendarDays, Building2, MapPin, Home, Camera, Navigation, Loader2, LogIn, LogOut, AlertCircle, Car, Bike, RotateCcw, Send, X, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
+import { isHR as checkIsHR } from '../utils/roles';
 
 const STATUSES = [
   { value: 'present', label: 'Present', color: 'bg-emerald-100 text-emerald-700' },
@@ -68,7 +69,7 @@ const Attendance = () => {
   const [travelVehicle, setTravelVehicle] = useState('car');
   const [submittingTravel, setSubmittingTravel] = useState(false);
 
-  const isHR = ['admin', 'hr_manager', 'hr_executive'].includes(user?.role);
+  const isHR = checkIsHR(user);
   const queryClient = useQueryClient();
 
   // Parse month for API calls

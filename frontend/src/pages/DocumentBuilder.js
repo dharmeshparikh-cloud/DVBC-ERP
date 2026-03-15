@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { useFetch } from '../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR } from '../utils/roles';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -221,8 +222,8 @@ const DocumentBuilder = () => {
   
   const printRef = useRef();
 
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
   const canGenerate = isAdmin || isHR;
 
   // Query: Fetch employees

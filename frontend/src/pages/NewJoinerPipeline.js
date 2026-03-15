@@ -26,6 +26,7 @@ import {
   ArrowRight, Loader2, Mail, Briefcase, Calendar, Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { isHR as checkIsHR } from '../utils/roles';
 
 // Pipeline stages with their backend status mappings
 const PIPELINE_STAGES = [
@@ -105,7 +106,7 @@ const NewJoinerPipeline = () => {
   const [sending, setSending] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(null); // Track which item is sending reminder
 
-  const isHR = ['hr_manager', 'hr_executive', 'hr_admin', 'admin'].includes(user?.role);
+  const isHR = checkIsHR(user);
 
   // Fetch all onboarding submissions using existing API
   const { data: submissions = [], isLoading, refetch } = useQuery({

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Send, MessageSquare, FileText } from 'lucide-react';
+import { canManageGantt } from '../utils/roles';
 
 const STATUS_COLORS = {
   to_do: { bar: 'bg-zinc-300', text: 'text-zinc-600', label: 'To Do' },
@@ -40,7 +41,7 @@ const GanttChart = () => {
 
   const [timelineStart, setTimelineStart] = useState(() => { const d = new Date(); d.setDate(1); return d; });
   const daysVisible = Math.max(60, Math.ceil(900 / colWidth));
-  const canManage = ['admin', 'project_manager', 'manager', 'principal_consultant'].includes(user?.role);
+  const canManage = canManageGantt(user);
 
   // React Query: Projects
   const { data: projects = [], isLoading: loading } = useQuery({

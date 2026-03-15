@@ -32,6 +32,7 @@ import {
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { isAdmin as checkIsAdmin, isHRAdmin, isHRDepartment, canManagePasswords } from '../utils/roles';
 
 // Module permissions structure (from EmployeePermissions.js)
 const MODULES = [
@@ -92,9 +93,9 @@ const EmployeeAccessPermissions = () => {
   const [reportingManager, setReportingManager] = useState(null);
   const [assignedRole, setAssignedRole] = useState('');
   
-  const isAdmin = user?.role === 'admin';
-  const isHR = user?.role === 'hr_manager' || user?.department === 'HR';
-  const canManage = isAdmin || isHR;
+  const isAdmin = checkIsAdmin(user);
+  const isHR = isHRAdmin(user) || isHRDepartment(user);
+  const canManage = canManagePasswords(user);
 
   // ==================== QUERIES ====================
   

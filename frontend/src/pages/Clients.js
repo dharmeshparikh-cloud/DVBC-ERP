@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { isAdmin as checkIsAdmin, isFinance as checkIsFinance, isSales as checkIsSales, isConsulting as checkIsConsulting, canManageClients } from '../utils/roles';
 
 const INDUSTRIES = [
   'Technology', 'Healthcare', 'Finance', 'Manufacturing', 
@@ -41,17 +42,16 @@ const Clients = () => {
   const [importLoading, setImportLoading] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Role-based access
-  const isAdmin = user?.role === 'admin';
-  const isFinance = ['finance_manager', 'finance_executive', 'accounts'].includes(user?.role);
-  const isSales = ['sales_manager', 'executive', 'sales_executive'].includes(user?.role);
-  const isConsulting = ['principal_consultant', 'senior_consultant', 'consultant', 'project_manager'].includes(user?.role);
+  // Role-based access - using centralized roles.js
+  const isAdmin = checkIsAdmin(user);
+  const isFinance = checkIsFinance(user);
+  const isSales = checkIsSales(user);
+  const isConsulting = checkIsConsulting(user);
   
   // Can create/edit clients - only Admin/Finance
-  const canCreateClient = isAdmin || isFinance;
-  const canEditClient = isAdmin || isFinance;
+  const canCreateClient = canManageClients(user);
+  const canEditClient = canManageClients(user);
   // Can view - everyone but filtered by role
-  // canManage is defined below after form data to consolidate with other role checks
 
   // Form data
   const [formData, setFormData] = useState({
@@ -88,7 +88,7 @@ const Clients = () => {
   });
 
   // canManage controls who can create/edit clients (Admin/Finance only)
-  const canManage = isAdmin || isFinance;
+  const canManage = canManageClients(user);
 
   // Fetch clients with React Query - filtered by role
   const { data: clientsData, isLoading: loading } = useQuery({

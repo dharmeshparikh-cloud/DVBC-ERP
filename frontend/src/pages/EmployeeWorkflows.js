@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useContext } from 'react';
+import { isAdmin as checkIsAdmin } from '../utils/roles';
 
 const WORKFLOW_TYPES = {
   transfer: { label: 'Transfer', icon: ArrowRightLeft, color: 'bg-blue-100 text-blue-700' },
@@ -27,7 +28,7 @@ const WORKFLOW_TYPES = {
 const EmployeeWorkflows = () => {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = checkIsAdmin(user);
   
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [approvalDialog, setApprovalDialog] = useState(false);

@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { isAdmin as checkIsAdmin, isHRAdmin, canManagePasswords, isHRDepartment } from '../utils/roles';
 
 const PasswordManagement = () => {
   const { user } = useContext(AuthContext);
@@ -29,9 +30,9 @@ const PasswordManagement = () => {
   const [grantAccessDialog, setGrantAccessDialog] = useState(false);
 
   // Check if current user is Admin or HR
-  const isAdmin = user?.role === 'admin';
-  const isHR = user?.role === 'hr_manager' || user?.department === 'HR';
-  const canManage = isAdmin || isHR;
+  const isAdmin = checkIsAdmin(user);
+  const isHR = isHRAdmin(user) || isHRDepartment(user);
+  const canManage = canManagePasswords(user);
 
   // React Query: Employees with access data
   const { data: employees = [], isLoading: loading } = useQuery({

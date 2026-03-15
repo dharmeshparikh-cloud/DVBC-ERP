@@ -22,6 +22,7 @@ import {
   useUpdateRole,
   useDeleteRole
 } from '../hooks/useUserManagement';
+import { isAdmin as checkIsAdmin } from '../utils/roles';
 
 const UserManagement = () => {
   const { user } = useContext(AuthContext);
@@ -55,7 +56,7 @@ const UserManagement = () => {
   
   const [editingPermissions, setEditingPermissions] = useState({});
   
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = checkIsAdmin(user);
 
   // React Query: Fetch data
   const { data: users = [], isLoading: usersLoading } = useUsersWithRoles();

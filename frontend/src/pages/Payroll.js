@@ -21,6 +21,7 @@ import {
   useSaveBulkPayrollInputs
 } from '../hooks/usePayroll';
 import { PayrollApprovalPanel, ExcelUploadPanel, BankSchemaPanel } from '../components/payroll';
+import { isHRAdmin } from '../utils/roles';
 
 const fmt = (v) => `₹${(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
 
@@ -36,7 +37,7 @@ const Payroll = () => {
   const [newComp, setNewComp] = useState({ type: 'earnings', name: '', calcType: 'fixed', value: '' });
   const [payrollInputs, setPayrollInputs] = useState([]);
 
-  const isHR = ['admin', 'hr_manager'].includes(user?.role);
+  const isHR = isHRAdmin(user);
 
   // React Query: Fetch payroll data
   const { data: employeesData = [], isLoading: empLoading } = usePayrollEmployees();

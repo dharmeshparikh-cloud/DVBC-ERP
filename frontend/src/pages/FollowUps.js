@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import { isManager as checkIsManager } from '../utils/roles';
 
 const ENTITY_LABELS = {
   lead: 'Lead',
@@ -67,7 +68,7 @@ const FollowUps = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createForm, setCreateForm] = useState({ entity_type: 'lead', entity_id: '', lead_id: '', client_name: '', due_date: '', notes: '', priority: 'medium' });
 
-  const isManager = ['admin', 'sales_manager', 'manager', 'principal_consultant'].includes(user?.role);
+  const isManager = checkIsManager(user);
 
   // Fetch follow-ups from the dedicated collection
   const { data: followUps = [], isLoading, refetch } = useQuery({

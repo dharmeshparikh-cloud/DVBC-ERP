@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Users, Plus, Briefcase, TrendingUp, Search, UserCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatINR } from '../utils/currency';
+import { isAdmin as checkIsAdmin } from '../utils/roles';
 
 const Consultants = () => {
   const { user } = useContext(AuthContext);
@@ -73,7 +74,7 @@ const Consultants = () => {
     c.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = checkIsAdmin(user);
 
   return (
     <div data-testid="consultants-page">

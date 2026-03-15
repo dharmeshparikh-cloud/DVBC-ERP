@@ -17,6 +17,7 @@ import {
   Clock, AlertCircle, CheckCircle2, Filter, Search,
   RefreshCw, UserMinus, ChevronRight, Eye, History
 } from 'lucide-react';
+import { canViewAllProjects } from '../utils/roles';
 
 const AllProjects = () => {
   const { user } = useContext(AuthContext);
@@ -162,7 +163,7 @@ const AllProjects = () => {
   };
 
   // Check if user has permission
-  const canManage = ['admin', 'principal_consultant', 'senior_consultant'].includes(user?.role);
+  const canManage = canViewAllProjects(user);
 
   if (!canManage) {
     return (

@@ -9,6 +9,7 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Plus, CheckCircle, XCircle, Clock, Trash2, Shield, Star, Target } from 'lucide-react';
 import { toast } from 'sonner';
+import { isAdmin as checkIsAdmin, hasProjectRole, isManager as checkIsManager, isPrincipalConsultant } from '../utils/roles';
 
 const DEFAULT_METRICS = [
   { name: 'SOW Timely Delivery', key: 'sow_delivery', weight: 20, description: 'SOW items delivered on time' },
@@ -37,9 +38,9 @@ function ConsultantPerformance() {
   // Score form
   const [scoreForm, setScoreForm] = useState({ project_id: '', consultant_id: '', month: '', scores: [] });
 
-  const isAdmin = user?.role === 'admin';
-  const canConfigMetrics = ['admin', 'principal_consultant', 'project_manager'].includes(user?.role);
-  const canRate = ['admin', 'manager', 'project_manager', 'principal_consultant'].includes(user?.role);
+  const isAdmin = checkIsAdmin(user);
+  const canConfigMetrics = checkIsAdmin(user) || isPrincipalConsultant(user) || user?.role === 'project_manager';
+  const canRate = checkIsAdmin(user) || checkIsManager(user) || user?.role === 'project_manager' || isPrincipalConsultant(user);
 
   // React Query: Projects
   const { data: projects = [] } = useQuery({

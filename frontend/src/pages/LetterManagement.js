@@ -18,6 +18,7 @@ import CompanyLetterhead, { HRSignatureBlock, LetterHeader } from '../components
 import { useFetch } from '../hooks/useApi';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR, isHRManager as checkIsHRManager } from '../utils/roles';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -56,9 +57,9 @@ const LetterManagement = () => {
     hr_signature_text: user?.full_name || ''
   });
 
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
-  const canEdit = isAdmin || user?.role === 'hr_manager';
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
+  const canEdit = isAdmin || checkIsHRManager(user);
 
   // Query: Fetch stats
   const { data: stats } = useFetch('/api/letters/stats');

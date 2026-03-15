@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR } from '../utils/roles';
 
 const PERMISSION_LABELS = {
   can_view_own_data: 'View Own Data',
@@ -42,8 +43,8 @@ const RoleManagement = () => {
   const [editingLevel, setEditingLevel] = useState(null);
   const [editingPermissions, setEditingPermissions] = useState({});
 
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
 
   // Query: Fetch stats
   const { data: stats } = useQuery({

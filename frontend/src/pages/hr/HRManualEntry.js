@@ -31,6 +31,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFetch } from '../../hooks/useApi';
+import { isAdmin as checkIsAdmin, isHR as checkIsHR } from '../../utils/roles';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -103,8 +104,8 @@ const HRManualEntry = () => {
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   
-  const isAdmin = user?.role === 'admin';
-  const isHR = ['hr_manager', 'hr_executive'].includes(user?.role);
+  const isAdmin = checkIsAdmin(user);
+  const isHR = checkIsHR(user);
   const canManage = isAdmin || isHR;
 
   // ==================== QUERIES ====================

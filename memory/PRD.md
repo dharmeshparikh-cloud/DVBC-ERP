@@ -16,7 +16,63 @@
 ---
 
 
-### Phase 123: Client Import & Funnel Governance Cleanup — March 15, 2026 ✅ (Latest)
+### Phase 124: Comprehensive RBAC Migration — March 15, 2026 ✅ (Latest)
+
+**Objective:** Migrate all inline RBAC checks to centralized `roles.js` for consistency and maintainability.
+
+**Summary:**
+- **26 files modified** to use centralized roles.js
+- **50+ RBAC functions created** in roles.js
+- **16 role groups defined** matching backend deps.py exactly
+- **0 inline RBAC patterns remaining**
+
+**Files Modified:**
+1. AllProjects.js
+2. ApprovalsCenter.js
+3. Attendance.js
+4. CTCDesigner.js
+5. Clients.js
+6. ConsultantPerformance.js
+7. Consultants.js
+8. DocumentBuilder.js
+9. DocumentCenter.js
+10. EmployeeAccessPermissions.js
+11. EmployeePermissions.js
+12. EmployeeWorkflows.js
+13. Employees.js
+14. FollowUps.js
+15. GanttChart.js
+16. GoLiveDashboard.js
+17. HRStaffingRequests.js
+18. LeaveManagement.js
+19. LetterManagement.js
+20. NewJoinerPipeline.js
+21. PasswordManagement.js
+22. Payroll.js
+23. RBACAdmin.js
+24. RoleManagement.js
+25. Settings.js
+26. UserManagement.js
+
+**Role Groups Defined (matching backend):**
+- ADMIN_ROLES, HR_ROLES, HR_ADMIN_ROLES
+- SALES_ROLES, SALES_MANAGER_ROLES, SALES_EXECUTIVE_ROLES
+- PROJECT_ROLES, CONSULTING_ROLES, SENIOR_CONSULTING_ROLES, PRINCIPAL_CONSULTANT_ROLES
+- FINANCE_ROLES, MANAGER_ROLES, APPROVAL_ROLES
+- HR_PM_ROLES, AGREEMENT_APPROVE_ROLES, EMPLOYEE_ROLES
+
+**Key Functions Created:**
+- Primary checks: isAdmin, isHR, isHRManager, isHRAdmin, isSales, isSalesManager, isConsulting, isPrincipalConsultant, isFinance, isManager
+- Combined checks: isAdminOrHR, isAdminOrManager, isAdminOrFinance
+- Permission helpers: canManageEmployees, canManageClients, canApproveExpenses, canCreateManualExpense, canViewTeamData, canManageDocuments, canManagePasswords, canManageProjects, canManageGantt
+- Safe utilities: getRole, getDepartment, getRoleName, safeGet, safeArray
+
+**Bug Fix During Migration:**
+- Fixed `departments.map is not a function` error in Employees.js by adding Array safety check
+
+---
+
+### Phase 123: Client Import & Funnel Governance Cleanup — March 15, 2026 ✅
 
 **Objective:** Add Excel import for Client Master and remove standalone pages that bypass funnel governance.
 
