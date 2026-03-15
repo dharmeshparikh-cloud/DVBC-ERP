@@ -467,7 +467,7 @@ const Layout = () => {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className={`px-4 md:px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+      <div className={`px-4 md:px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-[#2A2A2E]' : 'border-zinc-200'}`}>
         <div className="flex items-center gap-3">
           <img
             src="https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png"
@@ -482,7 +482,7 @@ const Layout = () => {
         {isMobile && (
           <button
             onClick={() => setSidebarOpen(false)}
-            className={`p-2 rounded-lg ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-zinc-100 text-zinc-600'}`}
+            className={`p-2 rounded-lg ${isDark ? 'hover:bg-[#2A2A2E] text-zinc-300' : 'hover:bg-zinc-100 text-zinc-600'}`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -567,7 +567,7 @@ const Layout = () => {
                   .map(item => <NavLink key={item.name} item={item} />)}
                 {salesOtherItems.length > 0 && (
                   <>
-                    <div className={`my-0.5 mx-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`} />
+                    <div className={`my-0.5 mx-3 border-t ${isDark ? 'border-[#2A2A2E]' : 'border-zinc-100'}`} />
                     {salesOtherItems.map(item => <NavLink key={item.name} item={item} />)}
                   </>
                 )}
@@ -639,9 +639,9 @@ const Layout = () => {
       </nav>
 
       {/* User section */}
-      <div className={`px-3 py-3 border-t ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
+      <div className={`px-3 py-3 border-t ${isDark ? 'border-[#2A2A2E]' : 'border-zinc-200'}`}>
         <Link to="/profile" className={`flex items-center gap-2 rounded-md md:rounded-sm px-2 py-2 md:py-1.5 -mx-1 ${
-          isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-50'
+          isDark ? 'hover:bg-[#2A2A2E]' : 'hover:bg-zinc-50'
         }`}>
           <div className={`w-8 h-8 md:w-7 md:h-7 rounded-full flex items-center justify-center text-sm md:text-xs font-medium ${
             isDark ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-200 text-zinc-700'
@@ -725,7 +725,7 @@ const Layout = () => {
           />
           {/* Sidebar */}
           <aside className={`fixed left-0 top-0 w-72 h-full z-50 transition-colors duration-200 ${
-            isDark ? 'bg-zinc-900' : 'bg-white'
+            isDark ? 'bg-[#1A1A1C]' : 'bg-white'
           }`}>
             <SidebarContent />
           </aside>
@@ -742,7 +742,7 @@ const Layout = () => {
             <button
               onClick={() => setSidebarOpen(true)}
               data-testid="mobile-menu-btn"
-              className={`p-2 rounded-lg ${isDark ? 'hover:bg-zinc-800 text-zinc-400' : 'hover:bg-zinc-100 text-zinc-600'}`}
+              className={`p-2 rounded-lg ${isDark ? 'hover:bg-[#2A2A2E] text-zinc-300' : 'hover:bg-zinc-100 text-zinc-600'}`}
             >
               <Menu className="w-5 h-5" />
             </button>

@@ -464,7 +464,7 @@ const ModernSidebar = ({
                   ? 'bg-emerald-600 text-white' 
                   : 'bg-emerald-500 text-white'
                 : isDark
-                  ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
+                  ? 'text-zinc-200 hover:bg-[#2A2A2E] hover:text-white'
                   : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
             }`}
             data-testid={`icon-${section.key}`}
@@ -478,10 +478,10 @@ const ModernSidebar = ({
             className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 relative cursor-pointer ${
               isCurrentSection || hoveredSection === section.key
                 ? isDark 
-                  ? 'bg-zinc-800 text-zinc-100' 
+                  ? 'bg-[#2A2A2E] text-white' 
                   : 'bg-zinc-100 text-zinc-900'
                 : isDark
-                  ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
+                  ? 'text-zinc-200 hover:bg-[#2A2A2E] hover:text-white'
                   : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
             }`}
             data-testid={`icon-${section.key}`}
@@ -525,7 +525,7 @@ const ModernSidebar = ({
                 <div 
                   key={item.name} 
                   className={`px-4 py-1.5 text-[10px] uppercase tracking-wider font-semibold mt-2 first:mt-0 ${
-                    isDark ? 'text-zinc-500' : 'text-zinc-400'
+                    isDark ? 'text-zinc-400' : 'text-zinc-400'
                   }`}
                 >
                   {item.name.replace(/—/g, '').trim()}
@@ -544,7 +544,7 @@ const ModernSidebar = ({
                       ? 'bg-zinc-800 text-emerald-400' 
                       : 'bg-emerald-50 text-emerald-600'
                     : isDark
-                      ? 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
+                      ? 'text-zinc-200 hover:bg-[#2A2A2E] hover:text-white'
                       : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'
                 }`}
               >
@@ -605,7 +605,7 @@ const ModernSidebar = ({
                   <div 
                     key={item.name} 
                     className={`px-3 py-1.5 text-[10px] uppercase tracking-wider font-semibold mt-2 first:mt-0 ${
-                      isDark ? 'text-zinc-500' : 'text-zinc-400'
+                      isDark ? 'text-zinc-400' : 'text-zinc-400'
                     }`}
                   >
                     {item.name.replace(/—/g, '').trim()}
@@ -666,7 +666,7 @@ const ModernSidebar = ({
       role="navigation"
       aria-label="Main navigation"
       className={`flex h-screen sticky top-0 transition-all duration-300 outline-none ${
-        isDark ? 'bg-zinc-900' : 'bg-white'
+        isDark ? 'bg-[#1A1A1C]' : 'bg-white'
       } ${isKeyboardNav ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
       data-testid="modern-sidebar"
       onFocus={() => {
@@ -679,7 +679,7 @@ const ModernSidebar = ({
       {/* Icon Bar - Always visible */}
       <div 
         className={`w-[70px] flex flex-col border-r flex-shrink-0 ${
-          isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'
+          isDark ? 'bg-[#0F0F10] border-[#2A2A2E]' : 'bg-zinc-50 border-zinc-200'
         }`}
       >
         {/* Logo/Toggle */}
@@ -724,7 +724,7 @@ const ModernSidebar = ({
             title="Notifications"
             className={`w-12 h-12 flex items-center justify-center rounded-xl relative transition-colors cursor-pointer ${
               isDark
-                ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
+                ? 'text-zinc-300 hover:bg-[#2A2A2E] hover:text-white'
                 : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
             }`}
             data-testid="icon-notifications"
@@ -743,7 +743,7 @@ const ModernSidebar = ({
             title="Settings"
             className={`w-12 h-12 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${
               isDark
-                ? 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
+                ? 'text-zinc-300 hover:bg-[#2A2A2E] hover:text-white'
                 : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
             }`}
             data-testid="icon-settings"
@@ -758,7 +758,7 @@ const ModernSidebar = ({
               title="Profile Menu"
               className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
                 showProfileMenu
-                  ? isDark ? 'bg-zinc-800' : 'bg-zinc-100'
+                  ? isDark ? 'bg-[#2A2A2E]' : 'bg-zinc-100'
                   : isDark
                     ? 'hover:bg-zinc-800'
                     : 'hover:bg-zinc-100'
@@ -766,7 +766,7 @@ const ModernSidebar = ({
               data-testid="profile-menu-trigger"
             >
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${
-                isDark ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-200 text-zinc-700'
+                isDark ? 'bg-[#2A2A2E] text-zinc-200' : 'bg-zinc-200 text-zinc-700'
               }`}>
                 {sanitizeDisplayText(user?.full_name)?.charAt(0) || 'U'}
               </div>
@@ -776,14 +776,14 @@ const ModernSidebar = ({
             {showProfileMenu && (
               <div 
                 className={`absolute bottom-full left-0 mb-2 w-56 rounded-xl shadow-xl border z-50 ${
-                  isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'
+                  isDark ? 'bg-[#0F0F10] border-[#2A2A2E]' : 'bg-white border-zinc-200'
                 }`}
               >
                 {/* User Info Header */}
                 <div className={`px-4 py-3 border-b ${isDark ? 'border-zinc-800' : 'border-zinc-100'}`}>
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
-                      isDark ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-200 text-zinc-700'
+                      isDark ? 'bg-[#2A2A2E] text-zinc-200' : 'bg-zinc-200 text-zinc-700'
                     }`}>
                       {sanitizeDisplayText(user?.full_name)?.charAt(0) || 'U'}
                     </div>
@@ -791,7 +791,7 @@ const ModernSidebar = ({
                       <div className={`text-sm font-semibold truncate ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
                         {sanitizeDisplayText(user?.full_name)}
                       </div>
-                      <div className={`text-xs capitalize truncate ${isDark ? 'text-zinc-500' : 'text-zinc-500'}`}>
+                      <div className={`text-xs capitalize truncate ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                         {user?.role?.replace(/_/g, ' ')}
                       </div>
                     </div>
@@ -890,7 +890,7 @@ const ModernSidebar = ({
             isDark ? 'border-zinc-800' : 'border-zinc-200'
           }`}>
             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${
-              isDark ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-200 text-zinc-700'
+              isDark ? 'bg-[#2A2A2E] text-zinc-200' : 'bg-zinc-200 text-zinc-700'
             }`}>
               {sanitizeDisplayText(user?.full_name)?.charAt(0) || 'U'}
             </div>
@@ -903,17 +903,17 @@ const ModernSidebar = ({
               </div>
             </div>
             <button className={`p-1 rounded ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
-              <MoreVertical className={`w-4 h-4 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
+              <MoreVertical className={`w-4 h-4 ${isDark ? 'text-zinc-400' : 'text-zinc-400'}`} />
             </button>
           </div>
 
           {/* Search */}
           <div className={`px-3 py-3 border-b ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-              isDark ? 'bg-zinc-800' : 'bg-zinc-100'
+              isDark ? 'bg-[#2A2A2E]' : 'bg-zinc-100'
             }`}>
-              <Search className={`w-4 h-4 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`} />
-              <span className={`text-sm ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>Search</span>
+              <Search className={`w-4 h-4 ${isDark ? 'text-zinc-400' : 'text-zinc-400'}`} />
+              <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-400'}`}>Search</span>
             </div>
           </div>
 
@@ -997,17 +997,17 @@ const ModernSidebar = ({
             {/* Keyboard Navigation Hint */}
             {isKeyboardNav && (
               <div className={`mt-3 pt-3 border-t text-center ${isDark ? 'border-zinc-800' : 'border-zinc-200'}`}>
-                <div className={`text-[10px] space-y-1 ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                <div className={`text-[10px] space-y-1 ${isDark ? 'text-zinc-400' : 'text-zinc-400'}`}>
                   <div className="flex items-center justify-center gap-2">
-                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>↑↓</kbd>
+                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-[#2A2A2E]' : 'bg-zinc-100'}`}>↑↓</kbd>
                     <span>Navigate</span>
                   </div>
                   <div className="flex items-center justify-center gap-2">
-                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>←→</kbd>
+                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-[#2A2A2E]' : 'bg-zinc-100'}`}>←→</kbd>
                     <span>Expand/Collapse</span>
                   </div>
                   <div className="flex items-center justify-center gap-2">
-                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-zinc-800' : 'bg-zinc-100'}`}>Enter</kbd>
+                    <kbd className={`px-1.5 py-0.5 rounded text-[9px] ${isDark ? 'bg-[#2A2A2E]' : 'bg-zinc-100'}`}>Enter</kbd>
                     <span>Select</span>
                   </div>
                 </div>
