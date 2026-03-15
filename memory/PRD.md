@@ -6,7 +6,7 @@
 - **Database**: MongoDB (with 48+ indexes for performance)
 - **Auth**: JWT-based authentication (Employee ID + Client ID)
 - **AI**: GPT-4o via Emergent LLM Key
-- **Documentation**: python-docx, reportlab for PDF/DOCX generation
+- **Documentation**: python-docx, reportlab for PDF/DOCX generation, jsPDF for client-side PDF
 - **Email**: SMTP via SendGrid
 - **Caching**: Redis (with in-memory fallback) + React Query client-side
 - **Real-time**: WebSocket for live updates
@@ -15,8 +15,47 @@
 
 ---
 
+### Phase 118: Monthly Expense Report & PDF Export — March 15, 2026 ✅ (Latest)
 
-### Phase 117: Expense Query Identity Fix & Expense Claim Completion — March 15, 2026 ✅ (Latest)
+**Objective:** Add consolidated monthly expense report with PDF download for finance department.
+
+**Features Implemented:**
+
+1. **Monthly Expense Report in My Expenses Page**
+   - Expandable "Monthly Expense Report" section at bottom of My Expenses
+   - Month selector with Load Report button
+   - Summary cards: Total, Approved, Pending, Rejected amounts
+   - Detailed table: Lead name, Company, Stage, Date, Travel Mode, Distance, Amount, Status, Payroll link
+
+2. **PDF Export with Company Header**
+   - Uses jsPDF and jspdf-autotable libraries
+   - Professional header with EXPENSE REPORT title
+   - Employee name, selected month, generation date
+   - Summary section with totals
+   - Auto-table with all expense details
+   - Page numbers in footer
+
+3. **Backend API Endpoints**
+   - `GET /api/expenses/report/monthly-meeting-expenses?month=YYYY-MM`
+   - Returns: summary (totals, counts) + expenses (lead details, travel details, status)
+   - Regular employees see only their own expenses
+   - Admin/HR/Finance see all expenses
+
+4. **My Expenses Page Enhancements**
+   - Meeting expenses now show travel mode, km, round trip indicator
+   - "Meeting" badge for meeting-related expenses
+   - Lead name displayed for meeting expenses
+
+**Files Modified:**
+- `frontend/src/pages/MyExpenses.js`: Added monthly report section with PDF download
+- `backend/routers/expenses.py`: Added monthly report endpoints
+- `backend/routers/my_consolidated.py`: Fixed /my/expenses to include user_id query
+
+**Testing:** 100% (19/19 tests passed). Report: `/app/test_reports/iteration_172.json`
+
+---
+
+### Phase 117: Expense Query Identity Fix & Expense Claim Completion — March 15, 2026 ✅
 
 **Objective:** Fix critical expense query logic and complete meeting expense claim feature.
 
