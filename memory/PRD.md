@@ -15,7 +15,40 @@
 
 ---
 
-### Phase 118: Monthly Expense Report & PDF Export — March 15, 2026 ✅ (Latest)
+### Phase 119: Expense Governance, Clickable Scorecards & PDF Fix Verification — March 15, 2026 ✅ (Latest)
+
+**Objective:** Verify and test expense governance rules, clickable scorecards, and PDF download functionality.
+
+**Features Verified:**
+
+1. **Expense Creation Governance**
+   - Manual expense creation restricted to Admin/HR/Finance roles only
+   - Sales/Consulting roles cannot see "Office Expense" button on My Expenses page
+   - Role check: `['admin', 'hr_manager', 'hr_executive', 'accounts', 'finance_manager', 'finance_executive']`
+   - Sales/Consulting users must claim expenses through funnel activities (meetings)
+
+2. **Clickable Scorecards on Follow-ups Page**
+   - Summary cards (Overdue, Open, Total, Escalations) now clickable
+   - Clicking a card filters the follow-up list by that status
+   - Visual feedback: ring-2 class highlights selected card
+   - Stage breakdown pills also clickable to filter by funnel stage
+
+3. **PDF Download Fix Verified**
+   - Monthly Expense Report PDF downloads correctly
+   - Uses jspdf with jspdf-autotable (functional import)
+   - Download button enabled when data exists
+
+**Files Involved:**
+- `frontend/src/pages/MyExpenses.js`: Line 347 canCreateManualExpense check
+- `frontend/src/pages/FollowUps.js`: Lines 276-337 clickable scorecard implementation
+- `frontend/src/pages/employee/EmployeeMobileApp.js`: Applied expense governance
+- `frontend/src/pages/finance/Expenses.js`: Applied expense governance
+
+**Testing:** 100% (4/4 frontend tests passed). Report: `/app/test_reports/iteration_173.json`
+
+---
+
+### Phase 118: Monthly Expense Report & PDF Export — March 15, 2026 ✅
 
 **Objective:** Add consolidated monthly expense report with PDF download for finance department.
 
