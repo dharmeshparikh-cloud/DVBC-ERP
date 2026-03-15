@@ -177,6 +177,10 @@ class LeadCreate(BaseModel):
     assigned_to: Optional[str] = None
     next_follow_up: Optional[datetime] = None
     follow_up_notes: Optional[str] = None
+    # Company details fields for Client Master integration
+    industry: Optional[str] = None
+    website: Optional[str] = None
+    address: Optional[str] = None
 
 
 class LeadUpdate(BaseModel):
@@ -203,6 +207,10 @@ class LeadUpdate(BaseModel):
     assigned_to: Optional[str] = None
     next_follow_up: Optional[datetime] = None
     follow_up_notes: Optional[str] = None
+    # Company details fields for Client Master integration
+    industry: Optional[str] = None
+    website: Optional[str] = None
+    address: Optional[str] = None
 
 
 class Project(BaseModel):

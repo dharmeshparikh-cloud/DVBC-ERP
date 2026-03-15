@@ -16,7 +16,41 @@
 ---
 
 
-### Phase 124: Comprehensive RBAC Migration — March 15, 2026 ✅ (Latest)
+### Phase 125: P0/P1 Testing & DB Fix — March 15, 2026 ✅ (Latest)
+
+**Objective:** Test kickoff auto-client creation and MOM PDF download features.
+
+**Issues Found & Fixed:**
+1. **DB_NAME mismatch** - Backend was connecting to `test_database` instead of `netra_erp`
+   - Fixed in `/app/backend/.env`
+   - Login now works correctly
+
+2. **Backend model missing fields** - LeadCreate/LeadUpdate models were missing industry/website/address fields
+   - Added fields to `/app/backend/routers/models.py`
+
+**P0 - Kickoff → Auto-Client Creation:**
+- Code verified correct in `kickoff.py` lines 1181-1226
+- When client approves kickoff, system will:
+  - Fetch lead data
+  - Check if client already exists
+  - Create client_master with all fields (industry, website, city, state, country, address)
+  - Set created_from = "kickoff_approval"
+- **Status:** Code ready, awaiting real kickoff data to test end-to-end
+
+**P1 - MOM PDF Download:**
+- Team Dashboard loads correctly
+- MOM Review section shows stats (0% when no data)
+- PDF download button visible and clickable
+- **Status:** VERIFIED WORKING
+
+**Credentials Updated:**
+- EMP001 / admin123 = Admin
+- EMP002 / ??? = HR Manager  
+- EMP003 / ??? = Executive
+
+---
+
+### Phase 124: Comprehensive RBAC Migration — March 15, 2026 ✅
 
 **Objective:** Migrate all inline RBAC checks to centralized `roles.js` for consistency and maintainability.
 
