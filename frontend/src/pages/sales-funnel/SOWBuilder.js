@@ -10,7 +10,7 @@ import {
   ArrowLeft, Plus, Lock, History, Check, X, Send,
   FileText, Clock, Trash2, Edit2, Eye, Upload, Download,
   CheckCircle, AlertCircle, Clock as ClockIcon, XCircle,
-  Users, UserPlus, Calendar, GanttChart, Save, Paperclip, Cloud
+  Users, UserPlus, Calendar, GanttChart, Save, Paperclip, Cloud, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addWeeks, startOfWeek } from 'date-fns';
@@ -22,6 +22,24 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// Role to Category mapping for auto-suggestion
+const ROLE_TO_CATEGORY_MAP = {
+  'Lead Consultant': 'sales',
+  'Principal Consultant': 'sales',
+  'Sales Consultant': 'sales',
+  'HR Consultant': 'hr',
+  'HR Manager': 'hr',
+  'Operations Consultant': 'operations',
+  'Operations Manager': 'operations',
+  'Training Consultant': 'training',
+  'Trainer': 'training',
+  'Analytics Consultant': 'analytics',
+  'Data Analyst': 'analytics',
+  'Digital Marketing Consultant': 'digital_marketing',
+  'Marketing Consultant': 'digital_marketing',
+  'Social Media Consultant': 'digital_marketing'
+};
 
 const SOW_CATEGORIES = [
   { value: 'sales', label: 'Sales' },
@@ -236,6 +254,50 @@ const SOWBuilder = () => {
     backend_support_role: '',
     documents: []
   });
+
+  // Auto-generate SOW items from team deployment roles
+  const autoGenerateFromTeam = () => {
+    if (!pricingPlan) {
+      toast.error('No pricing plan data available');
+      return;
+    }
+
+    const teamData = pricingPlan.team_deployment || pricingPlan.consultants || [];
+    if (teamData.length === 0) {
+      toast.error('No team deployment data in pricing plan');
+      return;
+    }
+
+    const generatedRows = teamData.map((member, idx) => {
+      const role = member.role || member.consultant_type || 'Consultant';
+      const category = ROLE_TO_CATEGORY_MAP[role] || 'operations';
+      const meetingsPerMonth = member.meetings_per_month || Math.ceil((member.committed_meetings || 12) / (pricingPlan.project_duration_months || 12));
+      
+      return {
+        id: `auto-${Date.now()}-${idx}`,
+        isNew: true,
+        category: category,
+        title: `${role} Engagement - ${member.meeting_type || 'Monthly Review'}`,
+        description: `${meetingsPerMonth} ${member.meeting_type || 'review'} meetings per month via ${member.mode || 'Online'} mode.\n\nDeliverables:\n- Meeting preparation and agenda\n- ${member.meeting_type || 'Review'} session facilitation\n- Action items tracking\n- Progress reports`,
+        timeline_weeks: Math.ceil((pricingPlan.project_duration_months || 12) * 4.33),
+        start_week: 1,
+        status: 'draft',
+        assigned_consultant_id: '',
+        assigned_consultant_name: '',
+        has_backend_support: false,
+        backend_support_id: '',
+        backend_support_name: '',
+        backend_support_role: '',
+        documents: [],
+        // Store reference to team member for future linking
+        _teamRole: role,
+        _teamMeetings: member.committed_meetings || 0
+      };
+    });
+
+    setNewRows([...newRows, ...generatedRows]);
+    toast.success(`Generated ${generatedRows.length} SOW item(s) from team deployment`);
+  };
 
   const addNewRow = () => {
     setNewRows([...newRows, createEmptyRow()]);
@@ -1152,9 +1214,21 @@ const SOWBuilder = () => {
               </table>
             </div>
             
-            {/* Add Row Button - Sales team only */}
+            {/* Add Row Buttons - Sales team only */}
             {canCreateSOW && (
-              <div className="p-4 border-t border-zinc-100">
+              <div className="p-4 border-t border-zinc-100 space-y-2">
+                {/* Auto-generate from Pricing Plan */}
+                {pricingPlan && (pricingPlan.team_deployment?.length > 0 || pricingPlan.consultants?.length > 0) && (
+                  <Button
+                    onClick={autoGenerateFromTeam}
+                    variant="outline"
+                    className="w-full border-dashed border-amber-300 text-amber-700 hover:text-amber-900 hover:border-amber-400 hover:bg-amber-50 rounded-sm"
+                    data-testid="auto-generate-btn"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Auto-Generate from Team Deployment ({(pricingPlan.team_deployment || pricingPlan.consultants).length} roles)
+                  </Button>
+                )}
                 <Button
                   onClick={addNewRow}
                   variant="outline"

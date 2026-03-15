@@ -732,13 +732,7 @@ const Agreements = () => {
               </select>
             </div>
 
-            {/* Inherited Team Info Banner */}
-            {inheritedFromPlan && formData.team_deployment.length > 0 && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-sm text-sm text-blue-700 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Team Deployment inherited from Pricing Plan ({formData.project_tenure_months} months). You can modify if needed.
-              </div>
-            )}
+            {/* Inherited Team Info Banner - Removed, replaced with locked notice in team section */}
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -800,137 +794,68 @@ const Agreements = () => {
               </div>
             </div>
 
-            {/* Team Deployment Section */}
+            {/* Team Deployment Section - LOCKED from Pricing Plan */}
             <div className="border border-zinc-200 rounded-sm p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold text-zinc-950 flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   Team Deployment Structure
+                  <Lock className="w-3 h-3 text-amber-500" />
                 </Label>
                 {formData.team_deployment.length > 0 && (
                   <div className="text-xs text-zinc-500">
-                    Total: <span className="font-semibold text-emerald-600">{calculateTeamTotals().totalMeetings}</span> meetings | 
-                    <span className="font-semibold text-emerald-600"> {formatINR(calculateTeamTotals().totalCost)}</span>
+                    Total: <span className="font-semibold text-emerald-600">{calculateTeamTotals().totalMeetings}</span> meetings
+                    {user?.role === 'admin' && (
+                      <span className="ml-1">| <span className="font-semibold text-emerald-600">{formatINR(calculateTeamTotals().totalCost)}</span></span>
+                    )}
                   </div>
                 )}
               </div>
               
-              {/* Add Team Member Form */}
-              <div className="grid grid-cols-6 gap-2 items-end bg-zinc-50 p-3 rounded-sm">
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-500">Role</Label>
-                  <select
-                    value={newTeamMember.role}
-                    onChange={(e) => setNewTeamMember({ ...newTeamMember, role: e.target.value })}
-                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
-                    data-testid="team-role-select"
-                  >
-                    <option value="">Select role</option>
-                    {DEFAULT_TEAM_ROLES.map(role => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-500">Meeting Type</Label>
-                  <select
-                    value={newTeamMember.meeting_type}
-                    onChange={(e) => setNewTeamMember({ ...newTeamMember, meeting_type: e.target.value })}
-                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
-                    data-testid="team-meeting-type-select"
-                  >
-                    <option value="">Select type</option>
-                    {MEETING_TYPES.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-500">Frequency</Label>
-                  <select
-                    value={newTeamMember.frequency}
-                    onChange={(e) => setNewTeamMember({ ...newTeamMember, frequency: e.target.value })}
-                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
-                    data-testid="team-frequency-select"
-                  >
-                    <option value="">Select</option>
-                    {FREQUENCY_OPTIONS.map(freq => (
-                      <option key={freq.value} value={freq.value}>{freq.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-zinc-500">Mode</Label>
-                  <select
-                    value={newTeamMember.mode}
-                    onChange={(e) => setNewTeamMember({ ...newTeamMember, mode: e.target.value })}
-                    className="w-full h-9 px-2 rounded-sm border border-zinc-200 bg-white text-sm"
-                    data-testid="team-mode-select"
-                  >
-                    {MEETING_MODES.map(mode => (
-                      <option key={mode} value={mode}>{mode}</option>
-                    ))}
-                  </select>
-                </div>
-                {/* Rate/Meeting hidden - kept in backend for calculations */}
-                <input type="hidden" value={newTeamMember.base_rate_per_meeting} />
-                <Button type="button" onClick={addTeamMember} size="sm" className="h-9" data-testid="add-team-member-btn">
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* Preview of committed meetings - without rate info */}
-              {newTeamMember.frequency && (
-                <div className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-sm">
-                  Preview: <span className="font-semibold">{calculateCommittedMeetings(newTeamMember.frequency, formData.project_tenure_months)}</span> committed meetings for {formData.project_tenure_months} months
+              {/* Locked Notice */}
+              {inheritedFromPlan && formData.team_deployment.length > 0 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm text-xs text-amber-700 flex items-center gap-2">
+                  <Lock className="w-3 h-3" />
+                  Team deployment is locked from Pricing Plan. To modify, update the Pricing Plan.
                 </div>
               )}
 
-              {/* Team Members List - Rate column hidden */}
+              {/* Team Members List - Read Only (no add/remove) */}
               {formData.team_deployment.length > 0 && (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-6 gap-2 text-xs font-medium text-zinc-500 px-2">
+                  <div className={`grid ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-4'} gap-2 text-xs font-medium text-zinc-500 px-2`}>
                     <div>Role</div>
                     <div>Meeting Type</div>
                     <div>Frequency</div>
-                    <div>Committed</div>
-                    <div>Subtotal</div>
-                    <div></div>
+                    <div className="text-center">Committed Meetings</div>
+                    {user?.role === 'admin' && <div className="text-right">Rate/Meeting</div>}
                   </div>
                   {formData.team_deployment.map((member, index) => (
-                    <div key={member.id || index} className="grid grid-cols-6 gap-2 items-center p-2 bg-white border border-zinc-100 rounded-sm text-sm" data-testid={`team-member-${index}`}>
+                    <div key={member.id || index} className={`grid ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-4'} gap-2 items-center p-2 bg-zinc-50 border border-zinc-100 rounded-sm text-sm`} data-testid={`team-member-${index}`}>
                       <div className="font-medium truncate" title={member.role}>{member.role}</div>
                       <div className="truncate" title={member.meeting_type}>{member.meeting_type}</div>
                       <div className="truncate">{member.frequency}</div>
-                      <div className="font-semibold text-blue-600">{member.committed_meetings || 0}</div>
-                      <div className="font-semibold text-emerald-600">{formatINR((member.committed_meetings || 0) * (member.base_rate_per_meeting || 12500))}</div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeTeamMember(index)}
-                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        data-testid={`remove-team-member-${index}`}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      <div className="text-center font-semibold text-blue-600">{member.committed_meetings || 0}</div>
+                      {user?.role === 'admin' && (
+                        <div className="text-right font-semibold text-zinc-600">{formatINR(member.base_rate_per_meeting || 12500)}</div>
+                      )}
                     </div>
                   ))}
                   
                   {/* Totals Row */}
-                  <div className="grid grid-cols-7 gap-2 items-center p-2 bg-zinc-100 border border-zinc-200 rounded-sm text-sm font-semibold">
-                    <div className="col-span-4 text-right">Total:</div>
-                    <div className="text-blue-700">{calculateTeamTotals().totalMeetings}</div>
-                    <div className="text-emerald-700">{formatINR(calculateTeamTotals().totalCost)}</div>
-                    <div></div>
+                  <div className={`grid ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-4'} gap-2 items-center p-2 bg-zinc-100 border border-zinc-200 rounded-sm text-sm font-semibold`}>
+                    <div className="col-span-3 text-right">Total:</div>
+                    <div className="text-center text-blue-700">{calculateTeamTotals().totalMeetings}</div>
+                    {user?.role === 'admin' && (
+                      <div className="text-right text-emerald-700">{formatINR(calculateTeamTotals().totalCost)}</div>
+                    )}
                   </div>
                 </div>
               )}
               
               {formData.team_deployment.length === 0 && (
                 <p className="text-sm text-zinc-400 text-center py-4">
-                  No team members added. Add team deployment structure above.
+                  Select a quotation to inherit team deployment from the Pricing Plan.
                 </p>
               )}
             </div>

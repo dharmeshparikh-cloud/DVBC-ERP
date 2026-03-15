@@ -1044,23 +1044,25 @@ const PricingPlanBuilder = () => {
             {/* Team Members Table */}
             {teamDeployment.length > 0 && (
               <div className="space-y-2">
-                <div className="grid grid-cols-9 gap-2 text-xs font-medium text-zinc-500 px-3 py-2 bg-zinc-100 rounded-t-sm">
+                <div className={`grid ${user?.role === 'admin' ? 'grid-cols-9' : 'grid-cols-7'} gap-2 text-xs font-medium text-zinc-500 px-3 py-2 bg-zinc-100 rounded-t-sm`}>
                   <div>Role</div>
                   <div>Tenure Type</div>
                   <div>Meeting Type</div>
                   <div className="text-center">Allocation %</div>
-                  <div className="text-right">Breakup (₹)</div>
+                  {user?.role === 'admin' && <div className="text-right">Breakup (₹)</div>}
                   <div className="text-center">Meetings</div>
-                  <div className="text-right flex items-center justify-end gap-1">
-                    Rate/Meeting <Lock className="w-3 h-3 text-zinc-400" />
-                  </div>
+                  {user?.role === 'admin' && (
+                    <div className="text-right flex items-center justify-end gap-1">
+                      Rate/Meeting <Lock className="w-3 h-3 text-zinc-400" />
+                    </div>
+                  )}
                   <div className="text-center">Count</div>
                   <div></div>
                 </div>
                 {teamDeployment.map((member, index) => (
                   <div 
                     key={member.id || index} 
-                    className="grid grid-cols-9 gap-2 items-center px-3 py-2 bg-white border border-zinc-100 rounded-sm text-sm"
+                    className={`grid ${user?.role === 'admin' ? 'grid-cols-9' : 'grid-cols-7'} gap-2 items-center px-3 py-2 bg-white border border-zinc-100 rounded-sm text-sm`}
                     data-testid={`team-member-${index}`}
                   >
                     <div className="font-medium truncate" title={member.role}>{member.role}</div>
@@ -1071,16 +1073,20 @@ const PricingPlanBuilder = () => {
                     <div className="text-center font-semibold text-blue-600">
                       {(member.allocation_percentage || 0).toFixed(1)}%
                     </div>
-                    <div className="text-right font-semibold text-emerald-600">
-                      {formatINR(member.breakup_amount || 0)}
-                    </div>
+                    {user?.role === 'admin' && (
+                      <div className="text-right font-semibold text-emerald-600">
+                        {formatINR(member.breakup_amount || 0)}
+                      </div>
+                    )}
                     <div className="text-center font-semibold text-blue-600">
                       {member.committed_meetings || 0}
                     </div>
-                    <div className="text-right text-zinc-600 flex items-center justify-end gap-1">
-                      {formatINR(member.rate_per_meeting || 0)}
-                      <Lock className="w-3 h-3 text-zinc-300" />
-                    </div>
+                    {user?.role === 'admin' && (
+                      <div className="text-right text-zinc-600 flex items-center justify-end gap-1">
+                        {formatINR(member.rate_per_meeting || 0)}
+                        <Lock className="w-3 h-3 text-zinc-300" />
+                      </div>
+                    )}
                     <div className="text-center">{member.count || 1}</div>
                     <Button
                       type="button"
@@ -1096,12 +1102,12 @@ const PricingPlanBuilder = () => {
                 ))}
                 
                 {/* Totals Row */}
-                <div className="grid grid-cols-9 gap-2 items-center px-3 py-2 bg-zinc-100 border border-zinc-200 rounded-b-sm text-sm font-semibold">
+                <div className={`grid ${user?.role === 'admin' ? 'grid-cols-9' : 'grid-cols-7'} gap-2 items-center px-3 py-2 bg-zinc-100 border border-zinc-200 rounded-b-sm text-sm font-semibold`}>
                   <div className="col-span-3 text-right">Total:</div>
                   <div className="text-center">100%</div>
-                  <div className="text-right text-emerald-700">{formatINR(totals.allocatedTotal)}</div>
+                  {user?.role === 'admin' && <div className="text-right text-emerald-700">{formatINR(totals.allocatedTotal)}</div>}
                   <div className="text-center text-blue-700">{totals.totalMeetings}</div>
-                  <div className="col-span-3"></div>
+                  <div className={user?.role === 'admin' ? 'col-span-3' : 'col-span-2'}></div>
                 </div>
               </div>
             )}

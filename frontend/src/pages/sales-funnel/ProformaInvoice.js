@@ -910,6 +910,7 @@ const ProformaInvoice = () => {
                 <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
                   <Users className="w-4 h-4" />
                   Team Deployment (from Pricing Plan)
+                  <Lock className="w-3 h-3 text-amber-500" />
                 </div>
                 <div className="text-xs text-blue-600 mb-2">
                   Duration: {selectedPlanDetails.project_duration_months} months ({selectedPlanDetails.project_duration_type?.replace('_', ' ')})
@@ -917,32 +918,31 @@ const ProformaInvoice = () => {
                 
                 {(selectedPlanDetails.team_deployment?.length > 0 || selectedPlanDetails.consultants?.length > 0) ? (
                   <div className="space-y-1">
-                    <div className="grid grid-cols-6 gap-2 text-xs font-medium text-blue-600 px-2">
+                    <div className={`grid ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-3'} gap-2 text-xs font-medium text-blue-600 px-2`}>
                       <div>Role</div>
                       <div>Meeting Type</div>
-                      <div>Frequency</div>
-                      <div>Rate</div>
-                      <div>Meetings</div>
-                      <div>Subtotal</div>
+                      {user?.role === 'admin' && <div>Rate</div>}
+                      <div className="text-center">Meetings</div>
+                      {user?.role === 'admin' && <div className="text-right">Subtotal</div>}
                     </div>
                     {(selectedPlanDetails.team_deployment || selectedPlanDetails.consultants).map((member, idx) => {
                       const meetings = (member.committed_meetings || member.meetings || 0) * (member.count || 1);
                       const cost = meetings * (member.rate_per_meeting || 12500);
                       return (
-                        <div key={idx} className="grid grid-cols-6 gap-2 text-xs px-2 py-1 bg-white rounded-sm">
+                        <div key={idx} className={`grid ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-3'} gap-2 text-xs px-2 py-1 bg-white rounded-sm`}>
                           <div className="truncate">{member.role || member.consultant_type}</div>
                           <div className="truncate">{member.meeting_type || '-'}</div>
-                          <div className="truncate">{member.frequency || '-'}</div>
-                          <div>{formatINR(member.rate_per_meeting || 12500)}</div>
-                          <div className="font-semibold text-blue-700">{meetings}</div>
-                          <div className="font-semibold text-emerald-700">{formatINR(cost)}</div>
+                          {user?.role === 'admin' && <div>{formatINR(member.rate_per_meeting || 12500)}</div>}
+                          <div className="text-center font-semibold text-blue-700">{meetings}</div>
+                          {user?.role === 'admin' && <div className="text-right font-semibold text-emerald-700">{formatINR(cost)}</div>}
                         </div>
                       );
                     })}
-                    <div className="grid grid-cols-6 gap-2 text-xs font-semibold px-2 pt-2 border-t border-blue-200">
-                      <div className="col-span-4 text-right">Total:</div>
-                      <div className="text-blue-700">{calculatePlanTotals(selectedPlanDetails).totalMeetings}</div>
-                      <div className="text-emerald-700">{formatINR(calculatePlanTotals(selectedPlanDetails).subtotal)}</div>
+                    <div className={`grid ${user?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-3'} gap-2 text-xs font-semibold px-2 pt-2 border-t border-blue-200`}>
+                      <div className={user?.role === 'admin' ? 'col-span-2' : 'col-span-1'} />
+                      {user?.role === 'admin' && <div />}
+                      <div className="text-center text-blue-700">{calculatePlanTotals(selectedPlanDetails).totalMeetings}</div>
+                      {user?.role === 'admin' && <div className="text-right text-emerald-700">{formatINR(calculatePlanTotals(selectedPlanDetails).subtotal)}</div>}
                     </div>
                   </div>
                 ) : (
