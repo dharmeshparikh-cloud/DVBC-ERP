@@ -95,7 +95,7 @@ def calculate_lead_score(lead_data: dict) -> tuple:
 
 @router.post("", response_model=Lead)
 async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_current_user)):
-    """Create a new lead."""
+    """Create a new lead with duplicate detection."""
     db = get_db()
     
     # RBAC Migration: Check if manager-only role (view-only)
@@ -105,6 +105,27 @@ async def create_lead(lead_create: LeadCreate, current_user: User = Depends(get_
         raise HTTPException(status_code=403, detail="Managers can only view and download")
     
     lead_dict = lead_create.model_dump()
+    
+    # SSOT: Check for duplicates before creating
+    from services.lead_ssot_service import check_duplicate_lead
+    duplicate_result = await check_duplicate_lead(
+        db,
+        email=lead_dict.get("email"),
+        phone=lead_dict.get("phone"),
+        company=lead_dict.get("company")
+    )
+    
+    if duplicate_result["has_duplicates"]:
+        # Return duplicate warning with existing lead info
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Potential duplicate lead found",
+                "duplicates": duplicate_result["duplicates"],
+                "existing_lead_id": duplicate_result["duplicates"][0]["existing_lead"]["id"],
+                "suggestion": "Consider using the existing lead instead of creating a duplicate"
+            }
+        )
     
     # Calculate lead score
     score, breakdown = calculate_lead_score(lead_dict)
@@ -1078,3 +1099,144 @@ async def get_all_funnel_drafts(current_user: User = Depends(get_current_user)):
     
     return drafts
 
+
+
+# ==================== SSOT (Single Source of Truth) ENDPOINTS ====================
+
+# Import SSOT service
+import sys
+sys.path.insert(0, '/app/backend')
+from services.lead_ssot_service import (
+    check_duplicate_lead, 
+    get_lead_master_data,
+    search_leads_for_dropdown,
+    get_ssot_report,
+    LEAD_SOURCES,
+    LEAD_MASTER_FIELDS,
+    DOWNSTREAM_FORMS
+)
+
+
+@router.get("/ssot/lead-sources")
+async def get_lead_sources():
+    """Get available lead source options for dropdown."""
+    return {"sources": LEAD_SOURCES}
+
+
+@router.post("/ssot/check-duplicates")
+async def check_lead_duplicates(
+    email: Optional[str] = None,
+    phone: Optional[str] = None,
+    company: Optional[str] = None,
+    exclude_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Check for duplicate leads before creation.
+    Returns warning if duplicates found.
+    """
+    db = get_db()
+    result = await check_duplicate_lead(db, email, phone, company, exclude_id)
+    return result
+
+
+@router.get("/ssot/master-data/{lead_id}")
+async def get_lead_ssot_data(
+    lead_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get master field data from lead for auto-filling downstream forms.
+    These fields should be locked/read-only in downstream forms.
+    """
+    db = get_db()
+    
+    # First check if user has access to this lead
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "created_by": 1, "assigned_to": 1})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Check access
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=True)
+    if not has_role(current_user.role, admin_roles):
+        if lead.get("created_by") != current_user.id and lead.get("assigned_to") != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    master_data = await get_lead_master_data(db, lead_id)
+    if not master_data:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    return {
+        "master_data": master_data,
+        "locked_fields": LEAD_MASTER_FIELDS,
+        "message": "These fields are auto-filled from lead and should be read-only"
+    }
+
+
+@router.get("/ssot/search")
+async def search_leads_ssot(
+    q: str = Query("", description="Search query"),
+    limit: int = Query(20, le=50),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Search leads for selection dropdown in downstream forms.
+    Returns minimal data for selection UI.
+    """
+    db = get_db()
+    
+    if len(q) < 2:
+        # Return recent leads if query too short
+        cursor = db.leads.find(
+            {"$or": [
+                {"created_by": current_user.id},
+                {"assigned_to": current_user.id}
+            ]},
+            {
+                "_id": 0,
+                "id": 1,
+                "company": 1,
+                "first_name": 1,
+                "last_name": 1,
+                "email": 1,
+                "phone": 1,
+                "status": 1,
+                "city": 1
+            }
+        ).sort("updated_at", -1).limit(limit)
+        
+        leads = await cursor.to_list(length=limit)
+    else:
+        leads = await search_leads_for_dropdown(db, q, current_user.id, limit)
+        return {"leads": leads, "total": len(leads)}
+    
+    formatted_leads = [
+        {
+            "id": lead["id"],
+            "label": f"{lead.get('company', 'Unknown')} - {lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+            "company": lead.get("company", ""),
+            "contact": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip(),
+            "email": lead.get("email", ""),
+            "phone": lead.get("phone", ""),
+            "status": lead.get("status", ""),
+            "city": lead.get("city", "")
+        }
+        for lead in leads
+    ]
+    
+    return {"leads": formatted_leads, "total": len(formatted_leads)}
+
+
+@router.get("/ssot/report")
+async def get_ssot_implementation_report(current_user: User = Depends(get_current_user)):
+    """
+    Get report of SSOT implementation:
+    - Fields locked
+    - Forms updated  
+    - Tables referencing lead_id
+    """
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=True)
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Admin only")
+    
+    return get_ssot_report()
