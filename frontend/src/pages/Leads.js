@@ -146,6 +146,16 @@ const Leads = () => {
   const [timelineFilter, setTimelineFilter] = useState('all');
   const [suggestions, setSuggestions] = useState({});
   const [viewMode, setViewMode] = useState('list'); // Default to list view
+  
+  // Auto-switch to card view on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) setViewMode('card');
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [showDraftSelector, setShowDraftSelector] = useState(false);
 
   // React Query hooks for data fetching

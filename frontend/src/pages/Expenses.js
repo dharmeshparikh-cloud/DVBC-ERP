@@ -457,6 +457,43 @@ const Expenses = () => {
           </table>
           </div>
           {/* End Desktop Table */}
+
+          {/* Mobile Card List */}
+          <div className="md:hidden divide-y divide-zinc-100">
+            {expenses.map(expense => (
+              <div key={expense.id} className="p-4 space-y-2" data-testid={`expense-card-${expense.id}`} onClick={() => openViewDialog(expense)}>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-zinc-900 text-sm">{expense.employee_name}</span>
+                  {getStatusBadge(expense.status)}
+                </div>
+                <div className="flex items-center justify-between text-xs text-zinc-500">
+                  <span>{new Date(expense.created_at).toLocaleDateString()}</span>
+                  <span className="font-semibold text-zinc-900 text-sm">₹{expense.total_amount?.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-zinc-500">
+                  <span>{expense.is_office_expense ? 'Office Expense' : expense.client_name || expense.project_name || '-'}</span>
+                  <span>{expense.line_items?.length || 0} item(s)</span>
+                </div>
+                <div className="flex items-center gap-1 pt-1">
+                  {expense.status === 'draft' && expense.created_by === user?.id && (
+                    <Button onClick={(e) => { e.stopPropagation(); handleSubmitExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-blue-600">
+                      <Send className="w-3 h-3 mr-1" /> Submit
+                    </Button>
+                  )}
+                  {expense.status === 'pending' && isHROrAdmin && (
+                    <>
+                      <Button onClick={(e) => { e.stopPropagation(); handleApproveExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-emerald-600">
+                        <CheckCircle className="w-3 h-3 mr-1" /> Approve
+                      </Button>
+                      <Button onClick={(e) => { e.stopPropagation(); handleRejectExpense(expense.id); }} variant="outline" size="sm" className="h-7 text-xs text-red-600">
+                        <XCircle className="w-3 h-3 mr-1" /> Reject
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
           
           {expenses.length === 0 && (
             <div className="text-center py-12 text-zinc-400">

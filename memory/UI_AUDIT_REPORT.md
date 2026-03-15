@@ -57,12 +57,12 @@
 
 ## 3. PHASE B ROADMAP (Next Session)
 
-### Priority 1: Apply ResponsiveTable to
-- Leads.js (table → mobile cards)
-- Meetings.js
-- Expenses.js
-- Follow-ups.js (minor fixes)
-- Agreements.js
+### Priority 1: Apply ResponsiveTable to — COMPLETED
+- Leads.js — auto-switches to card view on mobile (<768px)
+- Expenses.js — added mobile card rendering (was completely hidden on mobile!)
+- Follow-ups.js — already card-based, no changes needed
+- Agreements.js — auto-switches to card view on mobile
+- BONUS: Employees.js, ProformaInvoice.js, SalesSOWList.js also get auto-switch
 
 ### Priority 2: Dark theme pass on
 - AdminDashboard.js

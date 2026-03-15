@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +32,16 @@ const SalesSOWList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('list');
+  
+  // Auto-switch to card view on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) setViewMode('card');
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // React Query: SOW List
   const { data: sowList = [], isLoading: loadingSOW, refetch: refetchSOW } = useQuery({

@@ -38,6 +38,16 @@ const ProformaInvoice = () => {
   const [selectedLead, setSelectedLead] = useState(null);
   const [autoOpenHandled, setAutoOpenHandled] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  
+  // Auto-switch to card view on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) setViewMode('card');
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [activeView, setActiveView] = useState('list'); // 'list' or 'history'
   
   const [formData, setFormData] = useState({

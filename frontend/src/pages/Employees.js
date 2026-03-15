@@ -55,6 +55,16 @@ const Employees = () => {
   const [filterJoinDate, setFilterJoinDate] = useState(''); // New Joiners filter
   const [activeView, setActiveView] = useState('directory'); // directory, orgchart
   const [viewMode, setViewMode] = useState('list'); // list, card (for directory tab)
+  
+  // Auto-switch to card view on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) setViewMode('card');
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Dialogs
   const [viewDialog, setViewDialog] = useState(false);
