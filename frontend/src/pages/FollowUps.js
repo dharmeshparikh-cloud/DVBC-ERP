@@ -1,5 +1,6 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { AuthContext, API } from '../App';
+import { useTheme } from '../contexts/ThemeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -42,6 +43,8 @@ const ENTITY_COLORS = {
 
 const FollowUps = () => {
   const { user } = useContext(AuthContext);
+  const { theme } = useTheme();
+  const dk = theme === 'dark';
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('open');
@@ -323,7 +326,7 @@ const FollowUps = () => {
 
       {/* Stage Breakdown */}
       {Object.keys(stageCounts).length > 0 && (
-        <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]" data-testid="stage-breakdown-card">
+        <Card className={`shadow-none rounded-sm ${dk ? 'bg-[#1A1A1C] border-[#2A2A2E]' : 'bg-white border-zinc-200'}`} data-testid="stage-breakdown-card">
           <CardContent className="py-4">
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">By Funnel Stage</p>
             <div className="flex flex-wrap gap-2">
@@ -353,7 +356,7 @@ const FollowUps = () => {
 
       {/* Escalation Alert for Managers */}
       {isManager && escalationCount > 0 && (
-        <Card className="border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-900/40">
+        <Card className={dk ? 'border-red-900/40 bg-red-950/20' : 'border-red-300 bg-red-50'}>
           <CardContent className="py-4">
             <div className="flex items-center gap-3 mb-3">
               <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -362,7 +365,7 @@ const FollowUps = () => {
             </div>
             <div className="space-y-2">
               {(escalations?.items || []).slice(0, 5).map(esc => (
-                <div key={esc.id} className="flex items-center justify-between p-3 bg-white dark:bg-[#1A1A1C] rounded border border-red-200 dark:border-red-900/40 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/20" onClick={() => openDetail(esc)} data-testid={`escalation-item-${esc.id}`}>
+                <div key={esc.id} className={`flex items-center justify-between p-3 rounded border cursor-pointer ${dk ? 'bg-[#222226] border-[#2A2A2E] hover:bg-[#2A2A2E]' : 'bg-white border-red-200 hover:bg-red-50'}`} onClick={() => openDetail(esc)} data-testid={`escalation-item-${esc.id}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-red-500" />
                     <div>
@@ -408,7 +411,7 @@ const FollowUps = () => {
       </div>
 
       {/* Follow-ups List */}
-      <Card className="bg-white dark:bg-[#1A1A1C] border-zinc-200 dark:border-[#2A2A2E]">
+      <Card className={`${dk ? 'bg-[#1A1A1C] border-[#2A2A2E]' : 'bg-white border-zinc-200'}`}>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <CalendarCheck className="w-5 h-5" />
@@ -431,7 +434,13 @@ const FollowUps = () => {
                   <div
                     key={fu.id}
                     data-testid={`follow-up-item-${fu.id}`}
-                    className={`p-4 rounded-lg border cursor-pointer hover:shadow-sm transition-shadow ${isOverdue ? 'bg-red-50 border-red-200' : fu.status === 'closed' ? 'bg-zinc-50 border-zinc-200 opacity-70' : 'bg-white border-zinc-200'} dark:bg-[#1A1A1C] dark:border-[#2A2A2E] ${isOverdue ? 'dark:bg-red-950/30 dark:border-red-900/50' : ''}`}
+                    className={`p-4 rounded-lg border cursor-pointer hover:shadow-sm transition-shadow ${
+                      isOverdue
+                        ? dk ? 'bg-red-950/20 border-red-900/30' : 'bg-red-50 border-red-200'
+                        : fu.status === 'closed'
+                        ? dk ? 'bg-[#131314] border-[#2A2A2E] opacity-70' : 'bg-zinc-50 border-zinc-200 opacity-70'
+                        : dk ? 'bg-[#222226] border-[#2A2A2E]' : 'bg-white border-zinc-200'
+                    }`}
                     onClick={() => openDetail(fu)}
                   >
                     <div className="flex justify-between items-start">
@@ -514,7 +523,7 @@ const FollowUps = () => {
               </div>
 
               {selectedFollowUp.last_follow_up_summary && (
-                <div className="p-3 bg-zinc-50 dark:bg-[#0F0F10] rounded-lg border border-zinc-200 dark:border-[#2A2A2E]">
+                <div className={`p-3 rounded-lg border ${dk ? 'bg-[#0F0F10] border-[#2A2A2E]' : 'bg-zinc-50 border-zinc-200'}`}>
                   <p className="text-xs text-zinc-400 mb-1">Last Summary</p>
                   <p className="text-sm text-zinc-700">{selectedFollowUp.last_follow_up_summary}</p>
                 </div>

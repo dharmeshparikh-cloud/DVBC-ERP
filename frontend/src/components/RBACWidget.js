@@ -68,7 +68,7 @@ const RBACWidget = () => {
 
   return (
     <Card 
-      className="border-zinc-200 shadow-none rounded-sm cursor-pointer hover:border-zinc-300 transition-colors"
+      className="border-zinc-200 dark:border-[#2A2A2E] dark:bg-[#1A1A1C] shadow-none rounded-sm cursor-pointer hover:border-zinc-300 dark:hover:border-[#333338] transition-colors"
       onClick={() => setExpanded(!expanded)}
       data-testid="rbac-widget"
     >
@@ -80,8 +80,8 @@ const RBACWidget = () => {
               <TierIcon className="w-4 h-4 text-white" strokeWidth={2} />
             </div>
             <div>
-              <div className="text-xs font-medium text-zinc-800">{roleName}</div>
-              <div className="text-[10px] text-zinc-500">Level {roleLevel}</div>
+              <div className="text-xs font-medium text-zinc-800 dark:text-zinc-100">{roleName}</div>
+              <div className="text-[10px] text-zinc-500 dark:text-zinc-400">Level {roleLevel}</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -98,16 +98,16 @@ const RBACWidget = () => {
 
         {/* Expanded View */}
         {expanded && (
-          <div className="mt-4 pt-3 border-t border-zinc-100 space-y-3" data-testid="rbac-widget-expanded">
+          <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-[#2A2A2E] space-y-3" data-testid="rbac-widget-expanded">
             {/* Department & Data Scope */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-zinc-400 mb-1">Department</div>
-                <div className="text-xs font-medium text-zinc-700">{department}</div>
+                <div className="text-xs font-medium text-zinc-700 dark:text-zinc-200">{department}</div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-zinc-400 mb-1">Data Access</div>
-                <div className="text-xs font-medium text-zinc-700">{getDataScope()}</div>
+                <div className="text-xs font-medium text-zinc-700 dark:text-zinc-200">{getDataScope()}</div>
               </div>
             </div>
 
@@ -122,8 +122,8 @@ const RBACWidget = () => {
                       key={perm.key}
                       className={`flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-xs ${
                         perm.enabled 
-                          ? 'bg-emerald-50 text-emerald-700' 
-                          : 'bg-zinc-50 text-zinc-400'
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' 
+                          : 'bg-zinc-50 text-zinc-400 dark:bg-[#222226] dark:text-zinc-500'
                       }`}
                     >
                       {perm.enabled ? (
