@@ -4,13 +4,20 @@
  * Extracted from EmployeeMobileApp.js for better maintainability
  */
 
-import React, { memo } from 'react';
-import { Wallet, Plus, Receipt } from 'lucide-react';
+import React, { memo, useContext } from 'react';
+import { Wallet, Plus, Receipt, Info } from 'lucide-react';
+import { AuthContext } from '../../../App';
+
+// Roles that can create manual expenses (office expenses only)
+const EXPENSE_CREATION_ROLES = ['admin', 'hr_manager', 'hr_executive', 'accounts', 'finance_manager', 'finance_executive'];
 
 export const ExpenseTab = memo(({
   expenses = [],
   onAddExpense
 }) => {
+  const { user } = useContext(AuthContext);
+  const canCreateManualExpense = EXPENSE_CREATION_ROLES.includes(user?.role);
+  
   const totalClaims = expenses.reduce((sum, e) => sum + (e.total_amount || 0), 0);
   const pendingCount = expenses.filter(e => e.status === 'pending').length;
   const approvedCount = expenses.filter(e => e.status === 'approved').length;
@@ -42,16 +49,25 @@ export const ExpenseTab = memo(({
         </div>
       </div>
 
-      <button 
-        onClick={onAddExpense}
-        onTouchEnd={(e) => { e.preventDefault(); onAddExpense(); }}
-        className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition touch-manipulation cursor-pointer"
-        style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
-        data-testid="add-expense-btn"
-      >
-        <Plus className="w-5 h-5" />
-        Add New Expense
-      </button>
+      {canCreateManualExpense ? (
+        <button 
+          onClick={onAddExpense}
+          onTouchEnd={(e) => { e.preventDefault(); onAddExpense(); }}
+          className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2 active:scale-95 transition touch-manipulation cursor-pointer"
+          style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+          data-testid="add-expense-btn"
+        >
+          <Plus className="w-5 h-5" />
+          Add Office Expense
+        </button>
+      ) : (
+        <div className="w-full py-4 px-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center gap-3 text-sm">
+          <Info className="w-5 h-5 text-blue-500 flex-shrink-0" />
+          <span className="text-zinc-600 dark:text-zinc-400">
+            Travel expenses are claimed through meeting records in the Sales/Consulting funnel.
+          </span>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
         <div className="p-4 border-b border-zinc-100">

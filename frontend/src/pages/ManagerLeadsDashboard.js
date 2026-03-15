@@ -478,9 +478,9 @@ const ManagerLeadsDashboard = () => {
 
       {/* MOM Review Section - Collapsible */}
       <Collapsible open={momSectionOpen} onOpenChange={setMomSectionOpen}>
-        <Card className="border-zinc-200 shadow-none rounded-sm">
+        <Card className="border-zinc-200 dark:border-zinc-700 shadow-none rounded-sm">
           <CollapsibleTrigger className="w-full">
-            <CardHeader className="py-3 cursor-pointer hover:bg-zinc-50">
+            <CardHeader className="py-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-600" />
@@ -517,36 +517,36 @@ const ManagerLeadsDashboard = () => {
                 <div className="space-y-4">
                   {/* MOM Summary Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    <div className="text-center p-3 bg-zinc-50 rounded-lg">
+                    <div className="text-center p-3 bg-zinc-500/10 dark:bg-zinc-500/20 rounded-lg">
                       <Users className="w-5 h-5 mx-auto mb-1 text-blue-600" />
                       <div className="text-xl font-bold">{momReviewData.overall_summary?.total_reportees || 0}</div>
-                      <div className="text-xs text-zinc-500">Team Members</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">Team Members</div>
                     </div>
-                    <div className="text-center p-3 bg-zinc-50 rounded-lg">
+                    <div className="text-center p-3 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-lg">
                       <MessageSquare className="w-5 h-5 mx-auto mb-1 text-indigo-600" />
                       <div className="text-xl font-bold">{momReviewData.overall_summary?.total_meetings || 0}</div>
-                      <div className="text-xs text-zinc-500">Total Meetings</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">Total Meetings</div>
                     </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-600" />
-                      <div className="text-xl font-bold text-green-700">{momReviewData.overall_summary?.meetings_with_mom || 0}</div>
-                      <div className="text-xs text-green-600">With MOM</div>
+                    <div className="text-center p-3 bg-green-500/10 dark:bg-green-500/20 rounded-lg">
+                      <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-600 dark:text-green-400" />
+                      <div className="text-xl font-bold text-green-700 dark:text-green-400">{momReviewData.overall_summary?.meetings_with_mom || 0}</div>
+                      <div className="text-xs text-green-600 dark:text-green-400">With MOM</div>
                     </div>
-                    <div className="text-center p-3 bg-red-50 rounded-lg">
-                      <XCircle className="w-5 h-5 mx-auto mb-1 text-red-600" />
-                      <div className="text-xl font-bold text-red-700">{momReviewData.overall_summary?.meetings_without_mom || 0}</div>
-                      <div className="text-xs text-red-600">Pending MOM</div>
+                    <div className="text-center p-3 bg-red-500/10 dark:bg-red-500/20 rounded-lg">
+                      <XCircle className="w-5 h-5 mx-auto mb-1 text-red-600 dark:text-red-400" />
+                      <div className="text-xl font-bold text-red-700 dark:text-red-400">{momReviewData.overall_summary?.meetings_without_mom || 0}</div>
+                      <div className="text-xs text-red-600 dark:text-red-400">Pending MOM</div>
                     </div>
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <Send className="w-5 h-5 mx-auto mb-1 text-blue-600" />
-                      <div className="text-xl font-bold text-blue-700">{momReviewData.overall_summary?.mom_sent_to_client || 0}</div>
-                      <div className="text-xs text-blue-600">Sent to Client</div>
+                    <div className="text-center p-3 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg">
+                      <Send className="w-5 h-5 mx-auto mb-1 text-blue-600 dark:text-blue-400" />
+                      <div className="text-xl font-bold text-blue-700 dark:text-blue-400">{momReviewData.overall_summary?.mom_sent_to_client || 0}</div>
+                      <div className="text-xs text-blue-600 dark:text-blue-400">Sent to Client</div>
                     </div>
                   </div>
 
                   {/* Completion Rate Progress */}
-                  <div className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg">
-                    <span className="text-sm text-zinc-600">MOM Completion Rate:</span>
+                  <div className="flex items-center gap-4 p-3 bg-zinc-500/10 dark:bg-zinc-500/20 rounded-lg">
+                    <span className="text-sm text-zinc-600 dark:text-zinc-400">MOM Completion Rate:</span>
                     <div className="flex-1">
                       <Progress value={momReviewData.overall_summary?.mom_completion_rate || 0} className="h-2" />
                     </div>
