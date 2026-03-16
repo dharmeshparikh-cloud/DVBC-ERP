@@ -24,33 +24,56 @@ const TRAVEL_MODES = [
   { id: 'ACCOMPANIED', label: 'Accompanied', icon: Users, color: 'text-amber-600', ratePerKm: 0, noCalculation: true }
 ];
 
-// Load Google Maps script dynamically
+// Google Maps script loading state
+let googleMapsPromise = null;
+
+// Load Google Maps script dynamically - singleton pattern for faster loading
 const loadGoogleMapsScript = () => {
-  return new Promise((resolve, reject) => {
-    if (window.google && window.google.maps && window.google.maps.places?.Autocomplete) {
+  if (googleMapsPromise) return googleMapsPromise;
+  
+  googleMapsPromise = new Promise((resolve, reject) => {
+    // Already loaded
+    if (window.google?.maps?.places?.Autocomplete) {
       resolve(window.google.maps);
       return;
     }
 
+    // Check if script exists but not yet loaded
     const existingScript = document.getElementById('google-maps-script');
     if (existingScript) {
-      existingScript.addEventListener('load', () => resolve(window.google.maps));
+      const checkLoaded = setInterval(() => {
+        if (window.google?.maps?.places?.Autocomplete) {
+          clearInterval(checkLoaded);
+          resolve(window.google.maps);
+        }
+      }, 50);
+      setTimeout(() => clearInterval(checkLoaded), 10000);
       return;
     }
 
+    // Create and load script
     const script = document.createElement('script');
     script.id = 'google-maps-script';
-    // Use loading=async for Places library
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
     script.async = true;
-    script.defer = true;
     script.onload = () => {
-      // Wait a bit for Google Maps to fully initialize
-      setTimeout(() => resolve(window.google?.maps), 500);
+      // Poll for Places library to be ready
+      const checkReady = setInterval(() => {
+        if (window.google?.maps?.places?.Autocomplete) {
+          clearInterval(checkReady);
+          resolve(window.google.maps);
+        }
+      }, 50);
+      setTimeout(() => clearInterval(checkReady), 10000);
     };
-    script.onerror = reject;
+    script.onerror = () => {
+      googleMapsPromise = null;
+      reject(new Error('Failed to load Google Maps'));
+    };
     document.head.appendChild(script);
   });
+  
+  return googleMapsPromise;
 };
 
 // Location input with Google Places autocomplete
@@ -58,7 +81,7 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
   const autocompleteRef = useRef(null);
   const localInputRef = useRef(null);
   const ref = inputRef || localInputRef;
-  const [isReady, setIsReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -66,16 +89,13 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
     const initAutocomplete = async () => {
       try {
         const maps = await loadGoogleMapsScript();
-        if (!mounted || !ref.current) return;
+        if (!mounted || !ref.current || autocompleteRef.current) return;
         
-        // Wait for places.Autocomplete to be available
         if (!maps?.places?.Autocomplete) {
-          console.warn('Google Places Autocomplete class not available');
-          setIsReady(true); // Still mark as ready for manual entry
+          console.warn('Google Places Autocomplete not available');
+          setIsLoading(false);
           return;
         }
-        
-        if (autocompleteRef.current) return;
 
         autocompleteRef.current = new maps.places.Autocomplete(ref.current, {
           componentRestrictions: { country: 'in' },
@@ -84,7 +104,7 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
 
         autocompleteRef.current.addListener('place_changed', () => {
           const place = autocompleteRef.current.getPlace();
-          if (place && place.geometry) {
+          if (place?.geometry) {
             const locationData = {
               address: place.formatted_address || place.name,
               name: place.name,
@@ -97,15 +117,14 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
           }
         });
         
-        setIsReady(true);
+        setIsLoading(false);
       } catch (error) {
-        console.error('Failed to load Google Maps:', error);
-        setIsReady(true); // Still allow manual entry
+        console.error('Failed to init autocomplete:', error);
+        setIsLoading(false);
       }
     };
 
     initAutocomplete();
-    
     return () => { mounted = false; };
   }, [onChange, onPlaceSelect, ref]);
 
@@ -118,10 +137,15 @@ const LocationInput = ({ value, onChange, placeholder, label, onPlaceSelect, inp
           ref={ref}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={isLoading ? "Loading..." : placeholder}
           className="pl-9"
           data-testid="location-input"
         />
+        {isLoading && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent" />
+          </div>
+        )}
       </div>
     </div>
   );
