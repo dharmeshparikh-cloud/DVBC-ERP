@@ -310,7 +310,7 @@ async def reset_database():
     admin_user = {
         "id": admin_user_id,
         "employee_id": admin_employee_id,
-        "email": "admin@netra.in",
+        "email": "dharmesh.parikh@dvconsulting.co.in",
         "password_hash": password_hash,
         "role": "admin",
         "department": "Administration",
@@ -328,9 +328,9 @@ async def reset_database():
         "id": admin_user_id,
         "user_id": admin_user_id,
         "employee_id": admin_employee_id,
-        "first_name": "System",
-        "last_name": "Administrator",
-        "email": "admin@netra.in",
+        "first_name": "Dharmesh",
+        "last_name": "Parikh",
+        "email": "dharmesh.parikh@dvconsulting.co.in",
         "phone": "",
         "role": "admin",
         "department": "Administration",
@@ -369,7 +369,7 @@ async def reset_database():
         "preserved_collections": preserved_collections,
         "admin_account": {
             "employee_id": admin_employee_id,
-            "email": "admin@netra.in",
+            "email": "dharmesh.parikh@dvconsulting.co.in",
             "temporary_password": admin_password,
             "note": "CHANGE PASSWORD ON FIRST LOGIN"
         },
@@ -391,7 +391,7 @@ async def reset_database():
     print("DEFAULT ADMIN CREDENTIALS")
     print("-" * 40)
     print(f"  Employee ID: {admin_employee_id}")
-    print(f"  Email: admin@netra.in")
+    print(f"  Email: dharmesh.parikh@dvconsulting.co.in")
     print(f"  Password: {admin_password}")
     print("  ** CHANGE PASSWORD ON FIRST LOGIN **")
     

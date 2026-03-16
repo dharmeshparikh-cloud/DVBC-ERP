@@ -1,62 +1,59 @@
 <analysis>**original_problem_statement:**
-The user initially requested a visual and functional overhaul of the Sales and Team Dashboards to make them more action-driven. This evolved through several iterations of design mockups.
+The user's initial request was a visual and functional overhaul of the Sales and Team Dashboards. This evolved into a series of architectural improvements, including fixing a critical authentication bug, standardizing the backend auth system, and implementing a Single Source of Truth (SSOT) architecture with the Lead as the master record.
 
-The final, approved plan is to implement a combined Profile Performance Hub and Focus Stream view. This enhancement must strictly adhere to the existing design system and UX governance rules. A key part of this feature is adding a profile photo upload functionality to the employee onboarding process. The uploaded photo will be displayed on the new dashboard widgets, with a fallback to a default avatar if no photo exists. The photo upload should handle passport-sized images suitable for print forms, while also generating thumbnails for UI avatars.
+The most recent tasks have focused on hardening the sales funnel by:
+1.  **SSOT Frontend Integration:** Integrating a  component into downstream forms to enforce data consistency.
+2.  **Funnel Enforcement:** Preventing users from creating items (Quotations, Agreements) for leads that have not completed the necessary prior stages (e.g., creating a Pricing Plan).
+3.  **UI/UX Improvements:** Dynamically disabling Create buttons and filtering dropdowns to guide users through the correct funnel sequence.
+4.  **Edit Protection:** Preventing non-admin users from editing SOWs and Agreements once they reach an Approved status.
+5.  **Data Inheritance:** Ensuring data from the Pricing Plan (like team deployment) is inherited and locked in downstream forms like Agreements.
+
+The user is now asking for an analysis of how the Statement of Work (SOW) is configured and distinguished between the Sales and Consulting domains.
 
 **PRODUCT REQUIREMENTS:**
--   **Dashboard Enhancement:**
-    -   Create a  widget to display an employee's photo, name, role, and key performance stats (e.g., Deals, Revenue, Conversion %).
-    -   Create a  widget to provide a zen mode view for working on a single deal at a time, with clear next actions.
-    -   Integrate these new widgets into the  and  pages.
--   **Photo Upload in Onboarding:**
-    -   Add an optional, passport-sized photo upload field to the candidate onboarding form ( and ).
-    -   Create a backend endpoint to handle the image upload, storing the original file and generating a thumbnail for UI use.
-    -   Store the URL of the uploaded photo in the  and  database collections.
--   **UX Governance:**
-    -   All new UI must strictly adhere to the existing design system (colors, typography, spacing, components).
-    -   Reuse existing Shadcn UI components wherever possible.
-    -   No changes to the core application layout, navigation, or existing dashboard structure are permitted without explicit approval.
-    -   The implementation must be fully responsive and dark-mode compatible.
--   **Fallback Gracefully:** If a user has not uploaded a profile photo, the UI must display a default avatar with their initials.
+-   **SSOT System:**
+    -   The Lead entity must be the master record for , , , , etc.
+    -   All downstream forms must start by selecting an eligible Lead.
+    -   Master fields must be auto-filled and read-only.
+-   **Funnel Governance:**
+    -   Users must not be able to create an item in the sales funnel (Pricing Plan, Quotation, SOW, Agreement) if the prerequisite step has not been completed.
+    -   The UI should clearly guide the user by disabling actions or filtering options that are not currently available.
+-   **Edit Protection:**
+    -   Once an SOW or Agreement is approved, it should not be editable by non-admin users.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a stable ERP system with a well-defined frontend design system based on Shadcn UI. A comprehensive RBAC refactor was recently completed, centralizing all frontend role-based logic into . The backend includes routers for managing employees and onboarding. The agent has already defined the backend API endpoint and logic for photo uploads in  and has created empty placeholder files for the new frontend components.
+The application is a stable ERP system with a robust, multi-stage sales funnel. The Single Source of Truth (SSOT) architecture is implemented on the frontend, enforcing data consistency from the lead record downwards. Key forms like Proforma Invoice (Quotations) and Agreements now use a  component that filters for eligible leads, preventing users from starting work on unqualified leads. Create buttons on these pages are dynamically disabled with tooltips if no eligible leads exist. Edit protection has been added to SOWs to prevent changes after approval. SOWs can now be auto-generated from team roles in the pricing plan, and rate visibility is restricted to admins. A critical bug preventing the Agreements page from loading has also been fixed.
 
 **Last working item**:
--   **Last item agent was working:** The agent was in the initial stages of implementing the Profile Photo and Performance Dashboard feature. After setting up the backend photo upload endpoint () and its image processing logic in , the agent created the empty files for the three required frontend components:
-    1.  
-    2.  
-    3.  
-    The immediate next step is to write the code for these components.
+-   **Last item agent was working:** The user requested an analysis of how the Statement of Work (SOW) is configured and distinguished for the Sales and Consulting domains, and also asked for various user login credentials. The agent had begun investigating the relevant codebase by viewing files like , , , and backend router files.
 -   **Status:** IN PROGRESS
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** both
-    -   **Backend:** Use  to test the  endpoint with a test image file. Verify a URL is returned and the files (original and thumbnail) are saved correctly.
-    -   **Frontend:** Use the screenshot tool to verify:
-        1.  The new photo upload component appears correctly in the onboarding form.
-        2.  The  and  widgets render correctly on the Sales and Manager dashboards.
-        3.  The user's photo appears after upload, and the avatar fallback works correctly when no photo is present.
+-   **Agent Testing Done:** N/A
+-   **Which testing method agent to use?** N/A (This is an analysis task).
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   There are no outstanding bugs. The current focus is on a single, large feature implementation.
+-   **Issue 1: Provide SOW Analysis and Login Details (P0)**
+    -   **Description:** The agent needs to complete the analysis of the SOW architecture for Sales vs. Consulting domains and provide the user with the requested login credentials for Admin, HR Manager, and Sales Manager.
+    -   **Attempted fixes:** The agent has viewed the relevant files but has not yet synthesized the information into a response.
+    -   **Next debug checklist:**
+        1.  Analyze the code in , , , and  to map out the data flow and business logic.
+        2.  Distinguish the purpose, creation path, and functionality of a Sales SOW versus a Consulting SOW.
+        3.  Formulate a clear, structured explanation for the user.
+        4.  Provide the login credentials as requested, noting any ambiguity (e.g., Sales Manager vs. Sales Executive).
+    -   **Why fix this issue and what will be achieved with the fix?** To provide the user with the necessary clarity to make informed decisions about future development on the SOW functionality.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** N/A
+    -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Complete Profile Photo and Performance Dashboard Feature (P0)**
-    -   **Where to resume:** The three new React component files have been created but are empty. The agent needs to start by implementing the JSX and logic for .
-    -   **What will be achieved with this?** This will deliver a major UX enhancement requested by the user, including personalized dashboards and an improved onboarding flow.
-    -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None.
+-   This is covered by the pending issue above.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P0) **Test End-to-End Kickoff Approval Flow:** This critical flow (Lead → Funnel → Kickoff Approval → Auto-Client Creation) was implemented but deferred for testing due to an empty database. This needs to be validated.
-    -   (P1) **Verify MOM PDF Download:** The functionality on the Team Dashboard was implemented but its testing was blocked. This needs a final verification.
     -   (P1) **Investigate & Govern Consultant Expense Submission:** An audit is required to apply the same funnel-only governance rules to consultant expense claims.
-
 -   **Future Tasks:**
     -   (P2) Refactor  (large file).
     -   (P2) Refactor  (complex component).
@@ -66,18 +63,23 @@ The application is a stable ERP system with a well-defined frontend design syste
     -   (P2) Implement an Internal Chat System.
 
 **Completed work in this session**
--   **RBAC Centralization (DONE):** Performed a massive refactor across ~38 frontend files to migrate all inline role-based access control logic to a single source of truth: .
--   **Client Master Import Feature (DONE):** Implemented a feature for bulk-importing clients via an Excel template on the  page, including backend logic and API endpoints.
--   **UI & Governance Cleanup (DONE):** Removed the standalone Sales Meetings and My Projects pages and their sidebar links to enforce stricter sales funnel governance, as requested by the user.
--   **Lead-to-Client API (DONE):** Created and verified the new backend API router () required for the Clients page, resolving a critical gap where the frontend was calling a non-existent endpoint.
--   **DB Configuration Fix (DONE):** Resolved a critical login issue by correcting the  in the  file to match the database where user data was stored.
--   **Codebase Audit (DONE):** Performed a scan of the frontend codebase to identify technical debt, including duplicate variables, hooks, and inconsistent RBAC logic, which prompted the successful RBAC refactor.
--   **Dashboard UX Design (DONE):** Engaged in a design process with the user, presenting multiple detailed mockups (including light/dark modes and images) which resulted in an approved implementation plan.
+-   **Funnel Enforcement & UX Improvement:**
+    -   Implemented logic to filter the  dropdown to only show leads eligible for the current funnel stage (e.g., leads with a pricing plan for quotations).
+    -   The backend endpoint  was updated to support a  query parameter.
+    -   Dynamically disabled Create buttons with helpful tooltips on the Proforma Invoice, Agreements, and Dashboard pages if no eligible leads exist, using a new  hook.
+-   **Data Inheritance and Locking:**
+    -   Locked the Team Deployment section in  to be a read-only inherited structure from the associated Pricing Plan.
+    -   Implemented an Auto-Generate feature in  to create SOW items based on team roles from the Pricing Plan.
+    -   Restricted visibility of  to admin users only across , , and .
+-   **Edit Protection:**
+    -   Implemented logic in  to prevent non-admin users from editing or deleting SOW items once they are 'Approved' or in a subsequent stage.
+-   **Bug Fix: Agreements Page Not Loading:**
+    -   Fixed a critical bug where the Agreements page showed No agreements found by adding error handling () to a  data-fetching call. The failure of one API call ( returning 404) was causing the entire query to fail silently.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Large file needs refactoring:**  is too large and should be broken down.
--   **Issue 2: Orphan file discovered:**  appears to be unused and should be investigated for deletion.
--   **Issue 3: Large component needs refactoring:**  has grown too complex and should be broken down.
+-   **Issue 1: Large file needs refactoring:**  is too large and should be broken down. (Tracked in Future Tasks)
+-   **Issue 2: Orphan file discovered:**  appears to be unused and should be investigated for deletion. (Tracked in Future Tasks)
+-   **Issue 3: Large component needs refactoring:**  has grown too complex and should be broken down. (Tracked in Future Tasks)
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -86,74 +88,78 @@ The application is a stable ERP system with a well-defined frontend design syste
 
 
 **Key Technical Concepts**
--   **Centralized RBAC:** All frontend role checks are now managed by helper functions in .
--   **UX Governance:** Strict adherence to a pre-existing design system is mandatory for all UI changes. New features require a UI Change Report and approval before implementation.
--   **Backend Image Processing:** Using Python with Pillow to handle  uploads, validate image properties (size, type), and generate multiple versions (original for print, thumbnail for UI).
--   **Graceful Fallback:** Designing UI components (like avatars) to work correctly whether optional data (like a profile photo) is present or not.
--   **Phased Implementation:** Breaking down a large feature into logical backend and frontend phases.
+-   **Funnel Stage Gating:** Using backend logic ( parameter) and frontend state ( hook) to control user actions based on an entity's progress through a predefined workflow.
+-   **Dynamic UI Control:** Disabling buttons and filtering dropdowns in real-time to provide a guided user experience and prevent errors.
+-   **Defensive Data Fetching:** Using  within  to ensure the failure of one non-critical API call doesn't break an entire page.
+-   **Reusable Hooks:** Abstracting stateful logic () into a custom hook to be reused across multiple components, promoting DRY principles.
+-   **Role-Based Component Rendering:** Conditionally rendering UI elements (like pricing details) based on the user's role.
 
 **key DB schema**
--   **employees:** a  field needs to be added.
--   **users:** a  field needs to be added to sync with the employee record.
-
-**changes in tech stack**
--   **Pillow:** This library was added to the backend dependencies to handle image processing for the photo upload feature.
+-   No schema changes were made in this session. All logic was built upon the existing data models.
 
 **All files of reference**
--   : Contains the new photo upload endpoint logic.
--   : The single source of truth for all frontend RBAC.
--   : The component to be built for handling uploads.
--   : The component to be built for the user profile widget.
--   : The component to be built for the single-deal view.
--   : Target for integrating the photo upload component.
--   : Target for integrating the new dashboard widgets.
+-   **SOW Analysis:**
+    -   
+    -   
+    -   
+    -   
+-   **Recent Funnel Changes:**
+    -   
+    -   
+    -   
+    -   
+    -   
+
+**Areas that need refactoring**:
+-   As noted in Future Tasks,  and  are candidates for refactoring due to their size and complexity.
+-    is a potential orphan file that should be removed if confirmed unused.
 
 **key api endpoints**
--    (New, POST): Endpoint for uploading a user's profile photo.
--    (New, GET): Fetches client data with role-based filtering.
--    (New, POST): Endpoint for bulk-importing clients from an Excel file.
+-    (GET): Modified to accept a  query parameter (, , ) to return only eligible leads.
+-    (GET): The frontend data fetching logic for this endpoint was made more robust.
 
 **Critical Info for New Agent**
--   **Your immediate priority is to implement the three new frontend components:** , , and . The files exist but are empty.
--   **Strictly follow the UX Governance rules.** All UI changes must use the existing design system and components from . The approved plan is detailed in the  in the chat history. Do not deviate.
--   **Complete the backend integration.** After building the frontend components, you must:
-    1.  Integrate  into the onboarding pages.
-    2.  Update the backend  router to handle the  when a candidate is submitted.
-    3.  Ensure the  field is added to the MongoDB schema for  and .
--   **Test the full photo upload flow:** from onboarding to seeing the photo on the dashboard.
--   Once the new dashboard feature is complete and verified, proceed to test the deferred P0 (Kickoff-to-Client) and P1 (MOM PDF Download) tasks.
+-   Your immediate task is to analyze the SOW architecture as requested by the user and provide the required login credentials.
+-   The sales funnel is now strongly gated. The  hook and the  parameter in the  endpoint are the core mechanisms for this.
+-   Be aware of the  pattern for data fetching on pages that need multiple data sources. The fix in  is a key example of how to make this pattern resilient to individual API failures.
+-   When providing login credentials, be precise. The user asked for a Sales Manager, but the known credential is for a Sales Executive. It is best to provide the known credential and mention its role.
+
+**documents and test reports created in this job**
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Approved the revised plan to add photo uploads to the onboarding flow and integrate them into the new dashboard UX. (IN PROGRESS)
-2.  **User:** Clarified that the uploaded photo should be passport size suitable for print forms, with a UI avatar version also generated. (Acknowledged)
-3.  **User:** Approved the UI Change Report with the modification to include photo uploads. (Acknowledged)
-4.  **User:** Requested to add a profile photo upload option to the onboarding flow, which would then be used in the new dashboard UX. (Acknowledged)
-5.  **User:** Approved the agent's plan to combine the Profile Hub and Focus Stream designs while adhering to strict UX governance rules. (Acknowledged)
-6.  **User:** Provided a detailed set of UX governance rules, locking down the design system and requiring all changes to be minimal and compliant. (Acknowledged)
-7.  **User:** Asked to combine elements from the Profile Hub and Focus Stream mockups. (Acknowledged)
-8.  **User:** Requested detailed mockups for Option 6 and Focus Stream in both light and dark modes. (DONE)
-9.  **User:** Asked for images and a new option including a user picture and quick performance stats. (DONE)
-10. **User:** Asked for 5 UX options for the dashboards. (DONE)
+1.  **User:** provide me HR manager login detail and Sales Manager , admin login details (PENDING)
+2.  **User:** I need your understanding on how SOW is configured and distinguished for Sales and Consulting domains and how are it functioning ? Identify business logic (PENDING)
+3.  **User:** Option b (Approved disabling create buttons with tooltips)
+4.  **User:** Yes do that. And also suggest if i hide create button except create lead also for manual progress , will user be struggling to move ahead ?
+5.  **User:** Yes but user for point 1 what can be threat and breach
+6.  **User:** Yes (Approved UX improvements for funnel protection)
+7.  **User:** Still I can create all funnel inside the flow with missing lead stage through create buttons on the all pages. Analyze.
+8.  **User:** Confirm the SOW , agreement, and other pages having no issue in frontend
+9.  **User:** can you add test data wherever required and then test
+10. **User:** Yes (Approved edit protection for SOW/Agreements)
 
 **Project Health Check:**
--   **Broken:** The new Profile Photo and Performance Dashboard feature is mid-implementation and not functional. The backend and frontend are not yet fully integrated.
+-   **Broken:** None. The previously broken Agreements page is now fixed.
 -   **Mocked:** None.
 
 **3rd Party Integrations**
--   **Pillow:** (New) Used for backend image processing.
+-   **Pillow:** Used for backend image processing.
 -   **jspdf & jspdf-autotable:** Used for client-side PDF generation.
 -   **Existing:** APScheduler, React Query, axios, xlsx, Redis, Razorpay, @react-google-maps/api.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, for verifying the initial fixes and API creation.
--   **Test files created:** None.
+-   **Testing agent used after significant changes:** YES. The agent was used multiple times to verify the funnel protection logic, edit protection, and SSOT integrations. All tests passed.
+-   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Test files created:** None. Test data was created via API calls during the session.
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
--   **Admin:**  / 
--   **HR Manager:**  / 
--   **Executive:**  / 
+-   **Admin:**  /  (Employee ID: )
+-   **HR Manager:**  /  (Employee ID: )
+-   **Sales Executive:**  /  (Employee ID: ) - Note: The user asked for a Sales Manager, this is the closest existing role.
 
 **What agent forgot to execute**
--   The agent has not yet modified the  router to handle saving the  upon form submission.
--   The agent has not added the  field to the Pydantic models or the database schema update scripts (if any). This is a required step for the backend to work correctly.</analysis>
+-   The agent has not forgotten any tasks. It is currently in the middle of analyzing the SOW structure as requested by the user.</analysis>

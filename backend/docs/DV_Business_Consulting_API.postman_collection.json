@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://ssot-forms.preview.emergentagent.com",
+      "value": "https://funnel-gating.preview.emergentagent.com",
       "type": "string"
     },
     {
