@@ -1,51 +1,47 @@
 <analysis>**original_problem_statement:**
-The user's initial request was a visual and functional overhaul of the Sales and Team Dashboards. This evolved into a series of architectural improvements, including fixing a critical authentication bug, standardizing the backend auth system, and implementing a Single Source of Truth (SSOT) architecture with the Lead as the master record.
-
-The most recent tasks have focused on hardening the sales funnel by:
-1.  **SSOT Frontend Integration:** Integrating a  component into downstream forms to enforce data consistency.
-2.  **Funnel Enforcement:** Preventing users from creating items (Quotations, Agreements) for leads that have not completed the necessary prior stages (e.g., creating a Pricing Plan).
-3.  **UI/UX Improvements:** Dynamically disabling Create buttons and filtering dropdowns to guide users through the correct funnel sequence.
-4.  **Edit Protection:** Preventing non-admin users from editing SOWs and Agreements once they reach an Approved status.
-5.  **Data Inheritance:** Ensuring data from the Pricing Plan (like team deployment) is inherited and locked in downstream forms like Agreements.
-
-The user is now asking for an analysis of how the Statement of Work (SOW) is configured and distinguished between the Sales and Consulting domains.
+The user's primary goal is to establish a robust and governed expense tracking and meeting management system for their consulting team, mirroring the existing sales team's flow. This requires enforcing a Single Source of Truth (SSOT) architecture, where all consulting meetings, Minutes of Meeting (MOM), and associated expenses are recorded through a single, controlled user interface on the  page.
 
 **PRODUCT REQUIREMENTS:**
--   **SSOT System:**
-    -   The Lead entity must be the master record for , , , , etc.
-    -   All downstream forms must start by selecting an eligible Lead.
-    -   Master fields must be auto-filled and read-only.
--   **Funnel Governance:**
-    -   Users must not be able to create an item in the sales funnel (Pricing Plan, Quotation, SOW, Agreement) if the prerequisite step has not been completed.
-    -   The UI should clearly guide the user by disabling actions or filtering options that are not currently available.
--   **Edit Protection:**
-    -   Once an SOW or Agreement is approved, it should not be editable by non-admin users.
+-   **SSOT System:** The  page must be the sole entry point for recording MOM and expenses. All other meeting creation methods must be disabled.
+-   **Governance & Business Logic:**
+    -   Prevent duplicate expense submissions.
+    -   Enforce meeting quotas based on the project's .
+    -   Implement an approval workflow for meetings exceeding the quota.
+    -   Link Statement of Work (SOW) scopes to meetings, with validation ensuring only project-relevant scopes can be selected.
+    -   Enforce attendance validation for in-person meetings before a MOM can be saved.
+-   **UI/UX & Reporting:**
+    -   Enhance the  page with advanced filters (client, project, date range), a printable meeting detail view, and file attachment capabilities for MOMs.
+    -   Create a comprehensive Consulting Efforts Summary dashboard with clickable scorecards and detailed reporting on meetings, SOW progress, tasks, expenses, and payments.
+-   **Calendar as a Planning Tool:** The main calendar should be repurposed into a planning tool, disabling direct meeting creation.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a stable ERP system with a robust, multi-stage sales funnel. The Single Source of Truth (SSOT) architecture is implemented on the frontend, enforcing data consistency from the lead record downwards. Key forms like Proforma Invoice (Quotations) and Agreements now use a  component that filters for eligible leads, preventing users from starting work on unqualified leads. Create buttons on these pages are dynamically disabled with tooltips if no eligible leads exist. Edit protection has been added to SOWs to prevent changes after approval. SOWs can now be auto-generated from team roles in the pricing plan, and rate visibility is restricted to admins. A critical bug preventing the Agreements page from loading has also been fixed.
+The application has been significantly updated to build out the consulting module with strong governance.
+-   **Backend:** The backend enforces SSOT principles with duplicate expense prevention, meeting quota systems, and RBAC. The attendance system has been reused to validate MOM submissions for offline meetings. A comprehensive API () has been created to power a new reporting dashboard. API endpoints and data models (, ) have been extended to support linking SOW scopes to meetings.
+-   **Frontend:** The  page is now a feature-rich hub with multiple filters (Company, Project, Status, Date Range), a toggle for list/grid view, and a printable meeting detail modal. A new  page serves as a detailed dashboard with clickable stat cards and charts. UI has been added to the MOM dialog to allow consultants to select SOW scopes for a meeting.
+-   **Data:** The database is populated with test data for meetings, projects, clients, and SOWs.
 
 **Last working item**:
--   **Last item agent was working:** The user requested an analysis of how the Statement of Work (SOW) is configured and distinguished for the Sales and Consulting domains, and also asked for various user login credentials. The agent had begun investigating the relevant codebase by viewing files like , , , and backend router files.
+-   **Last item agent was working:** Finalizing the SOW scope selection feature in the MOM dialog. The user requested strict validation to ensure that consultants can only select SOW scopes that belong to the specific project of the meeting. The agent created a new backend endpoint () to fetch only the relevant scopes and was in the process of updating the frontend to use this endpoint and display validation messages.
 -   **Status:** IN PROGRESS
--   **Agent Testing Done:** N/A
--   **Which testing method agent to use?** N/A (This is an analysis task).
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** frontend testing agent
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Provide SOW Analysis and Login Details (P0)**
-    -   **Description:** The agent needs to complete the analysis of the SOW architecture for Sales vs. Consulting domains and provide the user with the requested login credentials for Admin, HR Manager, and Sales Manager.
-    -   **Attempted fixes:** The agent has viewed the relevant files but has not yet synthesized the information into a response.
+-   **Issue 1: Finalize SOW Scope Selection Validation in MOM Form (P0)**
+    -   **Description:** The SOW scope selection dropdown in the MOM dialog must be populated only with scopes from the meeting's associated project. The frontend needs to be updated to call the new dedicated API endpoint for this and handle the state and validation correctly.
+    -   **Attempted fixes:** A new backend endpoint  was created to provide the filtered list of scopes.
     -   **Next debug checklist:**
-        1.  Analyze the code in , , , and  to map out the data flow and business logic.
-        2.  Distinguish the purpose, creation path, and functionality of a Sales SOW versus a Consulting SOW.
-        3.  Formulate a clear, structured explanation for the user.
-        4.  Provide the login credentials as requested, noting any ambiguity (e.g., Sales Manager vs. Sales Executive).
-    -   **Why fix this issue and what will be achieved with the fix?** To provide the user with the necessary clarity to make informed decisions about future development on the SOW functionality.
+        1.  In , modify the  function to call the new  endpoint.
+        2.  Populate the scope selection dropdown with the data from this endpoint.
+        3.  Implement frontend logic to display a validation message if the user attempts to save a MOM without selecting a required scope.
+        4.  Ensure the  function correctly passes the selected  to the backend.
+    -   **Why fix this issue and what will be achieved with the fix?** This enforces critical business logic, ensuring data integrity by correctly linking meeting discussions to specific SOW deliverables.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** N/A
+    -   **Should Test frontend/backend/both after fix?** Both
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
@@ -53,33 +49,32 @@ The application is a stable ERP system with a robust, multi-stage sales funnel. 
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) **Investigate & Govern Consultant Expense Submission:** An audit is required to apply the same funnel-only governance rules to consultant expense claims.
+    -   (P0) **Implement Calendar as a Planning Tool:** Rework the  page to function purely as a planning tool, disabling any functionality that allows for direct creation of meeting records from this interface.
+    -   (P0) **Disable all SSOT Breach Points:** To complete the SSOT enforcement, systematically find and disable all alternative Add/Create Meeting buttons or links across the application, particularly on the  page and the mobile app.
+    -   (P1) **Create Business Logic Document:** Generate the requested PDF document that outlines the end-to-end business logic, data flow, and rules for the new expense and meeting management system.
 -   **Future Tasks:**
-    -   (P2) Refactor  (large file).
-    -   (P2) Refactor  (complex component).
-    -   (P2) Remove orphan file: .
-    -   (P2) Build the DVBC Marketing Hub.
-    -   (P2) Implement a Consultant Incentive System.
-    -   (P2) Implement an Internal Chat System.
+    -   Refactor .
+    -   Refactor .
+    -   Remove orphan file: .
+    -   Build the DVBC Marketing Hub.
+    -   Implement a Consultant Incentive System.
+    -   Implement an Internal Chat System.
 
 **Completed work in this session**
--   **Funnel Enforcement & UX Improvement:**
-    -   Implemented logic to filter the  dropdown to only show leads eligible for the current funnel stage (e.g., leads with a pricing plan for quotations).
-    -   The backend endpoint  was updated to support a  query parameter.
-    -   Dynamically disabled Create buttons with helpful tooltips on the Proforma Invoice, Agreements, and Dashboard pages if no eligible leads exist, using a new  hook.
--   **Data Inheritance and Locking:**
-    -   Locked the Team Deployment section in  to be a read-only inherited structure from the associated Pricing Plan.
-    -   Implemented an Auto-Generate feature in  to create SOW items based on team roles from the Pricing Plan.
-    -   Restricted visibility of  to admin users only across , , and .
--   **Edit Protection:**
-    -   Implemented logic in  to prevent non-admin users from editing or deleting SOW items once they are 'Approved' or in a subsequent stage.
--   **Bug Fix: Agreements Page Not Loading:**
-    -   Fixed a critical bug where the Agreements page showed No agreements found by adding error handling () to a  data-fetching call. The failure of one API call ( returning 404) was causing the entire query to fail silently.
+-   **P0 Critical Fixes (from user feedback):**
+    -   **Data Display & UI:** Fixed client/company names in the meeting list, added day name to dates, and implemented a clickable, printable meeting detail modal.
+    -   **Advanced Filtering:** Added date range and project-based filters to the  page. The project filter auto-populates the date range based on the project's duration.
+    -   **Terminology Fix:** Updated UI labels across the consulting module (e.g., Client to Company) to match user's business vocabulary.
+-   **Governance & Reporting Features:**
+    -   **Attendance Validation:** Integrated a backend check that prevents MOM submission for in-person meetings if the consultant's daily attendance isn't marked, reusing the existing attendance system.
+    -   **Consulting Efforts Summary Report:** Created a new, comprehensive reporting dashboard () with clickable scorecards and charts for analyzing meetings, SOW progress, tasks, and financials.
+    -   **SOW Integration:** Linked SOW scopes to meetings and added SOW progress statistics to the Efforts Summary report.
+-   **UI/UX Enhancements:**
+    -   Implemented file attachments for MOMs with a dedicated backend upload endpoint.
+    -   Improved navigation by adding links to the new Efforts Summary report in the main sidebar and the consulting-specific navigation header.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Large file needs refactoring:**  is too large and should be broken down. (Tracked in Future Tasks)
--   **Issue 2: Orphan file discovered:**  appears to be unused and should be investigated for deletion. (Tracked in Future Tasks)
--   **Issue 3: Large component needs refactoring:**  has grown too complex and should be broken down. (Tracked in Future Tasks)
+-   Same as Future Tasks.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -88,78 +83,74 @@ The application is a stable ERP system with a robust, multi-stage sales funnel. 
 
 
 **Key Technical Concepts**
--   **Funnel Stage Gating:** Using backend logic ( parameter) and frontend state ( hook) to control user actions based on an entity's progress through a predefined workflow.
--   **Dynamic UI Control:** Disabling buttons and filtering dropdowns in real-time to provide a guided user experience and prevent errors.
--   **Defensive Data Fetching:** Using  within  to ensure the failure of one non-critical API call doesn't break an entire page.
--   **Reusable Hooks:** Abstracting stateful logic () into a custom hook to be reused across multiple components, promoting DRY principles.
--   **Role-Based Component Rendering:** Conditionally rendering UI elements (like pricing details) based on the user's role.
+-   **Code Reuse & Governance:** A primary focus was adhering to a Master Governance Prompt by reusing existing systems (like attendance and dashboards) rather than creating duplicates.
+-   **API Extension over Creation:** Existing API routers (, ) were extended with new endpoints to keep the backend organized and modular.
+-   **Dynamic Frontend Filtering:** The  page uses  to performantly handle complex, interconnected filters (e.g., project selection automatically setting the date range).
+-   **Component-Based Architecture:** New features were built as modular React components (, ), ensuring a maintainable and scalable frontend.
 
 **key DB schema**
--   No schema changes were made in this session. All logic was built upon the existing data models.
+-   **meetings:** Modified to include , , , , .
+-   **sow:** Used to track , distinguishing between  (committed from sales) and  (added by consultants).
+-   **attendance:** The existing schema is used to validate a consultant's daily check-in record.
 
 **All files of reference**
--   **SOW Analysis:**
-    -   
-    -   
-    -   
-    -   
--   **Recent Funnel Changes:**
-    -   
-    -   
-    -   
-    -   
-    -   
+-    (Primary file for ongoing UI work)
+-    (New reporting dashboard)
+-    (Backend for the summary report)
+-    (Backend for MOM submission)
+-    (Backend for SOW scope management)
+-   
+-   
 
 **Areas that need refactoring**:
--   As noted in Future Tasks,  and  are candidates for refactoring due to their size and complexity.
--    is a potential orphan file that should be removed if confirmed unused.
+-    (large file)
+-    (complex component)
+-    (potential orphan file)
 
 **key api endpoints**
--    (GET): Modified to accept a  query parameter (, , ) to return only eligible leads.
--    (GET): The frontend data fetching logic for this endpoint was made more robust.
+-   : Powers the Consulting Efforts Summary report.
+-   : Core endpoint for saving a MOM, now includes attendance validation and saves SOW scopes.
+-   : Provides a filtered list of SOW scopes for a specific project, to be used in the MOM dialog.
+-   : Handles file uploads for MOM attachments.
 
 **Critical Info for New Agent**
--   Your immediate task is to analyze the SOW architecture as requested by the user and provide the required login credentials.
--   The sales funnel is now strongly gated. The  hook and the  parameter in the  endpoint are the core mechanisms for this.
--   Be aware of the  pattern for data fetching on pages that need multiple data sources. The fix in  is a key example of how to make this pattern resilient to individual API failures.
--   When providing login credentials, be precise. The user asked for a Sales Manager, but the known credential is for a Sales Executive. It is best to provide the known credential and mention its role.
+-   **Governance is Key:** The user is extremely focused on code reuse and the Single Source of Truth (SSOT) principle. Before implementing any new feature, you must thoroughly scan the codebase for existing functionality that can be reused or extended.
+-   **Immediate Priority:** Your first task is to complete the SOW scope selection feature in . This requires hooking up the frontend to the new  endpoint and implementing the validation logic.
+-   **Next Critical Steps (P0):** Once the SOW feature is done, you must immediately begin work on the two remaining SSOT enforcement tasks: 1) converting the main calendar to a planning-only tool, and 2) disabling all other meeting creation points throughout the application.
 
 **documents and test reports created in this job**
--   
--   
--   
+-   Multiple test reports in .
+-    in  has been continuously updated.
+-   Scripts to populate test data were created in .
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** provide me HR manager login detail and Sales Manager , admin login details (PENDING)
-2.  **User:** I need your understanding on how SOW is configured and distinguished for Sales and Consulting domains and how are it functioning ? Identify business logic (PENDING)
-3.  **User:** Option b (Approved disabling create buttons with tooltips)
-4.  **User:** Yes do that. And also suggest if i hide create button except create lead also for manual progress , will user be struggling to move ahead ?
-5.  **User:** Yes but user for point 1 what can be threat and breach
-6.  **User:** Yes (Approved UX improvements for funnel protection)
-7.  **User:** Still I can create all funnel inside the flow with missing lead stage through create buttons on the all pages. Analyze.
-8.  **User:** Confirm the SOW , agreement, and other pages having no issue in frontend
-9.  **User:** can you add test data wherever required and then test
-10. **User:** Yes (Approved edit protection for SOW/Agreements)
+1.  **User:** Requests validation in the MOM form to ensure SOW scopes can only be selected from the meeting's specific project. (PENDING IMPLEMENTATION)
+2.  **User:** Asks for UI to select SOW scopes in MOM, implementing the calendar as a planning tool, and disabling SSOT breach points. (IN PROGRESS)
+3.  **User:** Confirms SOW linkage logic, requests stats on additional vs. committed scopes, and asks for all scorecards to be clickable. (COMPLETED)
+4.  **User:** Inquires about SOW inheritance from sales and payment flow integration. (ADDRESSED)
+5.  **User:** Clarifies that attendance validation should use existing daily records (no new UI) and asks about navigation paths. (COMPLETED)
+6.  **User:** Requests meeting duration calculation, attendance validation, dashboard integration, and a printable summary view. (COMPLETED)
+7.  **User:** Provides detailed requirements for the printable meeting page and the summary report. (COMPLETED)
+8.  **User:** Provides extensive UI/UX feedback on the  page, leading to several P0 fixes. (COMPLETED)
+9.  **User:** Confirms plan for local storage and full-flow testing. (ADDRESSED)
+10. **User:** Specifies local server storage for attachments and requests test data covering the full kickoff-to-payment flow. (ADDRESSED)
 
 **Project Health Check:**
--   **Broken:** None. The previously broken Agreements page is now fixed.
+-   **Broken:** None.
 -   **Mocked:** None.
 
 **3rd Party Integrations**
--   **Pillow:** Used for backend image processing.
--   **jspdf & jspdf-autotable:** Used for client-side PDF generation.
--   **Existing:** APScheduler, React Query, axios, xlsx, Redis, Razorpay, @react-google-maps/api.
+-   No new integrations were added. The project continues to use its existing stack (React, FastAPI, MongoDB, etc.).
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. The agent was used multiple times to verify the funnel protection logic, edit protection, and SSOT integrations. All tests passed.
+-   **Testing agent used after significant changes:** YES. The agent was used multiple times and achieved 100% pass rates on both frontend and backend after major feature implementations.
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None. Test data was created via API calls during the session.
+-   **Test files created:** None.
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
 -   **Admin:**  /  (Employee ID: )
--   **HR Manager:**  /  (Employee ID: )
--   **Sales Executive:**  /  (Employee ID: ) - Note: The user asked for a Sales Manager, this is the closest existing role.
 
 **What agent forgot to execute**
--   The agent has not forgotten any tasks. It is currently in the middle of analyzing the SOW structure as requested by the user.</analysis>
+-   The agent is in the middle of implementing the validation for SOW scope selection as requested by the user.
+-   The P0 tasks to convert the calendar into a planning tool and disable all other SSOT breach points have been identified but not yet started.</analysis>

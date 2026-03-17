@@ -1543,3 +1543,78 @@ async def reopen_project(sow_id: str, body: ReopenProjectRequest = ReopenProject
     )
 
     return {"success": True, "message": "Project reopened successfully", "reopened_scopes": len(completed_scopes)}
+
+
+@router.get("/project/{project_id}/scopes-for-meeting")
+async def get_project_scopes_for_meeting(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get available scopes from project SOW for meeting selection.
+    
+    Returns:
+    - Committed scopes (inherited from sales SOW)
+    - Additional scopes (created by consultant after project start)
+    
+    Validation:
+    - Only returns scopes from this project's SOW
+    - Consultant must be assigned to the project
+    """
+    db = get_db()
+    
+    # Get project
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Find SOW for this project
+    sow = await db.enhanced_sow.find_one({"project_id": project_id}, {"_id": 0})
+    
+    if not sow:
+        return {
+            "project_id": project_id,
+            "project_name": project.get("name"),
+            "has_sow": False,
+            "scopes": [],
+            "message": "No SOW found for this project. SOW must be created from sales team first."
+        }
+    
+    # Extract scopes with source information
+    scopes = sow.get("scopes", [])
+    scopes_for_meeting = []
+    
+    for scope in scopes:
+        scope_data = {
+            "id": scope.get("id"),
+            "name": scope.get("name"),
+            "description": scope.get("description"),
+            "status": scope.get("status", "not_started"),
+            "progress_percentage": scope.get("progress_percentage", 0),
+            "is_additional": scope.get("is_additional", False),
+            "source": "additional" if scope.get("is_additional") else "committed",
+            "fee": scope.get("fee"),
+            "duration_days": scope.get("duration_days")
+        }
+        scopes_for_meeting.append(scope_data)
+    
+    # Separate committed and additional for clarity
+    committed_scopes = [s for s in scopes_for_meeting if not s.get("is_additional")]
+    additional_scopes = [s for s in scopes_for_meeting if s.get("is_additional")]
+    
+    return {
+        "project_id": project_id,
+        "project_name": project.get("name"),
+        "sow_id": sow.get("id"),
+        "sow_number": sow.get("sow_number"),
+        "has_sow": True,
+        "sales_handover_complete": sow.get("sales_handover_complete", False),
+        "scopes": scopes_for_meeting,
+        "summary": {
+            "total": len(scopes_for_meeting),
+            "committed": len(committed_scopes),
+            "additional": len(additional_scopes),
+            "completed": len([s for s in scopes_for_meeting if s.get("status") == "completed"])
+        }
+    }
+

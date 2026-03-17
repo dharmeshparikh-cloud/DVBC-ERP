@@ -11,8 +11,9 @@ import { Switch } from '../components/ui/switch';
 import {
   Calendar, ChevronLeft, ChevronRight, Clock, Users, Video, Phone,
   MapPin, CheckCircle, Circle, AlertTriangle, Plus, RefreshCw,
-  LayoutGrid, List, Bell, BellOff, Settings, Send, Mail
+  LayoutGrid, List, Bell, BellOff, Settings, Send, Mail, Info, ExternalLink
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { format, addDays, startOfWeek, isSameDay, parseISO, isToday } from 'date-fns';
 
@@ -179,13 +180,33 @@ const MeetingCalendar = () => {
 
   return (
     <div className="p-6 space-y-6 bg-zinc-50 min-h-screen" data-testid="meeting-calendar-page">
+      {/* SSOT Notice Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-blue-900">Planning View Only</p>
+          <p className="text-sm text-blue-700 mt-1">
+            This calendar is a read-only planning tool. To create or manage consulting meetings and MOM, 
+            please use the <Link to="/consulting-meetings" className="font-medium text-blue-800 underline hover:text-blue-900 inline-flex items-center gap-1">
+              Consulting Meetings <ExternalLink className="w-3 h-3" />
+            </Link> page (Single Source of Truth).
+          </p>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Meeting Calendar</h1>
-          <p className="text-zinc-500 text-sm">Team schedule & recurring meetings</p>
+          <p className="text-zinc-500 text-sm">Team schedule & planning view (read-only)</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link to="/consulting-meetings">
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm" data-testid="go-to-consulting-meetings-btn">
+              <ExternalLink className="w-4 h-4 mr-1" />
+              Manage Meetings
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"
@@ -209,145 +230,7 @@ const MeetingCalendar = () => {
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
-          <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 shadow-sm" data-testid="create-schedule-btn">
-                <Plus className="w-4 h-4 mr-1" />
-                New Schedule
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-white border-zinc-200 max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-zinc-900">Create Recurring Schedule</DialogTitle>
-                <DialogDescription className="text-zinc-500">
-                  Set up automatic recurring meetings for a project.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div>
-                  <Label className="text-zinc-700 text-sm font-medium">Project</Label>
-                  <select
-                    value={scheduleForm.project_id}
-                    onChange={(e) => setScheduleForm({...scheduleForm, project_id: e.target.value})}
-                    className="w-full mt-1.5 p-2.5 bg-white border border-zinc-200 rounded-lg text-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    data-testid="schedule-project-select"
-                  >
-                    <option value="">Select project...</option>
-                    {projects.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <Label className="text-zinc-700 text-sm font-medium">Consultant</Label>
-                  <select
-                    value={scheduleForm.consultant_id}
-                    onChange={(e) => setScheduleForm({...scheduleForm, consultant_id: e.target.value})}
-                    className="w-full mt-1.5 p-2.5 bg-white border border-zinc-200 rounded-lg text-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    data-testid="schedule-consultant-select"
-                  >
-                    <option value="">Select consultant...</option>
-                    {consultants.map(c => (
-                      <option key={c.id} value={c.id}>{c.full_name}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <Label className="text-zinc-700 text-sm font-medium">Schedule Type</Label>
-                  <div className="flex gap-2 mt-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setScheduleForm({...scheduleForm, schedule_type: 'fixed_day'})}
-                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                        scheduleForm.schedule_type === 'fixed_day' 
-                          ? 'bg-emerald-600 text-white shadow-sm' 
-                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                      }`}
-                    >
-                      Fixed Day
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setScheduleForm({...scheduleForm, schedule_type: 'interval'})}
-                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                        scheduleForm.schedule_type === 'interval' 
-                          ? 'bg-emerald-600 text-white shadow-sm' 
-                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                      }`}
-                    >
-                      Interval Based
-                    </button>
-                  </div>
-                </div>
-                
-                {scheduleForm.schedule_type === 'fixed_day' ? (
-                  <div>
-                    <Label className="text-zinc-700 text-sm font-medium">Day of Week</Label>
-                    <select
-                      value={scheduleForm.day}
-                      onChange={(e) => setScheduleForm({...scheduleForm, day: e.target.value})}
-                      className="w-full mt-1.5 p-2.5 bg-white border border-zinc-200 rounded-lg text-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      data-testid="schedule-day-select"
-                    >
-                      {WEEKDAYS.map(day => (
-                        <option key={day} value={day.toLowerCase()}>{day}</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <div>
-                    <Label className="text-zinc-700 text-sm font-medium">Repeat Every (days)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={scheduleForm.interval_days}
-                      onChange={(e) => setScheduleForm({...scheduleForm, interval_days: parseInt(e.target.value)})}
-                      className="mt-1.5 bg-white border-zinc-200"
-                      data-testid="schedule-interval-input"
-                    />
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-zinc-700 text-sm font-medium">Time</Label>
-                    <Input
-                      type="time"
-                      value={scheduleForm.time}
-                      onChange={(e) => setScheduleForm({...scheduleForm, time: e.target.value})}
-                      className="mt-1.5 bg-white border-zinc-200"
-                      data-testid="schedule-time-input"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-zinc-700 text-sm font-medium">Duration (mins)</Label>
-                    <Input
-                      type="number"
-                      min="15"
-                      max="240"
-                      step="15"
-                      value={scheduleForm.duration_minutes}
-                      onChange={(e) => setScheduleForm({...scheduleForm, duration_minutes: parseInt(e.target.value)})}
-                      className="mt-1.5 bg-white border-zinc-200"
-                      data-testid="schedule-duration-input"
-                    />
-                  </div>
-                </div>
-                
-                <Button
-                  onClick={() => createScheduleMutation.mutate(scheduleForm)}
-                  disabled={!scheduleForm.project_id || !scheduleForm.consultant_id || createScheduleMutation.isPending}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 shadow-sm"
-                  data-testid="submit-schedule-btn"
-                >
-                  {createScheduleMutation.isPending ? 'Creating...' : 'Create Schedule'}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          {/* Schedule creation disabled for SSOT - all meetings should be created via Consulting Meetings page */}
         </div>
       </div>
 

@@ -20,7 +20,7 @@ from services.funnel_notifications import agreement_created_email, get_agreement
 
 router = APIRouter(prefix="/agreements", tags=["Agreements"])
 
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://governed-expenses.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://mom-workflow.preview.emergentagent.com").replace("/api", "")
 
 # Role constants for this router - now using RBAC service as source of truth
 AGREEMENT_VIEW_ROLES = SALES_ROLES + SENIOR_CONSULTING_ROLES  # sales, admin, principal_consultant

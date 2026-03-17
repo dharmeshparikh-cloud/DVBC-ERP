@@ -272,7 +272,7 @@ async def initiate_consent_workflow(
     })
     
     # Send email to employee
-    base_url = os.environ.get("FRONTEND_URL", "https://governed-expenses.preview.emergentagent.com")
+    base_url = os.environ.get("FRONTEND_URL", "https://mom-workflow.preview.emergentagent.com")
     consent_link = f"{base_url}/consent/{consent_token}"
     
     try:

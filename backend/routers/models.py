@@ -342,6 +342,9 @@ class MOMCreate(BaseModel):
     decisions_made: Optional[List[str]] = []
     action_items: Optional[List[Dict[str, Any]]] = []
     next_meeting_date: Optional[datetime] = None
+    mom_attachments: Optional[List[Dict[str, Any]]] = []  # Document attachments
+    sow_scope_ids: Optional[List[str]] = []  # Selected scope IDs
+    sow_scopes: Optional[List[Dict[str, Any]]] = []  # Denormalized scope details
 
 
 class ActionItemCreate(BaseModel):

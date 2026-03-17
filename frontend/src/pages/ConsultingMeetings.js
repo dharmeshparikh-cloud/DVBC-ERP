@@ -17,7 +17,7 @@ import {
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
   ClipboardList, Mail, BarChart3, Target, Car, MapPin, DollarSign,
   Filter, Building2, CalendarDays, Paperclip, Upload, X, List, LayoutGrid,
-  Printer, Eye, Clock, User, Hash
+  Printer, Eye, Clock, User, Hash, Layers, AlertCircle, Search, CheckSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
@@ -91,6 +91,15 @@ const ConsultingMeetings = () => {
     description: '', assigned_to_id: '', due_date: '', priority: 'medium',
     create_follow_up_task: true, notify_reporting_manager: true
   });
+
+  // SOW Scopes state for meeting linkage
+  const [availableScopes, setAvailableScopes] = useState([]);
+  const [selectedScopeIds, setSelectedScopeIds] = useState([]);
+  const [loadingScopes, setLoadingScopes] = useState(false);
+  
+  // Scope filter state for large scope lists
+  const [scopeSearchQuery, setScopeSearchQuery] = useState('');
+  const [scopeStatusFilter, setScopeStatusFilter] = useState('all'); // all, in_progress, not_started, completed
 
   const canEdit = CONSULTING_ROLES.includes(user?.role) && user?.role !== 'manager';
 
@@ -415,21 +424,66 @@ const ConsultingMeetings = () => {
       });
       // Reset and load existing attachments
       setMomAttachments(m.mom_attachments || []);
+      // Load existing scope selections
+      setSelectedScopeIds(m.sow_scope_ids || []);
+      // Reset scope filters
+      setScopeSearchQuery('');
+      setScopeStatusFilter('all');
+      
+      // Fetch available scopes for this project (committed from sales + additional)
+      if (m.project_id) {
+        setLoadingScopes(true);
+        try {
+          const sowRes = await axios.get(`${API}/enhanced-sow/project/${m.project_id}/scopes-for-meeting`);
+          if (sowRes.data?.has_sow) {
+            setAvailableScopes(sowRes.data.scopes || []);
+          } else {
+            setAvailableScopes([]);
+            // Show info message if no SOW
+            if (sowRes.data?.message) {
+              toast.info(sowRes.data.message);
+            }
+          }
+        } catch {
+          setAvailableScopes([]);
+        }
+        setLoadingScopes(false);
+      } else {
+        setAvailableScopes([]);
+        toast.warning('No project linked to this meeting. SOW scopes cannot be selected.');
+      }
+      
       setMomDialogOpen(true);
     } catch { toast.error('Failed to load meeting'); }
   };
 
   const handleSaveMOM = async () => {
+    // Validation: At least one scope must be selected if project has SOW
+    if (selectedMeeting?.project_id && availableScopes.length > 0 && selectedScopeIds.length === 0) {
+      toast.error('Please select at least one SOW scope. This is mandatory for MOM.');
+      return;
+    }
+    
     try {
+      // Prepare scope details for denormalization
+      const scopeDetails = availableScopes
+        .filter(s => selectedScopeIds.includes(s.id))
+        .map(s => ({ id: s.id, name: s.name }));
+      
       await axios.patch(`${API}/meetings/${selectedMeeting.id}/mom`, {
         ...momData,
         agenda: momData.agenda.filter(a => a.trim()),
         discussion_points: momData.discussion_points.filter(d => d.trim()),
         decisions_made: momData.decisions_made.filter(d => d.trim()),
         next_meeting_date: momData.next_meeting_date ? new Date(momData.next_meeting_date).toISOString() : null,
-        mom_attachments: momAttachments
+        mom_attachments: momAttachments,
+        sow_scope_ids: selectedScopeIds,
+        sow_scopes: scopeDetails
       });
       toast.success('Consulting MOM saved');
+      // Reset scope filters
+      setScopeSearchQuery('');
+      setScopeStatusFilter('all');
       queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
     } catch { toast.error('Failed to save MOM'); }
   };
@@ -1142,6 +1196,296 @@ const ConsultingMeetings = () => {
               <Label className="text-sm font-medium text-zinc-950">Meeting Title</Label>
               <Input value={momData.title} onChange={(e) => setMomData({ ...momData, title: e.target.value })} className="rounded-sm border-zinc-200" data-testid="consulting-mom-title" />
             </div>
+
+            {/* SOW Scope Selection - Mandatory with search & filter for large lists */}
+            {selectedMeeting?.project_id && (
+              <div className="space-y-3 p-4 bg-indigo-50 border border-indigo-200 rounded-sm">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-indigo-900 flex items-center gap-2">
+                    <Layers className="w-4 h-4" />
+                    Link Meeting to SOW Scopes <span className="text-red-500">*</span>
+                  </Label>
+                  {availableScopes.length > 0 && (
+                    <span className="text-xs text-indigo-600">
+                      {selectedScopeIds.length} of {availableScopes.length} selected
+                    </span>
+                  )}
+                </div>
+                
+                {loadingScopes ? (
+                  <p className="text-sm text-zinc-500">Loading scopes from project SOW...</p>
+                ) : availableScopes.length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm">
+                    <p className="text-sm text-amber-800">
+                      No SOW scopes available for this project. 
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      SOW with scopes must be created from sales team (Committed SOW) or added as additional scope.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Mandatory notice */}
+                    <div className="p-2 bg-red-50 border border-red-200 rounded-sm">
+                      <p className="text-xs text-red-700 flex items-center gap-2">
+                        <AlertCircle className="w-3 h-3" />
+                        <span><strong>Mandatory:</strong> At least one scope must be selected to save MOM</span>
+                      </p>
+                    </div>
+
+                    {/* Selected Scopes Tags */}
+                    {selectedScopeIds.length > 0 && (
+                      <div className="flex flex-wrap gap-2 p-2 bg-white border border-indigo-200 rounded-sm">
+                        {selectedScopeIds.map(scopeId => {
+                          const scope = availableScopes.find(s => s.id === scopeId);
+                          const wasAlreadyLinked = (selectedMeeting?.sow_scope_ids || []).includes(scopeId);
+                          if (!scope) return null;
+                          return (
+                            <Badge 
+                              key={scopeId} 
+                              variant="secondary" 
+                              className={`text-xs py-1 px-2 flex items-center gap-1 ${scope.is_additional ? 'bg-orange-100 text-orange-800' : 'bg-indigo-100 text-indigo-800'}`}
+                            >
+                              <CheckSquare className="w-3 h-3" />
+                              {scope.name.length > 30 ? scope.name.substring(0, 30) + '...' : scope.name}
+                              {!wasAlreadyLinked && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedScopeIds(prev => prev.filter(id => id !== scopeId))}
+                                  className="ml-1 hover:text-red-600"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                              {wasAlreadyLinked && <span className="ml-1 text-xs opacity-60">(locked)</span>}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Search & Filter Bar */}
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                        <Input
+                          placeholder="Search scopes..."
+                          value={scopeSearchQuery}
+                          onChange={(e) => setScopeSearchQuery(e.target.value)}
+                          className="pl-8 h-9 text-sm bg-white"
+                          data-testid="scope-search-input"
+                        />
+                        {scopeSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setScopeSearchQuery('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2"
+                          >
+                            <X className="w-4 h-4 text-zinc-400 hover:text-zinc-600" />
+                          </button>
+                        )}
+                      </div>
+                      <Select value={scopeStatusFilter} onValueChange={setScopeStatusFilter}>
+                        <SelectTrigger className="w-[140px] h-9 text-sm bg-white">
+                          <SelectValue placeholder="All Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="not_started">Not Started</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Filtered Scopes List */}
+                    <div className="max-h-48 overflow-y-auto border border-indigo-200 rounded-sm bg-white">
+                      {(() => {
+                        // Filter scopes based on search and status
+                        const filteredScopes = availableScopes.filter(scope => {
+                          const matchesSearch = !scopeSearchQuery || 
+                            scope.name.toLowerCase().includes(scopeSearchQuery.toLowerCase()) ||
+                            (scope.description || '').toLowerCase().includes(scopeSearchQuery.toLowerCase());
+                          const matchesStatus = scopeStatusFilter === 'all' || scope.status === scopeStatusFilter;
+                          return matchesSearch && matchesStatus;
+                        });
+
+                        if (filteredScopes.length === 0) {
+                          return (
+                            <div className="p-4 text-center text-sm text-zinc-500">
+                              No scopes match your filter criteria
+                            </div>
+                          );
+                        }
+
+                        // Group by committed vs additional
+                        const committedScopes = filteredScopes.filter(s => !s.is_additional);
+                        const additionalScopes = filteredScopes.filter(s => s.is_additional);
+
+                        return (
+                          <div className="divide-y divide-zinc-100">
+                            {/* Committed Scopes */}
+                            {committedScopes.length > 0 && (
+                              <div>
+                                <div className="px-3 py-2 bg-indigo-50 border-b border-indigo-100 sticky top-0">
+                                  <span className="text-xs font-semibold text-indigo-800 uppercase tracking-wide">
+                                    Committed Scopes ({committedScopes.length})
+                                  </span>
+                                </div>
+                                {committedScopes.map(scope => {
+                                  const isSelected = selectedScopeIds.includes(scope.id);
+                                  const wasAlreadyLinked = (selectedMeeting?.sow_scope_ids || []).includes(scope.id);
+                                  return (
+                                    <label
+                                      key={scope.id}
+                                      className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-zinc-50 transition-colors ${isSelected ? 'bg-indigo-50' : ''}`}
+                                    >
+                                      <Checkbox
+                                        checked={isSelected}
+                                        disabled={wasAlreadyLinked}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedScopeIds(prev => [...prev, scope.id]);
+                                          } else if (!wasAlreadyLinked) {
+                                            setSelectedScopeIds(prev => prev.filter(id => id !== scope.id));
+                                          }
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-sm font-medium text-zinc-900 truncate">{scope.name}</span>
+                                          {wasAlreadyLinked && <Badge className="text-xs bg-indigo-100 text-indigo-700 flex-shrink-0">Linked</Badge>}
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-0.5 text-xs text-zinc-500">
+                                          <span className={`px-1.5 py-0.5 rounded ${
+                                            scope.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                            scope.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-zinc-100 text-zinc-600'
+                                          }`}>
+                                            {scope.status?.replace('_', ' ')}
+                                          </span>
+                                          <span>{scope.progress_percentage || 0}% done</span>
+                                        </div>
+                                      </div>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* Additional Scopes */}
+                            {additionalScopes.length > 0 && (
+                              <div>
+                                <div className="px-3 py-2 bg-orange-50 border-b border-orange-100 sticky top-0">
+                                  <span className="text-xs font-semibold text-orange-800 uppercase tracking-wide">
+                                    Additional Scopes ({additionalScopes.length})
+                                  </span>
+                                </div>
+                                {additionalScopes.map(scope => {
+                                  const isSelected = selectedScopeIds.includes(scope.id);
+                                  const wasAlreadyLinked = (selectedMeeting?.sow_scope_ids || []).includes(scope.id);
+                                  return (
+                                    <label
+                                      key={scope.id}
+                                      className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-zinc-50 transition-colors ${isSelected ? 'bg-orange-50' : ''}`}
+                                    >
+                                      <Checkbox
+                                        checked={isSelected}
+                                        disabled={wasAlreadyLinked}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedScopeIds(prev => [...prev, scope.id]);
+                                          } else if (!wasAlreadyLinked) {
+                                            setSelectedScopeIds(prev => prev.filter(id => id !== scope.id));
+                                          }
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-sm font-medium text-zinc-900 truncate">{scope.name}</span>
+                                          <Badge variant="outline" className="text-xs text-orange-600 border-orange-300 flex-shrink-0">Additional</Badge>
+                                          {wasAlreadyLinked && <Badge className="text-xs bg-orange-100 text-orange-700 flex-shrink-0">Linked</Badge>}
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-0.5 text-xs text-zinc-500">
+                                          <span className={`px-1.5 py-0.5 rounded ${
+                                            scope.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                            scope.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-zinc-100 text-zinc-600'
+                                          }`}>
+                                            {scope.status?.replace('_', ' ')}
+                                          </span>
+                                          <span>{scope.progress_percentage || 0}% done</span>
+                                        </div>
+                                      </div>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Quick actions */}
+                    <div className="flex items-center justify-between pt-2 border-t border-indigo-200">
+                      <div className="text-xs text-indigo-600">
+                        {scopeSearchQuery || scopeStatusFilter !== 'all' ? 
+                          `Showing filtered results` : 
+                          `${availableScopes.length} total scopes`}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => {
+                            // Select all visible (filtered) scopes that aren't already linked
+                            const filteredScopes = availableScopes.filter(scope => {
+                              const matchesSearch = !scopeSearchQuery || 
+                                scope.name.toLowerCase().includes(scopeSearchQuery.toLowerCase());
+                              const matchesStatus = scopeStatusFilter === 'all' || scope.status === scopeStatusFilter;
+                              return matchesSearch && matchesStatus;
+                            });
+                            const newIds = filteredScopes.map(s => s.id).filter(id => !selectedScopeIds.includes(id));
+                            setSelectedScopeIds(prev => [...prev, ...newIds]);
+                          }}
+                        >
+                          Select All Visible
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 text-red-600 hover:text-red-700"
+                          onClick={() => {
+                            // Clear all except already linked scopes
+                            const alreadyLinked = selectedMeeting?.sow_scope_ids || [];
+                            setSelectedScopeIds(alreadyLinked);
+                          }}
+                        >
+                          Clear Selection
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            
+            {!selectedMeeting?.project_id && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm">
+                <p className="text-sm text-amber-800 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  No project linked to this meeting
+                </p>
+                <p className="text-xs text-amber-600 mt-1">
+                  Meeting must be linked to a project to select SOW scopes.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-zinc-950">Agenda</Label>
               {momData.agenda.map((item, idx) => (
