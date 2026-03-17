@@ -28,6 +28,7 @@ const Projects = lazy(() => import('./pages/Projects'));
 const AllProjects = lazy(() => import('./pages/AllProjects'));
 // SalesMeetings removed - meetings accessed via Lead funnel only, MOM visible in dashboard scorecards
 const ConsultingMeetings = lazy(() => import('./pages/ConsultingMeetings'));
+const MeetingDetail = lazy(() => import('./pages/MeetingDetail'));
 const ConsultingEffortsSummary = lazy(() => import('./pages/ConsultingEffortsSummary'));
 const MeetingCalendar = lazy(() => import('./pages/MeetingCalendar'));
 const OrgChart = lazy(() => import('./pages/OrgChart'));
@@ -272,6 +273,7 @@ function AppRouter({ user, login, logout, loading }) {
         {/* sales-meetings route removed - meetings accessed via Lead funnel, MOM via dashboard */}
         <Route path="sales-meetings" element={<Navigate to="/leads" replace />} />
         <Route path="consulting-meetings" element={<ConsultingMeetings />} />
+        <Route path="meeting/:meetingId" element={<MeetingDetail />} />
         <Route path="meeting-calendar" element={<MeetingCalendar />} />
         <Route path="org-chart" element={<OrgChart />} />
         <Route path="leave-management" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><LeaveManagement /></RoleGuard>} />

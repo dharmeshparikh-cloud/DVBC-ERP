@@ -1,6 +1,7 @@
 import React, { useState, useContext, useMemo } from 'react';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -17,7 +18,7 @@ import {
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
   ClipboardList, Mail, BarChart3, Target, Car, MapPin, DollarSign,
   Filter, Building2, CalendarDays, Paperclip, Upload, X, List, LayoutGrid,
-  Printer, Eye, Clock, User, Hash, Layers, AlertCircle, Search, CheckSquare
+  Eye, Clock, User, Hash, Layers, AlertCircle, Search, CheckSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
@@ -49,7 +50,7 @@ const ConsultingMeetings = () => {
   const [expandedMeetings, setExpandedMeetings] = useState({});
   const [activeTab, setActiveTab] = useState('meetings');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'card'
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false); // Meeting detail view
+  const navigate = useNavigate();
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -384,13 +385,9 @@ const ConsultingMeetings = () => {
     createMeetingMutation.mutate(formData);
   };
 
-  // Open meeting detail view (printable)
-  const openMeetingDetail = async (meeting) => {
-    try {
-      const res = await axios.get(`${API}/meetings/${meeting.id}`);
-      setSelectedMeeting(res.data);
-      setDetailDialogOpen(true);
-    } catch { toast.error('Failed to load meeting details'); }
+  // Open meeting detail view (full page)
+  const openMeetingDetail = (meeting) => {
+    navigate(`/meeting/${meeting.id}`);
   };
 
   // Get meeting series number (count of meetings for same project before this one)
@@ -1681,252 +1678,6 @@ const ConsultingMeetings = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Meeting Detail Dialog - Printable View */}
-      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="border-zinc-200 rounded-sm max-w-4xl max-h-[95vh] overflow-y-auto print:max-w-none print:max-h-none print:overflow-visible">
-          <DialogHeader className="print:mb-4">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
-                Meeting Details
-              </DialogTitle>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => window.print()}
-                className="print:hidden"
-              >
-                <Printer className="w-4 h-4 mr-2" /> Print
-              </Button>
-            </div>
-            <DialogDescription className="text-zinc-500">
-              Complete meeting record with MOM and action items
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedMeeting && (
-            <div className="space-y-6 print:space-y-4">
-              {/* Meeting Header Info */}
-              <div className="bg-zinc-50 p-4 rounded-sm border border-zinc-200 print:bg-white">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-zinc-950">{selectedMeeting.title || 'Meeting'}</h2>
-                    <p className="text-sm text-zinc-600">{selectedMeeting.project_name || projects.find(p => p.id === selectedMeeting.project_id)?.name}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="outline" className="mb-2">
-                      <Hash className="w-3 h-3 mr-1" />
-                      Meeting #{getMeetingSeriesNumber(selectedMeeting)}
-                    </Badge>
-                    <div className="text-xs text-zinc-500">
-                      {selectedMeeting.is_delivered ? (
-                        <Badge className="bg-emerald-100 text-emerald-700">Delivered</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-amber-600 border-amber-200">Pending</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Company</div>
-                    <div className="font-medium text-zinc-800">
-                      {selectedMeeting.client_name || clients.find(c => c.id === selectedMeeting.client_id)?.company_name || '-'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Date & Time</div>
-                    <div className="font-medium text-zinc-800">
-                      {format(new Date(selectedMeeting.meeting_date), 'EEEE, MMM dd, yyyy')}
-                      <span className="text-zinc-500 ml-2">{format(new Date(selectedMeeting.meeting_date), 'HH:mm')}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Mode</div>
-                    <div className="font-medium text-zinc-800">
-                      {selectedMeeting.mode === 'online' ? 'Online' : selectedMeeting.mode === 'offline' ? 'In-person' : 'Tele Call'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Duration</div>
-                    <div className="font-medium text-zinc-800">{selectedMeeting.duration_minutes || '-'} mins</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Project Meeting Progress */}
-              <div className="bg-blue-50 p-4 rounded-sm border border-blue-200">
-                <div className="text-xs uppercase tracking-wide text-blue-700 mb-2 font-medium">Project Meeting Progress</div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-800">{getProjectStats(selectedMeeting).committed}</div>
-                    <div className="text-xs text-blue-600">Committed</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-emerald-700">{getProjectStats(selectedMeeting).delivered}</div>
-                    <div className="text-xs text-emerald-600">Completed</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-amber-700">{getProjectStats(selectedMeeting).pending}</div>
-                    <div className="text-xs text-amber-600">Pending</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Consultant Details */}
-              <div className="border border-zinc-200 rounded-sm p-4">
-                <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2 font-medium">Consultant Details</div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-xs text-zinc-500">Created By</div>
-                    <div className="font-medium text-zinc-800">{selectedMeeting.created_by_name || 'System'}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500">Attendees</div>
-                    <div className="font-medium text-zinc-800">
-                      {selectedMeeting.attendee_names?.length > 0 
-                        ? selectedMeeting.attendee_names.join(', ') 
-                        : '-'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* MOM Content */}
-              {selectedMeeting.mom_generated && (
-                <div className="border border-zinc-200 rounded-sm p-4 space-y-4">
-                  <div className="flex items-center gap-2 text-emerald-700">
-                    <FileText className="w-5 h-5" />
-                    <span className="text-sm font-semibold uppercase tracking-wide">Minutes of Meeting</span>
-                    {selectedMeeting.mom_sent_to_client && (
-                      <Badge className="bg-blue-100 text-blue-700 ml-2">
-                        <Mail className="w-3 h-3 mr-1" /> Sent to Client
-                      </Badge>
-                    )}
-                  </div>
-
-                  {selectedMeeting.agenda?.length > 0 && selectedMeeting.agenda.some(a => a) && (
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Agenda</div>
-                      <ul className="list-disc list-inside text-sm text-zinc-700 space-y-1">
-                        {selectedMeeting.agenda.filter(a => a).map((item, idx) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedMeeting.discussion_points?.length > 0 && selectedMeeting.discussion_points.some(d => d) && (
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Discussion Points</div>
-                      <ul className="list-disc list-inside text-sm text-zinc-700 space-y-1">
-                        {selectedMeeting.discussion_points.filter(d => d).map((item, idx) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedMeeting.decisions_made?.length > 0 && selectedMeeting.decisions_made.some(d => d) && (
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Decisions Made</div>
-                      <ul className="list-disc list-inside text-sm text-zinc-700 space-y-1">
-                        {selectedMeeting.decisions_made.filter(d => d).map((item, idx) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Action Items */}
-              {selectedMeeting.action_items?.length > 0 && (
-                <div className="border border-zinc-200 rounded-sm p-4">
-                  <div className="text-xs uppercase tracking-wide text-zinc-500 mb-3 font-medium">
-                    Action Items ({selectedMeeting.action_items.length})
-                  </div>
-                  <div className="space-y-2">
-                    {selectedMeeting.action_items.map((item, idx) => (
-                      <div 
-                        key={item.id || idx} 
-                        className={`flex items-start justify-between p-3 rounded-sm border ${
-                          item.status === 'completed' ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50 border-zinc-200'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          {item.status === 'completed' ? (
-                            <CheckCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
-                          ) : (
-                            <Circle className="w-5 h-5 text-zinc-400 mt-0.5" />
-                          )}
-                          <div>
-                            <div className={`text-sm ${item.status === 'completed' ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
-                              {item.description}
-                            </div>
-                            <div className="text-xs text-zinc-500 mt-1">
-                              Assigned: {item.assigned_to_name || 'Unassigned'} | 
-                              Due: {item.due_date ? format(new Date(item.due_date), 'MMM dd, yyyy') : 'No date'}
-                            </div>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className={`text-xs ${
-                          item.priority === 'high' ? 'border-red-300 text-red-700' :
-                          item.priority === 'medium' ? 'border-yellow-300 text-yellow-700' :
-                          'border-zinc-300 text-zinc-600'
-                        }`}>
-                          {item.priority}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Attachments */}
-              {selectedMeeting.mom_attachments?.length > 0 && (
-                <div className="border border-zinc-200 rounded-sm p-4">
-                  <div className="text-xs uppercase tracking-wide text-zinc-500 mb-3 font-medium">
-                    Attachments ({selectedMeeting.mom_attachments.length})
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedMeeting.mom_attachments.map((file, idx) => (
-                      <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-zinc-50 rounded-sm border border-zinc-200">
-                        <Paperclip className="w-4 h-4 text-zinc-500" />
-                        <span className="text-sm text-zinc-700">{file.name || file.filename}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Next Meeting */}
-              {selectedMeeting.next_meeting_date && (
-                <div className="bg-amber-50 p-4 rounded-sm border border-amber-200">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-amber-700" />
-                    <span className="text-sm font-medium text-amber-800">
-                      Next Meeting: {format(new Date(selectedMeeting.next_meeting_date), 'EEEE, MMM dd, yyyy HH:mm')}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Actions - Hidden in Print */}
-              <div className="flex justify-end gap-2 pt-4 border-t border-zinc-200 print:hidden">
-                <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
-                  Close
-                </Button>
-                {canEdit && !selectedMeeting.is_delivered && (
-                  <Button onClick={() => { setDetailDialogOpen(false); openMOMDialog(selectedMeeting); }}>
-                    <FileText className="w-4 h-4 mr-2" /> Edit MOM
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
