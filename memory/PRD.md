@@ -64,14 +64,20 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 - **Sidebar Cleanup:** Removed duplicate "Project Expenses" link
 
 ### Phase 7: Consulting Meetings UI Enhancements (Completed - March 2026)
-- **Client-wise Filter:** Dropdown to filter meetings by client
-- **Month-wise Filter:** Dropdown to filter meetings by month
+- **Project Filter with Auto-Date Range:** Dropdown to filter by project; auto-fills Duration fields with project's start/end dates
+- **Company Column:** Renamed from "Client" to "Company" for clarity (Client = Contact/Owner, Project = Company name)
+- **Date with Day Name:** Shows "Mon, Apr 13, 2026" format
+- **Printable Meeting Detail:** Click meeting row → opens dialog with Print button
+  - Meeting # series number (e.g., "Meeting #4")
+  - Project Meeting Progress (Committed/Completed/Pending stats)
+  - Company field, consultant details, MOM content, action items
+- **Filter Summary Badges:** Blue badge for Project, Amber badge for Duration range
+- **Document Attachments:** Upload PDFs, Word docs, Excel, Images to MOM
 - **Status Filter:** Filter by Pending/Delivered/With MOM
 - **View Toggle:** Switch between List view and Card view
-- **Document Attachments:** Upload PDFs, Word docs, Excel, Images to MOM
 - **File Upload API:** `/api/upload/meeting-attachments` for MOM documents
-- **Test Data:** 20+ consulting meetings populated with varied data (clients, projects, dates, modes)
-- **Testing:** 91% backend pass rate, 100% frontend pass rate
+- **Test Data:** 23 consulting meetings across 5 projects and 5 companies
+- **Testing:** 100% frontend pass rate (14/14 features verified)
 
 ## Business Logic Document
 Full documentation at: `/app/memory/CONSULTING_EXPENSE_BUSINESS_LOGIC.md`
