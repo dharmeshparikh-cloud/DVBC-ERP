@@ -329,6 +329,15 @@ async def record_sales_meeting(
             if travel_mode == "ACCOMPANIED":
                 return
             
+            # DUPLICATE PREVENTION: Check if expense already exists for this meeting
+            existing_expense = await db.expenses.find_one({
+                "meeting_id": meeting_id,
+                "status": {"$ne": "rejected"}  # Allow if previous was rejected
+            })
+            if existing_expense:
+                print(f"Expense already exists for meeting {meeting_id}: {existing_expense.get('id')}")
+                return
+            
             # Calculate expense amount - account for round trip
             expense_amount = 0
             distance_km = travel_details.get("distance_km", 0)

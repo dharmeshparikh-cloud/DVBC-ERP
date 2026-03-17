@@ -21,16 +21,44 @@ async def create_expense(data: dict, current_user: User = Depends(get_current_us
     """Create a new expense entry with line items support."""
     db = get_db()
     
+    # DUPLICATE PREVENTION: Check for meeting_id based duplicates
+    meeting_id = data.get("meeting_id")
+    if meeting_id:
+        existing = await db.expenses.find_one({
+            "meeting_id": meeting_id,
+            "status": {"$ne": "rejected"}
+        })
+        if existing:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Expense already exists for this meeting (ID: {existing.get('id')[:8]}...)"
+            )
+    
+    # DUPLICATE PREVENTION: Check for similar expense (same user, date, amount)
+    expense_date = data.get("expense_date")
+    line_items = data.get("line_items", [])
+    total_amount = sum(item.get("amount", 0) for item in line_items) if line_items else data.get("amount", 0)
+    
+    if expense_date and total_amount > 0:
+        # Check for exact duplicate (same date, amount within 1 rupee)
+        potential_duplicate = await db.expenses.find_one({
+            "user_id": current_user.id,
+            "expense_date": expense_date,
+            "total_amount": {"$gte": total_amount - 1, "$lte": total_amount + 1},
+            "status": {"$ne": "rejected"}
+        })
+        if potential_duplicate:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Similar expense already exists for this date and amount. Existing ID: {potential_duplicate.get('id')[:8]}..."
+            )
+    
     # Get employee record for proper linking
     employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
     employee_id = employee.get("id") if employee else current_user.id
     employee_code = employee.get("employee_id") if employee else None
     employee_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip() if employee else current_user.full_name
     reporting_manager_id = employee.get("reporting_manager_id") if employee else None
-    
-    # Handle line_items format from frontend
-    line_items = data.get("line_items", [])
-    total_amount = sum(item.get("amount", 0) for item in line_items) if line_items else data.get("amount", 0)
     
     expense = {
         "id": str(uuid.uuid4()),
@@ -47,7 +75,7 @@ async def create_expense(data: dict, current_user: User = Depends(get_current_us
         "currency": data.get("currency", "INR"),
         "description": sanitize_text(data.get("description", "") or data.get("notes", "")),
         "notes": data.get("notes", ""),
-        "expense_date": data.get("expense_date"),
+        "expense_date": expense_date,
         "vendor": data.get("vendor"),
         "receipts": [],
         "status": "draft",
@@ -55,6 +83,8 @@ async def create_expense(data: dict, current_user: User = Depends(get_current_us
         "project_name": data.get("project_name", ""),
         "client_id": data.get("client_id"),
         "client_name": data.get("client_name", ""),
+        "meeting_id": meeting_id,  # Store meeting_id for duplicate prevention
+        "lead_id": data.get("lead_id"),  # Optional lead linkage
         "is_office_expense": data.get("is_office_expense", False),
         "is_billable": data.get("is_billable", False),
         "created_by": current_user.id,

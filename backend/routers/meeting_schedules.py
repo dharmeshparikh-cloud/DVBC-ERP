@@ -13,6 +13,7 @@ from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 import sys
 import os
+import uuid
 
 from .deps import get_current_user
 from .models import User
@@ -127,6 +128,288 @@ async def list_schedules(
     schedules = await db.meeting_schedules.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
     return {"schedules": schedules, "total": len(schedules)}
+
+
+# ============== ADDITIONAL MEETING REQUESTS ==============
+# These routes must come BEFORE /{schedule_id} to avoid route conflicts
+
+@router.post("/additional-meeting-request")
+async def create_additional_meeting_request(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Request an additional meeting beyond committed limit.
+    
+    Required when: total_meetings_delivered >= total_meetings_committed
+    
+    Body:
+    {
+        "project_id": "uuid",
+        "reason": "Client requested additional training session",
+        "requested_meetings": 2,
+        "meeting_type": "Training",
+        "urgency": "normal" | "urgent"
+    }
+    """
+    db = get_db()
+    
+    project_id = data.get("project_id")
+    if not project_id:
+        raise HTTPException(status_code=400, detail="project_id is required")
+    
+    # Get project
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    committed = project.get("total_meetings_committed", 0)
+    delivered = project.get("total_meetings_delivered", 0)
+    
+    # Check if request is actually needed
+    remaining = committed - delivered
+    requested = data.get("requested_meetings", 1)
+    
+    if remaining > requested:
+        return {
+            "message": f"No approval needed. You have {remaining} meetings remaining within commitment.",
+            "committed": committed,
+            "delivered": delivered,
+            "remaining": remaining,
+            "approval_required": False
+        }
+    
+    # Create additional meeting request
+    request_id = str(uuid.uuid4())
+    request_doc = {
+        "id": request_id,
+        "project_id": project_id,
+        "project_name": project.get("name"),
+        "client_name": project.get("client_name"),
+        "requested_by": current_user.id,
+        "requested_by_name": current_user.full_name,
+        "reason": data.get("reason", ""),
+        "requested_meetings": requested,
+        "meeting_type": data.get("meeting_type", "General"),
+        "urgency": data.get("urgency", "normal"),
+        "current_committed": committed,
+        "current_delivered": delivered,
+        "status": "pending",  # pending -> approved/rejected
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.additional_meeting_requests.insert_one(request_doc)
+    
+    # Notify admin
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "additional_meeting_request",
+        "title": f"Additional Meeting Request - {project.get('name')}",
+        "message": f"{current_user.full_name} requested {requested} additional meeting(s) for {project.get('client_name')}. Reason: {data.get('reason', 'Not specified')}",
+        "recipient_roles": ["admin", "principal_consultant"],
+        "request_id": request_id,
+        "project_id": project_id,
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {
+        "message": "Additional meeting request submitted for admin approval",
+        "request_id": request_id,
+        "committed": committed,
+        "delivered": delivered,
+        "remaining": remaining,
+        "requested": requested,
+        "approval_required": True
+    }
+
+
+@router.get("/additional-meeting-requests")
+async def get_additional_meeting_requests(
+    project_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get additional meeting requests. Admin sees all, others see their own."""
+    db = get_db()
+    
+    query = {}
+    if project_id:
+        query["project_id"] = project_id
+    if status:
+        query["status"] = status
+    
+    # Non-admin users can only see their own requests
+    if current_user.role not in ["admin", "principal_consultant"]:
+        query["requested_by"] = current_user.id
+    
+    requests = await db.additional_meeting_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return requests
+
+
+@router.post("/additional-meeting-requests/{request_id}/approve")
+async def approve_additional_meeting_request(
+    request_id: str,
+    data: dict = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Approve an additional meeting request (Admin only).
+    This will increase the project's total_meetings_committed.
+    """
+    db = get_db()
+    
+    if current_user.role not in ["admin", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only admin/principal consultant can approve")
+    
+    request = await db.additional_meeting_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if request.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Request already {request.get('status')}")
+    
+    approved_meetings = data.get("approved_meetings", request.get("requested_meetings")) if data else request.get("requested_meetings")
+    
+    # Update request status
+    await db.additional_meeting_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved",
+            "approved_meetings": approved_meetings,
+            "approved_by": current_user.id,
+            "approved_by_name": current_user.full_name,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "approval_remarks": data.get("remarks", "") if data else "",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Increase project meeting commitment
+    await db.projects.update_one(
+        {"id": request.get("project_id")},
+        {"$inc": {"total_meetings_committed": approved_meetings}}
+    )
+    
+    # Notify requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "additional_meeting_approved",
+        "title": "Additional Meeting Request Approved",
+        "message": f"Your request for {approved_meetings} additional meeting(s) for {request.get('project_name')} has been approved by {current_user.full_name}.",
+        "recipient_id": request.get("requested_by"),
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {
+        "message": f"Approved {approved_meetings} additional meeting(s)",
+        "request_id": request_id,
+        "project_id": request.get("project_id"),
+        "new_total_committed": (request.get("current_committed", 0) + approved_meetings)
+    }
+
+
+@router.post("/additional-meeting-requests/{request_id}/reject")
+async def reject_additional_meeting_request(
+    request_id: str,
+    data: dict = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Reject an additional meeting request (Admin only)."""
+    db = get_db()
+    
+    if current_user.role not in ["admin", "principal_consultant"]:
+        raise HTTPException(status_code=403, detail="Only admin/principal consultant can reject")
+    
+    request = await db.additional_meeting_requests.find_one({"id": request_id}, {"_id": 0})
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    if request.get("status") != "pending":
+        raise HTTPException(status_code=400, detail=f"Request already {request.get('status')}")
+    
+    await db.additional_meeting_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user.id,
+            "rejected_by_name": current_user.full_name,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "rejection_reason": data.get("reason", "") if data else "",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify requester
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": "additional_meeting_rejected",
+        "title": "Additional Meeting Request Rejected",
+        "message": f"Your request for additional meetings for {request.get('project_name')} was rejected. Reason: {data.get('reason', 'Not specified') if data else 'Not specified'}",
+        "recipient_id": request.get("requested_by"),
+        "is_read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {
+        "message": "Request rejected",
+        "request_id": request_id
+    }
+
+
+@router.get("/project/{project_id}/meeting-status")
+async def get_project_meeting_status(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get meeting commitment status for a project.
+    Shows committed vs delivered and whether additional meetings need approval.
+    """
+    db = get_db()
+    
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    committed = project.get("total_meetings_committed", 0)
+    delivered = project.get("total_meetings_delivered", 0)
+    remaining = committed - delivered
+    
+    # Check for pending requests
+    pending_requests = await db.additional_meeting_requests.find({
+        "project_id": project_id,
+        "status": "pending"
+    }, {"_id": 0}).to_list(10)
+    
+    # Get pricing plan for detailed breakdown
+    pricing_plan = None
+    if project.get("lead_id"):
+        pricing_plan = await db.pricing_plans.find_one(
+            {"lead_id": project["lead_id"]},
+            {"_id": 0, "team_deployment": 1}
+        )
+    
+    return {
+        "project_id": project_id,
+        "project_name": project.get("name"),
+        "total_committed": committed,
+        "total_delivered": delivered,
+        "remaining": remaining,
+        "percentage_used": round((delivered / committed * 100) if committed > 0 else 0, 1),
+        "can_deliver_meeting": remaining > 0,
+        "needs_approval": remaining <= 0,
+        "pending_requests": pending_requests,
+        "team_deployment": pricing_plan.get("team_deployment", []) if pricing_plan else []
+    }
+
+
+# ============== END ADDITIONAL MEETING REQUESTS ==============
 
 
 @router.get("/{schedule_id}")
@@ -419,6 +702,7 @@ async def get_all_conflicts(
 async def complete_meeting_and_send_mom(
     meeting_id: str,
     background_tasks: BackgroundTasks,
+    data: dict = None,
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -426,10 +710,15 @@ async def complete_meeting_and_send_mom(
     
     Requirements:
     - MOM must be filled (mom_generated = true)
+    - Project must have remaining meeting quota OR approved additional request
     - Will send email to client automatically
     - If recurring, will trigger generation of next meeting
+    - Optional: travel_details for expense creation
     """
     db = get_db()
+    
+    if data is None:
+        data = {}
     
     meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
     if not meeting:
@@ -438,6 +727,34 @@ async def complete_meeting_and_send_mom(
     # Check MOM is filled
     if not meeting.get("mom_generated"):
         raise HTTPException(status_code=400, detail="MOM must be filled before completing meeting")
+    
+    # MEETING LIMIT VALIDATION: Check if project has remaining quota
+    if meeting.get("project_id"):
+        project = await db.projects.find_one({"id": meeting["project_id"]}, {"_id": 0})
+        if project:
+            committed = project.get("total_meetings_committed", 0)
+            delivered = project.get("total_meetings_delivered", 0)
+            remaining = committed - delivered
+            
+            if remaining <= 0:
+                # Check for approved additional meeting request
+                approved_request = await db.additional_meeting_requests.find_one({
+                    "project_id": meeting["project_id"],
+                    "status": "approved",
+                    "used": {"$ne": True}  # Not yet used
+                }, {"_id": 0})
+                
+                if not approved_request:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Meeting limit exceeded! Committed: {committed}, Delivered: {delivered}. Submit an additional meeting request for admin approval."
+                    )
+                
+                # Mark the approved request as used
+                await db.additional_meeting_requests.update_one(
+                    {"id": approved_request["id"]},
+                    {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}}
+                )
     
     # Mark as delivered
     await db.meetings.update_one(
@@ -470,12 +787,89 @@ async def complete_meeting_and_send_mom(
             triggered_by=f"auto_after_{meeting_id}"
         )
     
+    # Create expense record for consulting meetings with travel details
+    expense_created = None
+    travel_details = data.get("travel_details") if data else None
+    
+    if travel_details:
+        travel_mode = travel_details.get("travel_mode", "")
+        if travel_mode != "ACCOMPANIED":
+            # DUPLICATE PREVENTION: Check if expense already exists
+            existing_expense = await db.expenses.find_one({
+                "meeting_id": meeting_id,
+                "status": {"$ne": "rejected"}
+            })
+            
+            if not existing_expense:
+                # Calculate expense amount
+                expense_amount = 0
+                distance_km = travel_details.get("distance_km", 0)
+                is_round_trip = travel_details.get("is_round_trip", False)
+                total_km = distance_km * 2 if is_round_trip else distance_km
+                
+                if travel_mode == "DRIVING":
+                    expense_amount = total_km * 7
+                elif travel_mode == "TWO_WHEELER":
+                    expense_amount = total_km * 3
+                elif travel_mode == "TRANSIT":
+                    expense_amount = travel_details.get("transit_amount", 0)
+                
+                if expense_amount > 0:
+                    # Get project info
+                    project = None
+                    if meeting.get("project_id"):
+                        project = await db.projects.find_one({"id": meeting["project_id"]}, {"_id": 0})
+                    
+                    expense_id = str(uuid.uuid4())
+                    expense_doc = {
+                        "id": expense_id,
+                        "employee_id": current_user.employee_id,
+                        "user_id": current_user.id,
+                        "created_by": current_user.id,
+                        "employee_name": current_user.full_name,
+                        "category": "travel",
+                        "subcategory": f"consulting_meeting_travel_{travel_mode.lower()}",
+                        "description": f"Consulting Meeting Travel - {project.get('name', 'Project') if project else meeting.get('title', 'Meeting')} ({travel_mode})",
+                        "amount": round(expense_amount, 2),
+                        "total_amount": round(expense_amount, 2),
+                        "currency": "INR",
+                        "expense_date": meeting.get("meeting_date", datetime.now(timezone.utc).isoformat()),
+                        "status": "pending",
+                        "meeting_id": meeting_id,
+                        "project_id": meeting.get("project_id"),
+                        "project_name": project.get("name") if project else None,
+                        "client_name": project.get("client_name") if project else meeting.get("client_name"),
+                        "travel_details": {
+                            "start_location": travel_details.get("start_location"),
+                            "end_location": travel_details.get("end_location"),
+                            "via_locations": travel_details.get("via_locations", []),
+                            "distance_km": distance_km,
+                            "total_km": total_km,
+                            "is_round_trip": is_round_trip,
+                            "travel_mode": travel_mode,
+                            "rate_per_km": 7 if travel_mode == "DRIVING" else (3 if travel_mode == "TWO_WHEELER" else 0),
+                            "travel_start_time": travel_details.get("travel_start_time"),
+                            "travel_end_time": travel_details.get("travel_end_time")
+                        },
+                        "expense_type": "consulting_meeting_expense",
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    
+                    await db.expenses.insert_one(expense_doc)
+                    await db.meetings.update_one(
+                        {"id": meeting_id},
+                        {"$set": {"expense_id": expense_id, "expense_amount": round(expense_amount, 2)}}
+                    )
+                    expense_created = expense_id
+    
     return {
         "success": True,
         "meeting_id": meeting_id,
         "is_delivered": True,
         "mom_sent": send_result,
-        "next_meeting": next_meeting_result
+        "next_meeting": next_meeting_result,
+        "expense_created": expense_created
     }
 
 
@@ -653,3 +1047,4 @@ async def send_single_meeting_reminder(
     result = await send_meeting_reminder(db, meeting_id, reminder_type)
     
     return result
+
