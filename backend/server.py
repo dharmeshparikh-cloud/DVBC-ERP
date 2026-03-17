@@ -610,6 +610,55 @@ api_router.include_router(clients_router.router)
 # Excel Upload (Bulk Import)
 api_router.include_router(excel_upload_router.router)
 
+# Upload endpoint alias for meeting attachments
+from fastapi import UploadFile, File
+from typing import List as TypeList
+import os
+import uuid
+from datetime import datetime, timezone as tz
+
+MOM_UPLOAD_DIR = "/app/uploads/mom_documents"
+os.makedirs(MOM_UPLOAD_DIR, exist_ok=True)
+
+@api_router.post("/upload/meeting-attachments")
+async def upload_meeting_attachments_alias(
+    files: TypeList[UploadFile] = File(...)
+):
+    """Generic endpoint for uploading meeting attachments (MOM documents)."""
+    uploaded_files = []
+    ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf",
+                     "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                     "text/plain", "text/csv"]
+    
+    for file in files:
+        content_type = file.content_type
+        if content_type not in ALLOWED_TYPES:
+            continue
+        
+        content = await file.read()
+        if len(content) > 20 * 1024 * 1024:  # 20MB limit
+            continue
+        
+        file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'bin'
+        file_id = str(uuid.uuid4())
+        filename = f"mom_{file_id}.{file_ext}"
+        filepath = os.path.join(MOM_UPLOAD_DIR, filename)
+        
+        with open(filepath, 'wb') as f:
+            f.write(content)
+        
+        uploaded_files.append({
+            "id": file_id,
+            "filename": file.filename,
+            "name": file.filename,
+            "path": f"/uploads/mom_documents/{filename}",
+            "url": f"/api/meetings/documents/{file_id}/download",
+            "content_type": content_type,
+            "size": len(content)
+        })
+    
+    return {"files": uploaded_files, "count": len(uploaded_files)}
+
 from routers import follow_ups as follow_ups_router
 api_router.include_router(follow_ups_router.router)
 

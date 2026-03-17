@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://funnel-gating.preview.emergentagent.com",
+      "value": "https://governed-expenses.preview.emergentagent.com",
       "type": "string"
     },
     {

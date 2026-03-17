@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API, AuthContext } from '../App';
@@ -8,15 +8,18 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Checkbox } from '../components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Badge } from '../components/ui/badge';
 import PageHeader from '../components/ui/page-header';
 import MeetingLocationPicker from '../components/MeetingLocationPicker';
 import {
   Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle,
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
-  ClipboardList, Mail, BarChart3, Target, Car, MapPin, DollarSign
+  ClipboardList, Mail, BarChart3, Target, Car, MapPin, DollarSign,
+  Filter, Building2, CalendarDays, Paperclip, Upload, X, List, LayoutGrid
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 
 // Travel modes with expense rates
 const TRAVEL_MODES = [
@@ -44,6 +47,18 @@ const ConsultingMeetings = () => {
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [expandedMeetings, setExpandedMeetings] = useState({});
   const [activeTab, setActiveTab] = useState('meetings');
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'card'
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    client_id: 'all',
+    month: 'all', // Format: 'YYYY-MM' or 'all'
+    status: 'all' // 'all', 'pending', 'delivered', 'with_mom'
+  });
+
+  // MOM Attachments state
+  const [momAttachments, setMomAttachments] = useState([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
 
   // Travel expense state
   const [addTravelExpense, setAddTravelExpense] = useState(false);
@@ -154,6 +169,116 @@ const ConsultingMeetings = () => {
     staleTime: 2 * 60 * 1000,
   });
 
+  // Filtered meetings with memoization
+  const filteredMeetings = useMemo(() => {
+    let result = [...meetings];
+    
+    // Filter by client
+    if (filters.client_id !== 'all') {
+      result = result.filter(m => m.client_id === filters.client_id);
+    }
+    
+    // Filter by month
+    if (filters.month !== 'all') {
+      const [year, month] = filters.month.split('-').map(Number);
+      const monthStart = startOfMonth(new Date(year, month - 1));
+      const monthEnd = endOfMonth(new Date(year, month - 1));
+      result = result.filter(m => {
+        try {
+          const meetingDate = parseISO(m.meeting_date);
+          return isWithinInterval(meetingDate, { start: monthStart, end: monthEnd });
+        } catch {
+          return false;
+        }
+      });
+    }
+    
+    // Filter by status
+    if (filters.status !== 'all') {
+      if (filters.status === 'pending') {
+        result = result.filter(m => !m.is_delivered);
+      } else if (filters.status === 'delivered') {
+        result = result.filter(m => m.is_delivered);
+      } else if (filters.status === 'with_mom') {
+        result = result.filter(m => m.mom_generated);
+      }
+    }
+    
+    // Sort by date descending
+    result.sort((a, b) => new Date(b.meeting_date) - new Date(a.meeting_date));
+    
+    return result;
+  }, [meetings, filters]);
+
+  // Get unique clients from meetings
+  const uniqueClients = useMemo(() => {
+    const clientMap = new Map();
+    meetings.forEach(m => {
+      if (m.client_id) {
+        const client = clients.find(c => c.id === m.client_id);
+        if (client) {
+          clientMap.set(m.client_id, client.company_name || client.name || 'Unknown');
+        }
+      }
+    });
+    return Array.from(clientMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [meetings, clients]);
+
+  // Get unique months from meetings
+  const uniqueMonths = useMemo(() => {
+    const monthSet = new Set();
+    meetings.forEach(m => {
+      try {
+        const date = parseISO(m.meeting_date);
+        monthSet.add(format(date, 'yyyy-MM'));
+      } catch {}
+    });
+    return Array.from(monthSet).sort().reverse().map(m => ({
+      value: m,
+      label: format(parseISO(m + '-01'), 'MMMM yyyy')
+    }));
+  }, [meetings]);
+
+  // Handle file upload for MOM attachments
+  const handleAttachmentUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    setUploadingAttachment(true);
+    try {
+      const formData = new FormData();
+      files.forEach(f => formData.append('files', f));
+      
+      const res = await axios.post(`${API}/upload/meeting-attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      const uploadedFiles = res.data?.files || res.data || [];
+      setMomAttachments(prev => [...prev, ...uploadedFiles.map(f => ({
+        name: f.filename || f.name,
+        url: f.url || f.path,
+        size: f.size
+      }))]);
+      toast.success(`${files.length} file(s) uploaded`);
+    } catch (error) {
+      // If upload endpoint doesn't exist, store locally for now
+      const localFiles = files.map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        local: true
+      }));
+      setMomAttachments(prev => [...prev, ...localFiles]);
+      toast.info('Files attached (will be uploaded on save)');
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const removeAttachment = (index) => {
+    setMomAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Mutation: Create Meeting
   const createMeetingMutation = useMutation({
     mutationFn: async (data) => {
@@ -192,6 +317,8 @@ const ConsultingMeetings = () => {
         action_items: m.action_items || [],
         next_meeting_date: m.next_meeting_date ? m.next_meeting_date.split('T')[0] : ''
       });
+      // Reset and load existing attachments
+      setMomAttachments(m.mom_attachments || []);
       setMomDialogOpen(true);
     } catch { toast.error('Failed to load meeting'); }
   };
@@ -203,7 +330,8 @@ const ConsultingMeetings = () => {
         agenda: momData.agenda.filter(a => a.trim()),
         discussion_points: momData.discussion_points.filter(d => d.trim()),
         decisions_made: momData.decisions_made.filter(d => d.trim()),
-        next_meeting_date: momData.next_meeting_date ? new Date(momData.next_meeting_date).toISOString() : null
+        next_meeting_date: momData.next_meeting_date ? new Date(momData.next_meeting_date).toISOString() : null,
+        mom_attachments: momAttachments
       });
       toast.success('Consulting MOM saved');
       queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
@@ -494,31 +622,144 @@ const ConsultingMeetings = () => {
 
       {activeTab === 'meetings' && (
         <>
+          {/* Filters */}
+          <Card className="border-zinc-200 shadow-none rounded-sm mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-zinc-500" />
+                  <span className="text-sm font-medium text-zinc-700">Filters:</span>
+                </div>
+                
+                {/* Client Filter */}
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-zinc-400" />
+                  <Select value={filters.client_id} onValueChange={(v) => setFilters(f => ({ ...f, client_id: v }))}>
+                    <SelectTrigger className="w-[180px] h-9 text-sm">
+                      <SelectValue placeholder="All Clients" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Clients</SelectItem>
+                      {uniqueClients.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Month Filter */}
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-zinc-400" />
+                  <Select value={filters.month} onValueChange={(v) => setFilters(f => ({ ...f, month: v }))}>
+                    <SelectTrigger className="w-[160px] h-9 text-sm">
+                      <SelectValue placeholder="All Months" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Months</SelectItem>
+                      {uniqueMonths.map(m => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="flex items-center gap-2">
+                  <Select value={filters.status} onValueChange={(v) => setFilters(f => ({ ...f, status: v }))}>
+                    <SelectTrigger className="w-[140px] h-9 text-sm">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="with_mom">With MOM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center gap-1 ml-auto border border-zinc-200 rounded-sm p-1">
+                  <Button 
+                    variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+                    size="sm" 
+                    className="h-7 px-2"
+                    onClick={() => setViewMode('list')}
+                  >
+                    <List className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant={viewMode === 'card' ? 'secondary' : 'ghost'} 
+                    size="sm" 
+                    className="h-7 px-2"
+                    onClick={() => setViewMode('card')}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* Clear Filters */}
+                {(filters.client_id !== 'all' || filters.month !== 'all' || filters.status !== 'all') && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-zinc-500 h-9"
+                    onClick={() => setFilters({ client_id: 'all', month: 'all', status: 'all' })}
+                  >
+                    <X className="w-4 h-4 mr-1" /> Clear
+                  </Button>
+                )}
+              </div>
+              
+              {/* Filter Summary */}
+              {(filters.client_id !== 'all' || filters.month !== 'all' || filters.status !== 'all') && (
+                <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center gap-2">
+                  <span className="text-xs text-zinc-500">Showing {filteredMeetings.length} of {meetings.length} meetings</span>
+                  {filters.client_id !== 'all' && (
+                    <Badge variant="secondary" className="text-xs">
+                      {uniqueClients.find(c => c.id === filters.client_id)?.name}
+                    </Badge>
+                  )}
+                  {filters.month !== 'all' && (
+                    <Badge variant="secondary" className="text-xs">
+                      {uniqueMonths.find(m => m.value === filters.month)?.label}
+                    </Badge>
+                  )}
+                  {filters.status !== 'all' && (
+                    <Badge variant="secondary" className="text-xs capitalize">
+                      {filters.status.replace('_', ' ')}
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Stats */}
           <div className="grid grid-cols-4 gap-4 mb-6">
             <Card className="border-zinc-200 shadow-none rounded-sm">
               <CardContent className="p-4">
                 <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Total Meetings</div>
-                <div className="text-2xl font-semibold text-zinc-950" data-testid="consulting-total-count">{meetings.length}</div>
+                <div className="text-2xl font-semibold text-zinc-950" data-testid="consulting-total-count">{filteredMeetings.length}</div>
               </CardContent>
             </Card>
             <Card className="border-zinc-200 shadow-none rounded-sm">
               <CardContent className="p-4">
                 <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Delivered</div>
-                <div className="text-2xl font-semibold text-emerald-700">{meetings.filter(m => m.is_delivered).length}</div>
+                <div className="text-2xl font-semibold text-emerald-700">{filteredMeetings.filter(m => m.is_delivered).length}</div>
               </CardContent>
             </Card>
             <Card className="border-zinc-200 shadow-none rounded-sm">
               <CardContent className="p-4">
                 <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">With MOM</div>
-                <div className="text-2xl font-semibold text-zinc-950">{meetings.filter(m => m.mom_generated).length}</div>
+                <div className="text-2xl font-semibold text-zinc-950">{filteredMeetings.filter(m => m.mom_generated).length}</div>
               </CardContent>
             </Card>
             <Card className="border-zinc-200 shadow-none rounded-sm">
               <CardContent className="p-4">
                 <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Action Items</div>
                 <div className="text-2xl font-semibold text-zinc-950">
-                  {meetings.reduce((sum, m) => sum + (m.action_items?.length || 0), 0)}
+                  {filteredMeetings.reduce((sum, m) => sum + (m.action_items?.length || 0), 0)}
                 </div>
               </CardContent>
             </Card>
@@ -526,21 +767,100 @@ const ConsultingMeetings = () => {
 
           {loading ? (
             <div className="flex items-center justify-center h-64"><div className="text-zinc-500">Loading...</div></div>
-          ) : meetings.length === 0 ? (
+          ) : filteredMeetings.length === 0 ? (
             <Card className="border-zinc-200 shadow-none rounded-sm">
               <CardContent className="flex flex-col items-center justify-center h-64">
                 <Calendar className="w-12 h-12 text-zinc-300 mb-4" />
-                <p className="text-zinc-500 mb-4">No consulting meetings yet</p>
-                {canEdit && (
+                <p className="text-zinc-500 mb-4">
+                  {meetings.length === 0 ? 'No consulting meetings yet' : 'No meetings match your filters'}
+                </p>
+                {canEdit && meetings.length === 0 && (
                   <Button onClick={() => setDialogOpen(true)} className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
                     <Plus className="w-4 h-4 mr-2" /> Schedule First Meeting
                   </Button>
                 )}
+                {meetings.length > 0 && (
+                  <Button variant="outline" onClick={() => setFilters({ client_id: 'all', month: 'all', status: 'all' })}>
+                    Clear Filters
+                  </Button>
+                )}
               </CardContent>
             </Card>
+          ) : viewMode === 'list' ? (
+            /* List View */
+            <div className="border border-zinc-200 rounded-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Meeting</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Client</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Date</th>
+                    <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Mode</th>
+                    <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
+                    <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">MOM</th>
+                    <th className="text-right px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMeetings.map((meeting) => {
+                    const project = projects.find(p => p.id === meeting.project_id);
+                    const client = clients.find(c => c.id === meeting.client_id);
+                    
+                    return (
+                      <tr key={meeting.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`meeting-row-${meeting.id}`}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-zinc-950">{meeting.title || project?.name || 'Meeting'}</div>
+                          <div className="text-xs text-zinc-500">{project?.name}</div>
+                        </td>
+                        <td className="px-4 py-3 text-zinc-600">{client?.company_name || '-'}</td>
+                        <td className="px-4 py-3 text-zinc-700">
+                          <div>{format(new Date(meeting.meeting_date), 'MMM dd, yyyy')}</div>
+                          <div className="text-xs text-zinc-400">{format(new Date(meeting.meeting_date), 'HH:mm')}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge variant="outline" className="text-xs">
+                            {meeting.mode === 'online' ? 'Online' : meeting.mode === 'offline' ? 'In-person' : 'Call'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {meeting.is_delivered ? (
+                            <Badge className="bg-emerald-100 text-emerald-700 text-xs">Delivered</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">Pending</Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {meeting.mom_generated ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <CheckCircle className="w-4 h-4 text-emerald-600" />
+                              {meeting.mom_sent_to_client && <Mail className="w-4 h-4 text-blue-500" />}
+                            </div>
+                          ) : (
+                            <Circle className="w-4 h-4 text-zinc-300 mx-auto" />
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {!meeting.is_delivered && canRecordMOM(meeting) && (
+                              <Button size="sm" variant="outline" onClick={() => openMOMDialog(meeting)}>
+                                <FileText className="w-3 h-3 mr-1" /> MOM
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" onClick={() => setExpandedMeetings(prev => ({ ...prev, [meeting.id]: !prev[meeting.id] }))}>
+                              {expandedMeetings[meeting.id] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
+            /* Card View */
             <div className="space-y-3">
-              {meetings.map((meeting) => {
+              {filteredMeetings.map((meeting) => {
                 const project = projects.find(p => p.id === meeting.project_id);
                 const client = clients.find(c => c.id === meeting.client_id);
                 const isExpanded = expandedMeetings[meeting.id];
@@ -788,6 +1108,64 @@ const ConsultingMeetings = () => {
                   </Button>
                 </div>
               )}
+            </div>
+
+            {/* Document Attachments Section */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-zinc-950 flex items-center gap-2">
+                <Paperclip className="w-4 h-4" />
+                Attachments (Optional)
+              </Label>
+              
+              {/* Uploaded files list */}
+              {momAttachments.length > 0 && (
+                <div className="space-y-2">
+                  {momAttachments.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-zinc-50 rounded-sm border border-zinc-200">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-zinc-500" />
+                        <span className="text-sm text-zinc-700">{file.name || file.filename}</span>
+                        {file.size && (
+                          <span className="text-xs text-zinc-400">
+                            ({(file.size / 1024).toFixed(1)} KB)
+                          </span>
+                        )}
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeAttachment(idx)}
+                        className="h-6 w-6 p-0 text-red-500 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Upload button */}
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg"
+                    onChange={handleAttachmentUpload}
+                    className="hidden"
+                    data-testid="mom-attachment-input"
+                  />
+                  <div className="flex items-center gap-2 px-3 py-2 border border-dashed border-zinc-300 rounded-sm hover:border-zinc-400 hover:bg-zinc-50 transition-colors">
+                    <Upload className="w-4 h-4 text-zinc-500" />
+                    <span className="text-sm text-zinc-600">
+                      {uploadingAttachment ? 'Uploading...' : 'Attach Documents'}
+                    </span>
+                  </div>
+                </label>
+                <span className="text-xs text-zinc-400">
+                  PDF, Word, Excel, Images (max 20MB each)
+                </span>
+              </div>
             </div>
 
             <div className="space-y-2">

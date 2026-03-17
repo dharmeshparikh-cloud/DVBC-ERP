@@ -27,11 +27,20 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Allowed file types for offline meeting attachments
 ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"]
 ALLOWED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/webm", "audio/ogg", "audio/mp4", "audio/x-m4a"]
+ALLOWED_DOCUMENT_TYPES = ["application/pdf", "application/msword", 
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/plain", "text/csv"]
 ALLOWED_TYPES = ALLOWED_IMAGE_TYPES + ALLOWED_AUDIO_TYPES
+ALLOWED_MOM_TYPES = ALLOWED_IMAGE_TYPES + ALLOWED_DOCUMENT_TYPES
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
+# MOM documents upload directory
+MOM_UPLOAD_DIR = "/app/uploads/mom_documents"
+os.makedirs(MOM_UPLOAD_DIR, exist_ok=True)
+
 # App URL for email links
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://funnel-gating.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://governed-expenses.preview.emergentagent.com").replace("/api", "")
 
 
 @router.post("", response_model=Meeting)
@@ -590,6 +599,77 @@ async def delete_meeting_attachment(
         )
     
     return {"message": "Attachment deleted successfully"}
+
+
+@router.post("/upload/documents")
+async def upload_mom_documents(
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload documents for MOM attachments.
+    Supports PDFs, Word docs, Excel, images, and plain text files.
+    Returns list of uploaded file info for frontend to store with MOM.
+    """
+    uploaded_files = []
+    
+    for file in files:
+        # Validate file type
+        content_type = file.content_type
+        if content_type not in ALLOWED_MOM_TYPES:
+            continue  # Skip invalid files
+        
+        # Read file content
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            continue  # Skip files that are too large
+        
+        # Generate unique filename
+        file_ext = file.filename.split('.')[-1] if '.' in file.filename else 'bin'
+        file_id = str(uuid.uuid4())
+        filename = f"mom_{file_id}.{file_ext}"
+        filepath = os.path.join(MOM_UPLOAD_DIR, filename)
+        
+        # Save file
+        with open(filepath, 'wb') as f:
+            f.write(content)
+        
+        # Create file info
+        uploaded_files.append({
+            "id": file_id,
+            "filename": file.filename,
+            "stored_filename": filename,
+            "path": f"/uploads/mom_documents/{filename}",
+            "url": f"/api/meetings/documents/{file_id}/download",
+            "content_type": content_type,
+            "size": len(content),
+            "uploaded_by": current_user.id,
+            "uploaded_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {"files": uploaded_files, "count": len(uploaded_files)}
+
+
+@router.get("/documents/{file_id}/download")
+async def download_mom_document(
+    file_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Download an uploaded MOM document."""
+    from fastapi.responses import FileResponse
+    
+    # Find the file in upload directory
+    for filename in os.listdir(MOM_UPLOAD_DIR):
+        if file_id in filename:
+            filepath = os.path.join(MOM_UPLOAD_DIR, filename)
+            if os.path.exists(filepath):
+                return FileResponse(
+                    filepath,
+                    filename=filename,
+                    media_type="application/octet-stream"
+                )
+    
+    raise HTTPException(status_code=404, detail="Document not found")
 
 
 @router.get("/lead/{lead_id}/attachments")
