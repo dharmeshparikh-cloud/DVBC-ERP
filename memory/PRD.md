@@ -79,18 +79,41 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 - **Test Data:** 23 consulting meetings across 5 projects and 5 companies
 - **Testing:** 100% frontend pass rate (14/14 features verified)
 
+### Phase 8: Consulting Efforts Summary & Attendance Governance (Completed - March 2026)
+- **Attendance Validation:** No attendance = No MOM = No expenses (strict governance rule)
+- **Meeting Attendance API:** `/api/attendance/meeting/{meeting_id}` for marking attendance
+- **Duration Calculation:** Auto-calculated from start_time and end_time
+- **Consulting Efforts Summary Report:** Comprehensive report page at `/consulting/efforts-summary`
+  - Stats cards: Total Meetings, With Attendance, With MOM, Total Hours, Tasks, Timely Delivery
+  - Expenses Summary: Total, Approved, Pending
+  - Payments Summary: Invoiced, Received, Overdue, Late, Collection Rate
+  - Expandable sections: By Consultant, By Project, By Company, Payment Collection
+  - Print option for audit
+  - Filters: Project, Consultant, Company, Date range
+- **Project Handoff Summary API:** `/api/stats/consulting/project/{project_id}/handoff-summary`
+- **Testing:** 100% backend and 100% frontend pass rate
+
 ## Business Logic Document
 Full documentation at: `/app/memory/CONSULTING_EXPENSE_BUSINESS_LOGIC.md`
 
 ## Key APIs
 
 ### Meeting Management
-- `POST /api/meeting-schedules/meetings/{id}/complete-and-send` - Complete MOM with RBAC
+- `POST /api/meeting-schedules/meetings/{id}/complete-and-send` - Complete MOM with RBAC + Attendance validation
 - `GET /api/meeting-schedules/project/{project_id}/meeting-status` - Meeting quota status
+
+### Meeting Attendance (SSOT: Unified Attendance System)
+- `POST /api/attendance/meeting/{meeting_id}` - Mark meeting attendance (required for MOM/expenses)
+- `GET /api/attendance/meeting/{meeting_id}` - Get attendance record for meeting
+- `GET /api/attendance/meeting/project/{project_id}` - Get all meeting attendance for project
 
 ### Expense Management
 - `POST /api/expenses` - Create expense with governance
 - `GET /api/my/expenses` - User's own expenses
+
+### Consulting Reports
+- `GET /api/stats/consulting/efforts-summary` - Comprehensive efforts report with filters
+- `GET /api/stats/consulting/project/{project_id}/handoff-summary` - Project handoff for audit
 
 ### Additional Meeting Requests
 - `POST /api/meeting-schedules/additional-meeting-request` - Request additional meetings
