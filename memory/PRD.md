@@ -48,8 +48,8 @@ Build a robust and governed expense tracking and meeting management system for c
 3. **Full-Page Meeting Detail View**
    - Created new `/meeting/:meetingId` route with `MeetingDetail.js`
    - Clean, printable layout with proper action buttons
-   - Shows all meeting details (SOW, Agenda, Notes, Action Items, Attachments)
-   - Clear indication when MOM is not yet recorded
+   - **Only shows meeting details for meetings with MOM recorded/submitted**
+   - Meetings without MOM show "MOM Not Yet Recorded" message with "Record MOM" button
    - Fixed Print/Close button overlap issue
 
 4. **Bug Fixes**

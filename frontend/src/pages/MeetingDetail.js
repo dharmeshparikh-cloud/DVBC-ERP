@@ -106,6 +106,34 @@ const MeetingDetail = () => {
     );
   }
 
+  // Only show meeting details if MOM is recorded/submitted
+  if (!meeting.mom_generated && !meeting.is_delivered) {
+    return (
+      <div className="p-6">
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-6 text-center">
+            <FileText className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-amber-800">MOM Not Yet Recorded</h2>
+            <p className="text-amber-600 mt-2">
+              Minutes of Meeting have not been recorded for this meeting yet.
+            </p>
+            <p className="text-amber-600 text-sm mt-1">
+              Please record the MOM first to view the complete meeting details.
+            </p>
+            <div className="flex justify-center gap-3 mt-4">
+              <Button variant="outline" onClick={() => navigate('/consulting-meetings')}>
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Meetings
+              </Button>
+              <Button onClick={() => navigate(`/consulting-meetings?edit=${meetingId}`)}>
+                <Edit className="w-4 h-4 mr-2" /> Record MOM
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const stats = getProjectStats();
   const seriesNumber = getMeetingSeriesNumber();
 

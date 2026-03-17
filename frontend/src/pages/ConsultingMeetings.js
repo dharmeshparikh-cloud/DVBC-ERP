@@ -385,9 +385,13 @@ const ConsultingMeetings = () => {
     createMeetingMutation.mutate(formData);
   };
 
-  // Open meeting detail view (full page)
+  // Open meeting detail view (full page) - only for meetings with MOM recorded
   const openMeetingDetail = (meeting) => {
-    navigate(`/meeting/${meeting.id}`);
+    if (meeting.mom_generated || meeting.is_delivered) {
+      navigate(`/meeting/${meeting.id}`);
+    } else {
+      toast.info('MOM not yet recorded. Please record MOM first to view details.');
+    }
   };
 
   // Get meeting series number (count of meetings for same project before this one)
@@ -989,12 +993,13 @@ const ConsultingMeetings = () => {
                     return (
                       <tr 
                         key={meeting.id} 
-                        className="border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer" 
+                        className={`border-t border-zinc-100 ${meeting.mom_generated || meeting.is_delivered ? 'hover:bg-zinc-50 cursor-pointer' : 'opacity-75 cursor-default'}`}
                         data-testid={`meeting-row-${meeting.id}`}
                         onClick={() => openMeetingDetail(meeting)}
+                        title={meeting.mom_generated || meeting.is_delivered ? 'Click to view meeting details' : 'Record MOM first to view details'}
                       >
                         <td className="px-4 py-3">
-                          <div className="font-medium text-zinc-950 hover:text-blue-600">{meeting.title || projectName || 'Meeting'}</div>
+                          <div className={`font-medium ${meeting.mom_generated || meeting.is_delivered ? 'text-zinc-950 hover:text-blue-600' : 'text-zinc-600'}`}>{meeting.title || projectName || 'Meeting'}</div>
                           <div className="text-xs text-zinc-500">{projectName}</div>
                         </td>
                         <td className="px-4 py-3 text-zinc-600">{companyName}</td>
@@ -1056,8 +1061,9 @@ const ConsultingMeetings = () => {
 
                 return (
                   <Card key={meeting.id} data-testid={`consulting-meeting-card-${meeting.id}`}
-                    className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
-                    onClick={() => openMeetingDetail(meeting)}>
+                    className={`border-zinc-200 shadow-none rounded-sm transition-colors ${meeting.mom_generated || meeting.is_delivered ? 'hover:border-zinc-300 cursor-pointer' : 'opacity-75 cursor-default'}`}
+                    onClick={() => openMeetingDetail(meeting)}
+                    title={meeting.mom_generated || meeting.is_delivered ? 'Click to view meeting details' : 'Record MOM first to view details'}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
