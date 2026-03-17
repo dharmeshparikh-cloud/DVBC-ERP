@@ -63,6 +63,16 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 - **Edit Rules:** Creator can edit until approved
 - **Sidebar Cleanup:** Removed duplicate "Project Expenses" link
 
+### Phase 7: Consulting Meetings UI Enhancements (Completed - March 2026)
+- **Client-wise Filter:** Dropdown to filter meetings by client
+- **Month-wise Filter:** Dropdown to filter meetings by month
+- **Status Filter:** Filter by Pending/Delivered/With MOM
+- **View Toggle:** Switch between List view and Card view
+- **Document Attachments:** Upload PDFs, Word docs, Excel, Images to MOM
+- **File Upload API:** `/api/upload/meeting-attachments` for MOM documents
+- **Test Data:** 20+ consulting meetings populated with varied data (clients, projects, dates, modes)
+- **Testing:** 91% backend pass rate, 100% frontend pass rate
+
 ## Business Logic Document
 Full documentation at: `/app/memory/CONSULTING_EXPENSE_BUSINESS_LOGIC.md`
 
@@ -80,18 +90,28 @@ Full documentation at: `/app/memory/CONSULTING_EXPENSE_BUSINESS_LOGIC.md`
 - `POST /api/meeting-schedules/additional-meeting-request` - Request additional meetings
 - `POST /api/meeting-schedules/additional-meeting-requests/{id}/approve` - Approve request
 
+### File Upload
+- `POST /api/upload/meeting-attachments` - Upload documents for MOM (PDF, Word, Excel, Images)
+- `GET /api/meetings/documents/{file_id}/download` - Download uploaded MOM document
+
 ## Test Credentials
 - **Admin:** EMP001 / admin123
 - **HR Manager:** EMP002 / admin123
 - **Sales Executive:** EMP003 / admin123
 
 ## Testing
-- `/app/test_reports/iteration_183.json` - Latest test results
-- Backend: 100% pass rate (11 tests)
-- Frontend: 100% pass rate after bug fix
-- Test file: `/app/backend/tests/test_consultant_expense_governance.py`
+- `/app/test_reports/iteration_184.json` - Latest test results (Consulting Meetings UI)
+- Backend: 91% pass rate (10/11 tests)
+- Frontend: 100% pass rate
+- Test file: `/app/backend/tests/test_consulting_meetings_filters.py`
 
 ## Remaining Backlog
+
+### P0 - Upcoming (Per User Request)
+- Implement Calendar as a Planning Tool (reschedule feature testing)
+- Disable SSOT breach points (remove "Add Meeting" from Project Details, Calendar, Mobile App)
+- Enforce project linkage on Mobile App expense submissions
+- Create Business Logic PDF document
 
 ### P2 - Future
 - Meeting Calendar planning feature (month/week plans with manager approval)
