@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useContext, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { API, AuthContext } from '../App';
@@ -29,7 +30,7 @@ import { format } from 'date-fns';
 import {
   Printer, ChevronDown, ChevronRight, Users, Calendar, CheckCircle,
   Clock, Target, DollarSign, FileText, Building2, TrendingUp,
-  AlertCircle, Filter, Download, RefreshCw, Eye
+  AlertCircle, Filter, Download, RefreshCw, Eye, Layers, PlusCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ConsultingStageNav from '../components/ConsultingStageNav';
@@ -80,24 +81,40 @@ const ExpandableSection = ({ title, icon: Icon, defaultOpen = false, badge, chil
   );
 };
 
-// Stat Card Component
-const StatCard = ({ label, value, subValue, icon: Icon, color = 'zinc', trend }) => (
-  <div className={`p-4 rounded-sm border border-zinc-200 bg-${color}-50`}>
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-zinc-500 mb-1">{label}</p>
-        <p className={`text-2xl font-bold text-${color}-700`}>{value}</p>
-        {subValue && <p className="text-xs text-zinc-500 mt-1">{subValue}</p>}
+// Stat Card Component - Clickable with navigation
+const StatCard = ({ label, value, subValue, icon: Icon, color = 'zinc', trend, href, onClick }) => {
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    if (onClick) onClick();
+    else if (href) navigate(href);
+  };
+  
+  return (
+    <div 
+      className={`p-4 rounded-sm border border-zinc-200 bg-${color}-50 ${(href || onClick) ? 'cursor-pointer hover:border-zinc-400 hover:shadow-sm transition-all' : ''}`}
+      onClick={handleClick}
+      data-testid={`stat-card-${label.toLowerCase().replace(/\s+/g, '-')}`}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-zinc-500 mb-1">{label}</p>
+          <p className={`text-2xl font-bold text-${color}-700`}>{value}</p>
+          {subValue && <p className="text-xs text-zinc-500 mt-1">{subValue}</p>}
+        </div>
+        <Icon className={`w-8 h-8 text-${color}-300`} />
       </div>
-      <Icon className={`w-8 h-8 text-${color}-300`} />
+      {trend && (
+        <div className={`mt-2 text-xs ${trend > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+          {trend > 0 ? '+' : ''}{trend}% vs last period
+        </div>
+      )}
+      {(href || onClick) && (
+        <div className="mt-2 text-xs text-blue-600 print:hidden">Click to view details →</div>
+      )}
     </div>
-    {trend && (
-      <div className={`mt-2 text-xs ${trend > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-        {trend > 0 ? '+' : ''}{trend}% vs last period
-      </div>
-    )}
-  </div>
-);
+  );
+};
 
 const ConsultingEffortsSummary = () => {
   const { user } = useContext(AuthContext);
@@ -304,14 +321,15 @@ const ConsultingEffortsSummary = () => {
             </p>
           </div>
 
-          {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 print:grid-cols-6 print:gap-2">
+          {/* Summary Stats - Clickable */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 print:grid-cols-8 print:gap-2">
             <StatCard 
               label="Total Meetings" 
               value={summary.summary?.total_meetings || 0}
               subValue={`${summary.summary?.delivered_meetings || 0} delivered`}
               icon={Calendar}
               color="blue"
+              href="/consulting-meetings"
             />
             <StatCard 
               label="With Attendance" 
@@ -319,6 +337,7 @@ const ConsultingEffortsSummary = () => {
               subValue={`${summary.summary?.attendance_compliance_rate || 0}% compliance`}
               icon={Users}
               color="emerald"
+              href="/attendance"
             />
             <StatCard 
               label="With MOM" 
@@ -326,6 +345,7 @@ const ConsultingEffortsSummary = () => {
               subValue={`${summary.summary?.mom_sent_to_client || 0} sent`}
               icon={FileText}
               color="purple"
+              href="/consulting-meetings?filter=with_mom"
             />
             <StatCard 
               label="Total Hours" 
@@ -333,6 +353,7 @@ const ConsultingEffortsSummary = () => {
               subValue={`Avg ${summary.duration?.average_minutes || 0} mins`}
               icon={Clock}
               color="amber"
+              href="/timesheets"
             />
             <StatCard 
               label="Tasks Completed" 
@@ -348,7 +369,60 @@ const ConsultingEffortsSummary = () => {
               icon={Target}
               color="blue"
             />
+            {/* SOW Stats - Committed vs Additional */}
+            <StatCard 
+              label="Committed Scopes" 
+              value={summary.sow?.scopes?.committed || 0}
+              subValue={`${summary.sow?.scopes?.completed || 0} completed`}
+              icon={Layers}
+              color="indigo"
+              href="/consulting/sow"
+            />
+            <StatCard 
+              label="Additional Scopes" 
+              value={summary.sow?.scopes?.additional || 0}
+              subValue={`${summary.sow?.total || 0} total SOWs`}
+              icon={PlusCircle}
+              color="orange"
+              href="/consulting/sow"
+            />
           </div>
+
+          {/* SOW Progress Card */}
+          {summary.sow?.total > 0 && (
+            <Card className="border-zinc-200 shadow-none rounded-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-zinc-500 mb-1">SOW Progress</p>
+                      <p className="text-2xl font-bold text-indigo-700">{summary.sow?.avg_progress || 0}%</p>
+                    </div>
+                    <div className="w-48 bg-zinc-200 rounded-full h-3">
+                      <div 
+                        className="bg-indigo-500 h-3 rounded-full transition-all" 
+                        style={{ width: `${summary.sow?.avg_progress || 0}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-6 text-sm">
+                    <div className="text-center">
+                      <p className="font-bold text-emerald-600">{summary.sow?.scopes?.completed || 0}</p>
+                      <p className="text-xs text-zinc-500">Completed</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-amber-600">{summary.sow?.scopes?.pending || 0}</p>
+                      <p className="text-xs text-zinc-500">Pending</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-orange-600">{summary.sow?.scopes?.additional || 0}</p>
+                      <p className="text-xs text-zinc-500">Additional</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Financial Summary */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2">

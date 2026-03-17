@@ -283,6 +283,9 @@ class Meeting(BaseModel):
     client_name: Optional[str] = None  # Denormalized for display
     lead_id: Optional[str] = None
     sow_id: Optional[str] = None
+    # SOW Scope linkage - consultant can select multiple scopes per meeting
+    sow_scope_ids: Optional[List[str]] = []  # List of scope IDs from SOW
+    sow_scopes: Optional[List[Dict[str, Any]]] = []  # Denormalized scope details
     meeting_date: datetime
     start_time: Optional[datetime] = None  # Meeting start time
     end_time: Optional[datetime] = None  # Meeting end time

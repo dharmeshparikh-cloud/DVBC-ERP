@@ -873,6 +873,35 @@ async def get_consulting_efforts_summary(
         {"_id": 0}
     ).to_list(500)
     
+    # Get SOWs (Enhanced SOW - Committed by Sales)
+    sow_filter = {}
+    if project_id:
+        sow_filter["project_id"] = project_id
+    sows = await db.enhanced_sow.find(sow_filter, {"_id": 0}).to_list(200)
+    
+    # Calculate SOW metrics
+    total_sows = len(sows)
+    committed_sows = len([s for s in sows if s.get("sales_handover_complete")])
+    
+    # Calculate scope metrics
+    total_committed_scopes = 0
+    total_additional_scopes = 0
+    total_completed_scopes = 0
+    
+    for sow in sows:
+        scopes = sow.get("scopes", [])
+        for scope in scopes:
+            if scope.get("is_additional"):
+                total_additional_scopes += 1
+            else:
+                total_committed_scopes += 1
+            if scope.get("status") == "completed" or scope.get("progress_percentage", 0) >= 100:
+                total_completed_scopes += 1
+    
+    # Average SOW progress
+    sow_progress_list = [s.get("progress_percentage", 0) or 0 for s in sows]
+    avg_sow_progress = round(sum(sow_progress_list) / len(sow_progress_list), 1) if sow_progress_list else 0
+    
     # Calculate metrics
     total_meetings = len(meetings)
     delivered_meetings = len([m for m in meetings if m.get("is_delivered")])
@@ -1043,6 +1072,17 @@ async def get_consulting_efforts_summary(
             "overdue": overdue_payments,
             "late": late_payments,
             "collection_rate": round((received_payments / total_payments * 100) if total_payments > 0 else 0, 1)
+        },
+        "sow": {
+            "total": total_sows,
+            "committed_by_sales": committed_sows,
+            "avg_progress": avg_sow_progress,
+            "scopes": {
+                "committed": total_committed_scopes,
+                "additional": total_additional_scopes,
+                "completed": total_completed_scopes,
+                "pending": total_committed_scopes + total_additional_scopes - total_completed_scopes
+            }
         },
         "filters_applied": {
             "project_id": project_id,
