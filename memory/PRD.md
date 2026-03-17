@@ -1,78 +1,129 @@
-# D&V Business Consulting ERP - Product Requirements Document
+# NETRA ERP - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive ERP system with proper sales funnel progression and data integrity.
+Build a comprehensive ERP system for D&V Business Consulting with features including:
+- Sales funnel management (Lead → Meeting → Pricing → Quotation → SOW → Agreement → Project)
+- Consulting project management with meeting tracking
+- Expense management and approval workflow
+- Meeting expense tracking with travel reimbursement
+- Team deployment and resource allocation
+- Payroll integration
 
-## Core Features Implemented ✅
+## Core Architecture
 
-### 1. Single Source of Truth (SSOT)
-- Lead entity is the master record
-- LeadSelector component with searchable dropdown
-- Duplicate lead detection
+### Backend
+- **Framework:** FastAPI with async MongoDB
+- **Database:** MongoDB (netra_erp)
+- **Authentication:** JWT-based with role-based access control (RBAC)
+- **Key Collections:** users, employees, leads, meetings, expenses, projects, pricing_plans, kickoff_requests, additional_meeting_requests
 
-### 2. Funnel Protection (NEW) ✅
-**Problem:** Users could bypass funnel stages by directly creating items without prerequisites
+### Frontend
+- **Framework:** React with React Query for data fetching
+- **UI Library:** Shadcn/UI components
+- **State Management:** React Query + Context
+- **Routing:** React Router v6
 
-**Solution Implemented:**
-1. **LeadSelector Filtering** - Only shows eligible leads based on funnel stage
-   - Quotations: Only leads with pricing plans
-   - Agreements: Only leads with quotations
-   
-2. **Create Button Disabling** - Disabled with tooltip when no eligible leads
-   - Shows info icon (ℹ️) and tooltip explaining next step
-   - Prevents user frustration
+## Implemented Features
 
-3. **Backend API Enhancement** - `/api/leads/ssot/search` accepts `funnel_stage` parameter
-   - Values: `any`, `has_meeting`, `has_pricing_plan`, `has_quotation`
+### Phase 1: Sales Funnel SSOT (Completed)
+- Lead as master record for company data
+- LeadSelector component for downstream forms
+- Funnel stage gating (can't skip stages)
+- Dynamic button disabling with tooltips
 
-### 3. Pricing Plan → Downstream Inheritance
-- Team Deployment LOCKED in Agreements
-- Rate per Meeting hidden except for Admin
-- SOW Auto-Generate from Team Deployment
+### Phase 2: Expense Duplicate Prevention (Completed - March 2026)
+- **Meeting-based duplicate check:** Same meeting_id cannot have multiple expenses
+- **Value-based duplicate check:** Same user + date + amount (±1) blocks duplicate
+- Fields added: `meeting_id`, `lead_id` stored in expense documents
 
-### 4. Edit Protection on Approved Items
-- SOW: Approved/In Progress/Completed locked for non-admin
-- Agreements: Approved/Signed/Sent show Lock icon
+### Phase 3: Meeting Limit Validation (Completed - March 2026)
+- **Project Meeting Status API:** `/api/meeting-schedules/project/{project_id}/meeting-status`
+  - Returns committed, delivered, remaining counts
+  - Flags: `can_deliver_meeting`, `needs_approval`
+- **Additional Meeting Request System:**
+  - Create request when limit exceeded
+  - Admin/Principal Consultant approval workflow
+  - Auto-increment project commitment on approval
+  - Notification system for requests
 
-## Files Created/Modified This Session
+### Phase 4: Consulting Travel Expenses (Completed - March 2026)
+- Travel details capture in meeting delivery flow
+- MeetingLocationPicker integration for consulting meetings
+- Auto-expense creation on meeting completion with travel data
+- Duplicate prevention for consulting meeting expenses
 
-### New Files
-- `frontend/src/hooks/useFunnelEligibility.js` - Hook for checking funnel eligibility
+## Key APIs
 
-### Modified Files
-- `frontend/src/components/LeadSelector.jsx` - Added funnelStage and noEligibleMessage props
-- `frontend/src/pages/sales-funnel/ProformaInvoice.js` - Funnel filtering + disabled button
-- `frontend/src/pages/sales-funnel/Agreements.js` - Funnel filtering + disabled button
-- `frontend/src/pages/Dashboard.js` - Quick action button with tooltip
-- `backend/routers/leads.py` - funnel_stage filter in SSOT search
+### Expense Management
+- `POST /api/expenses` - Create expense (with duplicate prevention)
+- `GET /api/my/expenses` - User's own expenses
+- `GET /api/expenses/report/monthly-meeting-expenses` - Monthly report
 
-## Funnel Flow Enforcement
+### Meeting Management
+- `POST /api/meetings/{lead_id}/mom` - Record sales meeting with MOM
+- `POST /api/meeting-schedules/meetings/{id}/complete-and-send` - Complete consulting meeting
 
+### Additional Meeting Requests
+- `POST /api/meeting-schedules/additional-meeting-request` - Request additional meetings
+- `GET /api/meeting-schedules/additional-meeting-requests` - List requests
+- `POST /api/meeting-schedules/additional-meeting-requests/{id}/approve` - Approve request
+- `POST /api/meeting-schedules/additional-meeting-requests/{id}/reject` - Reject request
+- `GET /api/meeting-schedules/project/{project_id}/meeting-status` - Project meeting status
+
+## Database Schema Changes (March 2026)
+
+### expenses collection
+```javascript
+{
+  meeting_id: "uuid",        // NEW - For duplicate prevention
+  lead_id: "uuid",           // NEW - Optional lead linkage
+  project_id: "uuid",        // Optional project linkage
+  expense_type: "meeting_expense" | "consulting_meeting_expense"
+}
 ```
-Lead → Meeting (MOM) → Pricing Plan → Quotation → Agreement → Kickoff
-  ↓         ↓              ↓            ↓           ↓
-Create   Record MOM    Create Plan   Create Quote  Create Agreement
-  ✅         ✅            ✅           ✅            ✅
-                       (filtered)    (filtered)    (filtered)
-```
 
-## Test Results
-- Backend: 100% (8/8 tests passed)
-- Frontend: 100% (all features verified)
+### additional_meeting_requests collection (NEW)
+```javascript
+{
+  id: "uuid",
+  project_id: "uuid",
+  project_name: "string",
+  client_name: "string",
+  requested_by: "uuid",
+  requested_by_name: "string",
+  reason: "string",
+  requested_meetings: number,
+  meeting_type: "string",
+  urgency: "normal" | "urgent",
+  current_committed: number,
+  current_delivered: number,
+  status: "pending" | "approved" | "rejected",
+  approved_meetings: number,
+  approved_by: "uuid",
+  approved_at: "datetime"
+}
+```
 
 ## Test Credentials
-- **Admin**: `EMP001` / `admin123`
-- **Sales**: `EMP003` / `sales123`
+- **Admin:** EMP001 / admin123
+- **HR Manager:** EMP002 / admin123
+- **Sales Executive:** EMP003 / admin123
 
-## Outstanding Tasks (P2)
-- Refactor `backend/routers/kickoff.py`
-- Refactor `frontend/src/pages/MeetingRecord.js`
-- Review orphan files
+## Remaining Backlog
 
-## Future Tasks
-- DVBC Marketing Hub
-- Consultant Incentive System
-- Internal Chat System
+### P1 - Important
+- Investigate & Govern Consultant Expense Submission
+- Frontend UI for Additional Meeting Requests management
 
-## Last Updated
-2025-12-15 - Funnel Protection with disabled buttons and filtered LeadSelector
+### P2 - Future
+- Refactor `backend/routers/kickoff.py` (large file)
+- Refactor `frontend/src/pages/MeetingRecord.js` (complex component)
+- Remove orphan file: `frontend/src/pages/consulting/Meetings.js`
+- Build DVBC Marketing Hub
+- Implement Consultant Incentive System
+- Implement Internal Chat System
+
+## Testing
+- Test reports: `/app/test_reports/iteration_181.json`
+- All 10 tests passing (100% success rate)
+- Backend-only testing completed
