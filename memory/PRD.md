@@ -85,16 +85,26 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
   - Validates against existing daily attendance system (no separate UI)
   - Error message guides user to "My Attendance" page
 - **Consulting Efforts Summary Report:** `/consulting/efforts-summary`
-  - Stats: Total Meetings (23), With Attendance (0%), With MOM, Total Hours, Tasks, Timely Delivery
+  - **8 Clickable Stat Cards** (navigate to relevant pages):
+    - Total Meetings → /consulting-meetings
+    - With Attendance → /attendance  
+    - With MOM → /consulting-meetings?filter=with_mom
+    - Total Hours → /timesheets
+    - Tasks Completed, Timely Delivery
+    - **Committed Scopes** → /consulting/sow (NEW)
+    - **Additional Scopes** → /consulting/sow (NEW)
+  - **SOW Progress Bar**: Average progress with breakdown (Completed/Pending/Additional)
   - Financial: Expenses (Total/Approved/Pending), Payments (Invoiced/Received/Overdue/Late)
-  - Expandable sections with charts: By Consultant, By Project, By Company, Payment Collection
+  - Expandable sections: By Consultant, By Project, By Company, Payment Collection
   - Print option for audit
-  - Filters: Project, Consultant, Company, Date range
+- **SOW-Meeting Linkage:**
+  - Consultant can select multiple scopes per meeting
+  - Consultant cannot delete scopes (governance)
+  - Meetings linked to SOW scopes for tracking
 - **Navigation Paths:**
   - Sidebar: Consulting → Efforts Summary
-  - ConsultingStageNav: Shows on all consulting pages (Kickoff → Team Assignment → My Projects → SOW Management → Roadmap → Payments → Performance)
-  - Direct URL: `/consulting/efforts-summary`
-- **Testing:** 100% pass rate (backend + frontend)
+  - ConsultingStageNav on all consulting pages
+- **Testing:** 100% backend (16/16), 100% frontend pass rate
 
 ## Business Logic Document
 Full documentation at: `/app/memory/CONSULTING_EXPENSE_BUSINESS_LOGIC.md`
