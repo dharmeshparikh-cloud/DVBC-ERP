@@ -754,6 +754,86 @@ async def check_can_record_mom(db, user, meeting) -> dict:
     return {"allowed": True, "reason": "Assigned to project with matching role"}
 
 
+@router.post("/meetings/{meeting_id}/mark-attendance")
+async def mark_meeting_attendance(
+    meeting_id: str,
+    attendance_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Mark attendance for a meeting.
+    
+    Requirements:
+    - start_time and end_time are required
+    - attendance_records: list of attendees with check-in/check-out times
+    
+    This is mandatory before MOM can be submitted.
+    No attendance = No MOM = No expenses.
+    
+    Example attendance_data:
+    {
+        "start_time": "2026-04-13T10:00:00",
+        "end_time": "2026-04-13T12:30:00",
+        "attendance_records": [
+            {"user_id": "...", "name": "John Doe", "check_in": "10:00", "check_out": "12:30", "present": true},
+            {"user_id": "...", "name": "Jane Doe", "check_in": "10:05", "check_out": "12:25", "present": true}
+        ]
+    }
+    """
+    db = get_db()
+    
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # Validate required fields
+    start_time = attendance_data.get("start_time")
+    end_time = attendance_data.get("end_time")
+    attendance_records = attendance_data.get("attendance_records", [])
+    
+    if not start_time or not end_time:
+        raise HTTPException(status_code=400, detail="Start time and end time are required")
+    
+    if not attendance_records or len(attendance_records) == 0:
+        raise HTTPException(status_code=400, detail="At least one attendance record is required")
+    
+    # Calculate duration in minutes
+    try:
+        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
+        
+        if duration_minutes <= 0:
+            raise HTTPException(status_code=400, detail="End time must be after start time")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {str(e)}")
+    
+    # Update meeting with attendance
+    update_data = {
+        "start_time": start_time,
+        "end_time": end_time,
+        "duration_minutes": duration_minutes,
+        "attendance_records": attendance_records,
+        "attendance_marked": True,
+        "attendance_verified_by": current_user.id,
+        "attendance_verified_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.meetings.update_one(
+        {"id": meeting_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "message": "Attendance marked successfully",
+        "meeting_id": meeting_id,
+        "duration_minutes": duration_minutes,
+        "attendance_count": len(attendance_records),
+        "can_proceed_with_mom": True
+    }
+
+
 @router.post("/meetings/{meeting_id}/complete-and-send")
 async def complete_meeting_and_send_mom(
     meeting_id: str,
@@ -766,7 +846,9 @@ async def complete_meeting_and_send_mom(
     
     Requirements:
     - User must be assigned to project AND role matches team_deployment
+    - ATTENDANCE MUST BE MARKED (attendance_marked = true) - NO ATTENDANCE = NO MOM = NO EXPENSES
     - MOM must be filled (mom_generated = true)
+    - Meeting must have start_time and end_time for duration calculation
     - Meeting must be offline/client_site to claim travel expenses
     - Project must have remaining meeting quota OR approved additional request
     - Will send email to client automatically (NO expense details in email)
@@ -787,9 +869,33 @@ async def complete_meeting_and_send_mom(
     if not can_record["allowed"]:
         raise HTTPException(status_code=403, detail=can_record["reason"])
     
+    # ATTENDANCE VALIDATION: No attendance = No MOM = No expenses
+    if not meeting.get("attendance_marked"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Attendance must be marked before completing meeting. No attendance = No MOM = No expenses."
+        )
+    
+    # Validate attendance records exist
+    attendance_records = meeting.get("attendance_records", [])
+    if not attendance_records or len(attendance_records) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one attendance record is required to complete the meeting."
+        )
+    
     # Check MOM is filled
     if not meeting.get("mom_generated"):
         raise HTTPException(status_code=400, detail="MOM must be filled before completing meeting")
+    
+    # Validate start_time and end_time for duration calculation
+    if not meeting.get("start_time") or not meeting.get("end_time"):
+        raise HTTPException(
+            status_code=400,
+            detail="Meeting start time and end time are required for duration calculation."
+        )
+    
+    # MEETING LIMIT VALIDATION: Check if project has remaining quota
     
     # MEETING LIMIT VALIDATION: Check if project has remaining quota
     if meeting.get("project_id"):

@@ -284,10 +284,12 @@ class Meeting(BaseModel):
     lead_id: Optional[str] = None
     sow_id: Optional[str] = None
     meeting_date: datetime
+    start_time: Optional[datetime] = None  # Meeting start time
+    end_time: Optional[datetime] = None  # Meeting end time
     mode: str
     attendees: List[str] = []
     attendee_names: List[str] = []
-    duration_minutes: Optional[int] = None
+    duration_minutes: Optional[int] = None  # Calculated from start/end time or manual
     notes: Optional[str] = None
     is_delivered: bool = False
     delivered_at: Optional[datetime] = None
@@ -302,6 +304,11 @@ class Meeting(BaseModel):
     mom_sent_to_client: bool = False
     mom_sent_at: Optional[datetime] = None
     mom_attachments: Optional[List[Dict[str, Any]]] = []  # Document attachments for MOM
+    # Attendance validation
+    attendance_marked: bool = False  # Required for MOM and expenses
+    attendance_records: Optional[List[Dict[str, Any]]] = []  # List of attendance entries
+    attendance_verified_by: Optional[str] = None
+    attendance_verified_at: Optional[datetime] = None
     created_by: str
     created_by_name: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
