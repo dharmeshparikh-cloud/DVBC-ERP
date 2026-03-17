@@ -22,7 +22,7 @@ import {
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings,
   Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard, KeyRound,
   FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target, ArrowRight, Circle,
-  HelpCircle, ArrowRightLeft, Wifi, WifiOff, Edit
+  HelpCircle, ArrowRightLeft, Wifi, WifiOff, Edit, CalendarPlus
 } from 'lucide-react';
 
 // Legacy role-based access (kept for backward compatibility only when API fails)
@@ -398,6 +398,7 @@ const Layout = () => {
         { name: 'My Schedule', href: '/consulting-meetings', icon: Calendar },
         { name: 'Team Calendar', href: '/meeting-calendar', icon: CalendarDays },
         { name: 'My Clients', href: '/clients', icon: Building2 },
+        { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
         { name: 'Payment Follow-ups', href: '/follow-ups', icon: CalendarCheck },
@@ -407,6 +408,7 @@ const Layout = () => {
         { name: 'Team Assignment', href: '/consultants', icon: Users },
         { name: 'Meetings Calendar', href: '/meeting-calendar', icon: CalendarDays },
         { name: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar },
+        { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
         { name: 'Project Reports', href: '/reports?category=consulting', icon: BarChart3 },

@@ -11,6 +11,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import QuickCheckInModal from '../components/QuickCheckInModal';
 import RBACWidget from '../components/RBACWidget';
+import ProjectMeetingQuotaWidget from '../components/ProjectMeetingQuotaWidget';
 import { useConsultingStats } from '../hooks/useStats';
 import { useFetch } from '../hooks/useApi';
 
@@ -266,45 +267,50 @@ const ConsultingDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Consultant Workload */}
-      <Card className="border-zinc-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Team Workload
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg">
-            <div>
-              <p className="text-sm text-zinc-500">Average Projects per Consultant</p>
-              <p className="text-3xl font-bold text-zinc-900">{stats?.consultant_workload?.average || 0}</p>
-            </div>
-            <div className="w-24 h-24">
-              <div className="relative w-full h-full flex items-center justify-center">
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle
-                    cx="50" cy="50" r="40"
-                    fill="none"
-                    stroke="#e4e4e7"
-                    strokeWidth="8"
-                  />
-                  <circle
-                    cx="50" cy="50" r="40"
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="8"
-                    strokeDasharray={`${(stats?.consultant_workload?.average || 0) / 8 * 251.2} 251.2`}
-                    strokeLinecap="round"
-                    transform="rotate(-90 50 50)"
-                  />
-                </svg>
-                <span className="absolute text-sm font-medium">/8 max</span>
+      {/* Consultant Workload & Meeting Quota */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Project Meeting Quota Widget */}
+        <ProjectMeetingQuotaWidget limit={5} />
+
+        <Card className="border-zinc-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Team Workload
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-lg">
+              <div>
+                <p className="text-sm text-zinc-500">Average Projects per Consultant</p>
+                <p className="text-3xl font-bold text-zinc-900">{stats?.consultant_workload?.average || 0}</p>
+              </div>
+              <div className="w-24 h-24">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <circle
+                      cx="50" cy="50" r="40"
+                      fill="none"
+                      stroke="#e4e4e7"
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="50" cy="50" r="40"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="8"
+                      strokeDasharray={`${(stats?.consultant_workload?.average || 0) / 8 * 251.2} 251.2`}
+                      strokeLinecap="round"
+                      transform="rotate(-90 50 50)"
+                    />
+                  </svg>
+                  <span className="absolute text-sm font-medium">/8 max</span>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-4 gap-4">
