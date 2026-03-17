@@ -80,18 +80,21 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 - **Testing:** 100% frontend pass rate (14/14 features verified)
 
 ### Phase 8: Consulting Efforts Summary & Attendance Governance (Completed - March 2026)
-- **Attendance Validation:** No attendance = No MOM = No expenses (strict governance rule)
-- **Meeting Attendance API:** `/api/attendance/meeting/{meeting_id}` for marking attendance
-- **Duration Calculation:** Auto-calculated from start_time and end_time
-- **Consulting Efforts Summary Report:** Comprehensive report page at `/consulting/efforts-summary`
-  - Stats cards: Total Meetings, With Attendance, With MOM, Total Hours, Tasks, Timely Delivery
-  - Expenses Summary: Total, Approved, Pending
-  - Payments Summary: Invoiced, Received, Overdue, Late, Collection Rate
-  - Expandable sections: By Consultant, By Project, By Company, Payment Collection
+- **Attendance Validation (Governance):** 
+  - For OFFLINE/IN-PERSON meetings only: User's daily attendance must be marked
+  - Validates against existing daily attendance system (no separate UI)
+  - Error message guides user to "My Attendance" page
+- **Consulting Efforts Summary Report:** `/consulting/efforts-summary`
+  - Stats: Total Meetings (23), With Attendance (0%), With MOM, Total Hours, Tasks, Timely Delivery
+  - Financial: Expenses (Total/Approved/Pending), Payments (Invoiced/Received/Overdue/Late)
+  - Expandable sections with charts: By Consultant, By Project, By Company, Payment Collection
   - Print option for audit
   - Filters: Project, Consultant, Company, Date range
-- **Project Handoff Summary API:** `/api/stats/consulting/project/{project_id}/handoff-summary`
-- **Testing:** 100% backend and 100% frontend pass rate
+- **Navigation Paths:**
+  - Sidebar: Consulting → Efforts Summary
+  - ConsultingStageNav: Shows on all consulting pages (Kickoff → Team Assignment → My Projects → SOW Management → Roadmap → Payments → Performance)
+  - Direct URL: `/consulting/efforts-summary`
+- **Testing:** 100% pass rate (backend + frontend)
 
 ## Business Logic Document
 Full documentation at: `/app/memory/CONSULTING_EXPENSE_BUSINESS_LOGIC.md`

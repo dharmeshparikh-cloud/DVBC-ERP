@@ -785,14 +785,13 @@ async def complete_meeting_and_send_mom(
     
     Requirements:
     - User must be assigned to project AND role matches team_deployment
-    - ATTENDANCE MUST BE MARKED (attendance_marked = true) - NO ATTENDANCE = NO MOM = NO EXPENSES
+    - For OFFLINE/IN-PERSON meetings: User's daily attendance must be marked
     - MOM must be filled (mom_generated = true)
-    - Meeting must have start_time and end_time for duration calculation
     - Meeting must be offline/client_site to claim travel expenses
     - Project must have remaining meeting quota OR approved additional request
     - Will send email to client automatically (NO expense details in email)
-    - If recurring, will trigger generation of next meeting
-    - Optional: travel_details for expense creation (auto-submitted with pending status)
+    
+    GOVERNANCE: No attendance = No MOM = No expenses (for offline meetings only)
     """
     db = get_db()
     
@@ -808,31 +807,30 @@ async def complete_meeting_and_send_mom(
     if not can_record["allowed"]:
         raise HTTPException(status_code=403, detail=can_record["reason"])
     
-    # ATTENDANCE VALIDATION: No attendance = No MOM = No expenses
-    if not meeting.get("attendance_marked"):
-        raise HTTPException(
-            status_code=400, 
-            detail="Attendance must be marked before completing meeting. No attendance = No MOM = No expenses."
-        )
-    
-    # Validate attendance records exist
-    attendance_records = meeting.get("attendance_records", [])
-    if not attendance_records or len(attendance_records) == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="At least one attendance record is required to complete the meeting."
-        )
+    # ATTENDANCE VALIDATION: Only for offline/in-person meetings
+    meeting_mode = meeting.get("mode", "online")
+    if meeting_mode in ["offline", "in-person", "client_site"]:
+        # Check if user has daily attendance for the meeting date
+        meeting_date_str = meeting.get("meeting_date", "")[:10]  # Get YYYY-MM-DD
+        
+        # Check from daily attendance records
+        daily_attendance = await db.attendance.find_one({
+            "user_id": current_user.id,
+            "date": meeting_date_str,
+            "status": {"$in": ["present", "wfh", "half_day", "client_visit"]}
+        })
+        
+        if not daily_attendance:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Your daily attendance for {meeting_date_str} is not marked. "
+                       f"For offline/in-person meetings, attendance must be recorded before MOM. "
+                       f"Please mark your attendance first via My Attendance page."
+            )
     
     # Check MOM is filled
     if not meeting.get("mom_generated"):
         raise HTTPException(status_code=400, detail="MOM must be filled before completing meeting")
-    
-    # Validate start_time and end_time for duration calculation
-    if not meeting.get("start_time") or not meeting.get("end_time"):
-        raise HTTPException(
-            status_code=400,
-            detail="Meeting start time and end time are required for duration calculation."
-        )
     
     # MEETING LIMIT VALIDATION: Check if project has remaining quota
     

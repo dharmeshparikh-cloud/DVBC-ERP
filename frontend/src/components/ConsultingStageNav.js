@@ -7,6 +7,19 @@ import { isProjectReadOnly } from '../utils/projectActions';
 /**
  * ConsultingStageNav - Navigation component showing the consulting workflow stages
  * 
+ * FLOW EXPLANATION:
+ * 1. Kickoff - Project initiation and kickoff requests
+ * 2. Team Assignment - Assign consultants to the project
+ * 3. My Projects - View assigned projects and their status
+ * 4. SOW Management - Statement of Work creation and management
+ * 5. Roadmap - Project timeline and milestones
+ * 6. Payments - Invoice and payment tracking
+ * 7. Performance - Monthly review and performance metrics
+ * 
+ * Quick Links (always accessible):
+ * - Meetings - Consulting meetings management
+ * - Efforts Summary - Comprehensive report for audit
+ * 
  * Props:
  * - currentStage: number (1-7) - The current stage in the workflow
  * - projectId: string - The project ID for building navigation paths
@@ -23,6 +36,12 @@ const STAGES = [
   { id: 5, name: 'Roadmap', shortName: 'Roadmap', basePath: '/consulting/roadmap', actionStage: false },
   { id: 6, name: 'Payments', shortName: 'Payments', basePath: '/consulting/payments', actionStage: false },
   { id: 7, name: 'Performance', shortName: 'Review', basePath: '/consulting/monthly-review', actionStage: false },
+];
+
+// Quick access links (not part of the main flow)
+const QUICK_LINKS = [
+  { name: 'Meetings', path: '/consulting-meetings', icon: 'Calendar' },
+  { name: 'Efforts Summary', path: '/consulting/efforts-summary', icon: 'BarChart' },
 ];
 
 const ConsultingStageNav = ({ 
