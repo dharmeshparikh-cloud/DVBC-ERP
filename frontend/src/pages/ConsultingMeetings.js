@@ -7,14 +7,24 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
+import { Checkbox } from '../components/ui/checkbox';
 import PageHeader from '../components/ui/page-header';
+import MeetingLocationPicker from '../components/MeetingLocationPicker';
 import {
   Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle,
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
-  ClipboardList, Mail, BarChart3, Target
+  ClipboardList, Mail, BarChart3, Target, Car, MapPin, DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+
+// Travel modes with expense rates
+const TRAVEL_MODES = [
+  { id: 'DRIVING', label: 'Car', rate: 7 },
+  { id: 'TWO_WHEELER', label: 'Bike', rate: 3 },
+  { id: 'TRANSIT', label: 'Transit', rate: 0 },
+  { id: 'ACCOMPANIED', label: 'Accompanied', rate: 0 }
+];
 
 const CONSULTING_ROLES = ['admin', 'project_manager', 'consultant', 'principal_consultant',
   'lean_consultant', 'lead_consultant', 'senior_consultant', 'subject_matter_expert', 'manager'];
@@ -35,6 +45,17 @@ const ConsultingMeetings = () => {
   const [expandedMeetings, setExpandedMeetings] = useState({});
   const [activeTab, setActiveTab] = useState('meetings');
 
+  // Travel expense state
+  const [addTravelExpense, setAddTravelExpense] = useState(false);
+  const [travelData, setTravelData] = useState({
+    start_location: '',
+    end_location: '',
+    travel_mode: 'DRIVING',
+    distance_km: 0,
+    is_round_trip: true,
+    transit_amount: 0
+  });
+
   const [formData, setFormData] = useState({
     title: '', project_id: '', client_id: '', sow_id: '', meeting_date: '',
     mode: 'online', duration_minutes: '', notes: '', is_delivered: false,
@@ -52,6 +73,32 @@ const ConsultingMeetings = () => {
   });
 
   const canEdit = CONSULTING_ROLES.includes(user?.role) && user?.role !== 'manager';
+
+  // Check if user can record MOM for this meeting (must be in project team)
+  const canRecordMOM = (meeting) => {
+    if (!meeting || !user) return false;
+    // Admin and Principal Consultant can always record
+    if (['admin', 'principal_consultant'].includes(user.role)) return true;
+    // Check if user is in project team
+    const projectTeam = meeting.project_team || [];
+    return projectTeam.some(t => t.user_id === user.id || t.employee_id === user.employee_id);
+  };
+
+  // Check if meeting is offline (can claim travel)
+  const isOfflineMeeting = (meeting) => {
+    return meeting?.mode === 'offline' || meeting?.mode === 'client_site';
+  };
+
+  // Calculate travel expense amount
+  const calculateTravelExpense = () => {
+    if (travelData.travel_mode === 'ACCOMPANIED') return 0;
+    if (travelData.travel_mode === 'TRANSIT') return parseFloat(travelData.transit_amount) || 0;
+    
+    const rate = TRAVEL_MODES.find(m => m.id === travelData.travel_mode)?.rate || 0;
+    const distance = parseFloat(travelData.distance_km) || 0;
+    const multiplier = travelData.is_round_trip ? 2 : 1;
+    return distance * multiplier * rate;
+  };
 
   // React Query: Meetings
   const { data: meetings = [], isLoading: loading, refetch: refetchMeetings } = useQuery({
@@ -78,7 +125,11 @@ const ConsultingMeetings = () => {
     queryKey: ['clients'],
     queryFn: async () => {
       const res = await axios.get(`${API}/clients`);
-      return res.data || [];
+      // API returns {items: [], total, skip, limit} - extract items array
+      const data = res.data;
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.items)) return data.items;
+      return [];
     },
     staleTime: 5 * 60 * 1000,
   });

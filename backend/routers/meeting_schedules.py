@@ -698,6 +698,62 @@ async def get_all_conflicts(
 
 # ============== AUTO-SEND MOM ==============
 
+async def check_can_record_mom(db, user, meeting) -> dict:
+    """
+    Check if user can record MOM for this meeting.
+    Rules:
+    1. Admin/Principal Consultant can always record
+    2. For others: Must be assigned to project AND role matches team_deployment
+    """
+    # Admin/Principal Consultant override
+    if user.role in ['admin', 'principal_consultant']:
+        return {"allowed": True, "reason": "Admin/Principal Consultant access"}
+    
+    project_id = meeting.get("project_id")
+    if not project_id:
+        return {"allowed": False, "reason": "Meeting has no project linked"}
+    
+    # Check if user is assigned to project
+    assignment = await db.consultant_assignments.find_one({
+        "project_id": project_id,
+        "consultant_id": user.id,
+        "is_active": True
+    }, {"_id": 0})
+    
+    if not assignment:
+        return {"allowed": False, "reason": "You are not assigned to this project"}
+    
+    # Get pricing plan to check team_deployment roles
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0, "lead_id": 1})
+    if project and project.get("lead_id"):
+        pricing_plan = await db.pricing_plans.find_one(
+            {"lead_id": project["lead_id"]},
+            {"_id": 0, "team_deployment": 1}
+        )
+        
+        if pricing_plan and pricing_plan.get("team_deployment"):
+            # Normalize role names for comparison
+            deployment_roles = [
+                r.get("role", "").lower().replace(" ", "_").replace("-", "_")
+                for r in pricing_plan["team_deployment"]
+            ]
+            user_role_normalized = user.role.lower().replace(" ", "_").replace("-", "_")
+            
+            # Check if user's role matches any deployment role
+            role_match = any(
+                user_role_normalized in dr or dr in user_role_normalized
+                for dr in deployment_roles
+            )
+            
+            if not role_match:
+                return {
+                    "allowed": False, 
+                    "reason": f"Your role ({user.role}) is not in the project's team deployment"
+                }
+    
+    return {"allowed": True, "reason": "Assigned to project with matching role"}
+
+
 @router.post("/meetings/{meeting_id}/complete-and-send")
 async def complete_meeting_and_send_mom(
     meeting_id: str,
@@ -709,11 +765,13 @@ async def complete_meeting_and_send_mom(
     Mark meeting as delivered and auto-send MOM to client.
     
     Requirements:
+    - User must be assigned to project AND role matches team_deployment
     - MOM must be filled (mom_generated = true)
+    - Meeting must be offline/client_site to claim travel expenses
     - Project must have remaining meeting quota OR approved additional request
-    - Will send email to client automatically
+    - Will send email to client automatically (NO expense details in email)
     - If recurring, will trigger generation of next meeting
-    - Optional: travel_details for expense creation
+    - Optional: travel_details for expense creation (auto-submitted with pending status)
     """
     db = get_db()
     
@@ -723,6 +781,11 @@ async def complete_meeting_and_send_mom(
     meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # RBAC: Check if user can record MOM for this meeting
+    can_record = await check_can_record_mom(db, current_user, meeting)
+    if not can_record["allowed"]:
+        raise HTTPException(status_code=403, detail=can_record["reason"])
     
     # Check MOM is filled
     if not meeting.get("mom_generated"):
@@ -788,8 +851,17 @@ async def complete_meeting_and_send_mom(
         )
     
     # Create expense record for consulting meetings with travel details
+    # Only allowed for offline/client_site meetings
     expense_created = None
     travel_details = data.get("travel_details") if data else None
+    
+    meeting_mode = meeting.get("mode", "").lower()
+    is_offline = meeting_mode in ['offline', 'client_site', 'in_person', 'on-site']
+    
+    if travel_details and not is_offline:
+        # Log but don't block - just don't create expense
+        print(f"Travel details provided for online meeting {meeting_id} - ignoring")
+        travel_details = None  # Clear travel details for online meetings
     
     if travel_details:
         travel_mode = travel_details.get("travel_mode", "")

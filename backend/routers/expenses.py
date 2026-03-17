@@ -21,6 +21,42 @@ async def create_expense(data: dict, current_user: User = Depends(get_current_us
     """Create a new expense entry with line items support."""
     db = get_db()
     
+    # CONSULTANT EXPENSE GOVERNANCE
+    is_consultant = current_user.role in ['consultant', 'lean_consultant', 'lead_consultant', 'senior_consultant', 'subject_matter_expert']
+    
+    if is_consultant:
+        project_id = data.get("project_id")
+        category = data.get("category") or (data.get("line_items", [{}])[0].get("category") if data.get("line_items") else None)
+        
+        # Rule 1: Consultants must link expenses to a project (except office supplies)
+        is_office_expense = data.get("is_office_expense", False)
+        if not is_office_expense and not project_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Consultant expenses must be linked to a project. Please select a project before submitting."
+            )
+        
+        # Rule 2: If project is specified, validate it's active
+        if project_id:
+            project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+            if not project:
+                raise HTTPException(status_code=400, detail="Selected project not found")
+            
+            project_status = project.get("status", "active")
+            if project_status in ["completed", "cancelled", "closed"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot submit expenses for {project_status} projects. Project: {project.get('name')}"
+                )
+            
+            # Rule 3: Travel expenses should ideally have meeting linkage
+            if category and category.lower() in ['travel', 'local conveyance', 'conveyance']:
+                meeting_id = data.get("meeting_id")
+                if not meeting_id:
+                    # Warning but don't block - add flag for review
+                    data["requires_additional_review"] = True
+                    data["review_reason"] = "Travel expense submitted without meeting linkage"
+    
     # DUPLICATE PREVENTION: Check for meeting_id based duplicates
     meeting_id = data.get("meeting_id")
     if meeting_id:
@@ -87,6 +123,8 @@ async def create_expense(data: dict, current_user: User = Depends(get_current_us
         "lead_id": data.get("lead_id"),  # Optional lead linkage
         "is_office_expense": data.get("is_office_expense", False),
         "is_billable": data.get("is_billable", False),
+        "requires_additional_review": data.get("requires_additional_review", False),
+        "review_reason": data.get("review_reason"),
         "created_by": current_user.id,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
