@@ -52,6 +52,20 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 - Auto-expense creation on meeting completion with travel data
 - Duplicate prevention for consulting meeting expenses
 
+### Phase 5: Frontend UI for Additional Meeting Requests (Completed - March 2026)
+- **New Page:** `/consulting/additional-meeting-requests`
+  - Stats cards: Pending, Approved, Rejected, Total
+  - Filter tabs: All, Pending, Approved, Rejected
+  - Request cards with project info, status badges
+  - Approve/Reject buttons for admin users
+  - Create new request dialog
+- **Dashboard Widget:** `ProjectMeetingQuotaWidget`
+  - Shows project-wise meeting quota (delivered/committed)
+  - Progress bars with color-coded status
+  - "Request Additional Meetings" quick action
+  - Integrated into Consulting Dashboard
+- **Navigation:** Added "Meeting Requests" item in Consulting sidebar section
+
 ## Key APIs
 
 ### Expense Management
@@ -70,19 +84,19 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 - `POST /api/meeting-schedules/additional-meeting-requests/{id}/reject` - Reject request
 - `GET /api/meeting-schedules/project/{project_id}/meeting-status` - Project meeting status
 
-## Database Schema Changes (March 2026)
+## Database Schema
 
 ### expenses collection
 ```javascript
 {
-  meeting_id: "uuid",        // NEW - For duplicate prevention
-  lead_id: "uuid",           // NEW - Optional lead linkage
+  meeting_id: "uuid",        // For duplicate prevention
+  lead_id: "uuid",           // Optional lead linkage
   project_id: "uuid",        // Optional project linkage
   expense_type: "meeting_expense" | "consulting_meeting_expense"
 }
 ```
 
-### additional_meeting_requests collection (NEW)
+### additional_meeting_requests collection
 ```javascript
 {
   id: "uuid",
@@ -112,8 +126,7 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 ## Remaining Backlog
 
 ### P1 - Important
-- Investigate & Govern Consultant Expense Submission
-- Frontend UI for Additional Meeting Requests management
+- Consultant Expense Submission governance
 
 ### P2 - Future
 - Refactor `backend/routers/kickoff.py` (large file)
@@ -124,6 +137,6 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 - Implement Internal Chat System
 
 ## Testing
-- Test reports: `/app/test_reports/iteration_181.json`
-- All 10 tests passing (100% success rate)
-- Backend-only testing completed
+- Test reports: `/app/test_reports/iteration_181.json`, `/app/test_reports/iteration_182.json`
+- Backend: 100% pass rate (10 tests)
+- Frontend: 100% pass rate (All UI features verified)
