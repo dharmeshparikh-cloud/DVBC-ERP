@@ -28,6 +28,7 @@ const Projects = lazy(() => import('./pages/Projects'));
 const AllProjects = lazy(() => import('./pages/AllProjects'));
 // SalesMeetings removed - meetings accessed via Lead funnel only, MOM visible in dashboard scorecards
 const ConsultingMeetings = lazy(() => import('./pages/ConsultingMeetings'));
+const ConsultingEffortsSummary = lazy(() => import('./pages/ConsultingEffortsSummary'));
 const MeetingCalendar = lazy(() => import('./pages/MeetingCalendar'));
 const OrgChart = lazy(() => import('./pages/OrgChart'));
 const LeaveManagement = lazy(() => import('./pages/LeaveManagement'));
@@ -315,6 +316,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="consulting/payments" element={<RoleGuard allowedRoles={['principal_consultant', 'lead_consultant', 'project_manager']} allowedDepts={['Consulting', 'Finance']}><PaymentReminders /></RoleGuard>} />
         <Route path="consulting/additional-meeting-requests" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'Delivery', 'Admin']}><AdditionalMeetingRequests /></RoleGuard>} />
         <Route path="consulting/expenses" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'subject_matter_expert', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><ConsultantExpenses /></RoleGuard>} />
+        <Route path="consulting/efforts-summary" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager', 'admin']} allowedDepts={['Consulting', 'Delivery', 'Admin', 'Finance']}><ConsultingEffortsSummary /></RoleGuard>} />
         <Route path="consultants" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager', 'manager']} allowedDepts={['Consulting', 'HR', 'Delivery']}><Consultants /></RoleGuard>} />
         <Route path="consultant-dashboard" element={<RoleGuard allowedRoles={['consultant', 'senior_consultant', 'lead_consultant', 'principal_consultant', 'lean_consultant', 'project_manager']} allowedDepts={['Consulting', 'Delivery']}><ConsultantDashboard /></RoleGuard>} />
         <Route path="projects/:projectId/tasks" element={<ProjectTasks />} />

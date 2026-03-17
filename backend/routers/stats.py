@@ -795,3 +795,400 @@ async def invalidate_cache(
     else:
         count = cache.invalidate_all()
         return {"message": f"Cleared all {count} cache entries"}
+
+
+# ============================================================================
+# CONSULTING EFFORTS SUMMARY REPORT
+# Comprehensive project handoff summary with all metrics
+# Used for audit, manager review, and project closure
+# ============================================================================
+
+@router.get("/consulting/efforts-summary")
+async def get_consulting_efforts_summary(
+    project_id: Optional[str] = None,
+    consultant_id: Optional[str] = None,
+    client_id: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Comprehensive Consulting Efforts Summary Report.
+    
+    Includes:
+    - Meetings per consultant, project, client
+    - Task assigned/completed, timely delivery metrics
+    - Average duration, reschedules with reasons
+    - Client approved meetings, total/extra meetings
+    - Project expenses, payments (received/overdue/late)
+    
+    Filters: project_id, consultant_id, client_id, date_from, date_to
+    """
+    db = get_db()
+    
+    # Build query filters
+    meeting_filter = {"type": "consulting"}
+    project_filter = {}
+    expense_filter = {}
+    
+    if project_id:
+        meeting_filter["project_id"] = project_id
+        project_filter["id"] = project_id
+        expense_filter["project_id"] = project_id
+    
+    if client_id:
+        meeting_filter["client_id"] = client_id
+        project_filter["client_id"] = client_id
+    
+    if consultant_id:
+        meeting_filter["created_by"] = consultant_id
+    
+    if date_from:
+        meeting_filter["meeting_date"] = {"$gte": date_from}
+    if date_to:
+        if "meeting_date" in meeting_filter:
+            meeting_filter["meeting_date"]["$lte"] = date_to
+        else:
+            meeting_filter["meeting_date"] = {"$lte": date_to}
+    
+    # Get meetings with attendance data
+    meetings = await db.meetings.find(meeting_filter, {"_id": 0}).to_list(1000)
+    
+    # Get projects
+    if project_filter:
+        projects = await db.projects.find(project_filter, {"_id": 0}).to_list(100)
+    else:
+        project_ids = list(set(m.get("project_id") for m in meetings if m.get("project_id")))
+        projects = await db.projects.find({"id": {"$in": project_ids}}, {"_id": 0}).to_list(100)
+    
+    # Get expenses
+    if expense_filter:
+        expenses = await db.expenses.find(expense_filter, {"_id": 0}).to_list(500)
+    else:
+        expenses = await db.expenses.find({"type": "travel"}, {"_id": 0}).to_list(500)
+    
+    # Get payments
+    payments = await db.payments.find(
+        {"project_id": {"$in": [p.get("id") for p in projects]}} if projects else {},
+        {"_id": 0}
+    ).to_list(500)
+    
+    # Calculate metrics
+    total_meetings = len(meetings)
+    delivered_meetings = len([m for m in meetings if m.get("is_delivered")])
+    pending_meetings = total_meetings - delivered_meetings
+    with_mom = len([m for m in meetings if m.get("mom_generated")])
+    with_attendance = len([m for m in meetings if m.get("attendance_marked")])
+    mom_sent = len([m for m in meetings if m.get("mom_sent_to_client")])
+    
+    # Duration metrics
+    durations = [(m.get("duration_minutes") or 0) for m in meetings if m.get("duration_minutes")]
+    total_duration_minutes = sum(durations) if durations else 0
+    avg_duration_minutes = round(sum(durations) / len(durations), 1) if durations else 0
+    
+    # Meetings by consultant
+    consultant_meetings = {}
+    for m in meetings:
+        consultant_id = m.get("created_by")
+        consultant_name = m.get("created_by_name", "Unknown")
+        if consultant_id not in consultant_meetings:
+            consultant_meetings[consultant_id] = {
+                "id": consultant_id,
+                "name": consultant_name,
+                "total": 0,
+                "delivered": 0,
+                "with_mom": 0,
+                "total_duration": 0
+            }
+        consultant_meetings[consultant_id]["total"] += 1
+        if m.get("is_delivered"):
+            consultant_meetings[consultant_id]["delivered"] += 1
+        if m.get("mom_generated"):
+            consultant_meetings[consultant_id]["with_mom"] += 1
+        consultant_meetings[consultant_id]["total_duration"] += m.get("duration_minutes") or 0
+    
+    # Meetings by project
+    project_meetings = {}
+    for m in meetings:
+        pid = m.get("project_id")
+        pname = m.get("project_name", "Unknown Project")
+        if pid not in project_meetings:
+            project_meetings[pid] = {
+                "id": pid,
+                "name": pname,
+                "total": 0,
+                "delivered": 0,
+                "committed": 0,
+                "extra": 0,
+                "total_duration": 0
+            }
+        project_meetings[pid]["total"] += 1
+        if m.get("is_delivered"):
+            project_meetings[pid]["delivered"] += 1
+        project_meetings[pid]["total_duration"] += m.get("duration_minutes") or 0
+    
+    # Add committed counts from projects
+    for p in projects:
+        pid = p.get("id")
+        if pid in project_meetings:
+            committed = p.get("total_meetings_committed", 0)
+            project_meetings[pid]["committed"] = committed
+            delivered = project_meetings[pid]["delivered"]
+            project_meetings[pid]["extra"] = max(0, delivered - committed)
+    
+    # Meetings by client
+    client_meetings = {}
+    for m in meetings:
+        cid = m.get("client_id")
+        cname = m.get("client_name", "Unknown Client")
+        if cid not in client_meetings:
+            client_meetings[cid] = {
+                "id": cid,
+                "name": cname,
+                "total": 0,
+                "delivered": 0,
+                "approved": 0
+            }
+        client_meetings[cid]["total"] += 1
+        if m.get("is_delivered"):
+            client_meetings[cid]["delivered"] += 1
+        if m.get("mom_sent_to_client"):
+            client_meetings[cid]["approved"] += 1
+    
+    # Task metrics
+    all_action_items = []
+    for m in meetings:
+        items = m.get("action_items", [])
+        all_action_items.extend(items)
+    
+    total_tasks = len(all_action_items)
+    completed_tasks = len([t for t in all_action_items if t.get("status") == "completed"])
+    
+    # Calculate timely delivery (tasks completed by due date)
+    timely_tasks = 0
+    for t in all_action_items:
+        if t.get("status") == "completed" and t.get("due_date") and t.get("completed_at"):
+            try:
+                due = datetime.fromisoformat(t["due_date"].replace('Z', '+00:00'))
+                completed = datetime.fromisoformat(t["completed_at"].replace('Z', '+00:00'))
+                if completed <= due:
+                    timely_tasks += 1
+            except:
+                pass
+    
+    timely_delivery_rate = round((timely_tasks / completed_tasks * 100) if completed_tasks > 0 else 0, 1)
+    
+    # Expense metrics
+    total_expenses = sum(e.get("amount", 0) for e in expenses)
+    approved_expenses = sum(e.get("amount", 0) for e in expenses if e.get("status") == "approved")
+    pending_expenses = sum(e.get("amount", 0) for e in expenses if e.get("status") == "pending")
+    
+    # Payment metrics
+    total_payments = sum(p.get("amount", 0) for p in payments)
+    received_payments = sum(p.get("amount", 0) for p in payments if p.get("status") == "received")
+    
+    # Overdue/late payment calculation
+    overdue_payments = 0
+    late_payments = 0
+    today = datetime.now(timezone.utc)
+    for p in payments:
+        due_date = p.get("due_date")
+        status = p.get("status")
+        if due_date:
+            try:
+                due = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+                if status != "received" and due < today:
+                    overdue_payments += p.get("amount", 0)
+                elif status == "received" and p.get("received_at"):
+                    received_at = datetime.fromisoformat(p["received_at"].replace('Z', '+00:00'))
+                    if received_at > due:
+                        late_payments += p.get("amount", 0)
+            except:
+                pass
+    
+    return {
+        "summary": {
+            "total_meetings": total_meetings,
+            "delivered_meetings": delivered_meetings,
+            "pending_meetings": pending_meetings,
+            "meetings_with_mom": with_mom,
+            "meetings_with_attendance": with_attendance,
+            "mom_sent_to_client": mom_sent,
+            "attendance_compliance_rate": round((with_attendance / total_meetings * 100) if total_meetings > 0 else 0, 1)
+        },
+        "duration": {
+            "total_minutes": total_duration_minutes,
+            "total_hours": round(total_duration_minutes / 60, 1),
+            "average_minutes": avg_duration_minutes
+        },
+        "tasks": {
+            "total": total_tasks,
+            "completed": completed_tasks,
+            "pending": total_tasks - completed_tasks,
+            "completion_rate": round((completed_tasks / total_tasks * 100) if total_tasks > 0 else 0, 1),
+            "timely_delivery_rate": timely_delivery_rate
+        },
+        "by_consultant": list(consultant_meetings.values()),
+        "by_project": list(project_meetings.values()),
+        "by_client": list(client_meetings.values()),
+        "expenses": {
+            "total": total_expenses,
+            "approved": approved_expenses,
+            "pending": pending_expenses
+        },
+        "payments": {
+            "total_invoiced": total_payments,
+            "received": received_payments,
+            "pending": total_payments - received_payments,
+            "overdue": overdue_payments,
+            "late": late_payments,
+            "collection_rate": round((received_payments / total_payments * 100) if total_payments > 0 else 0, 1)
+        },
+        "filters_applied": {
+            "project_id": project_id,
+            "consultant_id": consultant_id,
+            "client_id": client_id,
+            "date_from": date_from,
+            "date_to": date_to
+        }
+    }
+
+
+@router.get("/consulting/project/{project_id}/handoff-summary")
+async def get_project_handoff_summary(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Complete Project Handoff Summary for audit.
+    
+    Includes all details needed for project closure:
+    - Complete meeting history with attendance
+    - All tasks and their status
+    - All expenses and their approval status
+    - All payments and collection status
+    - Reschedule history
+    """
+    db = get_db()
+    
+    # Get project
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get client
+    client = await db.clients.find_one({"id": project.get("client_id")}, {"_id": 0})
+    
+    # Get all meetings with full details
+    meetings = await db.meetings.find(
+        {"project_id": project_id, "type": "consulting"},
+        {"_id": 0}
+    ).sort("meeting_date", 1).to_list(500)
+    
+    # Get meeting attendance records
+    attendance_records = await db.meeting_attendance.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).to_list(500)
+    
+    # Get consultant assignments
+    assignments = await db.consultant_assignments.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Get expenses
+    expenses = await db.expenses.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).to_list(500)
+    
+    # Get payments
+    payments = await db.payments.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get additional meeting requests
+    additional_requests = await db.additional_meeting_requests.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Calculate metrics
+    total_meetings = len(meetings)
+    delivered = len([m for m in meetings if m.get("is_delivered")])
+    with_mom = len([m for m in meetings if m.get("mom_generated")])
+    with_attendance = len([m for m in meetings if m.get("attendance_marked")])
+    
+    total_duration = sum(m.get("duration_minutes", 0) for m in meetings)
+    
+    # All tasks from all meetings
+    all_tasks = []
+    for m in meetings:
+        for task in m.get("action_items", []):
+            task["meeting_id"] = m.get("id")
+            task["meeting_title"] = m.get("title")
+            task["meeting_date"] = m.get("meeting_date")
+            all_tasks.append(task)
+    
+    completed_tasks = len([t for t in all_tasks if t.get("status") == "completed"])
+    
+    # Expense summary
+    total_expenses = sum(e.get("amount", 0) for e in expenses)
+    approved_expenses = sum(e.get("amount", 0) for e in expenses if e.get("status") == "approved")
+    
+    # Payment summary
+    total_invoiced = sum(p.get("amount", 0) for p in payments)
+    received = sum(p.get("amount", 0) for p in payments if p.get("status") == "received")
+    
+    return {
+        "project": {
+            "id": project.get("id"),
+            "name": project.get("name"),
+            "type": project.get("type"),
+            "status": project.get("status"),
+            "start_date": project.get("start_date"),
+            "end_date": project.get("end_date"),
+            "total_value": project.get("total_value"),
+            "meetings_committed": project.get("total_meetings_committed", 0),
+            "meetings_delivered": project.get("total_meetings_delivered", 0)
+        },
+        "client": {
+            "id": client.get("id") if client else None,
+            "name": client.get("company_name") if client else project.get("client_name"),
+            "contacts": client.get("contacts", []) if client else []
+        },
+        "team": assignments,
+        "meetings": {
+            "total": total_meetings,
+            "delivered": delivered,
+            "with_mom": with_mom,
+            "with_attendance": with_attendance,
+            "total_duration_hours": round(total_duration / 60, 1),
+            "list": meetings
+        },
+        "attendance_records": attendance_records,
+        "tasks": {
+            "total": len(all_tasks),
+            "completed": completed_tasks,
+            "pending": len(all_tasks) - completed_tasks,
+            "list": all_tasks
+        },
+        "expenses": {
+            "total": total_expenses,
+            "approved": approved_expenses,
+            "pending": total_expenses - approved_expenses,
+            "list": expenses
+        },
+        "payments": {
+            "total_invoiced": total_invoiced,
+            "received": received,
+            "pending": total_invoiced - received,
+            "list": payments
+        },
+        "additional_meeting_requests": additional_requests,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_by": current_user.full_name
+    }
+

@@ -1110,3 +1110,160 @@ async def get_employee_attendance_input(month: str, current_user: User = Depends
         "month": month,
         "employees": result
     }
+
+
+# ============================================================================
+# MEETING ATTENDANCE INTEGRATION
+# Extends existing attendance system for consulting meeting validation
+# Rule: No Attendance = No MOM = No Expenses
+# ============================================================================
+
+@router.post("/meeting/{meeting_id}")
+async def mark_meeting_attendance(
+    meeting_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Mark attendance for a consulting meeting.
+    
+    GOVERNANCE RULE: No Attendance = No MOM = No Expenses
+    
+    Required fields:
+    - start_time: Meeting start datetime
+    - end_time: Meeting end datetime  
+    - attendees: List of attendee records with check-in/out
+    
+    This creates a linked attendance record and updates meeting.
+    """
+    db = get_db()
+    
+    # Get meeting
+    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # Validate required fields
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+    attendees = data.get("attendees", [])
+    
+    if not start_time or not end_time:
+        raise HTTPException(status_code=400, detail="Start time and end time are required")
+    
+    if not attendees or len(attendees) == 0:
+        raise HTTPException(status_code=400, detail="At least one attendee must be marked present")
+    
+    # Calculate duration
+    try:
+        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
+        
+        if duration_minutes <= 0:
+            raise HTTPException(status_code=400, detail="End time must be after start time")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid datetime format: {str(e)}")
+    
+    # Create meeting attendance record (linked to main attendance system)
+    attendance_id = str(uuid.uuid4())
+    meeting_attendance = {
+        "id": attendance_id,
+        "type": "meeting",  # Distinguishes from daily attendance
+        "meeting_id": meeting_id,
+        "project_id": meeting.get("project_id"),
+        "client_id": meeting.get("client_id"),
+        "date": start_dt.strftime("%Y-%m-%d"),
+        "start_time": start_time,
+        "end_time": end_time,
+        "duration_minutes": duration_minutes,
+        "attendees": attendees,
+        "attendee_count": len([a for a in attendees if a.get("present", True)]),
+        "recorded_by": current_user.id,
+        "recorded_by_name": current_user.full_name,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.meeting_attendance.insert_one(meeting_attendance)
+    
+    # Update meeting with attendance data
+    update_data = {
+        "start_time": start_time,
+        "end_time": end_time,
+        "duration_minutes": duration_minutes,
+        "attendance_marked": True,
+        "attendance_id": attendance_id,
+        "attendance_records": attendees,
+        "attendance_verified_by": current_user.id,
+        "attendance_verified_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.meetings.update_one(
+        {"id": meeting_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "message": "Meeting attendance marked successfully",
+        "attendance_id": attendance_id,
+        "meeting_id": meeting_id,
+        "duration_minutes": duration_minutes,
+        "attendee_count": len(attendees),
+        "can_proceed_with_mom": True
+    }
+
+
+@router.get("/meeting/{meeting_id}")
+async def get_meeting_attendance(
+    meeting_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get attendance record for a specific meeting."""
+    db = get_db()
+    
+    attendance = await db.meeting_attendance.find_one(
+        {"meeting_id": meeting_id},
+        {"_id": 0}
+    )
+    
+    if not attendance:
+        return {
+            "attendance_marked": False,
+            "message": "No attendance marked for this meeting"
+        }
+    
+    return {
+        "attendance_marked": True,
+        **attendance
+    }
+
+
+@router.get("/meeting/project/{project_id}")
+async def get_project_meeting_attendance(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all meeting attendance records for a project."""
+    db = get_db()
+    
+    records = await db.meeting_attendance.find(
+        {"project_id": project_id},
+        {"_id": 0}
+    ).sort("date", -1).to_list(100)
+    
+    # Calculate summary
+    total_meetings = len(records)
+    total_duration = sum(r.get("duration_minutes", 0) for r in records)
+    total_attendees = sum(r.get("attendee_count", 0) for r in records)
+    
+    return {
+        "project_id": project_id,
+        "total_meetings_with_attendance": total_meetings,
+        "total_duration_minutes": total_duration,
+        "total_duration_hours": round(total_duration / 60, 1),
+        "total_attendees": total_attendees,
+        "avg_duration_minutes": round(total_duration / total_meetings, 1) if total_meetings > 0 else 0,
+        "records": records
+    }
+

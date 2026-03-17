@@ -754,84 +754,23 @@ async def check_can_record_mom(db, user, meeting) -> dict:
     return {"allowed": True, "reason": "Assigned to project with matching role"}
 
 
+# Note: Meeting attendance is now handled by /api/attendance/meeting/{meeting_id}
+# This endpoint is kept as an alias for backwards compatibility
 @router.post("/meetings/{meeting_id}/mark-attendance")
-async def mark_meeting_attendance(
+async def mark_meeting_attendance_alias(
     meeting_id: str,
     attendance_data: dict,
     current_user: User = Depends(get_current_user)
 ):
     """
-    Mark attendance for a meeting.
+    ALIAS: Redirects to unified attendance system.
+    Use /api/attendance/meeting/{meeting_id} instead.
     
-    Requirements:
-    - start_time and end_time are required
-    - attendance_records: list of attendees with check-in/check-out times
-    
-    This is mandatory before MOM can be submitted.
-    No attendance = No MOM = No expenses.
-    
-    Example attendance_data:
-    {
-        "start_time": "2026-04-13T10:00:00",
-        "end_time": "2026-04-13T12:30:00",
-        "attendance_records": [
-            {"user_id": "...", "name": "John Doe", "check_in": "10:00", "check_out": "12:30", "present": true},
-            {"user_id": "...", "name": "Jane Doe", "check_in": "10:05", "check_out": "12:25", "present": true}
-        ]
-    }
+    No attendance = No MOM = No expenses (Governance Rule)
     """
-    db = get_db()
-    
-    meeting = await db.meetings.find_one({"id": meeting_id}, {"_id": 0})
-    if not meeting:
-        raise HTTPException(status_code=404, detail="Meeting not found")
-    
-    # Validate required fields
-    start_time = attendance_data.get("start_time")
-    end_time = attendance_data.get("end_time")
-    attendance_records = attendance_data.get("attendance_records", [])
-    
-    if not start_time or not end_time:
-        raise HTTPException(status_code=400, detail="Start time and end time are required")
-    
-    if not attendance_records or len(attendance_records) == 0:
-        raise HTTPException(status_code=400, detail="At least one attendance record is required")
-    
-    # Calculate duration in minutes
-    try:
-        start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-        end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
-        duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
-        
-        if duration_minutes <= 0:
-            raise HTTPException(status_code=400, detail="End time must be after start time")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date format: {str(e)}")
-    
-    # Update meeting with attendance
-    update_data = {
-        "start_time": start_time,
-        "end_time": end_time,
-        "duration_minutes": duration_minutes,
-        "attendance_records": attendance_records,
-        "attendance_marked": True,
-        "attendance_verified_by": current_user.id,
-        "attendance_verified_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.meetings.update_one(
-        {"id": meeting_id},
-        {"$set": update_data}
-    )
-    
-    return {
-        "message": "Attendance marked successfully",
-        "meeting_id": meeting_id,
-        "duration_minutes": duration_minutes,
-        "attendance_count": len(attendance_records),
-        "can_proceed_with_mom": True
-    }
+    # Import and call the unified attendance endpoint
+    from .attendance import mark_meeting_attendance
+    return await mark_meeting_attendance(meeting_id, attendance_data, current_user)
 
 
 @router.post("/meetings/{meeting_id}/complete-and-send")
