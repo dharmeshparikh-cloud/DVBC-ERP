@@ -16,7 +16,8 @@ import {
   Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle,
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
   ClipboardList, Mail, BarChart3, Target, Car, MapPin, DollarSign,
-  Filter, Building2, CalendarDays, Paperclip, Upload, X, List, LayoutGrid
+  Filter, Building2, CalendarDays, Paperclip, Upload, X, List, LayoutGrid,
+  Printer, Eye, Clock, User, Hash
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
@@ -48,12 +49,16 @@ const ConsultingMeetings = () => {
   const [expandedMeetings, setExpandedMeetings] = useState({});
   const [activeTab, setActiveTab] = useState('meetings');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'card'
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false); // Meeting detail view
 
   // Filter state
   const [filters, setFilters] = useState({
+    project_id: 'all', // Project filter (auto-sets date range)
     client_id: 'all',
     month: 'all', // Format: 'YYYY-MM' or 'all'
-    status: 'all' // 'all', 'pending', 'delivered', 'with_mom'
+    status: 'all', // 'all', 'pending', 'delivered', 'with_mom'
+    date_from: '', // Start date filter
+    date_to: '' // End date filter
   });
 
   // MOM Attachments state
@@ -173,6 +178,11 @@ const ConsultingMeetings = () => {
   const filteredMeetings = useMemo(() => {
     let result = [...meetings];
     
+    // Filter by project
+    if (filters.project_id !== 'all') {
+      result = result.filter(m => m.project_id === filters.project_id);
+    }
+    
     // Filter by client
     if (filters.client_id !== 'all') {
       result = result.filter(m => m.client_id === filters.client_id);
@@ -203,6 +213,32 @@ const ConsultingMeetings = () => {
         result = result.filter(m => m.mom_generated);
       }
     }
+
+    // Filter by date range
+    if (filters.date_from) {
+      const fromDate = new Date(filters.date_from);
+      fromDate.setHours(0, 0, 0, 0);
+      result = result.filter(m => {
+        try {
+          const meetingDate = new Date(m.meeting_date);
+          return meetingDate >= fromDate;
+        } catch {
+          return false;
+        }
+      });
+    }
+    if (filters.date_to) {
+      const toDate = new Date(filters.date_to);
+      toDate.setHours(23, 59, 59, 999);
+      result = result.filter(m => {
+        try {
+          const meetingDate = new Date(m.meeting_date);
+          return meetingDate <= toDate;
+        } catch {
+          return false;
+        }
+      });
+    }
     
     // Sort by date descending
     result.sort((a, b) => new Date(b.meeting_date) - new Date(a.meeting_date));
@@ -223,6 +259,40 @@ const ConsultingMeetings = () => {
     });
     return Array.from(clientMap.entries()).map(([id, name]) => ({ id, name }));
   }, [meetings, clients]);
+
+  // Get unique projects from meetings with date range
+  const uniqueProjects = useMemo(() => {
+    const projectMap = new Map();
+    meetings.forEach(m => {
+      if (m.project_id) {
+        const project = projects.find(p => p.id === m.project_id);
+        if (project && !projectMap.has(m.project_id)) {
+          projectMap.set(m.project_id, {
+            id: m.project_id,
+            name: project.name || project.project_name || m.project_name || 'Unknown Project',
+            client_name: m.client_name || project.client_name || '',
+            start_date: project.start_date,
+            end_date: project.end_date
+          });
+        }
+      }
+    });
+    return Array.from(projectMap.values());
+  }, [meetings, projects]);
+
+  // Handle project filter change - auto-set date range
+  const handleProjectFilterChange = (projectId) => {
+    if (projectId === 'all') {
+      setFilters(f => ({ ...f, project_id: 'all', date_from: '', date_to: '' }));
+    } else {
+      const project = uniqueProjects.find(p => p.id === projectId);
+      if (project) {
+        const dateFrom = project.start_date ? format(new Date(project.start_date), 'yyyy-MM-dd') : '';
+        const dateTo = project.end_date ? format(new Date(project.end_date), 'yyyy-MM-dd') : '';
+        setFilters(f => ({ ...f, project_id: projectId, date_from: dateFrom, date_to: dateTo }));
+      }
+    }
+  };
 
   // Get unique months from meetings
   const uniqueMonths = useMemo(() => {
@@ -303,6 +373,32 @@ const ConsultingMeetings = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     createMeetingMutation.mutate(formData);
+  };
+
+  // Open meeting detail view (printable)
+  const openMeetingDetail = async (meeting) => {
+    try {
+      const res = await axios.get(`${API}/meetings/${meeting.id}`);
+      setSelectedMeeting(res.data);
+      setDetailDialogOpen(true);
+    } catch { toast.error('Failed to load meeting details'); }
+  };
+
+  // Get meeting series number (count of meetings for same project before this one)
+  const getMeetingSeriesNumber = (meeting) => {
+    const projectMeetings = meetings
+      .filter(m => m.project_id === meeting.project_id)
+      .sort((a, b) => new Date(a.meeting_date) - new Date(b.meeting_date));
+    return projectMeetings.findIndex(m => m.id === meeting.id) + 1;
+  };
+
+  // Get project stats
+  const getProjectStats = (meeting) => {
+    const project = projects.find(p => p.id === meeting.project_id);
+    if (!project) return { committed: 0, delivered: 0, pending: 0 };
+    const committed = project.total_meetings_committed || 0;
+    const delivered = project.total_meetings_delivered || 0;
+    return { committed, delivered, pending: committed - delivered };
   };
 
   const openMOMDialog = async (meeting) => {
@@ -631,33 +727,38 @@ const ConsultingMeetings = () => {
                   <span className="text-sm font-medium text-zinc-700">Filters:</span>
                 </div>
                 
-                {/* Client Filter */}
+                {/* Project Filter (Company) - Auto-sets date range */}
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-zinc-400" />
-                  <Select value={filters.client_id} onValueChange={(v) => setFilters(f => ({ ...f, client_id: v }))}>
-                    <SelectTrigger className="w-[180px] h-9 text-sm">
-                      <SelectValue placeholder="All Clients" />
+                  <Target className="w-4 h-4 text-zinc-400" />
+                  <Select value={filters.project_id} onValueChange={handleProjectFilterChange}>
+                    <SelectTrigger className="w-[200px] h-9 text-sm">
+                      <SelectValue placeholder="All Projects (Company)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Clients</SelectItem>
-                      {uniqueClients.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      <SelectItem value="all">All Projects</SelectItem>
+                      {uniqueProjects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <div className="flex flex-col">
+                            <span>{p.name}</span>
+                            {p.client_name && <span className="text-xs text-zinc-400">{p.client_name}</span>}
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Month Filter */}
+                {/* Client Filter (Contact/Owner) */}
                 <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-zinc-400" />
-                  <Select value={filters.month} onValueChange={(v) => setFilters(f => ({ ...f, month: v }))}>
-                    <SelectTrigger className="w-[160px] h-9 text-sm">
-                      <SelectValue placeholder="All Months" />
+                  <Building2 className="w-4 h-4 text-zinc-400" />
+                  <Select value={filters.client_id} onValueChange={(v) => setFilters(f => ({ ...f, client_id: v }))}>
+                    <SelectTrigger className="w-[180px] h-9 text-sm">
+                      <SelectValue placeholder="All Companies" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Months</SelectItem>
-                      {uniqueMonths.map(m => (
-                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      <SelectItem value="all">All Companies</SelectItem>
+                      {uniqueClients.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -676,6 +777,26 @@ const ConsultingMeetings = () => {
                       <SelectItem value="with_mom">With MOM</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Date Range Filter (Project Duration) */}
+                <div className="flex items-center gap-2 border-l border-zinc-200 pl-4">
+                  <span className="text-xs text-zinc-500 font-medium">Duration:</span>
+                  <Input 
+                    type="date" 
+                    value={filters.date_from}
+                    onChange={(e) => setFilters(f => ({ ...f, date_from: e.target.value }))}
+                    className="w-[130px] h-9 text-sm"
+                    title="Project Start Date"
+                  />
+                  <span className="text-xs text-zinc-400">to</span>
+                  <Input 
+                    type="date" 
+                    value={filters.date_to}
+                    onChange={(e) => setFilters(f => ({ ...f, date_to: e.target.value }))}
+                    className="w-[130px] h-9 text-sm"
+                    title="Project End Date"
+                  />
                 </div>
 
                 {/* View Toggle */}
@@ -699,12 +820,12 @@ const ConsultingMeetings = () => {
                 </div>
 
                 {/* Clear Filters */}
-                {(filters.client_id !== 'all' || filters.month !== 'all' || filters.status !== 'all') && (
+                {(filters.project_id !== 'all' || filters.client_id !== 'all' || filters.status !== 'all' || filters.date_from || filters.date_to) && (
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     className="text-zinc-500 h-9"
-                    onClick={() => setFilters({ client_id: 'all', month: 'all', status: 'all' })}
+                    onClick={() => setFilters({ project_id: 'all', client_id: 'all', month: 'all', status: 'all', date_from: '', date_to: '' })}
                   >
                     <X className="w-4 h-4 mr-1" /> Clear
                   </Button>
@@ -712,22 +833,27 @@ const ConsultingMeetings = () => {
               </div>
               
               {/* Filter Summary */}
-              {(filters.client_id !== 'all' || filters.month !== 'all' || filters.status !== 'all') && (
-                <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center gap-2">
+              {(filters.project_id !== 'all' || filters.client_id !== 'all' || filters.status !== 'all' || filters.date_from || filters.date_to) && (
+                <div className="mt-3 pt-3 border-t border-zinc-100 flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-zinc-500">Showing {filteredMeetings.length} of {meetings.length} meetings</span>
-                  {filters.client_id !== 'all' && (
-                    <Badge variant="secondary" className="text-xs">
-                      {uniqueClients.find(c => c.id === filters.client_id)?.name}
+                  {filters.project_id !== 'all' && (
+                    <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700">
+                      Project: {uniqueProjects.find(p => p.id === filters.project_id)?.name}
                     </Badge>
                   )}
-                  {filters.month !== 'all' && (
+                  {filters.client_id !== 'all' && (
                     <Badge variant="secondary" className="text-xs">
-                      {uniqueMonths.find(m => m.value === filters.month)?.label}
+                      Company: {uniqueClients.find(c => c.id === filters.client_id)?.name}
                     </Badge>
                   )}
                   {filters.status !== 'all' && (
                     <Badge variant="secondary" className="text-xs capitalize">
                       {filters.status.replace('_', ' ')}
+                    </Badge>
+                  )}
+                  {(filters.date_from || filters.date_to) && (
+                    <Badge variant="secondary" className="text-xs bg-amber-50 text-amber-700">
+                      Duration: {filters.date_from ? format(new Date(filters.date_from), 'MMM dd') : '...'} - {filters.date_to ? format(new Date(filters.date_to), 'MMM dd, yyyy') : '...'}
                     </Badge>
                   )}
                 </div>
@@ -792,8 +918,8 @@ const ConsultingMeetings = () => {
               <table className="w-full text-sm">
                 <thead className="bg-zinc-50">
                   <tr>
-                    <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Meeting</th>
-                    <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Client</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Meeting / Project</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Company</th>
                     <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Date</th>
                     <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Mode</th>
                     <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
@@ -802,19 +928,27 @@ const ConsultingMeetings = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMeetings.map((meeting) => {
+                  {filteredMeetings.map((meeting, idx) => {
                     const project = projects.find(p => p.id === meeting.project_id);
                     const client = clients.find(c => c.id === meeting.client_id);
+                    // Company name (client is the company)
+                    const companyName = meeting.client_name || client?.company_name || client?.name || '-';
+                    const projectName = meeting.project_name || project?.name || '-';
                     
                     return (
-                      <tr key={meeting.id} className="border-t border-zinc-100 hover:bg-zinc-50" data-testid={`meeting-row-${meeting.id}`}>
+                      <tr 
+                        key={meeting.id} 
+                        className="border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer" 
+                        data-testid={`meeting-row-${meeting.id}`}
+                        onClick={() => openMeetingDetail(meeting)}
+                      >
                         <td className="px-4 py-3">
-                          <div className="font-medium text-zinc-950">{meeting.title || project?.name || 'Meeting'}</div>
-                          <div className="text-xs text-zinc-500">{project?.name}</div>
+                          <div className="font-medium text-zinc-950 hover:text-blue-600">{meeting.title || projectName || 'Meeting'}</div>
+                          <div className="text-xs text-zinc-500">{projectName}</div>
                         </td>
-                        <td className="px-4 py-3 text-zinc-600">{client?.company_name || '-'}</td>
+                        <td className="px-4 py-3 text-zinc-600">{companyName}</td>
                         <td className="px-4 py-3 text-zinc-700">
-                          <div>{format(new Date(meeting.meeting_date), 'MMM dd, yyyy')}</div>
+                          <div>{format(new Date(meeting.meeting_date), 'EEE, MMM dd, yyyy')}</div>
                           <div className="text-xs text-zinc-400">{format(new Date(meeting.meeting_date), 'HH:mm')}</div>
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -863,24 +997,27 @@ const ConsultingMeetings = () => {
               {filteredMeetings.map((meeting) => {
                 const project = projects.find(p => p.id === meeting.project_id);
                 const client = clients.find(c => c.id === meeting.client_id);
+                const clientName = meeting.client_name || client?.company_name || client?.name || '';
+                const projectName = meeting.project_name || project?.name || '';
                 const isExpanded = expandedMeetings[meeting.id];
                 const actionItemsCount = meeting.action_items?.length || 0;
                 const completedCount = meeting.action_items?.filter(a => a.status === 'completed').length || 0;
 
                 return (
                   <Card key={meeting.id} data-testid={`consulting-meeting-card-${meeting.id}`}
-                    className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors">
+                    className="border-zinc-200 shadow-none rounded-sm hover:border-zinc-300 transition-colors cursor-pointer"
+                    onClick={() => openMeetingDetail(meeting)}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`p-2 rounded-sm ${getModeBadge(meeting.mode)}`}>{getModeIcon(meeting.mode)}</div>
                             <div>
-                              <div className="font-medium text-zinc-950">{meeting.title || project?.name || 'Meeting'}</div>
+                              <div className="font-medium text-zinc-950">{meeting.title || projectName || 'Meeting'}</div>
                               <div className="text-sm text-zinc-500">
-                                {project?.name && <span>{project.name}</span>}
-                                {client?.company_name && <span> | {client.company_name}</span>}
-                                {!project && !client && <span>No project linked</span>}
+                                {projectName && <span>{projectName}</span>}
+                                {clientName && <span> | {clientName}</span>}
+                                {!projectName && !clientName && <span>No project linked</span>}
                               </div>
                             </div>
                             {meeting.mom_generated && (
@@ -897,7 +1034,7 @@ const ConsultingMeetings = () => {
                           <div className="grid grid-cols-4 gap-4 mt-3">
                             <div>
                               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Date & Time</div>
-                              <div className="text-sm text-zinc-950">{format(new Date(meeting.meeting_date), 'MMM dd, yyyy HH:mm')}</div>
+                              <div className="text-sm text-zinc-950">{format(new Date(meeting.meeting_date), 'EEE, MMM dd, yyyy HH:mm')}</div>
                             </div>
                             <div>
                               <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Mode</div>
@@ -1197,6 +1334,253 @@ const ConsultingMeetings = () => {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Meeting Detail Dialog - Printable View */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-4xl max-h-[95vh] overflow-y-auto print:max-w-none print:max-h-none print:overflow-visible">
+          <DialogHeader className="print:mb-4">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">
+                Meeting Details
+              </DialogTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.print()}
+                className="print:hidden"
+              >
+                <Printer className="w-4 h-4 mr-2" /> Print
+              </Button>
+            </div>
+            <DialogDescription className="text-zinc-500">
+              Complete meeting record with MOM and action items
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedMeeting && (
+            <div className="space-y-6 print:space-y-4">
+              {/* Meeting Header Info */}
+              <div className="bg-zinc-50 p-4 rounded-sm border border-zinc-200 print:bg-white">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-zinc-950">{selectedMeeting.title || 'Meeting'}</h2>
+                    <p className="text-sm text-zinc-600">{selectedMeeting.project_name || projects.find(p => p.id === selectedMeeting.project_id)?.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant="outline" className="mb-2">
+                      <Hash className="w-3 h-3 mr-1" />
+                      Meeting #{getMeetingSeriesNumber(selectedMeeting)}
+                    </Badge>
+                    <div className="text-xs text-zinc-500">
+                      {selectedMeeting.is_delivered ? (
+                        <Badge className="bg-emerald-100 text-emerald-700">Delivered</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-amber-600 border-amber-200">Pending</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Company</div>
+                    <div className="font-medium text-zinc-800">
+                      {selectedMeeting.client_name || clients.find(c => c.id === selectedMeeting.client_id)?.company_name || '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Date & Time</div>
+                    <div className="font-medium text-zinc-800">
+                      {format(new Date(selectedMeeting.meeting_date), 'EEEE, MMM dd, yyyy')}
+                      <span className="text-zinc-500 ml-2">{format(new Date(selectedMeeting.meeting_date), 'HH:mm')}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Mode</div>
+                    <div className="font-medium text-zinc-800">
+                      {selectedMeeting.mode === 'online' ? 'Online' : selectedMeeting.mode === 'offline' ? 'In-person' : 'Tele Call'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Duration</div>
+                    <div className="font-medium text-zinc-800">{selectedMeeting.duration_minutes || '-'} mins</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project Meeting Progress */}
+              <div className="bg-blue-50 p-4 rounded-sm border border-blue-200">
+                <div className="text-xs uppercase tracking-wide text-blue-700 mb-2 font-medium">Project Meeting Progress</div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-800">{getProjectStats(selectedMeeting).committed}</div>
+                    <div className="text-xs text-blue-600">Committed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-emerald-700">{getProjectStats(selectedMeeting).delivered}</div>
+                    <div className="text-xs text-emerald-600">Completed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-amber-700">{getProjectStats(selectedMeeting).pending}</div>
+                    <div className="text-xs text-amber-600">Pending</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Consultant Details */}
+              <div className="border border-zinc-200 rounded-sm p-4">
+                <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2 font-medium">Consultant Details</div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-xs text-zinc-500">Created By</div>
+                    <div className="font-medium text-zinc-800">{selectedMeeting.created_by_name || 'System'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-zinc-500">Attendees</div>
+                    <div className="font-medium text-zinc-800">
+                      {selectedMeeting.attendee_names?.length > 0 
+                        ? selectedMeeting.attendee_names.join(', ') 
+                        : '-'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MOM Content */}
+              {selectedMeeting.mom_generated && (
+                <div className="border border-zinc-200 rounded-sm p-4 space-y-4">
+                  <div className="flex items-center gap-2 text-emerald-700">
+                    <FileText className="w-5 h-5" />
+                    <span className="text-sm font-semibold uppercase tracking-wide">Minutes of Meeting</span>
+                    {selectedMeeting.mom_sent_to_client && (
+                      <Badge className="bg-blue-100 text-blue-700 ml-2">
+                        <Mail className="w-3 h-3 mr-1" /> Sent to Client
+                      </Badge>
+                    )}
+                  </div>
+
+                  {selectedMeeting.agenda?.length > 0 && selectedMeeting.agenda.some(a => a) && (
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Agenda</div>
+                      <ul className="list-disc list-inside text-sm text-zinc-700 space-y-1">
+                        {selectedMeeting.agenda.filter(a => a).map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selectedMeeting.discussion_points?.length > 0 && selectedMeeting.discussion_points.some(d => d) && (
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Discussion Points</div>
+                      <ul className="list-disc list-inside text-sm text-zinc-700 space-y-1">
+                        {selectedMeeting.discussion_points.filter(d => d).map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selectedMeeting.decisions_made?.length > 0 && selectedMeeting.decisions_made.some(d => d) && (
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Decisions Made</div>
+                      <ul className="list-disc list-inside text-sm text-zinc-700 space-y-1">
+                        {selectedMeeting.decisions_made.filter(d => d).map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Items */}
+              {selectedMeeting.action_items?.length > 0 && (
+                <div className="border border-zinc-200 rounded-sm p-4">
+                  <div className="text-xs uppercase tracking-wide text-zinc-500 mb-3 font-medium">
+                    Action Items ({selectedMeeting.action_items.length})
+                  </div>
+                  <div className="space-y-2">
+                    {selectedMeeting.action_items.map((item, idx) => (
+                      <div 
+                        key={item.id || idx} 
+                        className={`flex items-start justify-between p-3 rounded-sm border ${
+                          item.status === 'completed' ? 'bg-emerald-50 border-emerald-200' : 'bg-zinc-50 border-zinc-200'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          {item.status === 'completed' ? (
+                            <CheckCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
+                          ) : (
+                            <Circle className="w-5 h-5 text-zinc-400 mt-0.5" />
+                          )}
+                          <div>
+                            <div className={`text-sm ${item.status === 'completed' ? 'line-through text-zinc-400' : 'text-zinc-700'}`}>
+                              {item.description}
+                            </div>
+                            <div className="text-xs text-zinc-500 mt-1">
+                              Assigned: {item.assigned_to_name || 'Unassigned'} | 
+                              Due: {item.due_date ? format(new Date(item.due_date), 'MMM dd, yyyy') : 'No date'}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className={`text-xs ${
+                          item.priority === 'high' ? 'border-red-300 text-red-700' :
+                          item.priority === 'medium' ? 'border-yellow-300 text-yellow-700' :
+                          'border-zinc-300 text-zinc-600'
+                        }`}>
+                          {item.priority}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Attachments */}
+              {selectedMeeting.mom_attachments?.length > 0 && (
+                <div className="border border-zinc-200 rounded-sm p-4">
+                  <div className="text-xs uppercase tracking-wide text-zinc-500 mb-3 font-medium">
+                    Attachments ({selectedMeeting.mom_attachments.length})
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedMeeting.mom_attachments.map((file, idx) => (
+                      <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-zinc-50 rounded-sm border border-zinc-200">
+                        <Paperclip className="w-4 h-4 text-zinc-500" />
+                        <span className="text-sm text-zinc-700">{file.name || file.filename}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Next Meeting */}
+              {selectedMeeting.next_meeting_date && (
+                <div className="bg-amber-50 p-4 rounded-sm border border-amber-200">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-amber-700" />
+                    <span className="text-sm font-medium text-amber-800">
+                      Next Meeting: {format(new Date(selectedMeeting.next_meeting_date), 'EEEE, MMM dd, yyyy HH:mm')}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions - Hidden in Print */}
+              <div className="flex justify-end gap-2 pt-4 border-t border-zinc-200 print:hidden">
+                <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
+                  Close
+                </Button>
+                {canEdit && !selectedMeeting.is_delivered && (
+                  <Button onClick={() => { setDetailDialogOpen(false); openMOMDialog(selectedMeeting); }}>
+                    <FileText className="w-4 h-4 mr-2" /> Edit MOM
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

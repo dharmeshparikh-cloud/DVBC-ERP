@@ -278,7 +278,9 @@ class Meeting(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     type: str = "consulting"
     project_id: Optional[str] = None
+    project_name: Optional[str] = None  # Denormalized for display
     client_id: Optional[str] = None
+    client_name: Optional[str] = None  # Denormalized for display
     lead_id: Optional[str] = None
     sow_id: Optional[str] = None
     meeting_date: datetime
@@ -288,6 +290,8 @@ class Meeting(BaseModel):
     duration_minutes: Optional[int] = None
     notes: Optional[str] = None
     is_delivered: bool = False
+    delivered_at: Optional[datetime] = None
+    delivered_by: Optional[str] = None
     title: Optional[str] = None
     agenda: Optional[List[str]] = []
     discussion_points: Optional[List[str]] = []
@@ -297,7 +301,9 @@ class Meeting(BaseModel):
     mom_generated: bool = False
     mom_sent_to_client: bool = False
     mom_sent_at: Optional[datetime] = None
+    mom_attachments: Optional[List[Dict[str, Any]]] = []  # Document attachments for MOM
     created_by: str
+    created_by_name: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
