@@ -15,7 +15,7 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 - **Framework:** FastAPI with async MongoDB
 - **Database:** MongoDB (netra_erp)
 - **Authentication:** JWT-based with role-based access control (RBAC)
-- **Key Collections:** users, employees, leads, meetings, expenses, projects, pricing_plans, kickoff_requests, additional_meeting_requests
+- **Key Collections:** users, employees, leads, meetings, expenses, projects, pricing_plans, kickoff_requests, additional_meeting_requests, consultant_assignments
 
 ### Frontend
 - **Framework:** React with React Query for data fetching
@@ -38,105 +38,65 @@ Build a comprehensive ERP system for D&V Business Consulting with features inclu
 
 ### Phase 3: Meeting Limit Validation (Completed - March 2026)
 - **Project Meeting Status API:** `/api/meeting-schedules/project/{project_id}/meeting-status`
-  - Returns committed, delivered, remaining counts
-  - Flags: `can_deliver_meeting`, `needs_approval`
-- **Additional Meeting Request System:**
-  - Create request when limit exceeded
-  - Admin/Principal Consultant approval workflow
-  - Auto-increment project commitment on approval
-  - Notification system for requests
+- **Additional Meeting Request System** with approval workflow
+- Auto-increment project commitment on approval
 
 ### Phase 4: Consulting Travel Expenses (Completed - March 2026)
 - Travel details capture in meeting delivery flow
 - MeetingLocationPicker integration for consulting meetings
-- Auto-expense creation on meeting completion with travel data
-- Duplicate prevention for consulting meeting expenses
+- Auto-expense creation with `pending` status on MOM completion
 
 ### Phase 5: Frontend UI for Additional Meeting Requests (Completed - March 2026)
-- **New Page:** `/consulting/additional-meeting-requests`
-  - Stats cards: Pending, Approved, Rejected, Total
-  - Filter tabs: All, Pending, Approved, Rejected
-  - Request cards with project info, status badges
-  - Approve/Reject buttons for admin users
-  - Create new request dialog
-- **Dashboard Widget:** `ProjectMeetingQuotaWidget`
-  - Shows project-wise meeting quota (delivered/committed)
-  - Progress bars with color-coded status
-  - "Request Additional Meetings" quick action
-  - Integrated into Consulting Dashboard
-- **Navigation:** Added "Meeting Requests" item in Consulting sidebar section
+- Admin panel to view/approve/reject requests
+- Dashboard Widget showing project meeting quotas
+
+### Phase 6: Consultant Expense Governance (Completed - March 2026)
+- **RBAC for MOM Recording:**
+  - Admin/Principal Consultant can always record
+  - Others must be assigned to project (consultant_assignments)
+  - User's role must match pricing plan team_deployment
+- **Travel Expense Governance:**
+  - Only offline/client_site meetings can claim travel
+  - Online meetings - travel section hidden
+  - Expense auto-created with `pending` status (no draft)
+- **Approval Flow:** Consultant → HR → Admin
+- **Edit Rules:** Creator can edit until approved
+- **Sidebar Cleanup:** Removed duplicate "Project Expenses" link
+
+## Business Logic Document
+Full documentation at: `/app/memory/CONSULTING_EXPENSE_BUSINESS_LOGIC.md`
 
 ## Key APIs
 
-### Expense Management
-- `POST /api/expenses` - Create expense (with duplicate prevention)
-- `GET /api/my/expenses` - User's own expenses
-- `GET /api/expenses/report/monthly-meeting-expenses` - Monthly report
-
 ### Meeting Management
-- `POST /api/meetings/{lead_id}/mom` - Record sales meeting with MOM
-- `POST /api/meeting-schedules/meetings/{id}/complete-and-send` - Complete consulting meeting
+- `POST /api/meeting-schedules/meetings/{id}/complete-and-send` - Complete MOM with RBAC
+- `GET /api/meeting-schedules/project/{project_id}/meeting-status` - Meeting quota status
+
+### Expense Management
+- `POST /api/expenses` - Create expense with governance
+- `GET /api/my/expenses` - User's own expenses
 
 ### Additional Meeting Requests
 - `POST /api/meeting-schedules/additional-meeting-request` - Request additional meetings
-- `GET /api/meeting-schedules/additional-meeting-requests` - List requests
 - `POST /api/meeting-schedules/additional-meeting-requests/{id}/approve` - Approve request
-- `POST /api/meeting-schedules/additional-meeting-requests/{id}/reject` - Reject request
-- `GET /api/meeting-schedules/project/{project_id}/meeting-status` - Project meeting status
-
-## Database Schema
-
-### expenses collection
-```javascript
-{
-  meeting_id: "uuid",        // For duplicate prevention
-  lead_id: "uuid",           // Optional lead linkage
-  project_id: "uuid",        // Optional project linkage
-  expense_type: "meeting_expense" | "consulting_meeting_expense"
-}
-```
-
-### additional_meeting_requests collection
-```javascript
-{
-  id: "uuid",
-  project_id: "uuid",
-  project_name: "string",
-  client_name: "string",
-  requested_by: "uuid",
-  requested_by_name: "string",
-  reason: "string",
-  requested_meetings: number,
-  meeting_type: "string",
-  urgency: "normal" | "urgent",
-  current_committed: number,
-  current_delivered: number,
-  status: "pending" | "approved" | "rejected",
-  approved_meetings: number,
-  approved_by: "uuid",
-  approved_at: "datetime"
-}
-```
 
 ## Test Credentials
 - **Admin:** EMP001 / admin123
 - **HR Manager:** EMP002 / admin123
 - **Sales Executive:** EMP003 / admin123
 
+## Testing
+- `/app/test_reports/iteration_183.json` - Latest test results
+- Backend: 100% pass rate (11 tests)
+- Frontend: 100% pass rate after bug fix
+- Test file: `/app/backend/tests/test_consultant_expense_governance.py`
+
 ## Remaining Backlog
 
-### P1 - Important
-- Consultant Expense Submission governance
-
 ### P2 - Future
+- Meeting Calendar planning feature (month/week plans with manager approval)
 - Refactor `backend/routers/kickoff.py` (large file)
 - Refactor `frontend/src/pages/MeetingRecord.js` (complex component)
-- Remove orphan file: `frontend/src/pages/consulting/Meetings.js`
 - Build DVBC Marketing Hub
 - Implement Consultant Incentive System
 - Implement Internal Chat System
-
-## Testing
-- Test reports: `/app/test_reports/iteration_181.json`, `/app/test_reports/iteration_182.json`
-- Backend: 100% pass rate (10 tests)
-- Frontend: 100% pass rate (All UI features verified)
