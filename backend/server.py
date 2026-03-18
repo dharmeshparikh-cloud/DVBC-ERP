@@ -370,6 +370,7 @@ from routers import users as users_router
 from routers import leads as leads_router
 from routers import projects as projects_router
 from routers import meetings as meetings_router
+from routers import meeting_workflow as meeting_workflow_router
 
 # HR Module routers
 from routers import employees as employees_router
@@ -493,6 +494,9 @@ api_router.include_router(users_router.router)
 api_router.include_router(leads_router.router)
 api_router.include_router(projects_router.router)
 api_router.include_router(meetings_router.router)
+
+# Meeting Workflow (Notifications, Client Response, State Machine)
+api_router.include_router(meeting_workflow_router.router)
 
 # Meeting Schedules (Recurring, Calendar)
 api_router.include_router(meeting_schedules_router.router)

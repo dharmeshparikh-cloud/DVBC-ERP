@@ -29,6 +29,7 @@ const AllProjects = lazy(() => import('./pages/AllProjects'));
 // SalesMeetings removed - meetings accessed via Lead funnel only, MOM visible in dashboard scorecards
 const ConsultingMeetings = lazy(() => import('./pages/ConsultingMeetings'));
 const MeetingDetail = lazy(() => import('./pages/MeetingDetail'));
+const MeetingResponse = lazy(() => import('./pages/MeetingResponse'));
 const ConsultingEffortsSummary = lazy(() => import('./pages/ConsultingEffortsSummary'));
 const MeetingCalendar = lazy(() => import('./pages/MeetingCalendar'));
 const OrgChart = lazy(() => import('./pages/OrgChart'));
@@ -248,6 +249,9 @@ function AppRouter({ user, login, logout, loading }) {
       
       {/* Public Employee Consent Route - No auth required */}
       <Route path="/consent/:token" element={<ConsentPage />} />
+      
+      {/* Public Meeting Response Route - No auth required (client response to invites) */}
+      <Route path="/meeting-response" element={<MeetingResponse />} />
       
       {/* Mobile Employee App - dedicated mobile view */}
       <Route path="/mobile" element={user ? <EmployeeMobileApp /> : <Navigate to="/login" />} />

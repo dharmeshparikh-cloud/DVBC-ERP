@@ -273,6 +273,20 @@ class ProjectCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class MeetingStatus(str):
+    """Meeting workflow states"""
+    DRAFT = "DRAFT"
+    SCHEDULED = "SCHEDULED"
+    CONFIRMED = "CONFIRMED"
+    REJECTED = "REJECTED"
+    RESCHEDULED = "RESCHEDULED"
+    AUTO_ACCEPTED = "AUTO_ACCEPTED"
+    CONDUCTED = "CONDUCTED"
+    MOM_RECORDED = "MOM_RECORDED"
+    DELIVERED = "DELIVERED"
+    CANCELLED = "CANCELLED"
+
+
 class Meeting(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -315,6 +329,49 @@ class Meeting(BaseModel):
     created_by: str
     created_by_name: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    # === MEETING WORKFLOW FIELDS ===
+    status: str = "SCHEDULED"  # MeetingStatus enum value
+    
+    # Client notification & response
+    client_response_token: Optional[str] = None  # Single-use token for client response
+    client_token_expires_at: Optional[datetime] = None  # Token expiry (24h from send)
+    client_token_used: bool = False  # Prevent reuse
+    client_response: Optional[str] = None  # ACCEPTED, REJECTED, RESCHEDULED
+    client_response_at: Optional[datetime] = None
+    client_response_notes: Optional[str] = None  # Reschedule notes/preferred times
+    
+    # Notification tracking
+    invite_sent_at: Optional[datetime] = None  # When invite email was sent
+    invite_sent_to: Optional[List[str]] = []  # Email addresses notified
+    reminder_sent_at: Optional[datetime] = None  # 24h reminder
+    
+    # Scheduling details
+    scheduled_by: Optional[str] = None  # User ID who scheduled
+    scheduled_by_name: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    is_short_notice: bool = False  # Flagged if < 24h advance
+    is_backdated: bool = False  # Flagged if recording past meeting
+    backdated_approval_status: Optional[str] = None  # PENDING, APPROVED, REJECTED
+    backdated_approved_by: Optional[str] = None
+    backdated_approved_at: Optional[datetime] = None
+    
+    # Travel & Conveyance (for in-person meetings)
+    travel_companions: Optional[List[str]] = []  # User IDs
+    travel_companion_names: Optional[List[str]] = []
+    companion_purpose: Optional[str] = None
+    vehicle_type: Optional[str] = None
+    vehicle_number: Optional[str] = None
+    travel_start_location: Optional[str] = None
+    travel_end_location: Optional[str] = None
+    is_conveyance_claimable: bool = False  # Only during MOM recording
+    
+    # Meeting type/purpose
+    meeting_type_code: Optional[str] = None  # Code from meeting_types master
+    meeting_type_name: Optional[str] = None  # Denormalized name
+    
+    # Audit trail
+    state_history: Optional[List[Dict[str, Any]]] = []  # {from_state, to_state, changed_by, changed_at, reason}
 
 
 class MeetingCreate(BaseModel):

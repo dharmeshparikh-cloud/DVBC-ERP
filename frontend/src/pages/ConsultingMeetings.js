@@ -683,6 +683,36 @@ const ConsultingMeetings = () => {
     }
   };
 
+  // Send meeting invite to client with Accept/Reject/Reschedule links
+  const handleSendInvite = async (meeting) => {
+    try {
+      const res = await axios.post(`${API}/meeting-workflow/send-invite`, {
+        meeting_id: meeting.id
+      });
+      toast.success(res.data.message || 'Meeting invite sent to client!');
+      queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
+    } catch (error) {
+      if (error.response?.data?.detail?.includes('email')) {
+        // Prompt for email if not found
+        const email = window.prompt('Client email not found. Please enter client email address:');
+        if (email && email.includes('@')) {
+          try {
+            const res2 = await axios.post(`${API}/meeting-workflow/send-invite`, {
+              meeting_id: meeting.id,
+              client_email: email
+            });
+            toast.success(res2.data.message || 'Meeting invite sent!');
+            queryClient.invalidateQueries({ queryKey: ['meetings', 'consulting'] });
+          } catch (err2) {
+            toast.error(err2.response?.data?.detail || 'Failed to send invite');
+          }
+        }
+      } else {
+        toast.error(error.response?.data?.detail || 'Failed to send meeting invite');
+      }
+    }
+  };
+
   const addArrayItem = (field, setFn, data) => setFn({ ...data, [field]: [...data[field], ''] });
   const updateArrayItem = (field, idx, val, setFn, data) => {
     const arr = [...data[field]]; arr[idx] = val; setFn({ ...data, [field]: arr });
@@ -1594,6 +1624,29 @@ const ConsultingMeetings = () => {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {/* Send Invite button - show if invite not sent yet */}
+                            {!meeting.invite_sent_at && meeting.status !== 'REJECTED' && meeting.status !== 'CANCELLED' && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="sm" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={(e) => { e.stopPropagation(); handleSendInvite(meeting); }} title="Send meeting invite to client">
+                                      <Send className="w-3 h-3 mr-1" /> Invite
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Send invite email to client with Accept/Reject options</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {/* Status badge if invite sent */}
+                            {meeting.invite_sent_at && !meeting.client_response && (
+                              <Badge variant="outline" className="text-xs text-blue-600 border-blue-200">Awaiting Response</Badge>
+                            )}
+                            {meeting.client_response === 'ACCEPTED' && (
+                              <Badge className="text-xs bg-emerald-100 text-emerald-700">Confirmed</Badge>
+                            )}
+                            {meeting.client_response === 'REJECTED' && (
+                              <Badge className="text-xs bg-red-100 text-red-700">Declined</Badge>
+                            )}
                             {meeting.mom_generated && (
                               <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openMeetingDetail(meeting); }} title="View meeting details">
                                 <Eye className="w-4 h-4 text-blue-600" />
