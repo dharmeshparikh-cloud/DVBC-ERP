@@ -497,6 +497,33 @@ api_router.include_router(meetings_router.router)
 # Meeting Schedules (Recurring, Calendar)
 api_router.include_router(meeting_schedules_router.router)
 
+# Consulting Meetings Tracking Endpoint
+@api_router.get("/consulting-meetings/tracking")
+async def get_consulting_tracking(current_user = Depends(get_current_user)):
+    """Get committed vs actual meetings per project for consulting meetings"""
+    projects = await db.projects.find({}, {"_id": 0}).to_list(1000)
+    tracking = []
+    for project in projects:
+        committed = project.get('total_meetings_committed', 0)
+        delivered = project.get('total_meetings_delivered', 0)
+        # Count consulting meetings for this project
+        actual_count = await db.meetings.count_documents({
+            "project_id": project['id'],
+            "type": "consulting"
+        })
+        tracking.append({
+            "project_id": project['id'],
+            "project_name": project.get('name', ''),
+            "client_name": project.get('client_name', ''),
+            "committed": committed,
+            "delivered": delivered,
+            "actual_meetings": actual_count,
+            "status": project.get('status', 'active'),
+            "variance": actual_count - committed if committed > 0 else 0,
+            "completion_pct": round((actual_count / committed * 100), 1) if committed > 0 else 0
+        })
+    return tracking
+
 # HR Module
 api_router.include_router(employees_router.router)
 api_router.include_router(attendance_router.router)
