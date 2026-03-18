@@ -181,13 +181,50 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 - `/app/backend/tests/test_payroll_expense_integration.py` - Payroll-expense integration tests
 
 ### Results
-- Backend: 100% pass rate (12/12 tests)
+- Backend: 100% pass rate (20/20 tests)
 - Frontend: 100% pass rate
 - All 10 meeting states validated
 - SSOT breach prevention verified
 - MeetingLocationPicker integration verified
 - Expense creation and approval workflow verified
 - **Payroll integration fix verified**: payroll_reimbursements now created with correct internal employee ID
+- **Leave-Attendance-Payroll integration verified**: Full flow working
+
+---
+
+## Leave Management System
+
+### Employee Self-Service
+- **Apply Leave**: `POST /api/leave-requests`
+  - Leave types: Casual, Sick, Earned
+  - Half-day option available
+  - Validates against leave balance
+- **Withdraw Leave**: `POST /api/leave-requests/{id}/withdraw` (pending only)
+- **View Balance**: `GET /api/my/leave-balance`
+
+### Manager Approval Flow
+1. Employee submits leave → Status: "pending"
+2. Manager reviews via `GET /api/leave-requests?status=pending`
+3. Manager approves/rejects via `POST /api/leave-requests/{id}/rm-approve`
+4. Leave balance updated on approval
+
+### HR Functions
+- Apply leave on behalf: `POST /api/attendance/hr/apply-leave-for-employee` (auto-approved)
+- View all leaves: `GET /api/leave-requests/all`
+- Company stats: `GET /api/leave-requests/stats/company-wide`
+
+## Payroll Integration
+
+### Incentive Input
+- HR/Admin enters via Payroll page → Payroll Inputs tab
+- Fields: incentive amount, incentive_reason
+- API: `POST /api/payroll/inputs`
+
+### Salary Slip Generation
+- Includes: Basic, HRA, Special Allowance, Incentive, Overtime
+- Deductions: PF, Professional Tax, Penalty
+- Links to: Leave records, Expense reimbursements
+- API: `POST /api/payroll/generate-slip`
 
 ---
 
@@ -219,4 +256,4 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 
 ## Last Updated
 - Date: March 18, 2026
-- Status: P0 + P1 Complete, Payroll Integration Fixed
+- Status: P0 + P1 Complete, Leave-Attendance-Payroll Integration Verified
