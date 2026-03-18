@@ -1,6 +1,7 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { API, AuthContext } from '../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -10,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { 
   Plus, Video, Phone, Users as UsersIcon, CheckCircle, Circle, 
   FileText, Send, Clock, AlertCircle, Calendar, Trash2, Edit2,
-  ChevronDown, ChevronUp, ClipboardList, Mail
+  ChevronDown, ChevronUp, ClipboardList, Mail, ArrowRight, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -25,11 +26,29 @@ const PRIORITY_OPTIONS = [
 
 const Meetings = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [momDialogOpen, setMomDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [expandedMeetings, setExpandedMeetings] = useState({});
+  const [showSSOTNotice, setShowSSOTNotice] = useState(true);
+
+  // Check if user is from consulting department - redirect to consulting meetings
+  const isConsultingUser = user?.department === 'Consulting' || user?.department === 'Delivery';
+  
+  // Show SSOT notice for consulting users
+  useEffect(() => {
+    if (isConsultingUser) {
+      toast.info('For consulting meetings, please use the Consulting Meetings page', {
+        action: {
+          label: 'Go Now',
+          onClick: () => navigate('/consulting-meetings')
+        },
+        duration: 5000
+      });
+    }
+  }, [isConsultingUser, navigate]);
   
   const [formData, setFormData] = useState({
     project_id: '',
@@ -314,13 +333,47 @@ const Meetings = () => {
         subtitle="Track meetings, create Minutes of Meeting, and manage action items"
         onRefresh={() => refetchMeetings()}
         loading={loading}
-        actions={canEdit && (
+        actions={canEdit && !isConsultingUser && (
           <Button onClick={() => setDialogOpen(true)} data-testid="add-meeting-button" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
             <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> Schedule Meeting
           </Button>
         )}
       />
-          {canEdit && (
+
+      {/* SSOT Notice for Consulting Users */}
+      {isConsultingUser && showSSOTNotice && (
+        <div className="mx-6 mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-blue-900">Consulting Meetings Moved</p>
+              <p className="text-sm text-blue-700 mt-1">
+                All consulting project meetings should now be managed from the <strong>Consulting Meetings</strong> page. 
+                This ensures proper MOM tracking, SOW linkage, and expense governance.
+              </p>
+              <div className="flex items-center gap-3 mt-3">
+                <Button 
+                  size="sm" 
+                  onClick={() => navigate('/consulting-meetings')}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Go to Consulting Meetings <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setShowSSOTNotice(false)}
+                  className="text-blue-700 hover:text-blue-800"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+          {canEdit && !isConsultingUser && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>

@@ -316,7 +316,7 @@ const ConsultingDashboard = () => {
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: 'View Projects', href: '/projects', icon: Briefcase, color: 'bg-blue-600' },
-          { label: 'Schedule Meeting', href: '/meetings', icon: Calendar, color: 'bg-purple-600' },
+          { label: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar, color: 'bg-purple-600' },
           { label: 'Gantt Chart', href: '/gantt-chart', icon: BarChart3, color: 'bg-indigo-600' },
           { label: 'Performance', href: '/performance', icon: TrendingUp, color: 'bg-green-600' },
         ].map((action, i) => (

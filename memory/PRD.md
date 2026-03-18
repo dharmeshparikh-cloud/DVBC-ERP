@@ -94,10 +94,22 @@ Build a robust and governed expense tracking and meeting management system for c
 
 ## Pending Tasks
 
-### P0 - Critical
-1. **Disable SSOT Breach Points**
-   - Find and disable all "Add/Create Meeting" buttons across the app
-   - Focus on Project Details page and mobile views
+### P0 - SSOT Enforcement (Completed)
+
+1. **Generic `/meetings` route** → Already redirects to `/leads` (existing design)
+2. **Meeting Calendar** → Converted to planning-only view (New Schedule disabled)
+3. **Consulting Dashboard** → Quick action link updated to `/consulting-meetings`
+4. **Consulting Meetings** → Remains the SSOT for all consulting MOM
+
+**Meeting Creation Points After SSOT:**
+- `/consulting-meetings` - Consulting project meetings (SSOT)
+- `/sales-funnel/meeting/record` - Sales meetings (separate workflow)
+- `/kickoff-meeting` - Project initiation (one-time, NOT counted in quota)
+
+**Kickoff vs Committed Meetings:**
+- Kickoff meetings are NOT counted in the committed quota
+- Only consulting meetings (`type: "consulting"`) count towards `total_meetings_committed`
+- Kickoff is a pre-requisite to start the project, separate from consulting delivery
 
 ### P1 - High Priority
 1. **Create Business Logic Document**
