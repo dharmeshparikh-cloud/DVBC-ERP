@@ -5,91 +5,76 @@ Build a robust and governed expense tracking and meeting management system for c
 
 ---
 
-## Current Implementation Status: ✅ P0 Complete
+## Implementation Status
 
-### P0 Features Implemented (March 18, 2026)
+### ✅ P0 Features Complete (March 18, 2026)
 
-#### 1. Email Notification System ✅
-- **Test Email Endpoint**: `/api/meeting-workflow/test-email` - Verify SMTP configuration
-- **Meeting Invite Endpoint**: `/api/meeting-workflow/send-invite` - Sends branded email to clients
-- **Email Templates**: Professional HTML templates with D&V Business Consulting branding
-- **SMTP Integration**: Using Gmail SMTP configured in backend/.env
+#### 1. Email Notification System
+- **Test Email**: `/api/meeting-workflow/test-email`
+- **Meeting Invite**: `/api/meeting-workflow/send-invite` - Branded email with Accept/Reject/Reschedule buttons
+- **SMTP**: Gmail configured in backend/.env
 
-#### 2. Single-Use Tokenized Links ✅
-- **Token Generation**: Secure 32-byte tokens using `secrets.token_urlsafe()`
-- **Token Expiry**: 24 hours from creation
-- **Single-Use**: Token marked as used after first response
-- **Client Response Endpoint**: `/api/meeting-workflow/client-response` (GET/POST)
-- **Branded Response Page**: `/meeting-response?token={token}&action={action}`
+#### 2. Single-Use Tokenized Links (24h expiry)
+- Secure token generation using `secrets.token_urlsafe()`
+- Client response page: `/meeting-response?token={token}&action={action}`
+- Branded UI with D&V Business Consulting branding
 
-#### 3. Auto-Accept Logic ✅
-- **Process Endpoint**: `/api/meeting-workflow/process-auto-accept` (Admin only)
-- **Logic**: Meetings with expired tokens (>24h) are auto-accepted
-- **Status Update**: SCHEDULED → AUTO_ACCEPTED
-- **Note**: Requires scheduled task/cron job in production
+#### 3. Auto-Accept Background Scheduler
+- Runs every hour automatically
+- Processes meetings with expired tokens (>24h)
+- Admin can manually trigger: `/api/meeting-workflow/process-auto-accept`
+- Status check: `/api/meeting-workflow/auto-accept-scheduler/status`
 
-#### 4. Meeting State Machine ✅
-- **10 States Implemented**:
-  - DRAFT → SCHEDULED
-  - SCHEDULED → CONFIRMED / REJECTED / RESCHEDULED / AUTO_ACCEPTED / CANCELLED
-  - CONFIRMED → CONDUCTED / CANCELLED
-  - AUTO_ACCEPTED → CONDUCTED / CANCELLED
-  - RESCHEDULED → SCHEDULED / CANCELLED
-  - CONDUCTED → MOM_RECORDED
-  - MOM_RECORDED → DELIVERED
-
-- **State Transition Endpoint**: `/api/meeting-workflow/transition-state`
-- **Audit Logging**: All state changes logged with timestamp, user, and reason
-
-#### 5. Frontend Integration ✅
-- **Invite Button**: Added to Consulting Meetings list (green "Invite" button)
-- **Status Badges**: Shows "Awaiting Response", "Confirmed", "Declined" states
-- **Client Response Page**: Branded page with Accept/Decline/Reschedule options
-- **Google Calendar Integration**: "Add to Calendar" link after acceptance
+#### 4. Meeting State Machine
+- 10 States: DRAFT → SCHEDULED → CONFIRMED/REJECTED/RESCHEDULED/AUTO_ACCEPTED → CONDUCTED → MOM_RECORDED → DELIVERED
+- State transition API with validation and audit logging
 
 ---
 
-## Meeting Workflow Business Rules
+### ✅ P1 Features Complete (March 18, 2026)
 
-### PART 1: SCHEDULING RULES
-| Rule | Value |
-|------|-------|
-| Who can schedule | Any consultant assigned to the project |
-| Minimum notice | 24 hours before meeting time |
-| Short notice (<24h) | Allowed but flagged |
-| Past date scheduling | NOT ALLOWED - all meetings must be scheduled first |
+#### 1. Backdated Meeting Manager Approval Workflow
+- **Request Approval**: `/api/meeting-workflow/request-backdated-approval`
+  - Sends email notification to direct reporting manager
+  - Creates audit trail with reason for late recording
+- **Approve/Reject**: `/api/meeting-workflow/approve-backdated`
+  - Only direct manager or admin can approve
+  - Sends confirmation email to requester
+- **View Pending**: `/api/meeting-workflow/pending-approvals`
+  - Lists meetings awaiting approval for current user
 
-### PART 2: NOTIFICATION FLOW
-| Event | Recipients |
-|-------|------------|
-| Meeting Scheduled | Client + Reporting Manager + All Attendees |
-| Notification Timing | Immediate + 24h reminder |
-| Client Response Options | Accept / Reject / Request Reschedule |
-| If Rejected | Auto-cancelled, consultant + manager notified |
-| If No Response | Auto-accepted (within 24h link expiry) |
+#### 2. SSOT Breach Prevention Verified
+- **Consulting Meetings page**: SSOT with Invite button, MOM recording, expense claims
+- **Calendar page**: Read-only planning view with no create meeting button
+- **Notice displayed**: "To create or manage consulting meetings and MOM, please use the Consulting Meetings page (Single Source of Truth)"
 
-### PART 3: SINGLE-USE LINK MECHANISM
-- **Link Actions:** Accept / Reject / Reschedule with Notes + Preferred Times
-- **Link Expiry:** 24 hours with expiring rule tooltip
-- **After Response:** Confirmation page + Add to Calendar option
+#### 3. Reschedule Form Improvements
+- Date/time pickers for suggesting up to 3 preferred times
+- Minimum date set to tomorrow
+- Additional notes field for context
 
-### PART 4: MEETING STATES
+#### 4. Travel & Conveyance Expense Section (SSOT for Expenses)
+- Appears in MOM dialog ONLY for in-person meetings (mode = 'offline')
+- Fields: Start/End Location, Travel Mode, Distance, Round Trip toggle
+- Calculates estimated reimbursement automatically
+- SSOT badge: "SSOT for Expenses"
+- Note: Only meeting scheduler can claim conveyance
+
+---
+
+## Meeting Workflow States
+
 ```
 DRAFT → SCHEDULED → CONFIRMED → CONDUCTED → MOM_RECORDED → DELIVERED
                   ↘ REJECTED
                   ↘ RESCHEDULED → SCHEDULED
                   ↘ AUTO_ACCEPTED → CONDUCTED
                   ↘ CANCELLED
-```
 
-### PART 5: EXPENSE & CONVEYANCE RULES
-| Rule | Value |
-|------|-------|
-| When can expense be claimed | Only during MOM recording |
-| Cancelled/Rejected meetings | No expenses allowed |
-| Rescheduled meetings | Fresh quota (new meeting) |
-| Who can claim conveyance | Only the meeting scheduler |
-| Travel companions | Added to their calendar, cannot claim separately |
+For Backdated Meetings:
+DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIVERED
+                        ↘ REJECTED
+```
 
 ---
 
@@ -104,63 +89,91 @@ DRAFT → SCHEDULED → CONFIRMED → CONDUCTED → MOM_RECORDED → DELIVERED
 | `/api/meeting-workflow/client-response` | POST | Submit client response | Public |
 | `/api/meeting-workflow/transition-state` | POST | Transition meeting state | Required |
 | `/api/meeting-workflow/process-auto-accept` | POST | Process expired tokens | Admin |
+| `/api/meeting-workflow/auto-accept-scheduler/status` | GET | Scheduler status | Admin |
 | `/api/meeting-workflow/meeting-states` | GET | Get all valid states | Public |
-
-### Consulting Meetings APIs
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/meetings` | GET | List all meetings |
-| `/api/meetings/{id}` | GET | Get meeting details |
-| `/api/meetings/{id}/send-mom` | POST | Send MOM to client |
-| `/api/consulting-meetings/tracking` | GET | Get project tracking stats |
+| `/api/meeting-workflow/request-backdated-approval` | POST | Request approval | Required |
+| `/api/meeting-workflow/approve-backdated` | POST | Approve/reject backdated | Manager/Admin |
+| `/api/meeting-workflow/pending-approvals` | GET | List pending approvals | Required |
 
 ---
 
-## Pending Implementation
+## SSOT Architecture
 
-### P1 - High Priority (Next)
-1. **Backdated Meeting Approval**
-   - Flag meetings >24h old as requiring approval
-   - Manager approval workflow with notifications
-   - Approval endpoint and UI
+### Single Source of Truth Entry Points
+| Feature | Entry Point | Notes |
+|---------|-------------|-------|
+| Schedule Meeting | Consulting Meetings page | Only place to create consulting meetings |
+| Record MOM | Consulting Meetings page | MOM button in actions column |
+| Claim Expenses | MOM Dialog | Travel section for in-person meetings only |
+| Send Invite | Consulting Meetings page | Invite button sends client notification |
 
-2. **SSOT Breach Testing**
-   - Verify consultants can't create meetings elsewhere
-   - Test calendar read-only mode
-
-### P2 - Medium Priority
-1. **Business Logic Document (PDF)**
-   - Generate documentation for the workflow
-   - Export as PDF for stakeholders
+### Disabled Entry Points (Breach Prevention)
+- Calendar page: Read-only, no create meeting button
+- Other meeting forms: Not accessible for consultants
 
 ---
 
-## Future Tasks/Backlog
-- Refactor `ConsultingMeetings.js` into smaller components (1500+ lines)
-- Implement scheduled cron job for auto-accept processing
-- Add reminder emails (24h before meeting)
-- Implement rescheduling workflow (new date selection)
-- Refactor `backend/routers/kickoff.py`
-- Refactor `frontend/src/pages/MeetingRecord.js`
-- Remove orphan file: `frontend/src/pages/consulting/Meetings.js`
-- Build DVBC Marketing Hub
-- Implement Consultant Incentive System
-- Implement Internal Chat System
+## Travel & Expense Rules
+
+| Rule | Value |
+|------|-------|
+| When to claim | Only during MOM recording |
+| Who can claim | Only the meeting scheduler |
+| Travel companions | Cannot claim separately |
+| In-person only | Travel section appears only for offline meetings |
+| Calculation | Based on travel mode and distance |
+
+### Travel Modes
+- Own Car: ₹X/km
+- Own Bike: ₹X/km  
+- Public Transit: Manual entry
+- Accompanied: No claim (traveled with someone else)
 
 ---
 
-## Files Created/Modified (This Session)
+## Files Created/Modified
 
-### New Files
-- `/app/backend/routers/meeting_workflow.py` - Meeting workflow API router
-- `/app/backend/services/meeting_notification_service.py` - Email notification service
+### New Files (This Session)
+- `/app/backend/routers/meeting_workflow.py` - Meeting workflow APIs (780+ lines)
+- `/app/backend/services/meeting_notification_service.py` - Email templates
+- `/app/backend/services/meeting_auto_accept_scheduler.py` - Background scheduler
 - `/app/frontend/src/pages/MeetingResponse.js` - Client response branded page
 
 ### Modified Files
-- `/app/backend/routers/models.py` - Added MeetingStatus class and workflow fields to Meeting model
-- `/app/backend/server.py` - Registered meeting_workflow router, added consulting-meetings/tracking endpoint
-- `/app/frontend/src/pages/ConsultingMeetings.js` - Added Invite button and handleSendInvite function
-- `/app/frontend/src/App.js` - Added MeetingResponse route
+- `/app/backend/routers/models.py` - MeetingStatus class, workflow fields
+- `/app/backend/server.py` - Router registration, scheduler startup/shutdown
+- `/app/frontend/src/pages/ConsultingMeetings.js` - Invite button, Travel expense section in MOM
+- `/app/frontend/src/App.js` - MeetingResponse route
+
+---
+
+## Testing Summary
+
+### Test Reports
+- `/app/test_reports/iteration_188.json` - Initial frontend tests
+- `/app/test_reports/iteration_189.json` - P0 features verification
+- `/app/backend/tests/test_backdated_approval.py` - Backend pytest
+
+### Results
+- Backend: 100% pass rate
+- Frontend: 100% pass rate
+- All 10 meeting states validated
+- SSOT breach prevention verified
+
+---
+
+## Pending/Future Tasks
+
+### P2 - Medium Priority
+- Business Logic Document (PDF export)
+- Refactor ConsultingMeetings.js (2400+ lines)
+
+### Backlog
+- 24h reminder emails before meetings
+- Rescheduling workflow (new date selection by organizer)
+- Consultant incentive system
+- Internal chat system
+- DVBC Marketing Hub
 
 ---
 
@@ -171,20 +184,10 @@ DRAFT → SCHEDULED → CONFIRMED → CONDUCTED → MOM_RECORDED → DELIVERED
 ## Tech Stack
 - Frontend: React, Tanstack Query, Tailwind CSS, Shadcn/UI
 - Backend: FastAPI, MongoDB, aiosmtplib
-- Email: Gmail SMTP
-
----
-
-## Testing Summary
-
-### Test Report: /app/test_reports/iteration_189.json
-- **Backend**: 93% pass rate (14/15 tests)
-- **Frontend**: 100% pass rate
-- **State Machine**: All 7 transitions validated
-- **Email**: Test emails sent successfully
+- Background Tasks: asyncio scheduler
 
 ---
 
 ## Last Updated
 - Date: March 18, 2026
-- Status: P0 Complete - Email Notification System, Single-Use Tokens, Auto-Accept Logic, Meeting State Machine
+- Status: P0 + P1 Complete

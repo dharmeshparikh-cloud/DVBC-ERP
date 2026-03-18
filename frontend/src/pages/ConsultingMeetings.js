@@ -104,7 +104,10 @@ const ConsultingMeetings = () => {
     travel_mode: 'DRIVING',
     distance_km: 0,
     is_round_trip: true,
-    transit_amount: 0
+    transit_amount: 0,
+    claim_expense: false,
+    travel_start_location: '',
+    travel_end_location: ''
   });
 
   const [formData, setFormData] = useState({
@@ -2278,6 +2281,125 @@ const ConsultingMeetings = () => {
               <Input type="datetime-local" value={momData.next_meeting_date}
                 onChange={(e) => setMomData({ ...momData, next_meeting_date: e.target.value })} className="rounded-sm border-zinc-200 w-64" />
             </div>
+
+            {/* Travel Expense Section - Only for in-person meetings (SSOT for expenses) */}
+            {selectedMeeting?.mode === 'offline' && (
+              <div className="space-y-4 p-4 bg-emerald-50 border border-emerald-200 rounded-sm">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-emerald-900 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Travel & Conveyance Expense
+                    <Badge className="text-xs bg-emerald-200 text-emerald-800 ml-2">SSOT for Expenses</Badge>
+                  </Label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={travelData.claim_expense}
+                      onChange={(e) => setTravelData({ ...travelData, claim_expense: e.target.checked })}
+                      className="h-4 w-4 rounded border-zinc-300"
+                    />
+                    <span className="text-sm text-emerald-800 font-medium">Claim Travel Expense</span>
+                  </label>
+                </div>
+                
+                {travelData.claim_expense && (
+                  <div className="space-y-4 pt-3 border-t border-emerald-200">
+                    <p className="text-xs text-emerald-700 bg-emerald-100 p-2 rounded-sm">
+                      <strong>Note:</strong> Only the meeting scheduler can claim conveyance. Travel companions cannot claim separately.
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-zinc-700">Start Location</Label>
+                        <Input 
+                          value={travelData.travel_start_location} 
+                          onChange={(e) => setTravelData({ ...travelData, travel_start_location: e.target.value })}
+                          placeholder="e.g., Office / Home"
+                          className="rounded-sm border-zinc-200"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-zinc-700">End Location (Client)</Label>
+                        <Input 
+                          value={travelData.travel_end_location} 
+                          onChange={(e) => setTravelData({ ...travelData, travel_end_location: e.target.value })}
+                          placeholder="e.g., Client Office, Mumbai"
+                          className="rounded-sm border-zinc-200"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-zinc-700">Travel Mode</Label>
+                        <Select value={travelData.travel_mode} onValueChange={(v) => setTravelData({ ...travelData, travel_mode: v })}>
+                          <SelectTrigger className="rounded-sm border-zinc-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TRAVEL_MODES.map(mode => (
+                              <SelectItem key={mode.id} value={mode.id}>
+                                {mode.label} {mode.rate > 0 && `(₹${mode.rate}/km)`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-zinc-700">Distance (km)</Label>
+                        <Input 
+                          type="number"
+                          value={travelData.distance_km} 
+                          onChange={(e) => setTravelData({ ...travelData, distance_km: e.target.value })}
+                          placeholder="Enter distance"
+                          className="rounded-sm border-zinc-200"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-zinc-700">Round Trip?</Label>
+                        <div className="flex items-center gap-2 h-10">
+                          <input
+                            type="checkbox"
+                            checked={travelData.is_round_trip}
+                            onChange={(e) => setTravelData({ ...travelData, is_round_trip: e.target.checked })}
+                            className="h-4 w-4 rounded border-zinc-300"
+                          />
+                          <span className="text-sm text-zinc-600">Yes, round trip</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {travelData.travel_mode === 'TRANSIT' && (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-zinc-700">Transit Amount (₹)</Label>
+                        <Input 
+                          type="number"
+                          value={travelData.transit_amount} 
+                          onChange={(e) => setTravelData({ ...travelData, transit_amount: e.target.value })}
+                          placeholder="Enter total transit fare"
+                          className="rounded-sm border-zinc-200 w-48"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Calculated Amount Display */}
+                    {(travelData.distance_km > 0 || travelData.transit_amount > 0) && (
+                      <div className="p-3 bg-white border border-emerald-300 rounded-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-zinc-600">Estimated Reimbursement:</span>
+                          <span className="text-lg font-bold text-emerald-700">
+                            ₹{calculateTravelExpense().toFixed(2)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          {travelData.is_round_trip && '(Round trip calculation applied)'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
               <Button onClick={handleSaveMOM} data-testid="save-consulting-mom" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">

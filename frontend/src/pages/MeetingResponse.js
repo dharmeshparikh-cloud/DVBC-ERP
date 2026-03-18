@@ -6,12 +6,14 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
+import { Input } from '../components/ui/input';
 import { 
   Calendar, Clock, Video, Users, MapPin, 
   CheckCircle, XCircle, RefreshCw, Loader2,
-  Building2, FileText, CalendarPlus, AlertCircle
+  Building2, FileText, CalendarPlus, AlertCircle,
+  Plus, Trash2
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -30,6 +32,35 @@ const MeetingResponse = () => {
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
+  
+  // Reschedule preferred times state
+  const [preferredTimes, setPreferredTimes] = useState([
+    { date: '', time: '' }
+  ]);
+
+  const addPreferredTime = () => {
+    if (preferredTimes.length < 3) {
+      setPreferredTimes([...preferredTimes, { date: '', time: '' }]);
+    }
+  };
+
+  const removePreferredTime = (index) => {
+    if (preferredTimes.length > 1) {
+      setPreferredTimes(preferredTimes.filter((_, i) => i !== index));
+    }
+  };
+
+  const updatePreferredTime = (index, field, value) => {
+    const updated = [...preferredTimes];
+    updated[index][field] = value;
+    setPreferredTimes(updated);
+  };
+
+  // Get minimum date for reschedule (tomorrow)
+  const getMinDate = () => {
+    const tomorrow = addDays(new Date(), 1);
+    return format(tomorrow, 'yyyy-MM-dd');
+  };
 
   useEffect(() => {
     if (!token) {
@@ -66,11 +97,32 @@ const MeetingResponse = () => {
   const handleSubmitResponse = async () => {
     if (!token || !selectedAction) return;
     
+    // For reschedule, validate at least one preferred time is provided
+    if (selectedAction === 'reschedule') {
+      const validTimes = preferredTimes.filter(pt => pt.date && pt.time);
+      if (validTimes.length === 0 && !notes) {
+        setError('Please provide at least one preferred date/time or a note for rescheduling.');
+        return;
+      }
+    }
+    
     setSubmitting(true);
+    setError(null);
+    
     try {
+      // Build preferred times array for reschedule
+      const validPreferredTimes = selectedAction === 'reschedule' 
+        ? preferredTimes
+            .filter(pt => pt.date && pt.time)
+            .map(pt => `${pt.date} at ${pt.time}`)
+        : null;
+      
       const res = await axios.post(
         `${API}/api/meeting-workflow/client-response`,
-        { notes: notes || null },
+        { 
+          notes: notes || null,
+          preferred_times: validPreferredTimes
+        },
         { params: { token, action: selectedAction } }
       );
       
@@ -387,21 +439,106 @@ const MeetingResponse = () => {
               </button>
             </div>
 
-            {(selectedAction === 'reject' || selectedAction === 'reschedule') && (
+            {/* Decline reason */}
+            {selectedAction === 'reject' && (
               <div className="mb-6">
                 <Label className="text-sm font-medium text-zinc-700">
-                  {selectedAction === 'reschedule' ? 'Preferred times or notes (optional)' : 'Reason for declining (optional)'}
+                  Reason for declining (optional)
                 </Label>
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder={selectedAction === 'reschedule' 
-                    ? 'e.g., I would prefer Monday morning or Tuesday afternoon...'
-                    : 'e.g., I have a conflict at this time...'
-                  }
+                  placeholder="e.g., I have a conflict at this time..."
                   className="mt-2"
                   rows={3}
                 />
+              </div>
+            )}
+
+            {/* Reschedule with date/time pickers */}
+            {selectedAction === 'reschedule' && (
+              <div className="mb-6 space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-zinc-700 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Preferred Date & Time Options
+                  </Label>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Please suggest up to 3 alternative times that work for you
+                  </p>
+                </div>
+                
+                {preferredTimes.map((pt, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <span className="text-sm font-medium text-amber-700 w-6">#{index + 1}</span>
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-zinc-600">Date</Label>
+                        <Input
+                          type="date"
+                          min={getMinDate()}
+                          value={pt.date}
+                          onChange={(e) => updatePreferredTime(index, 'date', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-zinc-600">Time</Label>
+                        <Input
+                          type="time"
+                          value={pt.time}
+                          onChange={(e) => updatePreferredTime(index, 'time', e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    {preferredTimes.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removePreferredTime(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                
+                {preferredTimes.length < 3 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addPreferredTime}
+                    className="w-full border-dashed border-amber-300 text-amber-700 hover:bg-amber-50"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Another Time Option
+                  </Button>
+                )}
+                
+                <div className="mt-4">
+                  <Label className="text-sm font-medium text-zinc-700">
+                    Additional Notes (optional)
+                  </Label>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="e.g., I'm generally available in the mornings..."
+                    className="mt-2"
+                    rows={2}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Error message */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm">{error}</span>
               </div>
             )}
 

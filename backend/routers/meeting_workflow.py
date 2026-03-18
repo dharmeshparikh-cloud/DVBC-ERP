@@ -516,3 +516,287 @@ async def send_test_email(
         "message": result.get("message", "Email sent successfully"),
         "sent_to": to_email
     }
+
+
+
+# ========== BACKDATED MEETING APPROVAL WORKFLOW ==========
+
+import os
+
+class BackdatedApprovalRequest(BaseModel):
+    """Request for backdated meeting approval"""
+    meeting_id: str
+    reason: str  # Why the meeting is being recorded late
+
+
+class ApprovalDecisionRequest(BaseModel):
+    """Manager's approval decision"""
+    meeting_id: str
+    approved: bool
+    notes: Optional[str] = None
+
+
+@router.post("/request-backdated-approval")
+async def request_backdated_approval(
+    request: BackdatedApprovalRequest,
+    current_user = Depends(get_current_user),
+    db = Depends(get_db)
+):
+    """
+    Request approval for recording a backdated meeting (>24h ago).
+    Sends notification to direct reporting manager.
+    """
+    
+    # Get meeting
+    meeting = await db.meetings.find_one({"id": request.meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # Check if already has approval request
+    if meeting.get('backdated_approval_status') == 'PENDING':
+        raise HTTPException(status_code=400, detail="Approval request already pending")
+    
+    if meeting.get('backdated_approval_status') == 'APPROVED':
+        raise HTTPException(status_code=400, detail="Meeting already approved")
+    
+    # Get requester's manager
+    requester = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    if not requester:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    manager_id = requester.get('reporting_manager_id')
+    if not manager_id:
+        raise HTTPException(status_code=400, detail="No reporting manager configured. Please contact admin.")
+    
+    manager = await db.users.find_one({"id": manager_id}, {"_id": 0})
+    if not manager:
+        raise HTTPException(status_code=404, detail="Reporting manager not found")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Update meeting with approval request
+    await db.meetings.update_one(
+        {"id": request.meeting_id},
+        {
+            "$set": {
+                "is_backdated": True,
+                "backdated_approval_status": "PENDING",
+                "backdated_reason": request.reason,
+                "backdated_requested_by": current_user.id,
+                "backdated_requested_at": now.isoformat(),
+                "backdated_manager_id": manager_id
+            },
+            "$push": {
+                "state_history": {
+                    "from_state": meeting.get('status', 'DRAFT'),
+                    "to_state": "PENDING_APPROVAL",
+                    "changed_by": current_user.id,
+                    "changed_by_name": current_user.full_name,
+                    "changed_at": now.isoformat(),
+                    "reason": f"Backdated approval requested: {request.reason}"
+                }
+            }
+        }
+    )
+    
+    # Send email notification to manager
+    if manager.get('email'):
+        from services.email_service import send_email
+        
+        meeting_date = meeting.get('meeting_date', '')
+        if isinstance(meeting_date, str):
+            try:
+                meeting_date = datetime.fromisoformat(meeting_date.replace('Z', '+00:00')).strftime('%B %d, %Y')
+            except:
+                pass
+        
+        frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://consulting-govern.preview.emergentagent.com')
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #f59e0b;">Backdated Meeting Approval Required</h2>
+            <p>Dear <strong>{manager.get('full_name', 'Manager')}</strong>,</p>
+            <p><strong>{current_user.full_name}</strong> has requested approval to record a backdated meeting.</p>
+            
+            <div style="background: #fffbeb; border: 1px solid #fcd34d; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Meeting:</strong> {meeting.get('title', 'Consulting Meeting')}</p>
+                <p style="margin: 5px 0;"><strong>Client:</strong> {meeting.get('client_name', 'N/A')}</p>
+                <p style="margin: 5px 0;"><strong>Project:</strong> {meeting.get('project_name', 'N/A')}</p>
+                <p style="margin: 5px 0;"><strong>Meeting Date:</strong> {meeting_date}</p>
+                <p style="margin: 5px 0;"><strong>Reason for late recording:</strong> {request.reason}</p>
+            </div>
+            
+            <p>Please review and approve/reject this request in the <a href="{frontend_url}/approvals" style="color: #059669;">Approvals Center</a>.</p>
+            
+            <hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
+            <p style="color: #6b7280; font-size: 12px;">
+                This is an automated notification from the Meeting Management System.
+            </p>
+        </body>
+        </html>
+        """
+        
+        await send_email(
+            to_email=manager['email'],
+            subject=f"[Approval Required] Backdated Meeting - {meeting.get('title', 'Meeting')}",
+            html_content=html_content
+        )
+        
+        logger.info(f"Backdated approval notification sent to {manager['email']}")
+    
+    return {
+        "status": "success",
+        "message": f"Approval request sent to {manager.get('full_name', 'your manager')}",
+        "meeting_id": request.meeting_id,
+        "manager_name": manager.get('full_name'),
+        "approval_status": "PENDING"
+    }
+
+
+@router.post("/approve-backdated")
+async def approve_backdated_meeting(
+    request: ApprovalDecisionRequest,
+    current_user = Depends(get_current_user),
+    db = Depends(get_db)
+):
+    """
+    Manager approves or rejects a backdated meeting request.
+    """
+    
+    # Get meeting
+    meeting = await db.meetings.find_one({"id": request.meeting_id}, {"_id": 0})
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    # Verify current user is the assigned manager
+    if meeting.get('backdated_manager_id') != current_user.id:
+        # Also allow admin
+        if current_user.role != 'admin':
+            raise HTTPException(status_code=403, detail="Only the assigned manager or admin can approve this request")
+    
+    if meeting.get('backdated_approval_status') != 'PENDING':
+        raise HTTPException(status_code=400, detail=f"Meeting is not pending approval. Current status: {meeting.get('backdated_approval_status')}")
+    
+    now = datetime.now(timezone.utc)
+    new_status = "APPROVED" if request.approved else "REJECTED"
+    
+    # Update meeting
+    update_data = {
+        "backdated_approval_status": new_status,
+        "backdated_approved_by": current_user.id,
+        "backdated_approved_by_name": current_user.full_name,
+        "backdated_approved_at": now.isoformat(),
+        "backdated_approval_notes": request.notes
+    }
+    
+    # If approved, allow MOM recording (set status to CONDUCTED)
+    if request.approved:
+        update_data["status"] = "CONDUCTED"
+    
+    state_entry = {
+        "from_state": "PENDING_APPROVAL",
+        "to_state": new_status,
+        "changed_by": current_user.id,
+        "changed_by_name": current_user.full_name,
+        "changed_at": now.isoformat(),
+        "reason": f"Backdated meeting {new_status.lower()} by manager" + (f": {request.notes}" if request.notes else "")
+    }
+    
+    await db.meetings.update_one(
+        {"id": request.meeting_id},
+        {
+            "$set": update_data,
+            "$push": {"state_history": state_entry}
+        }
+    )
+    
+    # Notify the requester
+    requester_id = meeting.get('backdated_requested_by')
+    if requester_id:
+        requester = await db.users.find_one({"id": requester_id}, {"_id": 0})
+        if requester and requester.get('email'):
+            from services.email_service import send_email
+            
+            status_color = "#10b981" if request.approved else "#ef4444"
+            status_text = "Approved" if request.approved else "Rejected"
+            
+            html_content = f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; padding: 20px;">
+                <h2 style="color: {status_color};">Backdated Meeting {status_text}</h2>
+                <p>Dear <strong>{requester.get('full_name', 'Consultant')}</strong>,</p>
+                <p>Your request to record a backdated meeting has been <strong style="color: {status_color};">{status_text.lower()}</strong> by {current_user.full_name}.</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Meeting:</strong> {meeting.get('title', 'Consulting Meeting')}</p>
+                    <p style="margin: 5px 0;"><strong>Client:</strong> {meeting.get('client_name', 'N/A')}</p>
+                    {f'<p style="margin: 5px 0;"><strong>Manager Notes:</strong> {request.notes}</p>' if request.notes else ''}
+                </div>
+                
+                {"<p>You can now proceed to record the MOM for this meeting.</p>" if request.approved else "<p>Please contact your manager for more details.</p>"}
+            </body>
+            </html>
+            """
+            
+            await send_email(
+                to_email=requester['email'],
+                subject=f"[{status_text}] Backdated Meeting - {meeting.get('title', 'Meeting')}",
+                html_content=html_content
+            )
+    
+    logger.info(f"Backdated meeting {request.meeting_id} {new_status.lower()} by {current_user.full_name}")
+    
+    return {
+        "status": "success",
+        "message": f"Meeting {new_status.lower()}",
+        "meeting_id": request.meeting_id,
+        "approval_status": new_status
+    }
+
+
+@router.get("/pending-approvals")
+async def get_pending_approvals(
+    current_user = Depends(get_current_user),
+    db = Depends(get_db)
+):
+    """
+    Get list of meetings pending approval for the current manager.
+    Returns meetings where current user is the assigned approver.
+    """
+    
+    # Find meetings pending this manager's approval
+    pending = await db.meetings.find(
+        {
+            "backdated_approval_status": "PENDING",
+            "backdated_manager_id": current_user.id
+        },
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Also include for admin - all pending approvals
+    if current_user.role == 'admin':
+        all_pending = await db.meetings.find(
+            {"backdated_approval_status": "PENDING"},
+            {"_id": 0}
+        ).to_list(100)
+        
+        # Merge without duplicates
+        pending_ids = {m['id'] for m in pending}
+        for m in all_pending:
+            if m['id'] not in pending_ids:
+                pending.append(m)
+    
+    # Enrich with requester info
+    for meeting in pending:
+        requester_id = meeting.get('backdated_requested_by')
+        if requester_id:
+            requester = await db.users.find_one({"id": requester_id}, {"_id": 0, "full_name": 1, "email": 1})
+            if requester:
+                meeting['requester_name'] = requester.get('full_name')
+                meeting['requester_email'] = requester.get('email')
+    
+    return {
+        "pending_count": len(pending),
+        "meetings": pending
+    }
