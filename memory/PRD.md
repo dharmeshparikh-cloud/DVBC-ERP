@@ -55,10 +55,24 @@ Build a robust and governed expense tracking and meeting management system for c
 
 #### 4. Travel & Conveyance Expense Section (SSOT for Expenses)
 - Appears in MOM dialog ONLY for in-person meetings (mode = 'offline')
-- Fields: Start/End Location, Travel Mode, Distance, Round Trip toggle
-- Calculates estimated reimbursement automatically
+- **MeetingLocationPicker component integrated** with Google Places autocomplete
+- Features:
+  - Auto-complete for start/end locations
+  - Travel mode buttons: Car (₹7/km), Bike (₹3/km), Transit (manual), Accompanied (no expense)
+  - Round trip toggle with automatic distance doubling
+  - Real-time expense calculation
+  - Via locations support for multiple stops
 - SSOT badge: "SSOT for Expenses"
 - Note: Only meeting scheduler can claim conveyance
+
+#### 5. Expense Creation & Payroll Integration
+- **Automatic expense creation**: When MOM is saved with travel_details, expense record is created automatically
+- **Duplicate prevention**: System checks for existing expense before creating new one
+- **Approval workflow**:
+  - < ₹2000: HR directly approves → linked to payroll
+  - ≥ ₹2000: HR approves → Admin approves → linked to payroll
+- **Notification system**: Employee receives notification when expense is approved with message including payroll period
+- **Expense linked to payroll_reimbursements collection** for payroll processing
 
 ---
 
@@ -124,10 +138,18 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 | Calculation | Based on travel mode and distance |
 
 ### Travel Modes
-- Own Car: ₹X/km
-- Own Bike: ₹X/km  
-- Public Transit: Manual entry
+- Own Car: ₹7/km
+- Own Bike: ₹3/km
+- Public Transit: Manual entry with proof upload
 - Accompanied: No claim (traveled with someone else)
+
+### Expense Approval Flow
+1. Employee records MOM with travel details
+2. System creates expense with status "pending"
+3. HR reviews and approves (for < ₹2000, final approval)
+4. For ≥ ₹2000: Admin gives final approval
+5. Expense linked to payroll_reimbursements
+6. Employee receives notification: "Your expense of ₹X approved and linked to Y payroll"
 
 ---
 
@@ -152,13 +174,17 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 ### Test Reports
 - `/app/test_reports/iteration_188.json` - Initial frontend tests
 - `/app/test_reports/iteration_189.json` - P0 features verification
+- `/app/test_reports/iteration_190.json` - MeetingLocationPicker integration & expense flow verification
 - `/app/backend/tests/test_backdated_approval.py` - Backend pytest
+- `/app/backend/tests/test_meeting_travel_expense.py` - Travel expense tests
 
 ### Results
-- Backend: 100% pass rate
+- Backend: 100% pass rate (12/12 tests)
 - Frontend: 100% pass rate
 - All 10 meeting states validated
 - SSOT breach prevention verified
+- MeetingLocationPicker integration verified
+- Expense creation and approval workflow verified
 
 ---
 
@@ -190,4 +216,4 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 
 ## Last Updated
 - Date: March 18, 2026
-- Status: P0 + P1 Complete
+- Status: P0 + P1 Complete, MeetingLocationPicker Integration Complete
