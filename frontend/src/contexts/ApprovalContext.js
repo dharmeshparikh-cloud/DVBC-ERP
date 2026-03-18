@@ -19,6 +19,7 @@ export const ApprovalProvider = ({ children }) => {
     leaves: 0,
     expenses: 0,
     attendance: 0,
+    meetings: 0,  // Backdated meeting approvals
     total: 0
   });
   const [loading, setLoading] = useState(false);
@@ -32,13 +33,14 @@ export const ApprovalProvider = ({ children }) => {
       setLoading(true);
       const headers = { Authorization: `Bearer ${token}` };
       
-      // Fetch all pending counts in parallel
-      const [ctcRes, bankRes, leaveRes, expenseRes, attendanceRes] = await Promise.allSettled([
+      // Fetch all pending counts in parallel (including meeting approvals)
+      const [ctcRes, bankRes, leaveRes, expenseRes, attendanceRes, meetingsRes] = await Promise.allSettled([
         axios.get(`${API}/ctc/pending-approvals`, { headers }),
         axios.get(`${API}/hr/bank-change-requests`, { headers }),
         axios.get(`${API}/leave-requests?status=pending`, { headers }),
         axios.get(`${API}/expenses?status=pending`, { headers }),
-        axios.get(`${API}/hr/pending-attendance-approvals`, { headers })
+        axios.get(`${API}/hr/pending-attendance-approvals`, { headers }),
+        axios.get(`${API}/meeting-workflow/pending-approvals`, { headers })
       ]);
 
       const ctcCount = ctcRes.status === 'fulfilled' ? (ctcRes.value.data?.length || 0) : 0;
@@ -46,6 +48,7 @@ export const ApprovalProvider = ({ children }) => {
       const leaveCount = leaveRes.status === 'fulfilled' ? (leaveRes.value.data?.length || 0) : 0;
       const expenseCount = expenseRes.status === 'fulfilled' ? (expenseRes.value.data?.length || 0) : 0;
       const attendanceCount = attendanceRes.status === 'fulfilled' ? (attendanceRes.value.data?.length || 0) : 0;
+      const meetingsCount = meetingsRes.status === 'fulfilled' ? (meetingsRes.value.data?.pending_count || 0) : 0;
 
       setPendingCounts({
         ctc: ctcCount,
@@ -53,7 +56,8 @@ export const ApprovalProvider = ({ children }) => {
         leaves: leaveCount,
         expenses: expenseCount,
         attendance: attendanceCount,
-        total: ctcCount + bankCount + leaveCount + expenseCount + attendanceCount
+        meetings: meetingsCount,
+        total: ctcCount + bankCount + leaveCount + expenseCount + attendanceCount + meetingsCount
       });
       setLastFetched(new Date());
     } catch (error) {

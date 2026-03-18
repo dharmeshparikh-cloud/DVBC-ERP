@@ -136,7 +136,8 @@ const Layout = () => {
   // This ensures HR Manager doesn't see Sales section, Sales Executive doesn't see HR section, etc.
   const showHR = sidebarVisibility?.hr_section ?? (hasDepartment('HR') || HR_ROLES_FALLBACK.includes(role));
   const showSales = sidebarVisibility?.sales_section ?? (hasDepartment('Sales') || SALES_ROLES_FALLBACK.includes(role));
-  const showConsulting = sidebarVisibility?.consulting_section ?? (hasDepartment('Consulting') || hasDepartment('Delivery') || hasDepartment('Operations') || CONSULTING_ROLES_FALLBACK.includes(role) || role === 'manager');
+  // Admin always sees Consulting section
+  const showConsulting = role === 'admin' || (sidebarVisibility?.consulting_section ?? (hasDepartment('Consulting') || hasDepartment('Delivery') || hasDepartment('Operations') || CONSULTING_ROLES_FALLBACK.includes(role) || role === 'manager'));
   const showFinance = hasDepartment('Finance');
   const showAdmin = sidebarVisibility?.admin_section ?? (hasDepartment('Admin') || ADMIN_ROLES_FALLBACK.includes(role));
   const isConsultant = role === 'consultant';
@@ -394,20 +395,20 @@ const Layout = () => {
 
   const consultingItems = isConsultant
     ? [
-        // My Projects removed - access through Clients page instead
-        { name: 'My Schedule', href: '/consulting-meetings', icon: Calendar },
-        { name: 'Team Calendar', href: '/meeting-calendar', icon: CalendarDays },
+        // Consultant view - simplified with SSOT marker
+        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar, badge: 'SSOT' },
+        { name: 'Meetings Calendar', href: '/meeting-calendar', icon: CalendarDays },
         { name: 'My Clients', href: '/clients', icon: Building2 },
         { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Efforts Summary', href: '/consulting/efforts-summary', icon: BarChart3 },
         { name: 'Payments', href: '/payments', icon: DollarSign },
-        { name: 'Payment Follow-ups', href: '/follow-ups', icon: CalendarCheck },
       ]
     : [
+        // Manager/Admin view - full access
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Team Assignment', href: '/consultants', icon: Users },
+        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar, badge: 'SSOT' },
         { name: 'Meetings Calendar', href: '/meeting-calendar', icon: CalendarDays },
-        { name: 'Consulting Meetings (MOM)', href: '/consulting-meetings', icon: Calendar, badge: 'SSOT' },
         { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Efforts Summary', href: '/consulting/efforts-summary', icon: BarChart3 },
         { name: 'Payments', href: '/payments', icon: DollarSign },
@@ -451,7 +452,7 @@ const Layout = () => {
   // Communication items merged into workspace (visible for all users)
   const workspaceWithCommunication = [
     ...workspaceItems,
-    ...(canViewApprovals ? [{ name: 'Approvals', href: '/approvals', icon: ClipboardCheck }] : []),
+    ...(canViewApprovals ? [{ name: 'Approvals', href: '/approvals', icon: ClipboardCheck, badge: pendingCounts.total > 0 ? pendingCounts.total : null }] : []),
     { name: 'Team Chat', href: '/chat', icon: MessageCircle },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
   ];
@@ -509,7 +510,7 @@ const Layout = () => {
             key={item.name} 
             data-tour={item.name === 'Team Chat' ? 'chat-link' : item.name === 'AI Assistant' ? 'ai-assistant-link' : undefined}
           >
-            <NavLink item={item} />
+            <NavLink item={item} badge={item.badge} />
           </div>
         ))}
 
