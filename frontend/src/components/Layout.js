@@ -408,7 +408,7 @@ const Layout = () => {
         { name: 'Projects', href: '/projects', icon: Briefcase },
         { name: 'Team Assignment', href: '/consultants', icon: Users },
         { name: 'Meetings Calendar', href: '/meeting-calendar', icon: CalendarDays },
-        { name: 'Consulting Meetings', href: '/consulting-meetings', icon: Calendar },
+        { name: 'Consulting Meetings (MOM)', href: '/consulting-meetings', icon: Calendar, badge: 'SSOT' },
         { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Efforts Summary', href: '/consulting/efforts-summary', icon: BarChart3 },
         { name: 'Timesheets', href: '/timesheets', icon: Clock },
@@ -617,7 +617,9 @@ const Layout = () => {
             <div data-tour="projects-link">
               <SectionHeader label="Consulting" sectionKey="consulting" />
             </div>
-            {expanded.consulting && consultingItems.map(item => <NavLink key={item.name} item={item} />)}
+            {expanded.consulting && consultingItems.map(item => (
+              <NavLink key={item.name} item={item} badge={item.badge} />
+            ))}
           </>
         )}
 

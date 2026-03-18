@@ -83,7 +83,8 @@ const ConsultingMeetings = () => {
   const [formData, setFormData] = useState({
     title: '', project_id: '', client_id: '', sow_id: '', meeting_date: '',
     mode: 'online', duration_minutes: '', notes: '', is_delivered: false,
-    agenda: [''], attendees: [], attendee_names: []
+    agenda: [''], attendees: [], attendee_names: [],
+    meeting_type_code: '' // Meeting purpose/type
   });
 
   const [momData, setMomData] = useState({
@@ -165,6 +166,16 @@ const ConsultingMeetings = () => {
       return [];
     },
     staleTime: 5 * 60 * 1000,
+  });
+
+  // React Query: Meeting Types (Purpose)
+  const { data: meetingTypes = [] } = useQuery({
+    queryKey: ['meeting-types'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/masters/meeting-types`);
+      return res.data || [];
+    },
+    staleTime: 10 * 60 * 1000,
   });
 
   // React Query: Users
@@ -782,6 +793,30 @@ const ConsultingMeetings = () => {
                       onChange={(e) => setFormData({ ...formData, meeting_date: e.target.value })} required className="rounded-sm border-zinc-200" data-testid="consulting-meeting-date" />
                   </div>
                   <div className="space-y-2">
+                    <Label className="text-sm font-medium text-zinc-950">Meeting Purpose *</Label>
+                    <select value={formData.meeting_type_code}
+                      onChange={(e) => {
+                        const selectedType = meetingTypes.find(mt => mt.code === e.target.value);
+                        setFormData({ 
+                          ...formData, 
+                          meeting_type_code: e.target.value,
+                          duration_minutes: selectedType?.default_duration_minutes || formData.duration_minutes
+                        });
+                      }}
+                      required
+                      className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
+                      data-testid="meeting-type-select">
+                      <option value="">Select Purpose...</option>
+                      {meetingTypes.map(mt => (
+                        <option key={mt.code} value={mt.code}>
+                          {mt.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Mode *</Label>
                     <select value={formData.mode} onChange={(e) => setFormData({ ...formData, mode: e.target.value })}
                       required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm">
@@ -794,6 +829,7 @@ const ConsultingMeetings = () => {
                     <Label className="text-sm font-medium text-zinc-950">Duration (mins)</Label>
                     <Input type="number" min="0" value={formData.duration_minutes}
                       onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })} className="rounded-sm border-zinc-200" />
+                    <p className="text-xs text-zinc-400">Auto-set based on purpose</p>
                   </div>
                 </div>
                 <div className="space-y-2">
