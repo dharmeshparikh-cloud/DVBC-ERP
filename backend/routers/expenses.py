@@ -604,10 +604,22 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
             
             # Link to payroll reimbursements
             if expense.get("employee_id"):
+                # Look up the internal employee ID for payroll matching
+                emp_code = expense["employee_id"]
+                internal_employee_id = emp_code  # Default to code
+                
+                # Try to find employee record to get internal ID
+                employee_record = await db.employees.find_one(
+                    {"$or": [{"employee_id": emp_code}, {"id": emp_code}]},
+                    {"_id": 0, "id": 1, "employee_id": 1}
+                )
+                if employee_record:
+                    internal_employee_id = employee_record.get("id", emp_code)
+                
                 await db.payroll_reimbursements.insert_one({
                     "id": str(uuid.uuid4()),
-                    "employee_id": expense["employee_id"],
-                    "employee_code": expense.get("employee_code"),
+                    "employee_id": internal_employee_id,  # Use internal ID for payroll matching
+                    "employee_code": emp_code,  # Keep code for reference
                     "employee_name": employee_name,
                     "expense_id": expense_id,
                     "amount": expense_amount,
@@ -691,10 +703,22 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
         
         # Link to payroll reimbursements
         if expense.get("employee_id"):
+            # Look up the internal employee ID for payroll matching
+            emp_code = expense["employee_id"]
+            internal_employee_id = emp_code  # Default to code
+            
+            # Try to find employee record to get internal ID
+            employee_record = await db.employees.find_one(
+                {"$or": [{"employee_id": emp_code}, {"id": emp_code}]},
+                {"_id": 0, "id": 1, "employee_id": 1}
+            )
+            if employee_record:
+                internal_employee_id = employee_record.get("id", emp_code)
+            
             await db.payroll_reimbursements.insert_one({
                 "id": str(uuid.uuid4()),
-                "employee_id": expense["employee_id"],
-                "employee_code": expense.get("employee_code"),
+                "employee_id": internal_employee_id,  # Use internal ID for payroll matching
+                "employee_code": emp_code,  # Keep code for reference
                 "employee_name": employee_name,
                 "expense_id": expense_id,
                 "amount": expense_amount,
@@ -1100,10 +1124,22 @@ async def approve_expense_with_modification(expense_id: str, data: dict, current
             
             # Link to payroll with approved amount
             if expense.get("employee_id"):
+                # Look up the internal employee ID for payroll matching
+                emp_code = expense["employee_id"]
+                internal_employee_id = emp_code  # Default to code
+                
+                # Try to find employee record to get internal ID
+                employee_record = await db.employees.find_one(
+                    {"$or": [{"employee_id": emp_code}, {"id": emp_code}]},
+                    {"_id": 0, "id": 1, "employee_id": 1}
+                )
+                if employee_record:
+                    internal_employee_id = employee_record.get("id", emp_code)
+                
                 await db.payroll_reimbursements.insert_one({
                     "id": str(uuid.uuid4()),
-                    "employee_id": expense["employee_id"],
-                    "employee_code": expense.get("employee_code"),
+                    "employee_id": internal_employee_id,  # Use internal ID for payroll matching
+                    "employee_code": emp_code,  # Keep code for reference
                     "employee_name": expense.get("employee_name", "Employee"),
                     "expense_id": expense_id,
                     "amount": approved_amount,  # Use approved amount
@@ -1176,10 +1212,22 @@ async def approve_expense_with_modification(expense_id: str, data: dict, current
         
         # Link to payroll with approved amount
         if expense.get("employee_id"):
+            # Look up the internal employee ID for payroll matching
+            emp_code = expense["employee_id"]
+            internal_employee_id = emp_code  # Default to code
+            
+            # Try to find employee record to get internal ID
+            employee_record = await db.employees.find_one(
+                {"$or": [{"employee_id": emp_code}, {"id": emp_code}]},
+                {"_id": 0, "id": 1, "employee_id": 1}
+            )
+            if employee_record:
+                internal_employee_id = employee_record.get("id", emp_code)
+            
             await db.payroll_reimbursements.insert_one({
                 "id": str(uuid.uuid4()),
-                "employee_id": expense["employee_id"],
-                "employee_code": expense.get("employee_code"),
+                "employee_id": internal_employee_id,  # Use internal ID for payroll matching
+                "employee_code": emp_code,  # Keep code for reference
                 "employee_name": expense.get("employee_name", "Employee"),
                 "expense_id": expense_id,
                 "amount": approved_amount,
@@ -1457,9 +1505,22 @@ async def auto_link_expenses_to_payroll(
         )
         
         # Create payroll_reimbursement record
+        # Look up the internal employee ID for payroll matching
+        emp_code = exp.get("employee_id")
+        internal_employee_id = emp_code  # Default to code
+        
+        # Try to find employee record to get internal ID
+        employee_record = await db.employees.find_one(
+            {"$or": [{"employee_id": emp_code}, {"id": emp_code}]},
+            {"_id": 0, "id": 1, "employee_id": 1}
+        )
+        if employee_record:
+            internal_employee_id = employee_record.get("id", emp_code)
+        
         reimb = {
             "id": str(uuid.uuid4()),
-            "employee_id": exp.get("employee_id"),
+            "employee_id": internal_employee_id,  # Use internal ID for payroll matching
+            "employee_code": emp_code,  # Keep code for reference
             "expense_id": exp.get("id"),
             "amount": exp.get("total_amount") or exp.get("amount", 0),
             "description": exp.get("description", "Expense Reimbursement"),

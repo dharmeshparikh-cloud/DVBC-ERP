@@ -859,10 +859,22 @@ async def approve_encashment_request(
     )
     
     # Link to payroll - create payroll reimbursement record
+    # Look up the internal employee ID for payroll matching
+    emp_code = request.get("employee_id")
+    internal_employee_id = emp_code  # Default to code
+    
+    # Try to find employee record to get internal ID
+    employee_record = await db.employees.find_one(
+        {"$or": [{"employee_id": emp_code}, {"id": emp_code}]},
+        {"_id": 0, "id": 1, "employee_id": 1}
+    )
+    if employee_record:
+        internal_employee_id = employee_record.get("id", emp_code)
+    
     await db.payroll_reimbursements.insert_one({
         "id": str(uuid.uuid4()),
-        "employee_id": request.get("employee_id"),
-        "employee_code": request.get("employee_code"),
+        "employee_id": internal_employee_id,  # Use internal ID for payroll matching
+        "employee_code": emp_code,  # Keep code for reference
         "employee_name": request.get("employee_name"),
         "encashment_request_id": request_id,
         "amount": encashment_amount,
