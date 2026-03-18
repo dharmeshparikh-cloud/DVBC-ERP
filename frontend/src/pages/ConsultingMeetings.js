@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Checkbox } from '../components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import PageHeader from '../components/ui/page-header';
 import MeetingLocationPicker from '../components/MeetingLocationPicker';
 import {
@@ -18,7 +19,8 @@ import {
   FileText, Send, Calendar, Trash2, ChevronDown, ChevronUp,
   ClipboardList, Mail, BarChart3, Target, Car, MapPin, DollarSign,
   Filter, Building2, CalendarDays, Paperclip, Upload, X, List, LayoutGrid,
-  Eye, Clock, User, Hash, Layers, AlertCircle, Search, CheckSquare
+  Eye, Clock, User, Hash, Layers, AlertCircle, Search, CheckSquare,
+  HelpCircle, Info, ArrowRight, Receipt
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
@@ -50,6 +52,7 @@ const ConsultingMeetings = () => {
   const [expandedMeetings, setExpandedMeetings] = useState({});
   const [activeTab, setActiveTab] = useState('meetings');
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'card'
+  const [showHelpGuide, setShowHelpGuide] = useState(false); // Help guide dialog
   const navigate = useNavigate();
 
   // Filter state
@@ -568,12 +571,165 @@ const ConsultingMeetings = () => {
         subtitle="Manage client project meetings, MOM, and track commitments"
         onRefresh={() => refetchMeetings()}
         loading={loading}
-        actions={canEdit && (
-          <Button onClick={() => setDialogOpen(true)} data-testid="add-consulting-meeting-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
-            <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> New Consulting Meeting
-          </Button>
-        )}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowHelpGuide(true)} className="text-zinc-600">
+              <HelpCircle className="w-4 h-4 mr-1" /> How it Works
+            </Button>
+            {canEdit && (
+              <Button onClick={() => setDialogOpen(true)} data-testid="add-consulting-meeting-btn" className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-sm shadow-none">
+                <Plus className="w-4 h-4 mr-2" strokeWidth={1.5} /> New Consulting Meeting
+              </Button>
+            )}
+          </div>
+        }
       />
+
+      {/* Help Guide Dialog */}
+      <Dialog open={showHelpGuide} onOpenChange={setShowHelpGuide}>
+        <DialogContent className="border-zinc-200 rounded-sm max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-zinc-950 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-blue-600" /> How Consulting Meetings Work
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500">
+              Understanding the meeting lifecycle and terminology
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            {/* Meeting Lifecycle */}
+            <div>
+              <h3 className="font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                <ArrowRight className="w-4 h-4 text-blue-600" /> Meeting Lifecycle
+              </h3>
+              <div className="flex items-center gap-2 text-sm bg-zinc-50 p-4 rounded-lg">
+                <Badge variant="outline" className="bg-white">1. Schedule</Badge>
+                <ArrowRight className="w-4 h-4 text-zinc-400" />
+                <Badge variant="outline" className="bg-white">2. Conduct</Badge>
+                <ArrowRight className="w-4 h-4 text-zinc-400" />
+                <Badge className="bg-emerald-100 text-emerald-700">3. Record MOM</Badge>
+                <ArrowRight className="w-4 h-4 text-zinc-400" />
+                <Badge className="bg-blue-100 text-blue-700">4. Send to Client</Badge>
+              </div>
+              <p className="text-xs text-zinc-500 mt-2">
+                <strong>Note:</strong> Only meetings with MOM recorded can be viewed in detail. Click "MOM" button to record minutes.
+              </p>
+            </div>
+
+            {/* Status Meanings */}
+            <div>
+              <h3 className="font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                <Info className="w-4 h-4 text-blue-600" /> Status Meanings
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 p-2 bg-amber-50 rounded">
+                  <Badge variant="outline" className="text-amber-600 border-amber-300">Pending</Badge>
+                  <span className="text-sm text-zinc-700">Meeting scheduled, MOM not yet recorded</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-emerald-50 rounded">
+                  <Badge className="bg-emerald-100 text-emerald-700">MOM Submitted</Badge>
+                  <span className="text-sm text-zinc-700">Minutes of Meeting has been recorded and saved</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-blue-50 rounded">
+                  <Badge className="bg-blue-100 text-blue-700"><Mail className="w-3 h-3 mr-1" />Sent</Badge>
+                  <span className="text-sm text-zinc-700">MOM has been emailed to the client</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SOW Scopes Explanation */}
+            <div>
+              <h3 className="font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-indigo-600" /> SOW Scopes in MOM
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="p-3 bg-indigo-50 rounded border border-indigo-200">
+                  <p className="font-medium text-indigo-800">Committed Scopes (from Sales)</p>
+                  <p className="text-indigo-600 text-xs mt-1">
+                    Deliverables defined in the original SOW signed with the client. These come from the sales handoff.
+                  </p>
+                </div>
+                <div className="p-3 bg-orange-50 rounded border border-orange-200">
+                  <p className="font-medium text-orange-800">Additional Scopes</p>
+                  <p className="text-orange-600 text-xs mt-1">
+                    Extra deliverables added after project start (change requests, scope expansion). Must be approved.
+                  </p>
+                </div>
+                <p className="text-xs text-zinc-500 mt-2">
+                  <strong>Why locked?</strong> Once a scope is linked to a meeting's MOM, it cannot be removed to maintain audit trail.
+                </p>
+              </div>
+            </div>
+
+            {/* Committed Meetings Explanation */}
+            <div>
+              <h3 className="font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                <Target className="w-4 h-4 text-blue-600" /> Project Committed Meetings
+              </h3>
+              <p className="text-sm text-zinc-700">
+                The "Committed" number shown in Project Meeting Progress represents the <strong>total meetings quota</strong> agreed 
+                in the project contract (SOW). This is set during project kickoff based on the pricing plan.
+              </p>
+              <div className="mt-2 p-3 bg-zinc-50 rounded text-xs text-zinc-600">
+                Example: If contract says "22 meetings over 6 months", Committed = 22
+              </div>
+            </div>
+
+            {/* Attendance Rule */}
+            <div>
+              <h3 className="font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                <User className="w-4 h-4 text-red-600" /> In-Person Meeting Rule
+              </h3>
+              <div className="p-3 bg-red-50 rounded border border-red-200">
+                <p className="text-sm text-red-800">
+                  <strong>Attendance Required:</strong> For in-person (offline) meetings, you must mark your daily attendance 
+                  before submitting the MOM.
+                </p>
+                <p className="text-xs text-red-600 mt-2">
+                  Go to <strong>My Workspace → My Attendance</strong> to mark attendance. This ensures travel expense claims are validated.
+                </p>
+              </div>
+            </div>
+
+            {/* Expenses */}
+            <div>
+              <h3 className="font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-green-600" /> Travel Expenses
+              </h3>
+              <p className="text-sm text-zinc-700">
+                Travel expenses for in-person meetings can be added while recording MOM. Enable "Add Travel Expense" 
+                and enter start/end locations. The system calculates reimbursement based on distance and travel mode.
+              </p>
+              <div className="mt-2 p-3 bg-green-50 rounded text-xs text-green-700">
+                View expense summary: <strong>My Workspace → My Expenses</strong>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="pt-4 border-t border-zinc-200">
+              <h3 className="font-semibold text-zinc-900 mb-3">Quick Actions</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" className="text-xs h-7">
+                    <FileText className="w-3 h-3 mr-1" /> MOM
+                  </Button>
+                  <span className="text-zinc-600">Record minutes of meeting</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="cursor-pointer">Click Row</Badge>
+                  <span className="text-zinc-600">View meeting details (if MOM recorded)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end mt-4 pt-4 border-t border-zinc-200">
+            <Button onClick={() => setShowHelpGuide(false)}>Got it!</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {canEdit && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -916,35 +1072,84 @@ const ConsultingMeetings = () => {
             </CardContent>
           </Card>
 
-          {/* Stats */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card className="border-zinc-200 shadow-none rounded-sm">
-              <CardContent className="p-4">
-                <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Total Meetings</div>
-                <div className="text-2xl font-semibold text-zinc-950" data-testid="consulting-total-count">{filteredMeetings.length}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-zinc-200 shadow-none rounded-sm">
-              <CardContent className="p-4">
-                <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Delivered</div>
-                <div className="text-2xl font-semibold text-emerald-700">{filteredMeetings.filter(m => m.is_delivered).length}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-zinc-200 shadow-none rounded-sm">
-              <CardContent className="p-4">
-                <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">With MOM</div>
-                <div className="text-2xl font-semibold text-zinc-950">{filteredMeetings.filter(m => m.mom_generated).length}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-zinc-200 shadow-none rounded-sm">
-              <CardContent className="p-4">
-                <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Action Items</div>
-                <div className="text-2xl font-semibold text-zinc-950">
-                  {filteredMeetings.reduce((sum, m) => sum + (m.action_items?.length || 0), 0)}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Stats with Tooltips for Clarity */}
+          <TooltipProvider>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Card className="border-zinc-200 shadow-none rounded-sm cursor-help hover:border-zinc-300 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs uppercase tracking-wide text-zinc-500 mb-1">Scheduled</div>
+                        <HelpCircle className="w-3 h-3 text-zinc-400" />
+                      </div>
+                      <div className="text-2xl font-semibold text-zinc-950" data-testid="consulting-total-count">{filteredMeetings.length}</div>
+                    </CardContent>
+                  </Card>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="font-medium">Total Scheduled Meetings</p>
+                  <p className="text-xs text-zinc-400 mt-1">All consulting meetings created in the system, regardless of MOM status.</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Card className="border-zinc-200 shadow-none rounded-sm cursor-help hover:border-emerald-200 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs uppercase tracking-wide text-emerald-600 mb-1">MOM Submitted</div>
+                        <HelpCircle className="w-3 h-3 text-emerald-400" />
+                      </div>
+                      <div className="text-2xl font-semibold text-emerald-700">{filteredMeetings.filter(m => m.mom_generated).length}</div>
+                    </CardContent>
+                  </Card>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="font-medium">MOM Submitted</p>
+                  <p className="text-xs text-zinc-400 mt-1">Meetings where Minutes of Meeting has been recorded. These meetings can be viewed in detail.</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Card className="border-zinc-200 shadow-none rounded-sm cursor-help hover:border-blue-200 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs uppercase tracking-wide text-blue-600 mb-1">Sent to Client</div>
+                        <Mail className="w-3 h-3 text-blue-400" />
+                      </div>
+                      <div className="text-2xl font-semibold text-blue-700">{filteredMeetings.filter(m => m.mom_sent_to_client).length}</div>
+                    </CardContent>
+                  </Card>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="font-medium">MOM Sent to Client</p>
+                  <p className="text-xs text-zinc-400 mt-1">Meetings where the MOM has been emailed to the client for their records.</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Card className="border-zinc-200 shadow-none rounded-sm cursor-help hover:border-amber-200 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs uppercase tracking-wide text-amber-600 mb-1">Pending Tasks</div>
+                        <Target className="w-3 h-3 text-amber-400" />
+                      </div>
+                      <div className="text-2xl font-semibold text-amber-700">
+                        {filteredMeetings.reduce((sum, m) => sum + (m.action_items?.filter(a => a.status !== 'completed').length || 0), 0)}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="font-medium">Pending Action Items</p>
+                  <p className="text-xs text-zinc-400 mt-1">Tasks from MOMs that are not yet completed. Click on a meeting to view and manage tasks.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
 
           {loading ? (
             <div className="flex items-center justify-center h-64"><div className="text-zinc-500">Loading...</div></div>
@@ -977,8 +1182,7 @@ const ConsultingMeetings = () => {
                     <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Company</th>
                     <th className="text-left px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Date</th>
                     <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Mode</th>
-                    <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Status</th>
-                    <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">MOM</th>
+                    <th className="text-center px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">MOM Status</th>
                     <th className="text-right px-4 py-3 text-xs uppercase tracking-wide text-zinc-500 font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -1013,30 +1217,42 @@ const ConsultingMeetings = () => {
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {meeting.is_delivered ? (
-                            <Badge className="bg-emerald-100 text-emerald-700 text-xs">Delivered</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">Pending</Badge>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {meeting.mom_generated ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <CheckCircle className="w-4 h-4 text-emerald-600" />
-                              {meeting.mom_sent_to_client && <Mail className="w-4 h-4 text-blue-500" />}
-                            </div>
-                          ) : (
-                            <Circle className="w-4 h-4 text-zinc-300 mx-auto" />
-                          )}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                {meeting.mom_generated ? (
+                                  meeting.mom_sent_to_client ? (
+                                    <Badge className="bg-blue-100 text-blue-700 text-xs">Sent to Client</Badge>
+                                  ) : (
+                                    <Badge className="bg-emerald-100 text-emerald-700 text-xs">MOM Recorded</Badge>
+                                  )
+                                ) : (
+                                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">Awaiting MOM</Badge>
+                                )}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {meeting.mom_generated 
+                                  ? meeting.mom_sent_to_client 
+                                    ? 'MOM has been sent to client via email' 
+                                    : 'MOM recorded, click row to view details'
+                                  : 'Click MOM button to record minutes'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {!meeting.is_delivered && canRecordMOM(meeting) && (
-                              <Button size="sm" variant="outline" onClick={() => openMOMDialog(meeting)}>
-                                <FileText className="w-3 h-3 mr-1" /> MOM
+                            {meeting.mom_generated && (
+                              <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openMeetingDetail(meeting); }} title="View meeting details">
+                                <Eye className="w-4 h-4 text-blue-600" />
                               </Button>
                             )}
-                            <Button size="sm" variant="ghost" onClick={() => setExpandedMeetings(prev => ({ ...prev, [meeting.id]: !prev[meeting.id] }))}>
+                            {!meeting.is_delivered && canRecordMOM(meeting) && (
+                              <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openMOMDialog(meeting); }} title="Record Minutes of Meeting">
+                                <FileText className="w-3 h-3 mr-1" /> {meeting.mom_generated ? 'Edit' : 'MOM'}
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setExpandedMeetings(prev => ({ ...prev, [meeting.id]: !prev[meeting.id] })); }}>
                               {expandedMeetings[meeting.id] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </Button>
                           </div>

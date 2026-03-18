@@ -27,33 +27,47 @@ Build a robust and governed expense tracking and meeting management system for c
 
 ## What's Been Implemented
 
-### Session: March 17, 2026
+### Session: March 18, 2026
 
-#### P0 Completed Tasks
+#### On-Screen Clarifications for User Confusion (All 7 Items)
 
-1. **SOW Scope Selection UI Enhancement**
-   - Redesigned scope selection in MOM dialog with search & filter
-   - Added status filter (All, In Progress, Not Started, Completed)
-   - Selected scopes displayed as removable tags
-   - Mandatory validation - cannot save MOM without selecting scope
-   - "Select All Visible" and "Clear Selection" quick actions
-   - Locked scopes (previously linked) cannot be removed
+1. **Meeting Lifecycle Terminology**
+   - Renamed confusing labels: "Delivered" → "MOM Submitted", "Pending" → "Awaiting MOM"
+   - Added visual lifecycle flow: Schedule → Conduct → Record MOM → Send to Client
+   - Removed duplicate stats (With MOM = Delivered)
 
-2. **Meeting Calendar → Planning Tool Conversion**
-   - Added "Planning View Only" info banner
-   - Added "Manage Meetings" button linking to Consulting Meetings
-   - Removed "New Schedule" button (SSOT enforcement)
-   - Updated subtitle to "(read-only)"
+2. **Committed Meetings Explanation**
+   - Added tooltip and Help Guide section explaining "Committed" = total meetings quota from SOW
+   - Example provided: "If contract says 22 meetings over 6 months, Committed = 22"
 
-3. **Full-Page Meeting Detail View**
-   - Created new `/meeting/:meetingId` route with `MeetingDetail.js`
-   - Clean, printable layout with proper action buttons
-   - **Only shows meeting details for meetings with MOM recorded/submitted**
-   - Meetings without MOM show "MOM Not Yet Recorded" message with "Record MOM" button
-   - Fixed Print/Close button overlap issue
+3. **SOW Scopes Clarification**
+   - Committed Scopes = deliverables from original SOW (sales handoff)
+   - Additional Scopes = change requests added after project start
+   - "Why locked?" explanation: maintains audit trail
 
-4. **Bug Fixes**
-   - Fixed missing `AlertCircle` import in ConsultingMeetings.js
+4. **Navigation Guide**
+   - Added "How it Works" button in header
+   - Comprehensive dialog explaining where to go for each task
+   - Quick Actions section showing button functions
+
+5. **Action Buttons Clarity**
+   - Added View (eye) icon for meetings with MOM
+   - Tooltips on hover explaining each button
+   - MOM button shows "Edit" if MOM already recorded
+
+6. **Expense Tracking Location**
+   - Added Travel Expenses section in Help Guide
+   - Navigation path: My Workspace → My Expenses
+
+7. **Attendance Validation Rule**
+   - Added In-Person Meeting Rule section
+   - Clear explanation: must mark attendance before MOM submission
+   - Navigation path: My Workspace → My Attendance
+
+#### UI Improvements
+- Stats cards with tooltips: Scheduled, MOM Submitted, Sent to Client, Pending Tasks
+- Single "MOM Status" column (merged from Status + MOM columns)
+- Help icons (?) indicating hover for more info
 
 ---
 
