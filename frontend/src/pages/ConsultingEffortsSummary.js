@@ -353,7 +353,6 @@ const ConsultingEffortsSummary = () => {
               subValue={`Avg ${summary.duration?.average_minutes || 0} mins`}
               icon={Clock}
               color="amber"
-              href="/timesheets"
             />
             <StatCard 
               label="Tasks Completed" 

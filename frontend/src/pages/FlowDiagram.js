@@ -64,8 +64,6 @@ const FlowDiagram = () => {
       desc: 'From kickoff approval' },
     { id: 'team', name: 'Team Allocation', status: 'exists', icon: Users,
       desc: 'Assign consultants' },
-    { id: 'timesheet', name: 'Timesheets', status: 'missing', icon: Clock,
-      desc: 'Effort logging, Approval' },
     { id: 'milestone', name: 'Milestones', status: 'missing', icon: Target,
       desc: 'Deliverables, Deadlines' },
     { id: 'sowchange', name: 'SOW Changes', status: 'exists', icon: FileText,

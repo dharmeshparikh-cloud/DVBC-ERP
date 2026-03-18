@@ -400,7 +400,6 @@ const Layout = () => {
         { name: 'My Clients', href: '/clients', icon: Building2 },
         { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Efforts Summary', href: '/consulting/efforts-summary', icon: BarChart3 },
-        { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
         { name: 'Payment Follow-ups', href: '/follow-ups', icon: CalendarCheck },
       ]
@@ -411,7 +410,6 @@ const Layout = () => {
         { name: 'Consulting Meetings (MOM)', href: '/consulting-meetings', icon: Calendar, badge: 'SSOT' },
         { name: 'Meeting Requests', href: '/consulting/additional-meeting-requests', icon: CalendarPlus },
         { name: 'Efforts Summary', href: '/consulting/efforts-summary', icon: BarChart3 },
-        { name: 'Timesheets', href: '/timesheets', icon: Clock },
         { name: 'Payments', href: '/payments', icon: DollarSign },
         { name: 'Project Reports', href: '/reports?category=consulting', icon: BarChart3 },
       ];

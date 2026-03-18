@@ -53,7 +53,6 @@ const MODULE_DEFINITIONS = {
     features: {
       projects: { name: 'Projects', actions: ['create', 'read', 'update', 'delete', 'assign_team'] },
       tasks: { name: 'Tasks', actions: ['create', 'read', 'update', 'delete', 'assign'] },
-      timesheets: { name: 'Timesheets', actions: ['create', 'read', 'update', 'approve'] },
       deliverables: { name: 'Deliverables', actions: ['create', 'read', 'update', 'delete', 'upload'] },
       sow_changes: { name: 'SOW Change Requests', actions: ['create', 'read', 'approve', 'reject'] }
     }

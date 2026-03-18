@@ -63,7 +63,6 @@ from . import tasks
 from . import notifications
 from . import approvals
 from . import quotations
-from . import timesheets
 from . import consultants
 
 __all__ = [
@@ -83,5 +82,5 @@ __all__ = [
     'chat', 'ai_assistant', 'email_actions', 'documentation', 'audio_samples',
     # Phase 2
     'travel', 'sow_legacy', 'agreements', 'tasks', 'notifications',
-    'approvals', 'quotations', 'timesheets', 'consultants'
+    'approvals', 'quotations', 'consultants'
 ]
