@@ -623,7 +623,7 @@ def kickoff_accepted_email(
 
 # ============== Test Email Preview Generator ==============
 
-def generate_test_email_previews(app_url: str = "https://mom-workflow.preview.emergentagent.com") -> Dict[str, str]:
+def generate_test_email_previews(app_url: str = "https://consulting-govern.preview.emergentagent.com") -> Dict[str, str]:
     """
     Generate all email templates with Indian test data for preview.
     """

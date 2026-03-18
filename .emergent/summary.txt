@@ -2,56 +2,70 @@
 The user's primary goal is to establish a robust and governed expense tracking and meeting management system for their consulting team, mirroring the existing sales team's flow. This requires enforcing a Single Source of Truth (SSOT) architecture, where all consulting meetings, Minutes of Meeting (MOM), and associated expenses are recorded through a single, controlled user interface on the  page.
 
 **PRODUCT REQUIREMENTS:**
--   **SSOT System:** The  page must be the sole entry point for recording MOM and expenses. All other meeting creation methods must be disabled.
+-   **SSOT System:** The  page must be the sole entry point for scheduling meetings and recording MOM. All other meeting creation methods must be disabled for consulting users.
 -   **Governance & Business Logic:**
-    -   Prevent duplicate expense submissions.
-    -   Enforce meeting quotas based on the project's .
-    -   Implement an approval workflow for meetings exceeding the quota.
+    -   Implement a strict workflow differentiating between scheduling a future meeting and recording a past one's MOM.
+    -   Client and Manager notifications for scheduled meetings with options to accept, reject, or reschedule via a single-use link. Meetings are auto-accepted if no response.
+    -   Scheduling is only possible 24 hours in advance; shorter notices are flagged.
+    -   Prevent duplicate expense submissions and implement advanced conveyance tracking for multiple consultants.
+    -   Enforce meeting quotas and require approval for backdated entries.
     -   Link Statement of Work (SOW) scopes to meetings, with validation ensuring only project-relevant scopes can be selected.
-    -   Enforce attendance validation for in-person meetings before a MOM can be saved.
 -   **UI/UX & Reporting:**
-    -   Enhance the  page with advanced filters (client, project, date range), a printable meeting detail view, and file attachment capabilities for MOMs.
-    -   Create a comprehensive Consulting Efforts Summary dashboard with clickable scorecards and detailed reporting on meetings, SOW progress, tasks, expenses, and payments.
--   **Calendar as a Planning Tool:** The main calendar should be repurposed into a planning tool, disabling direct meeting creation.
+    -   Enhance the  page with advanced filters, a printable full-page meeting detail view, and file attachments.
+    -   Create a Consulting Efforts Summary dashboard.
+    -   Add a How it Works guide and tooltips to clarify the complex workflow for users.
+-   **Calendar as a Planning Tool:** The main calendar should be a read-only planning tool.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application has been significantly updated to build out the consulting module with strong governance.
--   **Backend:** The backend enforces SSOT principles with duplicate expense prevention, meeting quota systems, and RBAC. The attendance system has been reused to validate MOM submissions for offline meetings. A comprehensive API () has been created to power a new reporting dashboard. API endpoints and data models (, ) have been extended to support linking SOW scopes to meetings.
--   **Frontend:** The  page is now a feature-rich hub with multiple filters (Company, Project, Status, Date Range), a toggle for list/grid view, and a printable meeting detail modal. A new  page serves as a detailed dashboard with clickable stat cards and charts. UI has been added to the MOM dialog to allow consultants to select SOW scopes for a meeting.
--   **Data:** The database is populated with test data for meetings, projects, clients, and SOWs.
+The application features a consulting module with a  page as the central hub (SSOT). This page includes advanced filters, stats cards with tooltips, and a How it Works guide explaining the workflow. The meeting creation/scheduling form has been significantly updated to include a mandatory Meeting Purpose dropdown, separate date/time pickers, and fields for detailed travel/conveyance audit. The meeting detail view has been converted into a dedicated full-page view, accessible only for meetings with a submitted MOM. The main calendar has been successfully converted into a read-only planning tool. Backend APIs and data models have been extended to support these features, but the application's frontend is currently non-functional due to a JavaScript error.
 
 **Last working item**:
--   **Last item agent was working:** Finalizing the SOW scope selection feature in the MOM dialog. The user requested strict validation to ensure that consultants can only select SOW scopes that belong to the specific project of the meeting. The agent created a new backend endpoint () to fetch only the relevant scopes and was in the process of updating the frontend to use this endpoint and display validation messages.
--   **Status:** IN PROGRESS
+-   **Last item agent was working:** Implementing a highly detailed and strict meeting governance workflow based on user specifications. This involved creating the UI and validation logic for a new scheduling process with a 24-hour advance rule, client/manager notifications, and approval mechanisms. The agent was adding new constants and workflow logic to  when a critical error was introduced.
+-   **Status:** BLOCKED
 -   **Agent Testing Done:** N
 -   **Which testing method agent to use?** frontend testing agent
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Finalize SOW Scope Selection Validation in MOM Form (P0)**
-    -   **Description:** The SOW scope selection dropdown in the MOM dialog must be populated only with scopes from the meeting's associated project. The frontend needs to be updated to call the new dedicated API endpoint for this and handle the state and validation correctly.
-    -   **Attempted fixes:** A new backend endpoint  was created to provide the filtered list of scopes.
+-   **Issue 1: Frontend Application is non-functional due to  error. (P0 - CRITICAL BLOCKER)**
+    -   **Description:** The application is completely broken and does not render. This was caused by the agent adding  to .  is a Node.js construct and is not available in client-side React code, causing a fatal runtime error.
+    -   **Attempted fixes:** None. The agent was in the middle of implementation when the error occurred.
     -   **Next debug checklist:**
-        1.  In , modify the  function to call the new  endpoint.
-        2.  Populate the scope selection dropdown with the data from this endpoint.
-        3.  Implement frontend logic to display a validation message if the user attempts to save a MOM without selecting a required scope.
-        4.  Ensure the  function correctly passes the selected  to the backend.
-    -   **Why fix this issue and what will be achieved with the fix?** This enforces critical business logic, ensuring data integrity by correctly linking meeting discussions to specific SOW deliverables.
+        1.  Open the file .
+        2.  Locate and **delete** the line . This line is unnecessary for the constants defined in the file.
+        3.  Restart the frontend service and verify the application loads correctly.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a critical blocker. Fixing it will make the application functional again, allowing development and testing to resume.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both
-    -   **Blocked on other issue:** None
+    -   **Should Test frontend/backend/both after fix?** Frontend
+    -   **Blocked on other issue:** None. This issue is blocking all other progress.
 
 **In progress Task List**:
--   This is covered by the pending issue above.
+-   **Task 1: Complete the new meeting scheduling and approval workflow (P0)**
+    -   **Description:** This is the primary ongoing task. After fixing the blocker, the full workflow needs to be implemented as per the user's detailed specifications.
+    -   **Where to resume:**
+        1.  **Separate Flows:** Create two distinct user experiences: Schedule New Meeting (for future events) and Record MOM (for past events). Currently, one form is being used for both, which is confusing.
+        2.  **Backend Implementation:** Develop the backend endpoints required for:
+            -   Sending email notifications to clients, managers, and attendees with a single-use tokenized link.
+            -   Handling client responses (Accept/Reject/Reschedule) from the link.
+            -   A cron job or scheduled task to auto-accept meetings if no response is received within 24 hours of the link being sent.
+            -   Enforcing manager approval for backdated meeting entries.
+        3.  **Frontend UI:**
+            -   Create a visual workflow indicator on the main page to show the status of each meeting (e.g., Scheduled, Awaiting Client, Confirmed, Rejected, Conducted).
+            -   Ensure the SOW selection UI is consistent across both the scheduling and MOM recording forms.
+            -   Add tooltips for every new action and button as requested.
+            -   Update UI colors to reflect the workflow stages.
+    -   **What will be achieved with this?** A fully governed, end-to-end meeting management process that meets the user's strict business requirements.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** Both
+    -   **Blocked on something:** Blocked by Issue 1.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P0) **Implement Calendar as a Planning Tool:** Rework the  page to function purely as a planning tool, disabling any functionality that allows for direct creation of meeting records from this interface.
-    -   (P0) **Disable all SSOT Breach Points:** To complete the SSOT enforcement, systematically find and disable all alternative Add/Create Meeting buttons or links across the application, particularly on the  page and the mobile app.
-    -   (P1) **Create Business Logic Document:** Generate the requested PDF document that outlines the end-to-end business logic, data flow, and rules for the new expense and meeting management system.
+    -   (P0) **Finalize and Test SSOT Breach Points:** Thoroughly test the application from different user roles (Sales, Consultant) to confirm that all alternative meeting creation pathways have been successfully disabled for consultants.
+    -   (P1) **Create Business Logic Document:** Generate a PDF document outlining the end-to-end business logic, data flow, and rules for the new meeting management system.
 -   **Future Tasks:**
     -   Refactor .
     -   Refactor .
@@ -61,20 +75,21 @@ The application has been significantly updated to build out the consulting modul
     -   Implement an Internal Chat System.
 
 **Completed work in this session**
--   **P0 Critical Fixes (from user feedback):**
-    -   **Data Display & UI:** Fixed client/company names in the meeting list, added day name to dates, and implemented a clickable, printable meeting detail modal.
-    -   **Advanced Filtering:** Added date range and project-based filters to the  page. The project filter auto-populates the date range based on the project's duration.
-    -   **Terminology Fix:** Updated UI labels across the consulting module (e.g., Client to Company) to match user's business vocabulary.
--   **Governance & Reporting Features:**
-    -   **Attendance Validation:** Integrated a backend check that prevents MOM submission for in-person meetings if the consultant's daily attendance isn't marked, reusing the existing attendance system.
-    -   **Consulting Efforts Summary Report:** Created a new, comprehensive reporting dashboard () with clickable scorecards and charts for analyzing meetings, SOW progress, tasks, and financials.
-    -   **SOW Integration:** Linked SOW scopes to meetings and added SOW progress statistics to the Efforts Summary report.
--   **UI/UX Enhancements:**
-    -   Implemented file attachments for MOMs with a dedicated backend upload endpoint.
-    -   Improved navigation by adding links to the new Efforts Summary report in the main sidebar and the consulting-specific navigation header.
+-   **SOW Scope Selection UI:** Redesigned the MOM dialog's SOW scope selection UI to handle large datasets with search, filtering, and a more intuitive layout.
+-   **Meeting Detail Full-Page View:** Converted the meeting detail modal into a dedicated, full-page view () and restricted access to only meetings with a recorded MOM.
+-   **Calendar as a Planning Tool:** Successfully converted the  page into a read-only planning tool by disabling schedule creation.
+-   **UI/UX for User Clarity:**
+    -   Implemented a comprehensive How it Works guide to explain the complex workflow.
+    -   Added tooltips to stats cards and renamed UI labels (e.g., Pending to Awaiting MOM) for better understanding.
+-   **Meeting Form Governance:**
+    -   Added a mandatory Meeting Purpose dropdown.
+    -   Made SOW selection mandatory with a real-time refresh button.
+    -   Added an SSOT badge to the sidebar link for Consulting Meetings.
+    -   Replaced the duration field with separate Date, Start Time, and End Time pickers.
+    -   Added UI for Travel Companions and detailed conveyance audit fields.
 
 **Earlier issues found/mentioned but not fixed**
--   Same as Future Tasks.
+-   None beyond what's listed in Future Tasks.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -83,74 +98,69 @@ The application has been significantly updated to build out the consulting modul
 
 
 **Key Technical Concepts**
--   **Code Reuse & Governance:** A primary focus was adhering to a Master Governance Prompt by reusing existing systems (like attendance and dashboards) rather than creating duplicates.
--   **API Extension over Creation:** Existing API routers (, ) were extended with new endpoints to keep the backend organized and modular.
--   **Dynamic Frontend Filtering:** The  page uses  to performantly handle complex, interconnected filters (e.g., project selection automatically setting the date range).
--   **Component-Based Architecture:** New features were built as modular React components (, ), ensuring a maintainable and scalable frontend.
+-   **Strict Business Logic Implementation:** Focus on implementing a detailed, multi-step business process with client/manager approvals, notifications, and strict validation.
+-   **UI/UX for Clarity:** Use of in-app guides, tooltips, and clear labels to simplify a complex user workflow.
+-   **State Management for Complex Forms:** Using React's  to manage a large form with conditional fields and validation.
+-   **Single-Responsibility Principle (Violation):** The  file has grown too large and handles too many responsibilities, indicating a need for refactoring.
 
 **key DB schema**
--   **meetings:** Modified to include , , , , .
--   **sow:** Used to track , distinguishing between  (committed from sales) and  (added by consultants).
--   **attendance:** The existing schema is used to validate a consultant's daily check-in record.
+-   **meetings:** Requires significant additions to support the new governance model, including fields like  (e.g., Scheduled, Confirmed, Rejected), , , , , and an .
+-   **meeting_types:** A master data collection for the Meeting Purpose dropdown.
 
 **All files of reference**
--    (Primary file for ongoing UI work)
--    (New reporting dashboard)
--    (Backend for the summary report)
--    (Backend for MOM submission)
--    (Backend for SOW scope management)
--   
--   
+-    (Primary file for all UI work, currently broken)
+-    (File causing the critical error)
+-    (Full-page detail view)
+-    (Will need major updates for the new workflow)
+-    (Contains the detailed business rules for the new workflow)
 
 **Areas that need refactoring**:
--    (large file)
--    (complex component)
--    (potential orphan file)
+-    is now a monolithic component handling list rendering, multiple forms, and complex state logic. It should be broken down into smaller, dedicated components (e.g., , , ).
+-    (from previous handoff).
+-    (from previous handoff).
 
 **key api endpoints**
--   : Powers the Consulting Efforts Summary report.
--   : Core endpoint for saving a MOM, now includes attendance validation and saves SOW scopes.
--   : Provides a filtered list of SOW scopes for a specific project, to be used in the MOM dialog.
--   : Handles file uploads for MOM attachments.
+-   : This core endpoint will need to be heavily modified or supplemented with new endpoints to handle the separate schedule vs. record workflows, notifications, and client approvals.
+-   **[NEW]** : A new endpoint is likely needed for the scheduling flow.
+-   **[NEW]** : A new public endpoint will be needed to handle the client's response from the email link.
+-   : Fetches meeting purposes for the dropdown.
 
 **Critical Info for New Agent**
--   **Governance is Key:** The user is extremely focused on code reuse and the Single Source of Truth (SSOT) principle. Before implementing any new feature, you must thoroughly scan the codebase for existing functionality that can be reused or extended.
--   **Immediate Priority:** Your first task is to complete the SOW scope selection feature in . This requires hooking up the frontend to the new  endpoint and implementing the validation logic.
--   **Next Critical Steps (P0):** Once the SOW feature is done, you must immediately begin work on the two remaining SSOT enforcement tasks: 1) converting the main calendar to a planning-only tool, and 2) disabling all other meeting creation points throughout the application.
+-   **TOP PRIORITY:** The application is completely broken. Your first action must be to fix the  error in  by removing the  line.
+-   **Complex Workflow Ahead:** After fixing the bug, your primary task is to implement the detailed meeting workflow defined by the user. This is a significant feature involving both frontend and backend changes for notifications, approvals, and status tracking. Refer to the user's last messages and the  file for the exact rules.
+-   **Refactor as You Go:** The  file is unmanageably large. As you implement the new workflow, plan to break it down into smaller components. Propose this refactoring to the user as a necessary step for maintainability.
 
 **documents and test reports created in this job**
--   Multiple test reports in .
--    in  has been continuously updated.
--   Scripts to populate test data were created in .
+-    was updated with the new, detailed business rules for the meeting workflow.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Requests validation in the MOM form to ensure SOW scopes can only be selected from the meeting's specific project. (PENDING IMPLEMENTATION)
-2.  **User:** Asks for UI to select SOW scopes in MOM, implementing the calendar as a planning tool, and disabling SSOT breach points. (IN PROGRESS)
-3.  **User:** Confirms SOW linkage logic, requests stats on additional vs. committed scopes, and asks for all scorecards to be clickable. (COMPLETED)
-4.  **User:** Inquires about SOW inheritance from sales and payment flow integration. (ADDRESSED)
-5.  **User:** Clarifies that attendance validation should use existing daily records (no new UI) and asks about navigation paths. (COMPLETED)
-6.  **User:** Requests meeting duration calculation, attendance validation, dashboard integration, and a printable summary view. (COMPLETED)
-7.  **User:** Provides detailed requirements for the printable meeting page and the summary report. (COMPLETED)
-8.  **User:** Provides extensive UI/UX feedback on the  page, leading to several P0 fixes. (COMPLETED)
-9.  **User:** Confirms plan for local storage and full-flow testing. (ADDRESSED)
-10. **User:** Specifies local server storage for attachments and requests test data covering the full kickoff-to-payment flow. (ADDRESSED)
+1.  **User:** Provided very detailed requirements for the meeting scheduling and approval workflow, including rules for notifications, client responses, backdating, and expenses. (PENDING IMPLEMENTATION)
+2.  **User:** Asked clarifying questions about the travel/conveyance policy for multiple consultants. (PENDING IMPLEMENTATION)
+3.  **User:** Requested that SOW selection be mandatory and have a real-time refresh option. (PARTIALLY IMPLEMENTED)
+4.  **User:** Asked for clarification on the difference between Schedule Meeting and Create Meeting, which led to the definition of the new, stricter workflow. (PENDING IMPLEMENTATION)
+5.  **User:** Inquired about how meeting purposes are selected and how the UI clarifies the SSOT for consulting meetings. (COMPLETED)
+6.  **User:** Asked for an impact analysis of disabling all SSOT breach points. (COMPLETED)
+7.  **User:** Accepted suggestions to improve UI clarity after asking the agent to identify confusing areas. (COMPLETED)
+8.  **User:** Requested the meeting detail view be converted to a full page and clarified that only recorded meetings should be viewable. (COMPLETED)
+9.  **User:** Reported missing fields in the meeting detail modal. (COMPLETED)
+10. **User:** Pointed out that the SOW scope selection UI would not scale to hundreds of items. (COMPLETED)
 
 **Project Health Check:**
--   **Broken:** None.
+-   **Broken:** The frontend is non-functional due to a critical JavaScript error.
 -   **Mocked:** None.
 
 **3rd Party Integrations**
--   No new integrations were added. The project continues to use its existing stack (React, FastAPI, MongoDB, etc.).
+-   None.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. The agent was used multiple times and achieved 100% pass rates on both frontend and backend after major feature implementations.
+-   **Testing agent used after significant changes:** NO
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** None.
--   **Known regressions:** None.
+-   **Test files created:** None
+-   **Known regressions:** The entire frontend application is down.
 
 **Credentials to test flow:**
 -   **Admin:**  /  (Employee ID: )
 
 **What agent forgot to execute**
--   The agent is in the middle of implementing the validation for SOW scope selection as requested by the user.
--   The P0 tasks to convert the calendar into a planning tool and disable all other SSOT breach points have been identified but not yet started.</analysis>
+-   The agent introduced a critical, blocking bug by using a Node.js-specific  statement in the frontend code. This mistake was not caught before the agent continued with other tasks.
+-   The agent has not yet created the necessary backend APIs to support the complex notification and approval workflow requested by the user.</analysis>

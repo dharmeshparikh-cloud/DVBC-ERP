@@ -20,7 +20,7 @@ import {
   ClipboardList, Mail, BarChart3, Target, Car, MapPin, DollarSign,
   Filter, Building2, CalendarDays, Paperclip, Upload, X, List, LayoutGrid,
   Eye, Clock, User, Hash, Layers, AlertCircle, Search, CheckSquare,
-  HelpCircle, Info, ArrowRight, Receipt
+  HelpCircle, Info, ArrowRight, Receipt, RefreshCw, UserPlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
@@ -32,6 +32,34 @@ const TRAVEL_MODES = [
   { id: 'TRANSIT', label: 'Transit', rate: 0 },
   { id: 'ACCOMPANIED', label: 'Accompanied', rate: 0 }
 ];
+
+// Meeting States & Workflow
+const MEETING_STATES = {
+  DRAFT: { label: 'Draft', color: 'bg-zinc-100 text-zinc-700', icon: Circle },
+  SCHEDULED: { label: 'Scheduled', color: 'bg-blue-100 text-blue-700', icon: Calendar },
+  CONFIRMED: { label: 'Confirmed', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
+  REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: X },
+  RESCHEDULED: { label: 'Reschedule Requested', color: 'bg-amber-100 text-amber-700', icon: Clock },
+  CONDUCTED: { label: 'Conducted', color: 'bg-purple-100 text-purple-700', icon: CheckCircle },
+  MOM_RECORDED: { label: 'MOM Recorded', color: 'bg-indigo-100 text-indigo-700', icon: FileText },
+  DELIVERED: { label: 'Delivered', color: 'bg-emerald-100 text-emerald-700', icon: Send },
+  CANCELLED: { label: 'Cancelled', color: 'bg-zinc-100 text-zinc-500', icon: X },
+  AUTO_ACCEPTED: { label: 'Auto-Accepted', color: 'bg-teal-100 text-teal-700', icon: CheckCircle },
+};
+
+// Workflow: State Transitions
+const STATE_TRANSITIONS = {
+  DRAFT: ['SCHEDULED'],
+  SCHEDULED: ['CONFIRMED', 'REJECTED', 'RESCHEDULED', 'AUTO_ACCEPTED'],
+  CONFIRMED: ['CONDUCTED', 'CANCELLED'],
+  AUTO_ACCEPTED: ['CONDUCTED', 'CANCELLED'],
+  RESCHEDULED: ['SCHEDULED', 'CANCELLED'],
+  CONDUCTED: ['MOM_RECORDED'],
+  MOM_RECORDED: ['DELIVERED'],
+  REJECTED: [],
+  DELIVERED: [],
+  CANCELLED: [],
+};
 
 const CONSULTING_ROLES = ['admin', 'project_manager', 'consultant', 'principal_consultant',
   'lean_consultant', 'lead_consultant', 'senior_consultant', 'subject_matter_expert', 'manager'];
@@ -45,7 +73,6 @@ const PRIORITY_OPTIONS = [
 const ConsultingMeetings = () => {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
-  const [sows, setSows] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [momDialogOpen, setMomDialogOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
@@ -81,10 +108,22 @@ const ConsultingMeetings = () => {
   });
 
   const [formData, setFormData] = useState({
-    title: '', project_id: '', client_id: '', sow_id: '', meeting_date: '',
-    mode: 'online', duration_minutes: '', notes: '', is_delivered: false,
+    project_id: '', client_id: '', sow_id: '', 
+    meeting_date: '', // Date only (YYYY-MM-DD)
+    start_time: '',   // Time only (HH:MM)
+    end_time: '',     // Time only (HH:MM)
+    mode: 'online', notes: '', 
     agenda: [''], attendees: [], attendee_names: [],
-    meeting_type_code: '' // Meeting purpose/type
+    meeting_type_code: '', // Meeting purpose/type
+    // State tracking
+    status: 'DRAFT',
+    // Travel & Conveyance fields (for in-person meetings - captured during scheduling, claimed during MOM)
+    travel_companions: [], // IDs of consultants traveling together
+    companion_purpose: '', // Why companions are joining
+    vehicle_type: '',      // own_car, cab, public, etc.
+    vehicle_number: '',    // Vehicle registration number
+    travel_start_location: '', // Starting point
+    travel_end_location: '',   // Destination (client location)
   });
 
   const [momData, setMomData] = useState({
@@ -176,6 +215,16 @@ const ConsultingMeetings = () => {
       return res.data || [];
     },
     staleTime: 10 * 60 * 1000,
+  });
+
+  // React Query: SOWs for dropdown
+  const { data: sows = [], refetch: refetchSows } = useQuery({
+    queryKey: ['sows'],
+    queryFn: async () => {
+      const res = await axios.get(`${API}/enhanced-sow`);
+      return res.data?.items || res.data || [];
+    },
+    staleTime: 2 * 60 * 1000,
   });
 
   // React Query: Users
@@ -396,15 +445,93 @@ const ConsultingMeetings = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    createMeetingMutation.mutate(formData);
+    
+    // Validation: SOW is mandatory
+    if (!formData.sow_id) {
+      toast.error('Please select a SOW. All meetings must be linked to a Statement of Work.');
+      return;
+    }
+
+    // Validation: Meeting purpose is mandatory
+    if (!formData.meeting_type_code) {
+      toast.error('Please select a Meeting Purpose.');
+      return;
+    }
+    
+    // Generate title from Client + Purpose
+    const project = projects.find(p => p.id === formData.project_id);
+    const meetingType = meetingTypes.find(mt => mt.code === formData.meeting_type_code);
+    const generatedTitle = `${project?.client_name || 'Client'} - ${meetingType?.name || 'Meeting'}`;
+    
+    // Combine date and start_time for meeting_date
+    const meetingDateTime = formData.meeting_date && formData.start_time 
+      ? new Date(`${formData.meeting_date}T${formData.start_time}`)
+      : new Date(formData.meeting_date);
+    
+    const now = new Date();
+    const hoursUntilMeeting = (meetingDateTime - now) / (1000 * 60 * 60);
+    
+    // Validation: Cannot schedule meetings in the past
+    if (meetingDateTime < now) {
+      toast.error('Cannot schedule meetings in the past. All meetings must be scheduled first, then MOM recorded after they occur.');
+      return;
+    }
+    
+    // Check if short notice (< 24 hours)
+    const isShortNotice = hoursUntilMeeting < 24;
+    
+    // Calculate duration from start and end time
+    let durationMinutes = 60; // default
+    if (formData.start_time && formData.end_time) {
+      const start = new Date(`2000-01-01T${formData.start_time}`);
+      const end = new Date(`2000-01-01T${formData.end_time}`);
+      durationMinutes = Math.round((end - start) / 60000);
+      if (durationMinutes <= 0) durationMinutes = 60;
+    }
+    
+    // Get companion names for audit
+    const companionNames = (formData.travel_companions || [])
+      .map(id => users.find(u => u.id === id)?.full_name)
+      .filter(Boolean);
+    
+    const submitData = {
+      ...formData,
+      title: generatedTitle,
+      meeting_date: meetingDateTime.toISOString(),
+      end_time: formData.end_time ? `${formData.meeting_date}T${formData.end_time}` : null,
+      duration_minutes: durationMinutes,
+      // Status & Flags
+      status: 'SCHEDULED',
+      is_short_notice: isShortNotice,
+      // Client & Project Info
+      client_id: project?.client_id || formData.client_id,
+      client_name: project?.client_name,
+      project_name: project?.name,
+      // Conveyance tracking (expense claimed only during MOM, not scheduling)
+      travel_companion_names: companionNames,
+      is_conveyance_claimable: false, // Set to true only when MOM is recorded
+      // Audit fields
+      scheduled_by: user?.id,
+      scheduled_by_name: user?.full_name,
+      scheduled_at: new Date().toISOString(),
+    };
+    
+    // Show short notice warning
+    if (isShortNotice) {
+      toast.warning(`Short Notice: Meeting is scheduled less than 24 hours in advance. It will be flagged.`, {
+        duration: 5000
+      });
+    }
+    
+    createMeetingMutation.mutate(submitData);
   };
 
   // Open meeting detail view (full page) - only for meetings with MOM recorded
   const openMeetingDetail = (meeting) => {
-    if (meeting.mom_generated || meeting.is_delivered) {
+    if (meeting.mom_generated || meeting.is_delivered || meeting.status === 'DELIVERED') {
       navigate(`/meeting/${meeting.id}`);
     } else {
-      toast.info('MOM not yet recorded. Please record MOM first to view details.');
+      toast.info('MOM not yet recorded. Meeting details are available after MOM is submitted.');
     }
   };
 
@@ -746,76 +873,130 @@ const ConsultingMeetings = () => {
             <DialogContent className="border-zinc-200 rounded-sm max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-xl font-semibold uppercase text-zinc-950">Schedule Consulting Meeting</DialogTitle>
-                <DialogDescription className="text-zinc-500">Link to project & client for billable tracking</DialogDescription>
+                <DialogDescription className="text-zinc-500">
+                  Select project and purpose. Meeting title will be auto-generated from Client + Purpose.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Project and Client Selection */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Meeting Title *</Label>
-                    <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="e.g., Weekly Review, Deliverable Walkthrough" required className="rounded-sm border-zinc-200" data-testid="consulting-meeting-title" />
-                  </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Project *</Label>
                     <select value={formData.project_id}
                       onChange={(e) => {
                         const p = projects.find(pr => pr.id === e.target.value);
-                        setFormData({ ...formData, project_id: e.target.value, client_id: '', sow_id: '' });
+                        setFormData({ ...formData, project_id: e.target.value, client_id: p?.client_id || '', sow_id: '' });
                       }}
                       required className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="consulting-meeting-project">
                       <option value="">Select project</option>
                       {projects.map(p => <option key={p.id} value={p.id}>{p.name} - {p.client_name}</option>)}
                     </select>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Client</Label>
-                    <select value={formData.client_id} onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                      className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="consulting-meeting-client">
-                      <option value="">Select client</option>
-                      {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">SOW (Optional)</Label>
-                    <select value={formData.sow_id} onChange={(e) => setFormData({ ...formData, sow_id: e.target.value })}
-                      className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" data-testid="consulting-meeting-sow">
-                      <option value="">Link to SOW</option>
-                      {sows.map(s => <option key={s.id} value={s.id}>{s.client_name || s.id}</option>)}
-                    </select>
+                    <div className="h-10 px-3 py-2 rounded-sm border border-zinc-200 bg-zinc-50 text-sm text-zinc-700">
+                      {formData.project_id 
+                        ? (projects.find(p => p.id === formData.project_id)?.client_name || 'Select project first')
+                        : 'Auto-filled from project'}
+                    </div>
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-zinc-950">SOW *</Label>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => refetchSows()}
+                      className="text-xs h-6 px-2 text-blue-600 hover:text-blue-700"
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" /> Refresh
+                    </Button>
+                  </div>
+                  <select 
+                    value={formData.sow_id} 
+                    onChange={(e) => setFormData({ ...formData, sow_id: e.target.value })}
+                    required
+                    className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm" 
+                    data-testid="consulting-meeting-sow">
+                    <option value="">Select SOW *</option>
+                    {sows.filter(s => !formData.project_id || s.project_id === formData.project_id).map(s => (
+                      <option key={s.id} value={s.id}>{s.title || s.client_name || `SOW-${s.id?.slice(0,8)}`}</option>
+                    ))}
+                  </select>
+                  {formData.project_id && sows.filter(s => s.project_id === formData.project_id).length === 0 && (
+                    <p className="text-xs text-amber-600">No SOW found for this project. Please create SOW first or click Refresh.</p>
+                  )}
+                </div>
+
+                {/* Meeting Type Selection */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-zinc-950">Meeting Purpose *</Label>
+                  <select value={formData.meeting_type_code}
+                    onChange={(e) => setFormData({ ...formData, meeting_type_code: e.target.value })}
+                    required
+                    className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
+                    data-testid="meeting-type-select">
+                    <option value="">Select Purpose...</option>
+                    {meetingTypes.map(mt => (
+                      <option key={mt.code} value={mt.code}>{mt.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Date, Start Time, End Time - Separate pickers */}
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Date & Time *</Label>
-                    <Input type="datetime-local" value={formData.meeting_date}
-                      onChange={(e) => setFormData({ ...formData, meeting_date: e.target.value })} required className="rounded-sm border-zinc-200" data-testid="consulting-meeting-date" />
+                    <Label className="text-sm font-medium text-zinc-950">Date *</Label>
+                    <Input type="date" value={formData.meeting_date}
+                      onChange={(e) => setFormData({ ...formData, meeting_date: e.target.value })} 
+                      required className="rounded-sm border-zinc-200" data-testid="consulting-meeting-date" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Meeting Purpose *</Label>
-                    <select value={formData.meeting_type_code}
+                    <Label className="text-sm font-medium text-zinc-950">Start Time *</Label>
+                    <Input type="time" value={formData.start_time}
                       onChange={(e) => {
-                        const selectedType = meetingTypes.find(mt => mt.code === e.target.value);
-                        setFormData({ 
-                          ...formData, 
-                          meeting_type_code: e.target.value,
-                          duration_minutes: selectedType?.default_duration_minutes || formData.duration_minutes
-                        });
-                      }}
-                      required
-                      className="w-full h-10 px-3 rounded-sm border border-zinc-200 bg-transparent text-sm"
-                      data-testid="meeting-type-select">
-                      <option value="">Select Purpose...</option>
-                      {meetingTypes.map(mt => (
-                        <option key={mt.code} value={mt.code}>
-                          {mt.name}
-                        </option>
-                      ))}
-                    </select>
+                        const newStartTime = e.target.value;
+                        let duration = formData.duration_minutes;
+                        // Calculate duration if both times are set
+                        if (newStartTime && formData.end_time) {
+                          const start = new Date(`2000-01-01T${newStartTime}`);
+                          const end = new Date(`2000-01-01T${formData.end_time}`);
+                          duration = Math.round((end - start) / 60000);
+                          if (duration < 0) duration = 0;
+                        }
+                        setFormData({ ...formData, start_time: newStartTime, duration_minutes: duration });
+                      }} 
+                      required className="rounded-sm border-zinc-200" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-zinc-950">End Time *</Label>
+                    <Input type="time" value={formData.end_time}
+                      onChange={(e) => {
+                        const newEndTime = e.target.value;
+                        let duration = formData.duration_minutes;
+                        // Calculate duration if both times are set
+                        if (formData.start_time && newEndTime) {
+                          const start = new Date(`2000-01-01T${formData.start_time}`);
+                          const end = new Date(`2000-01-01T${newEndTime}`);
+                          duration = Math.round((end - start) / 60000);
+                          if (duration < 0) duration = 0;
+                        }
+                        setFormData({ ...formData, end_time: newEndTime, duration_minutes: duration });
+                      }} 
+                      required className="rounded-sm border-zinc-200" />
                   </div>
                 </div>
+
+                {/* Duration (calculated) and Mode */}
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-zinc-950">Duration</Label>
+                    <div className="h-10 px-3 py-2 rounded-sm border border-zinc-200 bg-zinc-50 text-sm text-zinc-700">
+                      {formData.duration_minutes ? `${formData.duration_minutes} minutes` : 'Set start & end time'}
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-zinc-950">Mode *</Label>
                     <select value={formData.mode} onChange={(e) => setFormData({ ...formData, mode: e.target.value })}
@@ -825,13 +1006,148 @@ const ConsultingMeetings = () => {
                       <option value="tele_call">Tele Call</option>
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-zinc-950">Duration (mins)</Label>
-                    <Input type="number" min="0" value={formData.duration_minutes}
-                      onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })} className="rounded-sm border-zinc-200" />
-                    <p className="text-xs text-zinc-400">Auto-set based on purpose</p>
-                  </div>
                 </div>
+
+                {/* Past Date Warning - Cannot schedule past meetings */}
+                {formData.meeting_date && new Date(formData.meeting_date) < new Date(new Date().toDateString()) && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-sm">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-red-800">Cannot Schedule Past Meetings</p>
+                        <p className="text-xs text-red-600 mt-1">
+                          All meetings must be scheduled in advance. You cannot schedule a meeting for a past date.
+                          If you need to record a meeting that already occurred, it must have been scheduled beforehand.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Short Notice Warning */}
+                {formData.meeting_date && formData.start_time && (() => {
+                  const meetingTime = new Date(`${formData.meeting_date}T${formData.start_time}`);
+                  const now = new Date();
+                  const hoursUntil = (meetingTime - now) / (1000 * 60 * 60);
+                  return hoursUntil > 0 && hoursUntil < 24;
+                })() && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-sm">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-800">Short Notice Meeting</p>
+                        <p className="text-xs text-amber-600 mt-1">
+                          This meeting is scheduled less than 24 hours in advance. It will be flagged as "Short Notice".
+                          Client may not have sufficient time to prepare or respond.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Travel Companions & Vehicle Details (for In-person meetings) */}
+                {formData.mode === 'offline' && (
+                  <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-sm">
+                    <div className="flex items-center gap-2 text-blue-800 font-medium">
+                      <Car className="w-5 h-5" />
+                      <span>Travel & Conveyance Details</span>
+                    </div>
+                    
+                    {/* Conveyance Claim Notice */}
+                    <div className="p-2 bg-white border border-blue-200 rounded text-xs text-blue-700">
+                      <strong>Note:</strong> Only you (meeting scheduler) can claim conveyance for this visit. 
+                      Companions will have this meeting in their calendar but cannot claim separate conveyance.
+                    </div>
+
+                    {/* Travel Companions */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-blue-900 flex items-center gap-2">
+                        <UserPlus className="w-4 h-4" /> Travel Companions
+                      </Label>
+                      <select 
+                        multiple
+                        value={formData.travel_companions || []}
+                        onChange={(e) => {
+                          const selected = Array.from(e.target.selectedOptions, option => option.value);
+                          setFormData({ ...formData, travel_companions: selected });
+                        }}
+                        className="w-full h-20 px-3 py-2 rounded-sm border border-blue-200 bg-white text-sm">
+                        {users.filter(u => u.id !== user?.id && (u.department === 'Consulting' || u.department === 'Delivery')).map(u => (
+                          <option key={u.id} value={u.id}>{u.full_name}</option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-blue-500">Hold Ctrl/Cmd to select multiple consultants traveling with you</p>
+                    </div>
+
+                    {/* Companion Purpose */}
+                    {formData.travel_companions?.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-blue-900">Purpose of Accompanying</Label>
+                        <select 
+                          value={formData.companion_purpose || ''}
+                          onChange={(e) => setFormData({ ...formData, companion_purpose: e.target.value })}
+                          className="w-full h-10 px-3 rounded-sm border border-blue-200 bg-white text-sm">
+                          <option value="">Select purpose...</option>
+                          <option value="training">Training / Knowledge Transfer</option>
+                          <option value="handover">Project Handover</option>
+                          <option value="support">Technical Support</option>
+                          <option value="presentation">Joint Presentation</option>
+                          <option value="audit">Audit / Quality Review</option>
+                          <option value="introduction">Client Introduction</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Vehicle Details */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-blue-900">Vehicle Type</Label>
+                        <select 
+                          value={formData.vehicle_type || ''}
+                          onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value })}
+                          className="w-full h-10 px-3 rounded-sm border border-blue-200 bg-white text-sm">
+                          <option value="">Select...</option>
+                          <option value="own_car">Own Car</option>
+                          <option value="own_bike">Own Bike</option>
+                          <option value="cab">Cab/Taxi</option>
+                          <option value="auto">Auto Rickshaw</option>
+                          <option value="public">Public Transport</option>
+                          <option value="company">Company Vehicle</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-blue-900">Vehicle Number (Optional)</Label>
+                        <Input 
+                          value={formData.vehicle_number || ''}
+                          onChange={(e) => setFormData({ ...formData, vehicle_number: e.target.value.toUpperCase() })}
+                          placeholder="e.g., MH12AB1234"
+                          className="rounded-sm border-blue-200 bg-white" />
+                      </div>
+                    </div>
+
+                    {/* Start/End Locations */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-blue-900">Start Location</Label>
+                        <Input 
+                          value={formData.travel_start_location || ''}
+                          onChange={(e) => setFormData({ ...formData, travel_start_location: e.target.value })}
+                          placeholder="e.g., Office / Home"
+                          className="rounded-sm border-blue-200 bg-white" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-blue-900">End Location</Label>
+                        <Input 
+                          value={formData.travel_end_location || ''}
+                          onChange={(e) => setFormData({ ...formData, travel_end_location: e.target.value })}
+                          placeholder="Client office address"
+                          className="rounded-sm border-blue-200 bg-white" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-zinc-950">Agenda Items</Label>
                   {formData.agenda.map((item, idx) => (

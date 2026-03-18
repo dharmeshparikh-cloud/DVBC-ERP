@@ -16,7 +16,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://mom-workflow.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://consulting-govern.preview.emergentagent.com')
 if not BASE_URL.endswith('/api'):
     API_URL = BASE_URL.rstrip('/') + '/api'
 else:

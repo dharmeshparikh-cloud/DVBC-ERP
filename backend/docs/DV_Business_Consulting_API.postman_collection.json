@@ -18,7 +18,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://mom-workflow.preview.emergentagent.com",
+      "value": "https://consulting-govern.preview.emergentagent.com",
       "type": "string"
     },
     {
