@@ -615,6 +615,24 @@ const ConsultingMeetings = () => {
         .filter(s => selectedScopeIds.includes(s.id))
         .map(s => ({ id: s.id, name: s.name }));
       
+      // Prepare travel details for in-person meetings
+      let travelDetails = null;
+      if (selectedMeeting?.mode === 'offline' && travelData.claim_expense) {
+        travelDetails = {
+          start_location: travelData.startLocation || travelData.travel_start_location || '',
+          end_location: travelData.endLocation || travelData.travel_end_location || '',
+          via_locations: travelData.viaLocations || [],
+          distance_km: travelData.totalKm || travelData.distance_km || 0,
+          is_round_trip: travelData.isRoundTrip ?? travelData.is_round_trip ?? true,
+          travel_mode: travelData.travelMode || travelData.travel_mode || 'DRIVING',
+          transit_amount: travelData.transitAmount || travelData.transit_amount || 0,
+          expense_amount: travelData.expenseAmount || 0,
+          travel_start_time: travelData.startTime || '',
+          travel_end_time: travelData.endTime || '',
+          accompanied_by: travelData.accompaniedBy || null
+        };
+      }
+      
       await axios.patch(`${API}/meetings/${selectedMeeting.id}/mom`, {
         ...momData,
         agenda: momData.agenda.filter(a => a.trim()),
@@ -623,9 +641,11 @@ const ConsultingMeetings = () => {
         next_meeting_date: momData.next_meeting_date ? new Date(momData.next_meeting_date).toISOString() : null,
         mom_attachments: momAttachments,
         sow_scope_ids: selectedScopeIds,
-        sow_scopes: scopeDetails
+        sow_scopes: scopeDetails,
+        // Include travel details for expense creation
+        travel_details: travelDetails
       });
-      toast.success('Consulting MOM saved');
+      toast.success('Consulting MOM saved' + (travelDetails ? ' with travel expense' : ''));
       // Reset scope filters
       setScopeSearchQuery('');
       setScopeStatusFilter('all');
@@ -2284,120 +2304,33 @@ const ConsultingMeetings = () => {
 
             {/* Travel Expense Section - Only for in-person meetings (SSOT for expenses) */}
             {selectedMeeting?.mode === 'offline' && (
-              <div className="space-y-4 p-4 bg-emerald-50 border border-emerald-200 rounded-sm">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-emerald-900 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Travel & Conveyance Expense
-                    <Badge className="text-xs bg-emerald-200 text-emerald-800 ml-2">SSOT for Expenses</Badge>
-                  </Label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={travelData.claim_expense}
-                      onChange={(e) => setTravelData({ ...travelData, claim_expense: e.target.checked })}
-                      className="h-4 w-4 rounded border-zinc-300"
-                    />
-                    <span className="text-sm text-emerald-800 font-medium">Claim Travel Expense</span>
-                  </label>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  <Label className="text-sm font-medium text-emerald-900">Travel & Conveyance Expense</Label>
+                  <Badge className="text-xs bg-emerald-200 text-emerald-800">SSOT for Expenses</Badge>
                 </div>
-                
-                {travelData.claim_expense && (
-                  <div className="space-y-4 pt-3 border-t border-emerald-200">
-                    <p className="text-xs text-emerald-700 bg-emerald-100 p-2 rounded-sm">
-                      <strong>Note:</strong> Only the meeting scheduler can claim conveyance. Travel companions cannot claim separately.
-                    </p>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-zinc-700">Start Location</Label>
-                        <Input 
-                          value={travelData.travel_start_location} 
-                          onChange={(e) => setTravelData({ ...travelData, travel_start_location: e.target.value })}
-                          placeholder="e.g., Office / Home"
-                          className="rounded-sm border-zinc-200"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-zinc-700">End Location (Client)</Label>
-                        <Input 
-                          value={travelData.travel_end_location} 
-                          onChange={(e) => setTravelData({ ...travelData, travel_end_location: e.target.value })}
-                          placeholder="e.g., Client Office, Mumbai"
-                          className="rounded-sm border-zinc-200"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-zinc-700">Travel Mode</Label>
-                        <Select value={travelData.travel_mode} onValueChange={(v) => setTravelData({ ...travelData, travel_mode: v })}>
-                          <SelectTrigger className="rounded-sm border-zinc-200">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TRAVEL_MODES.map(mode => (
-                              <SelectItem key={mode.id} value={mode.id}>
-                                {mode.label} {mode.rate > 0 && `(₹${mode.rate}/km)`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-zinc-700">Distance (km)</Label>
-                        <Input 
-                          type="number"
-                          value={travelData.distance_km} 
-                          onChange={(e) => setTravelData({ ...travelData, distance_km: e.target.value })}
-                          placeholder="Enter distance"
-                          className="rounded-sm border-zinc-200"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-zinc-700">Round Trip?</Label>
-                        <div className="flex items-center gap-2 h-10">
-                          <input
-                            type="checkbox"
-                            checked={travelData.is_round_trip}
-                            onChange={(e) => setTravelData({ ...travelData, is_round_trip: e.target.checked })}
-                            className="h-4 w-4 rounded border-zinc-300"
-                          />
-                          <span className="text-sm text-zinc-600">Yes, round trip</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {travelData.travel_mode === 'TRANSIT' && (
-                      <div className="space-y-2">
-                        <Label className="text-xs font-medium text-zinc-700">Transit Amount (₹)</Label>
-                        <Input 
-                          type="number"
-                          value={travelData.transit_amount} 
-                          onChange={(e) => setTravelData({ ...travelData, transit_amount: e.target.value })}
-                          placeholder="Enter total transit fare"
-                          className="rounded-sm border-zinc-200 w-48"
-                        />
-                      </div>
-                    )}
-                    
-                    {/* Calculated Amount Display */}
-                    {(travelData.distance_km > 0 || travelData.transit_amount > 0) && (
-                      <div className="p-3 bg-white border border-emerald-300 rounded-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-zinc-600">Estimated Reimbursement:</span>
-                          <span className="text-lg font-bold text-emerald-700">
-                            ₹{calculateTravelExpense().toFixed(2)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-500 mt-1">
-                          {travelData.is_round_trip && '(Round trip calculation applied)'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <MeetingLocationPicker 
+                  value={{
+                    startLocation: travelData.startLocation || travelData.travel_start_location || selectedMeeting?.travel_start_location || '',
+                    endLocation: travelData.endLocation || travelData.travel_end_location || selectedMeeting?.travel_end_location || '',
+                    travelMode: travelData.travelMode || travelData.travel_mode || 'DRIVING',
+                    isRoundTrip: travelData.isRoundTrip ?? travelData.is_round_trip ?? true,
+                    transitAmount: travelData.transitAmount || travelData.transit_amount || 0,
+                    distance: travelData.distance ? travelData.distance : (travelData.distance_km ? { value: travelData.distance_km * 1000, text: `${travelData.distance_km} km` } : null),
+                    viaLocations: travelData.viaLocations || [],
+                    startTime: travelData.startTime || '',
+                    endTime: travelData.endTime || ''
+                  }}
+                  onChange={(data) => {
+                    setTravelData(prev => ({
+                      ...prev,
+                      ...data,
+                      claim_expense: true
+                    }));
+                  }}
+                  meetingType="Offline"
+                />
               </div>
             )}
 

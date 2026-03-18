@@ -40,7 +40,7 @@ MOM_UPLOAD_DIR = "/app/uploads/mom_documents"
 os.makedirs(MOM_UPLOAD_DIR, exist_ok=True)
 
 # App URL for email links
-APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://consulting-govern.preview.emergentagent.com").replace("/api", "")
+APP_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://consulting-hub-87.preview.emergentagent.com").replace("/api", "")
 
 
 @router.post("", response_model=Meeting)
@@ -712,6 +712,7 @@ async def get_meeting(meeting_id: str, current_user: User = Depends(get_current_
 async def update_meeting_mom(
     meeting_id: str,
     mom_data: MOMCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
     """Update Minutes of Meeting for a meeting."""
@@ -735,7 +736,115 @@ async def update_meeting_mom(
         if item.get('due_date') and isinstance(item['due_date'], datetime):
             item['due_date'] = item['due_date'].isoformat()
     
+    # Extract travel details for expense creation (don't store in meeting doc)
+    travel_details = update_data.pop('travel_details', None)
+    
     await db.meetings.update_one({"id": meeting_id}, {"$set": update_data})
+    
+    # Create expense record for offline meetings with travel details
+    if travel_details and meeting.get('mode') == 'offline':
+        async def create_meeting_expense():
+            try:
+                # Only create expense for Car, Bike, or Transit (not Accompanied)
+                travel_mode = travel_details.get("travel_mode", "")
+                if travel_mode == "ACCOMPANIED":
+                    return
+                
+                # DUPLICATE PREVENTION: Check if expense already exists for this meeting
+                existing_expense = await db.expenses.find_one({
+                    "meeting_id": meeting_id,
+                    "status": {"$ne": "rejected"}  # Allow if previous was rejected
+                })
+                if existing_expense:
+                    print(f"Expense already exists for meeting {meeting_id}: {existing_expense.get('id')}")
+                    return
+                
+                # Calculate expense amount - account for round trip
+                expense_amount = 0
+                distance_km = travel_details.get("distance_km", 0)
+                is_round_trip = travel_details.get("is_round_trip", False)
+                
+                # Double distance for round trips
+                total_km = distance_km * 2 if is_round_trip else distance_km
+                
+                if travel_mode == "DRIVING":
+                    expense_amount = total_km * 7  # Rs.7/km
+                elif travel_mode == "TWO_WHEELER":
+                    expense_amount = total_km * 3  # Rs.3/km
+                elif travel_mode == "TRANSIT":
+                    expense_amount = travel_details.get("transit_amount", 0)
+                
+                # Use expense_amount from frontend if provided
+                if travel_details.get("expense_amount") and travel_details.get("expense_amount") > 0:
+                    expense_amount = travel_details.get("expense_amount")
+                
+                if expense_amount <= 0:
+                    return
+                
+                # Get client/project info
+                client = None
+                project = None
+                if meeting.get('client_id'):
+                    client = await db.clients.find_one({"id": meeting.get('client_id')}, {"_id": 0})
+                if meeting.get('project_id'):
+                    project = await db.projects.find_one({"id": meeting.get('project_id')}, {"_id": 0})
+                
+                # Create expense record
+                expense_id = str(uuid.uuid4())
+                expense_doc = {
+                    "id": expense_id,
+                    "employee_id": current_user.employee_id,  # Employee code for payroll
+                    "user_id": current_user.id,  # UUID for ownership queries
+                    "created_by": current_user.id,  # UUID for auth/ownership
+                    "employee_name": current_user.full_name,
+                    "category": "travel",
+                    "subcategory": f"meeting_travel_{travel_mode.lower()}",
+                    "description": f"Meeting Travel Expense - {client.get('company_name') if client else meeting.get('client_name', 'Client')} ({travel_mode})",
+                    "amount": round(expense_amount, 2),
+                    "total_amount": round(expense_amount, 2),
+                    "currency": "INR",
+                    "expense_date": meeting.get('meeting_date', datetime.now(timezone.utc).isoformat()),
+                    "status": "pending",  # Goes to approval workflow
+                    "receipt_url": None,
+                    "receipt_uploaded": travel_mode == "TRANSIT" and travel_details.get("transit_proof"),
+                    # Link to meeting and project
+                    "meeting_id": meeting_id,
+                    "project_id": meeting.get('project_id'),
+                    "project_name": project.get('name') if project else meeting.get('project_name'),
+                    "client_id": meeting.get('client_id'),
+                    "client_name": client.get('company_name') if client else meeting.get('client_name', ''),
+                    # Travel details for verification
+                    "travel_details": {
+                        "start_location": travel_details.get("start_location"),
+                        "end_location": travel_details.get("end_location"),
+                        "via_locations": travel_details.get("via_locations", []),
+                        "distance_km": distance_km,
+                        "total_km": total_km,
+                        "is_round_trip": is_round_trip,
+                        "travel_mode": travel_mode,
+                        "rate_per_km": 7 if travel_mode == "DRIVING" else (3 if travel_mode == "TWO_WHEELER" else 0),
+                        "travel_start_time": travel_details.get("travel_start_time"),
+                        "travel_end_time": travel_details.get("travel_end_time")
+                    },
+                    "expense_type": "meeting_expense",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                
+                await db.expenses.insert_one(expense_doc)
+                
+                # Update meeting with expense reference
+                await db.meetings.update_one(
+                    {"id": meeting_id},
+                    {"$set": {"expense_id": expense_id, "expense_amount": round(expense_amount, 2), "travel_details": travel_details}}
+                )
+                
+                print(f"Created meeting expense: {expense_id} for Rs.{expense_amount}")
+                
+            except Exception as e:
+                print(f"Failed to create meeting expense: {e}")
+        
+        background_tasks.add_task(create_meeting_expense)
     
     return {"message": "MOM updated successfully", "meeting_id": meeting_id}
 

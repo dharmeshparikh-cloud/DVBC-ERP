@@ -402,6 +402,7 @@ class MOMCreate(BaseModel):
     mom_attachments: Optional[List[Dict[str, Any]]] = []  # Document attachments
     sow_scope_ids: Optional[List[str]] = []  # Selected scope IDs
     sow_scopes: Optional[List[Dict[str, Any]]] = []  # Denormalized scope details
+    travel_details: Optional[Dict[str, Any]] = None  # Travel expense details for offline meetings
 
 
 class ActionItemCreate(BaseModel):
