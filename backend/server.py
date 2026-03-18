@@ -138,6 +138,14 @@ async def startup_db_client():
     except Exception as e:
         logger.warning(f"Integrity scheduler initialization error: {e}")
 
+    # Initialize and start the Meeting Auto-Accept Scheduler
+    try:
+        from services.meeting_auto_accept_scheduler import start_meeting_auto_accept_scheduler
+        auto_accept_scheduler = await start_meeting_auto_accept_scheduler(db)
+        logger.info("Meeting auto-accept scheduler started (hourly)")
+    except Exception as e:
+        logger.warning(f"Meeting auto-accept scheduler initialization error: {e}")
+
     # Initialize CEO Daily Report Scheduler (23:59 IST = Asia/Kolkata)
     try:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -182,6 +190,13 @@ async def shutdown_db_client():
             await scheduler.stop()
     except Exception as e:
         logger.warning(f"Integrity scheduler stop error: {e}")
+    
+    # Stop meeting auto-accept scheduler
+    try:
+        from services.meeting_auto_accept_scheduler import stop_meeting_auto_accept_scheduler
+        await stop_meeting_auto_accept_scheduler()
+    except Exception as e:
+        logger.warning(f"Meeting auto-accept scheduler stop error: {e}")
     
     # Close Redis connection
     try:

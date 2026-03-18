@@ -401,19 +401,59 @@ async def trigger_auto_accept(
 ):
     """
     Admin endpoint - Manually trigger auto-accept processing for expired meeting invites.
-    In production, this should be called by a scheduled task.
+    This is also run automatically by the scheduled background task every hour.
     """
     
     if current_user.role != 'admin':
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    results = await process_auto_accept_meetings(db)
+    # Use the scheduler to run the auto-accept process
+    from services.meeting_auto_accept_scheduler import get_meeting_auto_accept_scheduler
     
-    return {
-        "status": "success",
-        "processed_count": len(results),
-        "meetings": results
-    }
+    scheduler = get_meeting_auto_accept_scheduler()
+    if scheduler:
+        results = await scheduler.run_now()
+        return {
+            "status": "success",
+            "processed_count": len(results),
+            "meetings": results,
+            "scheduler_status": scheduler.get_status()
+        }
+    else:
+        # Fallback to direct process if scheduler not running
+        results = await process_auto_accept_meetings(db)
+        return {
+            "status": "success",
+            "processed_count": len(results),
+            "meetings": results,
+            "scheduler_status": {"running": False, "note": "Scheduler not initialized"}
+        }
+
+
+@router.get("/auto-accept-scheduler/status")
+async def get_auto_accept_scheduler_status(
+    current_user = Depends(get_current_user)
+):
+    """
+    Get the status of the meeting auto-accept scheduler.
+    """
+    
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    from services.meeting_auto_accept_scheduler import get_meeting_auto_accept_scheduler
+    
+    scheduler = get_meeting_auto_accept_scheduler()
+    if scheduler:
+        return {
+            "status": "success",
+            "scheduler": scheduler.get_status()
+        }
+    else:
+        return {
+            "status": "warning",
+            "scheduler": {"running": False, "note": "Scheduler not initialized"}
+        }
 
 
 @router.get("/meeting-states")
