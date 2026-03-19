@@ -1,27 +1,47 @@
 """
 Projects Router - Project Management, Consultant Assignment, Handover Alerts
+
+GOVERNANCE:
+- Projects should be created via kickoff workflow (Principal Consultant approval)
+- Direct project creation allowed only for admin with kickoff_bypass flag
+- Consultant assignments tracked in consultant_assignments collection
 """
 
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
+import uuid
 
 from .models import Project, ProjectCreate, User, UserRole
 from .deps import get_db, get_role_group, has_role
 from .deps import get_current_user
+from .audit_logging import log_audit
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
 @router.post("", response_model=Project)
 async def create_project(project_create: ProjectCreate, current_user: User = Depends(get_current_user)):
-    """Create a new project."""
+    """
+    Create a new project.
+    
+    GOVERNANCE: Projects should typically be created via kickoff workflow.
+    Direct creation requires admin role or kickoff_id reference.
+    """
     db = get_db()
     
     # RBAC Migration: Check if manager-only role (view-only)
     project_roles = get_role_group("PROJECT_ROLES", fail_closed=True)
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ['admin']
+    
     if not project_roles or not has_role(current_user.role, project_roles):
         raise HTTPException(status_code=403, detail="Only project team can create projects")
+    
+    # GOVERNANCE: Warn if creating without kickoff (unless admin)
+    kickoff_id = getattr(project_create, 'kickoff_id', None)
+    if not kickoff_id and not has_role(current_user.role, admin_roles):
+        # Allow but log warning - future: make mandatory
+        print(f"[GOVERNANCE WARNING] Project created without kickoff by {current_user.id}")
     
     project_dict = project_create.model_dump()
     project = Project(**project_dict, created_by=current_user.id)
@@ -33,7 +53,29 @@ async def create_project(project_create: ProjectCreate, current_user: User = Dep
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     
+    # Add kickoff reference if provided
+    if kickoff_id:
+        doc['kickoff_id'] = kickoff_id
+    
     await db.projects.insert_one(doc)
+    
+    # Audit log
+    await log_audit(
+        action="project.create",
+        entity_type="project",
+        entity_id=doc['id'],
+        performed_by=current_user.id,
+        after_state={
+            "name": doc.get('name'),
+            "client_id": doc.get('client_id'),
+            "kickoff_id": kickoff_id
+        },
+        metadata={
+            "has_kickoff": kickoff_id is not None,
+            "created_by_role": current_user.role
+        }
+    )
+    
     return project
 
 
@@ -100,6 +142,45 @@ async def get_projects(current_user: User = Depends(get_current_user)):
             project.pop('billing_details', None)
     
     return projects
+
+
+@router.get("/all-assignments")
+async def get_all_consultant_assignments(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all consultant assignments across all projects.
+    
+    Args:
+        status: Filter by status (active, inactive)
+    """
+    db = get_db()
+    
+    query = {}
+    if status:
+        if status == "active":
+            query["is_active"] = True
+        elif status == "inactive":
+            query["is_active"] = False
+    
+    assignments = await db.consultant_assignments.find(
+        query,
+        {"_id": 0}
+    ).sort("assigned_at", -1).to_list(1000)
+    
+    # Filter out assignments without project info
+    valid_assignments = [
+        a for a in assignments 
+        if a.get("project_id") and a.get("consultant_id")
+    ]
+    
+    return {
+        "assignments": valid_assignments,
+        "total": len(valid_assignments),
+        "active": len([a for a in valid_assignments if a.get("is_active")]),
+        "by_project": len(set(a.get("project_id") for a in valid_assignments))
+    }
 
 
 # Handover alerts must be defined BEFORE /projects/{project_id} to avoid route conflict
@@ -529,4 +610,139 @@ async def get_project_assignment_history(
         "assignments": assignments,
         "active_count": len([a for a in assignments if a.get("is_active")]),
         "total_count": len(assignments)
+    }
+
+
+
+@router.post("/{project_id}/sync-assignments")
+async def sync_project_assignments(
+    project_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Sync consultant_assignments with project team_members.
+    Creates assignment records for any team members not yet in consultant_assignments.
+    
+    GOVERNANCE: Ensures all project team members have proper assignment records
+    for tracking, reporting, and audit purposes.
+    """
+    db = get_db()
+    
+    # Verify project exists
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get team members from project
+    team_members = project.get('team_members', []) or []
+    assigned_consultants = project.get('assigned_consultants', []) or []
+    all_members = list(set(team_members + assigned_consultants))
+    
+    if not all_members:
+        return {"message": "No team members to sync", "created": 0}
+    
+    # Get existing assignments
+    existing = await db.consultant_assignments.find(
+        {"project_id": project_id, "is_active": True},
+        {"_id": 0, "consultant_id": 1}
+    ).to_list(100)
+    existing_ids = set(a.get("consultant_id") for a in existing)
+    
+    # Create assignments for new members
+    created = 0
+    now = datetime.now(timezone.utc).isoformat()
+    
+    for member_id in all_members:
+        if member_id in existing_ids:
+            continue
+        
+        # Get user details
+        user = await db.users.find_one({"id": member_id}, {"_id": 0})
+        if not user:
+            # Try by employee_id
+            emp = await db.employees.find_one({"id": member_id}, {"_id": 0})
+            if emp and emp.get("user_id"):
+                user = await db.users.find_one({"id": emp["user_id"]}, {"_id": 0})
+        
+        if not user:
+            continue
+        
+        assignment = {
+            "id": str(uuid.uuid4()),
+            "project_id": project_id,
+            "project_name": project.get("name") or project.get("project_name"),
+            "consultant_id": user["id"],
+            "consultant_name": user.get("full_name"),
+            "consultant_email": user.get("email"),
+            "role": user.get("role", "consultant"),
+            "assigned_by": current_user.id,
+            "assigned_by_name": current_user.full_name,
+            "assigned_at": now,
+            "is_active": True,
+            "status": "active",
+            "source": "sync",  # Indicates auto-created via sync
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.consultant_assignments.insert_one(assignment)
+        created += 1
+    
+    # Audit log
+    if created > 0:
+        await log_audit(
+            action="project.assignments_synced",
+            entity_type="project",
+            entity_id=project_id,
+            performed_by=current_user.id,
+            after_state={"assignments_created": created},
+            metadata={
+                "project_name": project.get("name"),
+                "total_members": len(all_members)
+            }
+        )
+    
+    return {
+        "message": f"Synced {created} new assignments",
+        "created": created,
+        "total_members": len(all_members),
+        "existing_assignments": len(existing_ids)
+    }
+
+
+@router.post("/sync-all-assignments")
+async def sync_all_project_assignments(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Sync assignments for ALL projects.
+    Admin utility to ensure all projects have proper assignment records.
+    """
+    db = get_db()
+    
+    # Admin only
+    admin_roles = get_role_group("ADMIN_ROLES", fail_closed=False) or ['admin']
+    if not has_role(current_user.role, admin_roles):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    projects = await db.projects.find({}, {"_id": 0, "id": 1}).to_list(1000)
+    
+    total_created = 0
+    projects_updated = 0
+    
+    for project in projects:
+        # Call sync for each project
+        try:
+            result = await sync_project_assignments(project["id"], current_user)
+            if result.get("created", 0) > 0:
+                total_created += result["created"]
+                projects_updated += 1
+        except Exception as e:
+            print(f"Error syncing project {project['id']}: {e}")
+    
+    return {
+        "message": f"Synced {total_created} assignments across {projects_updated} projects",
+        "total_assignments_created": total_created,
+        "projects_updated": projects_updated,
+        "total_projects": len(projects)
     }
