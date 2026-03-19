@@ -63,6 +63,11 @@ async def create_meeting(meeting_create: MeetingCreate, current_user: User = Dep
 
     meeting_dict = meeting_create.model_dump()
     meeting = Meeting(**meeting_dict, created_by=current_user.id)
+    
+    # Set organizer fields
+    meeting.organizer_id = current_user.id
+    meeting.organizer_name = current_user.full_name
+    meeting.created_by_name = current_user.full_name
 
     doc = meeting.model_dump()
     doc['meeting_date'] = doc['meeting_date'].isoformat()

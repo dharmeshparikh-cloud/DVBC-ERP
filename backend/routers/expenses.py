@@ -91,10 +91,15 @@ async def create_expense(data: dict, current_user: User = Depends(get_current_us
     
     # Get employee record for proper linking
     employee = await db.employees.find_one({"user_id": current_user.id}, {"_id": 0})
-    employee_id = employee.get("id") if employee else current_user.id
-    employee_code = employee.get("employee_id") if employee else None
-    employee_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip() if employee else current_user.full_name
-    reporting_manager_id = employee.get("reporting_manager_id") if employee else None
+    if not employee:
+        raise HTTPException(
+            status_code=400,
+            detail="Employee record not found. Please contact HR to set up your employee profile."
+        )
+    employee_id = employee.get("id")
+    employee_code = employee.get("employee_id")
+    employee_name = f"{employee.get('first_name', '')} {employee.get('last_name', '')}".strip() or current_user.full_name
+    reporting_manager_id = employee.get("reporting_manager_id")
     
     expense = {
         "id": str(uuid.uuid4()),
@@ -777,6 +782,7 @@ async def reject_expense(expense_id: str, data: dict, current_user: User = Depen
     Reject an expense.
     
     ACCESS: Only HR or Admin can reject expenses (fail-closed authorization).
+    VALIDATION: Cannot reject already approved or rejected expenses.
     """
     db = get_db()
     
@@ -793,6 +799,19 @@ async def reject_expense(expense_id: str, data: dict, current_user: User = Depen
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # CRITICAL FIX: Prevent rejecting already approved or rejected expenses
+    current_status = expense.get("status")
+    if current_status == "approved":
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot reject an approved expense. Contact Finance to reverse if needed."
+        )
+    if current_status == "rejected":
+        raise HTTPException(
+            status_code=400, 
+            detail="Expense is already rejected"
+        )
     
     rejection_reason = data.get("reason", "")
     if not rejection_reason:

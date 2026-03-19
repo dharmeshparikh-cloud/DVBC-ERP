@@ -328,6 +328,8 @@ class Meeting(BaseModel):
     attendance_verified_at: Optional[datetime] = None
     created_by: str
     created_by_name: Optional[str] = None
+    organizer_id: Optional[str] = None  # User ID of meeting organizer (same as created_by for new meetings)
+    organizer_name: Optional[str] = None  # Denormalized organizer name
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # === MEETING WORKFLOW FIELDS ===
