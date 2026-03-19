@@ -2,7 +2,7 @@
 Leave Requests Router - Leave application, approval workflow.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import Optional, List
 from datetime import datetime, timezone, date
 import uuid
@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from .deps import get_db, MANAGER_ROLES, HR_ROLES, get_role_group, has_role
 from .models import User
 from .deps import get_current_user
+from .audit_logging import log_audit, AuditAction
 
 router = APIRouter(prefix="/leave-requests", tags=["Leave Requests"])
 
@@ -134,6 +135,26 @@ async def create_leave_request(
     await db.leave_requests.insert_one(leave_request)
     leave_request.pop("_id", None)
     
+    # Audit log
+    await log_audit(
+        action=AuditAction.LEAVE_REQUEST,
+        entity_type="leave_request",
+        entity_id=leave_request['id'],
+        performed_by=current_user.id,
+        after_state={
+            "leave_type": leave_data.leave_type,
+            "days": days,
+            "start_date": leave_data.start_date.isoformat(),
+            "end_date": leave_data.end_date.isoformat(),
+            "status": "pending"
+        },
+        metadata={
+            "employee_id": employee['id'],
+            "employee_name": f"{employee['first_name']} {employee['last_name']}",
+            "reporting_manager": rm_name
+        }
+    )
+    
     return {
         "message": "Leave request submitted",
         "leave_request_id": leave_request['id'],
@@ -178,6 +199,22 @@ async def rm_approve_leave(leave_id: str, data: dict = None, current_user: User 
             )
     
     await db.leave_requests.update_one({"id": leave_id}, {"$set": update_data})
+    
+    # Audit log
+    await log_audit(
+        action=AuditAction.LEAVE_APPROVE if new_status == "approved" else AuditAction.LEAVE_REJECT,
+        entity_type="leave_request",
+        entity_id=leave_id,
+        performed_by=current_user.id,
+        before_state={"status": "pending"},
+        after_state={"status": new_status, "comments": comments},
+        metadata={
+            "employee_id": leave["employee_id"],
+            "employee_name": leave.get("employee_name"),
+            "leave_type": leave["leave_type"],
+            "days": leave["days"]
+        }
+    )
     
     return {"message": f"Leave request {new_status}", "status": new_status}
 

@@ -17,6 +17,7 @@ from .deps import get_db
 from .deps import get_current_user
 from services.email_service import send_email
 from services.funnel_notifications import meeting_mom_filled_email, get_sales_manager_emails
+from .audit_logging import log_audit
 
 router = APIRouter(prefix="/meetings", tags=["Meetings"])
 
@@ -850,6 +851,23 @@ async def update_meeting_mom(
                 print(f"Failed to create meeting expense: {e}")
         
         background_tasks.add_task(create_meeting_expense)
+    
+    # Audit log for MOM update
+    await log_audit(
+        action="meeting.mom_updated",
+        entity_type="meeting",
+        entity_id=meeting_id,
+        performed_by=current_user.id,
+        changes={
+            "mom_generated": {"from": meeting.get("mom_generated"), "to": True},
+            "has_travel_details": {"value": travel_details is not None}
+        },
+        metadata={
+            "meeting_title": meeting.get("title"),
+            "project_id": meeting.get("project_id"),
+            "mode": meeting.get("mode")
+        }
+    )
     
     return {"message": "MOM updated successfully", "meeting_id": meeting_id}
 

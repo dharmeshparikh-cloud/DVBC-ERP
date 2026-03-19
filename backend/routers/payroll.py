@@ -11,6 +11,7 @@ import calendar
 from .deps import get_db, HR_ADMIN_ROLES, HR_ROLES, DEFAULT_PAGE_SIZE, LARGE_QUERY_SIZE
 from .models import User
 from .deps import get_current_user
+from .audit_logging import log_audit
 
 router = APIRouter(prefix="/payroll", tags=["Payroll"])
 
@@ -186,6 +187,28 @@ async def save_payroll_input(data: dict, current_user: User = Depends(get_curren
         {"$set": input_doc},
         upsert=True
     )
+    
+    # Audit log for payroll input
+    await log_audit(
+        action="payroll.input_updated",
+        entity_type="payroll_input",
+        entity_id=f"{employee_id}_{month}",
+        performed_by=current_user.id,
+        after_state={
+            "incentive": data.get("incentive", 0),
+            "penalty": data.get("penalty", 0),
+            "advance": data.get("advance", 0),
+            "present_days": data.get("present_days", 0),
+            "absent_days": data.get("absent_days", 0)
+        },
+        metadata={
+            "employee_id": employee_id,
+            "month": month,
+            "incentive_reason": data.get("incentive_reason", ""),
+            "penalty_reason": data.get("penalty_reason", "")
+        }
+    )
+    
     return {"message": "Payroll input saved"}
 
 
@@ -530,6 +553,27 @@ async def generate_salary_slip(data: dict, current_user: User = Depends(get_curr
         await db.salary_slips.update_one({"id": existing["id"]}, {"$set": slip})
     else:
         await db.salary_slips.insert_one(slip)
+    
+    # Audit log for salary slip generation
+    await log_audit(
+        action="payroll.salary_slip_generated",
+        entity_type="salary_slip",
+        entity_id=slip["id"],
+        performed_by=current_user.id,
+        after_state={
+            "net_salary": slip["net_salary"],
+            "gross_salary": gross_salary,
+            "total_earnings": round(total_earnings, 2),
+            "total_deductions": round(total_deductions, 2)
+        },
+        metadata={
+            "employee_id": employee_id,
+            "employee_name": f"{employee['first_name']} {employee['last_name']}",
+            "month": month,
+            "lop_days": lop_days,
+            "expense_reimbursement_total": expense_reimb
+        }
+    )
     
     slip.pop("_id", None)
     return slip
