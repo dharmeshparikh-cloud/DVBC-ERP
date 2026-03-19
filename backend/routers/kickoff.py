@@ -124,6 +124,36 @@ async def create_kickoff_request(
             detail="First installment payment must be verified before creating kickoff request. Please record the advance payment first."
         )
     
+    # GOVERNANCE: Prevent duplicate kickoff requests for the same lead/agreement
+    lead_id = agreement.get("lead_id")
+    existing_kickoff = None
+    
+    # Check by agreement_id first
+    existing_kickoff = await db.kickoff_requests.find_one({
+        "agreement_id": kickoff_create.agreement_id,
+        "status": {"$nin": ["cancelled", "rejected"]}  # Allow re-creation if cancelled/rejected
+    }, {"_id": 0, "id": 1, "status": 1, "project_id": 1})
+    
+    if existing_kickoff:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A kickoff request already exists for this agreement. Status: {existing_kickoff.get('status')}. " +
+                   (f"Project ID: {existing_kickoff.get('project_id')}" if existing_kickoff.get('project_id') else "")
+        )
+    
+    # Also check by lead_id to prevent duplicates from different routes
+    if lead_id:
+        existing_by_lead = await db.kickoff_requests.find_one({
+            "lead_id": lead_id,
+            "status": {"$nin": ["cancelled", "rejected"]}
+        }, {"_id": 0, "id": 1, "status": 1})
+        
+        if existing_by_lead:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A kickoff request already exists for this lead. Status: {existing_by_lead.get('status')}"
+            )
+    
     kickoff_dict = kickoff_create.model_dump()
     kickoff = KickoffRequest(
         **kickoff_dict,

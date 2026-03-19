@@ -120,7 +120,7 @@ class Token(BaseModel):
 
 
 class Lead(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="allow")  # Allow extra fields for kickoff_result etc
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     lead_owner: Optional[str] = None
     first_name: str
@@ -148,6 +148,8 @@ class Lead(BaseModel):
     score_breakdown: Optional[dict] = None
     next_follow_up: Optional[datetime] = None  # Follow-up date for reminders
     follow_up_notes: Optional[str] = None  # Notes for the follow-up
+    kickoff_id: Optional[str] = None  # Auto-created kickoff reference
+    auto_kickoff_result: Optional[dict] = None  # Result of auto-kickoff creation
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     enriched_at: Optional[datetime] = None

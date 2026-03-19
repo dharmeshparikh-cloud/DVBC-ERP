@@ -5,9 +5,13 @@ PERFORMANCE OPTIMIZATION: December 2025
 - Added pagination support for list endpoints
 - Added caching for lead lists
 - Added WebSocket notifications for real-time updates
+
+GOVERNANCE: March 2026
+- Auto-create kickoff request when lead stage changes to closed_won
+- Duplicate kickoff prevention
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
@@ -18,6 +22,7 @@ from .deps import (
     PaginationParams, paginate_response, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 )
 from .deps import get_current_user
+from .audit_logging import log_audit
 
 # Performance caching
 import sys
@@ -91,6 +96,141 @@ def calculate_lead_score(lead_data: dict) -> tuple:
     
     breakdown['total'] = score
     return score, breakdown
+
+
+async def auto_create_kickoff_from_won_deal(
+    db, 
+    lead: dict, 
+    current_user: User,
+    background_tasks: BackgroundTasks = None
+) -> dict:
+    """
+    Automatically create a kickoff request when a lead is marked as closed_won.
+    
+    GOVERNANCE:
+    - Prevents duplicate kickoff requests for the same lead
+    - Links to existing agreement if available
+    - Sends notification to Principal Consultant
+    
+    Returns:
+        dict with kickoff_id if created, or existing kickoff info if already exists
+    """
+    lead_id = lead.get("id")
+    
+    # Check for existing kickoff request (duplicate prevention)
+    existing_kickoff = await db.kickoff_requests.find_one(
+        {"lead_id": lead_id},
+        {"_id": 0, "id": 1, "status": 1, "project_id": 1}
+    )
+    
+    if existing_kickoff:
+        return {
+            "action": "skipped",
+            "reason": "Kickoff request already exists",
+            "kickoff_id": existing_kickoff.get("id"),
+            "kickoff_status": existing_kickoff.get("status"),
+            "project_id": existing_kickoff.get("project_id")
+        }
+    
+    # Get agreement if exists
+    agreement = await db.agreements.find_one(
+        {"lead_id": lead_id},
+        {"_id": 0, "id": 1, "agreement_number": 1, "total_value": 1, "status": 1}
+    )
+    
+    # Get client info
+    client = None
+    if lead.get("client_id"):
+        client = await db.clients.find_one(
+            {"id": lead.get("client_id")},
+            {"_id": 0, "id": 1, "company_name": 1}
+        )
+    
+    # Find Principal Consultant to assign
+    principal = await db.users.find_one(
+        {"role": {"$in": ["principal_consultant", "admin"]}},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1}
+    )
+    
+    now = datetime.now(timezone.utc).isoformat()
+    kickoff_id = str(uuid.uuid4())
+    
+    # Create kickoff request
+    kickoff_doc = {
+        "id": kickoff_id,
+        "lead_id": lead_id,
+        "agreement_id": agreement.get("id") if agreement else None,
+        "agreement_number": agreement.get("agreement_number") if agreement else None,
+        "client_id": lead.get("client_id") or (client.get("id") if client else None),
+        "client_name": lead.get("company") or (client.get("company_name") if client else ""),
+        "contact_person": lead.get("first_name", "") + " " + lead.get("last_name", ""),
+        "contact_email": lead.get("email"),
+        "contact_phone": lead.get("phone"),
+        "project_name": f"{lead.get('company', 'New')} Consulting Project",
+        "project_description": lead.get("requirements") or lead.get("notes") or "Auto-created from won deal",
+        "estimated_value": agreement.get("total_value") if agreement else lead.get("budget"),
+        "expected_start_date": None,  # To be confirmed by client
+        "expected_duration_months": 3,  # Default
+        "assigned_consultant_id": principal.get("id") if principal else None,
+        "assigned_consultant_name": principal.get("full_name") if principal else None,
+        "status": "pending",  # Pending Principal Consultant approval
+        "source": "auto_from_won_deal",  # Track auto-creation
+        "created_by": current_user.id,
+        "created_by_name": current_user.full_name,
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.kickoff_requests.insert_one(kickoff_doc)
+    
+    # Update lead with kickoff reference
+    await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "kickoff_id": kickoff_id,
+            "kickoff_created_at": now,
+            "updated_at": now
+        }}
+    )
+    
+    # Audit log
+    await log_audit(
+        action="lead.auto_kickoff_created",
+        entity_type="kickoff_request",
+        entity_id=kickoff_id,
+        performed_by=current_user.id,
+        after_state={
+            "lead_id": lead_id,
+            "status": "pending",
+            "source": "auto_from_won_deal"
+        },
+        metadata={
+            "lead_company": lead.get("company"),
+            "has_agreement": agreement is not None,
+            "assigned_to": principal.get("full_name") if principal else None
+        }
+    )
+    
+    # Send notification to Principal Consultant
+    if principal and background_tasks:
+        from services.notification_service import create_notification
+        notification_data = {
+            "user_id": principal.get("id"),
+            "title": "New Kickoff Request (Auto-Created)",
+            "message": f"Deal won: {lead.get('company')} - Kickoff request created automatically. Please review and approve.",
+            "type": "kickoff_request",
+            "entity_type": "kickoff_request",
+            "entity_id": kickoff_id,
+            "priority": "high"
+        }
+        background_tasks.add_task(create_notification, notification_data)
+    
+    return {
+        "action": "created",
+        "kickoff_id": kickoff_id,
+        "assigned_to": principal.get("full_name") if principal else None,
+        "status": "pending"
+    }
 
 
 @router.post("", response_model=Lead)
@@ -467,9 +607,15 @@ async def get_lead(lead_id: str, current_user: User = Depends(get_current_user))
 async def update_lead(
     lead_id: str,
     lead_update: LeadUpdate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user)
 ):
-    """Update a lead."""
+    """
+    Update a lead.
+    
+    GOVERNANCE: If stage changes to 'closed_won', automatically creates a kickoff request
+    for seamless Sales to Consulting handoff.
+    """
     db = get_db()
     if current_user.role == UserRole.MANAGER:
         raise HTTPException(status_code=403, detail="Managers can only view and download")
@@ -480,6 +626,15 @@ async def update_lead(
     
     update_data = lead_update.model_dump(exclude_unset=True)
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # Track status change for auto-kickoff (closed_won triggers kickoff)
+    old_status = lead_data.get("status")
+    new_status = update_data.get("status")
+    status_changed_to_won = (
+        new_status and 
+        new_status.lower() in ["closed_won", "closedwon", "won"] and
+        old_status != new_status
+    )
     
     # Recalculate lead score with updated data
     merged_data = {**lead_data, **update_data}
@@ -495,6 +650,21 @@ async def update_lead(
     # Invalidate Redis cache for this lead
     await CacheInvalidation.lead(lead_id)
     
+    # AUTO-KICKOFF: If deal is won, create kickoff request
+    kickoff_result = None
+    if status_changed_to_won:
+        updated_lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        kickoff_result = await auto_create_kickoff_from_won_deal(
+            db, updated_lead, current_user, background_tasks
+        )
+        
+        # Add kickoff info to update response
+        if kickoff_result.get("action") == "created":
+            await db.leads.update_one(
+                {"id": lead_id},
+                {"$set": {"auto_kickoff_result": kickoff_result}}
+            )
+    
     updated_lead_data = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if isinstance(updated_lead_data.get('created_at'), str):
         updated_lead_data['created_at'] = datetime.fromisoformat(updated_lead_data['created_at'])
@@ -502,6 +672,10 @@ async def update_lead(
         updated_lead_data['updated_at'] = datetime.fromisoformat(updated_lead_data['updated_at'])
     if updated_lead_data.get('enriched_at') and isinstance(updated_lead_data['enriched_at'], str):
         updated_lead_data['enriched_at'] = datetime.fromisoformat(updated_lead_data['enriched_at'])
+    
+    # Include kickoff result in response metadata
+    if kickoff_result:
+        updated_lead_data['_kickoff_result'] = kickoff_result
     
     return Lead(**updated_lead_data)
 

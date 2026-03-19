@@ -687,6 +687,23 @@ async def sync_project_assignments(
         
         await db.consultant_assignments.insert_one(assignment)
         created += 1
+        
+        # Send notification to the assigned consultant
+        try:
+            from services.notification_service import create_notification
+            notification_data = {
+                "user_id": user["id"],
+                "title": "New Project Assignment",
+                "message": f"You have been assigned to project: {project.get('name') or project.get('project_name')}",
+                "type": "project_assignment",
+                "entity_type": "project",
+                "entity_id": project_id,
+                "priority": "normal",
+                "action_url": f"/projects/{project_id}"
+            }
+            await create_notification(notification_data)
+        except Exception as e:
+            print(f"Failed to send assignment notification: {e}")
     
     # Audit log
     if created > 0:
@@ -706,7 +723,8 @@ async def sync_project_assignments(
         "message": f"Synced {created} new assignments",
         "created": created,
         "total_members": len(all_members),
-        "existing_assignments": len(existing_ids)
+        "existing_assignments": len(existing_ids),
+        "notifications_sent": created
     }
 
 
