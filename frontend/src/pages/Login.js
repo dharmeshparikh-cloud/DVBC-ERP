@@ -9,8 +9,8 @@ import { toast } from 'sonner';
 import { 
   IdCard, Lock, Eye, EyeOff, ArrowRight, 
   LayoutDashboard, Users, Briefcase, BarChart3, 
-  FileText, Calendar, Receipt, Shield, TrendingUp,
-  Building2, UserCheck, ClipboardList
+  Receipt, Shield, Zap, Clock, FileCheck, 
+  Bell, GitBranch, Layers
 } from 'lucide-react';
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_service-flow-mgmt/artifacts/g8hoyjfe_DVBC%20NEW%20LOGO%201.png";
@@ -74,181 +74,254 @@ const Login = () => {
   };
 
   const features = [
-    { icon: LayoutDashboard, title: 'Dashboard' },
-    { icon: Users, title: 'HR' },
-    { icon: Briefcase, title: 'Projects' },
-    { icon: TrendingUp, title: 'Sales' },
-    { icon: Calendar, title: 'Meetings' },
-    { icon: Receipt, title: 'Expenses' },
-    { icon: FileText, title: 'SOW' },
-    { icon: BarChart3, title: 'Analytics' },
-    { icon: Building2, title: 'Clients' },
-    { icon: UserCheck, title: 'Attendance' },
-    { icon: ClipboardList, title: 'Approvals' },
-    { icon: Shield, title: 'Governance' },
+    { 
+      icon: LayoutDashboard, 
+      title: 'Unified Dashboard', 
+      desc: 'Complete business overview at a glance'
+    },
+    { 
+      icon: Users, 
+      title: 'HR Management', 
+      desc: 'Employee lifecycle, payroll & attendance'
+    },
+    { 
+      icon: Briefcase, 
+      title: 'Project Control', 
+      desc: 'End-to-end project delivery tracking'
+    },
+    { 
+      icon: BarChart3, 
+      title: 'Sales Pipeline', 
+      desc: 'Lead to closure with full visibility'
+    },
+    { 
+      icon: Receipt, 
+      title: 'Expense & Claims', 
+      desc: 'Automated approvals & reimbursements'
+    },
+    { 
+      icon: FileCheck, 
+      title: 'SOW & Contracts', 
+      desc: 'Digital agreement management'
+    },
+  ];
+
+  const highlights = [
+    { icon: Shield, text: 'Enterprise Security' },
+    { icon: Zap, text: 'Real-time Sync' },
+    { icon: Clock, text: '24/7 Availability' },
+    { icon: Bell, text: 'Smart Notifications' },
+    { icon: GitBranch, text: 'Workflow Automation' },
+    { icon: Layers, text: 'Multi-level Approvals' },
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col" data-testid="main-login-page">
-      {/* Feature Banner - Top */}
-      <div className="w-full bg-neutral-900 border-b border-neutral-800 py-6 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-5">
-            <h2 className="text-white text-xl font-semibold tracking-wide">NETRA Enterprise Platform</h2>
-            <p className="text-neutral-500 text-sm mt-1">Complete Business Management Solution</p>
+    <div className="min-h-screen flex" data-testid="main-login-page">
+      {/* Left Side - Features */}
+      <div className="hidden lg:flex lg:w-[55%] bg-neutral-950 flex-col justify-between p-12 relative overflow-hidden">
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-950 to-black opacity-80" />
+        
+        {/* Content */}
+        <div className="relative z-10">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-2 mb-8">
+            <Zap className="w-4 h-4 text-amber-500" />
+            <span className="text-amber-500 text-sm font-medium">Enterprise Business Platform</span>
           </div>
-          <div className="flex flex-wrap justify-center gap-5">
+
+          {/* Headline */}
+          <h1 className="text-5xl font-bold text-white leading-tight mb-4">
+            Your Complete
+            <br />
+            <span className="text-amber-500">Enterprise Solution</span>
+          </h1>
+          
+          <p className="text-neutral-400 text-lg max-w-lg mb-12">
+            Manage sales, HR, projects, and operations from a single powerful platform designed for modern businesses.
+          </p>
+
+          {/* Feature Grid - 6 boxes */}
+          <div className="grid grid-cols-2 gap-4 mb-12">
             {features.map((feature, idx) => (
               <div 
                 key={idx}
-                className="flex flex-col items-center gap-2 group cursor-default"
+                className="bg-neutral-900/80 border border-neutral-800 rounded-xl p-5 hover:border-amber-500/30 hover:bg-neutral-900 transition-all duration-300 group"
               >
-                <div className="w-11 h-11 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center group-hover:bg-amber-500/10 group-hover:border-amber-500/40 transition-all duration-200">
-                  <feature.icon className="w-5 h-5 text-neutral-500 group-hover:text-amber-500 transition-colors" />
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-500/20 transition-colors">
+                    <feature.icon className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">{feature.title}</h3>
+                    <p className="text-neutral-500 text-sm leading-relaxed">{feature.desc}</p>
+                  </div>
                 </div>
-                <span className="text-[11px] text-neutral-600 group-hover:text-neutral-400 font-medium transition-colors">
-                  {feature.title}
-                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom highlights */}
+        <div className="relative z-10">
+          <div className="flex flex-wrap gap-4">
+            {highlights.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-neutral-500">
+                <item.icon className="w-4 h-4 text-amber-500/70" />
+                <span className="text-sm">{item.text}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Main Content - Centered Login */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          {/* Logo & Branding */}
-          <div className="text-center mb-10">
-            <div className="inline-block p-5 bg-white rounded-2xl shadow-lg mb-6">
-              <img src={LOGO_URL} alt="D&V Logo" className="h-12 w-auto" />
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
-              Welcome back
-            </h1>
-            <p className="text-neutral-500 mt-2 text-base">
-              Sign in with your Employee ID
-            </p>
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-[45%] bg-white flex flex-col justify-center px-8 lg:px-16 py-12">
+        <div className="max-w-md mx-auto w-full">
+          {/* Logo */}
+          <div className="mb-10">
+            <img src={LOGO_URL} alt="D&V Logo" className="h-12 w-auto" />
           </div>
 
-          {/* Login Card */}
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
-            <form onSubmit={handlePasswordLogin} className="space-y-6">
-              {/* Employee ID Field */}
-              <div className="space-y-2">
-                <Label htmlFor="employeeId" className="text-sm font-medium text-neutral-300">
-                  Employee ID
-                </Label>
-                <div className={`relative transition-all duration-200 ${focusedField === 'employeeId' ? 'scale-[1.01]' : ''}`}>
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600">
-                    <IdCard className="w-5 h-5" />
-                  </div>
-                  <Input
-                    id="employeeId"
-                    type="text"
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    onFocus={() => setFocusedField('employeeId')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="EMP001 or CON001"
-                    className="pl-12 h-12 bg-neutral-950 border-neutral-700 rounded-xl text-white placeholder:text-neutral-600 focus:border-amber-500 focus:ring-amber-500/20 transition-all"
-                    required
-                    data-testid="employee-id-input"
-                  />
-                </div>
-                {employeeId.includes('@') && (
-                  <p className="text-xs text-amber-500 mt-1 flex items-center gap-1">
-                    <span>⚠</span> Enter Employee ID, not email address.
-                  </p>
-                )}
-              </div>
+          {/* Welcome Text */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Welcome back</h2>
+            <p className="text-neutral-500">Sign in to access your NETRA dashboard</p>
+          </div>
 
-              {/* Password Field */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium text-neutral-300">
-                    Password
-                  </Label>
-                  <button
-                    type="button"
-                    className="text-xs text-neutral-500 hover:text-amber-500 font-medium transition-colors"
-                    onClick={() => toast.info('Please contact HR to reset your password')}
-                  >
-                    Forgot password?
-                  </button>
+          {/* Login Form */}
+          <form onSubmit={handlePasswordLogin} className="space-y-6">
+            {/* Employee ID Field */}
+            <div className="space-y-2">
+              <Label htmlFor="employeeId" className="text-sm font-medium text-neutral-700">
+                Employee ID
+              </Label>
+              <div className={`relative transition-all duration-200 ${focusedField === 'employeeId' ? 'scale-[1.01]' : ''}`}>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <IdCard className="w-5 h-5" />
                 </div>
-                <div className={`relative transition-all duration-200 ${focusedField === 'password' ? 'scale-[1.01]' : ''}`}>
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="Enter your password"
-                    className="pl-12 pr-12 h-12 bg-neutral-950 border-neutral-700 rounded-xl text-white placeholder:text-neutral-600 focus:border-amber-500 focus:ring-amber-500/20 transition-all"
-                    required
-                    data-testid="password-input"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-400 transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Remember Me */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="rememberMe"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-600 bg-neutral-950 text-amber-500 focus:ring-amber-500/20 cursor-pointer"
+                <Input
+                  id="employeeId"
+                  type="text"
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  onFocus={() => setFocusedField('employeeId')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="EMP001 or CON001"
+                  className="pl-12 h-12 bg-neutral-50 border-neutral-200 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:border-amber-500 focus:ring-amber-500/20 transition-all"
+                  required
+                  data-testid="employee-id-input"
                 />
-                <label htmlFor="rememberMe" className="text-sm text-neutral-500 cursor-pointer select-none">
-                  Remember my Employee ID
-                </label>
               </div>
+              {employeeId.includes('@') && (
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <span>⚠</span> Enter Employee ID, not email address.
+                </p>
+              )}
+            </div>
 
-              {/* Sign In Button */}
-              <Button
-                type="submit"
-                disabled={loading || !employeeId || !password}
-                className="w-full h-12 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl font-semibold text-base transition-all duration-200 group disabled:bg-neutral-800 disabled:text-neutral-600"
-                data-testid="sign-in-button"
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-neutral-700 border-t-neutral-950 rounded-full animate-spin" />
-                    Signing in...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    Sign In
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                )}
-              </Button>
-            </form>
-          </div>
+            {/* Password Field */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-medium text-neutral-700">
+                  Password
+                </Label>
+                <button
+                  type="button"
+                  className="text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
+                  onClick={() => toast.info('Please contact HR to reset your password')}
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <div className={`relative transition-all duration-200 ${focusedField === 'password' ? 'scale-[1.01]' : ''}`}>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="Enter your password"
+                  className="pl-12 pr-12 h-12 bg-neutral-50 border-neutral-200 rounded-xl text-neutral-900 placeholder:text-neutral-400 focus:border-amber-500 focus:ring-amber-500/20 transition-all"
+                  required
+                  data-testid="password-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember Me */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-neutral-300 bg-white text-amber-500 focus:ring-amber-500/20 cursor-pointer"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-neutral-600 cursor-pointer select-none">
+                Remember my Employee ID
+              </label>
+            </div>
+
+            {/* Sign In Button */}
+            <Button
+              type="submit"
+              disabled={loading || !employeeId || !password}
+              className="w-full h-12 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl font-semibold text-base transition-all duration-200 group disabled:bg-neutral-300 disabled:text-neutral-500"
+              data-testid="sign-in-button"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-neutral-400 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  Sign In
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              )}
+            </Button>
+          </form>
 
           {/* Footer */}
-          <div className="mt-10 text-center">
-            <div className="flex items-center justify-center gap-4 text-xs text-neutral-600">
+          <div className="mt-12 pt-8 border-t border-neutral-200">
+            <div className="flex items-center justify-between text-xs text-neutral-400">
               <span>© 2026 D&V Business Consulting</span>
-              <span className="text-neutral-800">•</span>
               <div className="flex items-center gap-1">
                 <Shield className="w-3 h-3" />
                 <span>Secure Login</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Feature Banner - shown only on small screens */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 p-4">
+        <div className="flex items-center justify-center gap-6 text-xs">
+          <div className="flex items-center gap-1.5 text-neutral-400">
+            <Shield className="w-3.5 h-3.5 text-amber-500" />
+            <span>Enterprise Security</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-neutral-400">
+            <Zap className="w-3.5 h-3.5 text-amber-500" />
+            <span>Real-time Sync</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-neutral-400">
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
+            <span>24/7 Available</span>
           </div>
         </div>
       </div>
