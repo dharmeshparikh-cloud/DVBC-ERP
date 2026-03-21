@@ -13,7 +13,7 @@ from services.email_service import send_email
 logger = logging.getLogger(__name__)
 
 # Get base URL for links
-FRONTEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://consulting-hub-87.preview.emergentagent.com')
+FRONTEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-validator-test.preview.emergentagent.com')
 
 
 def generate_response_token() -> str:

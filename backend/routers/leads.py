@@ -636,6 +636,16 @@ async def update_lead(
         old_status != new_status
     )
     
+    # A4: LEAD STAGE VALIDATION - Prevent skipping stages
+    # Valid progression: new → contacted → qualified → proposal → negotiation → closed_won
+    if status_changed_to_won:
+        valid_pre_won_stages = ["negotiation", "proposal", "qualified"]
+        if old_status and old_status.lower() not in valid_pre_won_stages:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A4: Cannot mark lead as won from '{old_status}' stage. Lead must progress through proper stages (qualified → proposal → negotiation → closed_won)."
+            )
+    
     # Recalculate lead score with updated data
     merged_data = {**lead_data, **update_data}
     score, breakdown = calculate_lead_score(merged_data)

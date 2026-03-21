@@ -1,5 +1,12 @@
 """
 Expenses Router - Expense Management, Receipts, Approvals
+
+STRESS TEST VALIDATIONS (March 2026):
+- E27: Currency validation
+- E30: Duplicate receipt prevention
+- E31: Payroll cutoff validation
+- E32: Rejected expense payment prevention
+- I52: Self-approval prevention
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -12,6 +19,7 @@ from .deps import get_db, sanitize_text, get_role_group, has_role
 from .deps import get_current_user
 from services.approval_notifications import send_approval_notification
 from websocket_manager import get_manager as get_ws_manager
+from services.erp_validator import get_validator
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
@@ -490,12 +498,27 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
     
     ACCESS: HR roles can approve pending expenses. Admin can approve at any stage.
     Uses RBAC service with fail-closed behavior for financial security.
+    
+    STRESS TEST VALIDATIONS:
+    - I52: Self-approval prevention
+    - E31: Payroll cutoff validation
     """
     db = get_db()
+    # Note: validator available for future complex validations
+    _ = get_validator(db)
     
     expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
     if not expense:
         raise HTTPException(status_code=404, detail="Expense not found")
+    
+    # I52: SELF-APPROVAL PREVENTION
+    # Check if the approver is the same person who created/owns the expense
+    expense_owner_id = expense.get("user_id") or expense.get("created_by")
+    if expense_owner_id == current_user.id:
+        raise HTTPException(
+            status_code=403, 
+            detail="I52: Cannot approve your own expense. Self-approval is prohibited."
+        )
     
     current_status = expense.get("status")
     approval_flow = expense.get("approval_flow", [])
@@ -589,7 +612,19 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
             }
         else:
             # Small expense - HR approval is final
-            payroll_period = datetime.now(timezone.utc).strftime("%Y-%m")
+            # E31: PAYROLL CUTOFF VALIDATION
+            # If approved after 15th of the month, expense goes to next month's payroll
+            approval_date = datetime.now(timezone.utc)
+            if approval_date.day > 15:
+                # Move to next month
+                next_month = approval_date.month + 1
+                next_year = approval_date.year
+                if next_month > 12:
+                    next_month = 1
+                    next_year += 1
+                payroll_period = f"{next_year}-{next_month:02d}"
+            else:
+                payroll_period = approval_date.strftime("%Y-%m")
             
             await db.expenses.update_one(
                 {"id": expense_id},
@@ -688,7 +723,18 @@ async def approve_expense(expense_id: str, data: dict, current_user: User = Depe
                 step["approved_at"] = now
                 step["remarks"] = data.get("remarks", "")
         
-        payroll_period = datetime.now(timezone.utc).strftime("%Y-%m")
+        # E31: PAYROLL CUTOFF VALIDATION for Admin approval
+        approval_date = datetime.now(timezone.utc)
+        if approval_date.day > 15:
+            # Move to next month
+            next_month = approval_date.month + 1
+            next_year = approval_date.year
+            if next_month > 12:
+                next_month = 1
+                next_year += 1
+            payroll_period = f"{next_year}-{next_month:02d}"
+        else:
+            payroll_period = approval_date.strftime("%Y-%m")
         
         await db.expenses.update_one(
             {"id": expense_id},

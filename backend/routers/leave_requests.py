@@ -174,6 +174,14 @@ async def rm_approve_leave(leave_id: str, data: dict = None, current_user: User 
     if leave.get("status") != "pending":
         raise HTTPException(status_code=400, detail="Leave request is not pending")
     
+    # I52: SELF-APPROVAL PREVENTION
+    employee = await db.employees.find_one({"id": leave.get("employee_id")}, {"_id": 0, "user_id": 1})
+    if employee and employee.get("user_id") == current_user.id:
+        raise HTTPException(
+            status_code=403, 
+            detail="I52: Cannot approve your own leave request. Self-approval is prohibited."
+        )
+    
     action = data.get("action", "approve") if data else "approve"
     comments = data.get("comments", "") if data else ""
     

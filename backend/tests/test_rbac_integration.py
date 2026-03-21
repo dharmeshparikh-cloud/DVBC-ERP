@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 
 # Use the preview URL for testing
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://consulting-hub-87.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://erp-validator-test.preview.emergentagent.com')
 
 class TestRBACIntegration:
     """Test RBAC integration after Phase 3-5 migration"""

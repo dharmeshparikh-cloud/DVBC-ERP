@@ -224,6 +224,20 @@ async def create_employee(data: dict, current_user: User = Depends(get_current_u
     reporting_manager_id = data.get("reporting_manager_id")
     is_self_reporting = reporting_manager_id == "SELF"
     
+    # B12: REPORTING MANAGER VALIDATION - Prevent assigning to inactive/terminated manager
+    if reporting_manager_id and not is_self_reporting:
+        rm = await db.employees.find_one(
+            {"id": reporting_manager_id},
+            {"_id": 0, "go_live_status": 1, "status": 1, "first_name": 1, "last_name": 1}
+        )
+        if rm:
+            rm_status = rm.get("go_live_status") or rm.get("status")
+            if rm_status in ["inactive", "terminated", "exited"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"B12: Cannot assign {rm.get('first_name', '')} {rm.get('last_name', '')} as reporting manager - they are {rm_status}."
+                )
+    
     # Set up departments array - department determines page access
     primary_department = data.get("department")
     departments = data.get("departments", [primary_department] if primary_department else [])

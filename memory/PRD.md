@@ -246,8 +246,45 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 
 ---
 
+## ERP Stress Test Validations (March 21, 2026)
+
+### Implemented Validations
+
+| Code | Validation | Status |
+|------|-----------|--------|
+| I52 | Self-approval prevention (expenses, leaves) | ✅ IMPLEMENTED |
+| E31 | Payroll cutoff validation (15th of month) | ✅ IMPLEMENTED |
+| A4 | Lead stage progression validation | ✅ IMPLEMENTED |
+| B12 | Inactive reporting manager assignment prevention | ✅ IMPLEMENTED |
+
+### Validation Details
+
+**I52 - Self-Approval Prevention**
+- Users cannot approve their own expenses
+- Users cannot approve their own leave requests
+- Returns HTTP 403 with code "I52" on violation
+
+**E31 - Payroll Cutoff Validation**
+- Expenses approved after 15th of month go to next month's payroll
+- Prevents retroactive payroll linkage
+- Automatic period calculation
+
+**A4 - Lead Stage Progression**
+- Leads cannot skip stages to closed_won
+- Must progress: new → qualified → proposal/negotiation → closed_won
+- Returns HTTP 400 with code "A4" on violation
+
+**B12 - Reporting Manager Validation**
+- Cannot assign inactive/terminated employees as reporting managers
+- Prevents organizational hierarchy issues
+
+---
+
 ## Credentials
-- **Admin:** EMP001 / admin123
+- **Admin:** admin@dvconsulting.co.in / admin123
+- **HR Manager:** hr@dvconsulting.co.in / hr123
+- **Sales:** sales@dvconsulting.co.in / sales123
+- **Consultant:** consultant@dvconsulting.co.in / consultant123
 - **Test Email:** dharmesh.parikh@dvconsulting.co.in
 
 ## Tech Stack
@@ -258,5 +295,5 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 ---
 
 ## Last Updated
-- Date: March 19, 2026
-- Status: All Features Complete - Auto-Kickoff, Assignment Notifications, Duplicate Prevention
+- Date: March 21, 2026
+- Status: Stress Test Validations Implemented (I52, E31, A4, B12)

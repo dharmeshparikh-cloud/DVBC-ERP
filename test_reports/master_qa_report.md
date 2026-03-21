@@ -1,7 +1,7 @@
 # 🧪 MASTER QA TEST REPORT: Consulting Workflow
 **Date:** March 18-19, 2026  
 **Tester:** Automated E2E Testing  
-**App URL:** https://consulting-hub-87.preview.emergentagent.com
+**App URL:** https://erp-validator-test.preview.emergentagent.com
 **Status:** ✅ ALL CRITICAL ISSUES FIXED
 
 ---
