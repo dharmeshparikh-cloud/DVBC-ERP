@@ -246,6 +246,24 @@ DRAFT → PENDING_APPROVAL → APPROVED → CONDUCTED → MOM_RECORDED → DELIV
 
 ---
 
+## Login Governance (March 21, 2026)
+
+### Authentication Policy
+- **Employee ID Login ONLY** - Email login disabled for password authentication
+- **Google OAuth** - Available for @dvconsulting.co.in email accounts
+- Frontend validation prevents email submission in Employee ID field
+- Backend enforces login governance with clear error messages
+
+### Employee Credentials
+| Role | Employee ID | Password |
+|------|-------------|----------|
+| Admin | EMP001 | admin123 |
+| HR Manager | EMP002 | hr123 |
+| Sales Executive | EMP003 | sales123 |
+| Consultant | CON001 | consultant123 |
+
+---
+
 ## ERP Stress Test Validations (March 21, 2026)
 
 ### Implemented Validations

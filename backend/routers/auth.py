@@ -122,30 +122,41 @@ async def register(user_create: UserCreate):
 
 @router.post("/login", response_model=Token)
 async def login(user_login: UserLogin, request: Request = None):
-    """Login with Employee ID or email and password."""
+    """
+    Login with Employee ID and password.
+    
+    LOGIN GOVERNANCE:
+    - Only Employee ID login is allowed (e.g., EMP001, CON001)
+    - Email login is disabled for security compliance
+    - Use Google OAuth for @dvconsulting.co.in email login
+    """
     db = get_db()
     
     user_data = None
     login_identifier = None
     
-    # Priority: Employee ID > Email
-    if user_login.employee_id:
-        # Look up user by employee_id from employees collection
-        employee = await db.employees.find_one({"employee_id": user_login.employee_id.upper()}, {"_id": 0})
-        if employee:
-            # Get linked user
-            user_data = await db.users.find_one({"email": employee.get("email")}, {"_id": 0})
-            login_identifier = user_login.employee_id
-        else:
-            # Also check if employee_id is stored directly in users (for admin/hr)
-            user_data = await db.users.find_one({"employee_id": user_login.employee_id.upper()}, {"_id": 0})
-            login_identifier = user_login.employee_id
-    elif user_login.email:
-        # Fallback to email login (for backward compatibility and admin users)
-        user_data = await db.users.find_one({"email": user_login.email}, {"_id": 0})
-        login_identifier = user_login.email
+    # LOGIN GOVERNANCE: Only Employee ID login allowed
+    if not user_login.employee_id:
+        raise HTTPException(status_code=400, detail="Employee ID is required for login")
+    
+    # Check if user entered email instead of Employee ID
+    if "@" in user_login.employee_id:
+        await log_security_event("email_login_attempt", email=user_login.employee_id, details={"reason": "email_not_allowed"}, request=request)
+        raise HTTPException(
+            status_code=400, 
+            detail="Email login is not allowed. Please use your Employee ID (e.g., EMP001, CON001). For email login, use Google Sign-In."
+        )
+    
+    # Look up user by employee_id from employees collection
+    employee = await db.employees.find_one({"employee_id": user_login.employee_id.upper()}, {"_id": 0})
+    if employee:
+        # Get linked user
+        user_data = await db.users.find_one({"email": employee.get("email")}, {"_id": 0})
+        login_identifier = user_login.employee_id
     else:
-        raise HTTPException(status_code=400, detail="Employee ID or Email is required")
+        # Also check if employee_id is stored directly in users (for admin/hr)
+        user_data = await db.users.find_one({"employee_id": user_login.employee_id.upper()}, {"_id": 0})
+        login_identifier = user_login.employee_id
     
     if not user_data:
         await log_security_event("password_login_failed", email=login_identifier, details={"reason": "user_not_found"}, request=request)

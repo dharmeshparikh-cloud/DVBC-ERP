@@ -72,6 +72,13 @@ const Login = () => {
 
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
+    
+    // LOGIN GOVERNANCE: Validate Employee ID format
+    if (employeeId.includes('@')) {
+      toast.error('Please enter your Employee ID (e.g., EMP001), not email address. For email login, use Google Sign-In below.');
+      return;
+    }
+    
     setLoading(true);
     try {
       const loginPayload = { employee_id: employeeId.toUpperCase(), password };
@@ -145,11 +152,16 @@ const Login = () => {
                   onChange={(e) => setEmployeeId(e.target.value)}
                   onFocus={() => setFocusedField('employeeId')}
                   onBlur={() => setFocusedField(null)}
-                  placeholder="EMP001"
+                  placeholder="EMP001 or CON001"
                   className="pl-12 h-12 bg-white border-zinc-200 rounded-xl text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all"
                   required
                   data-testid="employee-id-input"
                 />
+                {employeeId.includes('@') && (
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <span>⚠</span> Enter Employee ID, not email. For email login, use Google Sign-In.
+                  </p>
+                )}
               </div>
             </div>
 
