@@ -131,20 +131,12 @@ const Login = () => {
           </div>
 
           {/* Headline */}
-          <h1 className="text-5xl font-bold text-white leading-tight mb-4">
-            No Guesswork.
-            <br />
-            <span className="text-amber-500">Just Systems.</span>
+          <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-4">
+            No Guesswork. <span className="text-amber-500">Just Systems.</span>
           </h1>
           
-          <p className="text-neutral-400 text-lg max-w-lg mb-12">
-            <span className="text-neutral-300">SOP-Based Workflows</span>
-            <span className="mx-3 text-amber-500/60">|</span>
-            <span className="text-neutral-300">Real-Time Visibility</span>
-            <span className="mx-3 text-amber-500/60">|</span>
-            <span className="text-neutral-300">Full Control</span>
-            <span className="mx-3 text-amber-500/60">|</span>
-            <span className="text-neutral-300">Zero Chaos</span>
+          <p className="text-neutral-300 text-base lg:text-lg mb-12 whitespace-nowrap">
+            SOP-Based Workflows<span className="mx-2 text-amber-500/60">|</span>Real-Time Visibility<span className="mx-2 text-amber-500/60">|</span>Full Control<span className="mx-2 text-amber-500/60">|</span>Zero Chaos
           </p>
 
           {/* Feature Grid - 6 boxes */}
