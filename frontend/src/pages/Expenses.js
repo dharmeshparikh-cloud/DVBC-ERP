@@ -94,8 +94,8 @@ const Expenses = () => {
       
       return {
         expenses: expensesRes.data || [],
-        clients: clientsRes.data || [],
-        projects: projectsRes.data || [],
+        clients: Array.isArray(clientsRes.data) ? clientsRes.data : (clientsRes.data?.items || []),
+        projects: Array.isArray(projectsRes.data) ? projectsRes.data : (projectsRes.data?.items || projectsRes.data?.projects || []),
         stats
       };
     },
