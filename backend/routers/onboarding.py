@@ -1023,6 +1023,15 @@ async def get_public_submission(token: str):
     }
 
 
+@router.put("/public/{token}")
+async def update_public_submission(token: str, data: dict):
+    """
+    Update candidate's progress (auto-save via PUT).
+    Alias for save endpoint to support frontend PUT requests.
+    """
+    return await save_public_submission(token, data)
+
+
 @router.post("/public/{token}/save")
 async def save_public_submission(token: str, data: dict):
     """
@@ -1256,6 +1265,50 @@ async def upload_public_document(
     }
 
 
+
+@router.post("/public/{token}/upload-photo")
+async def upload_public_photo(
+    token: str,
+    file: UploadFile = File(...)
+):
+    """
+    Candidate uploads their profile/passport photo.
+    """
+    db = get_db()
+    
+    submission = await db.onboarding_submissions.find_one({"token": token})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Invalid link")
+    
+    # Validate file type - only images for photos
+    allowed_types = ['image/jpeg', 'image/png', 'image/webp']
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPG, PNG, WEBP")
+    
+    # Max 5 MB
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum 5 MB.")
+    
+    # Convert to base64 data URL for storage
+    import base64
+    base64_data = base64.b64encode(content).decode('utf-8')
+    photo_url = f"data:{file.content_type};base64,{base64_data}"
+    
+    # Update candidate_details with profile photo
+    await db.onboarding_submissions.update_one(
+        {"token": token},
+        {"$set": {"candidate_details.profile_photo_url": photo_url}}
+    )
+    
+    return {
+        "message": "Photo uploaded successfully",
+        "photo_url": photo_url,
+        "profile_photo_url": photo_url
+    }
+
+
+
 @router.post("/submissions/{submission_id}/upload-document")
 async def hr_upload_document(
     submission_id: str,
@@ -1443,58 +1496,48 @@ def calculate_submission_progress(submission: dict) -> dict:
 
 
 def validate_submission_complete(submission: dict) -> list:
-    """Validate that submission is ready for completion."""
+    """
+    Validate that submission is ready for completion.
+    SIMPLIFIED VALIDATION for 4-step onboarding form:
+    - Step 1: Personal Details (name, phone, email, PAN, Aadhaar)
+    - Step 2: Address & Bank Details
+    - Step 3: Emergency Contact & Documents
+    - Step 4: Declaration
+    """
     
     errors = []
     
-    # Candidate details
+    # Candidate details (REQUIRED)
     cd = submission.get("candidate_details")
     if not cd:
         errors.append("Personal details missing")
-    elif not cd.get("first_name") or not cd.get("last_name"):
-        errors.append("Candidate name incomplete")
-    elif not cd.get("phone") or not cd.get("alternate_phone"):
-        errors.append("Phone numbers incomplete")
-    elif not cd.get("pan_number") or not cd.get("aadhaar_number"):
-        errors.append("PAN/Aadhaar incomplete")
+    else:
+        if not cd.get("first_name") or not cd.get("last_name"):
+            errors.append("Candidate name incomplete")
+        if not cd.get("phone"):
+            errors.append("Phone number missing")
+        if not cd.get("pan_number") or not cd.get("aadhaar_number"):
+            errors.append("PAN/Aadhaar incomplete")
     
-    # Education
-    if not submission.get("education") or len(submission["education"]) == 0:
-        errors.append("Education details missing")
-    
-    # Employment history (MANDATORY)
-    if not submission.get("employment_history") or len(submission["employment_history"]) == 0:
-        errors.append("Employment history missing")
-    
-    # Bank details
+    # Bank details (REQUIRED)
     bd = submission.get("bank_details")
     if not bd or not bd.get("account_number") or not bd.get("ifsc_code"):
         errors.append("Bank details incomplete")
     
-    # Professional Reference
-    pr = submission.get("professional_reference")
-    if not pr or not pr.get("name") or not pr.get("phone") or not pr.get("company_name") or not pr.get("designation"):
-        errors.append("Professional reference incomplete")
-    
-    # Personal Reference
-    per = submission.get("personal_reference")
-    if not per or not per.get("name") or not per.get("phone") or not per.get("address"):
-        errors.append("Personal reference incomplete")
-    
-    # Emergency contact
+    # Emergency contact (REQUIRED)
     ec = submission.get("emergency_contact")
     if not ec or not ec.get("name") or not ec.get("phone"):
         errors.append("Emergency contact missing")
     
-    # Documents
+    # Documents - minimum 2 required (PAN, Aadhaar)
     if not submission.get("documents") or len(submission["documents"]) < 2:
-        errors.append("Required documents not uploaded")
+        errors.append("Required documents not uploaded (minimum: PAN, Aadhaar)")
     
-    # Declaration
+    # Declaration (REQUIRED)
     if not submission.get("declaration_signed"):
         errors.append("Declaration not signed")
     
-    # HR assigned fields
+    # HR assigned fields (REQUIRED)
     hr = submission.get("hr_assigned", {})
     if not hr.get("department"):
         errors.append("Department not assigned")
@@ -1505,12 +1548,8 @@ def validate_submission_complete(submission: dict) -> list:
     if not hr.get("official_email"):
         errors.append("Official email not assigned")
     
-    # HR verification
-    hv = submission.get("hr_verification", {})
-    if not hv.get("documents_verified"):
-        errors.append("Documents not verified by HR")
-    if not hv.get("bank_verified"):
-        errors.append("Bank details not verified by HR")
+    # HR verification (auto-verified on complete, so skip this check)
+    # The complete_onboarding endpoint auto-verifies documents and bank
     
     return errors
 

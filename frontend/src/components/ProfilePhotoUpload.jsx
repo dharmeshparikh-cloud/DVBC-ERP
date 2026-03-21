@@ -27,6 +27,8 @@ const ProfilePhotoUpload = ({
   fallbackInitials = '?',
   onUploadSuccess,
   onRemoveSuccess,
+  onPhotoChange, // Callback when photo URL changes (for onboarding form)
+  uploadEndpoint, // Custom upload endpoint (for onboarding form)
   size = 'lg', // sm, md, lg, xl
   editable = true,
   showLabel = true,
@@ -72,14 +74,23 @@ const ProfilePhotoUpload = ({
       const formData = new FormData();
       formData.append('file', file);
 
+      // Use custom endpoint if provided (for onboarding), otherwise use employee endpoint
+      const endpoint = uploadEndpoint || `${API}/employees/${employeeId}/photo`;
+      
       const response = await axios.post(
-        `${API}/employees/${employeeId}/photo`,
+        endpoint,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
 
       toast.success('Photo uploaded successfully');
-      setPreviewUrl(response.data.profile_photo_url);
+      const photoUrl = response.data.profile_photo_url || response.data.photo_url;
+      setPreviewUrl(photoUrl);
+      
+      // Call appropriate callback
+      if (onPhotoChange) {
+        onPhotoChange(photoUrl);
+      }
       onUploadSuccess?.(response.data);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to upload photo');
