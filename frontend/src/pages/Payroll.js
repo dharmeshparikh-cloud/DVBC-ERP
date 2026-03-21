@@ -582,7 +582,7 @@ const Payroll = () => {
                 <DialogTitle>Salary Slip — {viewSlip.month}</DialogTitle>
                 <DialogDescription>{viewSlip.employee_name} ({viewSlip.employee_code})</DialogDescription>
               </DialogHeader>
-              <div className="space-y-4" data-testid="salary-slip-detail">
+              <div className="space-y-4" data-testid="salary-slip-detail" id="salary-slip-content">
                 <div className="grid grid-cols-2 gap-2 text-sm border border-zinc-200 rounded-sm p-4">
                   <div><span className="text-zinc-500">Gross:</span> <span className="font-medium">{fmt(viewSlip.gross_salary)}</span></div>
                   <div><span className="text-zinc-500">Present:</span> <span className="font-medium">{viewSlip.present_days} days</span></div>
@@ -608,6 +608,123 @@ const Payroll = () => {
                 <div className="bg-zinc-900 rounded-sm p-4 text-center">
                   <div className="text-[10px] uppercase tracking-widest text-zinc-400 mb-0.5">Net Pay</div>
                   <div className="text-2xl font-bold text-white" data-testid="net-pay">{fmt(viewSlip.net_salary)}</div>
+                </div>
+                {/* Download & Print Buttons */}
+                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-200">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const content = `
+D&V BUSINESS CONSULTING - SALARY SLIP
+======================================
+Month: ${viewSlip.month}
+Employee: ${viewSlip.employee_name} (${viewSlip.employee_code})
+Department: ${viewSlip.department || 'N/A'}
+Designation: ${viewSlip.designation || 'N/A'}
+
+ATTENDANCE
+----------
+Working Days: ${viewSlip.working_days || 30}
+Present Days: ${viewSlip.present_days}
+Absent Days: ${viewSlip.absent_days}
+Leaves: ${viewSlip.leaves || 0}
+
+EARNINGS
+--------
+${(viewSlip.earnings || []).map(e => `${e.name}: ${fmt(e.amount)}`).join('\n')}
+--------------------------------------
+Total Earnings: ${fmt(viewSlip.total_earnings)}
+
+DEDUCTIONS
+----------
+${(viewSlip.deductions || []).map(d => `${d.name}: ${fmt(d.amount)}`).join('\n')}
+--------------------------------------
+Total Deductions: ${fmt(viewSlip.total_deductions)}
+
+======================================
+NET PAY: ${fmt(viewSlip.net_salary)}
+======================================
+
+Bank: ${viewSlip.bank_name || 'N/A'}
+Account: ${viewSlip.bank_account_number ? '****' + viewSlip.bank_account_number.slice(-4) : 'N/A'}
+Generated: ${new Date().toLocaleString()}
+                      `;
+                      const blob = new Blob([content], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `SalarySlip_${viewSlip.employee_code}_${viewSlip.month}.txt`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      toast.success('Salary slip downloaded');
+                    }}
+                    data-testid="download-slip-btn"
+                  >
+                    <Download className="w-4 h-4 mr-1" /> Download
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const printContent = document.getElementById('salary-slip-content');
+                      const printWindow = window.open('', '_blank');
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Salary Slip - ${viewSlip.employee_name} - ${viewSlip.month}</title>
+                            <style>
+                              body { font-family: Arial, sans-serif; padding: 20px; }
+                              h1 { text-align: center; margin-bottom: 20px; }
+                              .header { text-align: center; margin-bottom: 30px; }
+                              .section { margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; }
+                              .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+                              .total { font-weight: bold; border-top: 2px solid #333; margin-top: 10px; padding-top: 10px; }
+                              .net-pay { background: #1a1a1a; color: white; padding: 20px; text-align: center; font-size: 24px; margin-top: 20px; }
+                              @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="header">
+                              <h1>D&V Business Consulting</h1>
+                              <h2>Salary Slip - ${viewSlip.month}</h2>
+                              <p><strong>${viewSlip.employee_name}</strong> (${viewSlip.employee_code})</p>
+                            </div>
+                            <div class="section">
+                              <h3>Attendance</h3>
+                              <div class="row"><span>Working Days:</span><span>${viewSlip.working_days || 30}</span></div>
+                              <div class="row"><span>Present:</span><span>${viewSlip.present_days}</span></div>
+                              <div class="row"><span>Absent:</span><span>${viewSlip.absent_days}</span></div>
+                            </div>
+                            <div style="display: flex; gap: 20px;">
+                              <div class="section" style="flex: 1;">
+                                <h3 style="color: green;">Earnings</h3>
+                                ${(viewSlip.earnings || []).map(e => `<div class="row"><span>${e.name}</span><span>${fmt(e.amount)}</span></div>`).join('')}
+                                <div class="row total"><span>Total</span><span>${fmt(viewSlip.total_earnings)}</span></div>
+                              </div>
+                              <div class="section" style="flex: 1;">
+                                <h3 style="color: red;">Deductions</h3>
+                                ${(viewSlip.deductions || []).map(d => `<div class="row"><span>${d.name}</span><span>${fmt(d.amount)}</span></div>`).join('')}
+                                <div class="row total"><span>Total</span><span>${fmt(viewSlip.total_deductions)}</span></div>
+                              </div>
+                            </div>
+                            <div class="net-pay">
+                              <div style="font-size: 12px; margin-bottom: 5px;">NET PAY</div>
+                              <strong>${fmt(viewSlip.net_salary)}</strong>
+                            </div>
+                            <p style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+                              Generated on ${new Date().toLocaleString()}
+                            </p>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }}
+                    data-testid="print-slip-btn"
+                  >
+                    <FileText className="w-4 h-4 mr-1" /> Print
+                  </Button>
                 </div>
               </div>
             </>
