@@ -132,13 +132,19 @@ const Login = () => {
 
           {/* Headline */}
           <h1 className="text-5xl font-bold text-white leading-tight mb-4">
-            Your Complete
+            No Guesswork.
             <br />
-            <span className="text-amber-500">Enterprise Solution</span>
+            <span className="text-amber-500">Just Systems.</span>
           </h1>
           
           <p className="text-neutral-400 text-lg max-w-lg mb-12">
-            Manage sales, HR, projects, and operations from a single powerful platform designed for modern businesses.
+            <span className="text-neutral-300">SOP-Based Workflows</span>
+            <span className="mx-3 text-amber-500/60">|</span>
+            <span className="text-neutral-300">Real-Time Visibility</span>
+            <span className="mx-3 text-amber-500/60">|</span>
+            <span className="text-neutral-300">Full Control</span>
+            <span className="mx-3 text-amber-500/60">|</span>
+            <span className="text-neutral-300">Zero Chaos</span>
           </p>
 
           {/* Feature Grid - 6 boxes */}
