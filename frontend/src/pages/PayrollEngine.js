@@ -55,6 +55,7 @@ export default function PayrollEngine() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [activeTab, setActiveTab] = useState('test-mode');
+  const [registerViewMode, setRegisterViewMode] = useState('detailed'); // 'detailed' or 'table'
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -1180,10 +1181,35 @@ export default function PayrollEngine() {
                     Detailed employee-wise payroll breakdown with full traceability
                   </CardDescription>
                 </div>
-                <Button variant="outline" onClick={handleExport} data-testid="btn-export">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export CSV
-                </Button>
+                <div className="flex items-center gap-2">
+                  {/* View Mode Toggle */}
+                  <div className={`flex rounded-lg p-1 ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
+                    <button
+                      onClick={() => setRegisterViewMode('table')}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                        registerViewMode === 'table' 
+                          ? (isDark ? 'bg-zinc-700 text-white' : 'bg-white text-gray-900 shadow') 
+                          : (isDark ? 'text-zinc-400' : 'text-gray-500')
+                      }`}
+                    >
+                      Table View
+                    </button>
+                    <button
+                      onClick={() => setRegisterViewMode('detailed')}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                        registerViewMode === 'detailed' 
+                          ? (isDark ? 'bg-zinc-700 text-white' : 'bg-white text-gray-900 shadow') 
+                          : (isDark ? 'text-zinc-400' : 'text-gray-500')
+                      }`}
+                    >
+                      Detailed View
+                    </button>
+                  </div>
+                  <Button variant="outline" onClick={handleExport} data-testid="btn-export">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export CSV
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1195,7 +1221,7 @@ export default function PayrollEngine() {
               ) : registerDetails?.calculations?.length > 0 ? (
                 <div className="space-y-4">
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-5 gap-3 mb-6">
+                  <div className="grid grid-cols-6 gap-3 mb-6">
                     <div className={`p-3 rounded-lg ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
                       <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Total Employees</p>
                       <p className="text-xl font-bold">{registerDetails.calculations.length}</p>
@@ -1224,157 +1250,317 @@ export default function PayrollEngine() {
                         {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.tds_details?.monthly_tds || 0), 0))}
                       </p>
                     </div>
+                    <div className={`p-3 rounded-lg ${isDark ? 'bg-amber-900/30' : 'bg-amber-50'}`}>
+                      <p className={`text-xs ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>Total Expenses</p>
+                      <p className="text-xl font-bold text-amber-600">
+                        {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.reimbursements || 0), 0))}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Detailed Employee Cards */}
-                  <div className="space-y-4">
-                    {registerDetails.calculations.map((calc, i) => {
-                      const lopDed = calc.deductions?.find(d => d.key === 'lop');
-                      const pfDed = calc.deductions?.find(d => d.key === 'pf');
-                      const ptDed = calc.deductions?.find(d => d.key === 'pt');
-                      const tdsDed = calc.deductions?.find(d => d.key === 'tds');
-                      const attendance = calc.attendance_summary || {};
-                      const tds = calc.tds_details || {};
-                      
-                      return (
-                        <div 
-                          key={i} 
-                          className={`rounded-lg border ${isDark ? 'bg-zinc-800/50 border-zinc-700' : 'bg-white border-gray-200'} overflow-hidden`}
-                        >
-                          {/* Employee Header */}
-                          <div className={`p-4 ${isDark ? 'bg-zinc-800' : 'bg-gray-50'} flex items-center justify-between`}>
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}>
-                                <span className="text-lg font-bold">{calc.employee_name?.charAt(0) || 'E'}</span>
-                              </div>
-                              <div>
-                                <p className="font-semibold">{calc.employee_name}</p>
-                                <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>
-                                  {calc.employee_code} • {calc.department} • {calc.designation || 'Employee'}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Net Payable</p>
-                              <p className="text-xl font-bold text-blue-600">{formatCurrency(calc.net_payable)}</p>
-                            </div>
-                          </div>
-
-                          {/* Detailed Breakdown Grid */}
-                          <div className="p-4">
-                            <div className="grid grid-cols-4 gap-4">
-                              
-                              {/* Earnings Column */}
-                              <div>
-                                <p className={`text-xs font-semibold mb-2 pb-1 border-b ${isDark ? 'text-green-400 border-zinc-700' : 'text-green-600 border-gray-200'}`}>
-                                  EARNINGS
-                                </p>
-                                <div className="space-y-1 text-sm">
-                                  {calc.earnings?.map((e, ei) => (
-                                    <div key={ei} className="flex justify-between">
-                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>{e.name}</span>
-                                      <span className="text-green-600">+{formatCurrency(Math.abs(e.amount))}</span>
-                                    </div>
-                                  ))}
-                                  <div className={`flex justify-between font-semibold pt-1 mt-1 border-t ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
-                                    <span>Gross</span>
-                                    <span className="text-green-600">{formatCurrency(calc.gross_monthly)}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Deductions Column */}
-                              <div>
-                                <p className={`text-xs font-semibold mb-2 pb-1 border-b ${isDark ? 'text-red-400 border-zinc-700' : 'text-red-600 border-gray-200'}`}>
-                                  DEDUCTIONS
-                                </p>
-                                <div className="space-y-1 text-sm">
-                                  {calc.deductions?.map((d, di) => (
-                                    <div key={di} className="flex justify-between">
-                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>{d.name}</span>
-                                      <span className="text-red-600">-{formatCurrency(Math.abs(d.amount))}</span>
-                                    </div>
-                                  ))}
-                                  <div className={`flex justify-between font-semibold pt-1 mt-1 border-t ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
-                                    <span>Total</span>
-                                    <span className="text-red-600">-{formatCurrency(calc.total_deductions)}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Attendance Column */}
-                              <div>
-                                <p className={`text-xs font-semibold mb-2 pb-1 border-b ${isDark ? 'text-cyan-400 border-zinc-700' : 'text-cyan-600 border-gray-200'}`}>
-                                  ATTENDANCE
-                                </p>
-                                <div className="space-y-1 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Working Days</span>
-                                    <span>{attendance.working_days || calc.working_days || '-'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Present</span>
-                                    <span className="text-green-600">{attendance.present || '-'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Leaves</span>
-                                    <span className="text-amber-600">{attendance.leaves || '-'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>LOP Days</span>
-                                    <span className="text-red-600">{attendance.lop_days || calc.lop_days || 0}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Holidays</span>
-                                    <span>{attendance.holidays || '-'}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Compliance Column */}
-                              <div>
-                                <p className={`text-xs font-semibold mb-2 pb-1 border-b ${isDark ? 'text-purple-400 border-zinc-700' : 'text-purple-600 border-gray-200'}`}>
-                                  COMPLIANCE
-                                </p>
-                                <div className="space-y-1 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>PF (12%)</span>
-                                    <span>{pfDed ? formatCurrency(Math.abs(pfDed.amount)) : '-'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>PT (Gujarat)</span>
-                                    <span>{ptDed ? formatCurrency(Math.abs(ptDed.amount)) : '-'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>TDS</span>
-                                    <span>{tds.monthly_tds > 0 ? formatCurrency(tds.monthly_tds) : '₹0'}</span>
-                                  </div>
-                                  {tds.rebate_87a > 0 && (
-                                    <div className={`text-xs mt-1 p-1 rounded ${isDark ? 'bg-green-900/30' : 'bg-green-50'}`}>
-                                      <span className="text-green-600">87A Rebate: -{formatCurrency(tds.rebate_87a)}</span>
-                                    </div>
+                  {/* TABLE VIEW */}
+                  {registerViewMode === 'table' && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className={`${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
+                            <th className="text-left p-2 font-semibold">Employee</th>
+                            <th className="text-left p-2 font-semibold">Dept</th>
+                            <th className="text-right p-2 font-semibold">Basic</th>
+                            <th className="text-right p-2 font-semibold">HRA</th>
+                            <th className="text-right p-2 font-semibold">Allowances</th>
+                            <th className="text-right p-2 font-semibold">Gross</th>
+                            <th className="text-right p-2 font-semibold">LOP</th>
+                            <th className="text-right p-2 font-semibold">PF</th>
+                            <th className="text-right p-2 font-semibold">PT</th>
+                            <th className="text-right p-2 font-semibold">TDS</th>
+                            <th className="text-right p-2 font-semibold">Expenses</th>
+                            <th className="text-right p-2 font-semibold">Total Ded.</th>
+                            <th className="text-right p-2 font-semibold">Net Pay</th>
+                            <th className="text-center p-2 font-semibold">Attend.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {registerDetails.calculations.map((calc, i) => {
+                            const basic = calc.earnings?.find(e => e.key === 'basic_salary')?.amount || 0;
+                            const hra = calc.earnings?.find(e => e.key === 'hra')?.amount || 0;
+                            const special = calc.earnings?.find(e => e.key === 'special_allowance')?.amount || 0;
+                            const lopDed = calc.deductions?.find(d => d.key === 'lop')?.amount || 0;
+                            const pfDed = calc.deductions?.find(d => d.key === 'pf')?.amount || 0;
+                            const ptDed = calc.deductions?.find(d => d.key === 'pt')?.amount || 0;
+                            const tdsDed = calc.tds_details?.monthly_tds || 0;
+                            const expenses = calc.reimbursements || 0;
+                            const attendance = calc.attendance_summary || {};
+                            
+                            return (
+                              <tr 
+                                key={i} 
+                                className={`border-t ${isDark ? 'border-zinc-800 hover:bg-zinc-800/50' : 'border-gray-100 hover:bg-gray-50'}`}
+                              >
+                                <td className="p-2">
+                                  <p className="font-medium">{calc.employee_name}</p>
+                                  <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>{calc.employee_code}</p>
+                                </td>
+                                <td className="p-2">{calc.department}</td>
+                                <td className="p-2 text-right">{formatCurrency(basic)}</td>
+                                <td className="p-2 text-right">{formatCurrency(hra)}</td>
+                                <td className="p-2 text-right">{formatCurrency(special)}</td>
+                                <td className="p-2 text-right font-medium text-green-600">{formatCurrency(calc.gross_monthly)}</td>
+                                <td className="p-2 text-right text-red-600">{lopDed > 0 ? `-${formatCurrency(lopDed)}` : '-'}</td>
+                                <td className="p-2 text-right text-red-600">{pfDed > 0 ? `-${formatCurrency(pfDed)}` : '-'}</td>
+                                <td className="p-2 text-right text-red-600">{ptDed > 0 ? `-${formatCurrency(ptDed)}` : '-'}</td>
+                                <td className="p-2 text-right text-red-600">{tdsDed > 0 ? `-${formatCurrency(tdsDed)}` : '-'}</td>
+                                <td className="p-2 text-right text-amber-600">{expenses > 0 ? `+${formatCurrency(expenses)}` : '-'}</td>
+                                <td className="p-2 text-right font-medium text-red-600">-{formatCurrency(calc.total_deductions)}</td>
+                                <td className="p-2 text-right font-bold text-blue-600">{formatCurrency(calc.net_payable)}</td>
+                                <td className="p-2 text-center">
+                                  <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>
+                                    {attendance.present || '-'}/{attendance.working_days || '-'}
+                                  </span>
+                                  {(attendance.lop_days || calc.lop_days) > 0 && (
+                                    <span className="text-red-500 ml-1">({attendance.lop_days || calc.lop_days} LOP)</span>
                                   )}
-                                  <div className={`flex justify-between pt-1 mt-1 border-t ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
-                                    <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Annual CTC</span>
-                                    <span className="font-medium">{formatCurrency(calc.gross_annual || (calc.gross_monthly * 12))}</span>
-                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className={`font-bold border-t-2 ${isDark ? 'border-zinc-600 bg-zinc-800' : 'border-gray-300 bg-gray-100'}`}>
+                            <td className="p-2" colSpan={5}>Total ({registerDetails.calculations.length} employees)</td>
+                            <td className="p-2 text-right text-green-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.gross_monthly || 0), 0))}
+                            </td>
+                            <td className="p-2 text-right text-red-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => {
+                                const lop = c.deductions?.find(d => d.key === 'lop')?.amount || 0;
+                                return s + lop;
+                              }, 0))}
+                            </td>
+                            <td className="p-2 text-right text-red-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => {
+                                const pf = c.deductions?.find(d => d.key === 'pf')?.amount || 0;
+                                return s + pf;
+                              }, 0))}
+                            </td>
+                            <td className="p-2 text-right text-red-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => {
+                                const pt = c.deductions?.find(d => d.key === 'pt')?.amount || 0;
+                                return s + pt;
+                              }, 0))}
+                            </td>
+                            <td className="p-2 text-right text-red-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.tds_details?.monthly_tds || 0), 0))}
+                            </td>
+                            <td className="p-2 text-right text-amber-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.reimbursements || 0), 0))}
+                            </td>
+                            <td className="p-2 text-right text-red-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.total_deductions || 0), 0))}
+                            </td>
+                            <td className="p-2 text-right text-blue-600">
+                              {formatCurrency(registerDetails.calculations.reduce((s, c) => s + (c.net_payable || 0), 0))}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* DETAILED VIEW */}
+                  {registerViewMode === 'detailed' && (
+                    <div className="space-y-4">
+                      {registerDetails.calculations.map((calc, i) => {
+                        const lopDed = calc.deductions?.find(d => d.key === 'lop');
+                        const pfDed = calc.deductions?.find(d => d.key === 'pf');
+                        const ptDed = calc.deductions?.find(d => d.key === 'pt');
+                        const tdsDed = calc.deductions?.find(d => d.key === 'tds');
+                        const attendance = calc.attendance_summary || {};
+                        const tds = calc.tds_details || {};
+                        
+                        return (
+                          <div 
+                            key={i} 
+                            className={`rounded-lg border ${isDark ? 'bg-zinc-800/50 border-zinc-700' : 'bg-white border-gray-200'} overflow-hidden`}
+                          >
+                            {/* Employee Header */}
+                            <div className={`p-4 ${isDark ? 'bg-zinc-800' : 'bg-gray-50'} flex items-center justify-between`}>
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}>
+                                  <span className="text-lg font-bold">{calc.employee_name?.charAt(0) || 'E'}</span>
                                 </div>
+                                <div>
+                                  <p className="font-semibold">{calc.employee_name}</p>
+                                  <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>
+                                    {calc.employee_code} • {calc.department} • {calc.designation || 'Employee'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Net Payable</p>
+                                <p className="text-xl font-bold text-blue-600">{formatCurrency(calc.net_payable)}</p>
                               </div>
                             </div>
 
-                            {/* LOP Calculation Detail */}
-                            {lopDed && lopDed.amount > 0 && (
-                              <div className={`mt-3 p-2 rounded text-xs ${isDark ? 'bg-amber-900/20' : 'bg-amber-50'}`}>
-                                <span className={isDark ? 'text-amber-400' : 'text-amber-600'}>
-                                  LOP Calculation: {lopDed.formula || `(₹${calc.gross_monthly?.toLocaleString()} / ${attendance.working_days || 31} days) × ${attendance.lop_days || calc.lop_days || 0} LOP days = ₹${Math.abs(lopDed.amount).toLocaleString()}`}
-                                </span>
+                            {/* Detailed Breakdown Grid */}
+                            <div className="p-4">
+                              <div className="grid grid-cols-5 gap-4">
+                                
+                                {/* Earnings Column */}
+                                <div>
+                                  <p className={`text-xs font-semibold mb-2 pb-1 border-b flex items-center gap-1 ${isDark ? 'text-green-400 border-zinc-700' : 'text-green-600 border-gray-200'}`}>
+                                    EARNINGS
+                                    <span className={`text-xs font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>(Rule: CTC_STRUCTURE)</span>
+                                  </p>
+                                  <div className="space-y-1 text-sm">
+                                    {calc.earnings?.map((e, ei) => (
+                                      <div key={ei} className="flex justify-between">
+                                        <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>{e.name}</span>
+                                        <span className="text-green-600">+{formatCurrency(Math.abs(e.amount))}</span>
+                                      </div>
+                                    ))}
+                                    <div className={`flex justify-between font-semibold pt-1 mt-1 border-t ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+                                      <span>Gross</span>
+                                      <span className="text-green-600">{formatCurrency(calc.gross_monthly)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Deductions Column */}
+                                <div>
+                                  <p className={`text-xs font-semibold mb-2 pb-1 border-b flex items-center gap-1 ${isDark ? 'text-red-400 border-zinc-700' : 'text-red-600 border-gray-200'}`}>
+                                    DEDUCTIONS
+                                    <span className={`text-xs font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>(Rules Applied)</span>
+                                  </p>
+                                  <div className="space-y-1 text-sm">
+                                    {calc.deductions?.map((d, di) => (
+                                      <div key={di} className="group">
+                                        <div className="flex justify-between">
+                                          <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>{d.name}</span>
+                                          <span className="text-red-600">-{formatCurrency(Math.abs(d.amount))}</span>
+                                        </div>
+                                        {d.rule_id && (
+                                          <p className={`text-xs ${isDark ? 'text-zinc-600' : 'text-gray-400'}`}>
+                                            Rule: {d.rule_id}
+                                          </p>
+                                        )}
+                                      </div>
+                                    ))}
+                                    <div className={`flex justify-between font-semibold pt-1 mt-1 border-t ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+                                      <span>Total</span>
+                                      <span className="text-red-600">-{formatCurrency(calc.total_deductions)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Attendance Column */}
+                                <div>
+                                  <p className={`text-xs font-semibold mb-2 pb-1 border-b ${isDark ? 'text-cyan-400 border-zinc-700' : 'text-cyan-600 border-gray-200'}`}>
+                                    ATTENDANCE
+                                  </p>
+                                  <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Working Days</span>
+                                      <span>{attendance.working_days || calc.working_days || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Present</span>
+                                      <span className="text-green-600">{attendance.present || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Leaves</span>
+                                      <span className="text-amber-600">{attendance.leaves || '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>LOP Days</span>
+                                      <span className="text-red-600">{attendance.lop_days || calc.lop_days || 0}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Holidays</span>
+                                      <span>{attendance.holidays || '-'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Expenses Column */}
+                                <div>
+                                  <p className={`text-xs font-semibold mb-2 pb-1 border-b ${isDark ? 'text-amber-400 border-zinc-700' : 'text-amber-600 border-gray-200'}`}>
+                                    EXPENSES & REIMBURSEMENTS
+                                  </p>
+                                  <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Travel</span>
+                                      <span className="text-amber-600">{calc.expense_breakdown?.travel ? `+${formatCurrency(calc.expense_breakdown.travel)}` : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Medical</span>
+                                      <span className="text-amber-600">{calc.expense_breakdown?.medical ? `+${formatCurrency(calc.expense_breakdown.medical)}` : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Food</span>
+                                      <span className="text-amber-600">{calc.expense_breakdown?.food ? `+${formatCurrency(calc.expense_breakdown.food)}` : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>Other</span>
+                                      <span className="text-amber-600">{calc.expense_breakdown?.other ? `+${formatCurrency(calc.expense_breakdown.other)}` : '-'}</span>
+                                    </div>
+                                    <div className={`flex justify-between font-semibold pt-1 mt-1 border-t ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+                                      <span>Total</span>
+                                      <span className="text-amber-600">+{formatCurrency(calc.reimbursements || 0)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Compliance Column */}
+                                <div>
+                                  <p className={`text-xs font-semibold mb-2 pb-1 border-b ${isDark ? 'text-purple-400 border-zinc-700' : 'text-purple-600 border-gray-200'}`}>
+                                    COMPLIANCE (Business Rules)
+                                  </p>
+                                  <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>PF (12%)</span>
+                                      <span>{pfDed ? formatCurrency(Math.abs(pfDed.amount)) : '-'}</span>
+                                    </div>
+                                    <p className={`text-xs ${isDark ? 'text-zinc-600' : 'text-gray-400'}`}>Rule: PF_CONTRIBUTION</p>
+                                    <div className="flex justify-between mt-2">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>PT (Gujarat)</span>
+                                      <span>{ptDed ? formatCurrency(Math.abs(ptDed.amount)) : '-'}</span>
+                                    </div>
+                                    <p className={`text-xs ${isDark ? 'text-zinc-600' : 'text-gray-400'}`}>Rule: PT_GUJARAT</p>
+                                    <div className="flex justify-between mt-2">
+                                      <span className={isDark ? 'text-zinc-400' : 'text-gray-600'}>TDS</span>
+                                      <span>{tds.monthly_tds > 0 ? formatCurrency(tds.monthly_tds) : '₹0'}</span>
+                                    </div>
+                                    <p className={`text-xs ${isDark ? 'text-zinc-600' : 'text-gray-400'}`}>Rule: TDS_NEW_REGIME_87A</p>
+                                    {tds.rebate_87a > 0 && (
+                                      <div className={`text-xs mt-1 p-1 rounded ${isDark ? 'bg-green-900/30' : 'bg-green-50'}`}>
+                                        <span className="text-green-600">87A Rebate: -{formatCurrency(tds.rebate_87a)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            )}
+
+                              {/* LOP Calculation & Business Rule Reference */}
+                              {lopDed && lopDed.amount > 0 && (
+                                <div className={`mt-3 p-2 rounded text-xs ${isDark ? 'bg-amber-900/20' : 'bg-amber-50'}`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className={isDark ? 'text-amber-400' : 'text-amber-600'}>
+                                      <strong>LOP Calculation:</strong> {lopDed.formula || `(₹${calc.gross_monthly?.toLocaleString()} / ${attendance.working_days || 31} days) × ${attendance.lop_days || calc.lop_days || 0} LOP days = ₹${Math.abs(lopDed.amount).toLocaleString()}`}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded ${isDark ? 'bg-amber-900/50 text-amber-300' : 'bg-amber-100 text-amber-700'}`}>
+                                      Rule: LOP_DEDUCTION
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className={`text-center py-12 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
