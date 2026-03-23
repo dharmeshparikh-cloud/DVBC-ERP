@@ -439,15 +439,27 @@ async def approve_ctc_structure(ctc_id: str, data: dict, current_user: User = De
     )
     
     gross_monthly = ctc_structure["summary"]["gross_monthly"]
+    
+    # Check if this is first-time CTC (employee had no previous CTC)
+    employee = await db.employees.find_one({"id": ctc_structure["employee_id"]}, {"_id": 0, "current_ctc": 1, "go_live_status": 1})
+    is_first_ctc = not employee.get("current_ctc") or employee.get("current_ctc") == 0
+    
+    update_fields = {
+        "salary": gross_monthly,
+        "annual_ctc": ctc_structure["annual_ctc"],
+        "current_ctc": ctc_structure["annual_ctc"],
+        "ctc_effective_from": ctc_structure["effective_month"],
+        "ctc_structure_id": ctc_id
+    }
+    
+    # If first-time CTC, also update go_live_status to 'active'
+    if is_first_ctc:
+        update_fields["go_live_status"] = "active"
+        update_fields["go_live_date"] = datetime.now(timezone.utc).isoformat()
+    
     await db.employees.update_one(
         {"id": ctc_structure["employee_id"]},
-        {"$set": {
-            "salary": gross_monthly,
-            "annual_ctc": ctc_structure["annual_ctc"],
-            "current_ctc": ctc_structure["annual_ctc"],  # Also set current_ctc for CTC Designer filtering
-            "ctc_effective_from": ctc_structure["effective_month"],
-            "ctc_structure_id": ctc_id
-        }}
+        {"$set": update_fields}
     )
     
     notification = {

@@ -399,7 +399,16 @@ const GoLiveDashboard = () => {
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, ctcPending = false) => {
+    // If CTC is pending, show that status first
+    if (ctcPending && status !== 'active') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+          CTC Pending
+        </span>
+      );
+    }
+    
     const styles = {
       active: 'bg-emerald-100 text-emerald-700',
       pending: 'bg-amber-100 text-amber-700',
@@ -407,7 +416,7 @@ const GoLiveDashboard = () => {
       not_submitted: 'bg-zinc-100 text-zinc-600'
     };
     const labels = {
-      active: 'Active',
+      active: 'Go-Live Successful',
       pending: 'Pending Approval',
       rejected: 'Rejected',
       not_submitted: 'Not Submitted'
@@ -499,10 +508,14 @@ const GoLiveDashboard = () => {
   };
 
   const filteredEmployees = employees.filter(emp => {
+    // Check if employee has CTC pending (onboarding complete but no CTC)
+    const isCTCPending = emp.onboarding_complete === true && (!emp.current_ctc || emp.current_ctc === 0);
+    
     // Apply status filter
     let statusMatch = true;
     if (filter === 'pending') statusMatch = emp.go_live_status === 'pending' || !emp.go_live_status;
     if (filter === 'active') statusMatch = emp.go_live_status === 'active';
+    if (filter === 'ctc_pending') statusMatch = isCTCPending;
     
     // Apply search filter
     let searchMatch = true;
@@ -521,6 +534,11 @@ const GoLiveDashboard = () => {
     
     return statusMatch && searchMatch;
   });
+  
+  // Count employees pending CTC
+  const ctcPendingCount = employees.filter(emp => 
+    emp.onboarding_complete === true && (!emp.current_ctc || emp.current_ctc === 0)
+  ).length;
 
   return (
     <div className={`min-h-screen p-6 ${isDark ? 'bg-zinc-900 text-white' : 'bg-zinc-50'}`}>
@@ -635,18 +653,25 @@ const GoLiveDashboard = () => {
               </div>
               
               {/* Status Filter */}
-              <div className="flex gap-2">
-                {['all', 'pending', 'active'].map(f => (
+              <div className="flex gap-2 flex-wrap">
+                {['all', 'pending', 'ctc_pending', 'active'].map(f => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
                       filter === f
-                        ? 'bg-emerald-500 text-white'
+                        ? f === 'ctc_pending' ? 'bg-purple-500 text-white' : 'bg-emerald-500 text-white'
                         : isDark ? 'bg-zinc-700 text-zinc-300' : 'bg-zinc-100 text-zinc-600'
                     }`}
                   >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f === 'ctc_pending' ? 'CTC Pending' : f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f === 'ctc_pending' && ctcPendingCount > 0 && (
+                      <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${
+                        filter === f ? 'bg-white/20' : 'bg-purple-500 text-white'
+                      }`}>
+                        {ctcPendingCount}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -677,7 +702,9 @@ const GoLiveDashboard = () => {
                   )}
                 </div>
               ) : (
-              filteredEmployees.map(emp => (
+              filteredEmployees.map(emp => {
+                const isCTCPending = emp.onboarding_complete === true && (!emp.current_ctc || emp.current_ctc === 0);
+                return (
                 <div
                   key={emp.id}
                   onClick={() => fetchChecklist(emp.employee_id || emp.id)}
@@ -694,14 +721,23 @@ const GoLiveDashboard = () => {
                       <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
                         {emp.employee_id} • {emp.department || emp.primary_department}
                       </p>
+                      {isCTCPending && (
+                        <a
+                          href={`/ctc-designer?employee=${emp.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs text-purple-500 hover:text-purple-600 font-medium mt-1 inline-flex items-center gap-1"
+                        >
+                          Set CTC →
+                        </a>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {getStatusBadge(emp.go_live_status)}
+                      {getStatusBadge(emp.go_live_status, isCTCPending)}
                       <ChevronRight className="w-4 h-4 text-zinc-400" />
                     </div>
                   </div>
                 </div>
-              ))
+              )})
               )}
             </div>
           </div>

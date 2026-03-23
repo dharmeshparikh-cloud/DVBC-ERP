@@ -63,23 +63,32 @@ const CTCDesigner = () => {
   const [adminRemarks, setAdminRemarks] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Fetch employees using React Query
-  const { data: employeesData = [] } = useQuery({
-    queryKey: ['employees', 'ctc-eligible'],
+  // Tab state: 'new' (default) or 'revision'
+  const [activeTab, setActiveTab] = useState('new');
+
+  // Fetch ALL employees using React Query
+  const { data: allEmployeesData = [] } = useQuery({
+    queryKey: ['employees', 'all-for-ctc'],
     queryFn: async () => {
       const res = await axios.get(`${API}/employees/all`);
       const empData = Array.isArray(res.data) ? res.data : [];
-      const activeEmployees = empData.filter(e => e.is_active !== false);
-      // Employees eligible for CTC revision (already have CTC set)
-      return activeEmployees.filter(e => 
-        e.onboarding_complete === true && e.current_ctc && e.current_ctc > 0
-      );
+      return empData.filter(e => e.is_active !== false);
     },
     staleTime: 5 * 60 * 1000,
     onError: () => toast.error('Failed to load employees')
   });
 
-  const employees = employeesData;
+  // Filter employees based on active tab
+  const newCTCEmployees = allEmployeesData.filter(e => 
+    e.onboarding_complete === true && (!e.current_ctc || e.current_ctc === 0)
+  );
+  
+  const revisionEmployees = allEmployeesData.filter(e => 
+    e.onboarding_complete === true && e.current_ctc && e.current_ctc > 0
+  );
+
+  // Select employees based on active tab
+  const employees = activeTab === 'new' ? newCTCEmployees : revisionEmployees;
 
   // Fetch component master
   const { data: componentMasterData = DEFAULT_COMPONENTS } = useQuery({
@@ -124,16 +133,24 @@ const CTCDesigner = () => {
   });
 
   useEffect(() => {
-    // Check if coming from onboarding flow
+    // Check if coming from onboarding flow or Go-Live dashboard
     const urlParams = new URLSearchParams(window.location.search);
     const employeeId = urlParams.get('employee');
     
     if (employeeId) {
-      setMode('onboarding');
-      // Pre-select the employee from onboarding
-      fetchEmployeeById(employeeId);
-    } else {
-      setMode('revision');
+      // Switch to 'new' tab for new employee CTC
+      setActiveTab('new');
+      // Pre-select the employee after data loads
+      const preSelectEmployee = () => {
+        const emp = allEmployeesData.find(e => e.id === employeeId || e.employee_id === employeeId);
+        if (emp) {
+          setSelectedEmployee(emp);
+        }
+      };
+      // Try to preselect now if data is ready
+      if (allEmployeesData.length > 0) {
+        preSelectEmployee();
+      }
     }
     
     // Initialize component config if componentMaster is ready
@@ -149,7 +166,7 @@ const CTCDesigner = () => {
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     setEffectiveMonth(nextMonth.toISOString().slice(0, 7));
-  }, [isAdmin, componentMaster]);
+  }, [isAdmin, componentMaster, allEmployeesData]);
 
   // Auto-preview: Update preview when CTC, retention bonus, or components change
   useEffect(() => {
@@ -363,22 +380,69 @@ const CTCDesigner = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Calculator className="w-6 h-6 text-emerald-600" />
-            {mode === 'onboarding' ? 'CTC Structure - New Employee' : 'CTC Revision Designer'}
+            CTC Designer
           </h1>
           <p className={`text-sm mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-            {mode === 'onboarding' 
-              ? 'Set initial CTC structure for the new employee'
-              : 'Revise compensation structures for existing employees'
-            }
+            Design compensation structures for new and existing employees
           </p>
-          {mode === 'revision' && employees.length === 0 && (
-            <p className={`text-sm mt-2 px-3 py-2 rounded-md ${isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
-              <AlertCircle className="w-4 h-4 inline mr-1" />
-              No employees eligible for CTC revision. New employee CTCs are set during the onboarding process.
-            </p>
-          )}
         </div>
       </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setActiveTab('new'); setSelectedEmployee(null); setPreview(null); }}
+          className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors ${
+            activeTab === 'new'
+              ? 'bg-emerald-600 text-white'
+              : isDark ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+          }`}
+          data-testid="tab-new-ctc"
+        >
+          <Plus className="w-4 h-4" />
+          New Employee CTC
+          {newCTCEmployees.length > 0 && (
+            <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+              activeTab === 'new' ? 'bg-white/20' : 'bg-emerald-500 text-white'
+            }`}>
+              {newCTCEmployees.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => { setActiveTab('revision'); setSelectedEmployee(null); setPreview(null); }}
+          className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors ${
+            activeTab === 'revision'
+              ? 'bg-blue-600 text-white'
+              : isDark ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+          }`}
+          data-testid="tab-revision"
+        >
+          <Edit2 className="w-4 h-4" />
+          CTC Revision
+          {revisionEmployees.length > 0 && (
+            <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+              activeTab === 'revision' ? 'bg-white/20' : 'bg-blue-500 text-white'
+            }`}>
+              {revisionEmployees.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Info Banner based on tab */}
+      {activeTab === 'new' && newCTCEmployees.length === 0 && (
+        <div className={`px-4 py-3 rounded-lg ${isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
+          <AlertCircle className="w-4 h-4 inline mr-2" />
+          No new employees pending CTC setup. All onboarded employees have CTC assigned.
+        </div>
+      )}
+      {activeTab === 'revision' && revisionEmployees.length === 0 && (
+        <div className={`px-4 py-3 rounded-lg ${isDark ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>
+          <AlertCircle className="w-4 h-4 inline mr-2" />
+          No employees eligible for CTC revision. Set CTC for new employees first.
+        </div>
+      )}
 
       {/* Stats Cards (Admin only) */}
       {isAdmin && stats && (
@@ -435,7 +499,7 @@ const CTCDesigner = () => {
         <div className={`p-6 rounded-lg border ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <IndianRupee className="w-5 h-5 text-emerald-600" />
-            Design New CTC Structure
+            {activeTab === 'new' ? 'Design CTC for New Employee' : 'Revise CTC Structure'}
           </h2>
 
           <div className="space-y-4">
