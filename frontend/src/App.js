@@ -146,6 +146,7 @@ const WorkflowPage = lazy(() => import('./pages/WorkflowPage'));
 const OnboardingTutorial = lazy(() => import('./pages/OnboardingTutorial'));
 const PasswordManagement = lazy(() => import('./pages/PasswordManagement'));
 const GoLiveDashboard = lazy(() => import('./pages/GoLiveDashboard'));
+const ExitManagement = lazy(() => import('./pages/ExitManagement'));
 const EmployeeWorkflows = lazy(() => import('./pages/EmployeeWorkflows'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const FollowUps = lazy(() => import('./pages/FollowUps'));
@@ -394,6 +395,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="business-rules" element={<BusinessRules />} />
         <Route path="mobile-app" element={<MobileAppDownload />} />
         <Route path="go-live" element={<GoLiveDashboard />} />
+        <Route path="exit-management" element={<ExitManagement />} />
         <Route path="employee-workflows" element={<EmployeeWorkflows />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="follow-ups" element={<FollowUps />} />

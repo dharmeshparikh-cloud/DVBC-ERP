@@ -215,7 +215,7 @@ const Reports = () => {
         >
           <option value="">All Categories</option>
           {categories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
+            <option key={cat.id || cat} value={cat.id || cat}>{cat.name || cat}</option>
           ))}
         </select>
         <div className="text-sm text-zinc-500">

@@ -496,6 +496,32 @@ A comprehensive rule engine service that evaluates complex business conditions a
 
 ---
 
+## P0/P1 Tasks Completed (March 23, 2026)
+
+### P0: Reports & Analytics Fixed
+- Added 14 report definitions with categories (HR, Sales, Operations, Finance)
+- Fixed category dropdown rendering bug in frontend
+- Reports now properly filter by user role
+
+### P0: Exit Management Page
+- Created `/exit-management` page for HR/Admin
+- Shows exit requests with approval workflow
+- Admin can approve/reject pending requests
+- HR can approve after Admin approval
+- F&F calculation initiated on HR approval
+
+### P1: Leave Policies in Business Rules
+- Added 12 leave policy rules:
+  - LV001-LV006: Leave type quotas (Casual 12, Sick 6, Earned 15, Maternity 182, Paternity 5, Bereavement 3)
+  - LV007: Compensatory Off rules
+  - LV008-LV009: Process rules (notice days, max consecutive)
+  - LV010-LV012: Calculation rules (sandwich policy, encashment, LOP conversion)
+- Payroll integration configured for LOP and encashment
+
+### Total Business Rules: 54 rules across 6 policy types
+
+---
+
 ## Last Updated
 - Date: March 23, 2026
-- Status: Rule Engine with CTC Linkage & Payroll Simulator Implemented
+- Status: P0/P1 Tasks Complete - Reports, Exit Management, Leave Rules

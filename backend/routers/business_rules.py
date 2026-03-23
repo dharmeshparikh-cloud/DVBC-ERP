@@ -554,6 +554,153 @@ DEFAULT_GENERAL_HR_POLICY = {
     ]
 }
 
+DEFAULT_LEAVE_POLICY = {
+    "name": "Standard Leave Policy",
+    "policy_type": "leave",
+    "description": "Company leave policy with quotas and rules",
+    "scope": "company",
+    "scope_value": None,
+    "rules": [
+        {
+            "rule_id": "LV001",
+            "rule_name": "Casual Leave Quota",
+            "rule_type": "limit",
+            "category": "casual_leave",
+            "numeric_value": 12,
+            "unit": "days/year",
+            "description": "Annual casual leave entitlement",
+            "is_enabled": True,
+            "leave_type": "casual_leave"
+        },
+        {
+            "rule_id": "LV002",
+            "rule_name": "Sick Leave Quota",
+            "rule_type": "limit",
+            "category": "sick_leave",
+            "numeric_value": 6,
+            "unit": "days/year",
+            "description": "Annual sick leave entitlement",
+            "is_enabled": True,
+            "leave_type": "sick_leave"
+        },
+        {
+            "rule_id": "LV003",
+            "rule_name": "Earned Leave Quota",
+            "rule_type": "limit",
+            "category": "earned_leave",
+            "numeric_value": 15,
+            "unit": "days/year",
+            "description": "Annual earned/privilege leave entitlement",
+            "is_enabled": True,
+            "leave_type": "earned_leave",
+            "conditions": {"accrual_rate": "1.25 days/month", "carry_forward": True, "max_accumulation": 45}
+        },
+        {
+            "rule_id": "LV004",
+            "rule_name": "Maternity Leave",
+            "rule_type": "limit",
+            "category": "maternity_leave",
+            "numeric_value": 182,
+            "unit": "days",
+            "description": "Maternity leave as per Maternity Benefit Act",
+            "is_enabled": True,
+            "leave_type": "maternity_leave",
+            "conditions": {"eligibility": "female_employees", "min_tenure_days": 80}
+        },
+        {
+            "rule_id": "LV005",
+            "rule_name": "Paternity Leave",
+            "rule_type": "limit",
+            "category": "paternity_leave",
+            "numeric_value": 5,
+            "unit": "days",
+            "description": "Paternity leave for new fathers",
+            "is_enabled": True,
+            "leave_type": "paternity_leave",
+            "conditions": {"eligibility": "male_employees"}
+        },
+        {
+            "rule_id": "LV006",
+            "rule_name": "Bereavement Leave",
+            "rule_type": "limit",
+            "category": "bereavement_leave",
+            "numeric_value": 3,
+            "unit": "days",
+            "description": "Leave for family bereavement",
+            "is_enabled": True,
+            "leave_type": "bereavement_leave"
+        },
+        {
+            "rule_id": "LV007",
+            "rule_name": "Compensatory Off",
+            "rule_type": "condition",
+            "category": "comp_off",
+            "value": "1:1",
+            "description": "Comp off for working on holidays/weekends",
+            "is_enabled": True,
+            "leave_type": "comp_off",
+            "conditions": {"validity_days": 30, "requires_approval": True}
+        },
+        {
+            "rule_id": "LV008",
+            "rule_name": "Minimum Notice Days",
+            "rule_type": "threshold",
+            "category": "process",
+            "numeric_value": 2,
+            "unit": "days",
+            "description": "Minimum days in advance to apply for leave",
+            "is_enabled": True,
+            "conditions": {"exception": "sick_leave", "emergency": "0 days"}
+        },
+        {
+            "rule_id": "LV009",
+            "rule_name": "Max Consecutive Leave",
+            "rule_type": "limit",
+            "category": "process",
+            "numeric_value": 10,
+            "unit": "days",
+            "description": "Maximum consecutive leave days without special approval",
+            "is_enabled": True,
+            "conditions": {"requires_additional_approval": "hr_manager"}
+        },
+        {
+            "rule_id": "LV010",
+            "rule_name": "Sandwich Policy",
+            "rule_type": "condition",
+            "category": "calculation",
+            "value": "exclude_weekends",
+            "description": "Weekends between leaves are not counted as leave",
+            "is_enabled": True
+        },
+        {
+            "rule_id": "LV011",
+            "rule_name": "Leave Encashment",
+            "rule_type": "formula",
+            "category": "encashment",
+            "value": "basic_per_day",
+            "numeric_value": 50,
+            "unit": "percent_of_balance",
+            "description": "Maximum 50% of earned leave balance can be encashed",
+            "is_enabled": True,
+            "conditions": {"min_balance_required": 15, "max_encashable": 15, "timing": "annual"}
+        },
+        {
+            "rule_id": "LV012",
+            "rule_name": "LOP After Quota Exhausted",
+            "rule_type": "condition",
+            "category": "calculation",
+            "value": "auto_convert_to_lop",
+            "description": "Auto convert to LOP when leave quota exhausted",
+            "is_enabled": True
+        }
+    ],
+    "payroll_integration": {
+        "lop_component": "lop_deduction",
+        "encashment_component": "leave_encashment",
+        "include_in_fnf": True
+    }
+}
+
 
 # ==================== API ENDPOINTS ====================
 
@@ -820,7 +967,8 @@ async def initialize_default_policies(db, user_id: str):
         DEFAULT_EXPENSE_POLICY,
         DEFAULT_ATTENDANCE_POLICY,
         DEFAULT_PAYROLL_RULES,
-        DEFAULT_GENERAL_HR_POLICY
+        DEFAULT_GENERAL_HR_POLICY,
+        DEFAULT_LEAVE_POLICY
     ]
     
     for default in defaults:

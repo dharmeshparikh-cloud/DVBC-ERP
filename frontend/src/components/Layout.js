@@ -296,6 +296,7 @@ const Layout = () => {
     { name: 'New Joiner Pipeline', href: '/new-joiner-pipeline', icon: UsersRound, requiresHRorAdmin: true, badge: 'New' },
     { name: 'Onboarding Hub', href: '/onboarding-hub', icon: UserCog, requiresHRorAdmin: true },
     { name: 'Go-Live Dashboard', href: '/go-live', icon: Rocket, requiresHRorAdmin: true },
+    { name: 'Exit Management', href: '/exit-management', icon: LogOut, requiresHRorAdmin: true },
   ];
   
   // Group 2: Employee Management (CONSOLIDATED)
