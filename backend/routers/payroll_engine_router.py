@@ -47,17 +47,23 @@ async def run_payroll(
     if not month:
         raise HTTPException(status_code=400, detail="Month is required (format: YYYY-MM)")
     
-    # Check if payroll already exists for this month
-    existing = await db.payroll_register.find_one({"month": month, "status": {"$ne": "cancelled"}})
-    if existing:
+    # Check if payroll already exists for this month - handle duplicate drafts
+    existing_registers = await db.payroll_register.find(
+        {"month": month, "status": {"$ne": "cancelled"}}
+    ).to_list(100)
+    
+    for existing in existing_registers:
         if existing.get("status") == "locked":
             raise HTTPException(
                 status_code=400, 
                 detail=f"Payroll for {month} is already locked. Create adjustment entry instead."
             )
-        # Delete draft if re-running
-        if existing.get("status") == "draft":
+        # Delete ALL drafts if re-running (fixes duplicate draft bug)
+        if existing.get("status") in ["draft", "pending_admin_approval"]:
             await db.payroll_register.delete_one({"_id": existing["_id"]})
+    
+    # Also clean up any old calculations for this month to prevent stale data
+    await db.payroll_calculations.delete_many({"month": month, "status": {"$ne": "locked"}})
     
     engine = get_payroll_engine(db)
     
@@ -195,15 +201,11 @@ async def simulate_payroll(
     Simulate payroll for a single employee (HR Test Mode).
     Does NOT save to database.
     
-    Input:
-    {
-        "employee_id": "xxx",
-        "month": "2024-03",
-        "lop_days": 2,
-        "bonus": 5000,
-        "incentive": 0,
-        "penalty": 0
-    }
+    Supports all granular inputs:
+    - Earnings: bonus, incentive, arrears, overtime_hours
+    - Reimbursements: travel, medical, food, telephone, other
+    - Deductions: penalty, advance_recovery, loan_emi, other_deduction
+    - Metadata: reasons for arrears, penalty, advance, loan_type
     """
     if current_user.role not in HR_ROLES:
         raise HTTPException(status_code=403, detail="Only HR can simulate payroll")
@@ -217,19 +219,41 @@ async def simulate_payroll(
     
     engine = get_payroll_engine(db)
     
+    # Build comprehensive simulation inputs with all granular fields
+    simulation_inputs = {
+        # LOP
+        "lop_days": data.get("lop_days", 0),
+        "working_days": data.get("working_days", 30),
+        
+        # Earnings
+        "bonus": data.get("bonus", 0),
+        "incentive": data.get("incentive", 0),
+        "overtime_hours": data.get("overtime_hours", 0),
+        "arrears": data.get("arrears", 0),
+        "arrears_reason": data.get("arrears_reason", ""),
+        
+        # Reimbursements (non-taxable)
+        "travel_reimbursement": data.get("travel_reimbursement", 0),
+        "medical_reimbursement": data.get("medical_reimbursement", 0),
+        "food_reimbursement": data.get("food_reimbursement", 0),
+        "telephone_reimbursement": data.get("telephone_reimbursement", 0),
+        "other_reimbursement": data.get("other_reimbursement", 0),
+        
+        # Deductions
+        "penalty": data.get("penalty", 0),
+        "penalty_reason": data.get("penalty_reason", ""),
+        "advance_recovery": data.get("advance_recovery", 0),
+        "advance_reason": data.get("advance_reason", ""),
+        "loan_emi": data.get("loan_emi", 0),
+        "loan_type": data.get("loan_type", ""),
+        "other_deduction": data.get("other_deduction", 0),
+        "other_deduction_name": data.get("other_deduction_name", "")
+    }
+    
     result = await engine.simulate_payroll(
         employee_id=employee_id,
         month=month,
-        simulation_inputs={
-            "lop_days": data.get("lop_days", 0),
-            "bonus": data.get("bonus", 0),
-            "incentive": data.get("incentive", 0),
-            "penalty": data.get("penalty", 0),
-            "advance": data.get("advance", 0),
-            "overtime_hours": data.get("overtime_hours", 0),
-            "expense_reimbursement": data.get("reimbursements", 0),
-            "working_days": data.get("working_days", 30)
-        }
+        simulation_inputs=simulation_inputs
     )
     
     return result

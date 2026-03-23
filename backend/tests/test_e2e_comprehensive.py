@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 
 # API Configuration
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://rule-simulator.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://govpay-system-2.preview.emergentagent.com')
 
 # Test Credentials
 TEST_CREDENTIALS = {

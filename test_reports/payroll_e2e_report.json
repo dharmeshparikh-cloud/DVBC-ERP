@@ -1,7 +1,7 @@
 {
   "test_name": "Payroll E2E Test",
   "timestamp": "2026-03-13T08:46:47.728722",
-  "api_url": "https://rule-simulator.preview.emergentagent.com",
+  "api_url": "https://govpay-system-2.preview.emergentagent.com",
   "test_month": "2026-03",
   "test_employee": {
     "id": "1ce418c7-b770-402a-bf58-d6ef357527e3",

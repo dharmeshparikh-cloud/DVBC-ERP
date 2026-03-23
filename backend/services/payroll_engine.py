@@ -371,8 +371,8 @@ class PayrollCalculationEngine:
         month: str
     ) -> Dict[str, Any]:
         """
-        Fetch attendance summary for an employee for a month.
-        Returns present, absent, leave, holiday breakdown.
+        Fetch comprehensive attendance summary for an employee for a month.
+        Returns present, absent, leave (by type), weekly offs, public holidays breakdown.
         """
         year, mon = map(int, month.split('-'))
         start_date = f"{year}-{mon:02d}-01"
@@ -384,7 +384,7 @@ class PayrollCalculationEngine:
             "date": {"$gte": start_date, "$lte": end_date}
         }, {"_id": 0}).to_list(50)
         
-        # Fetch approved leaves
+        # Fetch approved leaves with type breakdown
         leave_records = await self.db.leave_requests.find({
             "employee_id": employee_id,
             "status": "approved",
@@ -394,56 +394,95 @@ class PayrollCalculationEngine:
             ]
         }, {"_id": 0}).to_list(20)
         
+        # Fetch public holidays
+        public_holidays = await self.db.holidays.find({
+            "date": {"$gte": start_date, "$lte": end_date},
+            "is_active": True
+        }, {"_id": 0}).to_list(20)
+        
         # Count days
         days_in_month = self._get_days_in_month(month)
         present_days = len([a for a in attendance_records if a.get("status") == "present"])
         half_days = len([a for a in attendance_records if a.get("status") == "half_day"])
         wfh_days = len([a for a in attendance_records if a.get("work_location") == "wfh"])
         absent_days = len([a for a in attendance_records if a.get("status") == "absent"])
+        late_arrivals = len([a for a in attendance_records if a.get("late_arrival")])
+        early_departures = len([a for a in attendance_records if a.get("early_departure")])
         
-        # Calculate leave days
+        # Leave type breakdown
+        leave_breakdown = {
+            "casual": 0,
+            "sick": 0,
+            "earned": 0,
+            "privilege": 0,
+            "maternity": 0,
+            "paternity": 0,
+            "compensatory": 0,
+            "lwp": 0,  # Leave Without Pay
+            "other": 0
+        }
+        
         total_leave_days = 0
         paid_leave_days = 0
         unpaid_leave_days = 0
         
         for leave in leave_records:
             leave_days = leave.get("days", 0) or leave.get("total_days", 0)
+            leave_type = leave.get("leave_type", "other").lower()
+            
             total_leave_days += leave_days
-            if leave.get("leave_type") in ["casual", "sick", "earned", "privilege"]:
+            
+            if leave_type in leave_breakdown:
+                leave_breakdown[leave_type] += leave_days
+            else:
+                leave_breakdown["other"] += leave_days
+            
+            # Paid leaves
+            if leave_type in ["casual", "sick", "earned", "privilege", "maternity", "paternity", "compensatory"]:
                 paid_leave_days += leave_days
             else:
                 unpaid_leave_days += leave_days
         
-        # Assume weekends as holidays (simplified - can be enhanced with holiday calendar)
-        # Count Saturdays and Sundays in the month
+        # Count weekends (Saturday, Sunday) separately from public holidays
         from datetime import date
-        holidays = 0
+        weekly_offs = 0
         for day in range(1, days_in_month + 1):
             d = date(year, mon, day)
-            if d.weekday() in [5, 6]:  # Saturday, Sunday
-                holidays += 1
+            if d.weekday() in [5, 6]:  # Saturday=5, Sunday=6
+                weekly_offs += 1
         
-        # Calculate LOP (unpaid leaves + unrecorded absents)
-        working_days = days_in_month - holidays
+        # Public holidays count
+        public_holiday_count = len(public_holidays)
+        public_holiday_names = [h.get("name", "Holiday") for h in public_holidays]
+        
+        # Calculate working days and LOP
+        total_holidays = weekly_offs + public_holiday_count
+        working_days = days_in_month - total_holidays
         effective_present = present_days + (half_days * 0.5) + paid_leave_days
-        lop_days = max(0, working_days - effective_present - unpaid_leave_days)
+        calculated_lop = max(0, working_days - effective_present - unpaid_leave_days)
         
         # If no attendance records, use payroll input LOP
         if len(attendance_records) == 0:
-            lop_days = 0  # Will be taken from payroll_input
+            calculated_lop = 0  # Will be taken from payroll_input
         
         return {
             "days_in_month": days_in_month,
             "working_days": working_days,
-            "holidays": holidays,
+            "weekly_offs": weekly_offs,
+            "public_holidays": public_holiday_count,
+            "public_holiday_names": public_holiday_names,
+            "total_holidays": total_holidays,
             "present_days": present_days,
             "half_days": half_days,
             "wfh_days": wfh_days,
             "absent_days": absent_days,
+            "late_arrivals": late_arrivals,
+            "early_departures": early_departures,
             "total_leave_days": total_leave_days,
             "paid_leave_days": paid_leave_days,
             "unpaid_leave_days": unpaid_leave_days,
-            "calculated_lop": lop_days,
+            "leave_breakdown": leave_breakdown,
+            "calculated_lop": calculated_lop,
             "attendance_records": len(attendance_records)
         }
     
@@ -649,14 +688,34 @@ class PayrollCalculationEngine:
         if not payroll_input:
             payroll_input = {}
         
+        # === PAYROLL INPUT FIELDS ===
         lop_days = payroll_input.get("lop_days", 0) or payroll_input.get("absent_days", 0) or 0
         incentive = payroll_input.get("incentive", 0) or 0
         bonus = payroll_input.get("bonus", 0) or 0
-        reimbursements = payroll_input.get("expense_reimbursement", 0) or payroll_input.get("reimbursements", 0) or 0
-        advance = payroll_input.get("advance", 0) or 0
-        penalty = payroll_input.get("penalty", 0) or 0
         overtime_hours = payroll_input.get("overtime_hours", 0) or 0
         working_days = payroll_input.get("working_days", self._get_days_in_month(month))
+        
+        # Arrears (previous month adjustments)
+        arrears = payroll_input.get("arrears", 0) or 0
+        arrears_reason = payroll_input.get("arrears_reason", "")
+        
+        # Expense Reimbursements (breakdown)
+        travel_reimbursement = payroll_input.get("travel_reimbursement", 0) or 0
+        medical_reimbursement = payroll_input.get("medical_reimbursement", 0) or 0
+        food_reimbursement = payroll_input.get("food_reimbursement", 0) or 0
+        telephone_reimbursement = payroll_input.get("telephone_reimbursement", 0) or 0
+        other_reimbursement = payroll_input.get("other_reimbursement", 0) or payroll_input.get("expense_reimbursement", 0) or payroll_input.get("reimbursements", 0) or 0
+        total_reimbursements = travel_reimbursement + medical_reimbursement + food_reimbursement + telephone_reimbursement + other_reimbursement
+        
+        # Deduction inputs
+        advance_recovery = payroll_input.get("advance_recovery", 0) or payroll_input.get("advance", 0) or 0
+        advance_reason = payroll_input.get("advance_reason", "")
+        loan_emi = payroll_input.get("loan_emi", 0) or 0
+        loan_type = payroll_input.get("loan_type", "")
+        penalty = payroll_input.get("penalty", 0) or 0
+        penalty_reason = payroll_input.get("penalty_reason", "")
+        other_deduction = payroll_input.get("other_deduction", 0) or 0
+        other_deduction_name = payroll_input.get("other_deduction_name", "Other Deduction")
         
         # Get CTC components if structure exists
         ctc_components = None
@@ -716,7 +775,89 @@ class PayrollCalculationEngine:
                 )
             })
         
+        # Add arrears if any
+        if arrears > 0:
+            earnings.append({
+                "key": "arrears",
+                "name": "Arrears",
+                "amount": round(arrears, 2),
+                "calculation": self._log_calculation(
+                    "Arrears",
+                    {"arrears": arrears, "reason": arrears_reason},
+                    f"Previous month adjustment: {arrears_reason}" if arrears_reason else "Direct addition",
+                    arrears, "ARREARS", "1.0"
+                )
+            })
+        
         total_earnings = sum(e["amount"] for e in earnings)
+        
+        # === REIMBURSEMENTS (Non-taxable additions) ===
+        reimbursements_breakdown = []
+        
+        if travel_reimbursement > 0:
+            reimbursements_breakdown.append({
+                "key": "travel_reimbursement",
+                "name": "Travel Reimbursement",
+                "amount": round(travel_reimbursement, 2),
+                "calculation": self._log_calculation(
+                    "Travel Reimbursement",
+                    {"amount": travel_reimbursement},
+                    "Non-taxable reimbursement",
+                    travel_reimbursement, "TRAVEL_REIMB", "1.0"
+                )
+            })
+        
+        if medical_reimbursement > 0:
+            reimbursements_breakdown.append({
+                "key": "medical_reimbursement",
+                "name": "Medical Reimbursement",
+                "amount": round(medical_reimbursement, 2),
+                "calculation": self._log_calculation(
+                    "Medical Reimbursement",
+                    {"amount": medical_reimbursement},
+                    "Non-taxable reimbursement",
+                    medical_reimbursement, "MEDICAL_REIMB", "1.0"
+                )
+            })
+        
+        if food_reimbursement > 0:
+            reimbursements_breakdown.append({
+                "key": "food_reimbursement",
+                "name": "Food/Meal Allowance",
+                "amount": round(food_reimbursement, 2),
+                "calculation": self._log_calculation(
+                    "Food/Meal Allowance",
+                    {"amount": food_reimbursement},
+                    "Non-taxable reimbursement",
+                    food_reimbursement, "FOOD_REIMB", "1.0"
+                )
+            })
+        
+        if telephone_reimbursement > 0:
+            reimbursements_breakdown.append({
+                "key": "telephone_reimbursement",
+                "name": "Telephone/Internet Reimbursement",
+                "amount": round(telephone_reimbursement, 2),
+                "calculation": self._log_calculation(
+                    "Telephone/Internet Reimbursement",
+                    {"amount": telephone_reimbursement},
+                    "Non-taxable reimbursement",
+                    telephone_reimbursement, "TELEPHONE_REIMB", "1.0"
+                )
+            })
+        
+        if other_reimbursement > 0:
+            reimbursements_breakdown.append({
+                "key": "other_reimbursement",
+                "name": "Other Reimbursement",
+                "amount": round(other_reimbursement, 2),
+                "calculation": self._log_calculation(
+                    "Other Reimbursement",
+                    {"amount": other_reimbursement},
+                    "Non-taxable reimbursement",
+                    other_reimbursement, "OTHER_REIMB", "1.0"
+                )
+            })
         
         # === DEDUCTIONS ===
         deductions = []
@@ -792,29 +933,59 @@ class PayrollCalculationEngine:
         if penalty > 0:
             deductions.append({
                 "key": "penalty",
-                "name": "Penalty (Manual)",
+                "name": "Penalty",
                 "amount": round(penalty, 2),
-                "details": payroll_input.get("penalty_reason", ""),
+                "details": penalty_reason,
                 "calculation": self._log_calculation(
-                    "Penalty (Manual)",
-                    {"penalty": penalty, "reason": payroll_input.get("penalty_reason", "")},
-                    "Direct deduction",
+                    "Penalty",
+                    {"penalty": penalty, "reason": penalty_reason},
+                    f"Manual deduction: {penalty_reason}" if penalty_reason else "Direct deduction",
                     penalty, "PENALTY_MANUAL", "1.0"
                 )
             })
         
         # Advance recovery
-        if advance > 0:
+        if advance_recovery > 0:
             deductions.append({
                 "key": "advance_recovery",
                 "name": "Advance Recovery",
-                "amount": round(advance, 2),
-                "details": payroll_input.get("advance_reason", ""),
+                "amount": round(advance_recovery, 2),
+                "details": advance_reason,
                 "calculation": self._log_calculation(
                     "Advance Recovery",
-                    {"advance": advance, "reason": payroll_input.get("advance_reason", "")},
-                    "Direct deduction",
-                    advance, "ADVANCE_RECOVERY", "1.0"
+                    {"advance": advance_recovery, "reason": advance_reason},
+                    f"Salary advance recovery: {advance_reason}" if advance_reason else "Direct deduction",
+                    advance_recovery, "ADVANCE_RECOVERY", "1.0"
+                )
+            })
+        
+        # Loan EMI
+        if loan_emi > 0:
+            deductions.append({
+                "key": "loan_emi",
+                "name": f"Loan EMI ({loan_type})" if loan_type else "Loan EMI",
+                "amount": round(loan_emi, 2),
+                "details": loan_type,
+                "calculation": self._log_calculation(
+                    "Loan EMI",
+                    {"emi": loan_emi, "loan_type": loan_type},
+                    f"{loan_type} loan EMI" if loan_type else "Monthly EMI deduction",
+                    loan_emi, "LOAN_EMI", "1.0"
+                )
+            })
+        
+        # Other deductions
+        if other_deduction > 0:
+            deductions.append({
+                "key": "other_deduction",
+                "name": other_deduction_name,
+                "amount": round(other_deduction, 2),
+                "details": other_deduction_name,
+                "calculation": self._log_calculation(
+                    other_deduction_name,
+                    {"amount": other_deduction, "name": other_deduction_name},
+                    "Other deduction",
+                    other_deduction, "OTHER_DEDUCTION", "1.0"
                 )
             })
         
@@ -824,7 +995,6 @@ class PayrollCalculationEngine:
         net_salary = total_earnings - total_deductions
         
         # Add reimbursements (post-tax addition)
-        total_reimbursements = reimbursements
         net_payable = net_salary + total_reimbursements
         
         return {
@@ -833,22 +1003,30 @@ class PayrollCalculationEngine:
             "employee_name": employee_name,
             "employee_code": employee.get("employee_id", ""),
             "department": employee.get("department", ""),
-            "designation": employee.get("designation", ""),
+            "designation": employee.get("designation", "") or employee.get("role", ""),
+            "location": employee.get("location", "") or employee.get("city", ""),
+            "bank_account": employee.get("bank_account", ""),
+            "pan_number": employee.get("pan_number", ""),
             "month": month,
             "days_in_month": self._get_days_in_month(month),
-            "working_days": working_days,
+            "working_days": attendance_summary.get("working_days", working_days),
+            "weekly_offs": attendance_summary.get("weekly_offs", 0),
+            "public_holidays": attendance_summary.get("public_holidays", 0),
+            "present_days": attendance_summary.get("present_days", 0),
             "lop_days": lop_days,
             "gross_monthly": round(gross_monthly, 2),
             "gross_annual": round(gross_monthly * 12, 2),
             "basic_monthly": round(basic_monthly, 2),
             "earnings": earnings,
             "total_earnings": round(total_earnings, 2),
+            "reimbursements_breakdown": reimbursements_breakdown,
+            "total_reimbursements": round(total_reimbursements, 2),
             "deductions": deductions,
             "total_deductions": round(total_deductions, 2),
             "net_salary": round(net_salary, 2),
-            "reimbursements": round(total_reimbursements, 2),
             "net_payable": round(net_payable, 2),
             "attendance_summary": attendance_summary,
+            "leave_breakdown": attendance_summary.get("leave_breakdown", {}),
             "tds_details": {
                 "monthly_tds": tds_result.get("monthly_tds", 0),
                 "annual_tax": tds_result.get("annual_tax", 0),

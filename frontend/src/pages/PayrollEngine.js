@@ -63,14 +63,32 @@ export default function PayrollEngine() {
   // HR Test Mode states
   const [testEmployeeId, setTestEmployeeId] = useState('');
   const [testInputs, setTestInputs] = useState({
+    // LOP
     lop_days: 0,
+    // Earnings
     bonus: 0,
     incentive: 0,
-    penalty: 0,
     overtime_hours: 0,
-    reimbursements: 0
+    arrears: 0,
+    arrears_reason: '',
+    // Reimbursements
+    travel_reimbursement: 0,
+    medical_reimbursement: 0,
+    food_reimbursement: 0,
+    telephone_reimbursement: 0,
+    other_reimbursement: 0,
+    // Deductions
+    penalty: 0,
+    penalty_reason: '',
+    advance_recovery: 0,
+    advance_reason: '',
+    loan_emi: 0,
+    loan_type: '',
+    other_deduction: 0,
+    other_deduction_name: ''
   });
   const [simulationResult, setSimulationResult] = useState(null);
+  const [showAllInputs, setShowAllInputs] = useState(false);
   
   // Breakdown view
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -319,70 +337,250 @@ export default function PayrollEngine() {
                   </Select>
                 </div>
                 
-                {/* Input Grid */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Basic Input Grid */}
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <Label className="text-sm">LOP Days</Label>
+                    <Label className="text-xs">LOP Days</Label>
                     <Input
                       type="number"
                       value={testInputs.lop_days}
                       onChange={(e) => setTestInputs({...testInputs, lop_days: parseFloat(e.target.value) || 0})}
-                      className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+                      className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
                       min={0}
                       step={0.5}
                     />
                   </div>
                   <div>
-                    <Label className="text-sm">Bonus (₹)</Label>
+                    <Label className="text-xs">Bonus (₹)</Label>
                     <Input
                       type="number"
                       value={testInputs.bonus}
                       onChange={(e) => setTestInputs({...testInputs, bonus: parseFloat(e.target.value) || 0})}
-                      className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+                      className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
                       min={0}
                     />
                   </div>
                   <div>
-                    <Label className="text-sm">Incentive (₹)</Label>
+                    <Label className="text-xs">Incentive (₹)</Label>
                     <Input
                       type="number"
                       value={testInputs.incentive}
                       onChange={(e) => setTestInputs({...testInputs, incentive: parseFloat(e.target.value) || 0})}
-                      className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
-                      min={0}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm">Penalty (₹)</Label>
-                    <Input
-                      type="number"
-                      value={testInputs.penalty}
-                      onChange={(e) => setTestInputs({...testInputs, penalty: parseFloat(e.target.value) || 0})}
-                      className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
-                      min={0}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm">Overtime Hours</Label>
-                    <Input
-                      type="number"
-                      value={testInputs.overtime_hours}
-                      onChange={(e) => setTestInputs({...testInputs, overtime_hours: parseFloat(e.target.value) || 0})}
-                      className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
-                      min={0}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm">Reimbursements (₹)</Label>
-                    <Input
-                      type="number"
-                      value={testInputs.reimbursements}
-                      onChange={(e) => setTestInputs({...testInputs, reimbursements: parseFloat(e.target.value) || 0})}
-                      className={`mt-1 ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
+                      className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}
                       min={0}
                     />
                   </div>
                 </div>
+                
+                {/* Toggle for Advanced Inputs */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAllInputs(!showAllInputs)}
+                  className="w-full justify-between text-xs"
+                >
+                  <span>{showAllInputs ? 'Hide' : 'Show'} All Input Fields</span>
+                  {showAllInputs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </Button>
+                
+                {showAllInputs && (
+                  <div className="space-y-4">
+                    {/* Earnings Section */}
+                    <div className={`p-3 rounded-lg ${isDark ? 'bg-green-900/20 border border-green-800' : 'bg-green-50 border border-green-200'}`}>
+                      <p className="text-xs font-medium text-green-600 mb-2">Additional Earnings</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Overtime Hours</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.overtime_hours}
+                            onChange={(e) => setTestInputs({...testInputs, overtime_hours: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Arrears (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.arrears}
+                            onChange={(e) => setTestInputs({...testInputs, arrears: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                      </div>
+                      {testInputs.arrears > 0 && (
+                        <div className="mt-2">
+                          <Label className="text-xs">Arrears Reason</Label>
+                          <Input
+                            value={testInputs.arrears_reason}
+                            onChange={(e) => setTestInputs({...testInputs, arrears_reason: e.target.value})}
+                            placeholder="e.g., Salary revision"
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Reimbursements Section */}
+                    <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
+                      <p className="text-xs font-medium text-blue-600 mb-2">Reimbursements (Non-taxable)</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Travel (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.travel_reimbursement}
+                            onChange={(e) => setTestInputs({...testInputs, travel_reimbursement: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Medical (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.medical_reimbursement}
+                            onChange={(e) => setTestInputs({...testInputs, medical_reimbursement: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Food/Meal (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.food_reimbursement}
+                            onChange={(e) => setTestInputs({...testInputs, food_reimbursement: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Telephone (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.telephone_reimbursement}
+                            onChange={(e) => setTestInputs({...testInputs, telephone_reimbursement: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-xs">Other Reimbursement (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.other_reimbursement}
+                            onChange={(e) => setTestInputs({...testInputs, other_reimbursement: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Deductions Section */}
+                    <div className={`p-3 rounded-lg ${isDark ? 'bg-red-900/20 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
+                      <p className="text-xs font-medium text-red-600 mb-2">Deductions</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Penalty (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.penalty}
+                            onChange={(e) => setTestInputs({...testInputs, penalty: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Advance Recovery (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.advance_recovery}
+                            onChange={(e) => setTestInputs({...testInputs, advance_recovery: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Loan EMI (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.loan_emi}
+                            onChange={(e) => setTestInputs({...testInputs, loan_emi: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Loan Type</Label>
+                          <Select
+                            value={testInputs.loan_type}
+                            onValueChange={(v) => setTestInputs({...testInputs, loan_type: v})}
+                          >
+                            <SelectTrigger className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="personal">Personal Loan</SelectItem>
+                              <SelectItem value="home">Home Loan</SelectItem>
+                              <SelectItem value="vehicle">Vehicle Loan</SelectItem>
+                              <SelectItem value="education">Education Loan</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Other Deduction (₹)</Label>
+                          <Input
+                            type="number"
+                            value={testInputs.other_deduction}
+                            onChange={(e) => setTestInputs({...testInputs, other_deduction: parseFloat(e.target.value) || 0})}
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Deduction Name</Label>
+                          <Input
+                            value={testInputs.other_deduction_name}
+                            onChange={(e) => setTestInputs({...testInputs, other_deduction_name: e.target.value})}
+                            placeholder="e.g., Canteen"
+                            className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                          />
+                        </div>
+                      </div>
+                      {(testInputs.penalty > 0 || testInputs.advance_recovery > 0) && (
+                        <div className="grid grid-cols-2 gap-3 mt-2">
+                          {testInputs.penalty > 0 && (
+                            <div>
+                              <Label className="text-xs">Penalty Reason</Label>
+                              <Input
+                                value={testInputs.penalty_reason}
+                                onChange={(e) => setTestInputs({...testInputs, penalty_reason: e.target.value})}
+                                placeholder="e.g., Policy violation"
+                                className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                              />
+                            </div>
+                          )}
+                          {testInputs.advance_recovery > 0 && (
+                            <div>
+                              <Label className="text-xs">Advance Reason</Label>
+                              <Input
+                                value={testInputs.advance_reason}
+                                onChange={(e) => setTestInputs({...testInputs, advance_reason: e.target.value})}
+                                placeholder="e.g., Salary advance Feb"
+                                className={`mt-1 h-8 text-sm ${isDark ? 'bg-zinc-900 border-zinc-700' : ''}`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 <Button 
                   onClick={handleSimulate}
