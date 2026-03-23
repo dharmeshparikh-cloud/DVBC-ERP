@@ -31,11 +31,15 @@ class PolicyRuleConfig(BaseModel):
     rule_id: str
     rule_name: str
     rule_type: str  # 'limit', 'approval', 'condition', 'formula', 'threshold'
+    category: Optional[str] = None  # Category within policy type
     value: Optional[str] = None
     numeric_value: Optional[float] = None
+    unit: Optional[str] = None  # Unit for numeric value (e.g., 'days/year', 'INR', 'percent')
     is_enabled: bool = True
     conditions: Optional[dict] = None
     description: str = ""
+    payroll_impact: Optional[str] = None  # How this rule affects payroll
+    disbursement_link: Optional[str] = None  # Link to disbursement module
 
 
 class PolicyCreate(BaseModel):
@@ -884,6 +888,87 @@ async def update_policy_rule(policy_id: str, rule_id: str, rule_data: dict, curr
     )
     
     return {"message": "Rule updated successfully"}
+
+
+@router.post("/{policy_id}/rule")
+async def add_new_rule(policy_id: str, rule_data: dict, current_user: User = Depends(get_current_user)):
+    """Add a new rule to a policy. HR/Admin only."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    
+    if not has_role(current_user.role, hr_admin_roles + hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR/Admin can add rules")
+    
+    db = get_db()
+    
+    policy = await db.business_policies.find_one({"id": policy_id}, {"_id": 0})
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    
+    # Generate rule ID if not provided
+    if not rule_data.get("rule_id"):
+        policy_type = policy.get("policy_type", "GN").upper()[:2]
+        existing_rules = policy.get("rules", [])
+        next_num = len(existing_rules) + 1
+        rule_data["rule_id"] = f"{policy_type}{str(next_num).zfill(3)}"
+    
+    # Check if rule_id already exists
+    rules = policy.get("rules", [])
+    if any(r.get("rule_id") == rule_data.get("rule_id") for r in rules):
+        raise HTTPException(status_code=400, detail="Rule ID already exists")
+    
+    # Add default fields
+    rule_data.setdefault("is_enabled", True)
+    rule_data.setdefault("rule_type", "limit")
+    rule_data.setdefault("description", "")
+    
+    # Append new rule
+    rules.append(rule_data)
+    
+    await db.business_policies.update_one(
+        {"id": policy_id},
+        {"$set": {
+            "rules": rules,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": current_user.id
+        }}
+    )
+    
+    return {"message": "Rule added successfully", "rule_id": rule_data["rule_id"]}
+
+
+@router.delete("/{policy_id}/rule/{rule_id}")
+async def delete_rule(policy_id: str, rule_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a rule from a policy. HR/Admin only."""
+    hr_admin_roles = get_role_group("HR_ADMIN_ROLES", fail_closed=True) or []
+    hr_roles = get_role_group("HR_ROLES", fail_closed=True) or []
+    
+    if not has_role(current_user.role, hr_admin_roles + hr_roles):
+        raise HTTPException(status_code=403, detail="Only HR/Admin can delete rules")
+    
+    db = get_db()
+    
+    policy = await db.business_policies.find_one({"id": policy_id}, {"_id": 0})
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    
+    rules = policy.get("rules", [])
+    original_count = len(rules)
+    rules = [r for r in rules if r.get("rule_id") != rule_id]
+    
+    if len(rules) == original_count:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    
+    await db.business_policies.update_one(
+        {"id": policy_id},
+        {"$set": {
+            "rules": rules,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": current_user.id
+        }}
+    )
+    
+    return {"message": "Rule deleted successfully"}
 
 
 @router.delete("/{policy_id}")

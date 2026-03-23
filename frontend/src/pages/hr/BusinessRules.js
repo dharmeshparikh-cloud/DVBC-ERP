@@ -59,6 +59,7 @@ const SCOPE_ICONS = {
 };
 
 // SOP (Standard Operating Procedures) and Impact Analysis Data
+// Each policy has 200+ word comprehensive documentation
 const POLICY_SOP_DATA = {
   leave: {
     title: 'Leave Policy Management',
@@ -71,49 +72,123 @@ const POLICY_SOP_DATA = {
     ],
     impacts: [
       { area: 'Leave Balances', impact: 'Direct', description: 'Changing quotas immediately affects employee leave dashboards' },
-      { area: 'Payroll', impact: 'Indirect', description: 'LOP deductions and encashment affect monthly salary' },
-      { area: 'F&F Settlement', impact: 'Direct', description: 'Encashable leaves are paid out during exit' }
+      { area: 'Payroll', impact: 'Direct', description: 'LOP deductions and encashment affect monthly salary calculation' },
+      { area: 'F&F Settlement', impact: 'Direct', description: 'Encashable leaves are paid out during exit process' }
     ],
+    payrollLinkage: {
+      affects: ['LOP Deduction (PY008)', 'Leave Encashment (LV011)', 'F&F Calculation'],
+      disbursement: 'Monthly Payroll & Exit Settlement',
+      ctcComponents: ['Basic Salary (for per-day calculation)']
+    },
+    detailedSOP: `
+## Leave Policy Configuration - Standard Operating Procedure
+
+### Overview
+The Leave Policy defines how employees accrue, utilize, and encash their leave entitlements. This policy directly integrates with the Payroll module for Loss of Pay (LOP) deductions and the F&F Settlement module for leave encashment during exit.
+
+### Rule Categories
+
+**Quota Rules (LV001-LV006):** Define annual entitlements for each leave type including Casual Leave, Sick Leave, Earned Leave, Maternity/Paternity Leave. These quotas are pro-rated for employees joining mid-year based on their Date of Joining.
+
+**Accrual Rules (LV007-LV008):** Control how leaves are credited - either lump sum at year start or monthly accrual. Monthly accrual at 1.25 days/month for Earned Leave is recommended for better cash flow management.
+
+**Carry Forward Rules (LV009-LV010):** Determine if unused leaves can be carried to next year. Maximum carry forward limits prevent excessive accumulation while providing flexibility to employees.
+
+**Encashment Rules (LV011-LV012):** Specify which leave types can be encashed and the calculation formula (basic_per_day). Encashment directly affects F&F settlement amount during resignation.
+
+### Configuration Process
+
+1. **Identify Requirement:** Determine which rule needs modification based on HR policy review or management directive.
+
+2. **Impact Assessment:** Use the Payroll Simulator to test how changes affect sample employee salaries. Check both current month impact and potential F&F impact.
+
+3. **Approval:** Obtain necessary approvals from HR Head and Finance before making changes to encashment or LOP-related rules.
+
+4. **Implementation:** Update the rule value, toggle enabled/disabled status, and save. Changes take effect immediately for new leave applications.
+
+5. **Communication:** Notify all employees about policy changes through official channels. Update the employee handbook.
+
+6. **Monitoring:** Track leave application patterns for 30 days post-change to identify any anomalies or concerns.
+
+### Payroll Integration Points
+
+- **LOP Calculation:** When an employee takes unpaid leave, the deduction formula is: (Basic Salary / Working Days) × LOP Days
+- **Encashment Payout:** Calculated as: (Basic Salary / 30) × Encashable Leave Balance
+- **F&F Settlement:** All encashable leaves are automatically included in the final settlement calculation
+
+### Best Practices
+
+- Review leave utilization quarterly to identify patterns
+- Align policy changes with financial year start (April)
+- Maintain minimum sick leave quota for employee welfare
+- Consider pro-rata impact on mid-year joiners before changing quotas
+    `,
     sop: {
       title: 'Leave Policy Configuration SOP',
       sections: [
         {
+          heading: 'Critical Rules (Payroll Linked)',
+          checklist: [
+            'LV001-LV006: Leave quotas directly affect LOP calculation',
+            'LV007: Accrual rate impacts monthly leave credit',
+            'LV011: Encashment formula affects F&F settlement',
+            'LV012: Carry forward limits affect year-end balance'
+          ]
+        },
+        {
           heading: 'Before Making Changes',
           checklist: [
-            'Review current leave utilization reports',
+            'Review current leave utilization reports from Dashboard',
             'Check if change affects mid-year employees (pro-rata impact)',
             'Notify Finance if encashment rules are changing',
-            'Document reason for policy change'
+            'Document reason for policy change in change log',
+            'Get HR Head approval for quota changes'
           ]
         },
         {
           heading: 'Configuration Steps',
           checklist: [
-            'Select the specific leave type rule (LV001-LV012)',
-            'Update the numeric value (days/percentage)',
-            'Toggle rule enabled/disabled as needed',
-            'Save changes - takes effect immediately'
+            'Click on specific leave rule (LV001-LV012) to expand',
+            'Click Edit button to modify values',
+            'Update numeric value (days) and unit (days/year or percent)',
+            'Toggle rule enabled/disabled using switch',
+            'Add/update description for audit trail',
+            'Click Save Changes - takes effect immediately'
           ]
         },
         {
-          heading: 'After Changes',
+          heading: 'Testing & Verification',
           checklist: [
-            'Verify in Payroll Simulator with sample employee',
-            'Announce policy update via company communication',
-            'Update employee handbook if applicable',
-            'Monitor leave applications for next 30 days'
+            'Open Payroll Simulator from top-right button',
+            'Enter sample employee CTC and leave days',
+            'Verify LOP deduction calculation is correct',
+            'Check encashment amount in F&F preview',
+            'Confirm changes reflect in Leave Dashboard'
+          ]
+        },
+        {
+          heading: 'Post-Change Actions',
+          checklist: [
+            'Announce policy update via company email',
+            'Update employee handbook document',
+            'Monitor leave applications for 30 days',
+            'Review any grievances or escalations',
+            'Document changes in HR policy log'
           ]
         }
       ],
       warnings: [
-        'Reducing leave quota mid-year may cause negative balances',
-        'Disabling encashment affects employees planning resignation',
-        'Sandwich policy changes can surprise employees on long leaves'
+        '⚠️ Reducing leave quota mid-year may cause negative balances for employees who already utilized more',
+        '⚠️ Disabling encashment immediately affects employees planning resignation',
+        '⚠️ Sandwich policy changes can surprise employees on approved long leaves',
+        '⚠️ Accrual rate changes affect leave credit from next month onwards'
       ],
       bestPractices: [
-        'Change policies effective from next financial year',
-        'Allow 30-day grace period for existing applications',
-        'Keep minimum 6 sick leaves for employee welfare'
+        '✓ Change policies effective from next financial year (April)',
+        '✓ Allow 30-day grace period for existing approved applications',
+        '✓ Keep minimum 6 sick leaves for employee health emergencies',
+        '✓ Align earned leave accrual with industry standard (15-18 days/year)',
+        '✓ Enable carry forward with reasonable limits (max 30 days)'
       ]
     }
   },
@@ -129,48 +204,100 @@ const POLICY_SOP_DATA = {
     impacts: [
       { area: 'Expense Claims', impact: 'Direct', description: 'Limits determine max claimable amounts' },
       { area: 'Payroll', impact: 'Direct', description: 'Approved travel expenses are reimbursed via payroll' },
-      { area: 'Budget', impact: 'Indirect', description: 'Higher limits increase travel cost budgets' }
+      { area: 'Budget', impact: 'High', description: 'Higher limits increase travel cost budgets' }
     ],
+    payrollLinkage: {
+      affects: ['Travel Reimbursement', 'Expense Settlement', 'Advance Adjustment'],
+      disbursement: 'Monthly Payroll (with salary) or Separate Disbursement',
+      ctcComponents: ['Not linked to CTC - Reimbursement based']
+    },
+    detailedSOP: `
+## Travel Policy Configuration - Standard Operating Procedure
+
+### Overview
+The Travel Policy governs all business travel expenses including daily allowances, accommodation, flights, and local conveyance. This policy integrates with the Expense Management module and ultimately flows to Payroll for reimbursement disbursement.
+
+### Rule Categories
+
+**Daily Allowance Rules (TR001-TR003):** Define per-day food and incidental allowances. Metro cities (Mumbai, Delhi, Bangalore, Chennai, Hyderabad, Kolkata) typically have 20-30% higher limits due to higher cost of living.
+
+**Accommodation Rules (TR004-TR005):** Set hotel tariff limits by city tier and employee grade. Senior management may have higher limits. Pre-booking through company portal is recommended for compliance.
+
+**Transport Rules (TR006-TR008):** Cover flight class eligibility (Economy/Business), train class (AC 2-tier/3-tier), and local conveyance (cab/auto limits). Flight class may upgrade for journeys exceeding 4 hours.
+
+**Advance & Settlement (TR009-TR010):** Define travel advance policy (typically 70-80% of estimated expenses) and settlement timeline (within 7 days of return). Unsettled advances are adjusted against salary.
+
+### Payroll Integration
+
+- **Reimbursement Processing:** Approved travel claims are included in the monthly payroll cycle for disbursement
+- **Advance Adjustment:** Any travel advances are automatically adjusted against the final claim amount
+- **Budget Tracking:** All travel expenses are tracked against departmental travel budgets
+
+### Metro City List
+For higher allowance eligibility: Mumbai, Delhi NCR, Bangalore, Chennai, Hyderabad, Kolkata, Pune, Ahmedabad
+
+### Configuration Guidelines
+
+1. Review industry benchmarks annually for allowance revision
+2. Consider inflation impact on accommodation limits
+3. Allow role-based exceptions for client-facing senior staff
+4. Ensure settlement timelines align with payroll cutoff dates
+    `,
     sop: {
       title: 'Travel Policy Configuration SOP',
       sections: [
         {
-          heading: 'Understanding Travel Rules',
+          heading: 'Payroll-Linked Rules',
           checklist: [
-            'TR001-TR003: Daily allowances (food, incidentals)',
-            'TR004-TR005: Hotel and flight class rules',
-            'TR006-TR007: Advance and settlement processes',
-            'TR008-TR010: Conveyance and local travel'
+            'TR001-TR003: Daily allowances reimbursed via payroll',
+            'TR004-TR005: Hotel limits affect claim approval',
+            'TR009: Advance policy - unsettled advances adjust salary',
+            'TR010: Settlement deadline affects payroll cutoff'
+          ]
+        },
+        {
+          heading: 'Rule Configuration Guide',
+          checklist: [
+            'TR001-TR003: Set daily allowance by city tier (Metro/Non-Metro)',
+            'TR004-TR005: Set hotel limits by employee grade',
+            'TR006-TR007: Define flight/train class eligibility',
+            'TR008: Set local conveyance limits',
+            'TR009-TR010: Configure advance and settlement rules'
           ]
         },
         {
           heading: 'Before Making Changes',
           checklist: [
             'Review current travel expense reports',
-            'Compare with industry standards',
+            'Compare with industry standards and inflation',
             'Check pending travel requests that may be affected',
-            'Inform Sales/Consulting teams about upcoming changes'
+            'Inform Sales/Consulting teams about upcoming changes',
+            'Get Finance approval for budget impact'
           ]
         },
         {
           heading: 'Configuration Steps',
           checklist: [
-            'Select travel rule to modify',
-            'Update limit values (daily/per-trip)',
-            'Review conditions (metro vs non-metro)',
-            'Save - applies to NEW travel requests only'
+            'Select travel rule to modify (TR001-TR010)',
+            'Update limit values (daily/per-trip/per-km)',
+            'Review conditions (metro vs non-metro, grade-based)',
+            'Save - applies to NEW travel requests only',
+            'Test with sample travel claim submission'
           ]
         }
       ],
       warnings: [
-        'Lowering limits may cause employees to pay out-of-pocket',
-        'Strict limits can affect client meeting quality',
-        'Settlement deadline changes need advance notice'
+        '⚠️ Lowering limits may cause employees to pay out-of-pocket',
+        '⚠️ Strict limits can affect client meeting quality',
+        '⚠️ Settlement deadline changes need 15-day advance notice',
+        '⚠️ Advance policy changes affect employees on ongoing travel'
       ],
       bestPractices: [
-        'Review travel limits annually against inflation',
-        'Allow exceptions for client-facing roles',
-        'Metro cities: Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad'
+        '✓ Review travel limits annually against inflation',
+        '✓ Allow exceptions approval process for special cases',
+        '✓ Metro cities: Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad',
+        '✓ Align settlement deadline with payroll cutoff (15th of month)',
+        '✓ Provide adequate advance (70-80%) to avoid employee burden'
       ]
     }
   },
@@ -179,221 +306,508 @@ const POLICY_SOP_DATA = {
     summary: 'Defines expense claim rules, approval thresholds, and receipt requirements. Ensures compliance and fraud prevention.',
     icon: Receipt,
     quickTips: [
-      'Self-approval prevention (Code I52) is mandatory',
-      'Receipt required for claims above threshold',
-      'Cutoff date affects which payroll cycle includes reimbursement'
+      'Self-approval prevention (EX001) is mandatory for compliance',
+      'Receipt required for claims above threshold (typically Rs.500)',
+      'Cutoff date (15th) determines which payroll cycle includes reimbursement'
     ],
     impacts: [
       { area: 'Expense Approvals', impact: 'Direct', description: 'Threshold changes affect approval routing' },
       { area: 'Payroll', impact: 'Direct', description: 'Approved expenses go to designated payroll period' },
       { area: 'Audit Compliance', impact: 'Critical', description: 'Receipt rules ensure audit readiness' }
     ],
+    payrollLinkage: {
+      affects: ['Expense Reimbursement', 'Payroll Cutoff Processing'],
+      disbursement: 'Monthly Payroll (Reimbursement Component)',
+      ctcComponents: ['Reimbursements section of pay slip']
+    },
+    detailedSOP: `
+## Expense Policy Configuration - Standard Operating Procedure
+
+### Overview
+The Expense Policy controls how employees submit, get approval for, and receive reimbursement for business expenses. This policy is critical for compliance, audit readiness, and accurate payroll processing.
+
+### Rule Categories
+
+**Compliance Rules (EX001-EX003):** These are CRITICAL rules that should NEVER be disabled:
+- EX001: Self-Approval Prevention - Ensures no one can approve their own expenses
+- EX002: Receipt Threshold - Defines minimum amount requiring receipt (Rs.500 standard)
+- EX003: Cutoff Date - Determines which payroll cycle includes the expense
+
+**Limit Rules (EX004-EX006):** Define maximum expense amounts:
+- EX004: Maximum Single Expense - Per-claim limit requiring additional approval
+- EX005: Monthly Ceiling - Total monthly expense limit per employee
+- EX006: Meal/Entertainment - Specific category limits
+
+### Payroll Integration
+
+Expenses flow to payroll based on the following process:
+1. Employee submits expense claim with receipts
+2. Manager approves (self-approval blocked by EX001)
+3. Finance verifies compliance (receipts checked per EX002)
+4. If submitted before cutoff (EX003), included in current month payroll
+5. If after cutoff, rolls to next month payroll
+6. Reimbursement appears in payslip under "Reimbursements"
+
+### Audit Requirements
+
+All expense claims are subject to internal and statutory audits. The expense policy must ensure:
+- Complete receipt documentation for amounts above threshold
+- Proper approval hierarchy (no self-approval)
+- Clear cutoff dates for financial period closing
+- Category-wise limits to prevent misuse
+
+### Configuration Best Practices
+
+1. Never disable EX001 (Self-Approval Prevention) - Audit failure risk
+2. Keep receipt threshold at Rs.500 or lower for good documentation
+3. Align cutoff date (15th) with payroll processing schedule
+4. Review expense patterns quarterly for fraud detection
+    `,
     sop: {
       title: 'Expense Policy Configuration SOP',
       sections: [
         {
-          heading: 'Critical Rules (Do Not Disable)',
+          heading: 'Critical Rules (DO NOT DISABLE)',
           checklist: [
-            'EX001: Self-approval prevention - MANDATORY for compliance',
-            'EX002: Receipt threshold - Required for audit',
-            'EX003: Cutoff dates - Affects payroll accuracy'
+            'EX001: Self-approval prevention - MANDATORY for audit compliance',
+            'EX002: Receipt threshold (Rs.500) - Required for documentation',
+            'EX003: Cutoff date (15th) - Affects payroll accuracy'
           ]
         },
         {
-          heading: 'Configurable Rules',
+          heading: 'Configurable Limit Rules',
           checklist: [
-            'EX004: Maximum single expense limit',
+            'EX004: Maximum single expense limit (typically Rs.50,000)',
             'EX005: Monthly expense ceiling per employee',
-            'EX006: Meal/Entertainment limits'
+            'EX006: Meal/Entertainment limits per claim'
           ]
         },
         {
-          heading: 'Impact on Finance',
+          heading: 'Payroll Impact Flow',
           checklist: [
-            'Cutoff date (15th) - expenses after this go to next month',
-            'Receipt threshold affects documentation workload',
-            'Limits affect cash flow forecasting'
+            'Claim submitted → Manager approves → Finance verifies',
+            'Before cutoff (15th) → Current month payroll',
+            'After cutoff → Next month payroll',
+            'Reimbursement in payslip → Disbursed with salary'
+          ]
+        },
+        {
+          heading: 'Configuration Steps',
+          checklist: [
+            'Select expense rule (EX001-EX006)',
+            'Update limit values (INR amount)',
+            'Review approval conditions if applicable',
+            'Save changes - applies to new claims only',
+            'Test by submitting a sample expense claim'
           ]
         }
       ],
       warnings: [
-        'NEVER disable self-approval prevention (audit failure risk)',
-        'Raising limits significantly may enable fraud',
-        'Removing receipt requirements risks audit findings'
+        '🚫 NEVER disable EX001 (Self-Approval) - Causes audit failure',
+        '⚠️ Raising limits significantly may enable fraud/misuse',
+        '⚠️ Removing receipt requirements risks audit findings',
+        '⚠️ Changing cutoff date affects month-end close process'
       ],
       bestPractices: [
-        'Review expense patterns quarterly',
-        'Keep receipt threshold at Rs.500 or lower',
-        'Cutoff on 15th aligns with standard payroll cycles'
+        '✓ Keep receipt threshold at Rs.500 or lower',
+        '✓ Cutoff on 15th aligns with standard payroll cycles',
+        '✓ Review expense patterns quarterly for anomalies',
+        '✓ Maintain clear category definitions for claims',
+        '✓ Enable email notifications for approval reminders'
       ]
     }
   },
   attendance: {
     title: 'Attendance Policy Management',
-    summary: 'Governs work hours, WFH policies, late penalties, and overtime rules. Affects payroll calculations.',
+    summary: 'Governs work hours, WFH policies, late penalties, and overtime rules. Directly affects payroll calculations.',
     icon: Clock,
     quickTips: [
-      'Core hours define mandatory office presence',
-      'Late threshold triggers penalty after 3 incidents',
-      'Overtime must be pre-approved by manager'
+      'Core hours (10AM-5PM) define mandatory office presence',
+      'Late threshold (3 incidents) triggers salary penalty',
+      'Overtime must be pre-approved by manager for payment'
     ],
     impacts: [
       { area: 'Salary Calculation', impact: 'Direct', description: 'Late penalties and LOP deductions affect net pay' },
       { area: 'Employee Flexibility', impact: 'High', description: 'WFH and flexi-time rules affect work-life balance' },
-      { area: 'Compliance', impact: 'Moderate', description: 'Overtime rules must comply with labor laws' }
+      { area: 'Compliance', impact: 'Critical', description: 'Overtime rules must comply with labor laws (max 48hrs/month)' }
     ],
+    payrollLinkage: {
+      affects: ['Late Deductions', 'Overtime Payment', 'LOP Calculation', 'Attendance Bonus'],
+      disbursement: 'Monthly Payroll - Attendance processed before salary generation',
+      ctcComponents: ['Basic Salary (for LOP)', 'Overtime Allowance']
+    },
+    detailedSOP: `
+## Attendance Policy Configuration - Standard Operating Procedure
+
+### Overview
+The Attendance Policy defines work hours, flexibility options, penalty rules, and overtime payment criteria. This policy directly integrates with Payroll for calculating attendance-based deductions and overtime payments.
+
+### Rule Categories
+
+**Work Hours Rules (AT001-AT003):**
+- AT001: Standard work hours (9 hours including lunch break)
+- AT002: Core hours start time (10:00 AM - mandatory presence begins)
+- AT003: Core hours end time (5:00 PM - mandatory presence ends)
+
+**Flexibility Rules (AT004-AT006):**
+- AT004: Grace period for late arrival (typically 15 minutes)
+- AT005: Work From Home days allowed per week/month
+- AT006: Comp-off accrual rules for weekend/holiday work
+
+**Penalty Rules (AT007-AT008):**
+- AT007: Late arrival threshold (3 incidents = half-day deduction)
+- AT008: Unauthorized absence treatment (full day = 1.5x LOP)
+
+### Payroll Integration
+
+Attendance data flows to payroll as follows:
+1. Daily attendance captured (biometric/manual/geo-tagged)
+2. Month-end: Late arrivals counted against threshold
+3. Penalties calculated: Late penalties + LOP deductions
+4. Overtime calculated: Pre-approved OT hours × rate
+5. Net attendance impact reflected in payslip
+
+### Calculation Formulas
+
+**LOP Deduction:** (Basic Salary / Working Days in Month) × LOP Days
+**Late Penalty:** After 3 late arrivals, each additional = 0.5 day LOP
+**Overtime Payment:** (Basic Salary / 30 / 8) × OT Hours × 1.5
+
+### Compliance Requirements
+
+Per Shops & Establishment Act:
+- Maximum 48 hours overtime per month
+- Overtime must be compensated at 1.5x or 2x rate
+- Rest day (Sunday) work requires prior approval
+- Night shift allowances for 10PM-6AM work
+    `,
     sop: {
       title: 'Attendance Policy Configuration SOP',
       sections: [
         {
-          heading: 'Work Hours Configuration',
+          heading: 'Payroll-Linked Rules',
           checklist: [
-            'AT001: Standard work hours (typically 8-9 hours)',
-            'AT002: Core hours window (e.g., 10AM-4PM)',
-            'AT003: Break duration allowance',
-            'AT004: Overtime calculation method'
+            'AT001: Work hours affect full-day/half-day calculation',
+            'AT002-AT003: Core hours determine late marking window',
+            'AT007: Late penalty directly deducts from salary',
+            'AT008: Unauthorized absence = 1.5x LOP deduction'
           ]
         },
         {
-          heading: 'Flexibility Rules',
+          heading: 'Work Hours Configuration',
           checklist: [
-            'AT005: WFH days per week/month',
-            'AT006: Flexi-time grace period',
-            'AT007: Comp-off accrual rules',
-            'AT008: Half-day definitions'
+            'AT001: Standard work hours (9 hours with lunch)',
+            'AT002: Core hours start - 10:00 AM',
+            'AT003: Core hours end - 5:00 PM (17:00)',
+            'AT004: Grace period - 15 minutes buffer'
+          ]
+        },
+        {
+          heading: 'Flexibility & WFH Rules',
+          checklist: [
+            'AT005: WFH days allowed per week (typically 2)',
+            'AT006: Comp-off for weekend/holiday work',
+            'Define WFH eligibility by role/department',
+            'Set approval process for ad-hoc WFH requests'
           ]
         },
         {
           heading: 'Penalty Configuration',
           checklist: [
-            'Late arrival threshold (minutes)',
-            'Number of incidents before penalty',
-            'Penalty amount or leave deduction',
-            'Reset period (monthly/quarterly)'
+            'AT007: Late threshold (3 incidents) before penalty',
+            'AT008: Penalty rate (0.5 day per excess late)',
+            'Define reset period (monthly/quarterly)',
+            'Configure unauthorized absence multiplier (1.5x)'
+          ]
+        },
+        {
+          heading: 'Overtime Rules',
+          checklist: [
+            'OT requires manager pre-approval',
+            'Maximum 48 hours/month (legal limit)',
+            'OT rate: 1.5x for weekdays, 2x for weekends',
+            'Track against departmental OT budget'
           ]
         }
       ],
       warnings: [
-        'Strict late penalties may affect morale',
-        'Overtime rules must comply with Shops & Establishment Act',
-        'WFH restrictions should consider role requirements'
+        '⚠️ Strict late penalties may affect employee morale',
+        '⚠️ Overtime rules must comply with Shops & Establishment Act',
+        '⚠️ WFH restrictions should consider role requirements',
+        '⚠️ Penalty changes apply from next attendance cycle'
       ],
       bestPractices: [
-        'Allow 15-minute grace period for late arrivals',
-        'Cap overtime at 48 hours/month (legal limit)',
-        'Hybrid WFH (2-3 days) balances productivity & flexibility'
+        '✓ Allow 15-minute grace period for late arrivals',
+        '✓ Cap overtime at 48 hours/month (legal compliance)',
+        '✓ Hybrid WFH (2-3 days) balances productivity & flexibility',
+        '✓ Monthly attendance review before payroll processing',
+        '✓ Communicate penalty rules clearly in employee handbook'
       ]
     }
   },
   payroll: {
     title: 'Payroll Rules Management',
-    summary: 'CRITICAL: Defines statutory compliance (PF, ESI, PT) and salary processing rules. CTC Designer handles actual calculations.',
+    summary: 'CRITICAL: Defines statutory compliance (PF, ESI, PT) reference thresholds and salary processing rules. CTC Designer handles actual calculations.',
     icon: DollarSign,
     quickTips: [
-      'PF/ESI thresholds are statutory - consult CTC Designer for changes',
-      'Processing dates affect when employees receive salary',
+      'PF/ESI thresholds are statutory - actual calculation in CTC Designer',
+      'Processing dates (28th) affect when employees receive salary',
       'Tax calculation uses government-mandated slabs'
     ],
     impacts: [
-      { area: 'Salary Processing', impact: 'Critical', description: 'Processing dates determine pay day' },
-      { area: 'Statutory Compliance', impact: 'Critical', description: 'PF/ESI rules are government mandated' },
+      { area: 'Salary Processing', impact: 'Critical', description: 'Processing date determines pay day' },
+      { area: 'Statutory Compliance', impact: 'Critical', description: 'PF/ESI rules are government mandated - view only here' },
       { area: 'Tax Filing', impact: 'High', description: 'TDS calculation affects Form 16 accuracy' }
     ],
+    payrollLinkage: {
+      affects: ['Salary Disbursement Date', 'Payslip Generation', 'Bank File Creation'],
+      disbursement: 'Monthly - Based on PY001 Processing Date',
+      ctcComponents: ['All CTC components calculated in CTC Designer, NOT here']
+    },
+    detailedSOP: `
+## Payroll Rules Configuration - Standard Operating Procedure
+
+### IMPORTANT ARCHITECTURE NOTE
+
+⚠️ **Single Source of Truth (SSOT) Principle:**
+
+This Business Rules page shows REFERENCE information for payroll-related thresholds. However, **all actual salary calculations** happen in the **CTC Designer** module. This separation ensures:
+
+1. Compliance accuracy - CTC Designer uses certified statutory formulas
+2. No conflicting calculations - Single source for all PF/ESI/PT math
+3. Audit trail - All changes in CTC Designer are logged
+
+### Rule Categories
+
+**Processing Rules (PY001-PY003):** These ARE configurable here:
+- PY001: Payroll processing date (typically 28th of month)
+- PY002: Payslip generation date (within 5 days of salary credit)
+- PY003: Input cutoff date (attendance/expense cutoff for current month)
+
+**Reference Rules (PY004-PY010):** View-only for awareness:
+- PY004-PY006: PF thresholds (EPF ceiling Rs.15,000 basic)
+- PY007: Professional Tax slab reference
+- PY008: LOP calculation formula reference
+- PY009-PY010: Bonus and incentive thresholds
+
+### Payroll Processing Flow
+
+1. **Input Collection (by PY003 cutoff):**
+   - Attendance data finalized
+   - Expense claims approved
+   - Leave applications processed
+
+2. **Calculation (automatic):**
+   - CTC Designer calculates all components
+   - Statutory deductions auto-applied
+   - Reimbursements included
+
+3. **Generation (PY001 date):**
+   - Payroll file generated
+   - Bank file created for disbursement
+   - Payslips prepared
+
+4. **Disbursement:**
+   - Bank transfer initiated
+   - Payslips emailed to employees
+
+### Configuration Restrictions
+
+The following CANNOT be changed here (use CTC Designer):
+- PF contribution percentages (12% employee, 12% employer)
+- ESI contribution rates (0.75% employee, 3.25% employer)
+- Professional Tax slab amounts
+- TDS calculation method
+
+These CAN be changed here:
+- Processing and generation dates
+- Cutoff dates for inputs
+- Notification settings
+    `,
     sop: {
       title: 'Payroll Rules Configuration SOP',
       sections: [
         {
-          heading: 'IMPORTANT: CTC Designer vs Business Rules',
+          heading: '⚠️ CRITICAL: CTC Designer vs Business Rules',
           checklist: [
-            'Business Rules: Display reference thresholds only',
-            'CTC Designer: ACTUAL salary component calculations',
-            'Never use Business Rules to override statutory compliance',
-            'All PF/ESI calculations are in CTC Designer'
+            'Business Rules: Processing dates & reference thresholds ONLY',
+            'CTC Designer: ALL actual salary component calculations',
+            'NEVER use Business Rules to override statutory compliance',
+            'PF/ESI/PT formulas are LOCKED in CTC Designer'
           ]
         },
         {
-          heading: 'Safe to Configure Here',
+          heading: 'Safe to Configure (PY001-PY003)',
           checklist: [
-            'PY001: Payroll processing date (typically 25th-30th)',
-            'PY002: Pay slip generation date',
-            'PY003: Reimbursement inclusion cutoff'
+            'PY001: Payroll processing date (28th recommended)',
+            'PY002: Payslip generation date (within 5 days)',
+            'PY003: Input cutoff date (20th-25th of month)'
           ]
         },
         {
-          heading: 'View Only (Reference)',
+          heading: 'View Only - Reference (PY004-PY010)',
           checklist: [
-            'PY004-PY010: PF/ESI thresholds for reference',
-            'These are statutory and auto-calculated',
-            'Use CTC Designer to see actual deductions'
+            'PY004-PY006: PF thresholds (Rs.15,000 basic ceiling)',
+            'PY007: PT slabs (state-wise, Karnataka shown)',
+            'PY008: LOP formula reference',
+            'PY009-PY010: Bonus/Incentive thresholds'
+          ]
+        },
+        {
+          heading: 'Processing Date Guidelines',
+          checklist: [
+            'Process by 28th for end-of-month salary credit',
+            'Allow 2-3 days for bank processing',
+            'Generate payslips before salary hits accounts',
+            'Send payslip emails on salary credit day'
           ]
         }
       ],
       warnings: [
-        'DO NOT modify PF/ESI rules - they are statutory',
-        'Payroll date changes affect employee financial planning',
-        'Tax rules are set by government - not configurable'
+        '🚫 DO NOT modify PF/ESI percentage rules - they are statutory',
+        '⚠️ Payroll date changes affect employee financial planning',
+        '⚠️ Tax rules are government-mandated - not configurable',
+        '⚠️ Late processing affects employee trust and compliance'
       ],
       bestPractices: [
-        'Process payroll by 28th to allow bank processing time',
-        'Generate pay slips within 5 days of salary credit',
-        'Use Payroll Simulator to verify calculations'
+        '✓ Process payroll by 28th for end-of-month credit',
+        '✓ Generate payslips within 5 days of salary credit',
+        '✓ Use Payroll Simulator to verify calculations',
+        '✓ Maintain payroll calendar shared with all teams',
+        '✓ Review statutory rates quarterly for updates'
       ]
     }
   },
   general: {
     title: 'General HR Policies',
-    summary: 'Covers probation, notice periods, increment cycles, and general employment terms.',
+    summary: 'Covers probation, notice periods, increment cycles, and general employment terms that affect payroll and exit processes.',
     icon: FileText,
     quickTips: [
-      'Probation period affects confirmation and benefits eligibility',
-      'Notice period is enforced during resignation',
-      'Increment month sets annual appraisal cycle'
+      'Probation period (6 months) affects benefits eligibility',
+      'Notice period (30-90 days) enforced during resignation',
+      'Increment month (April) sets annual appraisal cycle'
     ],
     impacts: [
-      { area: 'Onboarding', impact: 'High', description: 'Probation rules affect new employee benefits' },
-      { area: 'Exit Process', impact: 'High', description: 'Notice period determines last working day' },
-      { area: 'Compensation', impact: 'Moderate', description: 'Increment month affects salary revision timing' }
+      { area: 'Onboarding', impact: 'High', description: 'Probation rules affect new employee benefits and confirmation' },
+      { area: 'Exit Process', impact: 'Critical', description: 'Notice period determines last working day and F&F' },
+      { area: 'Compensation', impact: 'Direct', description: 'Increment month affects salary revision timing' }
     ],
+    payrollLinkage: {
+      affects: ['Probation Completion Bonus', 'Notice Period Recovery', 'Increment Processing'],
+      disbursement: 'Various - Confirmation bonus, Annual increment, F&F settlement',
+      ctcComponents: ['Salary revision effective from HR005 month']
+    },
+    detailedSOP: `
+## General HR Policy Configuration - Standard Operating Procedure
+
+### Overview
+General HR Policies define the employment lifecycle rules from joining to exit. These policies have significant payroll and compliance implications.
+
+### Rule Categories
+
+**Probation Rules (HR001-HR002):**
+- HR001: Probation period duration (typically 6 months)
+- HR002: Probation extension rules (max 3 months extension)
+
+During probation:
+- No earned leave accrual
+- Limited insurance coverage
+- Shorter notice period (15 days vs 30-90)
+- Performance review at 3 months and 6 months
+
+**Notice Period Rules (HR003-HR004):**
+- HR003: Notice period for employee resignation
+- HR004: Notice period for company termination
+
+Notice period enforcement:
+- Shortfall days = salary recovery
+- Notice buyout option (company discretion)
+- Serving notice vs notice pay calculation
+
+**Compensation Cycle (HR005-HR006):**
+- HR005: Annual increment month (typically April)
+- HR006: Performance review frequency (annual/bi-annual)
+
+### Payroll Implications
+
+**Probation Completion:**
+- Benefits activated (full insurance, PF contribution)
+- Earned leave starts accruing
+- Confirmation letter generated
+- Optional: Confirmation bonus processed
+
+**Notice Period:**
+- F&F calculation triggered
+- Notice recovery if not served
+- Leave encashment processed
+- Gratuity (if eligible) calculated
+
+**Annual Increment:**
+- Revised CTC effective from increment month
+- Arrears calculated if late processing
+- Updated tax projection for remaining year
+    `,
     sop: {
       title: 'General HR Policy Configuration SOP',
       sections: [
         {
-          heading: 'Employment Terms',
+          heading: 'Payroll-Linked Rules',
           checklist: [
-            'GH001: Standard probation period (typically 3-6 months)',
-            'GH002: Notice period for resignation',
-            'GH003: Notice period for termination',
-            'GH004: Retirement age'
+            'HR001: Probation affects benefits & leave accrual',
+            'HR003-HR004: Notice period affects F&F calculation',
+            'HR005: Increment month sets salary revision date',
+            'HR006: Review frequency affects bonus timing'
           ]
         },
         {
-          heading: 'Performance & Compensation',
+          heading: 'Probation Configuration',
           checklist: [
-            'GH005: Annual increment month (typically April)',
-            'GH006: Performance review frequency',
-            'GH007: Confirmation criteria',
-            'GH008: Extension rules for probation'
+            'HR001: Standard period (6 months recommended)',
+            'HR002: Extension rules (max 3 months)',
+            'Define probation benefits (limited vs full)',
+            'Set review milestones (3-month, 5-month)'
           ]
         },
         {
-          heading: 'Workplace Policies',
+          heading: 'Notice Period Configuration',
           checklist: [
-            'Dress code guidelines',
-            'Code of conduct reference',
-            'Reporting structure rules',
-            'Communication protocols'
+            'HR003: Employee resignation notice (30-90 days)',
+            'HR004: Company termination notice',
+            'Define notice buyout policy',
+            'Set notice recovery calculation method'
+          ]
+        },
+        {
+          heading: 'Compensation Cycle',
+          checklist: [
+            'HR005: Increment month - April (FY start)',
+            'HR006: Review frequency - Annual',
+            'Define increment eligibility criteria',
+            'Set bell curve/rating distribution'
+          ]
+        },
+        {
+          heading: 'Other Employment Terms',
+          checklist: [
+            'HR007: Retirement age (58-60 years)',
+            'HR008: Re-employment rules',
+            'Dress code policy reference',
+            'Code of conduct reference'
           ]
         }
       ],
       warnings: [
-        'Changing notice period affects current employees',
-        'Probation extension needs proper documentation',
-        'Retirement age must comply with company policy'
+        '⚠️ Changing notice period affects current employees',
+        '⚠️ Probation extension needs proper documentation',
+        '⚠️ Increment month change affects annual planning',
+        '⚠️ Notice recovery must comply with labor laws'
       ],
       bestPractices: [
-        '90 days notice for senior roles, 30 days for others',
-        '6-month probation provides adequate evaluation time',
-        'April increment aligns with financial year'
+        '✓ 90 days notice for senior roles, 30 days for others',
+        '✓ 6-month probation provides adequate evaluation time',
+        '✓ April increment aligns with financial year',
+        '✓ Bi-annual reviews for junior staff, annual for seniors',
+        '✓ Document all policy exceptions with HR approval'
       ]
     }
   }
@@ -408,7 +822,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`max-w-3xl max-h-[85vh] overflow-y-auto ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
+      <DialogContent className={`max-w-4xl max-h-[90vh] overflow-y-auto ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${POLICY_TYPE_COLORS[policyType]?.split(' ')[0]}`}>
@@ -417,7 +831,7 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
             <div>
               <span>{sopData.sop.title}</span>
               <p className={`text-sm font-normal mt-1 ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                Standard Operating Procedure & Impact Analysis
+                Standard Operating Procedure & Impact Analysis (200+ words)
               </p>
             </div>
           </DialogTitle>
@@ -450,8 +864,46 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
             </div>
           </div>
           
+          {/* Payroll Linkage Section */}
+          {sopData.payrollLinkage && (
+            <div className={`p-4 rounded-lg ${isDark ? 'bg-blue-900/20 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
+              <h4 className="font-semibold flex items-center gap-2 mb-3 text-blue-600">
+                <DollarSign className="w-4 h-4" />
+                Payroll & Disbursement Linkage
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className={`text-xs font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>Affects:</p>
+                  <ul className="mt-1 space-y-1">
+                    {sopData.payrollLinkage.affects.map((item, idx) => (
+                      <li key={idx} className={`text-xs flex items-center gap-1 ${isDark ? 'text-blue-200' : 'text-blue-600'}`}>
+                        <ArrowRight className="w-3 h-3" /> {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className={`text-xs font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>Disbursement:</p>
+                  <p className={`text-xs mt-1 ${isDark ? 'text-blue-200' : 'text-blue-600'}`}>
+                    {sopData.payrollLinkage.disbursement}
+                  </p>
+                </div>
+                <div>
+                  <p className={`text-xs font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>CTC Components:</p>
+                  <ul className="mt-1 space-y-1">
+                    {sopData.payrollLinkage.ctcComponents.map((item, idx) => (
+                      <li key={idx} className={`text-xs flex items-center gap-1 ${isDark ? 'text-blue-200' : 'text-blue-600'}`}>
+                        <ArrowRight className="w-3 h-3" /> {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* SOP Sections with Checklists */}
-          <Accordion type="multiple" className="w-full" defaultValue={['section-0']}>
+          <Accordion type="multiple" className="w-full" defaultValue={['section-0', 'section-1']}>
             {sopData.sop.sections.map((section, idx) => (
               <AccordionItem key={idx} value={`section-${idx}`} className={isDark ? 'border-zinc-700' : ''}>
                 <AccordionTrigger className="hover:no-underline">
@@ -474,6 +926,21 @@ const SOPDetailModal = ({ isOpen, onClose, policyType, isDark }) => {
               </AccordionItem>
             ))}
           </Accordion>
+          
+          {/* Detailed SOP Document */}
+          {sopData.detailedSOP && (
+            <div className={`p-4 rounded-lg ${isDark ? 'bg-zinc-900 border border-zinc-700' : 'bg-white border border-zinc-200'}`}>
+              <h4 className="font-semibold flex items-center gap-2 mb-3">
+                <BookOpen className="w-4 h-4 text-purple-500" />
+                Detailed SOP Documentation
+              </h4>
+              <div className={`prose prose-sm max-w-none ${isDark ? 'prose-invert' : ''}`}>
+                <pre className={`whitespace-pre-wrap text-xs leading-relaxed font-sans ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                  {sopData.detailedSOP.trim()}
+                </pre>
+              </div>
+            </div>
+          )}
           
           {/* Warnings */}
           <div className={`p-4 rounded-lg ${isDark ? 'bg-red-900/20 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
@@ -626,6 +1093,32 @@ const BusinessRules = () => {
     onError: (err) => toast.error(err.response?.data?.detail || 'Failed to update policy')
   });
   
+  // Add new rule mutation
+  const addRuleMutation = useMutation({
+    mutationFn: async ({ policyId, ruleData }) => {
+      return axios.post(`${API}/business-rules/${policyId}/rule`, ruleData);
+    },
+    onSuccess: (data) => {
+      toast.success(`Rule ${data.data.rule_id} added successfully`);
+      queryClient.invalidateQueries(['business-policies']);
+      setShowRuleDialog(false);
+      setEditingRule(null);
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to add rule')
+  });
+  
+  // Delete rule mutation
+  const deleteRuleMutation = useMutation({
+    mutationFn: async ({ policyId, ruleId }) => {
+      return axios.delete(`${API}/business-rules/${policyId}/rule/${ruleId}`);
+    },
+    onSuccess: () => {
+      toast.success('Rule deleted successfully');
+      queryClient.invalidateQueries(['business-policies']);
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Failed to delete rule')
+  });
+  
   // Filter policies
   const filteredPolicies = policies.filter(p => {
     if (activeTab !== 'all' && p.policy_type !== activeTab) return false;
@@ -647,16 +1140,65 @@ const BusinessRules = () => {
   
   const handleEditRule = (policy, rule) => {
     setSelectedPolicy(policy);
-    setEditingRule({ ...rule });
+    setEditingRule({ ...rule, _isNew: false });
+    setShowRuleDialog(true);
+  };
+  
+  const handleAddNewRule = (policy) => {
+    setSelectedPolicy(policy);
+    // Create a blank new rule template
+    const policyPrefix = policy.policy_type.substring(0, 2).toUpperCase();
+    const nextNum = (policy.rules?.length || 0) + 1;
+    setEditingRule({
+      rule_id: `${policyPrefix}${String(nextNum).zfill ? nextNum.toString().padStart(3, '0') : String(nextNum).padStart(3, '0')}`,
+      rule_name: '',
+      rule_type: 'limit',
+      category: '',
+      numeric_value: null,
+      unit: '',
+      value: '',
+      description: '',
+      is_enabled: true,
+      _isNew: true
+    });
     setShowRuleDialog(true);
   };
   
   const handleSaveRule = () => {
     if (!selectedPolicy || !editingRule) return;
-    updateRuleMutation.mutate({
-      policyId: selectedPolicy.id,
-      ruleId: editingRule.rule_id,
-      ruleData: editingRule
+    
+    // Validate required fields
+    if (!editingRule.rule_name) {
+      toast.error('Rule name is required');
+      return;
+    }
+    
+    if (editingRule._isNew) {
+      // Add new rule
+      addRuleMutation.mutate({
+        policyId: selectedPolicy.id,
+        ruleData: {
+          ...editingRule,
+          _isNew: undefined  // Remove internal flag
+        }
+      });
+    } else {
+      // Update existing rule
+      updateRuleMutation.mutate({
+        policyId: selectedPolicy.id,
+        ruleId: editingRule.rule_id,
+        ruleData: editingRule
+      });
+    }
+  };
+  
+  const handleDeleteRule = (policy, rule) => {
+    if (!window.confirm(`Are you sure you want to delete rule "${rule.rule_name}" (${rule.rule_id})?`)) {
+      return;
+    }
+    deleteRuleMutation.mutate({
+      policyId: policy.id,
+      ruleId: rule.rule_id
     });
   };
   
@@ -889,10 +1431,27 @@ const BusinessRules = () => {
             
             {/* Rules List */}
             <div className="space-y-3">
-              <h4 className="font-medium flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Policy Rules ({totalRules})
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Policy Rules ({totalRules})
+                </h4>
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddNewRule(policy);
+                    }}
+                    className="flex items-center gap-1"
+                    data-testid={`add-rule-${policy.policy_type}`}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add New Rule
+                  </Button>
+                )}
+              </div>
               {policy.rules?.map((rule, idx) => renderRuleCard(policy, rule, idx))}
             </div>
             
@@ -1154,26 +1713,62 @@ const BusinessRules = () => {
         )}
       </div>
       
-      {/* Edit Rule Dialog */}
+      {/* Edit/Add Rule Dialog */}
       <Dialog open={showRuleDialog} onOpenChange={setShowRuleDialog}>
         <DialogContent className={`max-w-lg ${isDark ? 'bg-zinc-800 border-zinc-700' : ''}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Edit2 className="w-5 h-5" />
-              Edit Rule: {editingRule?.rule_name}
+              {editingRule?._isNew ? <Plus className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
+              {editingRule?._isNew ? 'Add New Rule' : `Edit Rule: ${editingRule?.rule_name}`}
             </DialogTitle>
             <DialogDescription>
-              Modify the rule configuration. Changes will take effect immediately.
+              {editingRule?._isNew 
+                ? 'Configure the new rule. The rule ID will be auto-generated if left empty.'
+                : 'Modify the rule configuration. Changes will take effect immediately.'
+              }
             </DialogDescription>
           </DialogHeader>
           
           {editingRule && (
             <div className="space-y-4 py-4">
+              {editingRule._isNew && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Rule ID</Label>
+                    <Input
+                      value={editingRule.rule_id || ''}
+                      onChange={(e) => setEditingRule({...editingRule, rule_id: e.target.value})}
+                      placeholder="Auto-generated if empty"
+                      className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                    />
+                  </div>
+                  <div>
+                    <Label>Rule Type *</Label>
+                    <Select
+                      value={editingRule.rule_type || 'limit'}
+                      onValueChange={(val) => setEditingRule({...editingRule, rule_type: val})}
+                    >
+                      <SelectTrigger className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="limit">LIMIT (max values)</SelectItem>
+                        <SelectItem value="threshold">THRESHOLD (trigger points)</SelectItem>
+                        <SelectItem value="condition">CONDITION (if/then logic)</SelectItem>
+                        <SelectItem value="formula">FORMULA (calculations)</SelectItem>
+                        <SelectItem value="approval">APPROVAL (workflow rules)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              
               <div>
-                <Label>Rule Name</Label>
+                <Label>Rule Name *</Label>
                 <Input
                   value={editingRule.rule_name || ''}
                   onChange={(e) => setEditingRule({...editingRule, rule_name: e.target.value})}
+                  placeholder="e.g., Maximum Single Expense"
                   className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
                 />
               </div>
@@ -1183,6 +1778,7 @@ const BusinessRules = () => {
                 <Input
                   value={editingRule.description || ''}
                   onChange={(e) => setEditingRule({...editingRule, description: e.target.value})}
+                  placeholder="Brief description of what this rule does"
                   className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
                 />
               </div>
@@ -1192,29 +1788,44 @@ const BusinessRules = () => {
                   <Label>Numeric Value</Label>
                   <Input
                     type="number"
-                    value={editingRule.numeric_value || ''}
-                    onChange={(e) => setEditingRule({...editingRule, numeric_value: parseFloat(e.target.value) || null})}
+                    value={editingRule.numeric_value ?? ''}
+                    onChange={(e) => setEditingRule({...editingRule, numeric_value: e.target.value ? parseFloat(e.target.value) : null})}
+                    placeholder="e.g., 50000"
                     className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
                   />
                 </div>
                 <div>
-                  <Label>Unit</Label>
+                  <Label>Unit *</Label>
                   <Input
                     value={editingRule.unit || ''}
                     onChange={(e) => setEditingRule({...editingRule, unit: e.target.value})}
+                    placeholder="e.g., INR, days/year, percent"
                     className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
                   />
                 </div>
               </div>
               
               <div>
-                <Label>String Value</Label>
+                <Label>String Value (for conditions/formulas)</Label>
                 <Input
                   value={editingRule.value || ''}
                   onChange={(e) => setEditingRule({...editingRule, value: e.target.value})}
+                  placeholder="e.g., basic_salary * 0.12"
                   className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
                 />
               </div>
+              
+              {editingRule._isNew && (
+                <div>
+                  <Label>Category</Label>
+                  <Input
+                    value={editingRule.category || ''}
+                    onChange={(e) => setEditingRule({...editingRule, category: e.target.value})}
+                    placeholder="e.g., quota, compliance, flexibility"
+                    className={isDark ? 'bg-zinc-900 border-zinc-700' : ''}
+                  />
+                </div>
+              )}
               
               <div className="flex items-center gap-2">
                 <Switch
@@ -1232,15 +1843,15 @@ const BusinessRules = () => {
             </Button>
             <Button
               onClick={handleSaveRule}
-              disabled={updateRuleMutation.isPending}
+              disabled={updateRuleMutation.isPending || addRuleMutation.isPending}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
-              {updateRuleMutation.isPending ? (
+              {(updateRuleMutation.isPending || addRuleMutation.isPending) ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Save Changes
+              {editingRule?._isNew ? 'Add Rule' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
