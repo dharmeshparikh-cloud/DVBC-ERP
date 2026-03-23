@@ -444,6 +444,7 @@ async def approve_ctc_structure(ctc_id: str, data: dict, current_user: User = De
         {"$set": {
             "salary": gross_monthly,
             "annual_ctc": ctc_structure["annual_ctc"],
+            "current_ctc": ctc_structure["annual_ctc"],  # Also set current_ctc for CTC Designer filtering
             "ctc_effective_from": ctc_structure["effective_month"],
             "ctc_structure_id": ctc_id
         }}
