@@ -376,6 +376,37 @@ After onboarding completion, employees can request changes to their profile info
 
 ---
 
+## CTC Designer Enhancement (March 23, 2026)
+
+### Overview
+CTC Designer now has two tabs to handle both new employees and salary revisions from a single page.
+
+### Tabs
+1. **New Employee CTC** (Default tab)
+   - Shows employees with `onboarding_complete === true` but NO CTC set
+   - Used by HR to set first-time CTC for newly onboarded employees
+   - "Set CTC" link available from Go-Live Dashboard
+
+2. **CTC Revision**
+   - Shows employees with existing CTC (`current_ctc > 0`)
+   - Used for annual salary revisions
+
+### Go-Live Integration
+- **CTC Pending Filter**: Go-Live Dashboard shows "CTC Pending" filter to see employees waiting for CTC setup
+- **Auto Go-Live**: When first-time CTC is approved by Admin, employee's `go_live_status` automatically changes to "active"
+- **Status Badge**: Changed from "Active" to "Go-Live Successful"
+
+### Live Preview Feature
+- CTC breakdown preview updates automatically as user types (500ms debounce)
+- No need to click "Preview Breakdown" button
+- Retention bonus now correctly reflected in the breakdown
+
+### Access Control
+- HR and Admin can access CTC Designer
+- HR creates CTC structure → Admin approves
+
+---
+
 ## Last Updated
 - Date: March 23, 2026
-- Status: Exit Organisation Workflow Implemented & Tested
+- Status: CTC Designer with Tabs + Go-Live Integration Implemented & Tested
