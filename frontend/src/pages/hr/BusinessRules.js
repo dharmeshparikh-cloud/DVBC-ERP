@@ -2342,16 +2342,244 @@ const BusinessRules = () => {
                     ` (for ${editingRule.applies_to.scope_value || editingRule.applies_to.scope_type})`}
                 </p>
               </div>
+              
+              {/* RULE IMPACT SIMULATION - Shows what happens when rule is applied */}
+              <div className={`p-4 rounded-lg ${isDark ? 'bg-gradient-to-br from-purple-900/30 to-zinc-900 border border-purple-700' : 'bg-gradient-to-br from-purple-50 to-white border border-purple-200'}`}>
+                <h4 className={`font-semibold flex items-center gap-2 mb-3 ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>
+                  <Calculator className="w-4 h-4" />
+                  Impact Simulation - What Will Happen?
+                </h4>
+                
+                {/* LIMIT Rule Examples */}
+                {editingRule.rule_type === 'limit' && (
+                  <div className="space-y-3">
+                    <p className={`text-xs ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
+                      <strong>LIMIT Rule:</strong> Sets maximum allowable values. Exceeding this limit triggers rejection or requires special approval.
+                    </p>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-emerald-600 mb-2">✅ Example 1 - Within Limit:</p>
+                      <div className="text-sm space-y-1">
+                        <p>Employee CTC: <strong>₹8,00,000/year</strong> (Basic: ₹3,20,000)</p>
+                        <p>Rule: {editingRule.rule_name || 'Max Leave'} = <strong>{editingRule.numeric_value || 12} {editingRule.unit || 'days/year'}</strong></p>
+                        <p>Employee requests: <strong>{Math.floor((editingRule.numeric_value || 12) * 0.8)} {editingRule.unit?.replace('/year', '').replace('/month', '') || 'days'}</strong></p>
+                        <p className="text-emerald-600">→ <strong>APPROVED</strong> (within limit)</p>
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-red-600 mb-2">❌ Example 2 - Exceeds Limit:</p>
+                      <div className="text-sm space-y-1">
+                        <p>Employee CTC: <strong>₹12,00,000/year</strong> (Basic: ₹4,80,000)</p>
+                        <p>Rule: {editingRule.rule_name || 'Max Expense'} = <strong>{editingRule.numeric_value || 50000} {editingRule.unit || 'INR'}</strong></p>
+                        <p>Employee claims: <strong>₹{((editingRule.numeric_value || 50000) * 1.5).toLocaleString('en-IN')}</strong></p>
+                        <p className="text-red-600">→ <strong>REJECTED</strong> (exceeds limit by ₹{((editingRule.numeric_value || 50000) * 0.5).toLocaleString('en-IN')})</p>
+                        <p className="text-xs text-zinc-500">CTC Impact: None (claim not processed)</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* THRESHOLD Rule Examples */}
+                {editingRule.rule_type === 'threshold' && (
+                  <div className="space-y-3">
+                    <p className={`text-xs ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
+                      <strong>THRESHOLD Rule:</strong> Triggers actions when values cross defined thresholds (auto-approve, penalties, escalations).
+                    </p>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-emerald-600 mb-2">✅ Example 1 - Below Threshold (Auto-Approved):</p>
+                      <div className="text-sm space-y-1">
+                        <p>Employee CTC: <strong>₹6,00,000/year</strong> (Monthly: ₹50,000)</p>
+                        <p>Threshold: Auto-approve expenses below <strong>₹{(editingRule.numeric_value || 500).toLocaleString('en-IN')}</strong></p>
+                        <p>Employee expense claim: <strong>₹{Math.floor((editingRule.numeric_value || 500) * 0.6).toLocaleString('en-IN')}</strong></p>
+                        <p className="text-emerald-600">→ <strong>AUTO-APPROVED</strong> (no manager approval needed)</p>
+                        <p className="text-xs text-zinc-500">Payroll Impact: ₹{Math.floor((editingRule.numeric_value || 500) * 0.6).toLocaleString('en-IN')} added to reimbursements in next payroll</p>
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-amber-600 mb-2">⚠️ Example 2 - Above Threshold (Penalty Applied):</p>
+                      <div className="text-sm space-y-1">
+                        <p>Employee CTC: <strong>₹10,00,000/year</strong> (Basic: ₹4,00,000, Daily: ₹1,333)</p>
+                        <p>Threshold: Late penalty after <strong>{editingRule.numeric_value || 3} incidents</strong></p>
+                        <p>Employee late arrivals this month: <strong>{(editingRule.numeric_value || 3) + 2}</strong></p>
+                        <p className="text-amber-600">→ <strong>PENALTY TRIGGERED</strong> ({(editingRule.numeric_value || 3) + 2 - (editingRule.numeric_value || 3)} excess = 0.5 day LOP each)</p>
+                        <p className="text-xs text-red-500">CTC Impact: ₹{Math.floor(1333 * 0.5 * 2).toLocaleString('en-IN')} deducted from salary (1 day LOP)</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* FORMULA Rule Examples */}
+                {editingRule.rule_type === 'formula' && (
+                  <div className="space-y-3">
+                    <p className={`text-xs ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
+                      <strong>FORMULA Rule:</strong> Calculates values dynamically based on CTC components (Basic, Gross, etc.).
+                    </p>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-blue-600 mb-2">📊 Example 1 - PF Calculation:</p>
+                      <div className="text-sm space-y-1">
+                        <p>Employee CTC: <strong>₹10,00,000/year</strong></p>
+                        <p>Basic Salary: <strong>₹4,00,000/year</strong> (₹33,333/month)</p>
+                        <p>Formula: <code className="bg-zinc-100 px-1 rounded text-xs">{editingRule.value || 'basic_salary * 0.12'}</code></p>
+                        <p className="text-blue-600">→ PF Contribution: <strong>₹33,333 × 12% = ₹4,000/month</strong></p>
+                        <p className="text-xs text-zinc-500">CTC Impact: Employee: -₹4,000 | Employer: +₹4,000 (total ₹8,000 to PF account)</p>
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-red-600 mb-2">📊 Example 2 - LOP Deduction:</p>
+                      <div className="text-sm space-y-1">
+                        <p>Employee CTC: <strong>₹12,00,000/year</strong></p>
+                        <p>Basic Salary: <strong>₹4,80,000/year</strong> (₹40,000/month, ₹1,333/day)</p>
+                        <p>LOP Days: <strong>3 days</strong></p>
+                        <p>Formula: <code className="bg-zinc-100 px-1 rounded text-xs">(basic_salary / 30) × lop_days</code></p>
+                        <p className="text-red-600">→ LOP Deduction: <strong>₹1,333 × 3 = ₹4,000</strong></p>
+                        <p className="text-xs text-zinc-500">Payslip Impact: Gross ₹1,00,000 - LOP ₹4,000 = Net before tax ₹96,000</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* CONDITION Rule Examples */}
+                {editingRule.rule_type === 'condition' && (
+                  <div className="space-y-3">
+                    <p className={`text-xs ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
+                      <strong>CONDITION Rule:</strong> Applies different rules based on employee attributes (department, role, CTC, etc.).
+                    </p>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-emerald-600 mb-2">✅ Example 1 - Condition Met:</p>
+                      <div className="text-sm space-y-1">
+                        <p>Rule: Flight Class = Business <strong>WHEN</strong> travel_hours &gt; 4 hours <strong>AND</strong> role = manager</p>
+                        <p>Employee: <strong>Sales Manager</strong>, Travel: Mumbai → Delhi (5 hours)</p>
+                        <p>CTC: <strong>₹20,00,000/year</strong></p>
+                        <p className="text-emerald-600">→ <strong>CONDITION MET</strong> - Business class allowed</p>
+                        <p className="text-xs text-zinc-500">Expense Impact: ₹25,000 flight claim approved (vs ₹8,000 economy)</p>
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-amber-600 mb-2">⚠️ Example 2 - Condition NOT Met:</p>
+                      <div className="text-sm space-y-1">
+                        <p>Rule: Flight Class = Business <strong>WHEN</strong> travel_hours &gt; 4 hours <strong>AND</strong> role = manager</p>
+                        <p>Employee: <strong>Senior Developer</strong>, Travel: Mumbai → Delhi (5 hours)</p>
+                        <p>CTC: <strong>₹15,00,000/year</strong></p>
+                        <p className="text-amber-600">→ <strong>CONDITION NOT MET</strong> (not a manager) - Economy class only</p>
+                        <p className="text-xs text-zinc-500">Expense Impact: Max ₹8,000 flight claim allowed</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* APPROVAL Rule Examples */}
+                {editingRule.rule_type === 'approval' && (
+                  <div className="space-y-3">
+                    <p className={`text-xs ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
+                      <strong>APPROVAL Rule:</strong> Defines who can approve what, prevents self-approval, sets escalation paths.
+                    </p>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-emerald-600 mb-2">✅ Example 1 - Proper Approval Flow:</p>
+                      <div className="text-sm space-y-1">
+                        <p>Rule: {editingRule.rule_name || 'Self-Approval Prevention'} = <strong>{editingRule.value?.replace(/_/g, ' ') || 'No Self Approval'}</strong></p>
+                        <p>Employee CTC: <strong>₹8,00,000/year</strong></p>
+                        <p>Expense claim: <strong>₹15,000</strong> for client dinner</p>
+                        <p>Submitted by: Employee → Approved by: <strong>Reporting Manager</strong></p>
+                        <p className="text-emerald-600">→ <strong>APPROVED</strong> - Correct workflow followed</p>
+                        <p className="text-xs text-zinc-500">Payroll Impact: ₹15,000 added to next month reimbursements</p>
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded ${isDark ? 'bg-zinc-800' : 'bg-white'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                      <p className="text-xs font-medium text-red-600 mb-2">❌ Example 2 - Self-Approval Blocked:</p>
+                      <div className="text-sm space-y-1">
+                        <p>Rule: {editingRule.rule_name || 'Self-Approval Prevention'} = <strong>Prohibited</strong></p>
+                        <p>Manager CTC: <strong>₹25,00,000/year</strong></p>
+                        <p>Manager's expense claim: <strong>₹50,000</strong> for conference</p>
+                        <p>Manager tries to approve own claim</p>
+                        <p className="text-red-600">→ <strong>BLOCKED</strong> - Self-approval not allowed</p>
+                        <p className="text-xs text-zinc-500">System redirects to: Skip-level manager or HR for approval</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* CTC Components Affected */}
+                <div className={`mt-4 p-3 rounded ${isDark ? 'bg-zinc-800/50' : 'bg-zinc-50'} border ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+                  <p className="text-xs font-medium mb-2 flex items-center gap-2">
+                    <IndianRupee className="w-3 h-3" />
+                    CTC Components This Rule May Affect:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {editingRule.rule_type === 'formula' && (
+                      <>
+                        <Badge variant="outline" className="text-xs">Basic Salary</Badge>
+                        <Badge variant="outline" className="text-xs">PF Contribution</Badge>
+                        <Badge variant="outline" className="text-xs">ESI Deduction</Badge>
+                        <Badge variant="outline" className="text-xs">Gross Salary</Badge>
+                      </>
+                    )}
+                    {editingRule.rule_type === 'limit' && (
+                      <>
+                        <Badge variant="outline" className="text-xs">Reimbursements</Badge>
+                        <Badge variant="outline" className="text-xs">Leave Encashment</Badge>
+                        <Badge variant="outline" className="text-xs">Travel Claims</Badge>
+                      </>
+                    )}
+                    {editingRule.rule_type === 'threshold' && (
+                      <>
+                        <Badge variant="outline" className="text-xs">LOP Deductions</Badge>
+                        <Badge variant="outline" className="text-xs">Attendance Bonus</Badge>
+                        <Badge variant="outline" className="text-xs">Overtime Pay</Badge>
+                      </>
+                    )}
+                    {editingRule.rule_type === 'condition' && (
+                      <>
+                        <Badge variant="outline" className="text-xs">Allowances</Badge>
+                        <Badge variant="outline" className="text-xs">Grade-based Benefits</Badge>
+                        <Badge variant="outline" className="text-xs">Location Allowance</Badge>
+                      </>
+                    )}
+                    {editingRule.rule_type === 'approval' && (
+                      <>
+                        <Badge variant="outline" className="text-xs">Expense Reimbursements</Badge>
+                        <Badge variant="outline" className="text-xs">Leave Balance</Badge>
+                        <Badge variant="outline" className="text-xs">Advance Settlements</Badge>
+                      </>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Apply Rule Button - Prominent after simulation */}
+                <div className={`mt-4 p-4 rounded-lg ${isDark ? 'bg-emerald-900/30 border border-emerald-700' : 'bg-emerald-50 border border-emerald-200'}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                        Ready to apply this rule?
+                      </p>
+                      <p className={`text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                        The rule will be saved and applied immediately to {editingRule.applies_to?.scope_type === 'all_employees' ? 'all employees' : (editingRule.applies_to?.scope_value || 'selected scope')}.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleSaveRule}
+                      disabled={updateRuleMutation.isPending || addRuleMutation.isPending || !editingRule.rule_name}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      size="lg"
+                    >
+                      {(updateRuleMutation.isPending || addRuleMutation.isPending) ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                      )}
+                      Apply Rule & Close
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button variant="outline" onClick={() => setShowRuleDialog(false)}>
               Cancel
             </Button>
             <Button
               onClick={handleSaveRule}
-              disabled={updateRuleMutation.isPending || addRuleMutation.isPending}
+              disabled={updateRuleMutation.isPending || addRuleMutation.isPending || !editingRule?.rule_name}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               {(updateRuleMutation.isPending || addRuleMutation.isPending) ? (
