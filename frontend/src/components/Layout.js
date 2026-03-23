@@ -22,7 +22,7 @@ import {
   GitBranch, CalendarDays, Wallet, Clock, Map, Star, GanttChartSquare, Download, Send, Inbox, Settings,
   Sun, Moon, TrendingUp, Car, BookOpen, Key, Menu, X, Home, UserCircle, Lock, Image, CreditCard, KeyRound,
   FileSignature, Search, Command, Rocket, CheckCircle2, MessageCircle, Bot, MailCheck, Target, ArrowRight, Circle,
-  HelpCircle, ArrowRightLeft, Wifi, WifiOff, Edit, CalendarPlus
+  HelpCircle, ArrowRightLeft, Wifi, WifiOff, Edit, CalendarPlus, Calculator
 } from 'lucide-react';
 
 // Legacy role-based access (kept for backward compatibility only when API fails)
@@ -317,6 +317,7 @@ const Layout = () => {
   
   // Group 4: Payroll
   const hrPayrollItems = [
+    { name: 'Payroll Engine', href: '/payroll-engine', icon: Calculator, requiresHRorAdmin: true },
     { name: 'CTC & Payroll', href: '/ctc-designer', icon: Wallet, requiresApproval: true },
     { name: 'Payroll Summary Report', href: '/payroll-summary-report', icon: FileText, requiresHRorAdmin: true },
     { name: 'HR Reports', href: '/reports?category=hr', icon: BarChart3, requiresReports: true },

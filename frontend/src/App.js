@@ -36,6 +36,7 @@ const OrgChart = lazy(() => import('./pages/OrgChart'));
 const LeaveManagement = lazy(() => import('./pages/LeaveManagement'));
 const Attendance = lazy(() => import('./pages/Attendance'));
 const Payroll = lazy(() => import('./pages/Payroll'));
+const PayrollEngine = lazy(() => import('./pages/PayrollEngine'));
 const CTCDesigner = lazy(() => import('./pages/CTCDesigner'));
 const DocumentCenter = lazy(() => import('./pages/DocumentCenter'));
 const MyAttendance = lazy(() => import('./pages/MyAttendance'));
@@ -283,6 +284,7 @@ function AppRouter({ user, login, logout, loading }) {
         <Route path="leave-management" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><LeaveManagement /></RoleGuard>} />
         <Route path="attendance" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR']}><Attendance /></RoleGuard>} />
         <Route path="payroll" element={<RoleGuard allowedRoles={['hr_manager', 'hr_executive']} allowedDepts={['HR', 'Finance']}><Payroll /></RoleGuard>} />
+        <Route path="payroll-engine" element={<RoleGuard allowedRoles={['admin', 'hr_manager']} allowedDepts={['HR', 'Finance', 'Admin']}><PayrollEngine /></RoleGuard>} />
         <Route path="ctc-designer" element={<CTCDesigner />} />
         <Route path="document-center" element={<DocumentCenter />} />
         <Route path="document-builder" element={<Navigate to="/document-center" replace />} />

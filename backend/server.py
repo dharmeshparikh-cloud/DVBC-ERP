@@ -406,6 +406,7 @@ from routers import kickoff as kickoff_router
 from routers import payments as payments_router
 from routers import project_payments as project_payments_router
 from routers import payroll as payroll_router
+from routers import payroll_engine_router
 
 # Analytics & Reports routers
 from routers import analytics as analytics_router
@@ -579,6 +580,7 @@ api_router.include_router(stage_guard_router.router)
 api_router.include_router(payments_router.router)
 api_router.include_router(project_payments_router.router)
 api_router.include_router(payroll_router.router)
+api_router.include_router(payroll_engine_router.router)
 
 # Analytics & Reports
 api_router.include_router(analytics_router.router)
