@@ -1,6 +1,23 @@
 # NETRA ERP - Product Requirements Document
 
-## Latest Updates - March 24, 2026
+## Latest Updates - March 23, 2026
+
+### Attendance Policy Configuration UI (P0 COMPLETE) ✅ [NEW]
+**Configurable Attendance Settings via Business Rules UI:**
+- **Working Days Schedule**: Toggleable weekday buttons (Mon-Sun) with visual selection
+- **Core Hours**: Start/End time dropdowns (defaulting to 10:00-19:00)
+- **Grace Settings**: Grace Period (mins), Grace Days/Month
+- **WFH Policy**: WFH Days per week
+- **Late Penalty**: Configurable penalty amount (₹/day)
+- **Save Configuration**: Persists changes to SSOT (Business Rules collection)
+- **Policy Overrides**: Role-wise and Employee-wise overrides with custom schedules
+
+**APIs Implemented:**
+- `GET /api/business-rules/attendance/config` - Get company-wide config
+- `PUT /api/business-rules/attendance/config` - Update company-wide config
+- `GET /api/business-rules/attendance/overrides` - List all overrides
+- `POST /api/business-rules/attendance/override` - Create role/employee override
+- `DELETE /api/business-rules/attendance/override/{id}` - Delete override
 
 ### Enhanced Excel Export (P0 COMPLETE) ✅
 **53 Columns matching target payroll register format:**
